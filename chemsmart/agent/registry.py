@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import inspect
-import types
 from dataclasses import dataclass
 from typing import Any, get_type_hints
 
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    create_model,
+)
+from pydantic.errors import PydanticInvalidForJsonSchema
 
 from chemsmart.agent import tools as agent_tools
 
@@ -22,19 +28,9 @@ class ToolSpec:
     accepts_kwargs: bool = False
 
     def openai_tool_def(self) -> dict[str, Any]:
-        schema = {
-            "type": "object",
-            "properties": {},
-            "required": [],
-            "additionalProperties": self.accepts_kwargs,
-        }
-        for field_name, field_info in self.input_schema.model_fields.items():
-            schema["properties"][field_name] = _annotation_to_schema(
-                field_info.annotation,
-                field_info.description,
-            )
-            if field_info.is_required():
-                schema["required"].append(field_name)
+        schema = self.input_schema.model_json_schema()
+        schema.pop("title", None)
+        schema.pop("$defs", None)
         return {
             "type": "function",
             "function": {
@@ -132,6 +128,7 @@ def _build_tool_spec(
         annotation = resolved_hints.get(param.name, param.annotation)
         if annotation is inspect.Signature.empty:
             annotation = Any
+        annotation = _schema_friendly_annotation(annotation)
         default = param.default
         if default is inspect.Signature.empty:
             fields[param.name] = (annotation, Field(...))
@@ -155,41 +152,9 @@ def _build_tool_spec(
     )
 
 
-def _annotation_to_schema(
-    annotation: Any,
-    description: str | None = None,
-) -> dict[str, Any]:
-    schema: dict[str, Any] = {}
-    origin = getattr(annotation, "__origin__", None)
-    args = getattr(annotation, "__args__", ())
-
-    if annotation in {str}:
-        schema["type"] = "string"
-    elif annotation in {int}:
-        schema["type"] = "integer"
-    elif annotation in {float}:
-        schema["type"] = "number"
-    elif annotation in {bool}:
-        schema["type"] = "boolean"
-    elif origin in {list, tuple}:
-        schema["type"] = "array"
-        item_annotation = args[0] if args else Any
-        schema["items"] = _annotation_to_schema(item_annotation)
-    elif origin is dict:
-        schema["type"] = "object"
-    elif origin is None and annotation is Any:
-        schema["type"] = "object"
-    elif origin in {types.UnionType} or str(annotation).startswith(
-        "typing.Union"
-    ):
-        non_none = [arg for arg in args if arg is not type(None)]
-        if len(non_none) == 1:
-            schema = _annotation_to_schema(non_none[0])
-        else:
-            schema["type"] = "object"
-    else:
-        schema["type"] = "object"
-
-    if description:
-        schema["description"] = description
-    return schema
+def _schema_friendly_annotation(annotation: Any) -> Any:
+    try:
+        TypeAdapter(annotation).json_schema()
+    except (PydanticInvalidForJsonSchema, TypeError):
+        return Any
+    return annotation

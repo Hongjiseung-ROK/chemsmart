@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import importlib
 import json
 import os
-import pickle
 import re
 import uuid
 from datetime import UTC, datetime
@@ -13,6 +13,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from chemsmart.agent.providers import get_provider
 from chemsmart.agent.registry import ToolRegistry
+from chemsmart.io.molecules.structure import Molecule
+from chemsmart.jobs.gaussian.settings import GaussianJobSettings
+from chemsmart.jobs.job import Job
+from chemsmart.jobs.orca.settings import ORCAJobSettings
 
 _RISKY_TOOLS = {"run_local", "submit_hpc"}
 _GAUSSIAN_ROUTE_RE = re.compile(r"^\s*#\s*\S+", re.MULTILINE)
@@ -112,15 +116,21 @@ class AgentSession:
         session._load_existing_session(session_id)
         assert session.state is not None
         assert session.decision_log is not None
+        original_cwd = os.getcwd()
         os.chdir(session.state.cwd)
-        completed_results = session._load_completed_results()
-        return session._continue_run(
-            completed_results=completed_results,
-            dry_submit=kwargs.get("dry_submit", True),
-            allow_remote_unknown=kwargs.get("allow_remote_unknown", False),
-            allow_critic_override=kwargs.get("allow_critic_override", False),
-            rerender_plan=False,
-        )
+        try:
+            completed_results = session._load_completed_results()
+            return session._continue_run(
+                completed_results=completed_results,
+                dry_submit=kwargs.get("dry_submit", True),
+                allow_remote_unknown=kwargs.get("allow_remote_unknown", False),
+                allow_critic_override=kwargs.get(
+                    "allow_critic_override", False
+                ),
+                rerender_plan=False,
+            )
+        finally:
+            os.chdir(original_cwd)
 
     def run(
         self,
@@ -425,9 +435,11 @@ class AgentSession:
 
     def _write_result_artifact(self, step_index: int, result: Any) -> Path:
         assert self.session_dir is not None
-        artifact_path = self.session_dir / f"step_{step_index + 1:02d}.pkl"
-        with artifact_path.open("wb") as handle:
-            pickle.dump(result, handle)
+        artifact_path = self.session_dir / f"step_{step_index + 1:02d}.json"
+        artifact_path.write_text(
+            json.dumps(_json_safe(result), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
         return artifact_path
 
     def _load_existing_session(self, session_id: str) -> None:
@@ -443,9 +455,11 @@ class AgentSession:
         assert self.state is not None
         results: list[Any] = []
         for step_index in range(self.state.current_step_index):
-            artifact_path = self.session_dir / f"step_{step_index + 1:02d}.pkl"
-            with artifact_path.open("rb") as handle:
-                results.append(pickle.load(handle))
+            artifact_path = self.session_dir / (
+                f"step_{step_index + 1:02d}.json"
+            )
+            with artifact_path.open(encoding="utf-8") as handle:
+                results.append(json.load(handle))
         return results
 
     def _save_state(self) -> None:
@@ -638,7 +652,12 @@ def _parse_json_response(response: Any) -> dict[str, Any]:
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"LLM returned invalid JSON: {exc}\nRaw: {text[:300]!r}"
+        ) from exc
 
 
 def _extract_text(response: Any) -> str:
@@ -698,10 +717,49 @@ def _resolve_ref_string(value: str, prior_results: list[Any]) -> Any:
             resolved = resolved[part]
         else:
             resolved = getattr(resolved, part)
-    return resolved
+    return _restore_json_result(resolved)
 
 
 def _json_safe(value: Any) -> Any:
+    if isinstance(value, Molecule):
+        positions = value.positions
+        if hasattr(positions, "tolist"):
+            positions = positions.tolist()
+        return {
+            "__chemsmart_type__": "molecule",
+            "symbols": _json_safe(list(value.symbols)),
+            "positions": _json_safe(positions),
+            "charge": value.charge,
+            "multiplicity": value.multiplicity,
+            "frozen_atoms": _json_safe(value.frozen_atoms),
+            "pbc_conditions": _json_safe(value.pbc_conditions),
+            "translation_vectors": _json_safe(value.translation_vectors),
+            "energy": value.energy,
+            "forces": _json_safe(value.forces),
+            "velocities": _json_safe(value.velocities),
+            "info": _json_safe(value.info),
+        }
+    if isinstance(value, (GaussianJobSettings, ORCAJobSettings)):
+        return {
+            "__chemsmart_type__": "settings",
+            "module": value.__class__.__module__,
+            "class": value.__class__.__name__,
+            **{
+                key: _json_safe(item)
+                for key, item in vars(value).items()
+                if not key.startswith("_")
+            },
+        }
+    if isinstance(value, Job):
+        return {
+            "__chemsmart_type__": "job",
+            "module": value.__class__.__module__,
+            "class": value.__class__.__name__,
+            "molecule": _json_safe(value.molecule),
+            "settings": _json_safe(value.settings),
+            "label": value.label,
+            "folder": value.folder,
+        }
     if isinstance(value, BaseModel):
         return _json_safe(value.model_dump())
     if isinstance(value, dict):
@@ -719,6 +777,57 @@ def _json_safe(value: Any) -> Any:
 
 def _preview_value(value: Any) -> Any:
     return _json_safe(value)
+
+
+def _restore_json_result(value: Any) -> Any:
+    if isinstance(value, list):
+        return [_restore_json_result(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+
+    marker = value.get("__chemsmart_type__")
+    if marker == "molecule":
+        return Molecule(
+            symbols=value.get("symbols"),
+            positions=value.get("positions"),
+            charge=value.get("charge"),
+            multiplicity=value.get("multiplicity"),
+            frozen_atoms=value.get("frozen_atoms"),
+            pbc_conditions=value.get("pbc_conditions"),
+            translation_vectors=value.get("translation_vectors"),
+            energy=value.get("energy"),
+            forces=value.get("forces"),
+            velocities=value.get("velocities"),
+            info=value.get("info"),
+        )
+
+    if marker == "settings":
+        settings_cls = _load_class(value["module"], value["class"])
+        kwargs = {
+            key: _restore_json_result(item)
+            for key, item in value.items()
+            if key not in {"__chemsmart_type__", "module", "class"}
+        }
+        return settings_cls(**kwargs)
+
+    if marker == "job":
+        job_cls = _load_class(value["module"], value["class"])
+        job = job_cls(
+            molecule=_restore_json_result(value["molecule"]),
+            settings=_restore_json_result(value["settings"]),
+            label=value["label"],
+            jobrunner=None,
+        )
+        if value.get("folder"):
+            job.set_folder(value["folder"])
+        return job
+
+    return {key: _restore_json_result(item) for key, item in value.items()}
+
+
+def _load_class(module_name: str, class_name: str) -> type[Any]:
+    module = importlib.import_module(module_name)
+    return getattr(module, class_name)
 
 
 def _is_tool_error(result: Any) -> bool:
