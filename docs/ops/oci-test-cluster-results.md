@@ -3,15 +3,15 @@
 Date: 2026-05-11  
 Region: `ap-chuncheon-1`  
 Compartment: tenancy root  
-Outcome: **STOPPED at step 6** (`oci compute instance launch`) per task instruction to stop on any OCI create failure.
+Outcome: **Blocked before retry launch**. The original instance launch failed with an OCI CLI client-side timeout, and the authorized one-time retry could not be attempted because the OCI session had already expired.
 
 ## Summary
 
-I completed the preflight, SSH key creation, image discovery, cloud-init authoring, and network provisioning for the OCI Always Free single-node Slurm target.
+I completed the original preflight, SSH key creation, image discovery, cloud-init authoring, and network provisioning for the OCI Always Free single-node Slurm target.
 
-The run stopped on the first compute create attempt. I did **not** retry the failed create.
+The first `oci compute instance launch` failed with a client-side timeout. A follow-up retry was authorized with longer CLI timeouts and reuse of the existing network, but the retry was blocked at the required auth check because the OCI session had expired before the retry started.
 
-## Exact create failure
+## Original launch failure
 
 Command attempted:
 
@@ -48,26 +48,41 @@ RequestException:
 }
 ```
 
-Post-failure read-only verification showed **no matching instance was created**, so there is no `INSTANCE_ID` and no `PUBLIC_IP`.
+Post-failure read-only verification from the first run showed **no matching instance was created**, so there was no `INSTANCE_ID` and no `PUBLIC_IP`.
 
-## Preflight facts
+## Authorized retry outcome
+
+The retry was **not attempted** because the required auth re-check failed.
+
+At `2026-05-11 20:44:08 KST`, `oci session validate --profile DEFAULT` returned:
+
+```text
+ERROR: This CLI session has expired, so it cannot currently be used to run commands
+Do you want to re-authenticate your CLI session profile? [Y/n]: Abort:
+no
+```
+
+The session had been expected to expire at `2026-05-11 20:40:56 KST`, so by the time of the retry the token was already past expiry.
+
+## Retry pre-check facts
 
 - Editable install path check passed: `/Users/hongjiseung/developer/chemsmart`
-- IAM region-subscription re-check passed in `ap-chuncheon-1`
-- Availability domain used: `HdoO:AP-CHUNCHEON-1-AD-1`
-- Ubuntu 22.04 image selected: `ocid1.image.oc1.ap-chuncheon-1.aaaaaaaauvxjy5tclxvl5nz34arovhumdt37bctdqf23sjuqrlr24vuthkvq`
-- SSH ingress source locked to: `112.171.21.152/32`
-- SSH key created: `~/.ssh/chemsmart-slurm_ed25519`
-- Cloud-init authored at: `/tmp/chemsmart-cloud-init.yaml`
+- Retry region remained: `ap-chuncheon-1`
+- Availability domain to reuse: `HdoO:AP-CHUNCHEON-1-AD-1`
+- Ubuntu 22.04 image to reuse: `ocid1.image.oc1.ap-chuncheon-1.aaaaaaaauvxjy5tclxvl5nz34arovhumdt37bctdqf23sjuqrlr24vuthkvq`
+- Existing subnet to reuse: `ocid1.subnet.oc1.ap-chuncheon-1.aaaaaaaayekt2uqlqzcgxoubgq6dsvabsvpg7vbq52fjezt5twpak3shgmta`
+- Cloud-init still present at retry time: `/tmp/chemsmart-cloud-init.yaml`
+- SSH public key still present at retry time: `~/.ssh/chemsmart-slurm_ed25519.pub`
+- SSH ingress source from the original network setup: `112.171.21.152/32`
 
 ## Rendered YAML
 
-Wizard YAML was **not produced** because the live host was never created.
+Wizard YAML was **not produced** because no live host was available.
 
 ```yaml
 # Not available.
 # chemsmart agent wizard chemslurm1 --host ubuntu@<PUBLIC_IP>
-# was not run because OCI instance launch failed and no PUBLIC_IP existed.
+# was not run because no instance was launched successfully.
 ```
 
 ## Verification
@@ -92,7 +107,8 @@ Wizard YAML was **not produced** because the live host was never created.
 ### Non-wizard issues encountered
 
 - Required reading path from task was missing locally: `/Users/hongjiseung/.agent-orchestrator/projects/chemsmart/worktrees/cs-orchestrator/bin/plan.md`
-- OCI CLI create failed with a client-side timeout before any instance was observable via read-only list calls.
+- The original OCI compute create failed with a client-side timeout.
+- The authorized retry was blocked because the OCI session had already expired.
 
 ## OCI resource IDs created
 
@@ -113,6 +129,8 @@ Wizard YAML was **not produced** because the live host was never created.
 ```bash
 export OCI_CLI_AUTH=security_token
 export OCI_REGION=ap-chuncheon-1
+
+# No instance termination command is included because no instance was created.
 
 oci network subnet delete \
   --region "$OCI_REGION" \
