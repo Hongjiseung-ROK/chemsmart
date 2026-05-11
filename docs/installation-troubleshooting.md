@@ -243,17 +243,10 @@ ORCA:
 
 ---
 
-## 주의사항: `wizard` 명령 실행 전 SGE 환경 로드 필요
+## 참고: `wizard` 실행 전 수동 scheduler 로드는 보통 필요 없음
 
-이 서버에서 wizard를 실행할 때는 반드시 SGE 환경을 먼저 로드해야 한다. `/opt/sge/bin/lx-amd64`가 기본 `PATH`에 포함되어 있지 않기 때문이다.
-
-```bash
-source /opt/sge/default/common/settings.sh
-chemsmart agent wizard <server-name>
-```
-
-또는 `~/.bashrc`에 아래를 추가하면 자동 로드된다:
-
-```bash
-source /opt/sge/default/common/settings.sh
-```
+이제 `scheduler_env.py`가 표준 설치 경로에서 SGE/SLURM/PBS 환경을 자동 탐지한다.
+`/opt/sge`, `/opt/uge`, `/cm/shared/apps/sge` 같은 일반적인 위치라면
+`source .../settings.sh`를 먼저 실행하지 않아도 `chemsmart agent wizard`가 바로 동작한다.
+다만 SGE가 비표준 경로에 설치된 환경이라면, wizard 실행 전에
+`export SGE_ROOT=/custom/path/to/sge`처럼 `SGE_ROOT`를 먼저 지정하면 된다.
