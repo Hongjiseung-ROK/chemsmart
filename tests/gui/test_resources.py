@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 from importlib import resources
+from pathlib import Path
 
+from chemsmart.package_resources import package_resource
 from chemsmart.gui.resources import THREEDMOL_SHA256, read_threedmol_javascript
 from chemsmart.gui.widgets.structure_viewer import build_3dmol_html
 
@@ -33,6 +36,31 @@ def test_threedmol_document_is_self_contained_and_data_safe():
     assert "decodeUtf8" in html
     assert xyz not in html
     assert "$3Dmol.createViewer" in html
+
+
+def test_frozen_resource_is_anchored_to_macos_executable(monkeypatch, tmp_path):
+    executable = tmp_path / "ChemSmart.app" / "Contents" / "MacOS" / "ChemSmart"
+    resource = (
+        executable.parents[1]
+        / "Resources"
+        / "chemsmart"
+        / "settings"
+        / "templates"
+        / ".chemsmart"
+    )
+    resource.mkdir(parents=True)
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(executable))
+    monkeypatch.setattr(sys, "platform", "darwin")
+
+    resolved = package_resource(
+        "chemsmart.settings", "templates", ".chemsmart"
+    )
+
+    assert isinstance(resolved, Path)
+    assert resolved == resource.resolve()
+    assert resolved.is_absolute()
 
 
 def test_threedmol_document_blocks_script_breakout_from_structure_data():
