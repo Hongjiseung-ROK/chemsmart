@@ -143,6 +143,23 @@ identity, and warnings. Archive extraction remains a mandatory in-run hash gate
 but is never uploaded; a verified bundle remains available only through the
 separate successful-bundle artifact.
 
+The resulting 1,159,133-byte diagnostic artifact was downloaded and hashed.
+Its metrics prove an 812,774,671-byte arm64 bundle with valid ad-hoc signing,
+macOS 11.0 Mach-O minimum, macOS 14.0 plist minimum, intact symlinks and bundle,
+successful archive round trip, and nonzero RSS. All three probes and the shell
+process were observed for roughly 0.5 seconds (58,928–74,672 KiB peak RSS), but
+LaunchServices returned without any app receipt. Because the Finder-style
+bundle suppresses application stdout/stderr, the verifier now redirects both
+streams to bounded diagnostic files for every launch.
+
+The same metrics also showed that the generic `/Users/runner/` and
+`/private/var/folders/` scan matched hundreds of compiled third-party wheel
+objects rather than identifying a current ChemSmart source path. Those generic
+signals remain recorded as provenance observations. The mandatory leak gate now
+checks the exact current `GITHUB_WORKSPACE` and `RUNNER_TEMP` supplied by the
+isolated builder, so an active build path still fails while unrelated upstream
+wheel provenance cannot create a false packaging failure.
+
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
 loaded, one canvas existed, and the molecule contained the expected atom.

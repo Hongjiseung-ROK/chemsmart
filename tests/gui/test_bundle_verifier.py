@@ -129,3 +129,23 @@ def test_macos_minimum_version_parser_supports_both_load_commands():
     assert verifier._parse_macos_minos(legacy_version) == "13.5"
     assert verifier._version_at_most_14("14.0") is True
     assert verifier._version_at_most_14("14.1") is False
+
+
+def test_embedded_path_scan_separates_observation_from_forbidden_path(tmp_path):
+    payload = tmp_path / "payload.bin"
+    boundary_padding = b"x" * (1024 * 1024 - 5)
+    payload.write_bytes(
+        boundary_padding
+        + b"/Users/runner/upstream-wheel"
+        + b"\0/work/chemsmart/private-build"
+    )
+
+    markers = {
+        **verifier.OBSERVED_BUILD_PATH_MARKERS,
+        "forbidden_0": b"/work/chemsmart",
+    }
+
+    assert verifier._embedded_path_markers(payload, markers) == [
+        "forbidden_0",
+        "users_runner",
+    ]

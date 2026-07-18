@@ -16,7 +16,10 @@ from pathlib import Path
 from typing import Any
 
 
-BUILDER_PATH_MARKERS = (b"/Users/runner/", b"/private/var/folders/")
+OBSERVED_BUILD_PATH_MARKERS = {
+    "users_runner": b"/Users/runner/",
+    "private_var_folders": b"/private/var/folders/",
+}
 INTERNAL_CLI_MARKER = "--chemsmart-internal-cli"
 MINIMAL_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
 SHELL_NAVIGATION_KEYS = (
@@ -145,15 +148,35 @@ def _launch_and_measure(
     )
 
 
-def _contains_builder_path(path: Path) -> bool:
+def _embedded_path_markers(
+    path: Path,
+    markers: dict[str, bytes],
+) -> list[str]:
+    """Return marker labels found in a file, including across chunk edges."""
+    if not markers:
+        return []
+    maximum = max(len(marker) for marker in markers.values())
+    overlap = b""
+    found: set[str] = set()
     try:
         with path.open("rb") as handle:
             while chunk := handle.read(1024 * 1024):
-                if any(marker in chunk for marker in BUILDER_PATH_MARKERS):
-                    return True
+                searchable = overlap + chunk
+                found.update(
+                    label
+                    for label, marker in markers.items()
+                    if marker in searchable
+                )
+                overlap = searchable[-(maximum - 1) :] if maximum > 1 else b""
     except OSError:
-        return False
-    return False
+        return []
+    return sorted(found)
+
+
+def _read_text_tail(path: Path, *, limit: int = 8000) -> str:
+    if not path.is_file():
+        return ""
+    return path.read_text(encoding="utf-8", errors="replace")[-limit:]
 
 
 def _bundle_inventory(root: Path) -> dict[str, Any]:
@@ -207,6 +230,8 @@ def _launch_once(
     home = launch_root / "home"
     workspace = launch_root / "workspace"
     receipt = launch_root / "receipt.json"
+    stdout_path = launch_root / "application.stdout.txt"
+    stderr_path = launch_root / "application.stderr.txt"
     temp_root = launch_root / "tmp"
     for path in (home, workspace, temp_root):
         path.mkdir(parents=True, exist_ok=True)
@@ -230,6 +255,10 @@ def _launch_once(
         "/usr/bin/open",
         "-n",
         "-W",
+        "-o",
+        str(stdout_path),
+        "--stderr",
+        str(stderr_path),
         "--env",
         f"HOME={home}",
         "--env",
@@ -257,6 +286,10 @@ def _launch_once(
         "elapsed_seconds": elapsed,
         "peak_rss_kib": peak_rss_kib,
         "open": launch,
+        "application_output": {
+            "stdout": _read_text_tail(stdout_path),
+            "stderr": _read_text_tail(stderr_path),
+        },
         "receipt": payload,
         "receipt_sha256": _sha256(receipt) if receipt.is_file() else None,
         "expected": {
@@ -447,6 +480,7 @@ def verify_bundle(
     launches: int,
     evidence_root: Path,
     archive: Path,
+    forbidden_paths: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     if app.suffix != ".app" or not app.is_dir():
         raise ValueError(f"Not an app bundle: {app}")
@@ -464,10 +498,33 @@ def verify_bundle(
     threedmol_assets = sorted(
         str(path.relative_to(app)) for path in app.rglob("3Dmol-min.js")
     )
+    path_markers = dict(OBSERVED_BUILD_PATH_MARKERS)
+    path_markers.update(
+        {
+            f"forbidden_{index}": raw_path.encode()
+            for index, raw_path in enumerate(forbidden_paths)
+            if raw_path
+        }
+    )
+    embedded_path_findings = []
+    for path in app.rglob("*"):
+        if not path.is_file():
+            continue
+        markers = _embedded_path_markers(path, path_markers)
+        if markers:
+            embedded_path_findings.append(
+                {
+                    "path": str(path.relative_to(app)),
+                    "markers": markers,
+                }
+            )
     leaked_paths = sorted(
-        str(path.relative_to(app))
-        for path in app.rglob("*")
-        if path.is_file() and _contains_builder_path(path)
+        finding["path"]
+        for finding in embedded_path_findings
+        if any(
+            marker.startswith("forbidden_")
+            for marker in finding["markers"]
+        )
     )
 
     evidence_root.mkdir(parents=True, exist_ok=False)
@@ -581,6 +638,7 @@ def verify_bundle(
             "qtwebengine_helpers": helpers,
             "threedmol_assets": threedmol_assets,
             "builder_path_leaks": leaked_paths,
+            "embedded_build_path_observations": embedded_path_findings,
             "inventory_before": inventory_before,
             "inventory_after": inventory_after,
         },
@@ -605,6 +663,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--launches", type=int, default=3)
+    parser.add_argument("--forbidden-path", action="append", default=[])
     args = parser.parse_args()
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -619,6 +678,7 @@ def main() -> int:
         launches=args.launches,
         evidence_root=evidence_root,
         archive=args.archive.resolve(),
+        forbidden_paths=tuple(args.forbidden_path),
     )
     args.output.write_text(
         json.dumps(report, indent=2, sort_keys=True),

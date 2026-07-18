@@ -112,6 +112,8 @@ jobs:
             --app "$app" \
             --output "build/p1/${CANDIDATE}/metrics.json" \
             --archive "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip" \
+            --forbidden-path "$GITHUB_WORKSPACE" \
+            --forbidden-path "$RUNNER_TEMP" \
             --launches 3 || verify_status=$?
           if test -f "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip"; then
             shasum -a 256 \
@@ -136,11 +138,13 @@ jobs:
             build/p1/${{ matrix.candidate }}/artifact.sha256
             build/p1/${{ matrix.candidate }}/launches-*/probe-*/receipt.json
             build/p1/${{ matrix.candidate }}/launches-*/probe-*/receipt.png
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/application.*.txt
             build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.xyz
             build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.com
             build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.inp
             build/p1/${{ matrix.candidate }}/launches-*/shell-*/receipt.json
             build/p1/${{ matrix.candidate }}/launches-*/shell-*/receipt.png
+            build/p1/${{ matrix.candidate }}/launches-*/shell-*/application.*.txt
             build/p1/${{ matrix.candidate }}/work/ChemSmart/warn-ChemSmart.txt
           if-no-files-found: error
           retention-days: 7

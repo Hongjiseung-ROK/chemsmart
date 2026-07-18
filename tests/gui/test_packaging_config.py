@@ -80,6 +80,8 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "/usr/bin/grep -F" in workflow
     assert "rg -F" not in workflow
     assert "--archive" in workflow
+    assert '--forbidden-path "$GITHUB_WORKSPACE"' in workflow
+    assert '--forbidden-path "$RUNNER_TEMP"' in workflow
     assert "--launches 3" in workflow
     assert "verify_status=$?" in workflow
     assert "continue-on-error: true" in workflow
@@ -90,6 +92,7 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "candidate }}/launches-*/\n" not in workflow
     assert "launches-*/probe-*/receipt.json" in workflow
     assert "launches-*/shell-*/receipt.json" in workflow
+    assert workflow.count("application.*.txt") == 2
     evidence_section, bundle_section = workflow.split(
         "- name: Upload verified candidate bundle"
     )
