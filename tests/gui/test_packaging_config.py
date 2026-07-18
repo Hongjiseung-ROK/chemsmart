@@ -77,11 +77,19 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "source-provenance.json" in workflow
     assert 'tee "build/p1/${CANDIDATE}/source-tests.txt"' in workflow
     assert "set -o pipefail" in workflow
+    assert "uses: actions/cache@v4" in workflow
+    assert "CCACHE_DIR: ${{ runner.temp }}/nuitka-ccache" in workflow
+    assert "NUITKA_CCACHE_BINARY=$(command -v ccache)" in workflow
+    assert "ccache --show-stats" in workflow
     assert '".[gui,agent,agent-tui,test]"' in workflow
     assert "tests/gui \\" in workflow
     assert "--dry-run" in workflow
     assert "/usr/bin/grep -F" in workflow
     assert "rg -F" not in workflow
+    assert "resource-mode-fixes.txt" in workflow
+    assert "-perm -111 -print -exec chmod a-x" in workflow
+    assert "/usr/bin/codesign --force --deep --sign -" in workflow
+    assert "/usr/bin/codesign --verify --deep --strict" in workflow
     assert "--archive" in workflow
     assert '--forbidden-path "$GITHUB_WORKSPACE"' in workflow
     assert '--forbidden-path "$RUNNER_TEMP"' in workflow

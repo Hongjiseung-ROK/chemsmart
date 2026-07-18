@@ -27,6 +27,7 @@ jobs:
         candidate: ${{ fromJSON(inputs.candidate == 'both' && '["pyinstaller","pyside6-deploy"]' || format('["{0}"]', inputs.candidate)) }}
     env:
       CANDIDATE: ${{ matrix.candidate }}
+      CCACHE_DIR: ${{ runner.temp }}/nuitka-ccache
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
       PYTHONUNBUFFERED: "1"
 
@@ -95,6 +96,25 @@ jobs:
             tests/agent/test_synthesis.py \
             2>&1 | tee "build/p1/${CANDIDATE}/source-tests.txt"
 
+      - name: Restore Nuitka compiler cache
+        if: matrix.candidate == 'pyside6-deploy'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/nuitka-ccache
+          key: chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: |
+            chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Configure Nuitka compiler cache
+        if: matrix.candidate == 'pyside6-deploy'
+        run: |
+          brew list ccache >/dev/null 2>&1 || brew install ccache
+          ccache --set-config "cache_dir=${CCACHE_DIR}"
+          ccache --max-size=5G
+          ccache --zero-stats
+          printf '%s\n' "NUITKA_CCACHE_BINARY=$(command -v ccache)" \
+            >> "$GITHUB_ENV"
+
       - name: Build PyInstaller candidate
         if: matrix.candidate == 'pyinstaller'
         run: |
@@ -126,6 +146,25 @@ jobs:
             --force \
             --keep-deployment-files \
             --verbose
+          app=$(find build/p1/pyside6-deploy/dist \
+            -type d -name 'ChemSmart.app' -print -quit)
+          test -n "$app"
+          find "$app" -type f \
+            \( -name '*.pak' -o -name '*.dat' -o -name '*.bin' \
+              -o -name '*.json' -o -name '*.js' -o -name '*.css' \
+              -o -name '*.html' -o -name '*.wasm' -o -name '*.qm' \) \
+            -perm -111 -print -exec chmod a-x {} + \
+            | tee build/p1/pyside6-deploy/resource-mode-fixes.txt
+          /usr/bin/codesign --force --deep --sign - --timestamp=none "$app"
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
+
+      - name: Record Nuitka compiler cache receipt
+        if: always() && matrix.candidate == 'pyside6-deploy'
+        run: |
+          ccache --show-config \
+            > build/p1/pyside6-deploy/ccache-config.txt
+          ccache --show-stats \
+            > build/p1/pyside6-deploy/ccache-stats.txt
 
       - name: Locate and verify candidate bundle
         id: verify
@@ -162,6 +201,9 @@ jobs:
             build/p1/${{ matrix.candidate }}/source-tests.txt
             build/p1/${{ matrix.candidate }}/dry-run.txt
             build/p1/${{ matrix.candidate }}/nuitka-report.xml
+            build/p1/${{ matrix.candidate }}/ccache-config.txt
+            build/p1/${{ matrix.candidate }}/ccache-stats.txt
+            build/p1/${{ matrix.candidate }}/resource-mode-fixes.txt
             build/p1/${{ matrix.candidate }}/metrics.json
             build/p1/${{ matrix.candidate }}/artifact.sha256
             build/p1/${{ matrix.candidate }}/launches-*/probe-*/receipt.json
