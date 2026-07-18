@@ -173,6 +173,35 @@ def _embedded_path_markers(
     return sorted(found)
 
 
+def _marker_labels(payload: bytes, markers: dict[str, bytes]) -> list[str]:
+    return sorted(
+        label for label, marker in markers.items() if marker in payload
+    )
+
+
+def _path_marker_finding(
+    path: Path,
+    *,
+    root: Path,
+    markers: dict[str, bytes],
+) -> dict[str, Any] | None:
+    if path.is_symlink():
+        labels = _marker_labels(os.readlink(path).encode(), markers)
+        location = "symlink_target"
+    elif path.is_file():
+        labels = _embedded_path_markers(path, markers)
+        location = "contents"
+    else:
+        return None
+    if not labels:
+        return None
+    return {
+        "path": str(path.relative_to(root)),
+        "location": location,
+        "markers": labels,
+    }
+
+
 def _read_text_tail(path: Path, *, limit: int = 8000) -> str:
     if not path.is_file():
         return ""
@@ -197,6 +226,9 @@ def _bundle_inventory(root: Path) -> dict[str, Any]:
     directory_count = 0
     symlinks: list[dict[str, str]] = []
     broken_symlinks: list[str] = []
+    absolute_symlinks: list[str] = []
+    escaping_symlinks: list[str] = []
+    root_resolved = root.resolve()
 
     for path in sorted(root.rglob("*"), key=lambda item: str(item.relative_to(root))):
         relative = str(path.relative_to(root))
@@ -207,6 +239,17 @@ def _bundle_inventory(root: Path) -> dict[str, Any]:
             symlinks.append({"path": relative, "target": target})
             if not path.exists():
                 broken_symlinks.append(relative)
+            if Path(target).is_absolute():
+                absolute_symlinks.append(relative)
+            resolved_target = (
+                Path(target).resolve()
+                if Path(target).is_absolute()
+                else (path.parent / target).resolve()
+            )
+            try:
+                resolved_target.relative_to(root_resolved)
+            except ValueError:
+                escaping_symlinks.append(relative)
             record = f"L\0{relative}\0{mode}\0{target}\n".encode()
         elif path.is_file():
             file_count += 1
@@ -227,6 +270,8 @@ def _bundle_inventory(root: Path) -> dict[str, Any]:
         "symlink_count": len(symlinks),
         "symlinks": symlinks,
         "broken_symlinks": broken_symlinks,
+        "absolute_symlinks": absolute_symlinks,
+        "escaping_symlinks": escaping_symlinks,
     }
 
 
@@ -521,16 +566,13 @@ def verify_bundle(
     )
     embedded_path_findings = []
     for path in app.rglob("*"):
-        if not path.is_file():
-            continue
-        markers = _embedded_path_markers(path, path_markers)
-        if markers:
-            embedded_path_findings.append(
-                {
-                    "path": str(path.relative_to(app)),
-                    "markers": markers,
-                }
-            )
+        finding = _path_marker_finding(
+            path,
+            root=app,
+            markers=path_markers,
+        )
+        if finding:
+            embedded_path_findings.append(finding)
     leaked_paths = sorted(
         finding["path"]
         for finding in embedded_path_findings
@@ -629,7 +671,11 @@ def verify_bundle(
         "bundle_immutable": inventory_before["sha256"]
         == inventory_after["sha256"],
         "symlinks_valid": not inventory_before["broken_symlinks"]
-        and not inventory_after["broken_symlinks"],
+        and not inventory_after["broken_symlinks"]
+        and not inventory_before["absolute_symlinks"]
+        and not inventory_after["absolute_symlinks"]
+        and not inventory_before["escaping_symlinks"]
+        and not inventory_after["escaping_symlinks"],
         "archive_roundtrip": archive_result["status"] == "passed",
         "memory_measured": all(
             launch["peak_rss_kib"] > 0 for launch in launch_results

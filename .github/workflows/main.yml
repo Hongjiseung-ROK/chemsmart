@@ -44,6 +44,30 @@ jobs:
           sw_vers > "build/p1/${CANDIDATE}/sw_vers.txt"
           uname -a > "build/p1/${CANDIDATE}/uname.txt"
           python -VV > "build/p1/${CANDIDATE}/python.txt"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("build/p1") / os.environ["CANDIDATE"]
+          payload = {
+              "commit": os.environ["GITHUB_SHA"],
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_url": (
+                  f"{os.environ['GITHUB_SERVER_URL']}/"
+                  f"{os.environ['GITHUB_REPOSITORY']}/actions/runs/"
+                  f"{os.environ['GITHUB_RUN_ID']}"
+              ),
+              "workflow_ref": os.environ["GITHUB_WORKFLOW_REF"],
+              "workflow_sha": os.environ["GITHUB_WORKFLOW_SHA"],
+          }
+          (root / "source-provenance.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
           test "$(uname -m)" = "arm64"
           test "$(sw_vers -productVersion | cut -d. -f1)" = "14"
 
@@ -58,6 +82,7 @@ jobs:
 
       - name: Run source packaging contracts
         run: |
+          set -o pipefail
           python -m pytest -q \
             tests/gui \
             tests/test_config.py \
@@ -67,7 +92,8 @@ jobs:
             tests/agent/tui/test_cli.py \
             tests/agent/tui/test_track_a_foundation.py \
             tests/agent/tui/test_synthesis_mode.py \
-            tests/agent/test_synthesis.py
+            tests/agent/test_synthesis.py \
+            2>&1 | tee "build/p1/${CANDIDATE}/source-tests.txt"
 
       - name: Build PyInstaller candidate
         if: matrix.candidate == 'pyinstaller'
@@ -132,6 +158,8 @@ jobs:
             build/p1/${{ matrix.candidate }}/uname.txt
             build/p1/${{ matrix.candidate }}/python.txt
             build/p1/${{ matrix.candidate }}/pip-freeze.txt
+            build/p1/${{ matrix.candidate }}/source-provenance.json
+            build/p1/${{ matrix.candidate }}/source-tests.txt
             build/p1/${{ matrix.candidate }}/dry-run.txt
             build/p1/${{ matrix.candidate }}/nuitka-report.xml
             build/p1/${{ matrix.candidate }}/metrics.json

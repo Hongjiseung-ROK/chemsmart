@@ -1,7 +1,7 @@
 # P1 macOS packaging preflight receipt
 
 Date: 2026-07-18
-Status: local preflight green; isolated candidate builds not yet executed
+Status: PyInstaller candidate green; pyside6-deploy and combined run pending
 Baseline commit: `3f781642afc3`
 
 ## Scope and decision boundary
@@ -183,6 +183,34 @@ removed the already-removed root a second time. The redundant caller cleanup is
 deleted; the focused test continues to require that the helper return an
 absolute, non-existent path ready for the verifier's create-once contract.
 
+Run `29637140800` is the first fully green PyInstaller candidate. On the pinned
+macOS 14.8.7 arm64/Python 3.11.9 builder, all 155 source contracts passed, the
+app build took 3 minutes 31 seconds, and the mandatory verifier took 1 minute
+21 seconds. The 812,774,671-byte app contains 10,612 files, 2,088 directories,
+and 1,956 valid symlinks. Its main executable is arm64 with Mach-O minimum 11.0
+and plist minimum 14.0; bundle identifier, ad-hoc signature, QtWebEngine helper,
+3Dmol asset, exact-path leak gate, immutability, and archive round trip all
+passed.
+
+All three fresh-HOME launches passed with 10 required imports, absolute
+self-dispatch, zero-returncode version/Gaussian/ORCA children, 313-byte Gaussian
+and 274-byte ORCA fake inputs, and a real one-canvas/three-atom 3Dmol render.
+The first full probe completed in 10.289 seconds and repeats completed in
+6.654/5.873 seconds; matching app/helper/CLI process-tree peak RSS was
+470,960–479,184 KiB. The normal shell workload, including navigation and
+screenshot capture, passed in 3.089 seconds at 434,832 KiB process-tree RSS,
+navigated and reused all five screens, retained a semantic
+`chemsmart run gaussian opt` preview, and produced a nonblank 1040×680 capture.
+
+The 1,273,686-byte evidence artifact and 310,936,342-byte bundle artifact were
+downloaded. Local recomputation confirmed archive SHA-256
+`16e08e1a4ea11c086b722aadd2fc8e316454f94db226f092b17db7e05f4e7407`
+against both receipts, and `unzip -t` found no compressed-data error. The only
+nonblocking stderr observation was Qt spending 58 ms substituting an available
+monospace font for absent `SF Mono` on the runner. P2/P6 should use Qt's system
+fixed-font family rather than relying on that named family; it is not a P1
+packaging-integrity failure.
+
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
 loaded, one canvas existed, and the molecule contained the expected atom.
@@ -204,20 +232,20 @@ Its remaining observations were folded back into the gate: peak RSS must now be
 nonzero on every probe and shell launch, timeout cleanup targets only processes
 inside the candidate bundle, and the shell preview must have a semantic
 `chemsmart run <gaussian|orca> ...` prefix. Absolute performance thresholds are
-not invented before measurements; candidate selection compares the retained
-cold-start, RSS, and bundle-size evidence.
+not invented before measurements; candidate selection compares the same
+retained probe workload, process-tree RSS, bundle size, and build cost.
 
-## Red gate / required next authority
+## Remaining red gate
 
-The workflow and P1 changes are only local. GitHub Actions cannot execute a
-workflow that is not present on a remote ref, and `workflow_dispatch` requires
-the workflow path to exist on the default branch. The fork already registers
-`.github/workflows/main.yml`; the new P1 path is not registered yet. To avoid a
-default-branch change or a premature phase commit, the remote test will use an
-ephemeral commit that leaves the current branch/index untouched, contains the
-reviewed P1 snapshot, and maps the P1 workflow content to the existing
-`main.yml` path on that temporary ref only. Dispatching registered `main.yml`
-with `--ref` then uses that ref's workflow version. The standing goal explicitly
-withholds push/PR publication, so this requires permission to push the temporary
-test branch, dispatch it, and download its two evidence artifacts. It does not
-require a PR, release, default-branch edit, provider secret, or phase commit.
+The user authorized the fork-only temporary branch, manual workflow runs, and
+artifact downloads. The current local branch, HEAD, and index stayed unchanged
+while ephemeral CI snapshots were fast-forwarded to
+`codex/p1-macos-packaging-spike`; no PR, release, default-branch edit, provider
+secret, or signing secret is involved.
+
+PyInstaller is a reviewer-approved provisional baseline, not the final winner.
+P1 remains red/pending until the pyside6-deploy build produces a mandatory
+success or precise failure receipt, both candidates are compared, the latest
+workflow runs both candidates together with retained source-test/provenance
+receipts, reviewer feedback is closed, and the final combined regression is
+green.

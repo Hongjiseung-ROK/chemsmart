@@ -100,16 +100,25 @@ def test_bundle_inventory_detects_content_changes_and_broken_symlinks(tmp_path):
     payload = contents / "payload.txt"
     payload.write_text("before", encoding="utf-8")
     (contents / "valid-link").symlink_to("payload.txt")
+    external = tmp_path / "external.txt"
+    external.write_text("outside", encoding="utf-8")
 
     before = verifier._bundle_inventory(app)
     payload.write_text("after", encoding="utf-8")
     (contents / "broken-link").symlink_to("missing.txt")
+    (contents / "absolute-link").symlink_to(external)
+    (contents / "escaping-link").symlink_to("../../external.txt")
     after = verifier._bundle_inventory(app)
 
     assert before["sha256"] != after["sha256"]
     assert before["symlink_count"] == 1
-    assert after["symlink_count"] == 2
+    assert after["symlink_count"] == 4
     assert after["broken_symlinks"] == ["Contents/broken-link"]
+    assert after["absolute_symlinks"] == ["Contents/absolute-link"]
+    assert after["escaping_symlinks"] == [
+        "Contents/absolute-link",
+        "Contents/escaping-link",
+    ]
     assert os.readlink(contents / "valid-link") == "payload.txt"
 
 
@@ -149,6 +158,20 @@ def test_embedded_path_scan_separates_observation_from_forbidden_path(tmp_path):
         "forbidden_0",
         "users_runner",
     ]
+
+    app = tmp_path / "ChemSmart.app"
+    app.mkdir()
+    link = app / "builder-link"
+    link.symlink_to("/work/chemsmart/generated")
+    assert verifier._path_marker_finding(
+        link,
+        root=app,
+        markers=markers,
+    ) == {
+        "path": "builder-link",
+        "location": "symlink_target",
+        "markers": ["forbidden_0"],
+    }
 
 
 def test_fresh_evidence_root_is_absolute_for_relative_output(

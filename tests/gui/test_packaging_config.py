@@ -74,6 +74,9 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "runs-on: macos-14" in workflow
     assert 'test "$(uname -m)" = "arm64"' in workflow
     assert 'test "$(sw_vers -productVersion | cut -d. -f1)" = "14"' in workflow
+    assert "source-provenance.json" in workflow
+    assert 'tee "build/p1/${CANDIDATE}/source-tests.txt"' in workflow
+    assert "set -o pipefail" in workflow
     assert '".[gui,agent,agent-tui,test]"' in workflow
     assert "tests/gui \\" in workflow
     assert "--dry-run" in workflow
