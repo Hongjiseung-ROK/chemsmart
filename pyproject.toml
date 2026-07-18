@@ -77,6 +77,9 @@ agent-tui = [
     "watchdog>=3,<5",
     "pyperclip",
 ]
+gui = [
+    "PySide6>=6.7,<7",
+]
 agent = [
     "anthropic>=0.40",
     "openai>=1",
@@ -108,6 +111,9 @@ homepage = "https://github.com/xinglong-zhang/chemsmart/"
 [project.scripts]
 chemsmart = "chemsmart.cli.main:main"
 
+[project.gui-scripts]
+chemsmart-gui = "chemsmart.gui.__main__:main"
+
 [tool.setuptools.packages.find]
 include = ["chemsmart*"]
 exclude = ["tests*", "scripts*", "docs*"]
@@ -122,6 +128,9 @@ exclude = ["tests*", "scripts*", "docs*"]
     "agent/local/*.yaml.example",
     "agent/harness/basis_sets/*.json",
     "agent/tui/*.tcss",
+    "gui/assets/*.qss",
+    "gui/assets/3dmol/*",
+    "gui/contracts/*.yaml",
 ]
 
 [tool.flake8]

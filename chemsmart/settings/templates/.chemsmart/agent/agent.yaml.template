@@ -7,14 +7,14 @@ providers:
         api_key_env: OPENAI_API_KEY
         api_key: "__OPENAI_API_KEY__"
         model: gpt-5.4
-        base_url: ""
+        base_url: "__OPENAI_BASE_URL__"
         extra_headers: {}
     anthropic:
         type: anthropic
         api_key_env: ANTHROPIC_API_KEY
         api_key: "__ANTHROPIC_API_KEY__"
         model: claude-sonnet-4-6
-        base_url: ""
+        base_url: "__ANTHROPIC_BASE_URL__"
         extra_headers: {}
     # Local merged chemsmart synthesizer. Two deployment shapes:
     #   - In-process (type: local) — loads a merged model on this machine.

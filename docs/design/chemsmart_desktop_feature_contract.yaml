@@ -1,0 +1,231 @@
+schema_version: 1
+as_of: "2026-07-18"
+baseline:
+  branch: agent-codebase-simplification
+  commit: cada8c505ad298dd3735c497c56b668be61cb236
+  upstream_behind: 6
+  gui_state: untracked_scaffold
+
+policies:
+  - id: PRESERVE-CLI
+    statement: Existing CLI commands and help/schema contracts remain supported.
+  - id: PRESERVE-TUI
+    statement: The Textual unified-agent TUI remains supported and regression-green.
+  - id: SHARE-DOMAIN
+    statement: GUI adapters call shared ChemSmart APIs and do not copy chemistry logic.
+  - id: SAFE-DESKTOP
+    statement: GUI v1 cannot run real local compute or submit HPC work.
+  - id: NO-SILENT-DROP
+    statement: CLI schema additions fail a GUI contract test until mapped explicitly.
+  - id: ARTIFACT-PARITY
+    statement: GUI fake-run artifacts match equivalent CLI fake-run artifacts.
+
+surfaces:
+  - id: configuration
+    sources:
+      - chemsmart/cli/config.py
+      - chemsmart/agent/provider_config.py
+    current_capability: CLI environment and provider configuration
+    desktop_v1: expose
+    preservation: shared pure config-tree API; no shell mutation; Keychain secret reference
+    gates:
+      - config_tree_without_shell_edit
+      - provider_ping_before_persist
+      - secret_not_in_yaml_logs_or_receipts
+      - legacy_agent_yaml_migration
+
+  - id: gaussian_run
+    sources:
+      - chemsmart/cli/gaussian
+      - chemsmart/jobs/gaussian
+    current_capability: 17 run job-kind leaves in the live CLI schema
+    desktop_v1: expose_fake_only
+    preservation: merge run/program/leaf schema; preserve Click placement and generated input
+    gates:
+      - all_gaussian_leaves_schema_mapped
+      - high_risk_ts_scan_modred_td_dias_wbi_contracts
+      - no_real_runner
+      - gui_cli_artifact_parity
+
+  - id: orca_run
+    sources:
+      - chemsmart/cli/orca
+      - chemsmart/jobs/orca
+    current_capability: 9 run job-kind leaves in the live CLI schema
+    desktop_v1: expose_fake_only
+    preservation: merge run/program/leaf schema; preserve Click placement and generated input
+    gates:
+      - all_orca_leaves_schema_mapped
+      - high_risk_ts_scan_neb_aux_basis_contracts
+      - no_real_runner
+      - gui_cli_artifact_parity
+
+  - id: xtb_run
+    sources: []
+    current_capability: absent from this checkout and its live CLI schema; candidate implementation exists in a separate checkout and requires a compatibility audit before porting
+    desktop_v1: planned_missing_backend
+    preservation: do not invent a GUI-only xTB runner; locate, review, and port the proven backend with CLI tests before adding the desktop surface
+    lineage_candidates:
+      - checkout: /Users/hongjiseung/bin/chemsmart
+        branch: feat/xtb-submit-jobs
+        commits:
+          - 14f800a1
+          - 1494fc18
+        observed_modules:
+          - chemsmart/cli/xtb
+          - chemsmart/jobs/xtb
+          - tests/test_xtb_cli.py
+    gates:
+      - xtb_backend_lineage_verified
+      - xtb_cli_and_fake_runner_contract_green
+      - xtb_desktop_schema_mapped
+      - no_real_runner
+      - gui_cli_artifact_parity
+
+  - id: submission
+    sources:
+      - chemsmart/cli/sub.py
+      - chemsmart/settings/submitters.py
+      - chemsmart/agent/tools_hpc.py
+    current_capability: local scheduler submission for the same run families
+    desktop_v1: preserve_backend_block_ui
+    preservation: CLI/TUI remain unchanged; desktop-safe registry excludes or denies submit_hpc
+    gates:
+      - submit_hpc_unavailable_in_gui
+      - cli_sub_help_and_tests_green
+
+  - id: unified_agent
+    sources:
+      - chemsmart/agent/core.py
+      - chemsmart/agent/registry.py
+      - chemsmart/agent/tui/mixins/session_workers.py
+    current_capability: unified run_loop with synthesis, project_yaml, harness_jobs, execution, wizard, diagnostics groups
+    desktop_v1: expose_safe_profile
+    preservation: use run_loop, explicit PermissionPolicy, intent and semantic receipts
+    gates:
+      - unified_agent_prompt
+      - desktop_safe_tool_profile
+      - prompt_and_tool_streaming
+      - cancellation_and_resume
+      - run_local_and_submit_hpc_denied
+
+  - id: agent_sessions_and_evidence
+    sources:
+      - chemsmart/agent/runtime
+      - chemsmart/agent/services
+    current_capability: session state, event store, handles, decisions, artifacts
+    desktop_v1: expose
+    preservation: GUI projects existing receipt DTOs; no second event format
+    gates:
+      - session_resume
+      - receipt_projection
+      - secret_redaction
+      - workspace_isolation
+
+  - id: workspace_project
+    sources:
+      - chemsmart/settings/workspace_project.py
+      - chemsmart/agent/project_protocol.py
+      - chemsmart/agent/project_yaml.py
+      - chemsmart/agent/wizard
+    current_capability: project protocol extraction, YAML render/validate/critic/read/write/update, and environment wizard
+    desktop_v1: expose_project_defer_environment_wizard
+    preservation: GUI project editor uses existing project tools; HPC environment wizard remains CLI/TUI in v1
+    gates:
+      - project_yaml_round_trip
+      - project_critic_and_validation
+      - workspace_locality
+      - wizard_cli_tui_regression_green
+
+  - id: diagnostics
+    sources:
+      - chemsmart/agent/tools_hpc.py
+      - chemsmart/agent/transport.py
+    current_capability: SSH probe, scheduler query, remote log tail, and calculation inspection
+    desktop_v1: preserve_backend_defer_ui
+    preservation: diagnostics remain CLI/TUI tools and are excluded from the v1 desktop-safe profile unless read-only support is explicitly designed
+    gates:
+      - diagnostics_registry_unchanged
+      - transport_tests_green
+      - no_implicit_remote_access_from_gui
+
+  - id: database
+    sources:
+      - chemsmart/database
+      - chemsmart/cli/database
+    current_capability: 4 run/sub leaves plus structured library APIs
+    desktop_v1: expose
+    preservation: structured summaries/details/query APIs; no parsing of formatted CLI text
+    gates:
+      - fixed_database_fixture_parity
+      - selector_semantics
+      - structure_preview_parity
+
+  - id: grouper
+    sources:
+      - chemsmart/jobs/grouper
+      - chemsmart/cli/grouper
+    current_capability: 11 run/sub leaves in the live CLI schema
+    desktop_v1: expose
+    preservation: GrouperJob and one extracted shared thermochemistry-options helper
+    gates:
+      - grouping_strategy_inventory
+      - representative_and_group_count_parity
+      - energy_type_mapping_parity
+
+  - id: thermochemistry
+    sources:
+      - chemsmart/analysis/thermochemistry.py
+      - chemsmart/cli/thermochemistry
+    current_capability: single-file and Boltzmann-average analysis
+    desktop_v1: expose
+    preservation: direct library result DTO; no formula duplication
+    gates:
+      - fixed_numeric_fixture_parity
+      - units_and_labels
+      - background_cancel_error_states
+
+  - id: molecule_and_pymol
+    sources:
+      - chemsmart/io/molecules
+      - chemsmart/jobs/mol
+      - chemsmart/cli/mol
+    current_capability: 7 run/sub leaves, molecule export, optional PyMOL/ffmpeg subprocesses
+    desktop_v1: expose_interactive_optional_pymol
+    preservation: existing Molecule exporters and MolJobRunner; PyMOL remains optional
+    gates:
+      - vendored_3dmol_offline_render
+      - molecule_export_parity
+      - pymol_absent_graceful_degradation
+      - pymol_worker_cancellation
+
+  - id: iterate_and_nciplot
+    sources:
+      - chemsmart/cli/iterate
+      - chemsmart/cli/nciplot
+      - chemsmart/jobs
+    current_capability: existing CLI groups without leaf subcommand inventory in the live schema
+    desktop_v1: preserve_backend_defer_ui
+    preservation: no deletion or incompatible refactor
+    gates:
+      - cli_help_and_existing_tests_green
+
+  - id: update
+    sources:
+      - chemsmart/cli/update.py
+    current_capability: source metadata maintenance utilities
+    desktop_v1: preserve_backend_defer_ui
+    preservation: remain CLI-only; frozen app update policy documented separately
+    gates:
+      - cli_update_contract_green
+
+  - id: textual_tui
+    sources:
+      - chemsmart/agent/tui
+    current_capability: mature unified agent interaction and approval UI
+    desktop_v1: preserve_backend_defer_ui
+    preservation: reuse contracts and patterns, never remove TUI to simplify packaging
+    gates:
+      - tui_targeted_suite_green
+      - permission_flow_parity
+      - session_compatibility

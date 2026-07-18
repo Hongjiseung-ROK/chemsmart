@@ -1,0 +1,60 @@
+"""Desktop startup must create config templates without shell mutation."""
+
+from __future__ import annotations
+
+import pytest
+
+
+pytest.importorskip("PySide6")
+
+
+def test_non_mutating_config_creation_copies_templates_only(
+    tmp_path, monkeypatch
+) -> None:
+    from chemsmart.cli.config import Config
+
+    destination = tmp_path / ".chemsmart"
+    config = Config()
+    monkeypatch.setattr(
+        Config,
+        "chemsmart_dest",
+        property(lambda _self: destination),
+    )
+
+    result = config.ensure_user_config_tree()
+
+    assert result == destination
+    assert (destination / "agent" / "agent.yaml.template").is_file()
+    assert not (tmp_path / ".zshrc").exists()
+    assert not (tmp_path / ".bashrc").exists()
+
+
+def test_gui_environment_setup_uses_non_mutating_config_path(
+    tmp_path, monkeypatch
+) -> None:
+    from chemsmart.cli.config import Config
+    from chemsmart.gui.__main__ import _ensure_environment
+
+    calls: list[str] = []
+    destination = tmp_path / ".chemsmart"
+
+    monkeypatch.setattr(
+        Config,
+        "chemsmart_dest",
+        property(lambda _self: destination),
+    )
+    monkeypatch.setattr(
+        Config,
+        "ensure_user_config_tree",
+        lambda _self: calls.append("safe"),
+        raising=False,
+    )
+
+    def fail_setup(_self, *args, **kwargs) -> None:
+        raise AssertionError("GUI startup must not register shell state")
+
+    monkeypatch.setattr(Config, "setup_environment", fail_setup)
+
+    _ensure_environment()
+
+    assert calls == ["safe"]

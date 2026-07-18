@@ -417,11 +417,57 @@ class Config:
                 ):
                     _prefetch_local_model(hf_token or None)
 
-        # Switch active to the canonical provider key in the template.
-        active_provider_key = (
-            "local_chemsmart_v13_1" if active_name == "local" else active_name
+        self.write_agent_provider_config(
+            active_name,
+            api_key=api_key,
+            model=model,
+            hf_token=hf_token,
         )
 
+    def write_agent_provider_config(
+        self,
+        provider_type: str,
+        *,
+        api_key: str = "",
+        model: str | None = None,
+        hf_token: str = "",
+        base_url: str = "",
+    ) -> Path:
+        """Write ``~/.chemsmart/agent/agent.yaml`` for the chosen provider.
+
+        Non-interactive core shared by the CLI wizard
+        (:meth:`configure_agent_interactively`) and the GUI onboarding flow,
+        so both write the agent config through a single code path.
+
+        Args:
+            provider_type: ``"openai"``, ``"anthropic"``, or ``"local"``.
+            api_key: API key for openai/anthropic (ignored for local).
+            model: Model name; falls back to the provider default when empty.
+            hf_token: Hugging Face token for the local provider (ignored
+                otherwise).
+            base_url: Explicit provider API endpoint. Empty preserves the CLI
+                template's legacy default-gateway behavior.
+
+        Returns:
+            Path to the written ``agent.yaml``.
+        """
+        default_model = {
+            "openai": "gpt-5.4",
+            "anthropic": "claude-sonnet-4-6",
+            "local": "chemsmart-qwen2.5-coder-3b-instruct-v13_1",
+        }
+        if provider_type not in default_model:
+            raise ValueError(f"Unknown agent provider: {provider_type!r}")
+        model = (model or "").strip() or default_model[provider_type]
+
+        # Switch active to the canonical provider key in the template.
+        active_provider_key = (
+            "local_chemsmart_v13_1"
+            if provider_type == "local"
+            else provider_type
+        )
+
+        agent_yaml = self.chemsmart_agent_yaml
         self.chemsmart_agent.mkdir(parents=True, exist_ok=True)
         template = self.chemsmart_template / "agent" / "agent.yaml.template"
         with resources.as_file(template) as template_path:
@@ -429,24 +475,49 @@ class Config:
 
         replacements = {
             "__ACTIVE_PROVIDER__": active_provider_key,
-            "__OPENAI_API_KEY__": api_key if active_name == "openai" else "",
+            "__OPENAI_API_KEY__": api_key if provider_type == "openai" else "",
             "__ANTHROPIC_API_KEY__": (
-                api_key if active_name == "anthropic" else ""
+                api_key if provider_type == "anthropic" else ""
             ),
-            "__HF_TOKEN__": hf_token,
+            "__HF_TOKEN__": hf_token if provider_type == "local" else "",
+            "__OPENAI_BASE_URL__": (
+                base_url if provider_type == "openai" else ""
+            ),
+            "__ANTHROPIC_BASE_URL__": (
+                base_url if provider_type == "anthropic" else ""
+            ),
             "model: gpt-5.4": (
                 f"model: {model}"
-                if active_name == "openai"
+                if provider_type == "openai"
                 else "model: gpt-5.4"
             ),
             "model: claude-sonnet-4-6": (
                 f"model: {model}"
-                if active_name == "anthropic"
+                if provider_type == "anthropic"
                 else "model: claude-sonnet-4-6"
             ),
         }
         _replace_in_file(agent_yaml, replacements)
         logger.info(f"Configured agent provider in {agent_yaml}")
+        return agent_yaml
+
+    def ensure_user_config_tree(self) -> Path:
+        """Create ``~/.chemsmart`` from bundled templates without shell edits.
+
+        Desktop and frozen application startup must be able to initialize the
+        configuration tree without registering commands, changing shell
+        profiles, or mutating the Windows registry.  The interactive CLI setup
+        keeps that registration behavior in :meth:`setup_environment`.
+        """
+        if not self.chemsmart_dest.exists():
+            with resources.as_file(self.chemsmart_template) as src_dir:
+                shutil.copytree(src_dir, self.chemsmart_dest)
+            logger.info(f"Copied templates to {self.chemsmart_dest}")
+        else:
+            logger.info(
+                f"Config directory already exists: {self.chemsmart_dest}"
+            )
+        return self.chemsmart_dest
 
     def setup_environment(self, configure_interactively: bool = False):
         """
@@ -466,14 +537,7 @@ class Config:
           user registry.
         """
         # -- Copy templates -----------------------------------------------
-        if not self.chemsmart_dest.exists():
-            with resources.as_file(self.chemsmart_template) as src_dir:
-                shutil.copytree(src_dir, self.chemsmart_dest)
-            logger.info(f"Copied templates to {self.chemsmart_dest}")
-        else:
-            logger.info(
-                f"Config directory already exists: {self.chemsmart_dest}"
-            )
+        self.ensure_user_config_tree()
 
         # -- Register chemsmart in the active shell environment -----------
         shell_file = self.shell_config
