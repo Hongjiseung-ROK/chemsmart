@@ -56,6 +56,38 @@ def test_normalizer_cli_receipt_is_auditable(tmp_path, monkeypatch):
 
     assert normalizer.main() == 0
     payload = json.loads(output.read_text(encoding="utf-8"))
-    assert payload["allowlist"] == ["qtwebengine_resources*.pak"]
+    assert payload["status"] == "passed"
+    assert payload["allowlist"] == [
+        "qtwebengine_resources*.pak",
+        "qtwebengine_devtools_resources.pak",
+    ]
     assert payload["changes"][0]["before_mode"] == "0o744"
     assert payload["changes"][0]["after_mode"] == "0o644"
+
+
+def test_normalizer_covers_devtools_and_writes_failure_receipt(
+    tmp_path, monkeypatch
+):
+    app = tmp_path / "ChemSmart.app"
+    resources = app / "Contents" / "MacOS"
+    resources.mkdir(parents=True)
+    devtools = resources / "qtwebengine_devtools_resources.pak"
+    devtools.write_bytes(b"devtools")
+    devtools.chmod(0o755)
+
+    changes = normalizer.normalize_resource_modes(app)
+    assert changes[0]["path"].endswith("qtwebengine_devtools_resources.pak")
+
+    dangerous = resources / "qtwebengine_resources.pak"
+    dangerous.write_bytes(b"#!payload")
+    dangerous.chmod(0o755)
+    output = tmp_path / "failed.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        ["normalize", "--app", str(app), "--output", str(output)],
+    )
+    assert normalizer.main() == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["status"] == "failed"
+    assert payload["error"]["type"] == "RuntimeError"
+    assert "Refusing to chmod executable content" in payload["error"]["message"]

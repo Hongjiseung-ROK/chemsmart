@@ -10,7 +10,10 @@ from pathlib import Path
 from typing import Any
 
 
-ALLOWED_RESOURCE_GLOBS = ("qtwebengine_resources*.pak",)
+ALLOWED_RESOURCE_GLOBS = (
+    "qtwebengine_resources*.pak",
+    "qtwebengine_devtools_resources.pak",
+)
 MACHO_MAGICS = {
     b"\xca\xfe\xba\xbe",
     b"\xce\xfa\xed\xfe",
@@ -38,7 +41,7 @@ def normalize_resource_modes(app: Path) -> list[dict[str, Any]]:
     if app.suffix != ".app" or not app.is_dir():
         raise ValueError(f"Not an app bundle: {app}")
 
-    changes = []
+    candidates = []
     for path in sorted(app.rglob("*")):
         if not path.is_file() or path.is_symlink() or not _is_allowed_resource(path):
             continue
@@ -49,7 +52,10 @@ def normalize_resource_modes(app: Path) -> list[dict[str, Any]]:
             prefix = handle.read(4)
         if prefix in MACHO_MAGICS or prefix[:2] == b"#!":
             raise RuntimeError(f"Refusing to chmod executable content: {path}")
-        before_hash = _sha256(path)
+        candidates.append((path, before, _sha256(path)))
+
+    changes = []
+    for path, before, before_hash in candidates:
         path.chmod(before & ~0o111)
         after = stat.S_IMODE(path.stat().st_mode)
         after_hash = _sha256(path)
@@ -73,23 +79,40 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    changes = normalize_resource_modes(args.app)
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(
-        json.dumps(
-            {
-                "allowlist": list(ALLOWED_RESOURCE_GLOBS),
-                "changes": changes,
+    try:
+        changes = normalize_resource_modes(args.app)
+        report = {
+            "status": "passed",
+            "allowlist": list(ALLOWED_RESOURCE_GLOBS),
+            "changes": changes,
+        }
+        returncode = 0
+    except Exception as error:  # retain a bounded CI receipt before failing
+        report = {
+            "status": "failed",
+            "allowlist": list(ALLOWED_RESOURCE_GLOBS),
+            "changes": [],
+            "error": {
+                "type": type(error).__name__,
+                "message": str(error)[-4000:],
             },
-            indent=2,
-            sort_keys=True,
-        )
-        + "\n",
+        }
+        returncode = 1
+    output.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print(json.dumps({"normalized_resources": len(changes)}))
-    return 0
+    print(
+        json.dumps(
+            {
+                "status": report["status"],
+                "normalized_resources": len(report["changes"]),
+            }
+        )
+    )
+    return returncode
 
 
 if __name__ == "__main__":

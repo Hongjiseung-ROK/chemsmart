@@ -31,8 +31,6 @@ def _run(command: list[str]) -> dict[str, Any]:
         "returncode": completed.returncode,
         "output": completed.stdout[-8000:],
     }
-    if completed.returncode:
-        raise RuntimeError(json.dumps(result, sort_keys=True))
     return result
 
 
@@ -59,7 +57,15 @@ def sign_bundle(app: Path) -> dict[str, Any]:
     if not helper_apps:
         raise RuntimeError("QtWebEngineProcess.app was not found.")
 
-    helper_reports = []
+    report: dict[str, Any] = {
+        "status": "running",
+        "app": str(app),
+        "helpers": [],
+        "frameworks": [],
+        "outer_signing": None,
+        "verification": None,
+        "failed_stage": None,
+    }
     frameworks = set()
     for helper_app in helper_apps:
         entitlement_files = list(
@@ -73,7 +79,7 @@ def sign_bundle(app: Path) -> dict[str, Any]:
         parsed = plistlib.loads(entitlements.read_bytes())
         if not isinstance(parsed, dict) or not parsed:
             raise RuntimeError(f"Invalid helper entitlements: {entitlements}")
-        report = _run(
+        signing_result = _run(
             [
                 "/usr/bin/codesign",
                 "--force",
@@ -86,20 +92,23 @@ def sign_bundle(app: Path) -> dict[str, Any]:
                 str(helper_app),
             ]
         )
-        helper_reports.append(
+        report["helpers"].append(
             {
                 "path": str(helper_app.relative_to(app)),
                 "entitlements_path": str(entitlements.relative_to(app)),
                 "entitlements_sha256": _sha256(entitlements),
                 "required_entitlements": parsed,
-                "signing": report,
+                "signing": signing_result,
             }
         )
+        if report["helpers"][-1]["signing"]["returncode"]:
+            report["status"] = "failed"
+            report["failed_stage"] = "helper_signing"
+            return report
         frameworks.add(_containing_framework(helper_app, app))
 
-    framework_reports = []
     for framework in sorted(frameworks, key=lambda path: len(path.parts), reverse=True):
-        report = _run(
+        signing_result = _run(
             [
                 "/usr/bin/codesign",
                 "--force",
@@ -110,12 +119,16 @@ def sign_bundle(app: Path) -> dict[str, Any]:
                 str(framework),
             ]
         )
-        framework_reports.append(
+        report["frameworks"].append(
             {
                 "path": str(framework.relative_to(app)),
-                "signing": report,
+                "signing": signing_result,
             }
         )
+        if report["frameworks"][-1]["signing"]["returncode"]:
+            report["status"] = "failed"
+            report["failed_stage"] = "framework_signing"
+            return report
 
     outer = _run(
         [
@@ -128,6 +141,11 @@ def sign_bundle(app: Path) -> dict[str, Any]:
             str(app),
         ]
     )
+    report["outer_signing"] = outer
+    if outer["returncode"]:
+        report["status"] = "failed"
+        report["failed_stage"] = "outer_signing"
+        return report
     verification = _run(
         [
             "/usr/bin/codesign",
@@ -138,13 +156,11 @@ def sign_bundle(app: Path) -> dict[str, Any]:
             str(app),
         ]
     )
-    return {
-        "app": str(app),
-        "helpers": helper_reports,
-        "frameworks": framework_reports,
-        "outer_signing": outer,
-        "verification": verification,
-    }
+    report["verification"] = verification
+    report["status"] = "passed" if verification["returncode"] == 0 else "failed"
+    if report["status"] == "failed":
+        report["failed_stage"] = "strict_verification"
+    return report
 
 
 def main() -> int:
@@ -153,15 +169,37 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    report = sign_bundle(args.app)
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        report = sign_bundle(args.app)
+    except Exception as error:  # retain validation failures as CI evidence
+        report = {
+            "status": "failed",
+            "app": str(args.app.resolve()),
+            "helpers": [],
+            "frameworks": [],
+            "outer_signing": None,
+            "verification": None,
+            "failed_stage": "preflight",
+            "error": {
+                "type": type(error).__name__,
+                "message": str(error)[-4000:],
+            },
+        }
     output.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print(json.dumps({"signed_helpers": len(report["helpers"])}))
-    return 0
+    print(
+        json.dumps(
+            {
+                "status": report["status"],
+                "signed_helpers": len(report["helpers"]),
+            }
+        )
+    )
+    return 0 if report["status"] == "passed" else 1
 
 
 if __name__ == "__main__":

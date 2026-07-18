@@ -155,6 +155,8 @@ jobs:
             --output build/p1/pyside6-deploy/resource-mode-fixes.json
 
       - name: Apply nested-to-outer ad-hoc candidate signature
+        id: signing
+        continue-on-error: true
         run: |
           app=$(find build chemsmart/gui/deployment \
             -type d -name 'ChemSmart.app' -print -quit 2>/dev/null)
@@ -173,6 +175,7 @@ jobs:
 
       - name: Locate and verify candidate bundle
         id: verify
+        if: steps.signing.outcome == 'success'
         continue-on-error: true
         run: |
           app=$(find build chemsmart/gui/deployment \
@@ -239,5 +242,5 @@ jobs:
           compression-level: 0
 
       - name: Enforce candidate verifier result
-        if: always() && steps.verify.outcome != 'success'
+        if: always() && (steps.signing.outcome != 'success' || steps.verify.outcome != 'success')
         run: exit 1

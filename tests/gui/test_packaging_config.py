@@ -97,6 +97,8 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "hashFiles('packaging/macos/pysidedeploy.spec'" in workflow
     assert "chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-" in workflow
     assert "Apply nested-to-outer ad-hoc candidate signature" in workflow
+    assert "id: signing" in workflow
+    assert "if: steps.signing.outcome == 'success'" in workflow
     assert "adhoc_sign_bundle.py" in workflow
     assert "adhoc-signing.json" in workflow
     assert "--archive" in workflow
@@ -107,6 +109,7 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "continue-on-error: true" in workflow
     assert "steps.verify.outcome == 'success'" in workflow
     assert "steps.verify.outcome != 'success'" in workflow
+    assert "steps.signing.outcome != 'success'" in workflow
     assert workflow.count("compression-level: 0") == 2
     assert "path: build/p1/${{ matrix.candidate }}/" not in workflow
     assert "candidate }}/launches-*/\n" not in workflow

@@ -51,6 +51,7 @@ def test_signer_orders_helper_framework_and_outer_app(monkeypatch, tmp_path):
     assert report["helpers"][0]["required_entitlements"] == {
         "com.apple.security.cs.allow-jit": True
     }
+    assert report["status"] == "passed"
 
 
 def test_signer_rejects_helper_without_entitlement_template(tmp_path):
@@ -71,3 +72,43 @@ def test_signer_rejects_helper_without_entitlement_template(tmp_path):
         assert "Expected one helper entitlement template" in str(error)
     else:
         raise AssertionError("Missing entitlement template was accepted")
+
+
+def test_signer_writes_structured_failure_before_nonzero_exit(
+    monkeypatch, tmp_path
+):
+    app = tmp_path / "ChemSmart.app"
+    helper = (
+        app
+        / "Contents"
+        / "Frameworks"
+        / "QtWebEngineCore.framework"
+        / "Helpers"
+        / "QtWebEngineProcess.app"
+    )
+    resources = helper / "Contents" / "Resources"
+    resources.mkdir(parents=True)
+    (resources / "QtWebEngineProcess.entitlements").write_bytes(
+        plistlib.dumps({"com.apple.security.cs.allow-jit": True})
+    )
+    output = tmp_path / "signing.json"
+    monkeypatch.setattr(
+        signer,
+        "_run",
+        lambda command: {
+            "command": command,
+            "returncode": 7,
+            "output": "candidate-specific signing failure",
+        },
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["sign", "--app", str(app), "--output", str(output)],
+    )
+
+    assert signer.main() == 1
+    payload = __import__("json").loads(output.read_text(encoding="utf-8"))
+    assert payload["status"] == "failed"
+    assert payload["failed_stage"] == "helper_signing"
+    assert payload["helpers"][0]["signing"]["returncode"] == 7
+    assert "candidate-specific" in payload["helpers"][0]["signing"]["output"]
