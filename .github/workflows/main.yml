@@ -27,7 +27,7 @@ jobs:
         candidate: ${{ fromJSON(inputs.candidate == 'both' && '["pyinstaller","pyside6-deploy"]' || format('["{0}"]', inputs.candidate)) }}
     env:
       CANDIDATE: ${{ matrix.candidate }}
-      CCACHE_DIR: ${{ runner.temp }}/nuitka-ccache
+      CCACHE_DIR: /tmp/chemsmart-nuitka-ccache
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
       PYTHONUNBUFFERED: "1"
 
@@ -100,7 +100,7 @@ jobs:
         if: matrix.candidate == 'pyside6-deploy'
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/nuitka-ccache
+          path: /tmp/chemsmart-nuitka-ccache
           key: chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
           restore-keys: |
             chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-

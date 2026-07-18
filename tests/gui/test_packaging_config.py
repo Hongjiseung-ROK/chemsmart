@@ -78,7 +78,7 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert 'tee "build/p1/${CANDIDATE}/source-tests.txt"' in workflow
     assert "set -o pipefail" in workflow
     assert "uses: actions/cache@v4" in workflow
-    assert "CCACHE_DIR: ${{ runner.temp }}/nuitka-ccache" in workflow
+    assert "CCACHE_DIR: /tmp/chemsmart-nuitka-ccache" in workflow
     assert "NUITKA_CCACHE_BINARY=$(command -v ccache)" in workflow
     assert "ccache --show-stats" in workflow
     assert '".[gui,agent,agent-tui,test]"' in workflow
