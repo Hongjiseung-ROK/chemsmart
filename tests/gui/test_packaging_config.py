@@ -81,7 +81,12 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert workflow.count("uses: actions/upload-artifact@v6") == 2
     assert 'tee "build/p1/${CANDIDATE}/source-tests.txt"' in workflow
     assert "set -o pipefail" in workflow
-    assert "uses: actions/cache@v5" in workflow
+    assert "uses: actions/cache/restore@v6" in workflow
+    assert "uses: actions/cache/save@v6" in workflow
+    assert "id: nuitka-cache-restore" in workflow
+    assert "steps.nuitka-cache-restore.outputs.cache-primary-key" in workflow
+    assert "steps.nuitka-cache-restore.outputs.cache-hit != 'true'" in workflow
+    assert "if: ${{ !cancelled() && steps.signing.outcome == 'success' }}" in workflow
     assert "CCACHE_DIR: /tmp/chemsmart-nuitka-ccache" in workflow
     assert "NUITKA_CCACHE_BINARY=$(command -v ccache)" in workflow
     assert "ccache --show-stats" in workflow
@@ -98,7 +103,6 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-" in workflow
     assert "Apply nested-to-outer ad-hoc candidate signature" in workflow
     assert "id: signing" in workflow
-    assert "if: steps.signing.outcome == 'success'" in workflow
     assert "adhoc_sign_bundle.py" in workflow
     assert "adhoc-signing.json" in workflow
     assert "--archive" in workflow

@@ -14,6 +14,10 @@ ALLOWED_RESOURCE_GLOBS = (
     "qtwebengine_resources*.pak",
     "qtwebengine_devtools_resources.pak",
 )
+HIDDEN_TEMPLATE_RELATIVE = Path(
+    "Contents/MacOS/chemsmart/settings/templates/.chemsmart"
+)
+PACKAGED_TEMPLATE_DIRNAME = "chemsmart_defaults"
 MACHO_MAGICS = {
     b"\xca\xfe\xba\xbe",
     b"\xce\xfa\xed\xfe",
@@ -35,12 +39,9 @@ def _is_allowed_resource(path: Path) -> bool:
     return any(path.match(pattern) for pattern in ALLOWED_RESOURCE_GLOBS)
 
 
-def normalize_resource_modes(app: Path) -> list[dict[str, Any]]:
-    """Remove execute bits only from allowlisted, verified data resources."""
-    app = app.resolve()
-    if app.suffix != ".app" or not app.is_dir():
-        raise ValueError(f"Not an app bundle: {app}")
-
+def _resource_mode_candidates(
+    app: Path,
+) -> list[tuple[Path, int, str]]:
     candidates = []
     for path in sorted(app.rglob("*")):
         if not path.is_file() or path.is_symlink() or not _is_allowed_resource(path):
@@ -53,6 +54,12 @@ def normalize_resource_modes(app: Path) -> list[dict[str, Any]]:
         if prefix in MACHO_MAGICS or prefix[:2] == b"#!":
             raise RuntimeError(f"Refusing to chmod executable content: {path}")
         candidates.append((path, before, _sha256(path)))
+    return candidates
+
+
+def _apply_resource_modes(
+    app: Path, candidates: list[tuple[Path, int, str]]
+) -> list[dict[str, Any]]:
 
     changes = []
     for path, before, before_hash in candidates:
@@ -73,6 +80,86 @@ def normalize_resource_modes(app: Path) -> list[dict[str, Any]]:
     return changes
 
 
+def _template_tree_receipt(root: Path) -> dict[str, Any]:
+    digest = hashlib.sha256()
+    files = 0
+    directories = 0
+    for path in sorted(root.rglob("*")):
+        if path.is_symlink():
+            raise RuntimeError(f"Refusing symlinked configuration template: {path}")
+        relative = path.relative_to(root).as_posix()
+        if path.is_dir():
+            directories += 1
+            digest.update(f"directory\0{relative}\0".encode())
+            continue
+        if not path.is_file():
+            raise RuntimeError(f"Unsupported configuration template entry: {path}")
+        files += 1
+        digest.update(f"file\0{relative}\0".encode())
+        digest.update(bytes.fromhex(_sha256(path)))
+    return {
+        "files": files,
+        "directories": directories,
+        "tree_sha256": digest.hexdigest(),
+    }
+
+
+def _template_relocation_plan(
+    app: Path,
+) -> tuple[Path, Path, dict[str, Any]]:
+    source = app / HIDDEN_TEMPLATE_RELATIVE
+    destination = source.with_name(PACKAGED_TEMPLATE_DIRNAME)
+    if destination.exists() or destination.is_symlink():
+        raise RuntimeError(
+            f"Packaged template destination already exists: {destination}"
+        )
+    if not source.is_dir() or source.is_symlink():
+        raise RuntimeError(f"Hidden configuration template was not found: {source}")
+    return source, destination, _template_tree_receipt(source)
+
+
+def _apply_template_relocation(
+    app: Path,
+    plan: tuple[Path, Path, dict[str, Any]],
+) -> dict[str, Any]:
+    source, destination, before = plan
+    source.rename(destination)
+    after = _template_tree_receipt(destination)
+    if before != after:
+        raise RuntimeError(
+            "Configuration template content changed during bundle relocation."
+        )
+    return {
+        "from_path": str(source.relative_to(app)),
+        "to_path": str(destination.relative_to(app)),
+        "files": before["files"],
+        "directories": before["directories"],
+        "tree_sha256_before": before["tree_sha256"],
+        "tree_sha256_after": after["tree_sha256"],
+    }
+
+
+def normalize_resource_modes(app: Path) -> list[dict[str, Any]]:
+    """Remove execute bits only from allowlisted, verified data resources."""
+    app = app.resolve()
+    if app.suffix != ".app" or not app.is_dir():
+        raise ValueError(f"Not an app bundle: {app}")
+    return _apply_resource_modes(app, _resource_mode_candidates(app))
+
+
+def normalize_bundle(app: Path) -> dict[str, Any]:
+    """Preflight and apply all exact pyside6/Nuitka bundle repairs."""
+    app = app.resolve()
+    if app.suffix != ".app" or not app.is_dir():
+        raise ValueError(f"Not an app bundle: {app}")
+    resource_candidates = _resource_mode_candidates(app)
+    template_plan = _template_relocation_plan(app)
+    return {
+        "changes": _apply_resource_modes(app, resource_candidates),
+        "template_relocation": _apply_template_relocation(app, template_plan),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--app", type=Path, required=True)
@@ -82,11 +169,11 @@ def main() -> int:
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     try:
-        changes = normalize_resource_modes(args.app)
+        normalization = normalize_bundle(args.app)
         report = {
             "status": "passed",
             "allowlist": list(ALLOWED_RESOURCE_GLOBS),
-            "changes": changes,
+            **normalization,
         }
         returncode = 0
     except Exception as error:  # retain a bounded CI receipt before failing
@@ -94,6 +181,7 @@ def main() -> int:
             "status": "failed",
             "allowlist": list(ALLOWED_RESOURCE_GLOBS),
             "changes": [],
+            "template_relocation": None,
             "error": {
                 "type": type(error).__name__,
                 "message": str(error)[-4000:],
@@ -109,6 +197,7 @@ def main() -> int:
             {
                 "status": report["status"],
                 "normalized_resources": len(report["changes"]),
+                "template_relocated": report["template_relocation"] is not None,
             }
         )
     )

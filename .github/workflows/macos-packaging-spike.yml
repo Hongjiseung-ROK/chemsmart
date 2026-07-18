@@ -97,8 +97,9 @@ jobs:
             2>&1 | tee "build/p1/${CANDIDATE}/source-tests.txt"
 
       - name: Restore Nuitka compiler cache
+        id: nuitka-cache-restore
         if: matrix.candidate == 'pyside6-deploy'
-        uses: actions/cache@v5
+        uses: actions/cache/restore@v6
         with:
           path: /tmp/chemsmart-nuitka-ccache
           key: chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-${{ github.sha }}
@@ -167,15 +168,24 @@ jobs:
 
       - name: Record Nuitka compiler cache receipt
         if: always() && matrix.candidate == 'pyside6-deploy'
+        continue-on-error: true
         run: |
           ccache --show-config \
             > build/p1/pyside6-deploy/ccache-config.txt
           ccache --show-stats \
             > build/p1/pyside6-deploy/ccache-stats.txt
 
+      - name: Save Nuitka compiler cache
+        if: always() && matrix.candidate == 'pyside6-deploy' && steps.nuitka-cache-restore.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: /tmp/chemsmart-nuitka-ccache
+          key: ${{ steps.nuitka-cache-restore.outputs.cache-primary-key }}
+
       - name: Locate and verify candidate bundle
         id: verify
-        if: steps.signing.outcome == 'success'
+        if: ${{ !cancelled() && steps.signing.outcome == 'success' }}
         continue-on-error: true
         run: |
           app=$(find build chemsmart/gui/deployment \
