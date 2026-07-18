@@ -177,6 +177,12 @@ before HOME, TMPDIR, workspace, stdout, stderr, or receipt paths are constructed
 relative metrics argument still creates an absolute isolated environment. This
 smaller fix preserves the existing `importlib.resources` behavior.
 
+The first execution of that helper in run `29636976852` stopped before launch
+because the caller retained the helper's former `rmdir()` responsibility and
+removed the already-removed root a second time. The redundant caller cleanup is
+deleted; the focused test continues to require that the helper return an
+absolute, non-existent path ready for the verifier's create-once contract.
+
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
 loaded, one canvas existed, and the molecule contained the expected atom.

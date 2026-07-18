@@ -681,9 +681,6 @@ def main() -> int:
 
     output = args.output.resolve()
     evidence_root = _fresh_evidence_root(output)
-    # ``mkdtemp`` creates the root; the verifier requires a new directory so
-    # it can prove every launch starts with fresh state.
-    evidence_root.rmdir()
     report = verify_bundle(
         args.app.resolve(),
         launches=args.launches,
