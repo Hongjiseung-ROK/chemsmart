@@ -91,6 +91,7 @@ class StructureViewer(QWidget):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+        self.setAccessibleName("Molecular structure viewer")
         self._molecule = None
         self._source_path: Path | None = None
 
@@ -98,14 +99,18 @@ class StructureViewer(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
 
         toggle = QHBoxLayout()
-        self.interactive_button = QPushButton("Interactive")
+        self.interactive_button = QPushButton("3D")
         self.interactive_button.setCheckable(True)
         self.interactive_button.setChecked(True)
+        self.interactive_button.setAccessibleName("Interactive 3D viewer")
+        self.interactive_button.setToolTip("Interactive 3D molecule viewer")
         self.interactive_button.clicked.connect(
             lambda: self._set_mode("interactive")
         )
-        self.render_button = QPushButton("PyMOL render")
+        self.render_button = QPushButton("PyMOL")
         self.render_button.setCheckable(True)
+        self.render_button.setAccessibleName("Render with PyMOL")
+        self.render_button.setToolTip("Render with the Zhang Lab PyMOL style")
         self.render_button.setEnabled(pymol_available())
         self.render_button.clicked.connect(lambda: self._set_mode("pymol"))
         toggle.addWidget(self.interactive_button)
@@ -137,6 +142,16 @@ class StructureViewer(QWidget):
             from PySide6.QtWebEngineWidgets import QWebEngineView
 
             self._web = QWebEngineView()
+            from chemsmart.gui import theme
+
+            palette = theme.palette_for()
+            self._web.setHtml(
+                "<!doctype html><html><body style='margin:0;display:flex;"
+                "align-items:center;justify-content:center;height:100%;"
+                f"background:{palette.surface_2};color:{palette.text_muted};"
+                "font:13px -apple-system'>Select a molecule source to preview "
+                "its 3D structure.</body></html>"
+            )
             return self._web
         # Fallback when QtWebEngine could not be bundled (plan Phase 0 note).
         self._web = None

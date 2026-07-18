@@ -13,8 +13,10 @@ stylesheet applies the dense, monospaced input treatment.
 
 from __future__ import annotations
 
+import shlex
 from typing import Any, Callable
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -31,7 +33,6 @@ from PySide6.QtWidgets import (
 
 from chemsmart.gui.services import cli_schema_service as schema
 from chemsmart.gui.services.job_worker import start_dry_run
-from chemsmart.gui.widgets.structure_viewer import StructureViewer
 
 
 class JobBuilderScreen(QWidget):
@@ -40,36 +41,37 @@ class JobBuilderScreen(QWidget):
         self.window_ref = window
         self.setProperty("density", "compact")
         self._field_getters: dict[str, Callable[[], Any]] = {}
-        self._thread = None
-        self._worker = None
+        self._dry_run_controller = None
+        self._handoff_available = False
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(16, 14, 16, 14)
 
         outer.addWidget(QLabel("Job builder", objectName="ScreenTitle"))
-        outer.addWidget(
-            QLabel(
-                "Forms generated from the CLI schema · command preview only "
-                "until the safe launcher is verified",
-                objectName="ScreenSubtitle",
-            )
+        subtitle = QLabel(
+            "Forms generated from the CLI schema · command preview only "
+            "until fake-run artifact parity is verified",
+            objectName="ScreenSubtitle",
         )
-
-        body = QHBoxLayout()
-        outer.addLayout(body, stretch=1)
+        subtitle.setWordWrap(True)
+        outer.addWidget(subtitle)
 
         left = QVBoxLayout()
-        body.addLayout(left, stretch=3)
+        outer.addLayout(left, stretch=1)
 
         selectors = QFormLayout()
         self.program = QComboBox()
         self.program.addItems(schema.programs() or ["gaussian", "orca"])
+        self.program.setAccessibleName("Quantum chemistry program")
         self.program.currentTextChanged.connect(self._on_program_changed)
         self.job_type = QComboBox()
-        selectors.addRow(QLabel("Program", objectName="FieldLabel"), self.program)
-        selectors.addRow(
-            QLabel("Job type", objectName="FieldLabel"), self.job_type
-        )
+        self.job_type.setAccessibleName("Calculation job type")
+        program_label = QLabel("Program", objectName="FieldLabel")
+        program_label.setBuddy(self.program)
+        job_type_label = QLabel("Job type", objectName="FieldLabel")
+        job_type_label.setBuddy(self.job_type)
+        selectors.addRow(program_label, self.program)
+        selectors.addRow(job_type_label, self.job_type)
         left.addLayout(selectors)
 
         self.common_box = QGroupBox("Options")
@@ -78,6 +80,9 @@ class JobBuilderScreen(QWidget):
 
         self.advanced_toggle = QPushButton("Advanced options ▸")
         self.advanced_toggle.setCheckable(True)
+        self.advanced_toggle.setAccessibleDescription(
+            "Shows or hides optional fields inherited from the ChemSmart CLI."
+        )
         self.advanced_toggle.toggled.connect(self._on_advanced_toggled)
         left.addWidget(self.advanced_toggle)
         self.advanced_box = QGroupBox("Advanced")
@@ -86,30 +91,39 @@ class JobBuilderScreen(QWidget):
         left.addWidget(self.advanced_box)
         left.addStretch(1)
 
-        right = QVBoxLayout()
-        body.addLayout(right, stretch=2)
-        right.addWidget(QLabel("Structure", objectName="FieldLabel"))
-        self.viewer = StructureViewer()
-        right.addWidget(self.viewer, stretch=1)
-
         self.preview = QPlainTextEdit(objectName="Preview")
         self.preview.setReadOnly(True)
+        self.preview.setAccessibleName("Generated ChemSmart command preview")
         self.preview.setMaximumHeight(120)
         outer.addWidget(QLabel("Command", objectName="FieldLabel"))
         outer.addWidget(self.preview)
+        self.validation_status = QLabel(
+            "",
+            objectName="ScreenSubtitle",
+        )
+        self.validation_status.setWordWrap(True)
+        self.validation_status.setAccessibleName("Job draft validation status")
+        outer.addWidget(self.validation_status)
 
         actions = QHBoxLayout()
         self.dry_run_button = QPushButton("Dry run", objectName="Primary")
         self.dry_run_button.setEnabled(False)
         self.dry_run_button.setToolTip(
-            "Available after the checkout-verified fake-run launcher is ready."
+            "Available after GUI and direct CLI fake runs produce equivalent "
+            "artifacts."
         )
         self.dry_run_button.setAccessibleDescription(
-            "Disabled until ChemSmart can verify the executable and enforce "
-            "fake-run safety."
+            "Disabled until the generated-input artifact parity gate passes."
         )
         self.dry_run_button.clicked.connect(self._on_dry_run)
-        self.to_chat_button = QPushButton("Hand off to agent")
+        self.to_chat_button = QPushButton("Send to Chat")
+        self.to_chat_button.setEnabled(False)
+        self.to_chat_button.setToolTip(
+            "Available after the desktop agent handoff safety gate passes."
+        )
+        self.to_chat_button.setAccessibleDescription(
+            "Opens Chat with this typed job draft; no command is executed."
+        )
         self.to_chat_button.clicked.connect(self._on_hand_off)
         actions.addWidget(self.dry_run_button)
         actions.addWidget(self.to_chat_button)
@@ -149,8 +163,12 @@ class JobBuilderScreen(QWidget):
 
         for opt in schema.options(program, job_type):
             widget, getter = _field_for(opt)
+            widget.setAccessibleName(opt["name"])
+            if opt.get("help"):
+                widget.setAccessibleDescription(opt["help"])
             self._field_getters[opt["field_id"]] = getter
             label = QLabel(opt["name"], objectName="FieldLabel")
+            label.setBuddy(widget)
             target = self.common_form if opt.get("required") else self.advanced_form
             target.addRow(label, widget)
             if hasattr(widget, "textChanged"):
@@ -164,15 +182,30 @@ class JobBuilderScreen(QWidget):
     def _current_values(self) -> dict[str, Any]:
         return {name: getter() for name, getter in self._field_getters.items()}
 
-    def _build_argv(self) -> list[str]:
-        return schema.build_command(
+    def _current_draft(self):
+        """Return typed form state; rendered command text is only a view."""
+        return schema.draft_from_values(
             self.program.currentText(),
             self.job_type.currentText(),
             self._current_values(),
         )
 
+    def _build_argv(self) -> list[str]:
+        return schema.command_from_draft(self._current_draft())
+
     def _update_preview(self) -> None:
-        self.preview.setPlainText(" ".join(self._build_argv()))
+        try:
+            command = shlex.join(self._build_argv())
+        except ValueError:
+            self.preview.clear()
+            self.validation_status.setText(
+                "Review the molecule source and option values to continue."
+            )
+            self.to_chat_button.setEnabled(False)
+            return
+        self.preview.setPlainText(command)
+        self.validation_status.setText("Command ready for review.")
+        self.to_chat_button.setEnabled(self._handoff_available)
 
     def _on_advanced_toggled(self, shown: bool) -> None:
         self.advanced_box.setVisible(shown)
@@ -184,7 +217,7 @@ class JobBuilderScreen(QWidget):
 
     def _on_dry_run(self) -> None:
         self.output.setPlainText("Running dry run…")
-        self._thread, self._worker = start_dry_run(
+        self._dry_run_controller = start_dry_run(
             self._build_argv(), self._on_dry_run_done, parent=self
         )
 
@@ -202,7 +235,19 @@ def _field_for(opt: dict) -> tuple[QWidget, Callable[[], Any]]:
     """Build an input widget + value getter for one schema option."""
     if opt.get("is_flag"):
         box = QCheckBox()
-        box.setChecked(bool(opt.get("default")))
+        default = opt.get("default")
+        if default is None:
+            box.setTristate(True)
+            box.setCheckState(Qt.CheckState.PartiallyChecked)
+
+            def tristate_value():
+                state = box.checkState()
+                if state == Qt.CheckState.PartiallyChecked:
+                    return None
+                return state == Qt.CheckState.Checked
+
+            return box, tristate_value
+        box.setChecked(bool(default))
         return box, box.isChecked
     choices = opt.get("choices") or _choices_from_type(opt.get("type"))
     if choices:

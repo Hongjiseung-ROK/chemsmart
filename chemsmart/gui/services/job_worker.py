@@ -1,67 +1,46 @@
-"""Dry-run executor: ``chemsmart run --fake --no-scratch ...`` on a QThread.
-
-Mirrors the agent's own dry-run path (``tools_command.py``): the ``--fake``
-runner is a first-class, side-effect-free subclass, so this never touches real
-Gaussian/ORCA compute. The command is invoked as a subprocess exactly like the
-agent tool does; inside a frozen ``.app`` the caller is responsible for putting
-the bundled ``chemsmart`` alias on PATH (plan Phase 1, judgment call #1).
-"""
+"""Qt adapter for the explicit fake-run child-process boundary."""
 
 from __future__ import annotations
 
-import subprocess
+from pathlib import Path
 
-from PySide6.QtCore import QObject, QThread, Signal
-
-_DRY_RUN_FLAGS = ["--fake", "--no-scratch"]
-
-
-class DryRunWorker(QObject):
-    """Runs a built ``chemsmart run`` argv with dry-run flags injected."""
-
-    finished = Signal(int, str)  # (returncode, combined stdout+stderr)
-
-    def __init__(self, argv: list[str]) -> None:
-        super().__init__()
-        self._argv = _inject_dry_run(argv)
-
-    def run(self) -> None:
-        try:
-            proc = subprocess.run(
-                self._argv,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            output = (proc.stdout or "") + (proc.stderr or "")
-            self.finished.emit(proc.returncode, output)
-        except Exception as exc:  # e.g. chemsmart not on PATH
-            self.finished.emit(1, f"Failed to launch dry run: {exc}")
+from chemsmart.gui.application.cli_launcher import (
+    DryRunRequest,
+    DryRunResult,
+    launch_dry_run,
+)
+from chemsmart.gui.application.task_controller import (
+    QtTaskController,
+    TaskFailure,
+)
 
 
-def _inject_dry_run(argv: list[str]) -> list[str]:
-    """Insert ``--fake --no-scratch`` right after ``chemsmart run``.
+def start_dry_run(argv, on_finished, parent=None, *, cwd: Path | None = None):
+    """Start one validated fake run and return its lifecycle controller."""
+    request = DryRunRequest(
+        argv=tuple(argv),
+        cwd=(cwd or Path.cwd()),
+    )
+    controller: QtTaskController[DryRunResult] = QtTaskController(parent)
+    controller.succeeded.connect(
+        lambda result: on_finished(result.returncode, result.output)
+    )
+    controller.failed.connect(
+        lambda failure: _report_failure(failure, on_finished)
+    )
+    controller.cancelled.connect(lambda: on_finished(130, "Dry run cancelled."))
+    controller.start(
+        lambda context: launch_dry_run(request, context),
+        timeout_ms=int(request.timeout_s * 1000) + 2500,
+    )
+    return controller
 
-    These are ``run``-group options, so they belong before the program token.
-    """
-    if len(argv) >= 2 and argv[0] == "chemsmart" and argv[1] == "run":
-        head = argv[:2]
-        tail = argv[2:]
-        return [*head, *_DRY_RUN_FLAGS, *tail]
-    return [*argv, *_DRY_RUN_FLAGS]
+
+def _report_failure(failure: TaskFailure, on_finished) -> None:
+    on_finished(
+        1,
+        f"{failure.user_message} ({failure.diagnostic_type})",
+    )
 
 
-def start_dry_run(argv, on_finished, parent=None):
-    """Start a :class:`DryRunWorker` on a new thread; return (thread, worker).
-
-    ``on_finished(returncode, output)`` is connected to the worker's signal.
-    The caller must keep the returned references alive until completion.
-    """
-    thread = QThread(parent)
-    worker = DryRunWorker(argv)
-    worker.moveToThread(thread)
-    thread.started.connect(worker.run)
-    worker.finished.connect(on_finished)
-    worker.finished.connect(thread.quit)
-    thread.start()
-    return thread, worker
+__all__ = ["start_dry_run"]

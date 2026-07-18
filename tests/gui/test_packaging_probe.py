@@ -18,6 +18,7 @@ def test_packaging_probe_covers_mandatory_dependency_boundary():
         "PySide6.QtWebEngineWidgets",
         "openai",
         "anthropic",
+        "keyring",
     }
 
 

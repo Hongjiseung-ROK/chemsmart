@@ -36,7 +36,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.11.9"
           cache: pip
 
       - name: Record builder identity
@@ -74,12 +74,23 @@ jobs:
 
       - name: Install isolated candidate dependencies
         run: |
+          python -m pip install --no-deps \
+            "pip==25.3" \
+            "setuptools==74.1.1" \
+            "wheel==0.46.3"
           python -m pip install \
+            --no-build-isolation \
             -c packaging/macos/constraints.txt \
+            -c packaging/macos/runtime-lock-py311-macos14-arm64.txt \
             -r packaging/macos/build-requirements.txt \
             ".[gui,agent,agent-tui,test]"
-          python -m pip freeze \
+          python -m pip check
+          python -m pip freeze --all \
             > "build/p1/${CANDIDATE}/pip-freeze.txt"
+          python packaging/macos/verify_runtime_lock.py \
+            --lock packaging/macos/runtime-lock-py311-macos14-arm64.txt \
+            --python-version 3.11.9 \
+            --receipt "build/p1/${CANDIDATE}/runtime-lock-verification.json"
 
       - name: Run source packaging contracts
         run: |
@@ -94,6 +105,7 @@ jobs:
             tests/agent/tui/test_track_a_foundation.py \
             tests/agent/tui/test_synthesis_mode.py \
             tests/agent/test_synthesis.py \
+            tests/agent/test_secrets.py \
             2>&1 | tee "build/p1/${CANDIDATE}/source-tests.txt"
 
       - name: Restore Nuitka compiler cache
@@ -102,9 +114,9 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: /tmp/chemsmart-nuitka-ccache
-          key: chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-${{ github.sha }}
+          key: chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/runtime-lock-py311-macos14-arm64.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-${{ github.sha }}
           restore-keys: |
-            chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-
+            chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/runtime-lock-py311-macos14-arm64.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-
             chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Configure Nuitka compiler cache

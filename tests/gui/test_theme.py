@@ -31,3 +31,12 @@ def test_muted_small_text_meets_wcag_contrast_in_both_palettes() -> None:
     for palette in (theme.LIGHT, theme.DARK):
         for background in (palette.surface_0, palette.surface_1):
             assert _contrast_ratio(palette.text_muted, background) >= 4.5
+
+
+def test_stylesheet_uses_current_system_font_size(monkeypatch) -> None:
+    monkeypatch.setattr(theme, "system_font_point_size", lambda: 17)
+
+    qss = theme.stylesheet("light")
+
+    assert "font-size: 17pt" in qss
+    assert "font-size: 19pt" in qss

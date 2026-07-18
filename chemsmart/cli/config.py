@@ -2,6 +2,7 @@ import logging
 import os
 import platform
 import shutil
+import tempfile
 from importlib import resources
 from pathlib import Path
 
@@ -434,6 +435,7 @@ class Config:
         provider_type: str,
         *,
         api_key: str = "",
+        api_key_ref: str = "",
         model: str | None = None,
         hf_token: str = "",
         base_url: str = "",
@@ -447,6 +449,8 @@ class Config:
         Args:
             provider_type: ``"openai"``, ``"anthropic"``, or ``"local"``.
             api_key: API key for openai/anthropic (ignored for local).
+            api_key_ref: Opaque system-credential reference. Desktop callers
+                use this instead of persisting ``api_key``.
             model: Model name; falls back to the provider default when empty.
             hf_token: Hugging Face token for the local provider (ignored
                 otherwise).
@@ -463,6 +467,8 @@ class Config:
         }
         if provider_type not in default_model:
             raise ValueError(f"Unknown agent provider: {provider_type!r}")
+        if api_key and api_key_ref:
+            raise ValueError("Use either api_key or api_key_ref, not both.")
         model = (model or "").strip() or default_model[provider_type]
 
         # Switch active to the canonical provider key in the template.
@@ -473,10 +479,9 @@ class Config:
         )
 
         agent_yaml = self.chemsmart_agent_yaml
-        self.chemsmart_agent.mkdir(parents=True, exist_ok=True)
         template = self.chemsmart_template / "agent" / "agent.yaml.template"
         with resources.as_file(template) as template_path:
-            shutil.copyfile(template_path, agent_yaml)
+            contents = template_path.read_text(encoding="utf-8")
 
         replacements = {
             "__ACTIVE_PROVIDER__": active_provider_key,
@@ -502,9 +507,87 @@ class Config:
                 else "model: claude-sonnet-4-6"
             ),
         }
-        _replace_in_file(agent_yaml, replacements)
+        for value_in_file, user_value in replacements.items():
+            contents = contents.replace(value_in_file, user_value)
+        template_payload = yaml.safe_load(contents)
+        from filelock import FileLock
+
+        lock = FileLock(f"{agent_yaml}.lock")
+        with lock:
+            if agent_yaml.exists():
+                try:
+                    payload = yaml.safe_load(
+                        agent_yaml.read_text(encoding="utf-8")
+                    )
+                except (OSError, yaml.YAMLError) as exc:
+                    raise ValueError(
+                        "Existing agent provider configuration is invalid; "
+                        "it was not replaced."
+                    ) from exc
+                if not isinstance(payload, dict) or not isinstance(
+                    payload.get("providers"), dict
+                ):
+                    raise ValueError(
+                        "Existing agent provider configuration is invalid; "
+                        "it was not replaced."
+                    )
+            else:
+                payload = template_payload
+
+            providers = payload["providers"]
+            template_entry = template_payload["providers"][
+                active_provider_key
+            ]
+            entry = providers.setdefault(
+                active_provider_key,
+                dict(template_entry),
+            )
+            if not isinstance(entry, dict):
+                raise ValueError(
+                    f"Provider entry {active_provider_key!r} must be a mapping."
+                )
+            payload["active"] = active_provider_key
+            entry["type"] = template_entry["type"]
+            entry["model"] = model
+            entry["base_url"] = (
+                base_url if provider_type != "local" else entry.get("base_url", "")
+            )
+            if provider_type == "local":
+                entry["hf_token"] = hf_token
+            elif api_key_ref:
+                entry["api_key"] = ""
+                entry["api_key_ref"] = api_key_ref
+            else:
+                entry["api_key"] = api_key
+                entry.pop("api_key_ref", None)
+            _atomic_write_private_yaml(agent_yaml, payload)
         logger.info(f"Configured agent provider in {agent_yaml}")
         return agent_yaml
+
+    def agent_provider_secret_reference(self, provider_type: str) -> str:
+        """Return a provider's non-secret reference without resolving it."""
+        active_provider_key = (
+            "local_chemsmart_v13_1"
+            if provider_type == "local"
+            else provider_type
+        )
+        path = self.chemsmart_agent_yaml
+        if not path.is_file():
+            return ""
+        try:
+            payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            return ""
+        if not isinstance(payload, dict):
+            return ""
+        providers = payload.get("providers")
+        if not isinstance(providers, dict):
+            return ""
+        entry = providers.get(active_provider_key)
+        if not isinstance(entry, dict):
+            return ""
+        reference = entry.get("api_key_ref")
+        return reference.strip() if isinstance(reference, str) else ""
 
     def ensure_user_config_tree(self) -> Path:
         """Create ``~/.chemsmart`` from bundled templates without shell edits.
@@ -514,14 +597,15 @@ class Config:
         profiles, or mutating the Windows registry.  The interactive CLI setup
         keeps that registration behavior in :meth:`setup_environment`.
         """
-        if not self.chemsmart_dest.exists():
-            with resources.as_file(self.chemsmart_template) as src_dir:
-                shutil.copytree(src_dir, self.chemsmart_dest)
-            logger.info(f"Copied templates to {self.chemsmart_dest}")
-        else:
+        with resources.as_file(self.chemsmart_template) as src_dir:
+            copied = _copy_missing_config_tree(src_dir, self.chemsmart_dest)
+        if copied:
             logger.info(
-                f"Config directory already exists: {self.chemsmart_dest}"
+                f"Added {copied} missing configuration template(s) under "
+                f"{self.chemsmart_dest}"
             )
+        else:
+            logger.info(f"Config tree is current: {self.chemsmart_dest}")
         return self.chemsmart_dest
 
     def setup_environment(self, configure_interactively: bool = False):
@@ -610,6 +694,56 @@ def _replace_in_file(path: Path, replacements: dict[str, str]) -> None:
         contents = contents.replace(value_in_file, user_value)
     with open(path, "w", encoding="utf-8") as f:
         f.write(contents)
+
+
+def _copy_missing_config_tree(source: Path, destination: Path) -> int:
+    """Merge packaged defaults without replacing any user-owned file."""
+    destination.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    for source_path in sorted(source.rglob("*")):
+        relative = source_path.relative_to(source)
+        target = destination / relative
+        if source_path.is_symlink():
+            raise OSError(
+                f"Configuration templates must not contain symlinks: {relative}"
+            )
+        if source_path.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with source_path.open("rb") as source_handle, target.open(
+                "xb"
+            ) as target_handle:
+                shutil.copyfileobj(source_handle, target_handle)
+        except FileExistsError:
+            continue
+        copied += 1
+    return copied
+
+
+def _atomic_write_private_yaml(path: Path, payload: dict) -> None:
+    """Atomically write provider settings with owner-only permissions."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
+            yaml.safe_dump(payload, handle, sort_keys=False)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary_path.chmod(0o600)
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
 
 
 def _local_model_is_cached() -> bool:

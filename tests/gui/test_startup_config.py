@@ -74,3 +74,27 @@ def test_config_template_uses_packaged_nonhidden_fallback(
     )
 
     assert config_module.Config().chemsmart_template == templates
+
+
+def test_partial_legacy_config_tree_gains_missing_defaults_without_overwrite(
+    tmp_path, monkeypatch
+) -> None:
+    from chemsmart.cli.config import Config
+
+    destination = tmp_path / ".chemsmart"
+    destination.mkdir()
+    existing = destination / "agent" / "agent.yaml.template"
+    existing.parent.mkdir()
+    existing.write_text("user-owned\n", encoding="utf-8")
+    config = Config()
+    monkeypatch.setattr(
+        Config,
+        "chemsmart_dest",
+        property(lambda _self: destination),
+    )
+
+    config.ensure_user_config_tree()
+
+    assert existing.read_text(encoding="utf-8") == "user-owned\n"
+    assert (destination / "server").is_dir()
+    assert any((destination / "server").glob("*.yaml"))

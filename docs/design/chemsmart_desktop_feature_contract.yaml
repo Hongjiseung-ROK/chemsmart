@@ -1,11 +1,12 @@
 schema_version: 1
-as_of: "2026-07-18"
+as_of: "2026-07-19"
 baseline:
   branch: agent-codebase-simplification
-  commit: 3f781642afc3
-  upstream_ahead: 1
+  commit: 4e4afeade4ac
+  phase_commit: containing_this_contract
+  upstream_ahead: 3
   upstream_behind: 6
-  gui_state: p1_pyinstaller_selected
+  gui_state: p2_foundations_complete
 
 policies:
   - id: PRESERVE-CLI
@@ -21,11 +22,45 @@ policies:
   - id: ARTIFACT-PARITY
     statement: GUI fake-run artifacts match equivalent CLI fake-run artifacts.
 
+p2_foundations:
+  sources:
+    - chemsmart/agent/secrets.py
+    - chemsmart/agent/provider_config.py
+    - chemsmart/cli/config.py
+    - chemsmart/gui/application/job_draft.py
+    - chemsmart/gui/application/cli_launcher.py
+    - chemsmart/gui/application/task_controller.py
+    - chemsmart/gui/application/runtime_projection.py
+    - chemsmart/gui/app.py
+    - chemsmart/gui/frozen_dispatch.py
+    - chemsmart/gui/screens/settings.py
+    - packaging/macos/runtime-lock-py311-macos14-arm64.txt
+    - packaging/macos/verify_runtime_lock.py
+  current_capability: secure desktop application foundations implemented on the P1 phase boundary
+  deferred_boundaries:
+    - real_keychain_write_requires_explicit_user_action
+    - job_builder_safe_preview_stays_disabled_until_p3_artifact_parity
+    - live_agent_session_wiring_belongs_to_p4
+    - workspace_choice_is_current_session_only_until_draft_persistence
+    - optional_pymol_path_configuration_belongs_to_p5_p6
+    - real_compute_and_hpc_are_unavailable
+  gates:
+    - key_reference_only_yaml_and_explicit_legacy_migration
+    - atomic_config_merge_without_shell_mutation
+    - typed_job_draft_all_26_gaussian_orca_leaves
+    - database_record_structure_selector_semantics
+    - explicit_checkout_or_frozen_cli_launcher
+    - cancellation_timeout_retry_cleanup_and_stale_result_suppression
+    - adaptive_native_shell_and_settings
+    - canonical_runtime_state_projection_without_second_event_format
+    - exact_python3119_macos14_arm64_build_runtime_lock
+
 surfaces:
   - id: configuration
     sources:
       - chemsmart/cli/config.py
       - chemsmart/agent/provider_config.py
+      - chemsmart/agent/secrets.py
     current_capability: CLI environment and provider configuration
     desktop_v1: expose
     preservation: shared pure config-tree API; no shell mutation; Keychain secret reference
@@ -114,6 +149,7 @@ surfaces:
     sources:
       - chemsmart/agent/runtime
       - chemsmart/agent/services
+      - chemsmart/gui/application/runtime_projection.py
     current_capability: session state, event store, handles, decisions, artifacts
     desktop_v1: expose
     preservation: GUI projects existing receipt DTOs; no second event format
@@ -235,6 +271,7 @@ surfaces:
     sources:
       - packaging/macos/ChemSmart.pyinstaller.spec
       - packaging/macos/pysidedeploy.spec
+      - packaging/macos/runtime-lock-py311-macos14-arm64.txt
       - packaging/macos/verify_bundle.py
       - chemsmart/gui/packaging_probe.py
     current_capability: PyInstaller 6.21.0 selected by retained macOS 14 arm64 bundle receipts; pyside6-deploy retained as a red structural fallback

@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
 from chemsmart.io.yaml import YAMLFile
+
+if TYPE_CHECKING:
+    from chemsmart.agent.secrets import SecretStore
 
 _SUPPORTED_PROVIDER_TYPES = frozenset({"openai", "anthropic", "local"})
 
@@ -21,18 +25,27 @@ class AgentProviderConfig:
 
     name: str
     type: str
-    api_key: str
+    api_key: str = field(repr=False)
     model: str
     base_url: str
     extra_headers: dict[str, str]
     base_model_id: str = ""
-    hf_token: str = ""
+    hf_token: str = field(default="", repr=False)
     runtime: str = ""
     project: str = ""
 
 
 class AgentProviderConfigError(Exception):
     """Raised when ``~/.chemsmart/agent/agent.yaml`` is invalid."""
+
+
+@dataclass(frozen=True)
+class SecretMigrationResult:
+    """Non-secret receipt for an explicit plaintext-to-keyring migration."""
+
+    status: str
+    provider: str
+    reference: str = ""
 
 
 def _load_legacy_env(path: Path) -> None:
@@ -78,6 +91,8 @@ def _load_provider_environment() -> Path | None:
 
 def load_active_provider_config(
     yaml_path: str | os.PathLike[str] | None = None,
+    *,
+    secret_store: SecretStore | None = None,
 ) -> AgentProviderConfig | None:
     """Load and resolve the active agent provider configuration.
 
@@ -152,11 +167,19 @@ def load_active_provider_config(
         api_key = _resolve_local_hf_token(provider_entry)
     else:
         try:
-            api_key = _resolve_api_key(provider_entry, active)
+            api_key = _resolve_api_key(
+                provider_entry,
+                active,
+                secret_store=secret_store,
+            )
         except AgentProviderConfigError:
             if _load_provider_environment() is None:
                 raise
-            api_key = _resolve_api_key(provider_entry, active)
+            api_key = _resolve_api_key(
+                provider_entry,
+                active,
+                secret_store=secret_store,
+            )
 
     return AgentProviderConfig(
         name=active,
@@ -203,7 +226,26 @@ def _optional_string_field(entry: dict[str, Any], key: str) -> str:
     return value.strip()
 
 
-def _resolve_api_key(entry: dict[str, Any], provider_name: str) -> str:
+def _resolve_api_key(
+    entry: dict[str, Any],
+    provider_name: str,
+    *,
+    secret_store: SecretStore | None = None,
+) -> str:
+    secret_reference = _optional_string_field(entry, "api_key_ref")
+    if secret_reference:
+        if secret_store is None:
+            from chemsmart.agent.secrets import KeyringSecretStore
+
+            secret_store = KeyringSecretStore()
+        try:
+            return secret_store.resolve(secret_reference)
+        except Exception as exc:
+            raise AgentProviderConfigError(
+                f"provider {provider_name!r} credential reference could not "
+                "be resolved"
+            ) from exc
+
     literal_api_key = _optional_string_field(entry, "api_key")
     if literal_api_key:
         return literal_api_key
@@ -215,8 +257,113 @@ def _resolve_api_key(entry: dict[str, Any], provider_name: str) -> str:
             return env_api_key
 
     raise AgentProviderConfigError(
-        f"provider {provider_name!r} must set api_key or api_key_env"
+        f"provider {provider_name!r} must set api_key_ref, api_key, or "
+        "api_key_env"
     )
+
+
+def migrate_plaintext_provider_secret(
+    yaml_path: str | os.PathLike[str] | None = None,
+    *,
+    secret_store: SecretStore | None = None,
+) -> SecretMigrationResult:
+    """Move the active provider's literal key into the credential store.
+
+    The migration is explicit and backwards compatible: files that already
+    use a reference or an environment variable are left unchanged.  The YAML
+    replacement is atomic and mode ``0600``; if it fails, the newly-created
+    credential is removed on a best-effort rollback path.
+    """
+    path = Path(yaml_path) if yaml_path is not None else _default_yaml_path()
+    from filelock import FileLock
+
+    with FileLock(f"{path}.lock"):
+        return _migrate_plaintext_provider_secret_locked(path, secret_store)
+
+
+def _migrate_plaintext_provider_secret_locked(
+    path: Path,
+    secret_store: SecretStore | None,
+) -> SecretMigrationResult:
+    """Perform one migration while the sibling configuration lock is held."""
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise AgentProviderConfigError(
+            f"Failed to read agent provider config {path}: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise AgentProviderConfigError(
+            f"agent provider config {path} must be a YAML mapping"
+        )
+
+    active = payload.get("active")
+    providers = payload.get("providers")
+    if not isinstance(active, str) or not active.strip():
+        raise AgentProviderConfigError(
+            f"agent provider config {path} is missing non-empty 'active'"
+        )
+    active = active.strip()
+    if not isinstance(providers, dict) or not isinstance(
+        providers.get(active), dict
+    ):
+        raise AgentProviderConfigError(
+            f"active provider {active!r} is not defined in {path}"
+        )
+    entry = providers[active]
+    if _optional_string_field(entry, "api_key_ref"):
+        return SecretMigrationResult("already_referenced", active)
+
+    literal = _optional_string_field(entry, "api_key")
+    if not literal:
+        return SecretMigrationResult("no_plaintext_secret", active)
+
+    if secret_store is None:
+        from chemsmart.agent.secrets import KeyringSecretStore
+
+        secret_store = KeyringSecretStore()
+    from chemsmart.agent.secrets import new_secret_account
+
+    reference = secret_store.store(new_secret_account(active), literal)
+    try:
+        if secret_store.resolve(reference) != literal:
+            raise AgentProviderConfigError(
+                "System credential verification returned a different value."
+            )
+        entry["api_key"] = ""
+        entry["api_key_ref"] = reference
+        _atomic_write_yaml(path, payload)
+    except Exception:
+        try:
+            secret_store.delete(reference)
+        except Exception:
+            pass
+        raise
+    return SecretMigrationResult("migrated", active, reference)
+
+
+def _atomic_write_yaml(path: Path, payload: dict[str, Any]) -> None:
+    """Atomically replace one private provider configuration file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
+            yaml.safe_dump(payload, handle, sort_keys=False)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary_path.chmod(0o600)
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
 
 
 def _extra_headers(

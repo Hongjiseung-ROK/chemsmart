@@ -1,6 +1,6 @@
 # ChemSmart Native Desktop Master Plan
 
-Status: execution-ready design, 2026-07-18
+Status: P2 foundations reviewer-green; phase commit boundary, 2026-07-19
 Owner: ChemSmart maintainers
 Primary target: Zhang Lab internal macOS desktop app
 Framework: Python 3.10/3.11 + PySide6/Qt 6
@@ -45,26 +45,25 @@ Non-goals for v1:
 
 ## 2. Corrected current baseline
 
-P0 is committed at `agent-codebase-simplification@3f781642`; the branch is one
-local commit ahead of and six commits behind
-`fork/agent-codebase-simplification`. The P1 packaging phase documented below
-is complete and reviewer-green; its phase commit is the local history boundary
-for these files. Do not use `git clean`, `git stash -u`, reset, or branch
-switching as a preparation step.
+P0 and P1 are committed through `agent-codebase-simplification@4e4afead`; P2 is
+complete and reviewer-green on the phase commit containing this plan. The
+resulting branch is three local commits ahead of and six commits behind
+`fork/agent-codebase-simplification`. Do not use `git clean`, `git stash -u`,
+reset, or branch switching as a preparation step.
 
 | Area | Current state | Consequence |
 |---|---|---|
 | Packaging spike | P1 complete; PyInstaller selected | PyInstaller passes the full frozen runtime, helper-entitlement, signature, archive, and shell gates. pyside6-deploy remains a red fallback because its pinned Nuitka bundle mixes data into `Contents/MacOS`. |
 | PySide6 extra and GUI entry point | P0 committed | Source entry and package data are stable; P1 adds a hidden packaging probe and absolute-path frozen CLI dispatch. |
-| Provider config extraction | P0 committed | Connection testing uses an in-memory draft and untested values cannot persist; Keychain handling remains P2. |
-| App shell/theme | P0 committed scaffold | Job builder and Chat render; unavailable Database, Analysis, and Settings destinations show intentional placeholders. |
-| Job builder | P0 contract scaffold | It exposes only Gaussian/ORCA, merges run/program/leaf options with scoped collision handling, and defaults to Gaussian opt; typed draft and launch validation remain P2/P3. |
+| Provider config and secrets | P2 reviewer-green | Provider literals remain backward-readable; new credentials use unique staged Keychain references, atomically commit YAML, then retire the old reference. Secret-bearing tasks disable retry retention. Tests use in-memory stores and never touch the real Keychain. |
+| App shell/theme | P2 reviewer-green | Native menus, Settings, system palette/font roles, adaptive three-region layout, status, accessible labels, and bounded runtime evidence projection are present. Database and Analysis remain intentional P5 unavailable states. |
+| Job builder | P2 typed foundation | All 26 Gaussian/ORCA leaves round-trip through a typed draft and live Click schema. Valid database record/structure combinations and forbidden molecule selectors follow the real CLI contract. Safe preview and Chat handoff remain disabled until their later gates pass. |
 | Chat | Visual placeholder | No live `AgentSession` call, streaming, cancellation, approval, or receipts. |
 | Agent worker | Placeholder | It proposes legacy `AgentSession.run()` instead of the current unified `run_loop()` contract used by the TUI. |
 | 3D viewer | P1 frozen probe green | Integrity-checked 3Dmol.js 2.5.5 renders offline in the selected PyInstaller QtWebEngine bundle; PyMOL execution is not wired. |
 | Database/analysis | Absent | No screens or services. |
 | Runtime environment | Split | Base Python can render PySide6; the `chemsmart` conda environment lacks PySide6. The current `chemsmart` executable on `PATH` resolves to another Codex worktree. |
-| Validation | P1 green | Ruff/compile checks pass; 66 GUI and 173 combined GUI/CLI/TUI focused tests pass. The remote decision receipt retains the passing bundle and both pyside failure receipts. |
+| Validation | P2 reviewer-green | The current P2 slice has 130 GUI tests collected and a 248-test combined GUI/config/agent/CLI/TUI gate; Ruff, compileall, and diff integrity are green. The final reviewer reported zero Critical, High, Medium, or Low findings. The P1 remote decision receipt remains the packaging evidence. |
 
 The current UI is a useful structural sketch, not a runnable product baseline.
 It should be corrected in place after contract tests are added, not discarded.
@@ -488,6 +487,10 @@ Exit:
 
 ### P2 — Correct the foundations
 
+Status: implementation, local gates, and final read-only review green on
+2026-07-19; complete on the phase commit containing this plan. See
+`docs/design/phase_receipts/p2_foundations.md`.
+
 Implement and test:
 
 - safe config-tree creation with no shell mutation;
@@ -580,24 +583,19 @@ Exit:
 
 Do these in order:
 
-1. Confirm the clean P1 phase boundary and retain the remote workflow and
-   downloaded artifact receipts as evidence; do not rerun pyside6-deploy by
-   default or push the local phase commit without separate authorization.
-2. Start P2 with failing contracts for safe config-tree creation, legacy config
-   migration, Keychain-backed secret references, and startup without AI setup or
-   shell mutation.
-3. Add the typed `JobDraft` and schema-inheritance adapter, preserving the live
-   Gaussian/ORCA parser and command-validation path instead of copying options.
-4. Implement one reusable Qt background-task controller with honest
-   indeterminate/determinate progress, cancellation, timeout, retry, cleanup,
-   and stale-result suppression tests.
-5. Establish the system palette/font/accessibility foundation, adaptive shell
-   layout, real macOS menu bar, Settings route, and keyboard focus contract.
-6. Project existing session/receipt DTOs into the shell status and recovery
-   boundary without creating a second event format.
+1. Begin P3 with Gaussian opt as the first end-to-end typed draft → exact argv →
+   isolated fake run → generated input → artifact receipt slice.
+2. Require byte/semantic artifact parity against the equivalent direct CLI fake
+   run before enabling the Job builder action or menu item.
+3. Generalize the proven vertical slice to ORCA opt, then the remaining live
+   Gaussian/ORCA leaves; retain invalid-input, cancellation, timeout, repeated
+   run, cleanup, and no-real-run stress gates.
+4. Submit the P3 slice and receipts to a fresh read-only reviewer, address valid
+   findings, rerun the preservation gate, and commit only when green.
+5. Audit the separately tracked xTB lineage before any xTB UI is exposed.
 
 Do not rerun the red pyside6-deploy fallback by default. Do not wire live Chat
-or add Database/Analysis business features until these P2 foundations pass.
+or add Database/Analysis business features during P3.
 
 ## 10. Claude/Codex collaboration contract
 

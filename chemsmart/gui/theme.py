@@ -89,17 +89,55 @@ _DENSITY = {
 
 def mono_font_family() -> str:
     """Preferred monospace family for commands/coordinates/energies."""
+    try:
+        from PySide6.QtGui import QFontDatabase, QGuiApplication
+
+        if QGuiApplication.instance() is not None:
+            family = QFontDatabase.systemFont(
+                QFontDatabase.SystemFont.FixedFont
+            ).family()
+            if family:
+                return f"'{family}'"
+    except Exception:
+        pass
     return "SF Mono, Menlo, Monaco, Consolas, monospace"
 
 
 def sans_font_family() -> str:
     """System sans family (SF Pro on macOS via the platform default)."""
+    try:
+        from PySide6.QtGui import QFontDatabase, QGuiApplication
+
+        if QGuiApplication.instance() is not None:
+            family = QFontDatabase.systemFont(
+                QFontDatabase.SystemFont.GeneralFont
+            ).family()
+            if family:
+                return f"'{family}'"
+    except Exception:
+        pass
     return "-apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif"
 
 
 def serif_font_family() -> str:
     """Serif family reserved for the agent's voice (principle #3)."""
     return "'New York', Georgia, 'Times New Roman', serif"
+
+
+def system_font_point_size() -> int:
+    """Return the user's current Qt system UI point size."""
+    try:
+        from PySide6.QtGui import QFontDatabase, QGuiApplication
+
+        if QGuiApplication.instance() is not None:
+            size = QFontDatabase.systemFont(
+                QFontDatabase.SystemFont.GeneralFont
+            ).pointSizeF()
+            if size > 0:
+                return max(9, round(size))
+    except Exception:
+        pass
+    return _DENSITY["comfortable"]["font"]
 
 
 def is_dark_mode() -> bool:
@@ -127,8 +165,45 @@ def is_dark_mode() -> bool:
 def palette_for(mode: str | None = None) -> Palette:
     """Return the palette for ``mode`` ("light"/"dark"), auto-detecting None."""
     if mode is None:
+        system = _system_palette()
+        if system is not None:
+            return system
         mode = "dark" if is_dark_mode() else "light"
     return DARK if mode == "dark" else LIGHT
+
+
+def _system_palette() -> Palette | None:
+    """Map current QPalette semantic roles into ChemSmart surface tokens."""
+    try:
+        from PySide6.QtGui import QGuiApplication, QPalette
+
+        application = QGuiApplication.instance()
+        if application is None:
+            return None
+        palette = application.palette()
+
+        def color(role: QPalette.ColorRole) -> str:
+            return palette.color(role).name()
+
+        fallback = DARK if is_dark_mode() else LIGHT
+        return Palette(
+            surface_0=color(QPalette.ColorRole.Window),
+            surface_1=color(QPalette.ColorRole.AlternateBase),
+            surface_2=color(QPalette.ColorRole.Base),
+            text_primary=color(QPalette.ColorRole.WindowText),
+            text_secondary=color(QPalette.ColorRole.Text),
+            text_muted=color(QPalette.ColorRole.PlaceholderText),
+            border=color(QPalette.ColorRole.Midlight),
+            border_strong=color(QPalette.ColorRole.Mid),
+            accent=color(QPalette.ColorRole.Highlight),
+            accent_text=color(QPalette.ColorRole.HighlightedText),
+            accent_bg=color(QPalette.ColorRole.AlternateBase),
+            success=fallback.success,
+            warning=fallback.warning,
+            danger=fallback.danger,
+        )
+    except Exception:
+        return None
 
 
 def stylesheet(mode: str | None = None) -> str:
@@ -139,15 +214,19 @@ def stylesheet(mode: str | None = None) -> str:
     CDS's "reference tokens, never raw hex" rule.
     """
     p = palette_for(mode)
-    comfortable = _DENSITY["comfortable"]
-    compact = _DENSITY["compact"]
+    system_size = system_font_point_size()
+    comfortable = {**_DENSITY["comfortable"], "font": system_size}
+    compact = {
+        **_DENSITY["compact"],
+        "font": max(9, system_size - 1),
+    }
     sans = sans_font_family()
     mono = mono_font_family()
 
     return f"""
     * {{
         font-family: {sans};
-        font-size: {comfortable['font']}px;
+        font-size: {comfortable['font']}pt;
         color: {p.text_primary};
     }}
     QWidget#Root {{ background: {p.surface_0}; }}
@@ -157,9 +236,13 @@ def stylesheet(mode: str | None = None) -> str:
         background: {p.surface_1};
         border-right: 1px solid {p.border};
     }}
+    QWidget#Inspector {{
+        background: {p.surface_1};
+        border-left: 1px solid {p.border};
+    }}
     QLabel#SidebarGroup {{
         color: {p.text_muted};
-        font-size: 10px;
+        font-size: {max(9, system_size - 3)}pt;
         text-transform: uppercase;
         padding: 10px 12px 4px 12px;
     }}
@@ -179,9 +262,9 @@ def stylesheet(mode: str | None = None) -> str:
 
     /* Content panels */
     QWidget#Screen {{ background: {p.surface_0}; }}
-    QLabel#ScreenTitle {{ font-size: 15px; font-weight: 500; }}
-    QLabel#ScreenSubtitle {{ color: {p.text_muted}; font-size: 11px; }}
-    QLabel#FieldLabel {{ color: {p.text_secondary}; font-size: 11px; }}
+    QLabel#ScreenTitle {{ font-size: {system_size + 2}pt; font-weight: 500; }}
+    QLabel#ScreenSubtitle {{ color: {p.text_muted}; font-size: {max(9, system_size - 2)}pt; }}
+    QLabel#FieldLabel {{ color: {p.text_secondary}; font-size: {max(9, system_size - 2)}pt; }}
 
     /* Inputs — compact + monospace on the dense/data surfaces */
     QLineEdit, QComboBox, QPlainTextEdit, QTextEdit {{
@@ -201,7 +284,7 @@ def stylesheet(mode: str | None = None) -> str:
     }}
     QPlainTextEdit#Preview, QPlainTextEdit#MonoOutput {{
         font-family: {mono};
-        font-size: {compact['font']}px;
+        font-size: {compact['font']}pt;
         color: {p.text_secondary};
         background: {p.surface_1};
     }}
@@ -212,8 +295,14 @@ def stylesheet(mode: str | None = None) -> str:
         border: 1px solid {p.border_strong};
         border-radius: {compact['radius']}px;
         padding: 5px 12px;
+        min-height: {compact['control']}px;
     }}
     QPushButton:hover {{ background: {p.surface_1}; }}
+    QPushButton:disabled {{
+        background: {p.surface_1};
+        color: {p.border_strong};
+        border: 1px solid {p.border};
+    }}
     QPushButton#Primary {{
         background: {p.accent};
         color: {p.accent_text};
@@ -221,7 +310,7 @@ def stylesheet(mode: str | None = None) -> str:
     }}
     QPushButton#Primary:disabled {{
         background: {p.surface_1};
-        color: {p.text_muted};
+        color: {p.border_strong};
         border: 1px solid {p.border};
     }}
 
@@ -246,4 +335,20 @@ def stylesheet(mode: str | None = None) -> str:
         border-bottom: 1px solid {p.border};
         padding: 4px 8px;
     }}
+    QStatusBar {{
+        background: {p.surface_1};
+        border-top: 1px solid {p.border};
+    }}
+    QStatusBar QLabel {{
+        color: {p.text_secondary};
+        font-size: {compact['font']}pt;
+        padding: 0 6px;
+    }}
+    QProgressBar {{
+        min-height: 6px;
+        max-height: 6px;
+        border: none;
+        background: {p.surface_1};
+    }}
+    QProgressBar::chunk {{ background: {p.accent}; }}
     """

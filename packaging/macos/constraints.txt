@@ -1,8 +1,12 @@
-# Keep both candidates on the same Qt/Python-facing dependency boundary.
+# Keep both candidates on the same Python/build/Qt dependency boundary.
+pip==25.3
+setuptools==74.1.1
+wheel==0.46.3
 PySide6==6.9.2
 PySide6-Addons==6.9.2
 PySide6-Essentials==6.9.2
 shiboken6==6.9.2
+keyring==25.7.0
 PyInstaller==6.21.0
 pyinstaller-hooks-contrib==2026.6
 Nuitka==2.7.11

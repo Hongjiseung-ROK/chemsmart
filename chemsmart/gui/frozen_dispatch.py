@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import sys
 
 
 INTERNAL_CLI_MARKER = "--chemsmart-internal-cli"
+_SOURCE_DISPATCH = (
+    "import runpy,sys;"
+    "sys.path.insert(0,sys.argv.pop(1));"
+    "runpy.run_module('chemsmart.gui',run_name='__main__')"
+)
 
 
 def is_frozen_runtime() -> bool:
@@ -17,10 +23,13 @@ def internal_cli_command(args: list[str]) -> list[str]:
     """Build an argv that never resolves ``chemsmart`` through ambient PATH."""
     if is_frozen_runtime():
         return [sys.executable, INTERNAL_CLI_MARKER, *args]
+    package_root = str(Path(__file__).resolve().parents[2])
     return [
         sys.executable,
-        "-m",
-        "chemsmart.gui",
+        "-I",
+        "-c",
+        _SOURCE_DISPATCH,
+        package_root,
         INTERNAL_CLI_MARKER,
         *args,
     ]

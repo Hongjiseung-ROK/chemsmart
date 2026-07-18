@@ -15,6 +15,9 @@ def test_packaging_candidates_share_pinned_qt_boundary():
         ROOT / "packaging" / "macos" / "build-requirements.txt"
     ).read_text(encoding="utf-8")
 
+    assert "pip==25.3" in constraints
+    assert "setuptools==74.1.1" in constraints
+    assert "wheel==0.46.3" in constraints
     assert "PySide6==6.9.2" in constraints
     assert "PyInstaller==6.21.0" in constraints
     assert "pyinstaller-hooks-contrib==2026.6" in constraints
@@ -57,6 +60,7 @@ def test_pyinstaller_candidate_is_onedir_app_with_no_path_dispatch():
     assert "collect_data_files(\"chemsmart\"" in spec
     assert 'target_arch="arm64"' in spec
     assert 'name.startswith("chemsmart.agent.tui")' in spec
+    assert 'collect_submodules("keyring")' in spec
     assert '"textual"' in spec
 
 
@@ -92,7 +96,14 @@ def test_packaging_workflow_defaults_to_selected_candidate_and_keeps_comparison(
     assert "NUITKA_CCACHE_BINARY=$(command -v ccache)" in workflow
     assert "ccache --show-stats" in workflow
     assert '".[gui,agent,agent-tui,test]"' in workflow
+    assert "runtime-lock-py311-macos14-arm64.txt" in workflow
+    assert 'python-version: "3.11.9"' in workflow
+    assert "--no-build-isolation" in workflow
+    assert "pip freeze --all" in workflow
+    assert "python -m pip check" in workflow
+    assert "verify_runtime_lock.py" in workflow
     assert "tests/gui \\" in workflow
+    assert "tests/agent/test_secrets.py \\" in workflow
     assert "--dry-run" in workflow
     assert "/usr/bin/grep -F" in workflow
     assert "rg -F" not in workflow
@@ -126,7 +137,7 @@ def test_packaging_workflow_defaults_to_selected_candidate_and_keeps_comparison(
     )
     assert "ChemSmart-*.zip" not in evidence_section
     assert "ChemSmart-*.zip" in bundle_section
-    assert "secrets." not in workflow
+    assert "${{ secrets." not in workflow
 
 
 def test_packaging_specs_are_explicitly_tracked_despite_global_ignore():
@@ -134,3 +145,34 @@ def test_packaging_specs_are_explicitly_tracked_despite_global_ignore():
 
     assert "!packaging/macos/ChemSmart.pyinstaller.spec" in ignore
     assert "!packaging/macos/pysidedeploy.spec" in ignore
+
+
+def test_desktop_runtime_lock_is_exact_and_contains_keychain_boundary():
+    lock_path = (
+        ROOT
+        / "packaging"
+        / "macos"
+        / "runtime-lock-py311-macos14-arm64.txt"
+    )
+    lines = [
+        line.strip()
+        for line in lock_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+
+    assert all("==" in line for line in lines)
+    assert "keyring==25.7.0" in lines
+    assert "PySide6==6.9.2" in lines
+    assert "pyinstaller==6.21.0" in lines
+    assert "numpy==1.26.4" in lines
+    assert "pip==25.3" in lines
+    assert "setuptools==74.1.1" in lines
+    assert "wheel==0.46.3" in lines
+    assert len(lines) == len({line.split("==", 1)[0].lower() for line in lines})
+
+
+def test_agent_extra_can_resolve_keyring_references() -> None:
+    project = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+    agent_section = project.split("agent = [", 1)[1].split("]", 1)[0]
+    assert '"keyring>=25.7,<26"' in agent_section

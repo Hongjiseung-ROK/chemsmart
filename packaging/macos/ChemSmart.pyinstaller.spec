@@ -13,6 +13,7 @@ hiddenimports = collect_submodules(
     "chemsmart",
     filter=lambda name: not name.startswith("chemsmart.agent.tui"),
 )
+hiddenimports += collect_submodules("keyring")
 hiddenimports += [
     "PySide6.QtWebEngineCore",
     "PySide6.QtWebEngineWidgets",

@@ -34,6 +34,7 @@ REQUIRED_IMPORTS = (
     "PySide6.QtWebEngineWidgets",
     "openai",
     "anthropic",
+    "keyring",
 )
 WATER_XYZ = """3
 water

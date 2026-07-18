@@ -8,6 +8,7 @@ from chemsmart.agent.provider_config import (
     AgentProviderConfig,
     AgentProviderConfigError,
     load_active_provider_config,
+    migrate_plaintext_provider_secret,
 )
 
 
@@ -43,6 +44,7 @@ providers:
         base_url="https://example.test/v1",
         extra_headers={"X-Test": "value"},
     )
+    assert "literal-key" not in repr(config)
 
 
 def test_load_active_provider_config_missing_yaml_returns_none(tmp_path):
@@ -170,6 +172,137 @@ providers:
     assert config is not None
     assert config.api_key == "env-key"
     assert config.type == "anthropic"
+
+
+def test_load_active_provider_config_resolves_credential_reference(tmp_path):
+    yaml_path = _write_agent_yaml(
+        tmp_path / "agent.yaml",
+        """
+active: main
+providers:
+  main:
+    type: openai
+    api_key_ref: keyring:test.service:main
+    api_key: stale-legacy-value
+    model: gpt-test
+    base_url: https://api.openai.com/v1
+    extra_headers: {}
+""",
+    )
+
+    class FakeStore:
+        def resolve(self, reference):
+            assert reference == "keyring:test.service:main"
+            return "resolved-test-value"
+
+    config = load_active_provider_config(yaml_path, secret_store=FakeStore())
+
+    assert config is not None
+    assert config.api_key == "resolved-test-value"
+
+
+def test_plaintext_secret_migration_is_atomic_private_and_resolvable(tmp_path):
+    yaml_path = _write_agent_yaml(
+        tmp_path / "agent.yaml",
+        """
+active: main
+providers:
+  main:
+    type: openai
+    api_key: plaintext-test-value
+    api_key_env: OPENAI_API_KEY
+    model: gpt-test
+    base_url: https://api.openai.com/v1
+    extra_headers: {}
+""",
+    )
+
+    class FakeStore:
+        def __init__(self):
+            self.values = {}
+
+        def store(self, account, secret):
+            self.values[account] = secret
+            return f"keyring:test.service:{account}"
+
+        def resolve(self, reference):
+            return self.values[reference.rsplit(":", 1)[1]]
+
+        def delete(self, reference):
+            self.values.pop(reference.rsplit(":", 1)[1], None)
+
+    store = FakeStore()
+    receipt = migrate_plaintext_provider_secret(
+        yaml_path,
+        secret_store=store,
+    )
+    text = yaml_path.read_text(encoding="utf-8")
+
+    assert receipt.status == "migrated"
+    assert "plaintext-test-value" not in text
+    assert receipt.reference in text
+    assert yaml_path.stat().st_mode & 0o777 == 0o600
+    config = load_active_provider_config(yaml_path, secret_store=store)
+    assert config is not None
+    assert config.api_key == "plaintext-test-value"
+
+
+def test_secret_migration_does_not_rewrite_environment_only_config(tmp_path):
+    yaml_path = _write_agent_yaml(
+        tmp_path / "agent.yaml",
+        """
+active: main
+providers:
+  main:
+    type: openai
+    api_key: ""
+    api_key_env: OPENAI_API_KEY
+    model: gpt-test
+""",
+    )
+    before = yaml_path.read_bytes()
+
+    receipt = migrate_plaintext_provider_secret(yaml_path, secret_store=object())
+
+    assert receipt.status == "no_plaintext_secret"
+    assert yaml_path.read_bytes() == before
+
+
+def test_secret_migration_readback_failure_preserves_yaml_and_rolls_back(
+    tmp_path,
+):
+    yaml_path = _write_agent_yaml(
+        tmp_path / "agent.yaml",
+        """
+active: main
+providers:
+  main:
+    type: openai
+    api_key: plaintext-test-value
+    model: gpt-test
+""",
+    )
+    before = yaml_path.read_bytes()
+
+    class MismatchedStore:
+        deleted = []
+
+        def store(self, account, secret):
+            return "keyring:test.service:main"
+
+        def resolve(self, reference):
+            return "different-value"
+
+        def delete(self, reference):
+            self.deleted.append(reference)
+
+    store = MismatchedStore()
+
+    with pytest.raises(AgentProviderConfigError, match="different value"):
+        migrate_plaintext_provider_secret(yaml_path, secret_store=store)
+
+    assert yaml_path.read_bytes() == before
+    assert store.deleted == ["keyring:test.service:main"]
 
 
 def test_load_active_provider_config_rejects_legacy_peft_adapter(tmp_path):
