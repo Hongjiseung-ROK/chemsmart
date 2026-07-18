@@ -63,7 +63,7 @@ or branch switching as a preparation step.
 | 3D viewer | P1 source probe green | Integrity-checked 3Dmol.js 2.5.5 renders offline in QtWebEngine; frozen bundling remains a mandatory P1 gate and PyMOL execution is not wired. |
 | Database/analysis | Absent | No screens or services. |
 | Runtime environment | Split | Base Python can render PySide6; the `chemsmart` conda environment lacks PySide6. The current `chemsmart` executable on `PATH` resolves to another Codex worktree. |
-| Validation | P1 local preflight | Ruff/compile checks pass; 46 GUI and 153 combined GUI/CLI/TUI focused tests pass. Frozen candidate builds remain untested until the isolated workflow runs. |
+| Validation | P1 candidate gate in progress | Ruff/compile checks pass; 59 GUI and 166 combined GUI/CLI/TUI focused tests pass. The final same-run candidate comparison is being retained as the P1 decision receipt. |
 
 The current UI is a useful structural sketch, not a runnable product baseline.
 It should be corrected in place after contract tests are added, not discarded.

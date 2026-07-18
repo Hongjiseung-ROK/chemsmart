@@ -84,16 +84,17 @@ Green checks:
 
 ```text
 pytest -q tests/gui
-46 passed in 2.69s
+59 passed
 
 pytest -q tests/gui tests/test_config.py tests/agent/test_cli_schema.py
   tests/agent/test_provider_config.py tests/agent/test_provider_adapter.py
   tests/agent/tui/test_cli.py tests/agent/tui/test_track_a_foundation.py
   tests/agent/tui/test_synthesis_mode.py tests/agent/test_synthesis.py
-153 passed in 8.22s
+166 passed in 8.24s
 
-ruff check chemsmart/gui tests/gui packaging/macos
-compileall chemsmart/gui packaging/macos
+ruff check chemsmart/gui chemsmart/cli/config.py tests/gui tests/test_config.py
+  packaging/macos
+compileall chemsmart/gui chemsmart/cli/config.py packaging/macos
 git diff --check
 all green
 ```
