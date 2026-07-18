@@ -21,6 +21,8 @@ browser (principle #10).
 
 from __future__ import annotations
 
+import base64
+import re
 import shutil
 from pathlib import Path
 
@@ -49,16 +51,39 @@ def pymol_available() -> bool:
 
 
 _HTML_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8">
-<script src="{threedmol_src}"></script>
+<script>{threedmol_javascript}</script>
 <style>html,body{{margin:0;height:100%;background:{bg}}}#v{{width:100%;height:100%}}</style>
 </head><body><div id="v"></div>
 <script>
+  const decodeUtf8 = (encoded) => {{
+    const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }};
   const viewer = $3Dmol.createViewer("v", {{backgroundColor: "{bg}"}});
-  viewer.addModel(`{data}`, "{fmt}");
+  const model = viewer.addModel(decodeUtf8("{data_b64}"), decodeUtf8("{fmt_b64}"));
+  window.__chemsmartAtomCount = model.selectedAtoms({{}}).length;
   viewer.setStyle({{}}, {{stick:{{}}, sphere:{{scale:0.25}}}});
   viewer.zoomTo();
   viewer.render();
 </script></body></html>"""
+
+
+def build_3dmol_html(data: str, background: str, fmt: str = "xyz") -> str:
+    """Build a fully offline 3Dmol document from an integrity-checked asset."""
+    from chemsmart.gui.resources import read_threedmol_javascript
+
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", background):
+        raise ValueError("3D viewer background must be a six-digit hex colour.")
+
+    def encode(value: str) -> str:
+        return base64.b64encode(value.encode("utf-8")).decode("ascii")
+
+    return _HTML_TEMPLATE.format(
+        threedmol_javascript=read_threedmol_javascript(),
+        bg=background,
+        data_b64=encode(data),
+        fmt_b64=encode(fmt),
+    )
 
 
 class StructureViewer(QWidget):
@@ -153,12 +178,7 @@ class StructureViewer(QWidget):
             data, fmt = "", "xyz"
 
         bg = theme.palette_for().surface_2
-        html = _HTML_TEMPLATE.format(
-            threedmol_src=self._threedmol_src(),
-            bg=bg,
-            data=data,
-            fmt=fmt,
-        )
+        html = build_3dmol_html(data, bg, fmt)
         self._web.setHtml(html)
 
     def _molecule_to_xyz_string(self) -> str:
@@ -173,13 +193,3 @@ class StructureViewer(QWidget):
         text = path.read_text(encoding="utf-8")
         path.unlink(missing_ok=True)
         return text
-
-    def _threedmol_src(self) -> str:
-        """Local path (file URL) to the vendored 3Dmol.js bundle."""
-        asset = (
-            Path(__file__).resolve().parent.parent
-            / "assets"
-            / "3dmol"
-            / "3Dmol-min.js"
-        )
-        return asset.as_uri() if asset.exists() else ""

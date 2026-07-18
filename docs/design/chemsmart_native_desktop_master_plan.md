@@ -45,25 +45,25 @@ Non-goals for v1:
 
 ## 2. Corrected current baseline
 
-The current checkout is `agent-codebase-simplification@cada8c50`, six commits
-behind `fork/agent-codebase-simplification`. The working tree contains tracked
-changes to `pyproject.toml` and `chemsmart/cli/config.py`, plus an entirely
-untracked `chemsmart/gui/` package. These files must be preserved; do not use
-`git clean`, `git stash -u`, reset, or branch switching as a preparation step.
+P0 is committed at `agent-codebase-simplification@3f781642`; the branch is one
+local commit ahead of and six commits behind
+`fork/agent-codebase-simplification`. The working tree now contains only the
+in-progress P1 packaging spike. Do not use `git clean`, `git stash -u`, reset,
+or branch switching as a preparation step.
 
 | Area | Current state | Consequence |
 |---|---|---|
-| Packaging spike | Absent | No `.app`/`.dmg` feasibility claim is proven. |
-| PySide6 extra and GUI entry point | Present, uncommitted | Static configuration exists; reproducible build dependencies do not. |
-| Provider config extraction | P0-corrected, uncommitted | Connection testing uses an in-memory draft and untested values cannot persist; Keychain handling remains P2. |
-| App shell/theme | Recoverable P0 scaffold | Job builder and Chat render; unavailable Database, Analysis, and Settings destinations now show intentional placeholders. |
-| Job builder | Contract scaffold | It exposes only Gaussian/ORCA, merges run/program/leaf options with scoped collision handling, and defaults to Gaussian opt; typed draft and launch validation remain P2/P3. |
+| Packaging spike | P1 preflight implemented, isolated builds pending | PyInstaller and pyside6-deploy use the same probe and pinned Qt boundary; no `.app` feasibility claim is made until the remote receipts pass. |
+| PySide6 extra and GUI entry point | P0 committed | Source entry and package data are stable; P1 adds a hidden packaging probe and absolute-path frozen CLI dispatch. |
+| Provider config extraction | P0 committed | Connection testing uses an in-memory draft and untested values cannot persist; Keychain handling remains P2. |
+| App shell/theme | P0 committed scaffold | Job builder and Chat render; unavailable Database, Analysis, and Settings destinations show intentional placeholders. |
+| Job builder | P0 contract scaffold | It exposes only Gaussian/ORCA, merges run/program/leaf options with scoped collision handling, and defaults to Gaussian opt; typed draft and launch validation remain P2/P3. |
 | Chat | Visual placeholder | No live `AgentSession` call, streaming, cancellation, approval, or receipts. |
 | Agent worker | Placeholder | It proposes legacy `AgentSession.run()` instead of the current unified `run_loop()` contract used by the TUI. |
-| 3D viewer | Placeholder | No vendored 3Dmol asset and no structure-loading path; PyMOL execution is not wired. |
+| 3D viewer | P1 source probe green | Integrity-checked 3Dmol.js 2.5.5 renders offline in QtWebEngine; frozen bundling remains a mandatory P1 gate and PyMOL execution is not wired. |
 | Database/analysis | Absent | No screens or services. |
 | Runtime environment | Split | Base Python can render PySide6; the `chemsmart` conda environment lacks PySide6. The current `chemsmart` executable on `PATH` resolves to another Codex worktree. |
-| Validation | P0 contract baseline | Ruff/compile checks pass; 26 GUI, 64 config/provider/schema, and 43 TUI/synthesis tests pass (133 combined). Packaging is still untested. |
+| Validation | P1 local preflight | Ruff/compile checks pass; 46 GUI and 153 combined GUI/CLI/TUI focused tests pass. Frozen candidate builds remain untested until the isolated workflow runs. |
 
 The current UI is a useful structural sketch, not a runnable product baseline.
 It should be corrected in place after contract tests are added, not discarded.
@@ -329,6 +329,32 @@ Evaluate two isolated candidates before selecting the release tool:
 - Candidate A: PyInstaller `onedir` `.app`.
 - Candidate B: Qt's `pyside6-deploy`/Nuitka path.
 
+P1 uses Python 3.11, PySide6 6.9.2, and a `macos-14` arm64 disposable
+GitHub-hosted runner for the first comparison. This is a feasibility floor, not
+a permanent support promise: the macOS 14 runner is scheduled for retirement,
+so P7 must move to a maintained runner or named dedicated builder without
+silently raising the supported OS. PyInstaller 6.21.0 and
+`pyinstaller-hooks-contrib` 2026.5 are compared against the
+PySide6-6.9-compatible pyside6-deploy/Nuitka 2.7.11 path. The exact installed
+dependency freeze is captured per candidate.
+
+The probe deliberately launches the real GUI bundle through LaunchServices
+three times with fresh HOME/TMPDIR roots and a minimal PATH. Every launch must
+import the scientific/provider boundary, verify the bundled 3Dmol hash, render
+a three-atom molecule through QtWebEngine, initialize templates without shell
+mutation, self-dispatch the existing CLI by absolute executable path, and
+generate Gaussian and ORCA fake inputs. It never calls provider networks,
+Gaussian/ORCA executables, or HPC submission.
+
+A separate LaunchServices smoke opens the normal `MainWindow` path, navigates
+Job builder, Chat, Database, Analysis, and Settings twice, proves that the five
+lazy screens are reused, verifies a real schema-driven command preview, and
+retains a nonblank screenshot. Receipts must identify a frozen arm64 process
+inside the tested bundle, macOS 14, the exact isolated HOME/TMPDIR/PATH, and
+every fake input under its launch workspace. The verifier records peak RSS,
+checks the main Mach-O architecture/minimum OS, hashes the bundle before and
+after execution, validates every symlink, and round-trips the final zip.
+
 The same spike application must prove:
 
 - rdkit, pymatgen, ase, scipy, numpy, matplotlib, PySide6, and QtWebEngine imports;
@@ -340,6 +366,13 @@ The same spike application must prove:
 - Finder launch with a clean environment;
 - no developer absolute paths, missing dylibs/plugins, or writable bundle paths;
 - preserved symlinks and acceptable cold-start/RSS/bundle size.
+
+The Textual TUI remains a supported source-install surface and is exercised by
+the source regression suite on the disposable builder. It is deliberately not
+embedded in the Finder `.app`: the desktop app self-dispatches only the existing
+Click CLI, while `chemsmart agent` and its Textual dependencies remain available
+from the normal `agent-tui` extra. Both packaging candidates explicitly exclude
+that UI dependency tree without deleting or changing its source contracts.
 
 Choose the candidate by evidence, not by assumed hook maturity. Keep the losing
 candidate documented as the fallback.

@@ -2,9 +2,10 @@ schema_version: 1
 as_of: "2026-07-18"
 baseline:
   branch: agent-codebase-simplification
-  commit: cada8c505ad298dd3735c497c56b668be61cb236
+  commit: 3f781642afc3
+  upstream_ahead: 1
   upstream_behind: 6
-  gui_state: untracked_scaffold
+  gui_state: p0_committed_p1_remote_candidate_pending
 
 policies:
   - id: PRESERVE-CLI
@@ -229,3 +230,23 @@ surfaces:
       - tui_targeted_suite_green
       - permission_flow_parity
       - session_compatibility
+
+  - id: macos_packaging
+    sources:
+      - packaging/macos/ChemSmart.pyinstaller.spec
+      - packaging/macos/pysidedeploy.spec
+      - packaging/macos/verify_bundle.py
+      - chemsmart/gui/packaging_probe.py
+    current_capability: local preflight and manual remote candidate workflow
+    desktop_v1: compare_before_selecting
+    preservation: frozen app embeds the existing Click CLI self-dispatch but excludes the separately supported Textual UI dependency tree
+    gates:
+      - both_specs_tracked_and_source_contracts_green
+      - macos14_arm64_frozen_receipts
+      - launchservices_isolated_home_temp_path
+      - internal_cli_self_dispatch_and_fake_inputs
+      - normal_mainwindow_navigation_smoke
+      - qtwebengine_3dmol_nonblank_render
+      - bundle_immutable_and_archive_symlinks_preserved
+      - no_builder_path_leak
+      - adhoc_codesign_valid

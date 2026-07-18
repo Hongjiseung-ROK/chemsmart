@@ -21,7 +21,7 @@ def test_feature_contract_has_unique_policy_and_surface_ids() -> None:
     surface_ids = [surface["id"] for surface in contract["surfaces"]]
 
     assert len(policy_ids) == len(set(policy_ids)) == 6
-    assert len(surface_ids) == len(set(surface_ids)) == 16
+    assert len(surface_ids) == len(set(surface_ids)) == 17
 
 
 def test_feature_contract_sources_exist_and_every_surface_has_gates() -> None:
@@ -43,6 +43,7 @@ def test_every_surface_has_an_explicit_desktop_disposition() -> None:
         "preserve_backend_block_ui",
         "preserve_backend_defer_ui",
         "planned_missing_backend",
+        "compare_before_selecting",
     }
 
     for surface in _contract()["surfaces"]:
