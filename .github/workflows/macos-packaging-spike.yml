@@ -20,7 +20,7 @@ jobs:
   package-probe:
     name: ${{ matrix.candidate }} / macOS 14 arm64
     runs-on: macos-14
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -32,9 +32,9 @@ jobs:
       PYTHONUNBUFFERED: "1"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -98,11 +98,12 @@ jobs:
 
       - name: Restore Nuitka compiler cache
         if: matrix.candidate == 'pyside6-deploy'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/chemsmart-nuitka-ccache
-          key: chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          key: chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-${{ github.sha }}
           restore-keys: |
+            chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-
             chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Configure Nuitka compiler cache
@@ -110,7 +111,7 @@ jobs:
         run: |
           brew list ccache >/dev/null 2>&1 || brew install ccache
           ccache --set-config "cache_dir=${CCACHE_DIR}"
-          ccache --max-size=5G
+          ccache --max-size=2G
           ccache --zero-stats
           printf '%s\n' "NUITKA_CCACHE_BINARY=$(command -v ccache)" \
             >> "$GITHUB_ENV"
@@ -149,14 +150,18 @@ jobs:
           app=$(find build/p1/pyside6-deploy/dist \
             -type d -name 'ChemSmart.app' -print -quit)
           test -n "$app"
-          find "$app" -type f \
-            \( -name '*.pak' -o -name '*.dat' -o -name '*.bin' \
-              -o -name '*.json' -o -name '*.js' -o -name '*.css' \
-              -o -name '*.html' -o -name '*.wasm' -o -name '*.qm' \) \
-            -perm -111 -print -exec chmod a-x {} + \
-            | tee build/p1/pyside6-deploy/resource-mode-fixes.txt
-          /usr/bin/codesign --force --deep --sign - --timestamp=none "$app"
-          /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
+          python packaging/macos/normalize_pyside_bundle.py \
+            --app "$app" \
+            --output build/p1/pyside6-deploy/resource-mode-fixes.json
+
+      - name: Apply nested-to-outer ad-hoc candidate signature
+        run: |
+          app=$(find build chemsmart/gui/deployment \
+            -type d -name 'ChemSmart.app' -print -quit 2>/dev/null)
+          test -n "$app"
+          python packaging/macos/adhoc_sign_bundle.py \
+            --app "$app" \
+            --output "build/p1/${CANDIDATE}/adhoc-signing.json"
 
       - name: Record Nuitka compiler cache receipt
         if: always() && matrix.candidate == 'pyside6-deploy'
@@ -189,7 +194,7 @@ jobs:
 
       - name: Upload candidate evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: chemsmart-p1-${{ matrix.candidate }}-macos14-arm64
           path: |
@@ -203,7 +208,8 @@ jobs:
             build/p1/${{ matrix.candidate }}/nuitka-report.xml
             build/p1/${{ matrix.candidate }}/ccache-config.txt
             build/p1/${{ matrix.candidate }}/ccache-stats.txt
-            build/p1/${{ matrix.candidate }}/resource-mode-fixes.txt
+            build/p1/${{ matrix.candidate }}/resource-mode-fixes.json
+            build/p1/${{ matrix.candidate }}/adhoc-signing.json
             build/p1/${{ matrix.candidate }}/metrics.json
             build/p1/${{ matrix.candidate }}/artifact.sha256
             build/p1/${{ matrix.candidate }}/launches-*/probe-*/receipt.json
@@ -222,7 +228,7 @@ jobs:
 
       - name: Upload verified candidate bundle
         if: steps.verify.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: chemsmart-p1-${{ matrix.candidate }}-bundle-macos14-arm64
           path: |

@@ -250,3 +250,4 @@ surfaces:
       - bundle_immutable_and_archive_symlinks_preserved
       - no_builder_path_leak
       - adhoc_codesign_valid
+      - qtwebengine_helper_signature_and_entitlements_valid

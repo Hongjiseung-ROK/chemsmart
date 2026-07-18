@@ -72,12 +72,16 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "fromJSON(inputs.candidate == 'both'" in workflow
     assert "pyinstaller\",\"pyside6-deploy" in workflow
     assert "runs-on: macos-14" in workflow
+    assert "timeout-minutes: 120" in workflow
     assert 'test "$(uname -m)" = "arm64"' in workflow
     assert 'test "$(sw_vers -productVersion | cut -d. -f1)" = "14"' in workflow
     assert "source-provenance.json" in workflow
+    assert "uses: actions/checkout@v6" in workflow
+    assert "uses: actions/setup-python@v6" in workflow
+    assert workflow.count("uses: actions/upload-artifact@v6") == 2
     assert 'tee "build/p1/${CANDIDATE}/source-tests.txt"' in workflow
     assert "set -o pipefail" in workflow
-    assert "uses: actions/cache@v4" in workflow
+    assert "uses: actions/cache@v5" in workflow
     assert "CCACHE_DIR: /tmp/chemsmart-nuitka-ccache" in workflow
     assert "NUITKA_CCACHE_BINARY=$(command -v ccache)" in workflow
     assert "ccache --show-stats" in workflow
@@ -86,10 +90,15 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "--dry-run" in workflow
     assert "/usr/bin/grep -F" in workflow
     assert "rg -F" not in workflow
-    assert "resource-mode-fixes.txt" in workflow
-    assert "-perm -111 -print -exec chmod a-x" in workflow
-    assert "/usr/bin/codesign --force --deep --sign -" in workflow
-    assert "/usr/bin/codesign --verify --deep --strict" in workflow
+    assert "resource-mode-fixes.json" in workflow
+    assert "normalize_pyside_bundle.py" in workflow
+    assert "ccache --max-size=2G" in workflow
+    assert "py311-pyside692-nuitka2711" in workflow
+    assert "hashFiles('packaging/macos/pysidedeploy.spec'" in workflow
+    assert "chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-" in workflow
+    assert "Apply nested-to-outer ad-hoc candidate signature" in workflow
+    assert "adhoc_sign_bundle.py" in workflow
+    assert "adhoc-signing.json" in workflow
     assert "--archive" in workflow
     assert '--forbidden-path "$GITHUB_WORKSPACE"' in workflow
     assert '--forbidden-path "$RUNNER_TEMP"' in workflow

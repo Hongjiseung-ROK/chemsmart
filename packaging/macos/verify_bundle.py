@@ -484,6 +484,28 @@ def _version_at_most_14(value: Any) -> bool:
     return padded <= (14, 0)
 
 
+def _parse_codesign_entitlements(output: str) -> dict[str, Any] | None:
+    """Extract the XML property list from codesign's mixed diagnostic output."""
+    start = output.find("<?xml")
+    end_marker = "</plist>"
+    end = output.find(end_marker, start)
+    if start < 0 or end < 0:
+        return None
+    payload = output[start : end + len(end_marker)].encode()
+    try:
+        parsed = plistlib.loads(payload)
+    except (plistlib.InvalidFileException, ValueError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _contains_entitlements(
+    actual: dict[str, Any], required: dict[str, Any]
+) -> bool:
+    """Return whether the actual signature retains every Qt-required value."""
+    return all(actual.get(key) == value for key, value in required.items())
+
+
 def _archive_roundtrip(
     app: Path,
     archive: Path,
@@ -550,9 +572,62 @@ def verify_bundle(
     plist = plistlib.loads(plist_path.read_bytes())
     executable_name = plist.get("CFBundleExecutable")
     main_executable = macos_dir / str(executable_name or "")
+    helper_paths = sorted(app.rglob("QtWebEngineProcess*"))
     helpers = sorted(
-        str(path.relative_to(app)) for path in app.rglob("QtWebEngineProcess*")
+        str(path.relative_to(app)) for path in helper_paths
     )
+    helper_executables = sorted(
+        path
+        for path in app.rglob("QtWebEngineProcess")
+        if path.is_file() and not path.is_symlink()
+    )
+    required_entitlements = []
+    for path in app.rglob("QtWebEngineProcess.entitlements"):
+        try:
+            payload = plistlib.loads(path.read_bytes())
+        except (OSError, plistlib.InvalidFileException, ValueError):
+            continue
+        if isinstance(payload, dict) and payload not in required_entitlements:
+            required_entitlements.append(payload)
+    helper_signature_reports = []
+    for helper in helper_executables:
+        verification = _run(
+            [
+                "/usr/bin/codesign",
+                "--verify",
+                "--strict",
+                "--verbose=2",
+                str(helper),
+            ]
+        )
+        entitlements = _run(
+            [
+                "/usr/bin/codesign",
+                "-d",
+                "--entitlements",
+                ":-",
+                str(helper),
+            ]
+        )
+        parsed_entitlements = _parse_codesign_entitlements(
+            entitlements["output"]
+        )
+        helper_signature_reports.append(
+            {
+                "path": str(helper.relative_to(app)),
+                "verification": verification,
+                "entitlements_command": entitlements,
+                "entitlements": parsed_entitlements,
+                "required_entitlements_present": bool(
+                    parsed_entitlements is not None
+                    and required_entitlements
+                    and all(
+                        _contains_entitlements(parsed_entitlements, required)
+                        for required in required_entitlements
+                    )
+                ),
+            }
+        )
     threedmol_assets = sorted(
         str(path.relative_to(app)) for path in app.rglob("3Dmol-min.js")
     )
@@ -655,6 +730,17 @@ def verify_bundle(
         "shell_contract_passed": all(shell_contract.values()),
         "codesign_valid": codesign["returncode"] == 0,
         "qtwebengine_helper_present": bool(helpers),
+        "qtwebengine_helpers_signed": bool(helper_signature_reports)
+        and all(
+            report["verification"]["returncode"] == 0
+            for report in helper_signature_reports
+        ),
+        "qtwebengine_entitlements_valid": bool(helper_signature_reports)
+        and bool(required_entitlements)
+        and all(
+            report["required_entitlements_present"]
+            for report in helper_signature_reports
+        ),
         "threedmol_asset_present": bool(threedmol_assets),
         "no_builder_path_leak": not leaked_paths,
         "bundle_identifier": plist.get("CFBundleIdentifier")
@@ -707,6 +793,8 @@ def verify_bundle(
         "shell_contract": shell_contract,
         "codesign": codesign,
         "signature": signature,
+        "qtwebengine_required_entitlements": required_entitlements,
+        "qtwebengine_helper_signatures": helper_signature_reports,
         "lipo": lipo,
         "otool": otool,
         "archive": archive_result,

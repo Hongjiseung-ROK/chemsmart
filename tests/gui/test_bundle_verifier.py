@@ -140,6 +140,33 @@ def test_macos_minimum_version_parser_supports_both_load_commands():
     assert verifier._version_at_most_14("14.1") is False
 
 
+def test_codesign_entitlement_parser_requires_qt_values():
+    output = """Executable=/tmp/QtWebEngineProcess
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>com.apple.security.cs.allow-jit</key><true/>
+<key>com.apple.security.cs.disable-library-validation</key><true/>
+</dict></plist>
+"""
+    parsed = verifier._parse_codesign_entitlements(output)
+
+    assert parsed == {
+        "com.apple.security.cs.allow-jit": True,
+        "com.apple.security.cs.disable-library-validation": True,
+    }
+    assert verifier._contains_entitlements(
+        parsed,
+        {"com.apple.security.cs.allow-jit": True},
+    )
+    assert not verifier._contains_entitlements(
+        parsed,
+        {"com.apple.security.cs.allow-unsigned-executable-memory": True},
+    )
+    assert verifier._parse_codesign_entitlements("no plist") is None
+
+
 def test_embedded_path_scan_separates_observation_from_forbidden_path(tmp_path):
     payload = tmp_path / "payload.bin"
     boundary_padding = b"x" * (1024 * 1024 - 5)

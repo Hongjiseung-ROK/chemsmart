@@ -1,7 +1,7 @@
 # P1 macOS packaging preflight receipt
 
 Date: 2026-07-18
-Status: PyInstaller candidate green; pyside6-deploy and combined run pending
+Status: Both candidates measured; strengthened final signing gate pending
 Baseline commit: `3f781642afc3`
 
 ## Scope and decision boundary
@@ -211,6 +211,54 @@ monospace font for absent `SF Mono` on the runner. P2/P6 should use Qt's system
 fixed-font family rather than relying on that named family; it is not a P1
 packaging-integrity failure.
 
+Run `29636435718` supplied the first complete pyside6-deploy/Nuitka comparison
+receipt. Dependency installation and 153 source contracts passed, the generated
+Nuitka command retained the package, CLI providers, QtWebEngine, and offline
+resources, and native compilation completed successfully. The build step alone
+took 1 hour 16 minutes 50 seconds; the whole job took 1 hour 20 minutes 10
+seconds. Nuitka reported that no usable arm64 `ccache` was active, making the
+first measurement a valid uncached build-cost baseline rather than an app
+startup measurement.
+
+The produced arm64 app was 2,472,314,601 bytes with 2,488 files and no symlinks.
+Its three attempted full probes ran for 8.337/5.093/4.662 seconds at
+594,592–599,312 KiB process-tree RSS, while the shell attempt ran for 5.018
+seconds at 549,344 KiB. Those attempts are observations, not passing launch
+receipts: the older verifier supplied relative HOME/TMPDIR paths, so the app
+created one directory inside its bundle and the expected absolute receipt paths
+remained empty. This independently reproduced the verifier defect already fixed
+on the latest ref.
+
+The same run exposed a candidate-specific defect that is not attributed to the
+verifier. Strict recursive code-signature validation rejected an executable-mode
+`qtwebengine_resources.pak` subcomponent, and Gatekeeper reported no usable
+signature. The 12,113,898-byte failure-evidence artifact, including the complete
+12,047,921-byte Nuitka report, was downloaded; the 2.47 GB invalid application
+was intentionally not uploaded. The optimized retry normalizes execution bits
+only on the exact `qtwebengine_resources*.pak` allowlist, records the path,
+before/after modes, and unchanged content hash, reapplies an ad-hoc recursive
+signature while preserving helper entitlements, and verifies it before running
+the mandatory bundle gate.
+
+The retry also follows Nuitka's documented macOS arm64 guidance by installing
+Homebrew `ccache`, setting `NUITKA_CCACHE_BINARY`, persisting a bounded 2 GB
+compiler cache, and retaining configuration/hit-rate receipts. This does not
+relax the first uncached baseline or turn build time into a user-runtime metric;
+it measures whether a repeated packaging iteration can avoid the observed
+77-minute compiler bottleneck.
+
+Inspection of the extracted PyInstaller artifact then found a stricter shared
+boundary: `QtWebEngineProcess` had a valid file signature but exposed no signed
+entitlements, while its bundled Qt template requires four Chromium/JIT values.
+The earlier PyInstaller result therefore remains runtime-green under the first
+gate but is not promoted to final P1 evidence. A common signer now applies the
+template to each helper app, re-seals its containing QtWebEngine framework, and
+finally re-seals the outer app. On the extracted 804 MB application this
+nested-to-outer sequence passed strict deep verification and preserved all four
+required entitlement values. The final remote gate independently verifies each
+helper signature and compares its actual entitlement plist with the bundled
+template.
+
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
 loaded, one canvas existed, and the molecule contained the expected atom.
@@ -243,9 +291,9 @@ while ephemeral CI snapshots were fast-forwarded to
 `codex/p1-macos-packaging-spike`; no PR, release, default-branch edit, provider
 secret, or signing secret is involved.
 
-PyInstaller is a reviewer-approved provisional baseline, not the final winner.
-P1 remains red/pending until the pyside6-deploy build produces a mandatory
-success or precise failure receipt, both candidates are compared, the latest
-workflow runs both candidates together with retained source-test/provenance
-receipts, reviewer feedback is closed, and the final combined regression is
-green.
+PyInstaller is a reviewer-approved runtime baseline, not the final winner. P1
+remains red/pending until the pyside6-deploy retry produces a mandatory success
+or precise candidate-specific failure receipt, both candidates pass the new
+helper-entitlement gate, the latest workflow runs both together with retained
+source-test/provenance receipts, reviewer feedback is closed, and the final
+combined regression is green.
