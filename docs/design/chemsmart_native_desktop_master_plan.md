@@ -333,8 +333,8 @@ P1 uses Python 3.11, PySide6 6.9.2, and a `macos-14` arm64 disposable
 GitHub-hosted runner for the first comparison. This is a feasibility floor, not
 a permanent support promise: the macOS 14 runner is scheduled for retirement,
 so P7 must move to a maintained runner or named dedicated builder without
-silently raising the supported OS. PyInstaller 6.21.0 and
-`pyinstaller-hooks-contrib` 2026.5 are compared against the
+silently raising the supported OS. PyInstaller 6.21.0 and its minimum compatible
+`pyinstaller-hooks-contrib` 2026.6 are compared against the
 PySide6-6.9-compatible pyside6-deploy/Nuitka 2.7.11 path. The exact installed
 dependency freeze is captured per candidate.
 

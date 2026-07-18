@@ -17,8 +17,10 @@ def test_packaging_candidates_share_pinned_qt_boundary():
 
     assert "PySide6==6.9.2" in constraints
     assert "PyInstaller==6.21.0" in constraints
+    assert "pyinstaller-hooks-contrib==2026.6" in constraints
     assert "Nuitka==2.7.11" in constraints
     assert "PyInstaller==6.21.0" in requirements
+    assert "pyinstaller-hooks-contrib==2026.6" in requirements
     assert "Nuitka==2.7.11" in requirements
 
 

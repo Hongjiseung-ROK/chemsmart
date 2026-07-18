@@ -107,6 +107,14 @@ installs the project dependency set.
 
 ## Bottleneck and self-improvement note
 
+Remote run `29635409558` proved the macOS 14 arm64 runner and workflow-dispatch
+path, then both matrix jobs failed at the shared resolver before any build. The
+captured error was exact: PyInstaller 6.21.0 requires
+`pyinstaller-hooks-contrib>=2026.6`, while the preflight had pinned 2026.5. The
+pin is corrected to the compatible minimum 2026.6 in both the requirement and
+constraint files, with a static pairing regression. No packaging gate was
+relaxed, and the failed run is not counted as candidate evidence.
+
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
 loaded, one canvas existed, and the molecule contained the expected atom.
