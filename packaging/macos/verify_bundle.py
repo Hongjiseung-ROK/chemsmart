@@ -179,6 +179,17 @@ def _read_text_tail(path: Path, *, limit: int = 8000) -> str:
     return path.read_text(encoding="utf-8", errors="replace")[-limit:]
 
 
+def _fresh_evidence_root(output: Path) -> Path:
+    """Return a new absolute launch root for Finder-style environment paths."""
+    output = output.resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    root = Path(
+        tempfile.mkdtemp(prefix="launches-", dir=output.parent)
+    ).resolve()
+    root.rmdir()
+    return root
+
+
 def _bundle_inventory(root: Path) -> dict[str, Any]:
     """Hash content, modes, and symlink targets without following symlinks."""
     digest = hashlib.sha256()
@@ -226,6 +237,8 @@ def _launch_once(
     *,
     mode: str,
 ) -> dict[str, Any]:
+    if not root.is_absolute():
+        raise ValueError("Launch evidence root must be absolute.")
     launch_root = root / f"{mode}-{index}"
     home = launch_root / "home"
     workspace = launch_root / "workspace"
@@ -666,10 +679,8 @@ def main() -> int:
     parser.add_argument("--forbidden-path", action="append", default=[])
     args = parser.parse_args()
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    evidence_root = Path(
-        tempfile.mkdtemp(prefix="launches-", dir=args.output.parent)
-    )
+    output = args.output.resolve()
+    evidence_root = _fresh_evidence_root(output)
     # ``mkdtemp`` creates the root; the verifier requires a new directory so
     # it can prove every launch starts with fresh state.
     evidence_root.rmdir()
@@ -680,7 +691,7 @@ def main() -> int:
         archive=args.archive.resolve(),
         forbidden_paths=tuple(args.forbidden_path),
     )
-    args.output.write_text(
+    output.write_text(
         json.dumps(report, indent=2, sort_keys=True),
         encoding="utf-8",
     )

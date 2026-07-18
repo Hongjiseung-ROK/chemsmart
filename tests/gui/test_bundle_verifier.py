@@ -149,3 +149,15 @@ def test_embedded_path_scan_separates_observation_from_forbidden_path(tmp_path):
         "forbidden_0",
         "users_runner",
     ]
+
+
+def test_fresh_evidence_root_is_absolute_for_relative_output(
+    monkeypatch, tmp_path
+):
+    monkeypatch.chdir(tmp_path)
+
+    root = verifier._fresh_evidence_root(Path("build/p1/metrics.json"))
+
+    assert root.is_absolute()
+    assert root.parent == (tmp_path / "build" / "p1").resolve()
+    assert not root.exists()

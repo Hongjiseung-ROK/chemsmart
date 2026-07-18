@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-
-from chemsmart.package_resources import package_resource
+from importlib import resources
 
 
 THREEDMOL_VERSION = "2.5.5"
@@ -15,11 +14,11 @@ THREEDMOL_SHA256 = (
 
 def read_threedmol_javascript() -> str:
     """Return the vendored 3Dmol.js bundle after checking its pinned hash."""
-    asset = package_resource(
-        "chemsmart.gui",
-        "assets",
-        "3dmol",
-        "3Dmol-min.js",
+    asset = (
+        resources.files("chemsmart.gui")
+        / "assets"
+        / "3dmol"
+        / "3Dmol-min.js"
     )
     payload = asset.read_bytes()
     digest = hashlib.sha256(payload).hexdigest()

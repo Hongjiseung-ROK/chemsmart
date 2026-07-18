@@ -9,7 +9,6 @@ import click
 import yaml
 
 from chemsmart.utils.logger import create_logger
-from chemsmart.package_resources import package_resource
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +67,8 @@ class Config:
         Uses ``importlib.resources`` so that the path is resolved correctly
         after installation on Windows, macOS, and Linux alike.
         """
-        return package_resource(
-            "chemsmart.settings", "templates", ".chemsmart"
+        return (
+            resources.files("chemsmart.settings") / "templates" / ".chemsmart"
         )
 
     @property

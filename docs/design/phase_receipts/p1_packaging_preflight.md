@@ -163,14 +163,19 @@ wheel provenance cannot create a false packaging failure.
 Run `29636430428` downloaded a 1,195,588-byte diagnostic artifact and exposed
 the first application exception identically in all four launches. PyInstaller
 started the app and measured 34,896–79,472 KiB RSS, but initial configuration
-copying resolved bundled templates through a relative `build/...` resource
-path. A Finder-style launch has no project working-directory contract, so this
-attempted to create `/build` and failed with read-only-filesystem error 30.
-Package resources are now resolved from the absolute macOS bundle executable
-(`Contents/Resources` or `Contents/Frameworks`) in frozen runtimes, while source
-installs continue to use `importlib.resources`. The same resolver protects both
-the `.chemsmart` templates and the pinned 3Dmol asset, with an executable-rooted
-regression test.
+copying attempted to create relative `build/.../home/.chemsmart` from the
+Finder-style `/` working directory and failed with read-only-filesystem error
+30. A first resource-path hypothesis was tested in run `29636703894` and
+rejected because the exception was unchanged.
+
+The actual defect was in the verifier: `tempfile.mkdtemp(dir=relative_path)`
+returned a relative launch root, while the receipt's expected field applied
+`.resolve()` only when reporting it. The gate therefore displayed an absolute
+HOME it had never supplied to the app. Launch evidence roots are now resolved
+before HOME, TMPDIR, workspace, stdout, stderr, or receipt paths are constructed;
+`_launch_once` rejects a non-absolute root, and a chdir regression proves that a
+relative metrics argument still creates an absolute isolated environment. This
+smaller fix preserves the existing `importlib.resources` behavior.
 
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
