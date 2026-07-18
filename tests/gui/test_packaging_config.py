@@ -75,6 +75,8 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert '".[gui,agent,agent-tui,test]"' in workflow
     assert "tests/gui \\" in workflow
     assert "--dry-run" in workflow
+    assert "/usr/bin/grep -F" in workflow
+    assert "rg -F" not in workflow
     assert "--archive" in workflow
     assert "--launches 3" in workflow
     assert "secrets." not in workflow

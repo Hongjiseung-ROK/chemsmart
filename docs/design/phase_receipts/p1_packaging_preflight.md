@@ -115,6 +115,14 @@ pin is corrected to the compatible minimum 2026.6 in both the requirement and
 constraint files, with a static pairing regression. No packaging gate was
 relaxed, and the failed run is not counted as candidate evidence.
 
+On rerun `29635500608`, both jobs resolved the pinned environment and passed all
+153 source regression tests. The pyside6-deploy dry-run also generated the
+expected Nuitka command, but its assertion step invoked `rg`, which is absent on
+the stock macOS 14 arm64 image (`exit 127`). The workflow now uses the platform
+`/usr/bin/grep -F` for the same exact flag assertions; it does not install an
+extra search tool or weaken the dry-run gate. The PyInstaller job was allowed to
+continue so its independent build evidence could be retained.
+
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
 loaded, one canvas existed, and the molecule contained the expected atom.

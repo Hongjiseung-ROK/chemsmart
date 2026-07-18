@@ -79,11 +79,11 @@ jobs:
             --keep-deployment-files \
             --verbose \
             2>&1 | tee build/p1/pyside6-deploy/dry-run.txt
-          rg -F -- '--include-package-data=chemsmart' \
+          /usr/bin/grep -F -- '--include-package-data=chemsmart' \
             build/p1/pyside6-deploy/dry-run.txt
-          rg -F -- '--macos-signed-app-name=org.zhanglab.chemsmart' \
+          /usr/bin/grep -F -- '--macos-signed-app-name=org.zhanglab.chemsmart' \
             build/p1/pyside6-deploy/dry-run.txt
-          rg -F -- '--macos-target-arch=arm64' \
+          /usr/bin/grep -F -- '--macos-target-arch=arm64' \
             build/p1/pyside6-deploy/dry-run.txt
           pyside6-deploy \
             -c packaging/macos/pysidedeploy.spec \
