@@ -58,3 +58,19 @@ def test_gui_environment_setup_uses_non_mutating_config_path(
     _ensure_environment()
 
     assert calls == ["safe"]
+
+
+def test_config_template_uses_packaged_nonhidden_fallback(
+    tmp_path, monkeypatch
+) -> None:
+    from chemsmart.cli import config as config_module
+
+    templates = tmp_path / "templates" / "chemsmart_defaults"
+    templates.mkdir(parents=True)
+    monkeypatch.setattr(
+        config_module.resources,
+        "files",
+        lambda package: tmp_path,
+    )
+
+    assert config_module.Config().chemsmart_template == templates

@@ -1,0 +1,6 @@
+# P1 build tools only. Runtime/scientific dependencies come from pyproject.toml.
+PyInstaller==6.21.0
+pyinstaller-hooks-contrib==2026.6
+Nuitka==2.7.11
+ordered-set==4.1.0
+zstandard==0.23.0

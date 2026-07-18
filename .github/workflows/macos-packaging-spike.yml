@@ -1,0 +1,256 @@
+name: macOS packaging spike
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate:
+        description: PyInstaller is selected; choose both or pyside6-deploy only for explicit reevaluation.
+        required: true
+        default: pyinstaller
+        type: choice
+        options:
+          - pyinstaller
+          - both
+          - pyside6-deploy
+
+permissions:
+  contents: read
+
+jobs:
+  package-probe:
+    name: ${{ matrix.candidate }} / macOS 14 arm64
+    runs-on: macos-14
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        candidate: ${{ fromJSON(inputs.candidate == 'both' && '["pyinstaller","pyside6-deploy"]' || format('["{0}"]', inputs.candidate)) }}
+    env:
+      CANDIDATE: ${{ matrix.candidate }}
+      CCACHE_DIR: /tmp/chemsmart-nuitka-ccache
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Record builder identity
+        run: |
+          mkdir -p "build/p1/${CANDIDATE}"
+          sw_vers > "build/p1/${CANDIDATE}/sw_vers.txt"
+          uname -a > "build/p1/${CANDIDATE}/uname.txt"
+          python -VV > "build/p1/${CANDIDATE}/python.txt"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("build/p1") / os.environ["CANDIDATE"]
+          payload = {
+              "commit": os.environ["GITHUB_SHA"],
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_url": (
+                  f"{os.environ['GITHUB_SERVER_URL']}/"
+                  f"{os.environ['GITHUB_REPOSITORY']}/actions/runs/"
+                  f"{os.environ['GITHUB_RUN_ID']}"
+              ),
+              "workflow_ref": os.environ["GITHUB_WORKFLOW_REF"],
+              "workflow_sha": os.environ["GITHUB_WORKFLOW_SHA"],
+          }
+          (root / "source-provenance.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          test "$(uname -m)" = "arm64"
+          test "$(sw_vers -productVersion | cut -d. -f1)" = "14"
+
+      - name: Install isolated candidate dependencies
+        run: |
+          python -m pip install \
+            -c packaging/macos/constraints.txt \
+            -r packaging/macos/build-requirements.txt \
+            ".[gui,agent,agent-tui,test]"
+          python -m pip freeze \
+            > "build/p1/${CANDIDATE}/pip-freeze.txt"
+
+      - name: Run source packaging contracts
+        run: |
+          set -o pipefail
+          python -m pytest -q \
+            tests/gui \
+            tests/test_config.py \
+            tests/agent/test_cli_schema.py \
+            tests/agent/test_provider_config.py \
+            tests/agent/test_provider_adapter.py \
+            tests/agent/tui/test_cli.py \
+            tests/agent/tui/test_track_a_foundation.py \
+            tests/agent/tui/test_synthesis_mode.py \
+            tests/agent/test_synthesis.py \
+            2>&1 | tee "build/p1/${CANDIDATE}/source-tests.txt"
+
+      - name: Restore Nuitka compiler cache
+        id: nuitka-cache-restore
+        if: matrix.candidate == 'pyside6-deploy'
+        uses: actions/cache/restore@v6
+        with:
+          path: /tmp/chemsmart-nuitka-ccache
+          key: chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-${{ github.sha }}
+          restore-keys: |
+            chemsmart-p1-nuitka-v1-${{ runner.os }}-${{ runner.arch }}-py311-pyside692-nuitka2711-${{ hashFiles('packaging/macos/pysidedeploy.spec', 'packaging/macos/constraints.txt', 'packaging/macos/build-requirements.txt', 'pyproject.toml') }}-
+            chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Configure Nuitka compiler cache
+        if: matrix.candidate == 'pyside6-deploy'
+        run: |
+          brew list ccache >/dev/null 2>&1 || brew install ccache
+          ccache --set-config "cache_dir=${CCACHE_DIR}"
+          ccache --max-size=2G
+          ccache --zero-stats
+          printf '%s\n' "NUITKA_CCACHE_BINARY=$(command -v ccache)" \
+            >> "$GITHUB_ENV"
+
+      - name: Build PyInstaller candidate
+        if: matrix.candidate == 'pyinstaller'
+        run: |
+          python -m PyInstaller \
+            --noconfirm \
+            --clean \
+            --distpath build/p1/pyinstaller/dist \
+            --workpath build/p1/pyinstaller/work \
+            packaging/macos/ChemSmart.pyinstaller.spec
+
+      - name: Build pyside6-deploy candidate
+        if: matrix.candidate == 'pyside6-deploy'
+        run: |
+          pyside6-deploy \
+            -c packaging/macos/pysidedeploy.spec \
+            --dry-run \
+            --force \
+            --keep-deployment-files \
+            --verbose \
+            2>&1 | tee build/p1/pyside6-deploy/dry-run.txt
+          /usr/bin/grep -F -- '--include-package-data=chemsmart' \
+            build/p1/pyside6-deploy/dry-run.txt
+          /usr/bin/grep -F -- '--macos-signed-app-name=org.zhanglab.chemsmart' \
+            build/p1/pyside6-deploy/dry-run.txt
+          /usr/bin/grep -F -- '--macos-target-arch=arm64' \
+            build/p1/pyside6-deploy/dry-run.txt
+          pyside6-deploy \
+            -c packaging/macos/pysidedeploy.spec \
+            --force \
+            --keep-deployment-files \
+            --verbose
+          app=$(find build/p1/pyside6-deploy/dist \
+            -type d -name 'ChemSmart.app' -print -quit)
+          test -n "$app"
+          python packaging/macos/normalize_pyside_bundle.py \
+            --app "$app" \
+            --output build/p1/pyside6-deploy/resource-mode-fixes.json
+
+      - name: Apply nested-to-outer ad-hoc candidate signature
+        id: signing
+        continue-on-error: true
+        run: |
+          app=$(find build chemsmart/gui/deployment \
+            -type d -name 'ChemSmart.app' -print -quit 2>/dev/null)
+          test -n "$app"
+          python packaging/macos/adhoc_sign_bundle.py \
+            --app "$app" \
+            --output "build/p1/${CANDIDATE}/adhoc-signing.json"
+
+      - name: Record Nuitka compiler cache receipt
+        if: always() && matrix.candidate == 'pyside6-deploy'
+        continue-on-error: true
+        run: |
+          ccache --show-config \
+            > build/p1/pyside6-deploy/ccache-config.txt
+          ccache --show-stats \
+            > build/p1/pyside6-deploy/ccache-stats.txt
+
+      - name: Save Nuitka compiler cache
+        if: always() && matrix.candidate == 'pyside6-deploy' && steps.nuitka-cache-restore.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: /tmp/chemsmart-nuitka-ccache
+          key: ${{ steps.nuitka-cache-restore.outputs.cache-primary-key }}
+
+      - name: Locate and verify candidate bundle
+        id: verify
+        if: ${{ !cancelled() && steps.signing.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          app=$(find build chemsmart/gui/deployment \
+            -type d -name 'ChemSmart.app' -print -quit 2>/dev/null)
+          test -n "$app"
+          python packaging/macos/verify_bundle.py \
+            --app "$app" \
+            --output "build/p1/${CANDIDATE}/metrics.json" \
+            --archive "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip" \
+            --forbidden-path "$GITHUB_WORKSPACE" \
+            --forbidden-path "$RUNNER_TEMP" \
+            --launches 3 || verify_status=$?
+          if test -f "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip"; then
+            shasum -a 256 \
+              "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip" \
+              > "build/p1/${CANDIDATE}/artifact.sha256"
+          fi
+          exit "${verify_status:-0}"
+
+      - name: Upload candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: chemsmart-p1-${{ matrix.candidate }}-macos14-arm64
+          path: |
+            build/p1/${{ matrix.candidate }}/sw_vers.txt
+            build/p1/${{ matrix.candidate }}/uname.txt
+            build/p1/${{ matrix.candidate }}/python.txt
+            build/p1/${{ matrix.candidate }}/pip-freeze.txt
+            build/p1/${{ matrix.candidate }}/source-provenance.json
+            build/p1/${{ matrix.candidate }}/source-tests.txt
+            build/p1/${{ matrix.candidate }}/dry-run.txt
+            build/p1/${{ matrix.candidate }}/nuitka-report.xml
+            build/p1/${{ matrix.candidate }}/ccache-config.txt
+            build/p1/${{ matrix.candidate }}/ccache-stats.txt
+            build/p1/${{ matrix.candidate }}/resource-mode-fixes.json
+            build/p1/${{ matrix.candidate }}/adhoc-signing.json
+            build/p1/${{ matrix.candidate }}/metrics.json
+            build/p1/${{ matrix.candidate }}/artifact.sha256
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/receipt.json
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/receipt.png
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/application.*.txt
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.xyz
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.com
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.inp
+            build/p1/${{ matrix.candidate }}/launches-*/shell-*/receipt.json
+            build/p1/${{ matrix.candidate }}/launches-*/shell-*/receipt.png
+            build/p1/${{ matrix.candidate }}/launches-*/shell-*/application.*.txt
+            build/p1/${{ matrix.candidate }}/work/ChemSmart/warn-ChemSmart.txt
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Upload verified candidate bundle
+        if: steps.verify.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: chemsmart-p1-${{ matrix.candidate }}-bundle-macos14-arm64
+          path: |
+            build/p1/${{ matrix.candidate }}/ChemSmart-*.zip
+            build/p1/${{ matrix.candidate }}/artifact.sha256
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Enforce candidate verifier result
+        if: always() && (steps.signing.outcome != 'success' || steps.verify.outcome != 'success')
+        run: exit 1

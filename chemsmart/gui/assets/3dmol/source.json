@@ -1,0 +1,11 @@
+{
+  "name": "3Dmol.js",
+  "version": "2.5.5",
+  "license": "BSD-3-Clause",
+  "source": "https://github.com/3dmol/3Dmol.js/releases/tag/2.5.5",
+  "distribution": "https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.5.5/3Dmol-min.js",
+  "npm_distribution": "https://registry.npmjs.org/3dmol/-/3dmol-2.5.5.tgz",
+  "sha256": "9a39af476726e687d60f63750faaa2376c5a872963598e22ccc52dc1e66f27e5",
+  "license_sha256": "830af40a578c5efdb6010b71864771a2423e3476e6212df851dc075bce000793",
+  "bundle_notice_sha256": "ae3bfc688d0c9687b76e0ecc7fece0b393bcb4acf2aee09e19dda697eaa10b16"
+}

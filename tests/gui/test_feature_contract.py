@@ -21,7 +21,7 @@ def test_feature_contract_has_unique_policy_and_surface_ids() -> None:
     surface_ids = [surface["id"] for surface in contract["surfaces"]]
 
     assert len(policy_ids) == len(set(policy_ids)) == 6
-    assert len(surface_ids) == len(set(surface_ids)) == 16
+    assert len(surface_ids) == len(set(surface_ids)) == 17
 
 
 def test_feature_contract_sources_exist_and_every_surface_has_gates() -> None:
@@ -43,7 +43,27 @@ def test_every_surface_has_an_explicit_desktop_disposition() -> None:
         "preserve_backend_block_ui",
         "preserve_backend_defer_ui",
         "planned_missing_backend",
+        "selected_pyinstaller",
     }
 
     for surface in _contract()["surfaces"]:
         assert surface["desktop_v1"] in allowed, surface["id"]
+
+
+def test_macos_packaging_decision_is_pinned_to_retained_p1_evidence() -> None:
+    packaging = next(
+        surface
+        for surface in _contract()["surfaces"]
+        if surface["id"] == "macos_packaging"
+    )
+
+    assert packaging["desktop_v1"] == "selected_pyinstaller"
+    assert packaging["selected_candidate"] == "pyinstaller"
+    assert packaging["fallback_candidate"] == "pyside6-deploy"
+    assert packaging["fallback_status"] == (
+        "red_code_data_layout_in_contents_macos"
+    )
+    assert {
+        "pyinstaller_decision_receipt_retained",
+        "pyside_structural_failure_receipts_retained",
+    } <= set(packaging["gates"])

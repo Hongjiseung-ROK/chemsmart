@@ -32,13 +32,37 @@ def _ensure_environment() -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from chemsmart.gui.frozen_dispatch import (
+        INTERNAL_CLI_MARKER,
+        dispatch_internal_cli,
+    )
+
+    raw_args = list(sys.argv[1:] if argv is None else argv)
+    if raw_args and raw_args[0] == INTERNAL_CLI_MARKER:
+        return dispatch_internal_cli(raw_args[1:])
+
     parser = argparse.ArgumentParser(prog="chemsmart-gui")
     parser.add_argument(
         "--session-root",
         default=None,
         help="Override the agent session storage root.",
     )
-    args = parser.parse_args(argv)
+    parser.add_argument(
+        "--packaging-probe-receipt",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--packaging-probe-workspace",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--packaging-shell-smoke-receipt",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    args = parser.parse_args(raw_args)
 
     from PySide6.QtWidgets import QApplication
 
@@ -49,10 +73,31 @@ def main(argv: list[str] | None = None) -> int:
 
     from pathlib import Path
 
+    if args.packaging_probe_receipt:
+        if not args.packaging_probe_workspace:
+            parser.error(
+                "--packaging-probe-workspace is required with the probe receipt"
+            )
+        from chemsmart.gui.packaging_probe import run_packaging_probe
+
+        return run_packaging_probe(
+            app,
+            receipt_path=Path(args.packaging_probe_receipt).resolve(),
+            workspace=Path(args.packaging_probe_workspace).resolve(),
+        )
+
     from chemsmart.gui.app import MainWindow
 
     session_root = Path(args.session_root) if args.session_root else None
     window = MainWindow(session_root=session_root)
+    if args.packaging_shell_smoke_receipt:
+        from chemsmart.gui.packaging_probe import run_shell_smoke
+
+        return run_shell_smoke(
+            app,
+            window,
+            receipt_path=Path(args.packaging_shell_smoke_receipt).resolve(),
+        )
     window.show()
     return app.exec()
 

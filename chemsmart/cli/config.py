@@ -67,8 +67,13 @@ class Config:
         Uses ``importlib.resources`` so that the path is resolved correctly
         after installation on Windows, macOS, and Linux alike.
         """
-        return (
-            resources.files("chemsmart.settings") / "templates" / ".chemsmart"
+        templates = resources.files("chemsmart.settings") / "templates"
+        for dirname in (".chemsmart", "chemsmart_defaults"):
+            candidate = templates / dirname
+            if candidate.is_dir():
+                return candidate
+        raise FileNotFoundError(
+            "Bundled ChemSmart configuration templates were not found."
         )
 
     @property
