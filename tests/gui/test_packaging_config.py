@@ -68,7 +68,9 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "workflow_dispatch:" in workflow
     assert "push:" not in workflow
     assert "pull_request:" not in workflow
-    assert "candidate: [pyinstaller, pyside6-deploy]" in workflow
+    assert "default: both" in workflow
+    assert "fromJSON(inputs.candidate == 'both'" in workflow
+    assert "pyinstaller\",\"pyside6-deploy" in workflow
     assert "runs-on: macos-14" in workflow
     assert 'test "$(uname -m)" = "arm64"' in workflow
     assert 'test "$(sw_vers -productVersion | cut -d. -f1)" = "14"' in workflow
@@ -79,6 +81,17 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "rg -F" not in workflow
     assert "--archive" in workflow
     assert "--launches 3" in workflow
+    assert "verify_status=$?" in workflow
+    assert "continue-on-error: true" in workflow
+    assert "steps.verify.outcome == 'success'" in workflow
+    assert "steps.verify.outcome != 'success'" in workflow
+    assert workflow.count("compression-level: 0") == 2
+    assert "path: build/p1/${{ matrix.candidate }}/" not in workflow
+    evidence_section, bundle_section = workflow.split(
+        "- name: Upload verified candidate bundle"
+    )
+    assert "ChemSmart-*.zip" not in evidence_section
+    assert "ChemSmart-*.zip" in bundle_section
     assert "secrets." not in workflow
 
 

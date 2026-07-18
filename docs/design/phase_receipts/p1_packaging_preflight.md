@@ -123,6 +123,18 @@ the stock macOS 14 arm64 image (`exit 127`). The workflow now uses the platform
 extra search tool or weaken the dry-run gate. The PyInstaller job was allowed to
 continue so its independent build evidence could be retained.
 
+The PyInstaller build completed, but its mandatory bundle verifier stayed red:
+four LaunchServices checks produced no passing receipts and the bundle scan
+found builder-path material. Its failed evidence upload also exposed a workflow
+bottleneck: the broad build-directory path captured the PyInstaller work tree
+and expanded the diagnostic artifact to 4,163,486,644 bytes. That failed
+artifact is not candidate evidence and is deliberately not downloaded to a
+developer machine. The workflow now uploads only explicit identity, dependency,
+launch, metrics, checksum, and warning receipts on every outcome; the zipped
+application is a separate zero-recompression artifact emitted only after the
+mandatory verifier passes. This keeps failure diagnosis small while preserving
+the full successful candidate for checksum and extraction analysis.
+
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
 loaded, one canvas existed, and the molecule contained the expected atom.

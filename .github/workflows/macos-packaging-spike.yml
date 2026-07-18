@@ -2,6 +2,16 @@ name: macOS packaging spike
 
 on:
   workflow_dispatch:
+    inputs:
+      candidate:
+        description: Candidate to run while iterating; final evidence uses both.
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - pyinstaller
+          - pyside6-deploy
 
 permissions:
   contents: read
@@ -14,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        candidate: [pyinstaller, pyside6-deploy]
+        candidate: ${{ fromJSON(inputs.candidate == 'both' && '["pyinstaller","pyside6-deploy"]' || format('["{0}"]', inputs.candidate)) }}
     env:
       CANDIDATE: ${{ matrix.candidate }}
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
@@ -92,6 +102,8 @@ jobs:
             --verbose
 
       - name: Locate and verify candidate bundle
+        id: verify
+        continue-on-error: true
         run: |
           app=$(find build chemsmart/gui/deployment \
             -type d -name 'ChemSmart.app' -print -quit 2>/dev/null)
@@ -100,16 +112,46 @@ jobs:
             --app "$app" \
             --output "build/p1/${CANDIDATE}/metrics.json" \
             --archive "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip" \
-            --launches 3
-          shasum -a 256 \
-            "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip" \
-            > "build/p1/${CANDIDATE}/artifact.sha256"
+            --launches 3 || verify_status=$?
+          if test -f "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip"; then
+            shasum -a 256 \
+              "build/p1/${CANDIDATE}/ChemSmart-${CANDIDATE}.zip" \
+              > "build/p1/${CANDIDATE}/artifact.sha256"
+          fi
+          exit "${verify_status:-0}"
 
       - name: Upload candidate evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: chemsmart-p1-${{ matrix.candidate }}-macos14-arm64
-          path: build/p1/${{ matrix.candidate }}/
+          path: |
+            build/p1/${{ matrix.candidate }}/sw_vers.txt
+            build/p1/${{ matrix.candidate }}/uname.txt
+            build/p1/${{ matrix.candidate }}/python.txt
+            build/p1/${{ matrix.candidate }}/pip-freeze.txt
+            build/p1/${{ matrix.candidate }}/dry-run.txt
+            build/p1/${{ matrix.candidate }}/nuitka-report.xml
+            build/p1/${{ matrix.candidate }}/metrics.json
+            build/p1/${{ matrix.candidate }}/artifact.sha256
+            build/p1/${{ matrix.candidate }}/launches-*/
+            build/p1/${{ matrix.candidate }}/work/ChemSmart/warn-ChemSmart.txt
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
+
+      - name: Upload verified candidate bundle
+        if: steps.verify.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: chemsmart-p1-${{ matrix.candidate }}-bundle-macos14-arm64
+          path: |
+            build/p1/${{ matrix.candidate }}/ChemSmart-*.zip
+            build/p1/${{ matrix.candidate }}/artifact.sha256
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Enforce candidate verifier result
+        if: always() && steps.verify.outcome != 'success'
+        run: exit 1
