@@ -13,6 +13,7 @@ import re
 import shlex
 import subprocess
 from contextlib import suppress
+from filecmp import cmp as files_equal
 from functools import lru_cache
 from glob import glob
 from shutil import copy
@@ -362,6 +363,7 @@ class ORCAJobRunner(JobRunner):
         """
         from chemsmart.jobs.orca.writer import ORCAInputWriter
 
+        self._stage_geometry_dependencies(job)
         input_writer = ORCAInputWriter(job=job)
         input_writer.write(target_directory=self.running_directory)
 
@@ -372,6 +374,74 @@ class ORCAJobRunner(JobRunner):
         # YAML content and the referenced file exists in the job folder.
         if self.scratch and self.scratch_dir:
             self._copy_over_extra_files(job)
+
+    def _stage_geometry_dependencies(self, job) -> None:
+        """Place ORCA geometry dependencies beside the generated input.
+
+        NEB writers intentionally emit basenames so inputs remain portable and
+        scratch-safe. Absolute CLI paths must therefore be copied into the
+        actual running directory before ORCA or its fake runner starts.
+        """
+
+        settings = getattr(job, "settings", None)
+        if settings is None:
+            return
+        dependencies: list[tuple[str, str, str]] = []
+        source_by_basename: dict[str, tuple[str, str]] = {}
+        for attribute in (
+            "ending_xyzfile",
+            "intermediate_xyzfile",
+            "restarting_xyzfile",
+        ):
+            value = getattr(settings, attribute, None)
+            if not value:
+                continue
+            source = os.path.expanduser(str(value))
+            if not os.path.isabs(source):
+                job_candidate = os.path.join(job.folder, source)
+                source = (
+                    job_candidate
+                    if os.path.isfile(job_candidate)
+                    else os.path.abspath(source)
+                )
+            if not os.path.isfile(source):
+                raise FileNotFoundError(
+                    f"ORCA geometry dependency does not exist: {value}"
+                )
+            source = os.path.realpath(source)
+            basename = os.path.basename(source)
+            previous = source_by_basename.get(basename)
+            if previous is not None and previous[1] != source:
+                raise ValueError(
+                    "ORCA geometry dependencies must have unique basenames: "
+                    f"{previous[0]} and {attribute} both resolve to "
+                    f"{basename!r}. Rename one source file."
+                )
+            source_by_basename[basename] = (attribute, source)
+            destination = os.path.join(
+                self.running_directory,
+                basename,
+            )
+            dependencies.append((attribute, source, destination))
+
+        for _attribute, source, destination in dependencies:
+            if os.path.abspath(source) == os.path.abspath(destination):
+                continue
+            if os.path.lexists(destination):
+                if os.path.islink(destination) or not files_equal(
+                    source,
+                    destination,
+                    shallow=False,
+                ):
+                    raise ValueError(
+                        "ORCA geometry dependency would overwrite a different "
+                        f"file: {destination}"
+                    )
+                continue
+            copy(source, destination)
+            logger.info(
+                f"Staged ORCA geometry dependency {source} at {destination}."
+            )
 
     def _get_command(self, job):
         """

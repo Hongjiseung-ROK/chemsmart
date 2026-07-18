@@ -3,6 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 from importlib import resources
+import os
+from pathlib import Path
+import subprocess
+import sys
 
 from chemsmart.gui.resources import THREEDMOL_SHA256, read_threedmol_javascript
 from chemsmart.gui.widgets.structure_viewer import build_3dmol_html
@@ -49,47 +53,64 @@ def test_threedmol_document_blocks_script_breakout_from_structure_data():
     assert "decodeUtf8" in html
 
 
-def test_threedmol_renders_in_qtwebengine(qapp):
-    from PySide6.QtCore import QEventLoop, QTimer
-    from PySide6.QtWebEngineWidgets import QWebEngineView
+def test_threedmol_renders_in_isolated_qtwebengine_process():
+    script = r'''
+import json
+from PySide6.QtCore import QTimer
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import QApplication
+from chemsmart.gui.widgets.structure_viewer import build_3dmol_html
 
-    view = QWebEngineView()
-    view.resize(320, 240)
-    loop = QEventLoop()
-    observed = {"value": None, "timed_out": False}
+app = QApplication([])
+view = QWebEngineView()
+view.resize(320, 240)
+view.show()
+finished = {"done": False}
 
-    def finish(value):
-        observed["value"] = value
-        loop.quit()
-
-    def loaded(ok):
-        if not ok:
-            finish({"load": False})
-            return
-        view.page().runJavaScript(
-            "JSON.stringify({library: typeof $3Dmol !== 'undefined', "
-            "atoms: window.__chemsmartAtomCount || 0, "
-            "canvases: document.querySelectorAll('canvas').length})",
-            finish,
-        )
-
-    def timeout():
-        observed["timed_out"] = True
-        loop.quit()
-
-    view.loadFinished.connect(loaded)
-    view.setHtml(
-        build_3dmol_html(
-            "1\nhydrogen\nH 0.0 0.0 0.0\n",
-            "#ffffff",
-        )
-    )
-    QTimer.singleShot(15_000, timeout)
-    loop.exec()
+def complete(value, returncode=0):
+    if finished["done"]:
+        return
+    finished["done"] = True
+    print(json.dumps(value, sort_keys=True), flush=True)
     view.close()
+    app.exit(returncode)
 
-    assert not observed["timed_out"]
-    assert json.loads(observed["value"]) == {
+def loaded(ok):
+    if not ok:
+        complete({"load": False}, 2)
+        return
+    view.page().runJavaScript(
+        "JSON.stringify({library: typeof $3Dmol !== 'undefined', "
+        "atoms: window.__chemsmartAtomCount || 0, "
+        "canvases: document.querySelectorAll('canvas').length})",
+        lambda value: complete(json.loads(value) if value else {"value": value}),
+    )
+
+view.loadFinished.connect(loaded)
+view.setHtml(build_3dmol_html("1\nhydrogen\nH 0 0 0\n", "#ffffff"))
+QTimer.singleShot(15_000, lambda: complete({"timeout": True}, 3))
+raise SystemExit(app.exec())
+'''
+    environment = dict(os.environ)
+    environment["QT_QPA_PLATFORM"] = "offscreen"
+    repo_root = str(Path(__file__).resolve().parents[2])
+    existing = environment.get("PYTHONPATH")
+    environment["PYTHONPATH"] = (
+        repo_root if not existing else f"{repo_root}{os.pathsep}{existing}"
+    )
+
+    completed = subprocess.run(
+        [sys.executable, "-c", script],
+        env=environment,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr[-2000:]
+    assert json.loads(completed.stdout.splitlines()[-1]) == {
         "atoms": 1,
         "canvases": 1,
         "library": True,

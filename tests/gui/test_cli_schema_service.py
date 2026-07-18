@@ -16,7 +16,7 @@ from chemsmart.gui.services import cli_schema_service as schema
 
 
 def test_job_builder_exposes_only_quantum_chemistry_programs() -> None:
-    assert schema.programs() == ["gaussian", "orca"]
+    assert schema.programs() == ["gaussian", "orca", "xtb"]
 
 
 def test_options_merge_run_program_and_leaf_layers() -> None:
@@ -128,7 +128,7 @@ def test_every_desktop_leaf_has_unambiguous_fields_and_strictly_parses() -> None
             assert valid, error
             observed.add((program, job_type))
 
-    assert len(observed) == 26
+    assert len(observed) == 29
 
     valid, _error = session.validate_command(
         "chemsmart run gaussian opt --definitely-not-an-option"

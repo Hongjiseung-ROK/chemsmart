@@ -154,3 +154,33 @@ def test_parse_gaussian_traj_selection_options_after_subcommand(tmp_path):
         "proportion_structures_to_use": "0.2",
     }
     assert not parsed.warnings
+
+
+def test_parse_all_orca_neb_leaf_options_contextually(tmp_path):
+    parsed = parse_model_command(
+        "chemsmart run orca -p test -f reactant.xyz -c 0 -m 1 "
+        "neb -j NEB-TS -n 7 -e product.xyz -i guess.xyz -o -s XTB2",
+        cwd=tmp_path,
+    )
+
+    assert parsed.job == "neb"
+    assert parsed.opt_options is None
+    assert parsed.structural_options == {
+        "joboption": "NEB-TS",
+        "nimages": "7",
+        "ending_xyzfile": "product.xyz",
+        "intermediate_xyzfile": "guess.xyz",
+        "pre_optimization": "true",
+        "semiempirical": "XTB2",
+    }
+    assert not parsed.warnings
+
+    restart = parse_model_command(
+        "chemsmart run orca -p test -f reactant.xyz -c 0 -m 1 "
+        "neb --restarting-xyzfile previous.allxyz",
+        cwd=tmp_path,
+    )
+    assert restart.structural_options["restarting_xyzfile"] == (
+        "previous.allxyz"
+    )
+    assert not restart.warnings

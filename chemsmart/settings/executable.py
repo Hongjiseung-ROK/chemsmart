@@ -230,6 +230,17 @@ class ORCAExecutable(Executable):
             return executable_path
 
 
+class XTBExecutable(Executable):
+    """Executable handler for the xTB command-line program."""
+
+    PROGRAM = "XTB"
+
+    def get_executable(self):
+        if self.executable_folder:
+            return os.path.join(self.executable_folder, "xtb")
+        return "xtb"
+
+
 class NCIPLOTExecutable(Executable):
     """
     Executable handler for NCIPLOT non-covalent interaction analysis software.

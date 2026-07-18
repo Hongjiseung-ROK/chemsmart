@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import sys
 from collections import Counter
@@ -15,7 +16,14 @@ from chemsmart.agent.harness.extractors import (
     extract_orca_route,
 )
 
-_INPUT_SUFFIXES = (".com", ".gjf", ".inp")
+_INPUT_SUFFIXES = {
+    "gaussian": (".com", ".gjf"),
+    "orca": (".inp",),
+    "xtb": (".xyz",),
+}
+DEFAULT_MAX_GENERATED_FILE_BYTES = 8 * 1024 * 1024
+DEFAULT_MAX_GENERATED_TOTAL_BYTES = 32 * 1024 * 1024
+DEFAULT_MAX_GENERATED_COUNT = 256
 
 
 def absolutize_file_args(argv: list[str], base: Path) -> list[str]:
@@ -109,6 +117,11 @@ def prepare_safe_runtime_environment(
             "LOCAL_RUN": True,
             "SCRATCH": False,
         },
+        "XTB": {
+            "EXEFOLDER": None,
+            "LOCAL_RUN": True,
+            "SCRATCH": False,
+        },
     }
     (server_dir / "local.yaml").write_text(
         yaml.safe_dump(local_server, sort_keys=False),
@@ -118,11 +131,15 @@ def prepare_safe_runtime_environment(
     return env
 
 
-def input_snapshot(workdir: Path) -> dict[Path, int]:
+def input_snapshot(
+    workdir: Path,
+    *,
+    software: str | None = None,
+) -> dict[Path, int]:
     snapshot: dict[Path, int] = {}
     if not workdir.exists():
         return snapshot
-    for suffix in _INPUT_SUFFIXES:
+    for suffix in _suffixes(software):
         for path in workdir.glob(f"*{suffix}"):
             try:
                 snapshot[path.resolve()] = path.stat().st_mtime_ns
@@ -134,27 +151,63 @@ def input_snapshot(workdir: Path) -> dict[Path, int]:
 def generated_inputs(
     workdir: Path,
     before: dict[Path, int],
+    *,
+    software: str | None = None,
+    command: str | None = None,
+    max_file_bytes: int = DEFAULT_MAX_GENERATED_FILE_BYTES,
+    max_total_bytes: int = DEFAULT_MAX_GENERATED_TOTAL_BYTES,
+    max_count: int = DEFAULT_MAX_GENERATED_COUNT,
 ) -> list[dict[str, Any]]:
     generated: list[dict[str, Any]] = []
+    total_bytes = 0
+    workdir_root = workdir.resolve()
     if not workdir.exists():
         return generated
-    for suffix in _INPUT_SUFFIXES:
+    for suffix in _suffixes(software):
         for path in sorted(workdir.glob(f"*{suffix}")):
             try:
                 resolved = path.resolve()
-                mtime = path.stat().st_mtime_ns
+                stat = path.stat()
             except FileNotFoundError:
                 continue
+            if path.is_symlink() or resolved.parent != workdir_root:
+                raise RuntimeError(
+                    "Generated input escaped the safe runtime workspace."
+                )
+            mtime = stat.st_mtime_ns
             if before.get(resolved) == mtime:
                 continue
-            content = path.read_text(encoding="utf-8", errors="replace")
-            software = "gaussian" if suffix in {".com", ".gjf"} else "orca"
-            route = (
-                extract_gaussian_route(content)
-                if software == "gaussian"
-                else extract_orca_route(content)
+            if len(generated) >= max_count:
+                raise RuntimeError("Too many generated inputs for one safe run.")
+            if stat.st_size > max_file_bytes:
+                raise RuntimeError(
+                    "Generated input exceeds the safe runtime file limit."
+                )
+            total_bytes += stat.st_size
+            if total_bytes > max_total_bytes:
+                raise RuntimeError(
+                    "Generated inputs exceed the safe runtime total limit."
+                )
+            with path.open("rb") as handle:
+                payload = handle.read(max_file_bytes + 1)
+            if len(payload) > max_file_bytes:
+                raise RuntimeError(
+                    "Generated input grew beyond the safe runtime file limit."
+                )
+            content = payload.decode("utf-8", errors="replace")
+            detected = software or (
+                "gaussian" if suffix in {".com", ".gjf"} else "orca"
             )
-            state = extract_cartesian_state(content, software=software)
+            if detected == "gaussian":
+                route = extract_gaussian_route(content)
+                state = extract_cartesian_state(content, software=detected)
+            elif detected == "orca":
+                route = extract_orca_route(content)
+                state = extract_cartesian_state(content, software=detected)
+            else:
+                xtb_tokens = _xtb_program_call(path, command)
+                route = shlex.join(xtb_tokens) if xtb_tokens else None
+                state = _extract_xtb_state(content, xtb_tokens)
             state_evidence: dict[str, Any] = {}
             if state:
                 state_evidence = {
@@ -174,12 +227,87 @@ def generated_inputs(
             generated.append(
                 {
                     "path": str(path),
+                    "software": detected,
                     "route": route,
                     "content_tail": input_excerpt(content),
                     **state_evidence,
                 }
             )
     return generated
+
+
+def _suffixes(software: str | None) -> tuple[str, ...]:
+    if software is not None:
+        return _INPUT_SUFFIXES.get(software, ())
+    # Preserve the historical default so staged ORCA .xyz dependencies are
+    # never mistaken for generated inputs. xTB callers must opt in explicitly.
+    return (*_INPUT_SUFFIXES["gaussian"], *_INPUT_SUFFIXES["orca"])
+
+
+def _xtb_program_call(path: Path, command: str | None) -> list[str]:
+    output_stem = path.stem.removesuffix("_fake")
+    output_paths = (
+        path.with_suffix(".out"),
+        path.with_name(f"{output_stem}.out"),
+    )
+    for output_path in output_paths:
+        if not output_path.is_file():
+            continue
+        for line in output_path.read_text(
+            encoding="utf-8",
+            errors="replace",
+        ).splitlines():
+            if line.lower().startswith("program call") and ":" in line:
+                return shlex.split(line.split(":", 1)[1].strip())
+    if not command:
+        return []
+    tokens = shlex.split(command)
+    try:
+        program_index = tokens.index("xtb")
+    except ValueError:
+        return []
+    return tokens[program_index:]
+
+
+def _extract_xtb_state(
+    content: str,
+    program_call: list[str],
+) -> dict[str, Any] | None:
+    lines = content.splitlines()
+    if len(lines) < 3:
+        return None
+    try:
+        atom_count = int(lines[0].strip())
+    except ValueError:
+        return None
+    symbols = [
+        line.split()[0]
+        for line in lines[2 : 2 + atom_count]
+        if line.split()
+    ]
+    charge = _integer_option(program_call, ("--chrg",))
+    unpaired = _integer_option(program_call, ("--uhf",))
+    multiplicity = unpaired + 1 if unpaired is not None else None
+    if charge is None or multiplicity is None or len(symbols) != atom_count:
+        return None
+    return {
+        "charge": charge,
+        "multiplicity": multiplicity,
+        "element_symbols": symbols,
+    }
+
+
+def _integer_option(tokens: list[str], flags: tuple[str, ...]) -> int | None:
+    for flag in flags:
+        try:
+            value = tokens[tokens.index(flag) + 1]
+        except (ValueError, IndexError):
+            continue
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
 
 
 def _top_level_index(argv: list[str], top_level: str) -> int:
@@ -226,6 +354,9 @@ def input_excerpt(value: Any, limit: int = 4000) -> str:
 
 
 __all__ = [
+    "DEFAULT_MAX_GENERATED_COUNT",
+    "DEFAULT_MAX_GENERATED_FILE_BYTES",
+    "DEFAULT_MAX_GENERATED_TOTAL_BYTES",
     "absolutize_file_args",
     "generated_inputs",
     "input_excerpt",

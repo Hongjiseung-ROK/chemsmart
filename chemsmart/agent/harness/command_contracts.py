@@ -22,7 +22,7 @@ from chemsmart.agent.harness.command_rules.models import (
     reject,
 )
 from chemsmart.agent.harness.command_rules.qmmm import qmmm_contract_issues
-from chemsmart.agent.harness.command_rules.tokens import token_index
+from chemsmart.agent.harness.command_rules.tokens import has_option, token_index
 
 
 def check_command_contracts(
@@ -91,6 +91,64 @@ def check_command_contracts(
         issue = td_project_issue(program_tokens, cwd=cwd)
         if issue is not None:
             issues.append(issue)
+
+    if normalized_program == "xtb":
+        has_model = has_option(
+            program_tokens,
+            ("-sm", "--solvent-model"),
+        )
+        has_solvent = has_option(
+            program_tokens,
+            ("-si", "--solvent-id"),
+        )
+        if has_model != has_solvent:
+            issues.append(
+                reject(
+                    "cmd.contract.xtb_solvent_pair",
+                    (
+                        "xTB solvation requires both --solvent-model and "
+                        "--solvent-id"
+                    ),
+                    {
+                        "program": normalized_program,
+                        "job": normalized_job,
+                        "solvent_model_present": has_model,
+                        "solvent_id_present": has_solvent,
+                    },
+                    ("xTB solvent model and solvent identifier",),
+                )
+            )
+
+    if normalized_program == "orca" and normalized_job == "neb":
+        neb_tokens = job_tokens[1:]
+        has_restart = has_option(
+            neb_tokens,
+            ("-r", "--restarting-xyzfile"),
+        )
+        has_endpoint = has_option(
+            neb_tokens,
+            ("-e", "--ending-xyzfile"),
+        )
+        has_intermediate = has_option(
+            neb_tokens,
+            ("-i", "--intermediate-xyzfile"),
+        )
+        if has_restart and (has_endpoint or has_intermediate):
+            issues.append(
+                reject(
+                    "cmd.contract.orca_neb_restart_exclusive",
+                    (
+                        "ORCA NEB restart mode cannot be combined with ending "
+                        "or intermediate geometry files"
+                    ),
+                    {
+                        "restart": has_restart,
+                        "endpoint": has_endpoint,
+                        "intermediate": has_intermediate,
+                    },
+                    ("restart alone, or endpoint with optional TS guess",),
+                )
+            )
 
     return tuple(issues)
 

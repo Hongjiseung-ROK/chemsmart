@@ -135,6 +135,25 @@ class StructureViewer(QWidget):
         self._source_path = Path(source_path) if source_path else None
         self._refresh()
 
+    def clear_molecule(self) -> None:
+        """Remove stale structure state before a new source is accepted."""
+        if self._molecule is None and self._source_path is None:
+            return
+        self._molecule = None
+        self._source_path = None
+        if self._web is not None:
+            from chemsmart.gui import theme
+
+            palette = theme.palette_for()
+            self._web.setHtml(
+                "<!doctype html><html><body style='margin:0;display:flex;"
+                "align-items:center;justify-content:center;height:100%;"
+                f"background:{palette.surface_2};color:{palette.text_muted};"
+                "font:13px -apple-system'>Select a molecule source to preview "
+                "its 3D structure.</body></html>"
+            )
+        self._pymol_panel.setText("Render with the lab PyMOL style.")
+
     # -- internals ------------------------------------------------------ #
 
     def _build_interactive(self) -> QWidget:

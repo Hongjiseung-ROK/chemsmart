@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from types import MappingProxyType
+from pathlib import Path
 from typing import Any, Mapping
 
 
@@ -101,10 +102,9 @@ class JobDraft:
     provenance: DraftProvenance = field(default_factory=DraftProvenance)
 
     def __post_init__(self) -> None:
-        if self.program not in {"gaussian", "orca"}:
+        if self.program not in {"gaussian", "orca", "xtb"}:
             raise ValueError(
-                "Desktop JobDraft supports Gaussian and ORCA only; "
-                "xTB remains feature-gated until its backend is ported."
+                "Desktop JobDraft supports Gaussian, ORCA, and xTB only."
             )
         if not self.kind.strip():
             raise ValueError("JobDraft kind must be non-empty.")
@@ -118,6 +118,51 @@ class JobDraft:
             "resources",
             MappingProxyType(dict(self.resources)),
         )
+
+    def preview_issues(self, cwd: Path) -> tuple[str, ...]:
+        """Return desktop workflow blockers without duplicating CLI chemistry.
+
+        The real parser and generated-input invariants remain authoritative.
+        These checks only prevent obviously incomplete or network-dependent
+        drafts from starting a background child process.
+        """
+
+        issues: list[str] = []
+        if self.source is None:
+            issues.append("Choose a molecule source.")
+        elif self.source.kind == SourceKind.PUBCHEM:
+            issues.append(
+                "PubChem lookup needs network access and is unavailable in "
+                "offline safe preview."
+            )
+        else:
+            source_path = Path(self.source.value).expanduser()
+            if not source_path.is_absolute():
+                source_path = cwd / source_path
+            if not source_path.is_file():
+                issues.append("Choose an existing local molecule file.")
+        if not (self.project or "").strip():
+            issues.append("Choose a project configuration.")
+        if not _is_integer(self.charge):
+            issues.append("Enter an integer molecular charge.")
+        if not _is_positive_integer(self.multiplicity):
+            issues.append("Enter a positive integer spin multiplicity.")
+        return tuple(issues)
+
+
+def _is_integer(value: str | None) -> bool:
+    try:
+        int(str(value))
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _is_positive_integer(value: str | None) -> bool:
+    try:
+        return int(str(value)) > 0
+    except (TypeError, ValueError):
+        return False
 
 
 __all__ = [

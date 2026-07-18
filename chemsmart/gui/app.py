@@ -52,6 +52,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self, session_root: Path | None = None) -> None:
         super().__init__()
+        # A closed top-level window owns QtWebEngine children. Delete it at the
+        # accepted close boundary so repeated windows do not retain renderer
+        # processes until interpreter shutdown (notably in tests and relaunch).
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         self.setWindowTitle("ChemSmart")
         self.setMinimumSize(720, 520)
         self.resize(1040, 680)
@@ -193,19 +197,11 @@ class MainWindow(QMainWindow):
     def _update_inspector(self, key: str) -> None:
         if key == "job_builder":
             self.inspector_status.setText(
-                "Interactive structure preview. Generated input validation and "
-                "provenance join this panel in the end-to-end builder phase."
+                "Choose a local molecule to inspect its structure. Safe preview "
+                "adds the generated route, state, and deterministic receipt here."
             )
-            if self._structure_viewer is None:
-                from chemsmart.gui.widgets.structure_viewer import StructureViewer
-
-                self._structure_viewer = StructureViewer()
-                self.inspector.layout().insertWidget(
-                    self.inspector.layout().count() - 1,
-                    self._structure_viewer,
-                    stretch=1,
-                )
-            self._structure_viewer.setVisible(True)
+            if self._structure_viewer is not None:
+                self._structure_viewer.setVisible(True)
             return
         if self._structure_viewer is not None:
             self._structure_viewer.setVisible(False)
@@ -216,6 +212,20 @@ class MainWindow(QMainWindow):
             "settings": "Settings are applied without changing job chemistry state.",
         }
         self.inspector_status.setText(messages.get(key, "No context available."))
+
+    def ensure_structure_viewer(self):
+        """Create the QtWebEngine-backed viewer only after source selection."""
+        if self._structure_viewer is None:
+            from chemsmart.gui.widgets.structure_viewer import StructureViewer
+
+            self._structure_viewer = StructureViewer()
+            self.inspector.layout().insertWidget(
+                self.inspector.layout().count() - 1,
+                self._structure_viewer,
+                stretch=1,
+            )
+        self._structure_viewer.setVisible(True)
+        return self._structure_viewer
 
     def _build_menus(self) -> None:
         self.menu_actions: dict[str, QAction] = {}
@@ -263,7 +273,7 @@ class MainWindow(QMainWindow):
         dry_run = QAction("Run Safe Preview", self)
         dry_run.setEnabled(False)
         dry_run.setStatusTip(
-            "Available after the end-to-end fake-run artifact gate passes."
+            "Generate and validate inputs with enforced fake and no-scratch mode."
         )
         job_menu.addAction(dry_run)
 

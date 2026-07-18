@@ -326,6 +326,52 @@ def test_generated_input_invariants_cover_td_neb_scan_and_sp():
     assert [issue.rule_id for issue in sp] == ["input.sp.unrequested_route"]
 
 
+def test_neb_invariant_accepts_absolute_endpoint_only_when_file_is_staged(
+    tmp_path,
+) -> None:
+    generated = tmp_path / "neb.inp"
+    endpoint = tmp_path / "source" / "product.xyz"
+    endpoint.parent.mkdir()
+    endpoint.write_text("1\nproduct\nH 0 0 0\n", encoding="utf-8")
+    content = '%NEB\nNEB_END_XYZFILE "product.xyz"\nNImages 5\nend'
+    generated.write_text(content, encoding="utf-8")
+    command = (
+        "chemsmart run orca -p demo -f reactant.xyz -c 0 -m 1 neb "
+        f"-e {endpoint} --nimages 5 --joboption NEB-TS"
+    )
+    evidence = [
+        {
+            "path": str(generated),
+            "route": "! B3LYP def2-SVP NEB-TS",
+            "content_tail": content,
+        }
+    ]
+
+    missing = check_generated_input_invariants(command, evidence, cwd=tmp_path)
+    (tmp_path / "product.xyz").write_text(
+        "1\nwrong product\nH 0 0 2\n",
+        encoding="utf-8",
+    )
+    mismatched = check_generated_input_invariants(
+        command,
+        evidence,
+        cwd=tmp_path,
+    )
+    (tmp_path / "product.xyz").write_text(
+        endpoint.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    staged = check_generated_input_invariants(command, evidence, cwd=tmp_path)
+
+    assert "input.orca.neb.endpoint_file_missing" in {
+        issue.rule_id for issue in missing
+    }
+    assert "input.orca.neb.endpoint_content" in {
+        issue.rule_id for issue in mismatched
+    }
+    assert staged == ()
+
+
 def test_generated_input_invariants_detect_coordinate_and_qmmm_drift():
     gaussian_scan = check_generated_input_invariants(
         "chemsmart run gaussian -p demo -f water.xyz -c 0 -m 1 scan "

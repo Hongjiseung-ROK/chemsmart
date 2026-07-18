@@ -87,3 +87,15 @@ nodes:
   orca.ts:
     option_count: 20
     sha256: 64543c8afef7d562c4056b8dc42ce88b4b13d712cbac1bd2fc6bc1eac6c28540
+  xtb:
+    option_count: 11
+    sha256: 771e0600c4cec4c1ecb07bfed0c2ffb5aee4996d9cd55cca7e57e59a10ec2031
+  xtb.hess:
+    option_count: 1
+    sha256: f33a3b26acb4f3fd1ec805371fdb36bd7b0817e41464f060f7238b40477f1d90
+  xtb.opt:
+    option_count: 2
+    sha256: ff927f93563ce9bfcaacd2b1b8945513ff6a4683cf4f61b2bec4e292cb054eb9
+  xtb.sp:
+    option_count: 1
+    sha256: f33a3b26acb4f3fd1ec805371fdb36bd7b0817e41464f060f7238b40477f1d90

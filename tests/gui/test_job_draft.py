@@ -18,7 +18,7 @@ from chemsmart.gui.application.job_draft import (
 from chemsmart.gui.services import cli_schema_service as schema
 
 
-def test_all_26_desktop_leaves_round_trip_through_typed_draft() -> None:
+def test_all_29_desktop_leaves_round_trip_through_typed_draft() -> None:
     observed = set()
     for program in schema.programs():
         for kind in schema.job_types(program):
@@ -28,7 +28,7 @@ def test_all_26_desktop_leaves_round_trip_through_typed_draft() -> None:
             assert schema.command_from_draft(draft) == argv
             observed.add((draft.program, draft.kind))
 
-    assert len(observed) == 26
+    assert len(observed) == 29
 
 
 def test_draft_renders_promoted_source_project_resources_and_settings() -> None:
@@ -133,9 +133,9 @@ def test_renderer_flattens_multiple_and_nargs(monkeypatch) -> None:
     assert argv[-6:] == ["--pair", "1", "2", "--pair", "3", "4"]
 
 
-def test_mutually_exclusive_sources_and_unported_xtb_are_rejected() -> None:
-    with pytest.raises(ValueError, match="Gaussian and ORCA only"):
-        JobDraft(program="xtb", kind="opt")
+def test_mutually_exclusive_sources_and_unsupported_program_are_rejected() -> None:
+    with pytest.raises(ValueError, match="Gaussian, ORCA, and xTB only"):
+        JobDraft(program="mol", kind="convert")
 
     with pytest.raises(ValueError, match="mutually exclusive"):
         schema.draft_from_command(

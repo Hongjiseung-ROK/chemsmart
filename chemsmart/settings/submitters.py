@@ -246,6 +246,10 @@ class Submitter(RegistryMixin):
             executable = GaussianExecutable.from_servername(self.server.name)
         elif self.job.PROGRAM.lower() == "orca":
             executable = ORCAExecutable.from_servername(self.server.name)
+        elif self.job.PROGRAM.lower() == "xtb":
+            from chemsmart.settings.executable import XTBExecutable
+
+            executable = XTBExecutable.from_servername(self.server.name)
         elif self.job.PROGRAM.lower() == "nciplot":
             executable = NCIPLOTExecutable.from_servername(self.server.name)
 

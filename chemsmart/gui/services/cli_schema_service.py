@@ -28,7 +28,7 @@ from chemsmart.gui.application.job_draft import (
 
 JsonDict = dict[str, Any]
 
-_DESKTOP_PROGRAMS = ("gaussian", "orca")
+_DESKTOP_PROGRAMS = ("gaussian", "orca", "xtb")
 _GUI_MANAGED_OPTIONS = frozenset({"fake", "scratch", "delete_scratch"})
 _RESOURCE_FIELDS = frozenset(
     {"server", "num_cores", "num_gpus", "mem_gb", "queue", "time_hours"}
@@ -122,7 +122,7 @@ def _option_contract(option: JsonDict) -> JsonDict:
 
 
 def programs() -> list[str]:
-    """Return the runnable programs under ``chemsmart run`` (gaussian, orca)."""
+    """Return reviewed desktop programs under ``chemsmart run``."""
     available = _run_group().get("subcommands", {})
     return [program for program in _DESKTOP_PROGRAMS if program in available]
 
@@ -282,6 +282,34 @@ def command_from_draft(draft: JobDraft) -> list[str]:
         if source_field:
             _insert_unique_value(values, source_field, draft.source.value)
     return build_command(draft.program, draft.kind, values)
+
+
+def missing_required_fields(draft: JobDraft) -> tuple[str, ...]:
+    """Return required live-schema fields absent from a typed draft."""
+
+    populated = {
+        field
+        for field, value in {**draft.settings, **draft.resources}.items()
+        if value not in (None, "")
+    }
+    for field, value in (
+        ("project", draft.project),
+        ("charge", draft.charge),
+        ("multiplicity", draft.multiplicity),
+    ):
+        if value not in (None, ""):
+            populated.add(field)
+    if draft.source is not None:
+        populated.add(
+            "pubchem" if draft.source.kind == SourceKind.PUBCHEM else "filename"
+        )
+    missing: list[str] = []
+    for spec in field_specs(draft.program, draft.kind):
+        if not spec.required:
+            continue
+        if spec.field_id not in populated and spec.name not in populated:
+            missing.append(spec.name)
+    return tuple(missing)
 
 
 def draft_from_values(

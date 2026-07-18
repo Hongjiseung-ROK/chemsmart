@@ -353,6 +353,10 @@ def _observed_chemistry(
 def _merge_parsed_route_options(
     chemistry: dict[str, Any], parsed: Any
 ) -> None:
+    for key in ("solvent_model", "solvent_id"):
+        value = getattr(parsed, key, None)
+        if value is not None:
+            chemistry[key] = value
     if (
         "num_steps" not in chemistry
         and "num_steps_or_every_n_points" in chemistry

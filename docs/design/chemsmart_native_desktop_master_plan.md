@@ -1,6 +1,6 @@
 # ChemSmart Native Desktop Master Plan
 
-Status: P2 foundations reviewer-green; phase commit boundary, 2026-07-19
+Status: P3 complete on the containing phase commit; P4 is next, 2026-07-19
 Owner: ChemSmart maintainers
 Primary target: Zhang Lab internal macOS desktop app
 Framework: Python 3.10/3.11 + PySide6/Qt 6
@@ -29,9 +29,9 @@ Approved product decisions:
 - v1 does not submit HPC jobs and does not run real Gaussian/ORCA compute.
 - v1 includes Job builder, agent chat, fake dry-run/input preview, database
   browsing, conformer grouping, thermochemistry, and interactive 3D structure
-  viewing. PyMOL rendering is optional. Standalone xTB support is required by
-  the active product goal but is absent from this checkout; it enters the GUI
-  only after its backend lineage and CLI/fake-run contracts are verified.
+  viewing. PyMOL rendering is optional. Standalone xTB opt, sp, and hess have
+  passed their backend-lineage, CLI/fake-run, and desktop artifact-parity gates;
+  the GUI exposes local-file safe preview only.
 - Zhang Lab internal alpha may be unsigned/ad-hoc signed. A broadly distributed
   release is not complete until Developer ID signing and notarization pass.
 
@@ -45,9 +45,10 @@ Non-goals for v1:
 
 ## 2. Corrected current baseline
 
-P0 and P1 are committed through `agent-codebase-simplification@4e4afead`; P2 is
-complete and reviewer-green on the phase commit containing this plan. The
-resulting branch is three local commits ahead of and six commits behind
+P0 through P2 are committed through
+`agent-codebase-simplification@3356aa08`; P3 is complete on the phase commit
+containing this plan. Before that commit the branch is three local commits ahead
+of and six commits behind
 `fork/agent-codebase-simplification`. Do not use `git clean`, `git stash -u`,
 reset, or branch switching as a preparation step.
 
@@ -56,14 +57,14 @@ reset, or branch switching as a preparation step.
 | Packaging spike | P1 complete; PyInstaller selected | PyInstaller passes the full frozen runtime, helper-entitlement, signature, archive, and shell gates. pyside6-deploy remains a red fallback because its pinned Nuitka bundle mixes data into `Contents/MacOS`. |
 | PySide6 extra and GUI entry point | P0 committed | Source entry and package data are stable; P1 adds a hidden packaging probe and absolute-path frozen CLI dispatch. |
 | Provider config and secrets | P2 reviewer-green | Provider literals remain backward-readable; new credentials use unique staged Keychain references, atomically commit YAML, then retire the old reference. Secret-bearing tasks disable retry retention. Tests use in-memory stores and never touch the real Keychain. |
-| App shell/theme | P2 reviewer-green | Native menus, Settings, system palette/font roles, adaptive three-region layout, status, accessible labels, and bounded runtime evidence projection are present. Database and Analysis remain intentional P5 unavailable states. |
-| Job builder | P2 typed foundation | All 26 Gaussian/ORCA leaves round-trip through a typed draft and live Click schema. Valid database record/structure combinations and forbidden molecule selectors follow the real CLI contract. Safe preview and Chat handoff remain disabled until their later gates pass. |
+| App shell/theme | P3 validated | Native menus, Settings, system palette/font roles, adaptive three-region layout, status, accessible labels, and bounded runtime evidence projection are present. The QtWebEngine structure viewer initializes only after a molecule is selected, clears on source drift, skips oversized synchronous parsing, and closed windows release owned resources. Database and Analysis remain intentional P5 unavailable states. |
+| Job builder | P3 complete | All 29 Gaussian/ORCA/xTB leaves round-trip through a typed draft and live Click schema. Every leaf has GUI-versus-direct-CLI fake artifact parity; high-risk routes, strict xTB state/solvation/project semantics, ORCA NEB dependency hashes, selected workspace settings, pre-read resource bounds, stale async-result invalidation, scroll stress, every-artifact selection, progress, cancel, and retry are covered. Chat handoff remains disabled until P4. |
 | Chat | Visual placeholder | No live `AgentSession` call, streaming, cancellation, approval, or receipts. |
 | Agent worker | Placeholder | It proposes legacy `AgentSession.run()` instead of the current unified `run_loop()` contract used by the TUI. |
 | 3D viewer | P1 frozen probe green | Integrity-checked 3Dmol.js 2.5.5 renders offline in the selected PyInstaller QtWebEngine bundle; PyMOL execution is not wired. |
 | Database/analysis | Absent | No screens or services. |
 | Runtime environment | Split | Base Python can render PySide6; the `chemsmart` conda environment lacks PySide6. The current `chemsmart` executable on `PATH` resolves to another Codex worktree. |
-| Validation | P2 reviewer-green | The current P2 slice has 130 GUI tests collected and a 248-test combined GUI/config/agent/CLI/TUI gate; Ruff, compileall, and diff integrity are green. The final reviewer reported zero Critical, High, Medium, or Low findings. The P1 remote decision receipt remains the packaging evidence. |
+| Validation | P3 final gate | The P3 slice has 29 desktop leaves, byte parity for all 17 Gaussian, 9 ORCA, and 3 xTB leaves, minimum/default-window keyboard stress, resource-limit tests that reject before reads, and a final read-only reviewer loop. Exact receipts live in `docs/design/phase_receipts/p3_job_builder.md`. The P1 remote decision receipt remains the packaging evidence. |
 
 The current UI is a useful structural sketch, not a runnable product baseline.
 It should be corrected in place after contract tests are added, not discarded.
@@ -136,7 +137,7 @@ PySide6 as follows:
 
 Job builder vertical slice:
 
-1. Choose Gaussian or ORCA.
+1. Choose Gaussian, ORCA, or xTB. xTB is local-file-only in v1.
 2. Choose a real job kind from the current CLI schema.
 3. Select molecule source: file, PubChem, or CHEMSMART database selector.
 4. Select project/defaults and edit user-owned settings.
@@ -232,7 +233,7 @@ run group -> gaussian/orca program group -> job-kind leaf
 ```
 
 It must preserve Click placement rules when rendering each level. The Job
-builder exposes only Gaussian and ORCA; Database, Grouper, Mol, and
+builder exposes Gaussian, ORCA, and the reviewed xTB leaf set; Database, Grouper, Mol, and
 Thermochemistry have dedicated screens. Default flag polarity (`--foo` versus
 `--no-foo`), repeated values, tuples/lists, choices, and source-selector
 exclusivity require explicit tests.
@@ -510,6 +511,10 @@ Exit:
 
 ### P3 — End-to-end Job builder slice
 
+Status: implementation, final functional gates, and zero-finding read-only
+review GREEN on 2026-07-19; complete on the containing phase commit. See
+`docs/design/phase_receipts/p3_job_builder.md`.
+
 Implement Gaussian opt first, then ORCA opt, using generic schema-driven
 components only after the vertical slice is correct. Add file/PubChem/database
 source handling, 3D preview, fake run, generated input, and receipts.
@@ -528,7 +533,11 @@ Exit:
 - manual and CLI fake runs produce equivalent artifacts;
 - invalid/missing fields cannot launch;
 - no real compute path exists in GUI;
-- the framework generalizes to every Gaussian/ORCA leaf with contract tests.
+- the framework generalizes to every Gaussian/ORCA/xTB leaf with contract tests;
+- workspace projects, state, solvation, multi-artifact outputs, and ORCA NEB
+  dependencies remain visible and semantically preserved;
+- worst-case advanced forms and asynchronous completions remain usable and
+  truthful at the minimum supported window size.
 
 ### P4 — Unified agent Chat
 
@@ -583,16 +592,15 @@ Exit:
 
 Do these in order:
 
-1. Begin P3 with Gaussian opt as the first end-to-end typed draft → exact argv →
-   isolated fake run → generated input → artifact receipt slice.
-2. Require byte/semantic artifact parity against the equivalent direct CLI fake
-   run before enabling the Job builder action or menu item.
-3. Generalize the proven vertical slice to ORCA opt, then the remaining live
-   Gaussian/ORCA leaves; retain invalid-input, cancellation, timeout, repeated
-   run, cleanup, and no-real-run stress gates.
-4. Submit the P3 slice and receipts to a fresh read-only reviewer, address valid
-   findings, rerun the preservation gate, and commit only when green.
-5. Audit the separately tracked xTB lineage before any xTB UI is exposed.
+1. Treat the committed P3 receipt as the frozen Job builder baseline.
+2. Begin P4 by defining the desktop-safe agent registry and typed event adapter
+   over the existing unified `run_loop()` contract.
+3. Stream prose, tool requests, deterministic receipts, cancellation, and
+   recovery without registering `run_local` or `submit_hpc`.
+4. Round-trip an agent-produced typed `JobDraft` into the P3 builder without
+   depending on a shell string.
+5. Stress provider-disabled, provider-error, cancellation, resume, and stale
+   completion paths before enabling Send to Chat.
 
 Do not rerun the red pyside6-deploy fallback by default. Do not wire live Chat
 or add Database/Analysis business features during P3.

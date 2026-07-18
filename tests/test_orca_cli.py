@@ -13,6 +13,8 @@ group and :mod:`unittest.mock` to intercept the job constructor so that
 the merged settings can be inspected without running an actual calculation.
 """
 
+import pytest
+
 
 class TestORCASolventCLISpCommand:
     """CLI solvent options propagated to the ``sp`` subcommand."""
@@ -643,3 +645,56 @@ class TestORCALabelAndAuxBasisOptions:
         assert result.exit_code == 0, result.output
         assert mock.call_args is not None
         assert mock.call_args.kwargs["settings"].aux_basis == "def2/J"
+
+
+def test_inp_preserves_parent_run_jobrunner(water_opt_input_path) -> None:
+    from unittest.mock import MagicMock, patch
+
+    from click.testing import CliRunner
+
+    from chemsmart.cli.orca.orca import orca as orca_cli
+
+    parent_jobrunner = MagicMock(name="parent_jobrunner")
+    with patch("chemsmart.jobs.orca.job.ORCAInpJob.from_filename") as factory:
+        factory.return_value = MagicMock()
+        result = CliRunner().invoke(
+            orca_cli,
+            ["-p", "gas_solv", "-f", water_opt_input_path, "inp"],
+            obj={"jobrunner": parent_jobrunner},
+            catch_exceptions=False,
+        )
+
+    assert result.exit_code == 0, result.output
+    assert factory.call_args.kwargs["jobrunner"] is parent_jobrunner
+
+
+def test_orca_neb_dependency_basename_collision_is_rejected_before_copy(
+    tmp_path,
+) -> None:
+    from types import SimpleNamespace
+
+    from chemsmart.jobs.orca.runner import ORCAJobRunner
+
+    endpoint = tmp_path / "endpoint" / "shared.xyz"
+    intermediate = tmp_path / "guess" / "shared.xyz"
+    endpoint.parent.mkdir()
+    intermediate.parent.mkdir()
+    endpoint.write_text("1\nendpoint\nH 0 0 0\n", encoding="utf-8")
+    intermediate.write_text("1\nguess\nH 0 0 1\n", encoding="utf-8")
+    running = tmp_path / "running"
+    running.mkdir()
+    runner = object.__new__(ORCAJobRunner)
+    runner.running_directory = str(running)
+    job = SimpleNamespace(
+        folder=str(tmp_path),
+        settings=SimpleNamespace(
+            ending_xyzfile=str(endpoint),
+            intermediate_xyzfile=str(intermediate),
+            restarting_xyzfile=None,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="unique basenames"):
+        runner._stage_geometry_dependencies(job)
+
+    assert not (running / "shared.xyz").exists()

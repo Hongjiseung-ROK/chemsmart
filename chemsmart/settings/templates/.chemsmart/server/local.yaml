@@ -47,6 +47,11 @@ ORCA:
     ENVARS: |
         export SCRATCH=~/scratch  # required if scratch is true
 
+XTB:
+    EXEFOLDER: null
+    LOCAL_RUN: True
+    SCRATCH: False
+
 NCIPLOT:
     EXEFOLDER: ~/bin/nciplot
     LOCAL_RUN: False  # local run True to use serial_command

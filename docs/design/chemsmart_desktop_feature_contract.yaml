@@ -2,11 +2,11 @@ schema_version: 1
 as_of: "2026-07-19"
 baseline:
   branch: agent-codebase-simplification
-  commit: 4e4afeade4ac
+  commit: 3356aa08
   phase_commit: containing_this_contract
   upstream_ahead: 3
   upstream_behind: 6
-  gui_state: p2_foundations_complete
+  gui_state: p3_job_builder_complete
 
 policies:
   - id: PRESERVE-CLI
@@ -55,6 +55,38 @@ p2_foundations:
     - canonical_runtime_state_projection_without_second_event_format
     - exact_python3119_macos14_arm64_build_runtime_lock
 
+p3_job_builder:
+  sources:
+    - chemsmart/gui/screens/job_builder.py
+    - chemsmart/gui/application/cli_launcher.py
+    - chemsmart/gui/services/cli_schema_service.py
+    - chemsmart/agent/harness/command_semantics.py
+    - chemsmart/agent/harness/safe_runtime.py
+    - chemsmart/cli/xtb
+    - chemsmart/jobs/xtb
+  current_capability: 29 live Gaussian, ORCA, and xTB leaves generate deterministic fake-run artifacts through the native desktop
+  safety_boundary:
+    - launcher_owns_fake_and_no_scratch
+    - no_real_compute_or_submission_action
+    - isolated_hidden_workspace_removed_after_receipt_capture
+    - selected_workspace_project_and_defaults_mirrored_into_isolated_cwd
+    - bounded_output_artifact_and_dependency_reads_with_count_and_total_limits
+    - cancellable_owned_process_group
+    - provider_secrets_excluded_from_child_environment
+  gates:
+    - all_17_gaussian_leaves_gui_cli_artifact_parity
+    - all_9_orca_leaves_gui_cli_artifact_parity
+    - all_3_xtb_leaves_gui_cli_artifact_parity
+    - generated_route_state_hash_and_dependency_receipts
+    - all_generated_artifacts_user_selectable_with_per_artifact_receipts
+    - orca_neb_dependency_name_content_and_mode_exclusivity
+    - xtb_strict_project_leaf_state_and_solvation_preservation
+    - live_schema_required_fields_and_shared_command_preflight
+    - stale_receipt_and_stale_async_completion_invalidation
+    - advanced_form_scroll_and_keyboard_stress_at_minimum_window
+    - stale_or_oversized_structure_preview_cleared_or_skipped
+    - qt_webengine_lazy_initialization_and_close_cleanup
+
 surfaces:
   - id: configuration
     sources:
@@ -97,10 +129,13 @@ surfaces:
       - gui_cli_artifact_parity
 
   - id: xtb_run
-    sources: []
-    current_capability: absent from this checkout and its live CLI schema; candidate implementation exists in a separate checkout and requires a compatibility audit before porting
-    desktop_v1: planned_missing_backend
-    preservation: do not invent a GUI-only xTB runner; locate, review, and port the proven backend with CLI tests before adding the desktop surface
+    sources:
+      - chemsmart/cli/xtb
+      - chemsmart/jobs/xtb
+      - chemsmart/settings/xtb.py
+    current_capability: opt, sp, and hess are selectively ported from the verified feature lineage; run fake/no-scratch, CLI submit test mode, live schema, and desktop artifact receipts are green
+    desktop_v1: expose_fake_only
+    preservation: the desktop uses the real CLI and fake runner; no GUI-only xTB chemistry or real-run action exists
     lineage_candidates:
       - checkout: /Users/hongjiseung/bin/chemsmart
         branch: feat/xtb-submit-jobs
@@ -112,11 +147,11 @@ surfaces:
           - chemsmart/jobs/xtb
           - tests/test_xtb_cli.py
     gates:
-      - xtb_backend_lineage_verified
+      - xtb_backend_lineage_verified_green
       - xtb_cli_and_fake_runner_contract_green
-      - xtb_desktop_schema_mapped
-      - no_real_runner
-      - gui_cli_artifact_parity
+      - xtb_desktop_schema_mapped_green
+      - no_real_runner_green
+      - all_three_leaf_gui_cli_artifact_parity_green
 
   - id: submission
     sources:

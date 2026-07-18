@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
+from pathlib import Path
 from typing import Any
 
 from chemsmart.agent.harness.generated_common import (
@@ -89,6 +91,8 @@ def neb_issues(
     content: str,
     chemistry: dict[str, Any],
     evidence: dict[str, Any],
+    *,
+    cwd: str | None = None,
 ) -> list[InvariantIssue]:
     issues: list[InvariantIssue] = []
     expected_job = chemistry.get("joboption")
@@ -100,16 +104,30 @@ def neb_issues(
                 {**evidence, "expected": expected_job},
             )
         )
-    endpoint = chemistry.get("ending_xyzfile")
-    if endpoint and str(endpoint) not in content:
-        issues.append(
-            reject(
-                "input.orca.neb.endpoint",
-                (
-                    "ORCA NEB block does not preserve the requested product "
-                    "endpoint"
-                ),
-                {**evidence, "expected": endpoint},
+    restart = chemistry.get("restarting_xyzfile")
+    dependencies = (
+        (("restart", "Restart_ALLXYZFile", restart),)
+        if restart
+        else (
+            ("endpoint", "NEB_END_XYZFILE", chemistry.get("ending_xyzfile")),
+            (
+                "intermediate",
+                "NEB_TS_XYZFILE",
+                chemistry.get("intermediate_xyzfile"),
+            ),
+        )
+    )
+    for role, directive, requested in dependencies:
+        if not requested:
+            continue
+        issues.extend(
+            _neb_dependency_issues(
+                role,
+                directive,
+                str(requested),
+                content,
+                evidence,
+                cwd=cwd,
             )
         )
     nimages = chemistry.get("nimages")
@@ -129,7 +147,86 @@ def neb_issues(
                 {**evidence, "expected": nimages},
             )
         )
+    preopt = chemistry.get("pre_optimization")
+    if preopt is not None:
+        expected = str(preopt).strip().lower() in {"1", "true", "yes", "on"}
+        marker = re.search(
+            r"\bPREOPT_ENDS\s+(True|False)\b",
+            content,
+            flags=re.IGNORECASE,
+        )
+        observed = marker is not None and marker.group(1).lower() == "true"
+        if observed is not expected:
+            issues.append(
+                reject(
+                    "input.orca.neb.pre_optimization",
+                    "ORCA NEB block does not preserve pre-optimization intent",
+                    {**evidence, "expected": expected},
+                )
+            )
+    semiempirical = chemistry.get("semiempirical")
+    if semiempirical and str(semiempirical).lower() not in route.lower():
+        issues.append(
+            reject(
+                "input.orca.neb.semiempirical",
+                "ORCA route does not preserve the requested NEB method",
+                {**evidence, "expected": semiempirical},
+            )
+        )
     return issues
+
+
+def _neb_dependency_issues(
+    role: str,
+    directive: str,
+    requested: str,
+    content: str,
+    evidence: dict[str, Any],
+    *,
+    cwd: str | None,
+) -> list[InvariantIssue]:
+    issues: list[InvariantIssue] = []
+    expected_name = Path(requested).name
+    directive_pattern = rf'\b{re.escape(directive)}\s+"{re.escape(expected_name)}"'
+    if re.search(directive_pattern, content, flags=re.IGNORECASE) is None:
+        issues.append(
+            reject(
+                f"input.orca.neb.{role}",
+                f"ORCA NEB block does not preserve the requested {role} file",
+                {**evidence, "expected": expected_name},
+            )
+        )
+    generated_path = Path(str(evidence.get("path") or ""))
+    staged = generated_path.parent / expected_name
+    if generated_path.is_file() and not staged.is_file():
+        issues.append(
+            reject(
+                f"input.orca.neb.{role}_file_missing",
+                f"ORCA NEB {role} file was not staged beside the input",
+                {**evidence, "expected": expected_name},
+            )
+        )
+        return issues
+    source = Path(requested).expanduser()
+    if not source.is_absolute() and cwd:
+        source = Path(cwd) / source
+    if source.is_file() and staged.is_file() and _sha256(source) != _sha256(staged):
+        issues.append(
+            reject(
+                f"input.orca.neb.{role}_content",
+                f"Staged ORCA NEB {role} file does not match its source",
+                {**evidence, "expected": expected_name},
+            )
+        )
+    return issues
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def qmmm_issues(

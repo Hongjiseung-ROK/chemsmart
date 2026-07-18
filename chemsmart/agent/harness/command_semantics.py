@@ -34,7 +34,7 @@ CommandSemanticVerdict = Literal["ok", "warn", "reject"]
 CommandSemanticSeverity = Literal["warn", "reject"]
 
 _COMPUTATIONAL_TOP_LEVEL = {"run", "sub"}
-_SOFTWARE_COMMANDS = {"gaussian", "orca"}
+_SOFTWARE_COMMANDS = {"gaussian", "orca", "xtb"}
 
 
 @dataclass(frozen=True)
@@ -172,6 +172,93 @@ def evaluate_command_semantics(
     )
 
 
+def evaluate_command_preflight(
+    command: str,
+    *,
+    cwd: str | os.PathLike[str] | None = None,
+) -> CommandSemanticResult:
+    """Run strict parser and command contracts without starting a process."""
+
+    tokenized = _tokenize_chemsmart_command(command)
+    if isinstance(tokenized, CommandSemanticResult):
+        return tokenized
+    tokens = tokenized
+    base_cwd = Path(cwd or os.getcwd()).resolve()
+    top_index, top_level = _top_level_command(tokens)
+    preflight = _preflight_result(
+        command,
+        tokens,
+        top_index=top_index,
+        top_level=top_level,
+        cwd=base_cwd,
+    )
+    if preflight is not None:
+        return preflight
+    return CommandSemanticResult(
+        verdict="ok",
+        command=command,
+        checked_argv=tuple(tokens),
+    )
+
+
+def assess_safe_runtime_artifacts(
+    command: str,
+    *,
+    checked_argv: list[str] | tuple[str, ...],
+    workdir: str | os.PathLike[str],
+    returncode: int,
+    stdout: Any = "",
+    stderr: Any = "",
+    generated_inputs: list[dict[str, Any]] | tuple[dict[str, Any], ...] = (),
+    cwd: str | os.PathLike[str] | None = None,
+) -> CommandSemanticResult:
+    """Assess artifacts produced by an already-safe ChemSmart runtime.
+
+    Desktop and agent callers use different process launchers, but they must
+    share the same chemistry verdict.  This function owns the common
+    return-code, generated-route, and generated-input invariant checks after a
+    caller has enforced its execution boundary (for example ``--fake`` and
+    ``--no-scratch`` in the desktop launcher).
+    """
+
+    tokenized = _tokenize_chemsmart_command(command)
+    if isinstance(tokenized, CommandSemanticResult):
+        return tokenized
+    tokens = tokenized
+    top_index, top_level = _top_level_command(tokens)
+    if top_level not in _COMPUTATIONAL_TOP_LEVEL:
+        return _non_computational_result(command, tokens, top_level)
+
+    safe_argv = list(checked_argv)
+    runtime_workdir = Path(workdir).resolve()
+    base_cwd = Path(cwd or os.getcwd()).resolve()
+    collected = [dict(item) for item in generated_inputs]
+    stdout_tail = _tail(stdout)
+    stderr_tail = _tail(stderr)
+    issues = _runtime_semantic_issues(
+        tokens=tokens,
+        top_index=top_index,
+        top_level=top_level,
+        safe_argv=safe_argv,
+        workdir=runtime_workdir,
+        returncode=returncode,
+        stdout_tail=stdout_tail,
+        stderr_tail=stderr_tail,
+        generated_inputs=collected,
+    )
+    issues.extend(_generated_route_issues(collected))
+    issues.extend(_generated_invariant_issues(command, collected, base_cwd))
+    return CommandSemanticResult(
+        verdict=_semantic_verdict(issues),
+        command=command,
+        checked_argv=tuple(safe_argv),
+        issues=tuple(issues),
+        generated_inputs=tuple(collected),
+        stdout_tail=stdout_tail,
+        stderr_tail=stderr_tail,
+    )
+
+
 def _tokenize_chemsmart_command(
     command: str,
 ) -> list[str] | CommandSemanticResult:
@@ -285,7 +372,8 @@ def _execute_safe_semantic_runtime(
         top_level=top_level,
     )
     try:
-        before = input_snapshot(workdir)
+        software = _command_software(tokens, top_index)
+        before = input_snapshot(workdir, software=software)
         completed = _run_safe_command(
             command,
             safe_argv,
@@ -295,32 +383,21 @@ def _execute_safe_semantic_runtime(
         )
         if isinstance(completed, CommandSemanticResult):
             return completed
-        stdout_tail = _tail(completed.stdout)
-        stderr_tail = _tail(completed.stderr)
-        generated_inputs = collect_generated_inputs(workdir, before)
-        issues = _runtime_semantic_issues(
-            tokens=tokens,
-            top_index=top_index,
-            top_level=top_level,
-            safe_argv=safe_argv,
+        generated_inputs = collect_generated_inputs(
+            workdir,
+            before,
+            software=software,
+            command=command,
+        )
+        return assess_safe_runtime_artifacts(
+            command,
+            checked_argv=safe_argv,
             workdir=workdir,
             returncode=completed.returncode,
-            stdout_tail=stdout_tail,
-            stderr_tail=stderr_tail,
+            stdout=completed.stdout,
+            stderr=completed.stderr,
             generated_inputs=generated_inputs,
-        )
-        issues.extend(_generated_route_issues(generated_inputs))
-        issues.extend(
-            _generated_invariant_issues(command, generated_inputs, base_cwd)
-        )
-        return CommandSemanticResult(
-            verdict=_semantic_verdict(issues),
-            command=command,
-            checked_argv=tuple(safe_argv),
-            issues=tuple(issues),
-            generated_inputs=tuple(generated_inputs),
-            stdout_tail=stdout_tail,
-            stderr_tail=stderr_tail,
+            cwd=base_cwd,
         )
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
@@ -412,7 +489,7 @@ def _runtime_semantic_issues(
                 rule_id="cmd.semantic.generated_input_missing",
                 severity="reject",
                 message=(
-                    "safe runtime validation succeeded but no Gaussian/ORCA "
+                    "safe runtime validation succeeded but no computational "
                     "input file was generated"
                 ),
                 evidence={"cwd": str(workdir), "argv": safe_argv},
@@ -423,7 +500,7 @@ def _runtime_semantic_issues(
             rule_id="cmd.semantic.submit_generated_input_not_observed",
             severity="warn",
             message=(
-                "safe submit validation succeeded but no Gaussian/ORCA "
+                "safe submit validation succeeded but no computational "
                 "input file was observed in the working directory"
             ),
             evidence={"cwd": str(workdir), "argv": safe_argv},
@@ -549,7 +626,7 @@ def _option_order_issue(
             rule_id="cmd.semantic.option_order",
             severity="reject",
             message=(
-                "input filename option appears after the Gaussian/ORCA job "
+                "input filename option appears after the program job "
                 "subcommand; chemsmart expects program-level options such as "
                 "-f/--filename before the job subcommand"
             ),
@@ -669,6 +746,11 @@ def _software_index(tokens: list[str], top_index: int) -> int | None:
     return None
 
 
+def _command_software(tokens: list[str], top_index: int) -> str | None:
+    index = _software_index(tokens, top_index)
+    return tokens[index] if index is not None else None
+
+
 def _first_job_token_index(tokens: list[str], start: int) -> int | None:
     index = start
     while index < len(tokens):
@@ -756,5 +838,7 @@ def _single_issue_result(
 __all__ = [
     "CommandSemanticIssue",
     "CommandSemanticResult",
+    "assess_safe_runtime_artifacts",
+    "evaluate_command_preflight",
     "evaluate_command_semantics",
 ]

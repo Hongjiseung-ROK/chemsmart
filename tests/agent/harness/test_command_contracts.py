@@ -37,6 +37,37 @@ def test_command_contract_issue_keeps_public_module_identity() -> None:
     )
 
 
+def test_xtb_solvent_options_are_an_atomic_pair() -> None:
+    issues = _issues(
+        "xtb",
+        "sp",
+        program_tokens=["-p", "test", "--solvent-model", "alpb"],
+        job_tokens=["sp"],
+    )
+
+    assert [issue.rule_id for issue in issues] == [
+        "cmd.contract.xtb_solvent_pair"
+    ]
+
+
+def test_orca_neb_restart_rejects_endpoint_or_ts_guess() -> None:
+    issues = _issues(
+        "orca",
+        "neb",
+        job_tokens=[
+            "neb",
+            "--restarting-xyzfile",
+            "restart.allxyz",
+            "--ending-xyzfile",
+            "product.xyz",
+        ],
+    )
+
+    assert [issue.rule_id for issue in issues] == [
+        "cmd.contract.orca_neb_restart_exclusive"
+    ]
+
+
 def test_orca_scan_requires_all_runtime_parameters() -> None:
     issues = _issues(
         "orca",

@@ -161,6 +161,11 @@ class ChemsmartUserSettings:
         """
         return os.path.join(self.config_dir, "orca")
 
+    @property
+    def user_xtb_settings_dir(self):
+        """Directory containing xTB project YAML files."""
+        return os.path.join(self.config_dir, "xtb")
+
     @cached_property
     def server_yaml_files(self):
         """
@@ -192,6 +197,10 @@ class ChemsmartUserSettings:
             list: List of paths to ORCA project configuration YAML files.
         """
         return glob.glob(os.path.join(self.user_orca_settings_dir, "*.yaml"))
+
+    @cached_property
+    def xtb_project_yaml_files(self):
+        return glob.glob(os.path.join(self.user_xtb_settings_dir, "*.yaml"))
 
     @cached_property
     def scratch(self):
@@ -266,4 +275,11 @@ class ChemsmartUserSettings:
         return [
             os.path.basename(o).removesuffix(".yaml")
             for o in self.orca_project_yaml_files
+        ]
+
+    @cached_property
+    def all_available_xtb_projects(self):
+        return [
+            os.path.basename(path).removesuffix(".yaml")
+            for path in self.xtb_project_yaml_files
         ]

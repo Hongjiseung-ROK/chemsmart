@@ -11,36 +11,32 @@ from chemsmart.gui.application.cli_launcher import (
 )
 from chemsmart.gui.application.task_controller import (
     QtTaskController,
-    TaskFailure,
 )
 
 
-def start_dry_run(argv, on_finished, parent=None, *, cwd: Path | None = None):
+def start_dry_run(
+    argv,
+    on_finished,
+    parent=None,
+    *,
+    cwd: Path | None = None,
+    on_failed=None,
+    on_cancelled=None,
+):
     """Start one validated fake run and return its lifecycle controller."""
     request = DryRunRequest(
         argv=tuple(argv),
         cwd=(cwd or Path.cwd()),
     )
     controller: QtTaskController[DryRunResult] = QtTaskController(parent)
-    controller.succeeded.connect(
-        lambda result: on_finished(result.returncode, result.output)
-    )
-    controller.failed.connect(
-        lambda failure: _report_failure(failure, on_finished)
-    )
-    controller.cancelled.connect(lambda: on_finished(130, "Dry run cancelled."))
+    controller.succeeded.connect(on_finished)
+    controller.failed.connect(on_failed or (lambda _failure: None))
+    controller.cancelled.connect(on_cancelled or (lambda: None))
     controller.start(
         lambda context: launch_dry_run(request, context),
         timeout_ms=int(request.timeout_s * 1000) + 2500,
     )
     return controller
-
-
-def _report_failure(failure: TaskFailure, on_finished) -> None:
-    on_finished(
-        1,
-        f"{failure.user_message} ({failure.diagnostic_type})",
-    )
 
 
 __all__ = ["start_dry_run"]

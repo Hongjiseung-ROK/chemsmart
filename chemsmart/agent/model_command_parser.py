@@ -19,7 +19,7 @@ from chemsmart.agent.services.command_explanation import (
 )
 
 _TOP_LEVEL_COMMANDS = {"run", "sub"}
-_PROGRAMS = {"gaussian", "orca", "nciplot", "mol"}
+_PROGRAMS = {"gaussian", "orca", "xtb", "nciplot", "mol"}
 _GAUSSIAN_SUBCOMMANDS = {
     "com",
     "crest",
@@ -52,9 +52,11 @@ _ORCA_SUBCOMMANDS = {
     "sp",
     "ts",
 }
+_XTB_SUBCOMMANDS = {"opt", "sp", "hess"}
 _SUBCOMMANDS_BY_PROGRAM = {
     "gaussian": _GAUSSIAN_SUBCOMMANDS,
     "orca": _ORCA_SUBCOMMANDS,
+    "xtb": _XTB_SUBCOMMANDS,
 }
 
 
@@ -176,6 +178,12 @@ _PROGRAM_OPTIONS = {
     "--solvent-model": _OptionSpec("solvent_model"),
     "-si": _OptionSpec("solvent_id"),
     "--solvent-id": _OptionSpec("solvent_id"),
+    "-g": _OptionSpec("gfn_version"),
+    "--gfn-version": _OptionSpec("gfn_version"),
+    "--grad": _OptionSpec("grad", takes_value=False, flag_value="true"),
+    "--no-grad": _OptionSpec(
+        "grad", takes_value=False, flag_value="false"
+    ),
     "-so": _OptionSpec("solvent_options"),
     "--solvent-options": _OptionSpec("solvent_options"),
     "-A": _OptionSpec("append_additional_info"),
@@ -229,6 +237,7 @@ _SUBCOMMAND_OPTIONS = {
     "--no-skip-completed": _OptionSpec(
         "skip_completed", takes_value=False, flag_value="false"
     ),
+    "--optimization-level": _OptionSpec("optimization_level"),
 }
 
 # Gaussian reuses short option letters across nested job commands.  They must
@@ -300,6 +309,30 @@ _JOB_OPTION_OVERRIDES: dict[tuple[str, str], dict[str, _OptionSpec]] = {
     ("orca", "ts"): {
         "-s": _OptionSpec("recalc_hess"),
         "--recalc-hess": _OptionSpec("recalc_hess"),
+    },
+    ("orca", "neb"): {
+        "-j": _OptionSpec("joboption"),
+        "--joboption": _OptionSpec("joboption"),
+        "-n": _OptionSpec("nimages"),
+        "--nimages": _OptionSpec("nimages"),
+        "-e": _OptionSpec("ending_xyzfile"),
+        "--ending-xyzfile": _OptionSpec("ending_xyzfile"),
+        "-i": _OptionSpec("intermediate_xyzfile"),
+        "--intermediate-xyzfile": _OptionSpec("intermediate_xyzfile"),
+        "-r": _OptionSpec("restarting_xyzfile"),
+        "--restarting-xyzfile": _OptionSpec("restarting_xyzfile"),
+        "-o": _OptionSpec(
+            "pre_optimization",
+            takes_value=False,
+            flag_value="true",
+        ),
+        "--pre-optimization": _OptionSpec(
+            "pre_optimization",
+            takes_value=False,
+            flag_value="true",
+        ),
+        "-s": _OptionSpec("semiempirical"),
+        "--semiempirical": _OptionSpec("semiempirical"),
     },
 }
 
@@ -491,7 +524,7 @@ def _build_parsed_command(
         dry_run=_dry_run_requested(runner_opts),
         project=project,
         project_p_flag_meaning=(
-            "program-level -p/--project for gaussian/orca project settings"
+            "program-level -p/--project for computational project settings"
             if project is not None
             else None
         ),

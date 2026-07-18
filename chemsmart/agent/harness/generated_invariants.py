@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import shlex
 from typing import Any
 
 from chemsmart.agent.harness.generated_common import (
@@ -217,7 +218,17 @@ def _workflow_issues(
     if kind == "gaussian.tddft":
         issues.extend(gaussian_tddft_issues(route, chemistry, evidence))
     if kind == "orca.neb":
-        issues.extend(orca_neb_issues(route, content, chemistry, evidence))
+        issues.extend(
+            orca_neb_issues(
+                route,
+                content,
+                chemistry,
+                evidence,
+                cwd=cwd,
+            )
+        )
+    if kind.startswith("xtb."):
+        issues.extend(_xtb_solvent_issues(route, chemistry, evidence))
     if kind.endswith(".qmmm"):
         issues.extend(
             _qmmm_issues(
@@ -233,6 +244,40 @@ def _workflow_issues(
     if kind == "gaussian.dias":
         issues.extend(gaussian_dias_issues(chemistry, evidence))
     return issues
+
+
+def _xtb_solvent_issues(
+    route: str,
+    chemistry: dict[str, Any],
+    evidence: dict[str, Any],
+) -> list[InvariantIssue]:
+    model = chemistry.get("solvent_model")
+    solvent = chemistry.get("solvent_id")
+    if model is None and solvent is None:
+        return []
+    if model is None or solvent is None:
+        return [
+            reject(
+                "input.xtb.solvent_pair",
+                "xTB solvent model and identifier must be specified together",
+                {**evidence, "model": model, "solvent": solvent},
+            )
+        ]
+    try:
+        tokens = shlex.split(route)
+        model_index = tokens.index(f"--{str(model).lower()}")
+        observed = tokens[model_index + 1]
+    except (ValueError, IndexError):
+        observed = None
+    if observed is None or observed.lower() != str(solvent).lower():
+        return [
+            reject(
+                "input.xtb.solvent_preservation",
+                "Generated xTB command does not preserve requested solvation",
+                {**evidence, "model": model, "solvent": solvent},
+            )
+        ]
+    return []
 
 
 def _qmmm_issues(
