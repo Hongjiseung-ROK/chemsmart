@@ -135,6 +135,14 @@ application is a separate zero-recompression artifact emitted only after the
 mandatory verifier passes. This keeps failure diagnosis small while preserving
 the full successful candidate for checksum and extraction analysis.
 
+The first bounded-evidence rerun (`29635968258`) revealed a second duplicate:
+the retained launch root also contained the archive-roundtrip extraction, so
+its evidence artifact was still 3,985,597,066 bytes. The upload contract is now
+narrowed again to receipt JSON, screenshots, fake Gaussian/ORCA inputs, metrics,
+identity, and warnings. Archive extraction remains a mandatory in-run hash gate
+but is never uploaded; a verified bundle remains available only through the
+separate successful-bundle artifact.
+
 The first real QtWebEngine test returned an empty Python value even though the
 page loaded. A console-instrumented minimum reproduction showed that 3Dmol had
 loaded, one canvas existed, and the molecule contained the expected atom.

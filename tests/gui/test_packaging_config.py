@@ -87,6 +87,9 @@ def test_packaging_workflow_is_manual_and_runs_both_candidates():
     assert "steps.verify.outcome != 'success'" in workflow
     assert workflow.count("compression-level: 0") == 2
     assert "path: build/p1/${{ matrix.candidate }}/" not in workflow
+    assert "candidate }}/launches-*/\n" not in workflow
+    assert "launches-*/probe-*/receipt.json" in workflow
+    assert "launches-*/shell-*/receipt.json" in workflow
     evidence_section, bundle_section = workflow.split(
         "- name: Upload verified candidate bundle"
     )

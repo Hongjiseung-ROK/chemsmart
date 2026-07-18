@@ -134,7 +134,13 @@ jobs:
             build/p1/${{ matrix.candidate }}/nuitka-report.xml
             build/p1/${{ matrix.candidate }}/metrics.json
             build/p1/${{ matrix.candidate }}/artifact.sha256
-            build/p1/${{ matrix.candidate }}/launches-*/
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/receipt.json
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/receipt.png
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.xyz
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.com
+            build/p1/${{ matrix.candidate }}/launches-*/probe-*/workspace/*.inp
+            build/p1/${{ matrix.candidate }}/launches-*/shell-*/receipt.json
+            build/p1/${{ matrix.candidate }}/launches-*/shell-*/receipt.png
             build/p1/${{ matrix.candidate }}/work/ChemSmart/warn-ChemSmart.txt
           if-no-files-found: error
           retention-days: 7
