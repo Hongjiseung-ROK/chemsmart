@@ -15,6 +15,16 @@ from chemsmart.gui.application.job_draft import (
 )
 
 
+def _wait_for_idle(qapp, controller, timeout: float = 15.0) -> None:
+    """Wait for real Qt thread teardown without assuming runner CPU speed."""
+    deadline = time.monotonic() + timeout
+    while controller.active_thread_count and time.monotonic() < deadline:
+        qapp.processEvents()
+        time.sleep(0.01)
+    qapp.processEvents()
+    assert controller.active_thread_count == 0, controller.snapshot
+
+
 def _agent_draft(source: str) -> JobDraft:
     return JobDraft(
         program="orca",
@@ -291,13 +301,7 @@ def test_chat_cancel_waits_for_provider_boundary_and_accepts_no_stale_result(
         assert "cancelling" in window.task_status.text().lower()
 
         provider.release.set()
-        deadline = time.monotonic() + 5
-        while chat._controller.active_thread_count and time.monotonic() < deadline:
-            qapp.processEvents()
-            QTest.qWait(10)
-        qapp.processEvents()
-
-        assert chat._controller.active_thread_count == 0
+        _wait_for_idle(qapp, chat._controller)
         assert "Cancelled" in chat.transcript.toPlainText()
         assert "stale answer" not in chat.transcript.toPlainText()
         assert "Session receipt sealed" not in chat.transcript.toPlainText()
@@ -402,11 +406,7 @@ def test_chat_cancel_suppresses_post_cancel_tool_stream_but_seals_blocked_receip
 
         chat.cancel_button.click()
         release.set()
-        deadline = time.monotonic() + 5
-        while chat._controller.active_thread_count and time.monotonic() < deadline:
-            qapp.processEvents()
-            QTest.qWait(10)
-        qapp.processEvents()
+        _wait_for_idle(qapp, chat._controller)
 
         transcript = chat.transcript.toPlainText()
         assert "Cancelled" in transcript
@@ -524,8 +524,6 @@ def test_resuming_different_session_detaches_prior_presentation_and_draft(
 def test_ai_direct_ai_boundaries_detach_transcript_and_typed_draft(
     qapp, tmp_path, monkeypatch
 ):
-    from PySide6.QtTest import QTest
-
     from chemsmart.agent.harness import command_semantics, intent
     from chemsmart.gui.app import MainWindow
     from chemsmart.gui.services.agent_worker import AgentWorker
@@ -578,12 +576,7 @@ def test_ai_direct_ai_boundaries_detach_transcript_and_typed_draft(
         def send(text):
             chat.input.setText(text)
             chat.send_button.click()
-            deadline = time.monotonic() + 5
-            while chat._controller.active_thread_count and time.monotonic() < deadline:
-                qapp.processEvents()
-                QTest.qWait(10)
-            qapp.processEvents()
-            assert chat._controller.active_thread_count == 0
+            _wait_for_idle(qapp, chat._controller)
 
         send("Explain a conservative optimization.")
         first_session = worker.active_session_id
