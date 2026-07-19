@@ -1,7 +1,6 @@
 # ChemSmart Native Desktop Master Plan
 
-Status: P5 implementation, automated gates, and independent review green; phase
-commit pending, 2026-07-19
+Status: P5 complete in `dcf600db`; P6 and P7 pending, 2026-07-19
 Owner: ChemSmart maintainers
 Primary target: Zhang Lab internal macOS desktop app
 Framework: Python 3.10/3.11 + PySide6/Qt 6
@@ -573,8 +572,8 @@ Exit:
 
 ### P5 — Database and analysis
 
-Status: implementation, automated gates, and independent review green on
-2026-07-19; complete after the containing phase commit. See
+Status: complete in phase commit `dcf600db` after automated gates and independent
+review were green on 2026-07-19. See
 `docs/design/phase_receipts/p5_database_analysis.md`.
 
 Database browse/query/detail, create-new assembly, export, Grouper,

@@ -3,10 +3,10 @@ as_of: "2026-07-19"
 baseline:
   branch: agent-codebase-simplification
   commit: 5067903d
-  phase_commit: containing_this_contract
+  phase_commit: dcf600db
   upstream_ahead_before_phase_commit: 5
   upstream_behind: 6
-  gui_state: p5_database_analysis_review_green
+  gui_state: p5_database_analysis_complete
 
 policies:
   - id: PRESERVE-CLI
