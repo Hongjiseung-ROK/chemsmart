@@ -1,6 +1,6 @@
 # ChemSmart Native Desktop Master Plan
 
-Status: P6 complete in `83eb1707`; P7 pending, 2026-07-19
+Status: P6 complete in `83eb1707`; P7 PyInstaller release engineering in progress, 2026-07-19
 Owner: ChemSmart maintainers
 Primary target: Zhang Lab internal macOS desktop app
 Framework: Python 3.10/3.11 + PySide6/Qt 6
@@ -55,7 +55,7 @@ reset, or branch switching as a preparation step.
 
 | Area | Current state | Consequence |
 |---|---|---|
-| Packaging spike | P1 complete; PyInstaller selected and freshly reconfirmed | Authorized run `29668168830` reconfirmed all 18 PyInstaller gates. pyside6-deploy compiled but its strict normalizer rejected the expected 19-byte `Contents/MacOS/qt6.conf`; it remains a non-blocking experimental fallback. |
+| Packaging | PyInstaller final and user-confirmed | Authorized runs reconfirmed all 18 PyInstaller gates. The compiler-based comparison path is retired from active code and retained only as historical evidence in the P1 phase receipt. |
 | PySide6 extra and GUI entry point | P0 committed | Source entry and package data are stable; P1 adds a hidden packaging probe and absolute-path frozen CLI dispatch. |
 | Provider config and secrets | P2 reviewer-green | Provider literals remain backward-readable; new credentials use unique staged Keychain references, atomically commit YAML, then retire the old reference. Secret-bearing tasks disable retry retention. Tests use in-memory stores and never touch the real Keychain. |
 | App shell/theme | P6 reviewer GREEN | Native menus, scroll-safe Settings, system palette/font roles, adaptive three-region layout, status, complete accessible labeling, explicit dynamic focus order, Help, and bounded runtime evidence projection are present. The 81-screen size/appearance matrix and 18 pt minimum-window scientific controls are accepted with Critical 0, High 0, Medium 0. |
@@ -324,21 +324,24 @@ Preservation rules:
   disposable macOS CI runner, VM, or dedicated build host. Linux Colab/HPC cannot
   produce the final macOS bundle.
 
-### 6.2 Packaging spike decision gate
+### 6.2 Selected PyInstaller decision gate
 
-Evaluate two isolated candidates before selecting the release tool:
+P1 compared isolated packaging approaches on a Python 3.11, PySide6 6.9.2,
+`macos-14` arm64 disposable builder. The detailed comparison, failed
+alternatives, and bottleneck evidence are historical records confined to
+`docs/design/phase_receipts/p1_packaging_preflight.md`.
 
-- Candidate A: PyInstaller `onedir` `.app`.
-- Candidate B: Qt's `pyside6-deploy`/Nuitka path.
+Final user decision (2026-07-19): PyInstaller 6.21.0 `onedir` is the only active
+macOS packaging and release path. The manual workflow, build dependencies,
+runtime lock, feature contract, and frozen-runtime dispatch must not expose a
+second packager. P7 does not spend build time repairing or reevaluating the
+retired comparison path.
 
-P1 uses Python 3.11, PySide6 6.9.2, and a `macos-14` arm64 disposable
-GitHub-hosted runner for the first comparison. This is a feasibility floor, not
-a permanent support promise: the macOS 14 runner is scheduled for retirement,
-so P7 must move to a maintained runner or named dedicated builder without
-silently raising the supported OS. PyInstaller 6.21.0 and its minimum compatible
-`pyinstaller-hooks-contrib` 2026.6 are compared against the
-PySide6-6.9-compatible pyside6-deploy/Nuitka 2.7.11 path. The exact installed
-dependency freeze is captured per candidate.
+The `macos-14` result is a feasibility floor, not a permanent support promise:
+the runner is scheduled for retirement, so P7 must move to a maintained runner
+or named dedicated oldest-supported builder without silently raising the
+supported OS. PyInstaller 6.21.0 and its minimum compatible
+`pyinstaller-hooks-contrib` 2026.6 remain exact build inputs.
 
 The probe deliberately launches the real GUI bundle through LaunchServices
 three times with fresh HOME/TMPDIR roots and a minimal PATH. Every launch must
@@ -371,39 +374,18 @@ The same spike application must prove:
 
 The Textual TUI remains a supported source-install surface and is exercised by
 the source regression suite on the disposable builder. It is deliberately not
-embedded in the Finder `.app`: the desktop app self-dispatches only the existing
-Click CLI, while `chemsmart agent` and its Textual dependencies remain available
-from the normal `agent-tui` extra. Both packaging candidates explicitly exclude
-that UI dependency tree without deleting or changing its source contracts.
+embedded in the Finder `.app`: the selected PyInstaller desktop app
+self-dispatches only the existing Click CLI, while `chemsmart agent` and its
+Textual dependencies remain available from the normal `agent-tui` extra. This
+packaging boundary does not delete or change any CLI/TUI source contract.
 
-Choose the candidate by evidence, not by assumed hook maturity. Keep the losing
-candidate documented as the fallback.
-
-P1 decision (2026-07-18): use PyInstaller 6.21.0 `onedir` as the primary macOS
-packager. On the final same-run comparison it built in 2 minutes 50 seconds and
-its approximately 813 MB arm64 app passed every frozen probe, normal-window
-smoke, helper-entitlement, strict signature, immutability, and archive gate.
-pyside6-deploy/Nuitka took 1 hour 21 minutes without compiler hits and 51 minutes
-17 seconds with 6,796/6,796 hits, produced an earlier approximately 2.47 GB
-invalid bundle, and remained red because its pinned app layout placed resource
-data such as `qtwebengine_resources.pak` and `qt6.conf` directly in the
-code-only `Contents/MacOS` directory. Keep its spec and failure receipts for
-comparison, but do not make it a release blocker.
-
-Fresh authorized confirmation (2026-07-19, run `29668168830`, exact temporary
-ref SHA `45d35f56`): PyInstaller again passed all 18 mandatory gates, including
-the strengthened four-helper-entitlement gate, three LaunchServices probes,
-shell navigation, 3Dmol render, archive round trip, and nested-to-outer ad-hoc
-signature verification. pyside6-deploy completed Nuitka compilation with
-6,796/6,796 cache hits, then the strict preflight rejected only the generated
-19-byte `Contents/MacOS/qt6.conf`. The fallback repair is bounded: retain that
-file beside the executable only when it is a regular, non-executable,
-non-symlink file with the exact `[Paths]\nPrefix = .\n` payload; record its
-path/mode/size/hash unchanged and continue rejecting every other unplanned data
-file. Test missing, modified, executable, symlinked, and additional direct-data
-cases before at most one authorized remote rerun. Do not move it to Resources
-blindly. This fallback repair belongs to P7 and does not alter the PyInstaller
-production decision.
+Retained PyInstaller evidence includes an approximately 813 MB arm64 app, a
+2-minute-50-second build, all 18 mandatory verifier flags, three isolated
+LaunchServices probes, normal-window navigation, offline 3Dmol rendering,
+Gaussian/ORCA fake inputs, archive round trip, nested-to-outer ad-hoc signature,
+and four QtWebEngine helper entitlements. Run `29668168830` independently
+reconfirmed the same boundary. These are P1 feasibility receipts; the current
+P6 product tree still requires a fresh P7 build and acceptance run.
 
 ### 6.3 Release levels
 
@@ -487,12 +469,12 @@ Exit:
 
 ### P1 — Packaging risk spike
 
-Status: complete. PyInstaller is selected; pyside6-deploy is the documented red
-fallback. See `docs/design/phase_receipts/p1_packaging_preflight.md`.
+Status: complete. PyInstaller is the final user-confirmed macOS packager. The
+retired comparison is documented only in
+`docs/design/phase_receipts/p1_packaging_preflight.md`.
 
-Author only the isolated spike and CI/build scripts first. Run both packaging
-candidates on the target macOS architecture. Do not expand product UI until one
-candidate passes the mandatory spike checks.
+The selected target-architecture candidate passed the mandatory spike checks
+before product UI expansion. No alternative packager remains active in P7.
 
 Exit:
 
@@ -647,6 +629,9 @@ Exit:
 
 ### P7 — Internal alpha and release
 
+Status: in progress on the final PyInstaller-only path. See
+`docs/design/phase_receipts/p7_release_engineering.md`.
+
 Build the `.app`/`.dmg`, execute clean-machine tests, produce checksums/SBOM and
 installation documentation. Keep unsigned alpha and notarized release labels
 distinct.
@@ -659,24 +644,21 @@ Exit:
 
 ## 9. Immediate next implementation slice
 
-P6 is frozen at `83eb1707`. Do these P7 tasks in order:
+P6 is frozen at `83eb1707`. The PyInstaller decision is final. Do these P7 tasks
+in order:
 
-1. Finish the authorized dual-candidate macOS packaging experiment and compare
-   PyInstaller with pyside6-deploy from downloaded bundles and machine-readable
-   receipts. Keep PyInstaller selected unless the complete fallback verifier is
-   materially better; a compiler finishing is not sufficient evidence.
-2. Build the current P6 product tree with the selected reproducible runtime and
+1. Build the current P6 product tree with the selected reproducible runtime and
    require all packaging contracts, three fresh process launches, real bundled
    3Dmol, Gaussian/ORCA fake CLI probes, Finder launch, clean preferences, and
    restart recovery to pass.
-3. Produce a checksum, dependency/SBOM receipt, architecture and minimum-macOS
+2. Produce a checksum, dependency/SBOM receipt, architecture and minimum-macOS
    receipt, nested-to-outer signature audit, DMG, installation/removal guide,
    optional PyMOL setup guide, and explicit unsigned/internal-alpha labeling.
-4. Stress long/unicode paths, missing optional dependencies, cancellation,
+3. Stress long/unicode paths, missing optional dependencies, cancellation,
    retry, stale preferences, read-only workspace, database build/export, and
    multi-launch behavior on named Zhang Lab machines. Real calculations and HPC
    submission remain outside the desktop boundary.
-5. Ask an independent release reviewer to audit every P7 receipt and use Codex
+4. Ask an independent release reviewer to audit every P7 receipt and use Codex
    Computer Use for end-to-end supported researcher workflows. Commit each green
    release slice; retain Developer ID/notarization as a distinct gate until the
    required external credentials and Apple service are available.

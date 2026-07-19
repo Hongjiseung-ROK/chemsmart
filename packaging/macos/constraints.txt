@@ -1,4 +1,4 @@
-# Keep both candidates on the same Python/build/Qt dependency boundary.
+# Selected PyInstaller Python/build/Qt dependency boundary.
 pip==25.3
 setuptools==74.1.1
 wheel==0.46.3
@@ -9,4 +9,3 @@ shiboken6==6.9.2
 keyring==25.7.0
 PyInstaller==6.21.0
 pyinstaller-hooks-contrib==2026.6
-Nuitka==2.7.11

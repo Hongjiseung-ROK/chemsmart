@@ -1,7 +1,7 @@
 # P1 macOS packaging preflight receipt
 
-Date: 2026-07-18
-Status: Complete — PyInstaller selected; pyside6-deploy retained as red fallback
+Date: 2026-07-18; final selection updated 2026-07-19
+Status: Complete — PyInstaller final; retired comparison retained only as phase evidence
 Baseline commit: `3f781642afc3`
 
 ## Scope and decision boundary
@@ -13,9 +13,9 @@ P1 compares the same real GUI entry point under:
 
 Both candidates were built on the same isolated target and subjected to the
 same mandatory verifier. PyInstaller 6.21.0 is selected for the desktop release
-path. The pyside6-deploy/Nuitka candidate remains documented as a fallback, but
-its pinned macOS bundle layout is red under Apple's code/data placement and
-signing rules and is not a distributable artifact.
+path. The pyside6-deploy/Nuitka material below is historical comparison evidence
+only; it is not an active fallback, build dependency, workflow choice, runtime
+branch, or distributable artifact.
 
 The first target is a disposable `macos-14` arm64 GitHub-hosted runner with
 Python 3.11. The choice matches the user's Apple Silicon target and builds on an
@@ -401,7 +401,27 @@ remote rerun requires new authorization and must still pass normalization,
 signing, helper entitlements, three probes, shell, archive, and checksum gates.
 
 The production recommendation is unchanged: PyInstaller is the release
-baseline; pyside6-deploy remains an experimental, non-blocking fallback. The
-temporary ad-hoc artifact itself is not a release. Current-product integration,
-Developer ID, hardened runtime, notarization, maintained-builder, and
+baseline. The temporary ad-hoc artifact itself is not a release.
+Current-product integration, Developer ID, hardened runtime, notarization,
+maintained-builder, and
 clean-machine acceptance remain P7 gates.
+
+## Final user selection and retirement receipt — run 29678977207
+
+On 2026-07-19 the user finalized PyInstaller as the sole production packager and
+directed that Nuitka remain only as a clue in the phase report. The active
+pyside-only workflow run `29678977207` at temporary ref `53cacbd3` was therefore
+cancelled after 22 minutes 23 seconds. Source contracts, cache setup, and the
+partial compile began; signing, bundle verification, runtime metrics, and the
+verified bundle upload did not run. The cancellation is not a candidate failure
+or a performance result. GitHub retained only a 14,084-byte cancellation
+diagnostic artifact (digest
+`2af39f2e8043962d09ee80c45f89727fb4f4e1cda39d1efc127280236dd028b7`); no
+verified bundle artifact exists or is accepted as evidence.
+
+The active workflow input, compiler cache path, build dependencies, runtime
+lock, feature contract, frozen-runtime branch, spec, normalizer, and associated
+tests are retired from the product tree. Their Git history and the measurements
+above remain recoverable for provenance, but P7 will not repair, rerun, compare,
+or release that path. All current-product packaging, stress tests, receipts,
+installer work, and Computer acceptance use PyInstaller.

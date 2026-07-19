@@ -477,18 +477,16 @@ surfaces:
   - id: macos_packaging
     sources:
       - packaging/macos/ChemSmart.pyinstaller.spec
-      - packaging/macos/pysidedeploy.spec
       - packaging/macos/runtime-lock-py311-macos14-arm64.txt
       - packaging/macos/verify_bundle.py
       - chemsmart/gui/packaging_probe.py
-    current_capability: PyInstaller 6.21.0 selected by retained macOS 14 arm64 bundle receipts; pyside6-deploy retained as a red structural fallback
+    current_capability: PyInstaller 6.21.0 is the final macOS packager selected by retained macOS 14 arm64 bundle receipts and explicit user decision
     desktop_v1: selected_pyinstaller
     selected_candidate: pyinstaller
-    fallback_candidate: pyside6-deploy
-    fallback_status: red_code_data_layout_in_contents_macos
+    selection_status: final_user_confirmed
     preservation: frozen app embeds the existing Click CLI self-dispatch but excludes the separately supported Textual UI dependency tree
     gates:
-      - both_specs_tracked_and_source_contracts_green
+      - selected_pyinstaller_spec_tracked_and_source_contracts_green
       - macos14_arm64_frozen_receipts
       - launchservices_isolated_home_temp_path
       - internal_cli_self_dispatch_and_fake_inputs
@@ -500,4 +498,4 @@ surfaces:
       - qtwebengine_helper_signature_and_entitlements_valid
       - frozen_template_config_integrity_valid
       - pyinstaller_decision_receipt_retained
-      - pyside_structural_failure_receipts_retained
+      - retired_packager_comparison_documented_only_in_p1_phase_receipt

@@ -58,11 +58,10 @@ def test_macos_packaging_decision_is_pinned_to_retained_p1_evidence() -> None:
 
     assert packaging["desktop_v1"] == "selected_pyinstaller"
     assert packaging["selected_candidate"] == "pyinstaller"
-    assert packaging["fallback_candidate"] == "pyside6-deploy"
-    assert packaging["fallback_status"] == (
-        "red_code_data_layout_in_contents_macos"
-    )
+    assert packaging["selection_status"] == "final_user_confirmed"
+    assert "fallback_candidate" not in packaging
+    assert "fallback_status" not in packaging
     assert {
         "pyinstaller_decision_receipt_retained",
-        "pyside_structural_failure_receipts_retained",
+        "retired_packager_comparison_documented_only_in_p1_phase_receipt",
     } <= set(packaging["gates"])

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import configparser
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_packaging_candidates_share_pinned_qt_boundary():
+def test_selected_pyinstaller_has_pinned_qt_boundary():
     constraints = (
         ROOT / "packaging" / "macos" / "constraints.txt"
     ).read_text(encoding="utf-8")
@@ -21,31 +20,12 @@ def test_packaging_candidates_share_pinned_qt_boundary():
     assert "PySide6==6.9.2" in constraints
     assert "PyInstaller==6.21.0" in constraints
     assert "pyinstaller-hooks-contrib==2026.6" in constraints
-    assert "Nuitka==2.7.11" in constraints
     assert "PyInstaller==6.21.0" in requirements
     assert "pyinstaller-hooks-contrib==2026.6" in requirements
-    assert "Nuitka==2.7.11" in requirements
-
-
-def test_pyside_deploy_candidate_includes_runtime_and_resources():
-    config = configparser.ConfigParser()
-    config.read(ROOT / "packaging" / "macos" / "pysidedeploy.spec")
-
-    assert config["app"]["input_file"] == "chemsmart/gui/__main__.py"
-    assert config["nuitka"]["mode"] == "standalone"
-    assert "WebEngineWidgets" in config["qt"]["modules"]
-    assert "--include-package=chemsmart" in config["nuitka"]["extra_args"]
-    assert "--include-package-data=chemsmart" in config["nuitka"][
-        "extra_args"
-    ]
-    assert "--no-deployment-flag=self-execution" in config["nuitka"][
-        "extra_args"
-    ]
-    assert "--macos-signed-app-name=org.zhanglab.chemsmart" in config[
-        "nuitka"
-    ]["extra_args"]
-    assert "--macos-target-arch=arm64" in config["nuitka"]["extra_args"]
-    assert "chemsmart.agent.tui.*" in config["nuitka"]["extra_args"]
+    assert "Nuitka" not in constraints
+    assert "Nuitka" not in requirements
+    assert "ordered-set" not in requirements
+    assert "zstandard" not in requirements
 
 
 def test_pyinstaller_candidate_is_onedir_app_with_no_path_dispatch():
@@ -64,7 +44,7 @@ def test_pyinstaller_candidate_is_onedir_app_with_no_path_dispatch():
     assert '"textual"' in spec
 
 
-def test_packaging_workflow_defaults_to_selected_candidate_and_keeps_comparison():
+def test_packaging_workflow_is_manual_pyinstaller_only():
     workflow = (
         ROOT / ".github" / "workflows" / "macos-packaging-spike.yml"
     ).read_text(encoding="utf-8")
@@ -72,29 +52,35 @@ def test_packaging_workflow_defaults_to_selected_candidate_and_keeps_comparison(
     assert "workflow_dispatch:" in workflow
     assert "push:" not in workflow
     assert "pull_request:" not in workflow
-    assert "default: pyinstaller" in workflow
-    assert "PyInstaller is selected" in workflow
-    assert "fromJSON(inputs.candidate == 'both'" in workflow
-    assert "pyinstaller\",\"pyside6-deploy" in workflow
+    assert "CANDIDATE: pyinstaller" in workflow
+    assert "inputs:" not in workflow
+    assert "matrix.candidate" not in workflow
+    assert "pyside6-deploy" not in workflow
+    assert "Nuitka" not in workflow
     assert "runs-on: macos-14" in workflow
     assert "timeout-minutes: 120" in workflow
     assert 'test "$(uname -m)" = "arm64"' in workflow
     assert 'test "$(sw_vers -productVersion | cut -d. -f1)" = "14"' in workflow
     assert "source-provenance.json" in workflow
-    assert "uses: actions/checkout@v6" in workflow
-    assert "uses: actions/setup-python@v6" in workflow
-    assert workflow.count("uses: actions/upload-artifact@v6") == 2
+    assert (
+        "uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"
+        in workflow
+    )
+    assert (
+        "uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1"
+        in workflow
+    )
+    assert workflow.count(
+        "uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f"
+    ) == 2
+    assert "actions/checkout@v6" not in workflow
+    assert "actions/setup-python@v6" not in workflow
+    assert "actions/upload-artifact@v6" not in workflow
     assert 'tee "build/p1/${CANDIDATE}/source-tests.txt"' in workflow
     assert "set -o pipefail" in workflow
-    assert "uses: actions/cache/restore@v6" in workflow
-    assert "uses: actions/cache/save@v6" in workflow
-    assert "id: nuitka-cache-restore" in workflow
-    assert "steps.nuitka-cache-restore.outputs.cache-primary-key" in workflow
-    assert "steps.nuitka-cache-restore.outputs.cache-hit != 'true'" in workflow
+    assert "uses: actions/cache/restore@v6" not in workflow
+    assert "uses: actions/cache/save@v6" not in workflow
     assert "if: ${{ !cancelled() && steps.signing.outcome == 'success' }}" in workflow
-    assert "CCACHE_DIR: /tmp/chemsmart-nuitka-ccache" in workflow
-    assert "NUITKA_CCACHE_BINARY=$(command -v ccache)" in workflow
-    assert "ccache --show-stats" in workflow
     assert '".[gui,agent,agent-tui,test]"' in workflow
     assert "runtime-lock-py311-macos14-arm64.txt" in workflow
     assert 'python-version: "3.11.9"' in workflow
@@ -108,16 +94,9 @@ def test_packaging_workflow_defaults_to_selected_candidate_and_keeps_comparison(
     assert "runtime-lock-verification.json" in workflow
     assert "tests/gui \\" in workflow
     assert "tests/agent/test_secrets.py \\" in workflow
-    assert "--dry-run" in workflow
-    assert "/usr/bin/grep -F" in workflow
-    assert "rg -F" not in workflow
-    assert "resource-mode-fixes.json" in workflow
-    assert "normalize_pyside_bundle.py" in workflow
-    assert "ccache --max-size=2G" in workflow
-    assert "py311-pyside692-nuitka2711" in workflow
-    assert "hashFiles('packaging/macos/pysidedeploy.spec'" in workflow
-    assert "chemsmart-p1-nuitka-${{ runner.os }}-${{ runner.arch }}-" in workflow
     assert "Apply nested-to-outer ad-hoc candidate signature" in workflow
+    assert workflow.count("app=build/p1/pyinstaller/dist/ChemSmart.app") == 2
+    assert "find build chemsmart/gui/deployment" not in workflow
     assert "id: signing" in workflow
     assert "adhoc_sign_bundle.py" in workflow
     assert "adhoc-signing.json" in workflow
@@ -132,7 +111,6 @@ def test_packaging_workflow_defaults_to_selected_candidate_and_keeps_comparison(
     assert "steps.signing.outcome != 'success'" in workflow
     assert workflow.count("compression-level: 0") == 2
     assert "path: build/p1/${{ matrix.candidate }}/" not in workflow
-    assert "candidate }}/launches-*/\n" not in workflow
     assert "launches-*/probe-*/receipt.json" in workflow
     assert "launches-*/shell-*/receipt.json" in workflow
     assert workflow.count("application.*.txt") == 2
@@ -148,7 +126,7 @@ def test_packaging_specs_are_explicitly_tracked_despite_global_ignore():
     ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
 
     assert "!packaging/macos/ChemSmart.pyinstaller.spec" in ignore
-    assert "!packaging/macos/pysidedeploy.spec" in ignore
+    assert "!packaging/macos/pysidedeploy.spec" not in ignore
 
 
 def test_desktop_runtime_lock_is_exact_and_contains_keychain_boundary():
@@ -172,6 +150,9 @@ def test_desktop_runtime_lock_is_exact_and_contains_keychain_boundary():
     assert "pip==25.3" in lines
     assert "setuptools==74.1.1" in lines
     assert "wheel==0.46.3" in lines
+    assert "Nuitka==2.7.11" not in lines
+    assert "ordered-set==4.1.0" not in lines
+    assert "zstandard==0.23.0" not in lines
     assert len(lines) == len({line.split("==", 1)[0].lower() for line in lines})
 
 

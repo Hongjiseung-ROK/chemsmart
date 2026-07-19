@@ -15,8 +15,8 @@ _SOURCE_DISPATCH = (
 
 
 def is_frozen_runtime() -> bool:
-    """Recognize both PyInstaller and Nuitka frozen/compiled runtimes."""
-    return bool(getattr(sys, "frozen", False)) or "__compiled__" in globals()
+    """Recognize the selected PyInstaller frozen runtime."""
+    return bool(getattr(sys, "frozen", False))
 
 
 def internal_cli_command(args: list[str]) -> list[str]:
