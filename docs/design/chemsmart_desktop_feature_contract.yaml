@@ -2,11 +2,11 @@ schema_version: 1
 as_of: "2026-07-19"
 baseline:
   branch: agent-codebase-simplification
-  commit: 5067903d
-  phase_commit: dcf600db
+  commit: 83eb1707
+  phase_commit: 83eb1707
   upstream_ahead_before_phase_commit: 5
   upstream_behind: 6
-  gui_state: p5_database_analysis_complete
+  gui_state: p6_product_accessibility_complete
 
 policies:
   - id: PRESERVE-CLI
@@ -42,7 +42,7 @@ p2_foundations:
     - job_builder_safe_preview_stays_disabled_until_p3_artifact_parity
     - live_agent_session_wiring_belongs_to_p4
     - workspace_choice_is_current_session_only_until_draft_persistence
-    - optional_pymol_path_configuration_belongs_to_p5_p6
+    - optional_pymol_path_configuration_completed_in_p6
     - real_compute_and_hpc_are_unavailable
   gates:
     - key_reference_only_yaml_and_explicit_legacy_migration
@@ -166,7 +166,7 @@ p5_database_analysis:
     - json_export_discloses_provenance_source_path_privacy
     - database_page_batch_and_structure_limits_are_bounded
     - background_results_use_cancellation_retry_and_stale_result_suppression
-    - optional_pymol_remains_disabled_until_p6_worker_boundary
+    - optional_pymol_uses_the_separate_p6_worker_and_process_boundary
     - wbi_surface_claims_only_the_nbo_npa_and_nao_data_actually_parsed
   gates:
     - fixed_database_records_molecules_and_structures_parity
@@ -186,6 +186,44 @@ p5_database_analysis:
     - gaussian_wbi_nbo_population_and_nao_parity
     - malformed_missing_repeated_cancelled_and_minimum_window_stress
     - complete_agent_and_gui_regression_suites_green
+
+p6_product_accessibility:
+  sources:
+    - chemsmart/gui/app.py
+    - chemsmart/gui/theme.py
+    - chemsmart/gui/screens/job_builder.py
+    - chemsmart/gui/screens/database.py
+    - chemsmart/gui/screens/analysis.py
+    - chemsmart/gui/screens/settings.py
+    - chemsmart/gui/widgets/structure_viewer.py
+    - chemsmart/gui/services/pymol_render_service.py
+    - tests/gui/test_accessibility.py
+    - tests/gui/test_pymol_render_service.py
+  current_capability: reviewer-green responsive product shell with complete keyboard semantics, large-text scientific controls, Help, and optional cancellable verified PyMOL rendering
+  safety_boundary:
+    - interactive_offline_3dmol_remains_the_default
+    - pymol_is_optional_and_never_required_for_scientific_workflows
+    - exact_validated_executable_only_without_a_shell
+    - allowlisted_child_environment_excludes_provider_credentials
+    - isolated_temporary_job_and_owned_cancellable_process_group
+    - bounded_regular_non_symlink_png_signature_qt_decode_and_sha256
+    - stale_image_cleared_before_new_render_and_after_every_failure
+    - active_renderer_reconfiguration_cancels_and_requires_user_retry
+    - real_compute_hpc_and_remote_agent_tools_remain_unavailable
+  gates:
+    - all_nine_surfaces_have_accessible_names_or_label_buddies
+    - forward_and_reverse_keyboard_traversal_on_every_screen_and_tab
+    - dynamic_job_builder_schema_order_precedes_preview_and_output
+    - primary_action_pixel_focus_indicator_visible
+    - 720x520_1040x680_1440x900_light_dark_increased_contrast_matrix
+    - 18pt_minimum_window_scientific_controls_have_zero_horizontal_overflow
+    - settings_workspace_and_pymol_actions_fit_large_text_and_long_status
+    - explicit_pymol_path_persists_and_stale_preference_falls_back_safely
+    - pymol_no_shell_secret_exclusion_process_group_cancel_and_timeout
+    - pymol_invalid_oversized_symlink_or_undecodable_output_rejected
+    - help_empty_loading_error_cancel_retry_and_verified_receipt_states
+    - independent_review_critical_high_medium_all_zero
+    - complete_agent_gui_and_domain_regressions_green
 
 surfaces:
   - id: configuration

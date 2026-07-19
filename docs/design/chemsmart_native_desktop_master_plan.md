@@ -1,6 +1,6 @@
 # ChemSmart Native Desktop Master Plan
 
-Status: P5 complete in `dcf600db`; P6 and P7 pending, 2026-07-19
+Status: P6 complete in `83eb1707`; P7 pending, 2026-07-19
 Owner: ChemSmart maintainers
 Primary target: Zhang Lab internal macOS desktop app
 Framework: Python 3.10/3.11 + PySide6/Qt 6
@@ -58,14 +58,14 @@ reset, or branch switching as a preparation step.
 | Packaging spike | P1 complete; PyInstaller selected and freshly reconfirmed | Authorized run `29668168830` reconfirmed all 18 PyInstaller gates. pyside6-deploy compiled but its strict normalizer rejected the expected 19-byte `Contents/MacOS/qt6.conf`; it remains a non-blocking experimental fallback. |
 | PySide6 extra and GUI entry point | P0 committed | Source entry and package data are stable; P1 adds a hidden packaging probe and absolute-path frozen CLI dispatch. |
 | Provider config and secrets | P2 reviewer-green | Provider literals remain backward-readable; new credentials use unique staged Keychain references, atomically commit YAML, then retire the old reference. Secret-bearing tasks disable retry retention. Tests use in-memory stores and never touch the real Keychain. |
-| App shell/theme | P5 functional surfaces validated | Native menus, Settings, system palette/font roles, adaptive three-region layout, status, accessible labels, and bounded runtime evidence projection are present. Database and Analysis now use live structured adapters and retain visible results at the 720 x 520 minimum window. Full visual/accessibility acceptance remains P6. |
+| App shell/theme | P6 reviewer GREEN | Native menus, scroll-safe Settings, system palette/font roles, adaptive three-region layout, status, complete accessible labeling, explicit dynamic focus order, Help, and bounded runtime evidence projection are present. The 81-screen size/appearance matrix and 18 pt minimum-window scientific controls are accepted with Critical 0, High 0, Medium 0. |
 | Job builder | P4 handoff complete | All 29 Gaussian/ORCA/xTB leaves retain P3 parity and safety. A draft can enter Chat only after an accepted safe-preview receipt; any edit revokes that handoff. A gated agent draft loads as typed state with receipt provenance and requires a new isolated preview before it can be sent onward. |
 | Chat | P4 complete | The native screen runs the canonical unified `run_loop()`, streams bounded durable decision projections, exposes distinct intent/semantic gates, honest indeterminate progress and cooperative cancellation, provider setup/error recovery, recent-session resume, retry, and two-way typed Job Builder handoff. Exact `chemsmart run` input has a deterministic no-provider path. |
 | Agent worker | P4 complete | A read-only desktop registry excludes repair, execution, submission, and project-writing tools while preserving CLI/TUI repair behavior. The adapter reuses canonical session/decision/runtime stores, an explicit `PermissionPolicy`, typed receipts, and strict `ok` + `ready` + two-gate + live-parser handoff acceptance; it does not introduce a second agent event store. |
-| 3D viewer | P1 frozen probe green | Integrity-checked 3Dmol.js 2.5.5 renders offline in the selected PyInstaller QtWebEngine bundle; PyMOL execution is not wired. |
+| 3D viewer | P6 optional renderer complete | Integrity-checked 3Dmol.js 2.5.5 remains the offline default and renders in the selected PyInstaller QtWebEngine bundle. Optional PyMOL uses an explicit/PATH executable, cancellable no-shell process group, bounded verified PNG, persisted Finder-safe setting, and honest absent/error/retry states. Real PyMOL on a named machine remains P7. |
 | Database/analysis | P5 automated gates green | Database browse/query/detail and shared 3D preview are live. Explicit create-new assembly and JSON/CSV/XYZ/extXYZ export use shared domain rules, bounded input, private staging, integrity/readback/hash gates, an irreversible cancellation commit point, and atomic no-overwrite publication. Grouper, Thermochemistry, DIAS, and WBI/NBO population analysis run through typed domain adapters with bounded inputs and no implicit output writes. Strategy-specific units/defaults and optional-dependency availability are explicit; DIAS reference identity and NPA/NAO fail-closed behavior are regression-tested. |
 | Runtime environment | Split | Base Python can render PySide6; the `chemsmart` conda environment lacks PySide6. The current `chemsmart` executable on `PATH` resolves to another Codex worktree. |
-| Validation | P5 automated gates green | The complete Agent suite passes 1,110 tests and the complete GUI suite passes 308 tests with one explicit Open Babel skip. Database passes 52 domain tests plus one real desktop Gaussian+ORCA round trip in the Open-Babel-capable environment; Grouper/Thermochemistry pass 108 tests with seven explicit optional/external skips; the complete ORCA parser suite passes 63 tests. Fixed Database build/browse/export, DIAS, WBI, Thermochemistry, and Grouper results match their structured domain APIs. Exact P5 evidence is retained in `docs/design/phase_receipts/p5_database_analysis.md`. |
+| Validation | P6 automated and independent gates green | The final complete GUI suite passes 358 tests with one explicit optional-dependency skip; Agent passes 1,110 tests; Grouper/Thermochemistry/Analysis service passes 143 tests with seven explicit optional/external skips. The final independent review reports Critical 0, High 0, Medium 0 after measuring large-text geometry and real forward/reverse focus order. Exact evidence is retained in `docs/design/phase_receipts/p6_product_accessibility.md`. |
 
 The native Job builder, Chat, Database, and Analysis are runnable source-checkout
 product slices. A Finder-launched distributable remains a P7 completion gate.
@@ -659,27 +659,32 @@ Exit:
 
 ## 9. Immediate next implementation slice
 
-Do these in order:
+P6 is frozen at `83eb1707`. Do these P7 tasks in order:
 
-1. Freeze the committed P5 receipt and rerun the `apple-design` review on every
-   rendered screen at 720 x 520, 1040 x 680, and 1440 x 900 in light, dark, and
-   increased-contrast appearances.
-2. Repair keyboard traversal, label buddies, screen-reader descriptions,
-   empty/loading/error writing, and narrow-window control density without
-   changing scientific defaults or receipt semantics.
-3. Add optional PyMOL only behind an explicit availability probe, a separately
-   cancellable worker/process boundary, and graceful absent-path evidence. Keep
-   the vendored 3Dmol viewer as the reliable default.
-4. Run full Agent/GUI/domain regressions and an independent P6 review; retain
-   Critical/High findings as blockers and commit the phase only when green.
-5. In P7, integrate the selected PyInstaller build into the current product
-   commit. Treat the exact `qt6.conf` pyside normalizer amendment as one bounded
-   fallback experiment, not a release dependency, and require new authorization
-   before another remote workflow run.
+1. Finish the authorized dual-candidate macOS packaging experiment and compare
+   PyInstaller with pyside6-deploy from downloaded bundles and machine-readable
+   receipts. Keep PyInstaller selected unless the complete fallback verifier is
+   materially better; a compiler finishing is not sufficient evidence.
+2. Build the current P6 product tree with the selected reproducible runtime and
+   require all packaging contracts, three fresh process launches, real bundled
+   3Dmol, Gaussian/ORCA fake CLI probes, Finder launch, clean preferences, and
+   restart recovery to pass.
+3. Produce a checksum, dependency/SBOM receipt, architecture and minimum-macOS
+   receipt, nested-to-outer signature audit, DMG, installation/removal guide,
+   optional PyMOL setup guide, and explicit unsigned/internal-alpha labeling.
+4. Stress long/unicode paths, missing optional dependencies, cancellation,
+   retry, stale preferences, read-only workspace, database build/export, and
+   multi-launch behavior on named Zhang Lab machines. Real calculations and HPC
+   submission remain outside the desktop boundary.
+5. Ask an independent release reviewer to audit every P7 receipt and use Codex
+   Computer Use for end-to-end supported researcher workflows. Commit each green
+   release slice; retain Developer ID/notarization as a distinct gate until the
+   required external credentials and Apple service are available.
 
 Do not expand the desktop-safe agent registry with execution, submission,
-remote diagnostics, or project-writing tools during P6. Do not claim Finder,
-Developer ID, notarization, or clean-machine acceptance before P7 evidence.
+remote diagnostics, or project-writing tools during P7. Do not claim Finder,
+Developer ID, notarization, clean-machine, or real-PyMOL acceptance before their
+named P7 evidence is green.
 
 ## 10. Claude/Codex collaboration contract
 
