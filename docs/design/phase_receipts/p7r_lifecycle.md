@@ -1,8 +1,10 @@
 # P7R residual lifecycle closure receipt
 
 Date: 2026-07-19
-Status: source closure green; exact-source frozen PyInstaller gate pending
+Status: complete — source and exact-source frozen PyInstaller gates green
 Packaging path: PyInstaller only
+Phase commit: `537af747c00772c38af37ce22906b48eaa62f4e0`
+Frozen run: `29688097421`
 
 ## Scope
 
@@ -10,8 +12,8 @@ This slice closes the source-side macOS Quit and QtWebEngine ownership defect
 without changing the CLI, Textual TUI, scientific job semantics, agent safety
 boundary, or optional PyMOL execution contract.
 
-The accepted prior internal-alpha artifact remains historical evidence. It does
-not contain this source change and therefore cannot satisfy the frozen P7R gate.
+The accepted prior internal-alpha artifact remains historical evidence. P7R is
+closed by the new exact-source artifact described below.
 
 ## Implemented lifecycle contract
 
@@ -58,18 +60,55 @@ mismatch, and an existing cross-test working-directory leak. The exact isolated
 packaging source gate above is green and does not require changing those
 unrelated environment/test issues in this lifecycle slice.
 
-## Frozen gate still required
+## Frozen PyInstaller evidence
 
-P7R is not complete until a PyInstaller macOS 14 arm64 artifact built from the
-phase commit passes the updated verifier. Required evidence includes:
+Authorized manual workflow run
+[`29688097421`](https://github.com/Hongjiseung-ROK/chemsmart/actions/runs/29688097421)
+built exact source and workflow SHA `537af747c00772c38af37ce22906b48eaa62f4e0`
+on macOS 14.8.7 arm64 with Python 3.11.9. The job completed green in
+12 minutes 36 seconds.
 
-- the lifecycle receipt names a real renderer PID and records normal Quit and
-  event-loop return;
-- the reported renderer is absent before cleanup and after cleanup;
-- every probe, shell, and lifecycle launch leaves zero exact-bundle processes;
-- the final process baseline is empty;
-- all updated mandatory flags, signature, archive round-trip, inventory,
-  runtime-lock, SBOM, and internal-alpha release gates pass.
+- Remote source preservation: 517 passed, one optional skip.
+- All 21 updated mandatory bundle flags: true.
+- Three isolated probes: 7.559, 8.287, and 8.618 seconds; each returned zero,
+  did not time out, and left no process before or after cleanup.
+- Product shell: 4.799 seconds, zero return, no timeout, no residue.
+- Lifecycle launch: 4.212 seconds; WebEngine loaded, renderer PID `41439`
+  started, the standard Quit action was requested, the event loop returned,
+  and the renderer was absent both immediately after return and after cleanup.
+- Initial and final exact-bundle process sets: empty.
+- App: 811,947,039 bytes, arm64, bundle ID `org.zhanglab.chemsmart`, declared
+  minimum macOS 14.0, binary minimum macOS 11.0.
+- App inventory: 10,633 files, 2,098 directories, 1,959 relative symlinks,
+  zero broken/absolute/escaping symlinks; inventory SHA-256
+  `d28fe2f31721704b4481703b9dcdd3034238fb0773f729f35a020bfa72b8afd1`.
+- Inner bundle archive: integrity test green; SHA-256
+  `2c8a3d109930c62ae4990651d10ddcd85ad8e4a1d9d1aa320567368f061d4b85`.
+- Internal-alpha DMG: 338,305,547 bytes; SHA-256
+  `93495887fd199a203c8eeddad87d8d336a8cd615569f3624a6a2b9f68b89f5b4`.
+- SBOM: 111 shipped components; SHA-256
+  `7e6c0609a048afc85230d500a0b4cdfa14cd6bf12b1f67c334ac656e1e8b63eb`.
+- Runtime lock: 134 expected distributions, 135 installed including only the
+  allowed unlocked local `chemsmart`, with no missing, mismatched, or unexpected
+  distribution.
+
+Downloaded artifact IDs and GitHub artifact digests:
+
+- evidence `8442823957` —
+  `sha256:93c05a6d01dadf5b4f1f44994a0b6b4b42c64a7b3ec04459edab4bc77e9fbf04`;
+- verified bundle `8442824465` —
+  `sha256:06ea7b4928cfe10d4a0331a6e8c1c8e56ae55907423003756b13b3f87650831d`;
+- internal alpha `8442825015` —
+  `sha256:098d82011efaaea73aef9c2a725738afaca9a13b9892f2c6441339726f191830`.
+
+Independent local artifact checks also passed: every distributed checksum,
+bundle ZIP decompression, `hdiutil verify`, read-only DMG mount, strict/deep
+ad-hoc signature validation, arm64 executable identity, bundle identifier,
+Applications link, README presence, and clean detach.
+
+This remains an ad-hoc signed internal alpha. Gatekeeper rejection is expected;
+Developer ID, hardened runtime, notarization, stapling, and named clean-lab-Mac
+product acceptance remain separate P7/P8.7 gates rather than P7R claims.
 
 No provider request, secret access, real calculation, scheduler action, HPC
 submission, package installation, or non-PyInstaller packaging path was used.
