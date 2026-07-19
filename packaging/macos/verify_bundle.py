@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import hashlib
 import json
 import os
 import plistlib
+import re
 import signal
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -29,6 +32,17 @@ SHELL_NAVIGATION_KEYS = (
     "analysis",
     "settings",
 )
+
+
+class BundleProcessResidueError(RuntimeError):
+    """A launch leaked an owned process, even if bounded cleanup succeeded."""
+
+    def __init__(self, launch: dict[str, Any]) -> None:
+        self.launch = launch
+        super().__init__(
+            f"{launch.get('mode', 'unknown')} launch left app-owned processes: "
+            f"{launch.get('processes_after_exit', [])}"
+        )
 
 
 def _tree_size(root: Path) -> int:
@@ -70,21 +84,116 @@ def _run(
     }
 
 
-def _matching_pids(app: Path) -> list[int]:
-    pattern = str(app / "Contents")
-    matches = subprocess.run(
-        ["/usr/bin/pgrep", "-f", pattern],
+def _pid_executable(pid: int) -> Path | None:
+    """Resolve a PID's executable without trusting its argument string."""
+    if pid <= 0:
+        return None
+    if sys.platform == "darwin":
+        libproc = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+        proc_pidpath = libproc.proc_pidpath
+        proc_pidpath.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
+        proc_pidpath.restype = ctypes.c_int
+        buffer = ctypes.create_string_buffer(4096)
+        length = proc_pidpath(pid, buffer, len(buffer))
+        if length <= 0:
+            return None
+        return Path(os.fsdecode(buffer.value)).resolve()
+
+    inspected = subprocess.run(
+        ["/bin/ps", "-p", str(pid), "-o", "comm="],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         check=False,
     )
-    return [int(raw_pid) for raw_pid in matches.stdout.split() if raw_pid.isdigit()]
+    if inspected.returncode != 0 or not inspected.stdout.strip():
+        return None
+    return Path(inspected.stdout.strip()).resolve()
 
 
-def _matching_rss_kib(app: Path) -> int:
+def _pid_exists(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _positive_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _pid_owned_by_app(pid: int, app: Path) -> bool:
+    executable = _pid_executable(pid)
+    if executable is None:
+        return False
+    try:
+        executable.relative_to((app / "Contents").resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def _candidate_pids(app: Path) -> list[int]:
+    """Return argv candidates while distinguishing no-match from tool error."""
+    pattern = re.escape(str((app / "Contents").resolve()))
+    matches = subprocess.run(
+        ["/usr/bin/pgrep", "-f", pattern],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if matches.returncode == 1:
+        return []
+    if matches.returncode != 0:
+        detail = matches.stderr.strip() or "no diagnostic"
+        raise RuntimeError(
+            f"pgrep failed while inspecting the app process tree: {detail}"
+        )
+    return [
+        int(raw_pid) for raw_pid in matches.stdout.split() if raw_pid.isdigit()
+    ]
+
+
+def _matching_pids(
+    app: Path,
+    *,
+    exclude: set[int] | frozenset[int] = frozenset(),
+) -> list[int]:
+    """Return only non-baseline PIDs whose executable belongs to the app."""
+    owned: list[int] = []
+    for pid in _candidate_pids(app):
+        if pid in exclude:
+            continue
+        executable = _pid_executable(pid)
+        if executable is None:
+            if _pid_exists(pid):
+                raise RuntimeError(
+                    f"Cannot verify executable ownership for live PID {pid}."
+                )
+            continue
+        try:
+            executable.relative_to((app / "Contents").resolve())
+        except ValueError:
+            continue
+        owned.append(pid)
+    return sorted(owned)
+
+
+def _rss_kib_for_pids(pids: list[int]) -> int:
     total = 0
-    for pid in _matching_pids(app):
+    for pid in pids:
         usage = subprocess.run(
             ["/bin/ps", "-o", "rss=", "-p", str(pid)],
             text=True,
@@ -99,25 +208,87 @@ def _matching_rss_kib(app: Path) -> int:
     return total
 
 
-def _terminate_matching_app_processes(app: Path) -> None:
-    """Clean up only processes whose command resolves inside this app bundle."""
-    for pid in _matching_pids(app):
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except ProcessLookupError:
-            continue
-    time.sleep(0.5)
-    for pid in _matching_pids(app):
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            continue
+def _matching_rss_kib(
+    app: Path,
+    *,
+    exclude: set[int] | frozenset[int] = frozenset(),
+) -> int:
+    return _rss_kib_for_pids(_matching_pids(app, exclude=exclude))
+
+
+def _wait_for_no_matching_pids(
+    app: Path,
+    *,
+    exclude: set[int] | frozenset[int] = frozenset(),
+    timeout: float = 5.0,
+) -> list[int]:
+    """Return any exact-bundle processes that survive the grace period."""
+    deadline = time.monotonic() + timeout
+    remaining = _matching_pids(app, exclude=exclude)
+    while remaining and time.monotonic() < deadline:
+        time.sleep(0.1)
+        remaining = _matching_pids(app, exclude=exclude)
+    return remaining
+
+
+def _terminate_matching_app_processes(
+    app: Path,
+    *,
+    exclude: set[int] | frozenset[int] = frozenset(),
+) -> None:
+    """Clean up only new processes whose executable remains inside the app."""
+    _terminate_owned_pids(
+        app,
+        set(_matching_pids(app, exclude=exclude)),
+        exclude=frozenset(exclude),
+    )
+
+
+def _process_table_pids() -> list[int]:
+    inspected = subprocess.run(
+        ["/bin/ps", "-axo", "pid="],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if inspected.returncode != 0:
+        detail = inspected.stderr.strip() or "no diagnostic"
+        raise RuntimeError(f"ps failed while listing processes: {detail}")
+    return [
+        int(raw_pid)
+        for raw_pid in inspected.stdout.split()
+        if raw_pid.isdigit()
+    ]
+
+
+def _terminate_owned_pids(
+    app: Path,
+    pids: set[int],
+    *,
+    exclude: frozenset[int],
+) -> None:
+    """Best-effort cleanup for a known/process-table PID set."""
+    targets = sorted(
+        pid for pid in pids if pid not in exclude and _pid_owned_by_app(pid, app)
+    )
+    for sent_signal in (signal.SIGTERM, signal.SIGKILL):
+        for pid in targets:
+            if not _pid_owned_by_app(pid, app):
+                continue
+            try:
+                os.kill(pid, sent_signal)
+            except ProcessLookupError:
+                continue
+        if sent_signal == signal.SIGTERM:
+            time.sleep(0.5)
 
 
 def _launch_and_measure(
     command: list[str],
     *,
     app: Path,
+    baseline_pids: frozenset[int],
     timeout: int,
 ) -> tuple[dict[str, Any], int]:
     process = subprocess.Popen(
@@ -129,14 +300,44 @@ def _launch_and_measure(
     started = time.monotonic()
     peak_rss_kib = 0
     timed_out = False
-    while process.poll() is None:
-        peak_rss_kib = max(peak_rss_kib, _matching_rss_kib(app))
-        if time.monotonic() - started > timeout:
-            timed_out = True
+    tracked_pids: set[int] = set()
+    try:
+        while process.poll() is None:
+            owned_pids = _matching_pids(app, exclude=baseline_pids)
+            tracked_pids.update(owned_pids)
+            peak_rss_kib = max(
+                peak_rss_kib,
+                _rss_kib_for_pids(owned_pids),
+            )
+            if time.monotonic() - started > timeout:
+                timed_out = True
+                process.kill()
+                _terminate_matching_app_processes(
+                    app,
+                    exclude=baseline_pids,
+                )
+                break
+            time.sleep(0.1)
+    except BaseException:
+        # Inspection failures are release failures, but must not turn into a
+        # process leak.  Kill the direct launcher, then recover exact app-owned
+        # PIDs from both observations and the independent process table.
+        if process.poll() is None:
             process.kill()
-            _terminate_matching_app_processes(app)
-            break
-        time.sleep(0.1)
+        try:
+            tracked_pids.update(_process_table_pids())
+        except Exception:
+            pass
+        try:
+            _terminate_owned_pids(
+                app,
+                tracked_pids,
+                exclude=baseline_pids,
+            )
+        except Exception:
+            pass
+        process.communicate()
+        raise
     output, _ = process.communicate()
     return (
         {
@@ -281,6 +482,7 @@ def _launch_once(
     index: int,
     *,
     mode: str,
+    baseline_pids: frozenset[int] = frozenset(),
 ) -> dict[str, Any]:
     if not root.is_absolute():
         raise ValueError("Launch evidence root must be absolute.")
@@ -294,16 +496,19 @@ def _launch_once(
     for path in (home, workspace, temp_root):
         path.mkdir(parents=True, exist_ok=True)
 
-    probe_args = (
-        [
+    if mode == "probe":
+        probe_args = [
             "--packaging-probe-receipt",
             str(receipt),
             "--packaging-probe-workspace",
             str(workspace),
         ]
-        if mode == "probe"
-        else ["--packaging-shell-smoke-receipt", str(receipt)]
-    )
+    elif mode == "shell":
+        probe_args = ["--packaging-shell-smoke-receipt", str(receipt)]
+    elif mode == "lifecycle":
+        probe_args = ["--packaging-lifecycle-smoke-receipt", str(receipt)]
+    else:
+        raise ValueError(f"Unknown launch mode: {mode}")
     command = [
         "/usr/bin/env",
         "-i",
@@ -331,7 +536,25 @@ def _launch_once(
     launch, peak_rss_kib = _launch_and_measure(
         command,
         app=app,
-        timeout=240,
+        baseline_pids=baseline_pids,
+        timeout=90 if mode == "lifecycle" else 240,
+    )
+    remaining_pids = _wait_for_no_matching_pids(
+        app,
+        exclude=baseline_pids,
+    )
+    # Preserve the first residue observation as failure evidence, then clean
+    # only those exact app-owned PIDs so a red launch cannot contaminate the
+    # next verifier launch or the host machine.
+    if remaining_pids:
+        _terminate_owned_pids(
+            app,
+            set(remaining_pids),
+            exclude=baseline_pids,
+        )
+    processes_after_cleanup = _wait_for_no_matching_pids(
+        app,
+        exclude=baseline_pids,
     )
     elapsed = round(time.monotonic() - started, 3)
     payload = (
@@ -339,11 +562,26 @@ def _launch_once(
         if receipt.is_file()
         else None
     )
+    renderer_pid = _positive_int(
+        ((payload or {}).get("lifecycle") or {}).get("renderer_pid")
+    )
     return {
         "mode": mode,
         "elapsed_seconds": elapsed,
         "peak_rss_kib": peak_rss_kib,
         "open": launch,
+        "baseline_pids": sorted(baseline_pids),
+        "processes_after_exit": remaining_pids,
+        "processes_after_cleanup": processes_after_cleanup,
+        "reported_renderer": {
+            "pid": renderer_pid,
+            "present_after_exit": bool(
+                renderer_pid is not None and renderer_pid in remaining_pids
+            ),
+            "alive_after_cleanup": (
+                _pid_exists(renderer_pid) if renderer_pid is not None else None
+            ),
+        },
         "application_output": {
             "stdout": _read_text_tail(stdout_path),
             "stderr": _read_text_tail(stderr_path),
@@ -357,6 +595,56 @@ def _launch_once(
             "path": MINIMAL_PATH,
         },
     }
+
+
+def _run_clean_launch_sequence(
+    app: Path,
+    evidence_root: Path,
+    *,
+    launches: int,
+    baseline_pids: frozenset[int],
+) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    """Run verifier launches, stopping before cross-launch contamination."""
+
+    def accepted(result: dict[str, Any]) -> dict[str, Any]:
+        if result.get("processes_after_exit") or result.get(
+            "processes_after_cleanup"
+        ):
+            raise BundleProcessResidueError(result)
+        return result
+
+    probe_results = []
+    for index in range(launches):
+        probe_results.append(
+            accepted(
+                _launch_once(
+                    app,
+                    evidence_root,
+                    index,
+                    mode="probe",
+                    baseline_pids=baseline_pids,
+                )
+            )
+        )
+    shell_result = accepted(
+        _launch_once(
+            app,
+            evidence_root,
+            0,
+            mode="shell",
+            baseline_pids=baseline_pids,
+        )
+    )
+    lifecycle_result = accepted(
+        _launch_once(
+            app,
+            evidence_root,
+            0,
+            mode="lifecycle",
+            baseline_pids=baseline_pids,
+        )
+    )
+    return probe_results, shell_result, lifecycle_result
 
 
 def _path_equals(raw: Any, expected: str | Path) -> bool:
@@ -432,6 +720,12 @@ def _probe_contract(
             .get("screenshot", {})
             .get("nonblank")
         ),
+        "owned_processes_terminated": not launch.get(
+            "processes_after_exit", ["missing"]
+        ),
+        "residue_cleanup_complete": not launch.get(
+            "processes_after_cleanup", ["missing"]
+        ),
     }
 
 
@@ -456,6 +750,53 @@ def _shell_contract(
         "nonblank_screenshot": bool(
             shell.get("screenshot_saved")
             and (shell.get("screenshot") or {}).get("nonblank")
+        ),
+        "owned_processes_terminated": not launch.get(
+            "processes_after_exit", ["missing"]
+        ),
+        "residue_cleanup_complete": not launch.get(
+            "processes_after_cleanup", ["missing"]
+        ),
+    }
+
+
+def _lifecycle_contract(
+    launch: dict[str, Any],
+    *,
+    app: Path,
+) -> dict[str, bool]:
+    receipt = launch.get("receipt") or {}
+    lifecycle = receipt.get("lifecycle") or {}
+    opened = launch.get("open") or {}
+    renderer_pid = _positive_int(lifecycle.get("renderer_pid"))
+    reported_renderer = launch.get("reported_renderer") or {}
+    return {
+        **_runtime_contract(launch, app=app),
+        "webengine_loaded": lifecycle.get("webengine_loaded") is True,
+        "renderer_started": bool(
+            lifecycle.get("renderer_started") and renderer_pid is not None
+        ),
+        "quit_action_requested": lifecycle.get("quit_action_requested") is True,
+        "event_loop_exited": lifecycle.get("event_loop_exited") is True,
+        "renderer_exit_check_delegated": lifecycle.get(
+            "renderer_exit_check_owner"
+        )
+        == "external_bundle_process_monitor",
+        "reported_renderer_terminated": bool(
+            renderer_pid is not None
+            and reported_renderer.get("pid") == renderer_pid
+            and reported_renderer.get("present_after_exit") is False
+            and reported_renderer.get("alive_after_cleanup") is False
+        ),
+        "launch_returned": bool(
+            opened.get("returncode") == 0
+            and opened.get("timed_out") is False
+        ),
+        "owned_processes_terminated": not launch.get(
+            "processes_after_exit", ["missing"]
+        ),
+        "residue_cleanup_complete": not launch.get(
+            "processes_after_cleanup", ["missing"]
         ),
     }
 
@@ -554,6 +895,16 @@ def _archive_roundtrip(
     }
 
 
+def _require_clean_process_baseline(app: Path) -> frozenset[int]:
+    baseline = frozenset(_matching_pids(app))
+    if baseline:
+        raise RuntimeError(
+            "The app bundle is already running; close these exact-bundle "
+            f"processes before verification: {sorted(baseline)}"
+        )
+    return baseline
+
+
 def verify_bundle(
     app: Path,
     *,
@@ -569,6 +920,7 @@ def verify_bundle(
     macos_dir = app / "Contents" / "MacOS"
     if not plist_path.is_file() or not macos_dir.is_dir():
         raise RuntimeError("Incomplete macOS application bundle.")
+    initial_process_baseline = _require_clean_process_baseline(app)
     plist = plistlib.loads(plist_path.read_bytes())
     executable_name = plist.get("CFBundleExecutable")
     main_executable = macos_dir / str(executable_name or "")
@@ -659,17 +1011,23 @@ def verify_bundle(
 
     evidence_root.mkdir(parents=True, exist_ok=False)
     inventory_before = _bundle_inventory(app)
-    launch_results = [
-        _launch_once(app, evidence_root, index, mode="probe")
-        for index in range(launches)
-    ]
-    shell_result = _launch_once(app, evidence_root, 0, mode="shell")
+    launch_results, shell_result, lifecycle_result = _run_clean_launch_sequence(
+        app,
+        evidence_root,
+        launches=launches,
+        baseline_pids=initial_process_baseline,
+    )
+    final_processes = _matching_pids(
+        app,
+        exclude=initial_process_baseline,
+    )
     inventory_after = _bundle_inventory(app)
 
     probe_contracts = [
         _probe_contract(launch, app=app) for launch in launch_results
     ]
     shell_contract = _shell_contract(shell_result, app=app)
+    lifecycle_contract = _lifecycle_contract(lifecycle_result, app=app)
     codesign = _run(
         [
             "/usr/bin/codesign",
@@ -713,6 +1071,7 @@ def verify_bundle(
         and launch["receipt"].get("status") == "passed"
         and launch["open"]["returncode"] == 0
         and not launch["open"]["timed_out"]
+        and not launch["processes_after_exit"]
         for launch in launch_results
     )
     shell_smoke_passed = bool(
@@ -720,6 +1079,14 @@ def verify_bundle(
         and shell_result["receipt"].get("status") == "passed"
         and shell_result["open"]["returncode"] == 0
         and not shell_result["open"]["timed_out"]
+        and not shell_result["processes_after_exit"]
+    )
+    lifecycle_smoke_passed = bool(
+        lifecycle_result["receipt"]
+        and lifecycle_result["receipt"].get("status") == "passed"
+        and lifecycle_result["open"]["returncode"] == 0
+        and not lifecycle_result["open"]["timed_out"]
+        and not lifecycle_result["processes_after_exit"]
     )
     mandatory = {
         "launches_passed": required_launches_passed,
@@ -728,6 +1095,9 @@ def verify_bundle(
         ),
         "shell_smoke_passed": shell_smoke_passed,
         "shell_contract_passed": all(shell_contract.values()),
+        "lifecycle_smoke_passed": lifecycle_smoke_passed,
+        "lifecycle_contract_passed": all(lifecycle_contract.values()),
+        "process_baseline_restored": not final_processes,
         "codesign_valid": codesign["returncode"] == 0,
         "qtwebengine_helper_present": bool(helpers),
         "qtwebengine_helpers_signed": bool(helper_signature_reports)
@@ -788,9 +1158,13 @@ def verify_bundle(
             "inventory_after": inventory_after,
         },
         "launches": launch_results,
+        "initial_process_baseline": sorted(initial_process_baseline),
+        "final_processes": final_processes,
         "launch_contracts": probe_contracts,
         "shell_launch": shell_result,
         "shell_contract": shell_contract,
+        "lifecycle_launch": lifecycle_result,
+        "lifecycle_contract": lifecycle_contract,
         "codesign": codesign,
         "signature": signature,
         "qtwebengine_required_entitlements": required_entitlements,
@@ -815,18 +1189,27 @@ def main() -> int:
 
     output = args.output.resolve()
     evidence_root = _fresh_evidence_root(output)
-    report = verify_bundle(
-        args.app.resolve(),
-        launches=args.launches,
-        evidence_root=evidence_root,
-        archive=args.archive.resolve(),
-        forbidden_paths=tuple(args.forbidden_path),
-    )
+    try:
+        report = verify_bundle(
+            args.app.resolve(),
+            launches=args.launches,
+            evidence_root=evidence_root,
+            archive=args.archive.resolve(),
+            forbidden_paths=tuple(args.forbidden_path),
+        )
+    except BundleProcessResidueError as exc:
+        report = {
+            "status": "failed",
+            "failure": str(exc),
+            "failed_launch": exc.launch,
+        }
     output.write_text(
         json.dumps(report, indent=2, sort_keys=True),
         encoding="utf-8",
     )
-    print(json.dumps({"status": report["status"], **report["mandatory"]}))
+    summary = {"status": report["status"]}
+    summary.update(report.get("mandatory", {}))
+    print(json.dumps(summary))
     return 0 if report["status"] == "passed" else 1
 
 

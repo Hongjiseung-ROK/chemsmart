@@ -20,6 +20,7 @@ from typing import Callable
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QGuiApplication, QKeySequence
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QHBoxLayout,
     QLabel,
@@ -334,6 +335,11 @@ class MainWindow(QMainWindow):
         close_window.setShortcut(QKeySequence.StandardKey.Close)
         close_window.triggered.connect(self.close)
         file_menu.addAction(close_window)
+        quit_application = QAction("Quit ChemSmart", self)
+        quit_application.setShortcut(QKeySequence.StandardKey.Quit)
+        quit_application.setMenuRole(QAction.MenuRole.QuitRole)
+        quit_application.triggered.connect(QApplication.closeAllWindows)
+        file_menu.addAction(quit_application)
 
         edit_menu = self.menuBar().addMenu("&Edit")
         for label, standard_key, method in (
@@ -399,6 +405,7 @@ class MainWindow(QMainWindow):
         help_menu.addAction(about)
         self.menu_actions.update(
             preferences=preferences,
+            quit=quit_application,
             toggle_inspector=toggle_inspector,
             safe_preview=dry_run,
             help=help_contents,
@@ -565,18 +572,30 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
 
     def closeEvent(self, event) -> None:
-        if self._structure_viewer is not None:
-            shutdown = getattr(self._structure_viewer, "shutdown", None)
-            if callable(shutdown) and not shutdown(500):
-                self.task_status.setText("Background: finishing before close")
-                event.ignore()
-                return
+        # Phase 1: ask every task-owning surface to cancel and drain.  No
+        # irreversible UI resource is released during this phase, so a single
+        # rejecting participant cannot leave a still-visible partial window.
+        drained = True
         for screen in self._screens.values():
             shutdown = getattr(screen, "shutdown", None)
             if callable(shutdown) and not shutdown(500):
-                self.task_status.setText("Background: finishing before close")
-                event.ignore()
-                return
+                drained = False
+        viewer = self._structure_viewer
+        if viewer is not None:
+            prepare = getattr(viewer, "prepare_shutdown", None)
+            if callable(prepare) and not prepare(500):
+                drained = False
+        if not drained:
+            self.task_status.setText("Background: finishing before close")
+            event.ignore()
+            return
+
+        # Phase 2: all workers are drained, so owned WebEngine resources can be
+        # released atomically at the accepted window-close boundary.
+        if viewer is not None:
+            finalize = getattr(viewer, "finalize_shutdown", None)
+            if callable(finalize):
+                finalize()
         super().closeEvent(event)
 
     def _build_screen(self, key: str) -> QWidget:

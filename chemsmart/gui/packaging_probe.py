@@ -250,6 +250,33 @@ def _screenshot_metrics(path: Path) -> dict[str, Any]:
     }
 
 
+def _defer_webengine_release(
+    app,
+    view,
+    exit_code: int,
+    *,
+    fallback_ms: int | None = 2_000,
+) -> None:
+    """Release a probe view on the next event turn, then leave the loop."""
+    from PySide6.QtCore import QTimer
+
+    def release_view() -> None:
+        # WebEngine callbacks may be running when completion is requested.
+        # Deferred destruction avoids deleting Chromium-backed C++ objects on
+        # their own loadFinished/JavaScript callback stack.
+        view.stop()
+        page = view.page()
+        if page is not None:
+            page.deleteLater()
+        view.close()
+        view.destroyed.connect(lambda: app.exit(exit_code))
+        view.deleteLater()
+        if fallback_ms is not None:
+            QTimer.singleShot(fallback_ms, lambda: app.exit(exit_code))
+
+    QTimer.singleShot(0, release_view)
+
+
 def run_packaging_probe(app, *, receipt_path: Path, workspace: Path) -> int:
     """Run offline/fake checks plus a real QWebEngine/3Dmol render."""
     from PySide6.QtCore import QTimer
@@ -303,8 +330,11 @@ def run_packaging_probe(app, *, receipt_path: Path, workspace: Path) -> int:
         if receipt["status"] == "failed":
             receipt["failure"] = "QtWebEngine/3Dmol render did not pass."
         write_receipt()
-        view.close()
-        app.exit(0 if receipt["status"] == "passed" else 1)
+        _defer_webengine_release(
+            app,
+            view,
+            0 if receipt["status"] == "passed" else 1,
+        )
 
     def inspect_page(load_ok: bool) -> None:
         if not load_ok:
@@ -430,3 +460,72 @@ def run_shell_smoke(app, window, *, receipt_path: Path) -> int:
     QTimer.singleShot(800, inspect_shell)
     QTimer.singleShot(30_000, lambda: complete(False, "30 second timeout"))
     return int(app.exec())
+
+
+def run_lifecycle_smoke(app, window, *, receipt_path: Path) -> int:
+    """Spawn a real renderer, then rely on normal last-window Quit semantics."""
+    from PySide6.QtCore import QTimer
+
+    from chemsmart.gui.widgets.structure_viewer import build_3dmol_html
+
+    receipt = _base_receipt()
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    finished = {"done": False}
+
+    def write_receipt() -> None:
+        receipt_path.write_text(
+            json.dumps(receipt, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+
+    def complete(ok: bool, failure: str | None = None) -> None:
+        if finished["done"]:
+            return
+        finished["done"] = True
+        lifecycle = receipt.setdefault("lifecycle", {})
+        lifecycle["quit_action_requested"] = True
+        if failure:
+            receipt["failure"] = failure
+        receipt["status"] = "passed" if ok else "failed"
+        write_receipt()
+        QTimer.singleShot(0, window.menu_actions["quit"].trigger)
+
+    try:
+        viewer = window.ensure_structure_viewer()
+        web = viewer._web
+        if web is None:
+            raise RuntimeError("QtWebEngine view was not created.")
+
+        def loaded(ok: bool) -> None:
+            renderer_pid = int(web.page().renderProcessPid())
+            receipt["lifecycle"] = {
+                "webengine_loaded": bool(ok),
+                "renderer_pid": renderer_pid,
+                "renderer_started": renderer_pid > 0,
+            }
+            complete(
+                bool(ok and renderer_pid > 0),
+                None
+                if ok and renderer_pid > 0
+                else "QtWebEngine renderer did not start.",
+            )
+
+        web.loadFinished.connect(loaded)
+        web.setHtml(build_3dmol_html(WATER_XYZ, "#ffffff"))
+    except Exception as exc:
+        complete(False, f"lifecycle: {type(exc).__name__}: {exc}")
+
+    app.setQuitOnLastWindowClosed(True)
+    window.resize(1040, 680)
+    window.show()
+    QTimer.singleShot(30_000, lambda: complete(False, "30 second timeout"))
+    returncode = int(app.exec())
+    lifecycle = receipt.setdefault("lifecycle", {})
+    lifecycle["event_loop_exited"] = True
+    # A WebEngine helper may finish only while the QApplication/main process
+    # itself is returning.  Waiting for it here blocks Qt event processing and
+    # creates a circular teardown dependency.  The parent bundle verifier owns
+    # the post-return process-tree check instead.
+    lifecycle["renderer_exit_check_owner"] = "external_bundle_process_monitor"
+    write_receipt()
+    return returncode if receipt["status"] == "passed" else 1

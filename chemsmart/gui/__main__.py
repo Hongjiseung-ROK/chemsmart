@@ -91,6 +91,11 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help=argparse.SUPPRESS,
     )
+    parser.add_argument(
+        "--packaging-lifecycle-smoke-receipt",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
     args = parser.parse_args(raw_args)
 
     from PySide6.QtCore import QSettings
@@ -137,6 +142,16 @@ def main(argv: list[str] | None = None) -> int:
             app,
             window,
             receipt_path=Path(args.packaging_shell_smoke_receipt).resolve(),
+        )
+    if args.packaging_lifecycle_smoke_receipt:
+        from chemsmart.gui.packaging_probe import run_lifecycle_smoke
+
+        return run_lifecycle_smoke(
+            app,
+            window,
+            receipt_path=Path(
+                args.packaging_lifecycle_smoke_receipt
+            ).resolve(),
         )
     window.show()
     return app.exec()

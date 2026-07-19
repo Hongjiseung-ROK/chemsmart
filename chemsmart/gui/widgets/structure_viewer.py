@@ -47,6 +47,13 @@ def _webengine_available() -> bool:
         return False
 
 
+def _new_web_view():
+    """Construct the default owned WebEngine view behind a test seam."""
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+
+    return QWebEngineView()
+
+
 def pymol_available() -> bool:
     """True when a ``pymol`` executable is discoverable on PATH."""
     from chemsmart.gui.services.pymol_render_service import (
@@ -199,9 +206,7 @@ class StructureViewer(QWidget):
 
     def _build_interactive(self) -> QWidget:
         if _webengine_available():
-            from PySide6.QtWebEngineWidgets import QWebEngineView
-
-            self._web = QWebEngineView()
+            self._web = _new_web_view()
             self._web.setAccessibleName("Interactive 3D molecular structure")
             self._web.setAccessibleDescription(
                 "Rotate and zoom the selected molecular geometry."
@@ -368,7 +373,44 @@ class StructureViewer(QWidget):
         self._scale_pymol_image()
 
     def shutdown(self, timeout_ms: int = 1000) -> bool:
+        if not self.prepare_shutdown(timeout_ms):
+            return False
+        self.finalize_shutdown()
+        return True
+
+    def prepare_shutdown(self, timeout_ms: int = 1000) -> bool:
+        """Drain mutable work without destroying the still-visible viewer."""
         return self._pymol_controller.shutdown(timeout_ms)
+
+    def finalize_shutdown(self) -> None:
+        """Release WebEngine only after every window participant drained."""
+        self._release_web_view()
+
+    def _release_web_view(self) -> None:
+        """Stop and destroy the owned WebEngine page before the app can quit.
+
+        ``QWebEngineView`` owns the page it creates by default.  Explicitly
+        scheduling both objects makes the renderer boundary visible and keeps
+        this teardown idempotent.  Deletion remains deferred because shutdown
+        can be requested from a WebEngine callback; destroying the C++ objects
+        synchronously from that callback is unsafe.
+        """
+        web = self._web
+        if web is None:
+            return
+        self._web = None
+
+        stop = getattr(web, "stop", None)
+        if callable(stop):
+            stop()
+        page = web.page()
+        if page is not None:
+            page.deleteLater()
+        if self.stack.indexOf(web) >= 0:
+            self.stack.removeWidget(web)
+        web.hide()
+        web.setParent(None)
+        web.deleteLater()
 
     def set_pymol_service(self, service) -> None:
         """Apply a validated optional renderer after draining the old one."""

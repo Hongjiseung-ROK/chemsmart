@@ -38,6 +38,27 @@ def test_closed_main_window_releases_webengine_ownership(qapp) -> None:
     assert not shiboken6.isValid(window)
 
 
+def test_quit_action_uses_standard_role_and_closes_all_windows(qapp) -> None:
+    import shiboken6
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtGui import QAction, QKeySequence
+
+    from chemsmart.gui.app import MainWindow
+
+    window = MainWindow()
+    window.show()
+    action = window.menu_actions["quit"]
+
+    assert action.menuRole() is QAction.MenuRole.QuitRole
+    assert action.shortcut() == QKeySequence(QKeySequence.StandardKey.Quit)
+
+    action.trigger()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    qapp.processEvents()
+
+    assert not shiboken6.isValid(window)
+
+
 def test_job_builder_opens_on_gaussian_optimization(qapp) -> None:
     from chemsmart.gui.app import MainWindow
     from chemsmart.gui.application.job_draft import JobDraft
