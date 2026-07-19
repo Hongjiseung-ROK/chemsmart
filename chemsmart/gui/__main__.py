@@ -9,7 +9,36 @@ and the screens.
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
+
+
+def _configure_desktop_diagnostics() -> None:
+    from chemsmart import __version__
+    from chemsmart.gui.application.desktop_logging import (
+        configure_desktop_logging,
+        install_exception_logging,
+    )
+
+    try:
+        configure_desktop_logging()
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "Desktop file logging unavailable (%s); continuing.",
+            type(exc).__name__,
+        )
+    try:
+        install_exception_logging()
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "Desktop exception logging unavailable (%s); continuing.",
+            type(exc).__name__,
+        )
+    logging.getLogger(__name__).info(
+        "ChemSmart desktop %s starting; frozen=%s",
+        __version__,
+        bool(getattr(sys, "frozen", False)),
+    )
 
 
 def _needs_onboarding() -> bool:
@@ -70,6 +99,11 @@ def main(argv: list[str] | None = None) -> int:
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("ChemSmart")
     app.setOrganizationName("ZhangLab")
+    from chemsmart import __version__
+
+    app.setApplicationVersion(__version__)
+
+    _configure_desktop_diagnostics()
 
     _ensure_environment()
 

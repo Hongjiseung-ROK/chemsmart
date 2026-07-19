@@ -137,6 +137,15 @@ jobs:
             --workpath build/p1/pyinstaller/work \
             packaging/macos/ChemSmart.pyinstaller.spec
 
+      - name: Inventory packaged Python components
+        run: |
+          python packaging/macos/inventory_pyinstaller_components.py \
+            --app build/p1/pyinstaller/dist/ChemSmart.app \
+            --analysis-toc build/p1/pyinstaller/work/ChemSmart.pyinstaller/Analysis-00.toc \
+            --pyz-toc build/p1/pyinstaller/work/ChemSmart.pyinstaller/PYZ-00.toc \
+            --runtime-lock packaging/macos/runtime-lock-py311-macos14-arm64.txt \
+            --output build/p1/pyinstaller/bundle-components.json
+
       - name: Apply nested-to-outer ad-hoc candidate signature
         id: signing
         continue-on-error: true
@@ -168,6 +177,25 @@ jobs:
           fi
           exit "${verify_status:-0}"
 
+      - name: Build and verify internal-alpha DMG
+        id: release
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          app=build/p1/pyinstaller/dist/ChemSmart.app
+          test -d "$app"
+          python packaging/macos/build_internal_alpha.py \
+            --app "$app" \
+            --output-dir "build/p1/${CANDIDATE}/internal-alpha" \
+            --version "$(cat chemsmart/VERSION)" \
+            --bundle-metrics "build/p1/${CANDIDATE}/metrics.json" \
+            --runtime-lock packaging/macos/runtime-lock-py311-macos14-arm64.txt \
+            --runtime-lock-receipt "build/p1/${CANDIDATE}/runtime-lock-verification.json" \
+            --pip-freeze "build/p1/${CANDIDATE}/pip-freeze.txt" \
+            --source-provenance "build/p1/${CANDIDATE}/source-provenance.json" \
+            --bundle-components "build/p1/${CANDIDATE}/bundle-components.json" \
+            --failure-receipt "build/p1/${CANDIDATE}/internal-alpha-failure.json"
+
       - name: Upload candidate evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -183,8 +211,14 @@ jobs:
             build/p1/pyinstaller/source-provenance.json
             build/p1/pyinstaller/source-tests.txt
             build/p1/pyinstaller/adhoc-signing.json
+            build/p1/pyinstaller/bundle-components.json
             build/p1/pyinstaller/metrics.json
             build/p1/pyinstaller/artifact.sha256
+            build/p1/pyinstaller/internal-alpha-failure.json
+            build/p1/pyinstaller/internal-alpha/*.release-receipt.json
+            build/p1/pyinstaller/work/ChemSmart.pyinstaller/Analysis-00.toc
+            build/p1/pyinstaller/work/ChemSmart.pyinstaller/PYZ-00.toc
+            build/p1/pyinstaller/work/ChemSmart.pyinstaller/xref-ChemSmart.pyinstaller.html
             build/p1/pyinstaller/launches-*/probe-*/receipt.json
             build/p1/pyinstaller/launches-*/probe-*/receipt.png
             build/p1/pyinstaller/launches-*/probe-*/application.*.txt
@@ -194,7 +228,7 @@ jobs:
             build/p1/pyinstaller/launches-*/shell-*/receipt.json
             build/p1/pyinstaller/launches-*/shell-*/receipt.png
             build/p1/pyinstaller/launches-*/shell-*/application.*.txt
-            build/p1/pyinstaller/work/ChemSmart/warn-ChemSmart.txt
+            build/p1/pyinstaller/work/ChemSmart.pyinstaller/warn-ChemSmart.pyinstaller.txt
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -211,6 +245,16 @@ jobs:
           retention-days: 7
           compression-level: 0
 
+      - name: Upload verified internal-alpha distribution
+        if: steps.release.outcome == 'success'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: chemsmart-p7-internal-alpha-macos14-arm64
+          path: build/p1/pyinstaller/internal-alpha
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
       - name: Enforce candidate verifier result
-        if: always() && (steps.signing.outcome != 'success' || steps.verify.outcome != 'success')
+        if: always() && (steps.signing.outcome != 'success' || steps.verify.outcome != 'success' || steps.release.outcome != 'success')
         run: exit 1

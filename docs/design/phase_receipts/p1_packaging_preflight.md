@@ -357,8 +357,9 @@ helper-entitlement, signature, archive, and researcher-shell gates; it also
 builds in 2 minutes 50 seconds rather than 51–81 minutes and produces an
 approximately 813 MB application rather than the 2.47 GB invalid pyside
 baseline. The pyside measurements from invalid launch environments are not
-promoted as performance results. pyside6-deploy remains a documented fallback
-for future reevaluation after its macOS bundle layout changes upstream.
+promoted as performance results. The pyside6-deploy/Nuitka record is retained
+only as an historical diagnostic clue; it is not an active fallback or future
+release task.
 
 P1 establishes packaging feasibility and a reproducible candidate. It does not
 claim that the P0 scaffold is the finished researcher UI. Progress reporting,
@@ -392,7 +393,8 @@ metrics, or launch artifact was accepted. This is the same deterministic
 failure as the immediately preceding `45d35f56` attempt, not compiler
 nondeterminism.
 
-The bounded fallback fix is now specific: do not relocate `qt6.conf` blindly.
+The final bounded historical experiment was specific: do not relocate
+`qt6.conf` blindly.
 Permit it beside the executable only if it is a regular non-symlink,
 non-executable file with the exact 19-byte `[Paths]\nPrefix = .\n` payload;
 record path, mode, size, and SHA-256 unchanged. Missing, modified, executable,

@@ -1,11 +1,12 @@
 # ChemSmart Native Desktop Master Plan
 
-Status: P6 complete in `83eb1707`; P7 PyInstaller release engineering in progress, 2026-07-19
+Status: build frozen by user after accepted PyInstaller internal alpha; P7 product acceptance incomplete, 2026-07-19
 Owner: ChemSmart maintainers
 Primary target: Zhang Lab internal macOS desktop app
 Framework: Python 3.10/3.11 + PySide6/Qt 6
 Canonical feature contract: `docs/design/chemsmart_desktop_feature_contract.yaml`
 Baseline UI review: `docs/design/chemsmart_gui_baseline_review.md`
+Build closure: `docs/design/chemsmart_native_desktop_build_closure_2026-07-19.md`
 
 This document supersedes the phase ordering in
 `/Users/hongjiseung/.claude/plans/iridescent-finding-sifakis.md` while preserving
@@ -68,7 +69,10 @@ reset, or branch switching as a preparation step.
 | Validation | P6 automated and independent gates green | The final complete GUI suite passes 358 tests with one explicit optional-dependency skip; Agent passes 1,110 tests; Grouper/Thermochemistry/Analysis service passes 143 tests with seven explicit optional/external skips. The final independent review reports Critical 0, High 0, Medium 0 after measuring large-text geometry and real forward/reverse focus order. Exact evidence is retained in `docs/design/phase_receipts/p6_product_accessibility.md`. |
 
 The native Job builder, Chat, Database, and Analysis are runnable source-checkout
-product slices. A Finder-launched distributable remains a P7 completion gate.
+product slices. Run `29683902995` supplies a downloaded and independently
+reverified Finder-launched internal-alpha distributable, but the build is frozen
+with named clean-machine, full Computer Use/stress, graceful packaged Quit, and
+Developer ID/notarization gates still open.
 
 ## 3. Product experience
 
@@ -379,13 +383,13 @@ self-dispatches only the existing Click CLI, while `chemsmart agent` and its
 Textual dependencies remain available from the normal `agent-tui` extra. This
 packaging boundary does not delete or change any CLI/TUI source contract.
 
-Retained PyInstaller evidence includes an approximately 813 MB arm64 app, a
-2-minute-50-second build, all 18 mandatory verifier flags, three isolated
-LaunchServices probes, normal-window navigation, offline 3Dmol rendering,
-Gaussian/ORCA fake inputs, archive round trip, nested-to-outer ad-hoc signature,
-and four QtWebEngine helper entitlements. Run `29668168830` independently
-reconfirmed the same boundary. These are P1 feasibility receipts; the current
-P6 product tree still requires a fresh P7 build and acceptance run.
+Retained P1 PyInstaller evidence includes an approximately 813 MB arm64 app,
+all 18 mandatory verifier flags, three isolated LaunchServices probes,
+normal-window navigation, offline 3Dmol rendering, Gaussian/ORCA fake inputs,
+archive round trip, nested-to-outer ad-hoc signature, and four QtWebEngine
+helper entitlements. P7 run `29680091104` has now independently built the exact
+current product tree and passed the same boundary. It remains an ad-hoc-signed
+verified application, not a DMG, notarized release, or clean-machine acceptance.
 
 ### 6.3 Release levels
 
@@ -647,18 +651,17 @@ Exit:
 P6 is frozen at `83eb1707`. The PyInstaller decision is final. Do these P7 tasks
 in order:
 
-1. Build the current P6 product tree with the selected reproducible runtime and
-   require all packaging contracts, three fresh process launches, real bundled
-   3Dmol, Gaussian/ORCA fake CLI probes, Finder launch, clean preferences, and
-   restart recovery to pass.
-2. Produce a checksum, dependency/SBOM receipt, architecture and minimum-macOS
-   receipt, nested-to-outer signature audit, DMG, installation/removal guide,
-   optional PyMOL setup guide, and explicit unsigned/internal-alpha labeling.
-3. Stress long/unicode paths, missing optional dependencies, cancellation,
+1. Retain exact-source run `29683902995` as the immutable internal-alpha
+   distribution baseline. Its 489-test source gate, complete PyInstaller app,
+   18 application gates, 111-component shipped-runtime inventory, signed app
+   archive, DMG, checksums, CycloneDX SBOM, release receipt, and independent
+   read-only DMG remount are green. The earlier run `29680091104` remains the
+   prior exact-product app baseline rather than the distribution baseline.
+2. Stress long/unicode paths, missing optional dependencies, cancellation,
    retry, stale preferences, read-only workspace, database build/export, and
    multi-launch behavior on named Zhang Lab machines. Real calculations and HPC
    submission remain outside the desktop boundary.
-4. Ask an independent release reviewer to audit every P7 receipt and use Codex
+3. Ask an independent release reviewer to audit every P7 receipt and use Codex
    Computer Use for end-to-end supported researcher workflows. Commit each green
    release slice; retain Developer ID/notarization as a distinct gate until the
    required external credentials and Apple service are available.

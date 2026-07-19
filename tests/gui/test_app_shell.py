@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip("PySide6")
@@ -196,6 +198,44 @@ def test_job_builder_enables_only_a_complete_local_safe_preview(
         assert "positive integer spin multiplicity" in (
             builder.validation_status.text()
         )
+    finally:
+        window.close()
+
+
+def test_workspace_change_revalidates_existing_job_draft(
+    qapp, tmp_path
+) -> None:
+    from PySide6.QtWidgets import QLineEdit
+
+    from chemsmart.gui.app import MainWindow
+
+    molecule = tmp_path / "water.xyz"
+    molecule.write_text(
+        "3\nwater\nO 0 0 0\nH 0 0 1\nH 0 1 0\n",
+        encoding="utf-8",
+    )
+    missing_workspace = tmp_path / "missing-workspace"
+    window = MainWindow()
+    try:
+        builder = window._screens["job_builder"]
+        fields = {
+            field.accessibleName(): field
+            for field in builder.findChildren(QLineEdit)
+        }
+        fields["project"].setText("workspace-refresh")
+        fields["filename"].setText(str(molecule))
+        fields["charge"].setText("0")
+        fields["multiplicity"].setText("1")
+
+        window.set_workspace(missing_workspace)
+        assert not builder.dry_run_button.isEnabled()
+
+        window.set_workspace(tmp_path)
+        assert builder.dry_run_button.isEnabled()
+        assert window.workspace_status.text() == f"Workspace: {tmp_path.name}"
+
+        window.set_workspace(Path("/"))
+        assert window.workspace_status.text() == "Workspace: /"
     finally:
         window.close()
 
@@ -427,6 +467,11 @@ def test_main_window_launch_does_not_require_agent_config(
         raise AssertionError("provider onboarding must not block app launch")
 
     monkeypatch.setattr(gui_main, "_ensure_environment", lambda: None)
+    monkeypatch.setattr(
+        gui_main,
+        "_configure_desktop_diagnostics",
+        lambda: None,
+    )
     monkeypatch.setattr(gui_main, "_needs_onboarding", lambda: True)
     monkeypatch.setattr(gui_app, "MainWindow", FakeWindow)
     monkeypatch.setattr(OnboardingDialog, "run", fail_onboarding)
@@ -738,6 +783,96 @@ def test_help_menu_explains_safe_workflows_and_recovery(
         assert "Retry" in captured["message"]
         assert "fake-run safety" in captured["message"]
         assert "PyMOL" in captured["message"]
+        assert "Support Bundle" in captured["message"]
+    finally:
+        window.close()
+
+
+def test_support_bundle_menu_is_explicit_redacted_and_cancel_safe(
+    qapp, tmp_path, monkeypatch
+) -> None:
+    from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+    import chemsmart.gui.application.support_bundle as support_module
+    from chemsmart.gui.app import MainWindow
+
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "desktop.log").write_text(
+        "api_key=sk-ant-abcdefghijklmnop\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "research-support.zip"
+    monkeypatch.setattr(support_module, "desktop_log_root", lambda: logs)
+    monkeypatch.setattr(
+        QFileDialog,
+        "getSaveFileName",
+        lambda *_args, **_kwargs: (str(output), "ZIP archive (*.zip)"),
+    )
+    captured = {}
+    monkeypatch.setattr(
+        QMessageBox,
+        "information",
+        lambda parent, title, message: captured.update(
+            parent=parent,
+            title=title,
+            message=message,
+        ),
+    )
+    window = MainWindow()
+    try:
+        action = window.menu_actions["support_bundle"]
+        assert "redacted" in action.statusTip()
+        action.trigger()
+
+        assert output.is_file()
+        assert captured["parent"] is window
+        assert captured["title"] == "Support Bundle Created"
+        assert "Included logs: 1" in captured["message"]
+        assert "Redacted sensitive values:" in captured["message"]
+        assert "Review the ZIP" in captured["message"]
+        assert "Keychain data were not included" in captured["message"]
+
+        cancelled = tmp_path / "cancelled.zip"
+        monkeypatch.setattr(
+            QFileDialog,
+            "getSaveFileName",
+            lambda *_args, **_kwargs: ("", ""),
+        )
+        action.trigger()
+        assert not cancelled.exists()
+    finally:
+        window.close()
+
+
+def test_about_dialog_reports_exact_application_version(
+    qapp, monkeypatch
+) -> None:
+    from PySide6.QtWidgets import QMessageBox
+
+    from chemsmart import __version__
+    from chemsmart.gui.app import MainWindow
+
+    captured = {}
+    monkeypatch.setattr(
+        QMessageBox,
+        "about",
+        lambda parent, title, message: captured.update(
+            parent=parent,
+            title=title,
+            message=message,
+        ),
+    )
+    window = MainWindow()
+    try:
+        window.menu_actions["about"].trigger()
+
+        assert captured["parent"] is window
+        assert captured["title"] == "About ChemSmart"
+        assert f"ChemSmart {__version__}" in captured["message"]
+        assert "Real calculations and HPC submission remain outside" in (
+            captured["message"]
+        )
     finally:
         window.close()
 

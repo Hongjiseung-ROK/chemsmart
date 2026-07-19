@@ -225,6 +225,65 @@ p6_product_accessibility:
     - independent_review_critical_high_medium_all_zero
     - complete_agent_gui_and_domain_regressions_green
 
+p7_release_engineering:
+  sources:
+    - .github/workflows/macos-packaging-spike.yml
+    - packaging/macos/ChemSmart.pyinstaller.spec
+    - packaging/macos/build_internal_alpha.py
+    - packaging/macos/inventory_pyinstaller_components.py
+    - packaging/macos/runtime-lock-py311-macos14-arm64.txt
+    - packaging/macos/adhoc_sign_bundle.py
+    - packaging/macos/verify_bundle.py
+    - chemsmart/gui/application/desktop_logging.py
+    - chemsmart/gui/application/support_bundle.py
+    - docs/release/macos_internal_alpha.md
+    - docs/design/phase_receipts/p7_release_engineering.md
+    - docs/design/chemsmart_native_desktop_build_closure_2026-07-19.md
+  current_capability: exact current product tree has a downloaded and independently reverified PyInstaller macOS 14 arm64 app, internal-alpha DMG, shipped-component SBOM, diagnostics, support bundle, lifecycle guide, checksums, and release receipt
+  build_state: frozen_at_user_request_with_product_acceptance_incomplete
+  verified_run: 29683902995
+  verified_source_sha: 91f55b5972b57beb3e1ea39b45fcc04433c3e606
+  post_artifact_source_only_changes:
+    - workspace_change_revalidates_existing_job_draft
+    - root_workspace_status_label_is_nonempty
+    - local_gui_372_passed_one_optional_skip
+  selected_candidate: pyinstaller
+  release_level: adhoc_signed_internal_alpha_candidate
+  safety_boundary:
+    - no_provider_request_secret_real_compute_or_hpc_submission
+    - app_contents_immutable_across_launch_and_archive_round_trip
+    - gatekeeper_rejection_expected_until_developer_id_and_notarization
+    - current_development_mac_receives_no_package_install
+    - temporary_fork_workflow_only_no_release_publication
+    - release_output_cannot_be_inside_or_contain_the_signed_input_app
+    - support_zip_is_explicit_bounded_redacted_atomic_no_overwrite
+    - desktop_log_is_rotating_owner_only_no_follow_and_nonblocking
+    - sbom_shipped_components_come_from_pyinstaller_analysis_and_pyz_graphs_not_builder_lock
+  green_gates:
+    - combined_source_preservation_489_passed_one_optional_skip
+    - exact_python3119_macos1487_arm64_runtime_lock
+    - all_18_mandatory_bundle_flags
+    - three_fresh_launchservices_probes_and_normal_product_shell
+    - frozen_absolute_self_dispatch_gaussian_orca_fake_inputs
+    - offline_three_atom_3dmol_render
+    - nested_to_outer_signature_and_helper_entitlements
+    - archive_checksum_inventory_and_symlink_round_trip
+    - downloaded_artifact_independent_strict_signature_reverification
+    - local_release_support_and_component_inventory_regression_57_passed
+    - install_upgrade_remove_support_and_internal_alpha_guide_present
+    - exact_source_remote_dmg_checksum_sbom_and_release_receipt
+    - downloaded_dmg_readonly_mount_signature_inventory_and_readme_parity
+    - shipped_component_inventory_111_all_mandatory_no_forbidden
+    - sbom_build_tool_scope_distinguishes_builder_only_and_also_shipped
+    - independent_p7_distribution_review_zero_findings
+  pending_gates:
+    - rebuild_post_artifact_workspace_state_fix
+    - packaged_quit_terminates_main_and_qtwebengine_helpers
+    - restart_session_database_analysis_packaged_stress
+    - named_clean_lab_mac_acceptance
+    - complete_computer_use_acceptance
+    - developer_id_hardened_runtime_notarization_and_stapling
+
 surfaces:
   - id: configuration
     sources:

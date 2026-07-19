@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from chemsmart import __version__
 from chemsmart.gui import theme
 from chemsmart.gui.application.runtime_projection import (
     DesktopRuntimeProjection,
@@ -377,14 +378,22 @@ class MainWindow(QMainWindow):
         help_contents.setShortcut(QKeySequence.StandardKey.HelpContents)
         help_contents.triggered.connect(self._show_help)
         help_menu.addAction(help_contents)
+        support_bundle = QAction("Create Support Bundle…", self)
+        support_bundle.setStatusTip(
+            "Create a bounded, redacted diagnostic ZIP to review before sharing."
+        )
+        support_bundle.triggered.connect(self._create_support_bundle)
+        help_menu.addAction(support_bundle)
         help_menu.addSeparator()
         about = QAction("About ChemSmart", self)
         about.triggered.connect(
             lambda: QMessageBox.about(
                 self,
                 "About ChemSmart",
-                "ChemSmart desktop preview for safe computational chemistry "
-                "workflow preparation.",
+                f"ChemSmart {__version__}\n\n"
+                "Safe desktop preparation for computational chemistry "
+                "workflows. Real calculations and HPC submission remain "
+                "outside desktop mode.",
             )
         )
         help_menu.addAction(about)
@@ -393,15 +402,15 @@ class MainWindow(QMainWindow):
             toggle_inspector=toggle_inspector,
             safe_preview=dry_run,
             help=help_contents,
+            support_bundle=support_bundle,
+            about=about,
         )
 
     def _build_status_bar(self) -> None:
         status = self.statusBar()
         status.setAccessibleName("ChemSmart status")
         self.provider_status = QLabel("AI: optional")
-        self.workspace_status = QLabel(
-            f"Workspace: {self.workspace_root.name}"
-        )
+        self.workspace_status = QLabel(self._workspace_status_text())
         self.safety_status = QLabel("Safe preview")
         self.safety_status.setAccessibleDescription(
             "Desktop mode enforces fake run and blocks HPC submission."
@@ -421,8 +430,20 @@ class MainWindow(QMainWindow):
 
     def set_workspace(self, path: Path) -> None:
         self.workspace_root = path.resolve()
-        self.workspace_status.setText(f"Workspace: {self.workspace_root.name}")
+        self.workspace_status.setText(self._workspace_status_text())
         self.workspace_status.setAccessibleName(self.workspace_status.text())
+        # The Job builder validates its safe preview against the active
+        # workspace. Refresh an already-created builder immediately so a
+        # Settings change cannot leave Generate input in a stale state.
+        builder = self._screens.get("job_builder")
+        refresh = getattr(builder, "refresh_workspace_state", None)
+        if callable(refresh):
+            refresh()
+
+    def _workspace_status_text(self) -> str:
+        """Return a non-empty, compact workspace label, including for ``/``."""
+        label = self.workspace_root.name or str(self.workspace_root)
+        return f"Workspace: {label}"
 
     def set_provider_status(self, message: str) -> None:
         self.provider_status.setText(f"AI: {message}")
@@ -463,7 +484,56 @@ class MainWindow(QMainWindow):
             "Interactive 3D works offline. Configure an optional local PyMOL "
             "executable in Settings when Finder cannot discover it on PATH.\n\n"
             "The desktop always enforces fake-run safety. Real calculations and "
-            "HPC submission remain in the existing approved CLI workflow.",
+            "HPC submission remain in the existing approved CLI workflow.\n\n"
+            "Create Support Bundle in this Help menu writes a bounded, redacted "
+            "ZIP. Review it before sharing; configuration, project files, provider "
+            "payloads, sessions, and Keychain data are excluded.",
+        )
+
+    def _create_support_bundle(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+
+        from chemsmart.gui.application.support_bundle import (
+            create_support_bundle,
+        )
+
+        suggested = Path.home() / "Desktop" / "ChemSmart-support.zip"
+        filename, _selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Save ChemSmart Support Bundle",
+            str(suggested),
+            "ZIP archive (*.zip)",
+        )
+        if not filename:
+            return
+        destination = Path(filename)
+        if destination.suffix.lower() != ".zip":
+            destination = destination.with_suffix(".zip")
+        try:
+            receipt = create_support_bundle(destination)
+        except FileExistsError:
+            QMessageBox.critical(
+                self,
+                "Support Bundle Not Created",
+                "A file already exists there. Choose a new filename.",
+            )
+            return
+        except (OSError, ValueError) as exc:
+            QMessageBox.critical(
+                self,
+                "Support Bundle Not Created",
+                f"ChemSmart could not create the support bundle. {exc}",
+            )
+            return
+        QMessageBox.information(
+            self,
+            "Support Bundle Created",
+            f"Saved {receipt.output_path}.\n\n"
+            f"Included logs: {receipt.included_log_count}\n"
+            f"Redacted sensitive values: {receipt.redaction_count}\n\n"
+            "Review the ZIP "
+            "before sharing it. Configuration, project files, provider "
+            "payloads, sessions, and Keychain data were not included.",
         )
 
     def _set_inspector_visible(self, visible: bool) -> None:

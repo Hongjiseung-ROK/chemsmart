@@ -485,6 +485,10 @@ class JobBuilderScreen(QWidget):
         self._set_preview_enabled(not running and request.cwd.is_dir())
         self.to_chat_button.setEnabled(self._handoff_available)
 
+    def refresh_workspace_state(self) -> None:
+        """Revalidate the current draft after the workspace changes."""
+        self._update_preview()
+
     def _on_advanced_toggled(self, shown: bool) -> None:
         self.advanced_box.setVisible(shown)
         self.advanced_toggle.setText(

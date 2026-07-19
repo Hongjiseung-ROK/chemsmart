@@ -8,12 +8,16 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 PROJECT_ROOT = Path(SPECPATH).parents[1]
 ENTRY_POINT = PROJECT_ROOT / "chemsmart" / "gui" / "__main__.py"
+VERSION = (PROJECT_ROOT / "chemsmart" / "VERSION").read_text().strip()
 
 hiddenimports = collect_submodules(
     "chemsmart",
     filter=lambda name: not name.startswith("chemsmart.agent.tui"),
 )
-hiddenimports += collect_submodules("keyring")
+hiddenimports += collect_submodules(
+    "keyring",
+    filter=lambda name: not name.startswith("keyring.testing"),
+)
 hiddenimports += [
     "PySide6.QtWebEngineCore",
     "PySide6.QtWebEngineWidgets",
@@ -35,9 +39,15 @@ a = Analysis(
     excludes=[
         "PyQt5",
         "PyQt6",
+        "PyInstaller",
         "PySide2",
+        "_pytest",
+        "coverage",
         "mlx",
         "mlx_lm",
+        "pip",
+        "py",
+        "pytest",
         "torch",
         "transformers",
         "textual",
@@ -82,6 +92,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleDisplayName": "ChemSmart",
         "CFBundleName": "ChemSmart",
+        "CFBundleShortVersionString": VERSION,
+        "CFBundleVersion": VERSION,
         "LSMinimumSystemVersion": "14.0",
         "NSHighResolutionCapable": True,
     },

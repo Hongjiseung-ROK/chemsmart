@@ -36,12 +36,21 @@ def test_pyinstaller_candidate_is_onedir_app_with_no_path_dispatch():
     assert "COLLECT(" in spec
     assert "BUNDLE(" in spec
     assert 'bundle_identifier="org.zhanglab.chemsmart"' in spec
+    assert '"CFBundleShortVersionString": VERSION' in spec
+    assert '"CFBundleVersion": VERSION' in spec
     assert '"LSMinimumSystemVersion": "14.0"' in spec
     assert "collect_data_files(\"chemsmart\"" in spec
     assert 'target_arch="arm64"' in spec
     assert 'name.startswith("chemsmart.agent.tui")' in spec
-    assert 'collect_submodules("keyring")' in spec
+    assert '"keyring",' in spec
+    assert 'name.startswith("keyring.testing")' in spec
     assert '"textual"' in spec
+    assert '"pytest"' in spec
+    assert '"_pytest"' in spec
+    assert '"coverage"' in spec
+    assert '"pip"' in spec
+    assert '"py"' in spec
+    assert '"PyInstaller"' in spec
 
 
 def test_packaging_workflow_is_manual_pyinstaller_only():
@@ -72,7 +81,7 @@ def test_packaging_workflow_is_manual_pyinstaller_only():
     )
     assert workflow.count(
         "uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f"
-    ) == 2
+    ) == 3
     assert "actions/checkout@v6" not in workflow
     assert "actions/setup-python@v6" not in workflow
     assert "actions/upload-artifact@v6" not in workflow
@@ -95,7 +104,7 @@ def test_packaging_workflow_is_manual_pyinstaller_only():
     assert "tests/gui \\" in workflow
     assert "tests/agent/test_secrets.py \\" in workflow
     assert "Apply nested-to-outer ad-hoc candidate signature" in workflow
-    assert workflow.count("app=build/p1/pyinstaller/dist/ChemSmart.app") == 2
+    assert workflow.count("app=build/p1/pyinstaller/dist/ChemSmart.app") == 3
     assert "find build chemsmart/gui/deployment" not in workflow
     assert "id: signing" in workflow
     assert "adhoc_sign_bundle.py" in workflow
@@ -109,7 +118,7 @@ def test_packaging_workflow_is_manual_pyinstaller_only():
     assert "steps.verify.outcome == 'success'" in workflow
     assert "steps.verify.outcome != 'success'" in workflow
     assert "steps.signing.outcome != 'success'" in workflow
-    assert workflow.count("compression-level: 0") == 2
+    assert workflow.count("compression-level: 0") == 3
     assert "path: build/p1/${{ matrix.candidate }}/" not in workflow
     assert "launches-*/probe-*/receipt.json" in workflow
     assert "launches-*/shell-*/receipt.json" in workflow
@@ -120,6 +129,29 @@ def test_packaging_workflow_is_manual_pyinstaller_only():
     assert "ChemSmart-*.zip" not in evidence_section
     assert "ChemSmart-*.zip" in bundle_section
     assert "${{ secrets." not in workflow
+    assert "Build and verify internal-alpha DMG" in workflow
+    assert "build_internal_alpha.py" in workflow
+    assert "inventory_pyinstaller_components.py" in workflow
+    assert (
+        "work/ChemSmart.pyinstaller/Analysis-00.toc" in workflow
+    )
+    assert "work/ChemSmart/Analysis-00.toc" not in workflow
+    assert (
+        "work/ChemSmart.pyinstaller/warn-ChemSmart.pyinstaller.txt"
+        in workflow
+    )
+    assert workflow.count("work/ChemSmart.pyinstaller/PYZ-00.toc") == 2
+    assert workflow.count("work/ChemSmart.pyinstaller/Analysis-00.toc") == 2
+    assert "--pyz-toc" in workflow
+    assert (
+        "work/ChemSmart.pyinstaller/xref-ChemSmart.pyinstaller.html"
+        in workflow
+    )
+    assert "bundle-components.json" in workflow
+    assert "steps.release.outcome == 'success'" in workflow
+    assert "steps.release.outcome != 'success'" in workflow
+    assert "chemsmart-p7-internal-alpha-macos14-arm64" in workflow
+    assert "internal-alpha-failure.json" in workflow
 
 
 def test_packaging_specs_are_explicitly_tracked_despite_global_ignore():
