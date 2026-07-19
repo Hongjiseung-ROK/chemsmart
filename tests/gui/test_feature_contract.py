@@ -6,7 +6,6 @@ from pathlib import Path
 
 import yaml
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT = REPO_ROOT / "docs/design/chemsmart_desktop_feature_contract.yaml"
 
@@ -21,7 +20,7 @@ def test_feature_contract_has_unique_policy_and_surface_ids() -> None:
     surface_ids = [surface["id"] for surface in contract["surfaces"]]
 
     assert len(policy_ids) == len(set(policy_ids)) == 6
-    assert len(surface_ids) == len(set(surface_ids)) == 17
+    assert len(surface_ids) == len(set(surface_ids)) == 18
 
 
 def test_feature_contract_sources_exist_and_every_surface_has_gates() -> None:

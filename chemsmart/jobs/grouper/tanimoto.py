@@ -105,26 +105,38 @@ class TanimotoSimilarityGrouper(MoleculeGrouper):
         # Convert valid molecules to RDKit format
         self.rdkit_molecules = []
         self.valid_molecules = []
-        for mol in self.molecules:
+        failed_conversions = []
+        for original_index, mol in enumerate(self.molecules, start=1):
             rdkit_mol = mol.to_rdkit()
-            if rdkit_mol is not None:
-                # Remove hydrogens if requested
-                if self.ignore_hydrogens:
-                    try:
-                        rdkit_mol = Chem.RemoveHs(rdkit_mol, sanitize=False)
-                        # Re-sanitize without kekulization to avoid aromatic ring issues
-                        Chem.SanitizeMol(
-                            rdkit_mol,
-                            sanitizeOps=Chem.SanitizeFlags.SANITIZE_ALL
-                            ^ Chem.SanitizeFlags.SANITIZE_KEKULIZE,
-                        )
-                    except Exception as e:
-                        logger.warning(
-                            f"Failed to remove hydrogens for molecule: {e}. Using original."
-                        )
-                        rdkit_mol = mol.to_rdkit()
-                self.rdkit_molecules.append(rdkit_mol)
-                self.valid_molecules.append(mol)
+            if rdkit_mol is None:
+                failed_conversions.append(original_index)
+                continue
+            # Remove hydrogens if requested
+            if self.ignore_hydrogens:
+                try:
+                    rdkit_mol = Chem.RemoveHs(rdkit_mol, sanitize=False)
+                    # Re-sanitize without kekulization to avoid aromatic ring issues
+                    Chem.SanitizeMol(
+                        rdkit_mol,
+                        sanitizeOps=Chem.SanitizeFlags.SANITIZE_ALL
+                        ^ Chem.SanitizeFlags.SANITIZE_KEKULIZE,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to remove hydrogens for molecule: {e}. Using original."
+                    )
+                    rdkit_mol = mol.to_rdkit()
+                    if rdkit_mol is None:
+                        failed_conversions.append(original_index)
+                        continue
+            self.rdkit_molecules.append(rdkit_mol)
+            self.valid_molecules.append(mol)
+        if failed_conversions:
+            labels = ", ".join(str(index) for index in failed_conversions)
+            raise ValueError(
+                "Tanimoto fingerprinting could not convert input molecule(s) "
+                f"{labels} to RDKit. No structures were grouped."
+            )
 
     def _get_fingerprint(self, rdkit_mol: Chem.Mol) -> Optional[object]:
         """
@@ -199,16 +211,24 @@ class TanimotoSimilarityGrouper(MoleculeGrouper):
         )
 
         # Compute fingerprints in parallel
+        self._report_progress(0, max(1, n))
         with ThreadPool(self.num_procs) as pool:
             fingerprints = pool.map(
                 self._get_fingerprint, self.rdkit_molecules
             )
+        self._report_progress(n, max(1, n))
 
-        # Filter valid fingerprints
-        valid_indices = [
-            i for i, fp in enumerate(fingerprints) if fp is not None
+        failed_fingerprints = [
+            index + 1 for index, fp in enumerate(fingerprints) if fp is None
         ]
-        valid_fps = [fingerprints[i] for i in valid_indices]
+        if failed_fingerprints:
+            labels = ", ".join(str(index) for index in failed_fingerprints)
+            raise ValueError(
+                "Tanimoto fingerprint generation failed for input molecule(s) "
+                f"{labels}. No structures were grouped."
+            )
+        valid_indices = list(range(len(fingerprints)))
+        valid_fps = fingerprints
         num_valid = len(valid_indices)
 
         if num_valid == 0:
@@ -239,10 +259,12 @@ class TanimotoSimilarityGrouper(MoleculeGrouper):
             ]
 
             with ThreadPool(self.num_procs) as pool:
+                self._report_progress(0, max(1, len(pairs)))
                 similarities = pool.starmap(
                     DataStructs.FingerprintSimilarity,
                     [(valid_fps[i], valid_fps[j]) for i, j in pairs],
                 )
+                self._report_progress(len(pairs), max(1, len(pairs)))
 
             # Fill similarity matrix
             for (i, j), sim in zip(pairs, similarities):

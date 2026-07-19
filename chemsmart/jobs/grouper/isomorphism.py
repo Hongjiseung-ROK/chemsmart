@@ -148,10 +148,13 @@ class RDKitIsomorphismGrouper(MoleculeGrouper):
         # Convert all molecules to RDKit and compute hashes
         rdkit_mols = []
         mol_hashes = []
-        for mol in self.molecules:
+        total = len(self.molecules)
+        for index, mol in enumerate(self.molecules):
+            self._report_progress(index, total)
             rdkit_mol = self._mol_to_rdkit(mol)
             rdkit_mols.append(rdkit_mol)
             mol_hashes.append(self._get_mol_hash(rdkit_mol))
+        self._report_progress(total, total)
 
         # Group by hash
         hash_groups = defaultdict(list)

@@ -134,7 +134,7 @@ class RMSDGrouper(MoleculeGrouper):
             non_h_indices = [
                 i for i, sym in enumerate(mol.chemical_symbols) if sym != "H"
             ]
-            return mol.positions[non_h_indices], [
+            return np.asarray(mol.positions)[non_h_indices], [
                 mol.chemical_symbols[i] for i in non_h_indices
             ]
         return (
@@ -178,12 +178,14 @@ class RMSDGrouper(MoleculeGrouper):
         # For real-time output, calculate one by one instead of using multiprocessing
         rmsd_values = []
         for idx, (i, j) in enumerate(indices):
+            self._report_progress(idx, total_pairs)
             rmsd = self._calculate_rmsd((i, j))
             rmsd_values.append(rmsd)
             if (idx + 1) % 10 == 0 or (idx + 1) == total_pairs:
                 logger.info(
                     f"The {idx+1}/{total_pairs} pair (conformer{i+1}, conformer{j+1}) calculation finished"
                 )
+        self._report_progress(total_pairs, total_pairs)
 
         # Build full RMSD matrix for output
         rmsd_matrix = np.zeros((n, n))
@@ -760,49 +762,31 @@ class SpyRMSDGrouper(RMSDGrouper):
     def _prepare_spyrmsd_data(self):
         """Pre-compute coordinates, atomic numbers, and adjacency matrices.
 
-        Uses spyrmsd's native io.loadmol (via OpenBabel) to ensure
-        adjacency matrices are generated exactly the same way as the
-        original spyrmsd package.
+        Convert through the existing RDKit molecule adapter. Recent spyrmsd
+        installations can select the RDKit backend, whose file loader does not
+        accept XYZ; direct construction preserves the same coordinates and
+        graph while avoiding backend- and tempfile-dependent behavior.
         """
-        import tempfile
-
-        from spyrmsd import io as spy_io
+        from rdkit import Chem
+        from spyrmsd.molecule import Molecule as SpyMolecule
 
         self._coords_list = []
         self._anum_list = []
         self._adj_list = []
 
         for mol in self.molecules:
+            rdkit_mol = mol.to_rdkit()
+            if rdkit_mol is None:
+                raise ValueError(
+                    "Could not construct the molecular graph for SpyRMSD."
+                )
             if self.ignore_hydrogens:
-                pos, symbols = self._get_heavy_atoms(mol)
-            else:
-                pos = mol.positions
-                symbols = list(mol.chemical_symbols)
+                rdkit_mol = Chem.RemoveHs(rdkit_mol, sanitize=False)
+            spy_mol = SpyMolecule.from_rdkit(rdkit_mol)
 
-            # Write molecule to temp xyz file and load with spyrmsd
-            # This ensures adjacency matrix is generated exactly like original spyrmsd
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".xyz", delete=False
-            ) as f:
-                f.write(f"{len(symbols)}\n")
-                f.write("temp\n")
-                for sym, p in zip(symbols, pos):
-                    f.write(f"{sym} {p[0]:.10f} {p[1]:.10f} {p[2]:.10f}\n")
-                tmp_file = f.name
-
-            try:
-                # Load with spyrmsd's io (uses OpenBabel internally)
-                spy_mol = spy_io.loadmol(tmp_file)
-                coords = spy_mol.coordinates
-                anum = spy_mol.atomicnums
-                adj = spy_mol.adjacency_matrix
-            finally:
-                # Clean up temp file
-                os.unlink(tmp_file)
-
-            self._coords_list.append(coords)
-            self._anum_list.append(anum)
-            self._adj_list.append(adj)
+            self._coords_list.append(spy_mol.coordinates)
+            self._anum_list.append(spy_mol.atomicnums)
+            self._adj_list.append(spy_mol.adjacency_matrix)
 
     def _calculate_rmsd(self, idx_pair):
         """Calculate symmetry-corrected RMSD using spyrmsd package."""
@@ -1025,7 +1009,12 @@ class IRMSDGrouper(RMSDGrouper):
         mol1, mol2 = self.molecules[i], self.molecules[j]
 
         # Check compatibility
-        symbols1, symbols2 = mol1.chemical_symbols, mol2.chemical_symbols
+        if self.ignore_hydrogens:
+            _positions1, symbols1 = self._get_heavy_atoms(mol1)
+            _positions2, symbols2 = self._get_heavy_atoms(mol2)
+        else:
+            symbols1 = mol1.chemical_symbols
+            symbols2 = mol2.chemical_symbols
         if sorted(symbols1) != sorted(symbols2):
             logger.warning(f"Molecules {i} and {j} have different atom types")
             return np.inf

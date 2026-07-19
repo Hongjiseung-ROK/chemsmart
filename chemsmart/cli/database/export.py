@@ -4,7 +4,12 @@ import os
 
 import click
 
-from chemsmart.database.export import CSV_OPTIONAL_COLUMNS, DatabaseExporter
+from chemsmart.database.export import (
+    CSV_OPTIONAL_COLUMNS,
+    DatabaseExporter,
+    resolve_method_basis,
+    validate_export_options,
+)
 from chemsmart.utils.cli import MyCommand
 
 from .database import click_database_id_options, database
@@ -127,67 +132,19 @@ def export(
         raise click.UsageError(str(e))
 
     output = os.path.abspath(output)
-    ext = os.path.splitext(output)[1].lower()
-
-    selectors = {
-        "--ri/--record-index": record_index,
-        "--rid/--record-id": record_id,
-        "--si/--structure-index": structure_index,
-        "--sid/--structure-id": structure_id,
-        "--mid/--molecule-id": molecule_id,
-    }
-    used_selectors = [k for k, v in selectors.items() if v is not None]
-
-    if ext in (".json", ".csv"):
-        if used_selectors:
-            raise click.UsageError(
-                f"{ext} export always covers the entire database; "
-                f"selection options {', '.join(used_selectors)} are not "
-                "allowed. They are only valid for .xyz/.extxyz exports."
-            )
-        if ext == ".json" and keys is not None:
-            raise click.UsageError("-k/--keys is only valid for .csv exports.")
-        if method_basis is not None:
-            raise click.UsageError(
-                "-x/--method-basis is only valid for .xyz/.extxyz exports."
-            )
-    elif ext in (".xyz", ".extxyz"):
-        if keys is not None:
-            raise click.UsageError("-k/--keys is only valid for .csv exports.")
-        # Mutual exclusivity among record/structure/molecule selectors
-        primary = [
-            ("--ri/--record-index", record_index),
-            ("--rid/--record-id", record_id),
-            ("--sid/--structure-id", structure_id),
-            ("--mid/--molecule-id", molecule_id),
-        ]
-        primary_used = [name for name, val in primary if val is not None]
-        if len(primary_used) == 0:
-            raise click.UsageError(
-                f"{ext} export requires exactly one of "
-                "--ri/--record-index, --rid/--record-id, "
-                "--sid/--structure-id, or --mid/--molecule-id."
-            )
-        if len(primary_used) > 1:
-            raise click.UsageError(
-                f"Selectors {', '.join(primary_used)} are mutually "
-                "exclusive; please specify exactly one."
-            )
-        # --si only valid with --ri/--rid
-        if structure_index is not None and not (
-            record_index is not None or record_id is not None
-        ):
-            raise click.UsageError(
-                "--si/--structure-index can only be used together with "
-                "--ri/--record-index or --rid/--record-id."
-            )
-        if method_basis is not None and not (
-            structure_id is not None or molecule_id is not None
-        ):
-            raise click.UsageError(
-                "-x/--method-basis can only be used together with "
-                "--sid/--structure-id or --mid/--molecule-id."
-            )
+    try:
+        validate_export_options(
+            output,
+            record_index=record_index,
+            record_id=record_id,
+            structure_index=structure_index,
+            structure_id=structure_id,
+            molecule_id=molecule_id,
+            keys=keys,
+            method_basis=method_basis,
+        )
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
 
     # Parse and validate -x/--method-basis against the database.
     method = basis = None
@@ -219,23 +176,7 @@ def export(
 def _parse_method_basis(db_file, raw):
     """Translate a user-supplied 'method/basis' string into a canonical
     (method, basis) tuple resolved against the database."""
-    from chemsmart.database.database import Database
-
-    if "/" not in raw:
-        raise click.UsageError(
-            f"-x/--method-basis must be given as 'method/basis' "
-            f"(got '{raw}'). Example: 'MN15/def2tzvp'."
-        )
-    method_raw, basis_raw = (s.strip() for s in raw.split("/", 1))
-    if not method_raw or not basis_raw:
-        raise click.UsageError(
-            f"-x/--method-basis must be given as 'method/basis' with "
-            f"both parts non-empty (got '{raw}')."
-        )
-
-    resolved = Database(db_file).resolve_method_basis(method_raw, basis_raw)
-    if resolved is None:
-        raise click.UsageError(
-            f"-x/--method-basis '{raw}' is not present in the database."
-        )
-    return resolved
+    try:
+        return resolve_method_basis(db_file, raw)
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc

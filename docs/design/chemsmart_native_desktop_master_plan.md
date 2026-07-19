@@ -1,6 +1,7 @@
 # ChemSmart Native Desktop Master Plan
 
-Status: P4 complete on the containing phase commit; P5 is next, 2026-07-19
+Status: P5 implementation, automated gates, and independent review green; phase
+commit pending, 2026-07-19
 Owner: ChemSmart maintainers
 Primary target: Zhang Lab internal macOS desktop app
 Framework: Python 3.10/3.11 + PySide6/Qt 6
@@ -28,10 +29,11 @@ Approved product decisions:
 - v1 provider UI supports OpenAI and Anthropic APIs. Local models remain CLI-only.
 - v1 does not submit HPC jobs and does not run real Gaussian/ORCA compute.
 - v1 includes Job builder, agent chat, fake dry-run/input preview, database
-  browsing, conformer grouping, thermochemistry, and interactive 3D structure
-  viewing. PyMOL rendering is optional. Standalone xTB opt, sp, and hess have
-  passed their backend-lineage, CLI/fake-run, and desktop artifact-parity gates;
-  the GUI exposes local-file safe preview only.
+  browsing, create-new database assembly and verified export, conformer grouping,
+  thermochemistry, and interactive 3D structure viewing. PyMOL rendering is
+  optional. Standalone xTB opt, sp, and hess have passed their backend-lineage,
+  CLI/fake-run, and desktop artifact-parity gates; the GUI exposes local-file safe
+  preview only.
 - Zhang Lab internal alpha may be unsigned/ad-hoc signed. A broadly distributed
   release is not complete until Developer ID signing and notarization pass.
 
@@ -45,30 +47,29 @@ Non-goals for v1:
 
 ## 2. Corrected current baseline
 
-P0 through P3 are committed through
-`agent-codebase-simplification@c79b6df8`; P4 is complete on the phase commit
-containing this plan. At that boundary the branch is five local commits ahead
+P0 through P4 are committed through
+`agent-codebase-simplification@5067903d`; P5 is implemented on the phase worktree
+containing this plan. Before the P5 commit the branch is five local commits ahead
 of and six commits behind
 `fork/agent-codebase-simplification`. Do not use `git clean`, `git stash -u`,
 reset, or branch switching as a preparation step.
 
 | Area | Current state | Consequence |
 |---|---|---|
-| Packaging spike | P1 complete; PyInstaller selected | PyInstaller passes the full frozen runtime, helper-entitlement, signature, archive, and shell gates. pyside6-deploy remains a red fallback because its pinned Nuitka bundle mixes data into `Contents/MacOS`. |
+| Packaging spike | P1 complete; PyInstaller selected and freshly reconfirmed | Authorized run `29668168830` reconfirmed all 18 PyInstaller gates. pyside6-deploy compiled but its strict normalizer rejected the expected 19-byte `Contents/MacOS/qt6.conf`; it remains a non-blocking experimental fallback. |
 | PySide6 extra and GUI entry point | P0 committed | Source entry and package data are stable; P1 adds a hidden packaging probe and absolute-path frozen CLI dispatch. |
 | Provider config and secrets | P2 reviewer-green | Provider literals remain backward-readable; new credentials use unique staged Keychain references, atomically commit YAML, then retire the old reference. Secret-bearing tasks disable retry retention. Tests use in-memory stores and never touch the real Keychain. |
-| App shell/theme | P4 validated | Native menus, Settings, system palette/font roles, adaptive three-region layout, status, accessible labels, and bounded runtime evidence projection are present. The QtWebEngine structure viewer initializes only after a molecule is selected, clears on source drift, skips oversized synchronous parsing, and closed windows release owned resources. Database and Analysis remain intentional P5 unavailable states. |
+| App shell/theme | P5 functional surfaces validated | Native menus, Settings, system palette/font roles, adaptive three-region layout, status, accessible labels, and bounded runtime evidence projection are present. Database and Analysis now use live structured adapters and retain visible results at the 720 x 520 minimum window. Full visual/accessibility acceptance remains P6. |
 | Job builder | P4 handoff complete | All 29 Gaussian/ORCA/xTB leaves retain P3 parity and safety. A draft can enter Chat only after an accepted safe-preview receipt; any edit revokes that handoff. A gated agent draft loads as typed state with receipt provenance and requires a new isolated preview before it can be sent onward. |
 | Chat | P4 complete | The native screen runs the canonical unified `run_loop()`, streams bounded durable decision projections, exposes distinct intent/semantic gates, honest indeterminate progress and cooperative cancellation, provider setup/error recovery, recent-session resume, retry, and two-way typed Job Builder handoff. Exact `chemsmart run` input has a deterministic no-provider path. |
 | Agent worker | P4 complete | A read-only desktop registry excludes repair, execution, submission, and project-writing tools while preserving CLI/TUI repair behavior. The adapter reuses canonical session/decision/runtime stores, an explicit `PermissionPolicy`, typed receipts, and strict `ok` + `ready` + two-gate + live-parser handoff acceptance; it does not introduce a second agent event store. |
 | 3D viewer | P1 frozen probe green | Integrity-checked 3Dmol.js 2.5.5 renders offline in the selected PyInstaller QtWebEngine bundle; PyMOL execution is not wired. |
-| Database/analysis | Absent | No screens or services. |
+| Database/analysis | P5 automated gates green | Database browse/query/detail and shared 3D preview are live. Explicit create-new assembly and JSON/CSV/XYZ/extXYZ export use shared domain rules, bounded input, private staging, integrity/readback/hash gates, an irreversible cancellation commit point, and atomic no-overwrite publication. Grouper, Thermochemistry, DIAS, and WBI/NBO population analysis run through typed domain adapters with bounded inputs and no implicit output writes. Strategy-specific units/defaults and optional-dependency availability are explicit; DIAS reference identity and NPA/NAO fail-closed behavior are regression-tested. |
 | Runtime environment | Split | Base Python can render PySide6; the `chemsmart` conda environment lacks PySide6. The current `chemsmart` executable on `PATH` resolves to another Codex worktree. |
-| Validation | P4 reviewer GREEN | The complete Agent suite passes 1,110 tests and the complete GUI suite passes 211 tests, including canonical streaming/cancellation, the late-assistant cancellation race, 25-turn continuity stress, typed two-way handoff, provider/direct session-boundary isolation, non-computational command rejection, result-visible minimum-window checks, and isolated QtWebEngine rendering. Exact receipts live in `docs/design/phase_receipts/p4_unified_agent_chat.md`; the P1 remote decision receipt remains the packaging evidence. |
+| Validation | P5 automated gates green | The complete Agent suite passes 1,110 tests and the complete GUI suite passes 308 tests with one explicit Open Babel skip. Database passes 52 domain tests plus one real desktop Gaussian+ORCA round trip in the Open-Babel-capable environment; Grouper/Thermochemistry pass 108 tests with seven explicit optional/external skips; the complete ORCA parser suite passes 63 tests. Fixed Database build/browse/export, DIAS, WBI, Thermochemistry, and Grouper results match their structured domain APIs. Exact P5 evidence is retained in `docs/design/phase_receipts/p5_database_analysis.md`. |
 
-The native Job builder and Chat are runnable source-checkout product slices.
-Database and Analysis remain deliberate unavailable states until P5, and a
-Finder-launched distributable remains a P7 completion gate.
+The native Job builder, Chat, Database, and Analysis are runnable source-checkout
+product slices. A Finder-launched distributable remains a P7 completion gate.
 
 ## 3. Product experience
 
@@ -388,8 +389,22 @@ pyside6-deploy/Nuitka took 1 hour 21 minutes without compiler hits and 51 minute
 invalid bundle, and remained red because its pinned app layout placed resource
 data such as `qtwebengine_resources.pak` and `qt6.conf` directly in the
 code-only `Contents/MacOS` directory. Keep its spec and failure receipts for
-future upstream reevaluation; do not add reactive relocation exceptions during
-the desktop implementation phases.
+comparison, but do not make it a release blocker.
+
+Fresh authorized confirmation (2026-07-19, run `29668168830`, exact temporary
+ref SHA `45d35f56`): PyInstaller again passed all 18 mandatory gates, including
+the strengthened four-helper-entitlement gate, three LaunchServices probes,
+shell navigation, 3Dmol render, archive round trip, and nested-to-outer ad-hoc
+signature verification. pyside6-deploy completed Nuitka compilation with
+6,796/6,796 cache hits, then the strict preflight rejected only the generated
+19-byte `Contents/MacOS/qt6.conf`. The fallback repair is bounded: retain that
+file beside the executable only when it is a regular, non-executable,
+non-symlink file with the exact `[Paths]\nPrefix = .\n` payload; record its
+path/mode/size/hash unchanged and continue rejecting every other unplanned data
+file. Test missing, modified, executable, symlinked, and additional direct-data
+cases before at most one authorized remote rerun. Do not move it to Resources
+blindly. This fallback repair belongs to P7 and does not alter the PyInstaller
+production decision.
 
 ### 6.3 Release levels
 
@@ -542,6 +557,9 @@ Exit:
 
 ### P4 — Unified agent Chat
 
+Status: complete on `5067903d`. See
+`docs/design/phase_receipts/p4_unified_agent_chat.md`.
+
 Replace placeholders with `run_loop()` streaming, desktop-safe tool profile,
 approval UI for future extensibility, cancellation, session resume, and typed
 JobDraft handoff.
@@ -555,13 +573,64 @@ Exit:
 
 ### P5 — Database and analysis
 
-Add Database browser/query, Grouper, and Thermochemistry through library adapters.
-Use the shared structure viewer and common background task controller.
+Status: implementation, automated gates, and independent review green on
+2026-07-19; complete after the containing phase commit. See
+`docs/design/phase_receipts/p5_database_analysis.md`.
+
+Database browse/query/detail, create-new assembly, export, Grouper,
+Thermochemistry, DIAS, and WBI/NBO population results use typed library adapters,
+the shared structure viewer, and the common background task controller. Database
+and analysis inputs are bounded; no screen launches calculations or parses
+formatted CLI text. Database build/export are explicit output operations with
+same-directory staging, validation, hashing, atomic no-overwrite publication,
+and a cancellation commit point; analysis remains no-output by default. The ORCA
+single-point geometry and DIAS energy defects found by the characterized fixture
+are repaired in the shared domain parsers with direct regression tests. SQLite
+queries now accept an optional in-statement cooperative cancellation hook without
+changing default CLI callers.
+
+ORCA `xyzfile` single-point outputs expose their indirect coordinate dependency
+through the domain parser. Desktop preflight rejects parent traversal, files
+outside the selected root, missing/non-regular files, and any symlink component;
+the dependency also counts toward the file/2 GiB limits. Device/inode/size/time
+and SHA-256 are frozen before parsing and checked again before staging, while the
+path, hash, and byte count survive a database read-back in provenance and appear
+in the build receipt. The shared parser now treats an `xyzfile` geometry as the
+sole structure for all/final selection, fixing an assembly path that previously
+returned no structures even though direct molecule recovery succeeded. Before
+identity or storage is computed, ORCA output charge, multiplicity, final energy,
+and available force/spectroscopic metadata replace the coordinate file's absent
+or stale comments. A charged/open-shell regression proves the electronic state
+changes `structure_id`, survives DB read-back, and exports the ORCA SP energy.
+
+Independent review found and drove corrections for stale-request Retry,
+retry-before-drain overlap, stale Grouper previews, strategy-specific threshold
+units, iRMSD inversion/default/availability parity, unsupported hydrogen options,
+pre-expansion WBI range limits, missing-NAO false results, and DIAS
+minimum-reference decomposition identity. Review of the expanded Goal also added
+Database assemble/export parity, strict no-geometry parsing, selection-drift
+coverage, traceable partial-frame export, atomic cancel/timeout-vs-publish
+semantics, and a latest-only drain-before-next worker queue after repeated Qt
+supersession exposed a signal-registration stall. The last High review also
+closed indirect ORCA geometry traversal, symlink, size-limit, mutation,
+provenance, and external-XYZ electronic-state/energy gaps. Each issue now has a
+focused regression.
+
+The final read-only review verdict is GREEN: Critical 0, High 0. It confirmed
+dependency boundary/provenance enforcement, charged/open-shell identity and
+energy round-trip, additive v1 schema compatibility, and preservation of the
+legacy CLI soft-fail path. A private immutable input snapshot is deferred: the
+current pre/post metadata and hash checks detect persistent or observable local
+changes but are not a defence against an adversary that changes a dependency
+transiently and restores the exact bytes and metadata. That stronger threat is
+outside the trusted local-workspace P5 boundary and remains a P7 hardening item.
 
 Exit:
 
 - fixed-fixture results match CLI/library baselines;
 - long operations show progress/cancel/error states;
+- build/export never overwrite an existing path and never report a committed
+  output as cancelled;
 - all scientific logic remains in existing domain modules or extracted shared
   pure functions with CLI regression tests.
 
@@ -593,20 +662,25 @@ Exit:
 
 Do these in order:
 
-1. Treat the committed P4 receipt as the frozen unified Chat and typed-handoff
-   baseline.
-2. Inventory the existing database assemble/select/extract/show/legacy and
-   molecule APIs, then freeze representative structured fixtures before UI work.
-3. Add narrow Database and Analysis service DTOs over existing domain APIs;
-   never parse formatted CLI output or reproduce scientific formulas in Qt.
-4. Implement Database first, reusing the bounded structure viewer, then add
-   Grouper, Thermochemistry, DIAS, and WBI in independently gated slices.
-5. Stress large, missing, malformed, repeated, cancelled, and restart/recovery
-   cases, and retain fixed-fixture library/CLI parity for every exposed result.
+1. Freeze the committed P5 receipt and rerun the `apple-design` review on every
+   rendered screen at 720 x 520, 1040 x 680, and 1440 x 900 in light, dark, and
+   increased-contrast appearances.
+2. Repair keyboard traversal, label buddies, screen-reader descriptions,
+   empty/loading/error writing, and narrow-window control density without
+   changing scientific defaults or receipt semantics.
+3. Add optional PyMOL only behind an explicit availability probe, a separately
+   cancellable worker/process boundary, and graceful absent-path evidence. Keep
+   the vendored 3Dmol viewer as the reliable default.
+4. Run full Agent/GUI/domain regressions and an independent P6 review; retain
+   Critical/High findings as blockers and commit the phase only when green.
+5. In P7, integrate the selected PyInstaller build into the current product
+   commit. Treat the exact `qt6.conf` pyside normalizer amendment as one bounded
+   fallback experiment, not a release dependency, and require new authorization
+   before another remote workflow run.
 
-Do not rerun the red pyside6-deploy fallback by default. Do not expand the P4
-desktop-safe agent registry with execution, submission, remote diagnostics, or
-project-writing tools while implementing P5.
+Do not expand the desktop-safe agent registry with execution, submission,
+remote diagnostics, or project-writing tools during P6. Do not claim Finder,
+Developer ID, notarization, or clean-machine acceptance before P7 evidence.
 
 ## 10. Claude/Codex collaboration contract
 

@@ -10,7 +10,7 @@ This module contains the core abstract base class and utilities:
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -433,6 +433,9 @@ class MoleculeGrouper(ABC):
         output_dir: str = None,
         energy_type: str = "E",
         thermo_parameters: str = None,
+        record_results: bool = True,
+        progress_callback: Callable[[int, int], None] | None = None,
+        cancel_callback: Callable[[], None] | None = None,
     ):
         """
         Initialize the molecular grouper.
@@ -462,6 +465,9 @@ class MoleculeGrouper(ABC):
         self.output_dir = output_dir
         self.energy_type = energy_type
         self.thermo_parameters = thermo_parameters
+        self.record_results = bool(record_results)
+        self.progress_callback = progress_callback
+        self.cancel_callback = cancel_callback
 
         # Cache for avoiding repeated grouping calculations
         self._cached_groups = None
@@ -520,7 +526,16 @@ class MoleculeGrouper(ABC):
 
     def record(self, **kwargs):
         """Public output entrypoint that delegates to strategy-specific recorder."""
+        if not self.record_results:
+            return None
         return self._record_results(**kwargs)
+
+    def _report_progress(self, current: int, total: int) -> None:
+        """Expose optional algorithm checkpoints without coupling to a UI."""
+        if self.cancel_callback is not None:
+            self.cancel_callback()
+        if self.progress_callback is not None:
+            self.progress_callback(current, total)
 
     def _record_results(self, **kwargs):
         """Strategy-specific result writer; implemented by concrete groupers."""

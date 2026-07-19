@@ -1,6 +1,9 @@
 import csv
 import json
+import re
+import shutil
 import sqlite3
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -28,6 +31,7 @@ from chemsmart.database.utils import (
     is_custom_basis,
     is_custom_solvent,
     resolve_record,
+    sha256_file,
     sort_frames_by_energy,
     sort_structure_dicts_by_energy,
     standardize_basis_set,
@@ -899,6 +903,29 @@ class TestDatabaseQuery:
         assert len(empty_summaries) == 0
         assert "No records" in empty.format_summary(empty.query_summaries())
 
+    def test_query_summaries_can_interrupt_active_sqlite_statement(
+        self, database_chemsmart_file
+    ):
+        class QueryCancelled(RuntimeError):
+            pass
+
+        checkpoints = 0
+
+        def cancel():
+            nonlocal checkpoints
+            checkpoints += 1
+            raise QueryCancelled("cancel active query")
+
+        query = DatabaseQuery(
+            database_chemsmart_file,
+            None,
+            limit=500,
+            cancel_callback=cancel,
+        )
+        with pytest.raises(QueryCancelled, match="active query"):
+            query.query_summaries()
+        assert checkpoints == 1
+
 
 class TestDatabaseExport:
     def test_json_and_csv_export(
@@ -1186,6 +1213,65 @@ class TestDatabaseAssembler:
         assert water_orca.meta["jobtype"] == "opt"
         assert water_orca.results["total_energy"] == -76.323311011349
         assert water_orca.molecules[-1]["chemical_formula"] == "H2O"
+
+    def test_orca_xyzfile_dependency_provenance_round_trip(self, tmp_path):
+        source_dir = Path("tests/data/ORCATests/dias").resolve()
+        output_name = "udc3_mCF3_c8_ts_ircr_dias_p0_sp.out"
+        geometry_name = "udc3_mCF3_c8_ts_ircr_dias_p0.xyz"
+        output_path = tmp_path / output_name
+        geometry_path = tmp_path / geometry_name
+        shutil.copy2(source_dir / geometry_name, geometry_path)
+        text = (source_dir / output_name).read_text(encoding="utf-8")
+        text = re.sub(
+            r"(Total Charge\s+Charge\s+\.\.\.\.\s+)0",
+            r"\g<1>-1",
+            text,
+        )
+        text = re.sub(
+            r"(Multiplicity\s+Mult\s+\.\.\.\.\s+)1",
+            r"\g<1>2",
+            text,
+        )
+        output_path.write_text(text, encoding="utf-8")
+        assembled = SingleFileAssembler(str(output_path)).assemble(
+            suppress_errors=False
+        )
+
+        molecule = assembled.molecules[0]
+        assert molecule["charge"] == -1
+        assert molecule["multiplicity"] == 2
+        assert molecule["energy"] == -4380.167450201429
+        assert molecule["energy"] != -4379.227445
+        assert molecule["is_optimized_structure"] is False
+        dependencies = assembled.provenance["source_dependencies"]
+        assert dependencies == [
+            {
+                "role": "orca_xyzfile_geometry",
+                "path": str(geometry_path.resolve()),
+                "sha256": sha256_file(geometry_path),
+                "size_bytes": geometry_path.stat().st_size,
+            }
+        ]
+
+        database = Database(str(tmp_path / "dependency.db"))
+        database.create()
+        database.insert_record(assembled)
+        stored = database.get_record(record_id=assembled.record_id)
+        assert stored["provenance"]["source_dependencies"] == dependencies
+        assert stored["molecules"][0]["charge"] == -1
+        assert stored["molecules"][0]["multiplicity"] == 2
+        assert stored["molecules"][0]["energy"] == -4380.167450201429
+
+        xyz_output = tmp_path / "charged-open-shell.xyz"
+        summary = DatabaseExporter(
+            database.db_file,
+            str(xyz_output),
+            record_index=1,
+        ).export()
+        assert summary.exported_count == 1
+        comment = xyz_output.read_text(encoding="utf-8").splitlines()[1]
+        assert "-4380.1674502014 Eh" in comment
+        assert "-4379.227445" not in comment
 
     def test_assembler_skips_invalid_files(
         self, tmp_path, gaussian_link_failed_outfile

@@ -34,7 +34,9 @@ from PySide6.QtWidgets import (
 )
 
 from chemsmart.gui import theme
-from chemsmart.gui.application.runtime_projection import DesktopRuntimeProjection
+from chemsmart.gui.application.runtime_projection import (
+    DesktopRuntimeProjection,
+)
 
 
 @dataclass(frozen=True)
@@ -207,11 +209,19 @@ class MainWindow(QMainWindow):
             self._structure_viewer.setVisible(False)
         messages = {
             "chat": "Agent provenance and deterministic gate receipts appear here.",
-            "database": "Selected molecule metadata appears here when P5 lands.",
-            "analysis": "Selected result evidence appears here when P5 lands.",
+            "database": (
+                "Select a database row to inspect its structured metadata and "
+                "molecular geometry."
+            ),
+            "analysis": (
+                "Analysis receipts identify the library result, input scope, and "
+                "whether any files were written."
+            ),
             "settings": "Settings are applied without changing job chemistry state.",
         }
-        self.inspector_status.setText(messages.get(key, "No context available."))
+        self.inspector_status.setText(
+            messages.get(key, "No context available.")
+        )
 
     def ensure_structure_viewer(self):
         """Create the QtWebEngine-backed viewer only after source selection."""
@@ -304,13 +314,17 @@ class MainWindow(QMainWindow):
         status = self.statusBar()
         status.setAccessibleName("ChemSmart status")
         self.provider_status = QLabel("AI: optional")
-        self.workspace_status = QLabel(f"Workspace: {self.workspace_root.name}")
+        self.workspace_status = QLabel(
+            f"Workspace: {self.workspace_root.name}"
+        )
         self.safety_status = QLabel("Safe preview")
         self.safety_status.setAccessibleDescription(
             "Desktop mode enforces fake run and blocks HPC submission."
         )
         self.task_status = QLabel("Idle")
-        self.task_status.setAccessibleDescription("No background task is running.")
+        self.task_status.setAccessibleDescription(
+            "No background task is running."
+        )
         for label in (
             self.provider_status,
             self.workspace_status,
@@ -414,27 +428,15 @@ def _make_chat(window: MainWindow) -> QWidget:
 
 
 def _make_database(window: MainWindow) -> QWidget:
-    from chemsmart.gui.screens.unavailable import UnavailableFeatureScreen
+    from chemsmart.gui.screens.database import DatabaseScreen
 
-    return UnavailableFeatureScreen(
-        "Database",
-        "P5",
-        "Database browsing is not available in this build yet. Existing "
-        "database commands remain available in the ChemSmart CLI.",
-        window,
-    )
+    return DatabaseScreen(window)
 
 
 def _make_analysis(window: MainWindow) -> QWidget:
-    from chemsmart.gui.screens.unavailable import UnavailableFeatureScreen
+    from chemsmart.gui.screens.analysis import AnalysisScreen
 
-    return UnavailableFeatureScreen(
-        "Analysis",
-        "P5",
-        "Grouper and thermochemistry tools are not available in this build "
-        "yet. Their existing CLI workflows are unchanged.",
-        window,
-    )
+    return AnalysisScreen(window)
 
 
 def _make_settings(window: MainWindow) -> QWidget:

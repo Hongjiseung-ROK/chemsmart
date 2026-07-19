@@ -24,6 +24,7 @@ from chemsmart.database.utils import (
     is_custom_basis,
     is_custom_solvent,
     sha256_content,
+    sha256_file,
     standardize_basis_set,
     utcnow_iso,
 )
@@ -54,7 +55,7 @@ class BaseAssembler:
     @staticmethod
     def build_provenance(filename, output):
         """Build provenance metadata for an assembled record."""
-        return {
+        provenance = {
             "source_file": filename,
             "source_file_hash": sha256_content(output),
             "source_file_size": file_size(filename),
@@ -66,6 +67,18 @@ class BaseAssembler:
             "assembled_at": utcnow_iso(),
             "normal_termination": output.normal_termination,
         }
+        dependency = getattr(output, "referenced_geometry_path", None)
+        if dependency is not None:
+            dependency = dependency.resolve(strict=True)
+            provenance["source_dependencies"] = [
+                {
+                    "role": "orca_xyzfile_geometry",
+                    "path": str(dependency),
+                    "sha256": sha256_file(dependency),
+                    "size_bytes": file_size(dependency),
+                }
+            ]
+        return provenance
 
     def assemble(self):
         if not self.output.normal_termination:
@@ -348,12 +361,34 @@ class SingleFileAssembler:
 
     @cached_property
     def assemble_data(self):
+        return self.assemble(suppress_errors=True)
+
+    def assemble(self, *, suppress_errors=True):
+        """Assemble one file, optionally preserving the legacy soft-fail API.
+
+        Desktop workflows use ``suppress_errors=False`` so a parser or optional
+        dependency failure cannot be mistaken for an intentionally skipped
+        abnormal calculation. Existing callers of ``assemble_data`` retain the
+        historical log-and-return-None behavior.
+        """
+
         assembler = self._get_assembler(self.filename)
         try:
             data = assembler.assemble()
         except Exception as e:
+            if not suppress_errors:
+                raise
             logger.error(f"Error assembling {self.filename}: {e}")
             return None
+        if data is None and not suppress_errors:
+            intentional_skip = (
+                not assembler.output.normal_termination
+                and not self.include_failed
+            )
+            if not intentional_skip:
+                raise ValueError(
+                    "No molecular structures could be assembled from the output."
+                )
         return data
 
     def _get_assembler(self, file):

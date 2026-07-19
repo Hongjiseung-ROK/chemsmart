@@ -178,10 +178,12 @@ class ConnectivityGrouper(MoleculeGrouper):
 
         # Check isomorphism for all pairs
         for idx, (i, j) in enumerate(indices):
+            self._report_progress(idx, total_pairs)
             if self._are_isomorphic(self.graphs[i], self.graphs[j]):
                 union(i, j)
             if (idx + 1) % 100 == 0 or idx + 1 == total_pairs:
                 logger.debug(f"Checked {idx + 1}/{total_pairs} pairs")
+        self._report_progress(total_pairs, total_pairs)
 
         # Build groups from Union-Find
         group_map = {}

@@ -12,6 +12,7 @@ import csv
 import json
 import logging
 import os
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -49,6 +50,124 @@ CSV_OPTIONAL_COLUMNS = {
 SUPPORTED_FORMATS = {".json", ".csv", ".xyz", ".extxyz"}
 
 
+@dataclass(frozen=True)
+class DatabaseExportSummary:
+    """Structured traceability for records or frames considered by an export."""
+
+    format: str
+    requested_count: int
+    exported_count: int
+    skipped_structure_ids: tuple[str, ...] = ()
+
+
+def validate_export_options(
+    output,
+    *,
+    record_index=None,
+    record_id=None,
+    structure_index=None,
+    structure_id=None,
+    molecule_id=None,
+    keys=None,
+    method_basis=None,
+):
+    """Validate format/selector compatibility for every export caller.
+
+    The CLI and desktop both use this function so selection semantics remain a
+    property of the database domain rather than being reimplemented by a UI.
+    Returns the normalized output extension when the request is valid.
+    """
+
+    ext = os.path.splitext(os.fspath(output))[1].lower()
+    if ext not in SUPPORTED_FORMATS:
+        raise ValueError(
+            f"Unsupported output format '{ext}'. "
+            f"Supported extensions: {', '.join(sorted(SUPPORTED_FORMATS))}"
+        )
+
+    selectors = {
+        "record index": record_index,
+        "record ID": record_id,
+        "structure index": structure_index,
+        "structure ID": structure_id,
+        "molecule ID": molecule_id,
+    }
+    used_selectors = [
+        name for name, value in selectors.items() if value is not None
+    ]
+
+    if ext in {".json", ".csv"}:
+        if used_selectors:
+            raise ValueError(
+                f"{ext} export always covers the entire database; selection "
+                f"options {', '.join(used_selectors)} are not allowed."
+            )
+        if ext == ".json" and keys is not None:
+            raise ValueError("CSV keys are only valid for .csv exports.")
+        if method_basis is not None:
+            raise ValueError(
+                "Method/basis selection is only valid for .xyz/.extxyz exports."
+            )
+        return ext
+
+    if keys is not None:
+        raise ValueError("CSV keys are only valid for .csv exports.")
+    primary = {
+        "record index": record_index,
+        "record ID": record_id,
+        "structure ID": structure_id,
+        "molecule ID": molecule_id,
+    }
+    primary_used = [
+        name for name, value in primary.items() if value is not None
+    ]
+    if len(primary_used) != 1:
+        raise ValueError(
+            f"{ext} export requires exactly one of record index, record ID, "
+            "structure ID, or molecule ID."
+        )
+    if (
+        structure_index is not None
+        and record_index is None
+        and record_id is None
+    ):
+        raise ValueError(
+            "Structure index can only be used with record index or record ID."
+        )
+    if (
+        method_basis is not None
+        and structure_id is None
+        and molecule_id is None
+    ):
+        raise ValueError(
+            "Method/basis selection can only be used with structure ID or molecule ID."
+        )
+    return ext
+
+
+def resolve_method_basis(db_file, raw):
+    """Resolve a user-provided ``method/basis`` pair against a database."""
+
+    if "/" not in raw:
+        raise ValueError(
+            "Method/basis must use the form 'method/basis' "
+            f"(got '{raw}'). Example: 'MN15/def2tzvp'."
+        )
+    method_raw, basis_raw = (part.strip() for part in raw.split("/", 1))
+    if not method_raw or not basis_raw:
+        raise ValueError(
+            "Method/basis requires two non-empty parts " f"(got '{raw}')."
+        )
+    resolved = Database(os.fspath(db_file)).resolve_method_basis(
+        method_raw, basis_raw
+    )
+    if resolved is None:
+        raise ValueError(
+            f"Method/basis '{raw}' is not present in the database."
+        )
+    return resolved
+
+
 class DatabaseExporter:
     """Export a chemsmart database to JSON, CSV, XYZ, or extended XYZ."""
 
@@ -64,6 +183,7 @@ class DatabaseExporter:
         keys=None,
         method=None,
         basis=None,
+        output_label=None,
     ):
         self.db_file = db_file
         self.db = Database(db_file)
@@ -76,8 +196,23 @@ class DatabaseExporter:
         self.keys = keys
         self.method = method
         self.basis = basis
-        self.format = self._infer_format()
+        self.output_label = output_label or os.path.basename(self.output)
+        self.format = validate_export_options(
+            output,
+            record_index=record_index,
+            record_id=record_id,
+            structure_index=structure_index,
+            structure_id=structure_id,
+            molecule_id=molecule_id,
+            keys=keys,
+            method_basis=(
+                (method, basis)
+                if method is not None or basis is not None
+                else None
+            ),
+        )
         self.parsed_keys = self._parse_csv_keys()
+        self.last_summary: DatabaseExportSummary | None = None
 
     @property
     def user_primary_mb(self):
@@ -94,13 +229,14 @@ class DatabaseExporter:
             ".xyz": self.to_xyz,
             ".extxyz": self.to_extxyz,
         }
-        handler[self.format]()
+        return handler[self.format]()
 
     def to_json(self):
         """Export the full database as structured JSON."""
         records = self.db.get_all_records()
         with open(self.output, "w") as f:
             json.dump(convert_numpy(records), f, indent=4)
+        return self._set_summary(len(records), len(records))
 
     def to_csv(self):
         """Export scalar properties of the full database as CSV."""
@@ -113,6 +249,7 @@ class DatabaseExporter:
             writer = csv.DictWriter(f, fieldnames=columns, restval="NaN")
             writer.writeheader()
             writer.writerows(rows)
+        return self._set_summary(len(records), len(rows))
 
     @staticmethod
     def record_to_csv_row(record, columns):
@@ -144,14 +281,18 @@ class DatabaseExporter:
         * record_index / record_id -> structures of the record,
           filtered by structure_index (default last only).
         """
-        frames = self._collect_frames(include_forces=False)
+        frames, requested_count, skipped_ids = self._collect_frames(
+            include_forces=False
+        )
         logger.info(
-            f"Writing {len(frames)} XYZ frame(s) to "
-            f"{os.path.basename(self.output)}"
+            f"Writing {len(frames)} XYZ frame(s) to " f"{self.output_label}"
         )
         with open(self.output, "w") as f:
             for frame in frames:
                 self._write_xyz_frame(f, frame)
+        return self._set_summary(
+            requested_count, len(frames), skipped_structure_ids=skipped_ids
+        )
 
     def to_extxyz(self):
         """Export selected structure(s) as extended XYZ.
@@ -159,14 +300,19 @@ class DatabaseExporter:
         carries the calculation energy in the comment line and per-atom
         forces as a forces:R:3 property.
         """
-        frames = self._collect_frames(include_forces=True)
+        frames, requested_count, skipped_ids = self._collect_frames(
+            include_forces=True
+        )
         logger.info(
             f"Writing {len(frames)} Extended XYZ frame(s) to "
-            f"{os.path.basename(self.output)}"
+            f"{self.output_label}"
         )
         with open(self.output, "w") as f:
             for frame in frames:
                 self._write_extxyz_frame(f, frame)
+        return self._set_summary(
+            requested_count, len(frames), skipped_structure_ids=skipped_ids
+        )
 
     def _collect_frames(self, include_forces=False):
         """Validate selectors and dispatch to the appropriate frame builder."""
@@ -225,6 +371,8 @@ class DatabaseExporter:
 
         if not frames:
             raise ValueError("No structures found for the given selection.")
+        requested_count = len(frames)
+        skipped_structure_ids: list[str] = []
 
         if include_forces and effective_primary is None:
             raise ValueError(
@@ -245,6 +393,10 @@ class DatabaseExporter:
                     else:
                         skipped.append(f.get("structure_id"))
                 if skipped:
+                    skipped_structure_ids.extend(
+                        str(sid) if sid is not None else "unknown"
+                        for sid in skipped
+                    )
                     max_show = 5
                     shown = ", ".join(
                         (sid[:12] if sid else "?")
@@ -268,14 +420,17 @@ class DatabaseExporter:
                 sort_primary = effective_primary
             elif self.user_primary_mb is not None:
                 # xyz: keep only structures that have energy at the requested mb.
-                kept = [
-                    f
-                    for f in frames
+                kept = []
+                for frame in frames:
                     if any(
-                        (m, b) == effective_primary
-                        for m, b, _ in f.get("energies", [])
-                    )
-                ]
+                        (method, basis) == effective_primary
+                        for method, basis, _energy in frame.get("energies", [])
+                    ):
+                        kept.append(frame)
+                    else:
+                        skipped_structure_ids.append(
+                            str(frame.get("structure_id") or "unknown")
+                        )
                 if not kept:
                     raise ValueError(
                         "No structures found at the given method/basis."
@@ -286,7 +441,23 @@ class DatabaseExporter:
         if self.molecule_id is not None:
             frames = sort_frames_by_energy(frames, primary=sort_primary)
 
-        return frames
+        return frames, requested_count, tuple(skipped_structure_ids)
+
+    def _set_summary(
+        self,
+        requested_count,
+        exported_count,
+        *,
+        skipped_structure_ids=(),
+    ):
+        summary = DatabaseExportSummary(
+            format=self.format,
+            requested_count=requested_count,
+            exported_count=exported_count,
+            skipped_structure_ids=tuple(skipped_structure_ids),
+        )
+        self.last_summary = summary
+        return summary
 
     def frames_from_record(self, include_forces=False):
         """Build frames from --ri/--rid (+ optional --si)."""
@@ -505,7 +676,7 @@ class DatabaseExporter:
         sid = frame.get("structure_id") or ""
         energies = frame.get("energies", [])
 
-        parts = [os.path.basename(self.output)]
+        parts = [self.output_label]
         if sid:
             parts.append(f"SID: {str(sid)[:12]}")
         if molecule.chemical_formula:
@@ -561,7 +732,7 @@ class DatabaseExporter:
             )
             parts.append(f'source="{source}"')
         # Human-readable comment field.
-        comment_parts = [os.path.basename(self.output)]
+        comment_parts = [self.output_label]
         if sid:
             comment_parts.append(f"SID: {str(sid)[:12]}")
         if molecule.chemical_formula:

@@ -128,6 +128,7 @@ class Database:
                     source_file TEXT,
                     source_file_hash TEXT,
                     source_file_size INTEGER,
+                    source_dependencies_json TEXT,
                     source_file_date TEXT,
                     program_version TEXT,
                     parser TEXT,
@@ -136,6 +137,16 @@ class Database:
                     normal_termination INTEGER
                 )
             """)
+            record_columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(records)")
+            }
+            if "source_dependencies_json" not in record_columns:
+                # Additive schema hardening for existing v1 databases. Older
+                # readers ignore the column; current readers retain dependency
+                # provenance needed by ORCA xyzfile calculations.
+                conn.execute(
+                    "ALTER TABLE records ADD COLUMN source_dependencies_json TEXT"
+                )
 
             logger.debug("Creating molecules table...")
             conn.execute("""
@@ -289,13 +300,14 @@ class Database:
                 electronic_entropy, vibrational_entropy, rotational_entropy,
                 translational_entropy, entropy, entropy_times_temperature,
                 gibbs_free_energy,
-                source_file, source_file_hash, source_file_size, source_file_date,
+                source_file, source_file_hash, source_file_size,
+                source_dependencies_json, source_file_date,
                 program_version, parser, chemsmart_version, assembled_at,
                 normal_termination
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
             )
             """,
             (
@@ -355,6 +367,7 @@ class Database:
                 provenance.get("source_file"),
                 provenance.get("source_file_hash"),
                 provenance.get("source_file_size"),
+                to_json(provenance.get("source_dependencies")),
                 provenance.get("source_file_date"),
                 provenance.get("program_version"),
                 provenance.get("parser"),
@@ -703,6 +716,9 @@ class Database:
             provenance["normal_termination"] = bool(
                 row.get("normal_termination")
             )
+        source_dependencies = from_json(row.get("source_dependencies_json"))
+        if source_dependencies is not None:
+            provenance["source_dependencies"] = source_dependencies
         return provenance
 
     @staticmethod

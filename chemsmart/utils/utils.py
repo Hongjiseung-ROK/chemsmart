@@ -1862,7 +1862,7 @@ def to_graph_wrapper(
     )
 
 
-def find_irmsd_command():
+def find_irmsd_command(*, probe_conda: bool = True):
     """
     Find the irmsd command, checking multiple sources.
 
@@ -1873,6 +1873,13 @@ def find_irmsd_command():
 
     Returns:
         str or None: Full path to irmsd command, or None if not found.
+
+    Parameters
+    ----------
+    probe_conda
+        When false, skip the bounded ``conda run`` fallback. This is used by
+        interactive UI availability checks so opening a screen never blocks on
+        an external environment probe.
 
     Example:
         # Check availability
@@ -1925,22 +1932,23 @@ def find_irmsd_command():
                 return irmsd_path
 
         # Fallback: use conda run to find irmsd (handles unusual conda installations)
-        try:
-            result = subprocess.run(
-                ["conda", "run", "-n", conda_env, "which", "irmsd"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                irmsd_path = result.stdout.strip()
-                if os.path.isfile(irmsd_path) and os.access(
-                    irmsd_path, os.X_OK
-                ):
-                    return irmsd_path
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-            # conda not available or timeout, continue to next option
-            pass
+        if probe_conda:
+            try:
+                result = subprocess.run(
+                    ["conda", "run", "-n", conda_env, "which", "irmsd"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    irmsd_path = result.stdout.strip()
+                    if os.path.isfile(irmsd_path) and os.access(
+                        irmsd_path, os.X_OK
+                    ):
+                        return irmsd_path
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+                # conda not available or timeout, continue to next option
+                pass
 
     # Option 3: irmsd in current PATH
     irmsd_in_path = shutil.which("irmsd")

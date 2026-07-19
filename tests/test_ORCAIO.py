@@ -1,5 +1,7 @@
 import math
 import os
+import re
+from pathlib import Path
 from shutil import copy
 
 import numpy as np
@@ -1179,6 +1181,70 @@ class TestORCAOutput:
         assert isinstance(orca_out.molecule, Molecule)
         assert orca_out.normal_termination is True
         assert orca_out.total_elapsed_walltime == 0.0
+
+    def test_read_sp_xyzfile_output_recovers_sibling_geometry(self):
+        output_path = os.path.abspath(
+            "tests/data/ORCATests/dias/" "udc3_mCF3_c8_ts_ircr_dias_p0_sp.out"
+        )
+        orca_out = ORCAOutput(filename=output_path)
+
+        assert orca_out.optimized_output_lines == []
+        assert (
+            orca_out.referenced_geometry_filename
+            == "udc3_mCF3_c8_ts_ircr_dias_p0.xyz"
+        )
+        assert os.path.samefile(
+            orca_out.referenced_geometry_path,
+            os.path.join(
+                os.path.dirname(output_path),
+                "udc3_mCF3_c8_ts_ircr_dias_p0.xyz",
+            ),
+        )
+        molecule = orca_out.molecule
+        assert molecule.num_atoms == 90
+        assert molecule.chemical_symbols[:5] == [
+            "O",
+            "O",
+            "O",
+            "C",
+            "C",
+        ]
+        assert molecule.charge == 0
+        assert molecule.multiplicity == 1
+        assert molecule.energy == -4380.167450201429
+        assert molecule.energy != -4379.227445
+        assert molecule.structure_index_in_file == 1
+        assert molecule.is_optimized_structure is False
+        assert np.isclose(orca_out.final_energy, -4380.167450201429)
+
+    def test_read_sp_xyzfile_uses_output_electronic_state(self, tmp_path):
+        source_dir = Path("tests/data/ORCATests/dias").resolve()
+        output_name = "udc3_mCF3_c8_ts_ircr_dias_p0_sp.out"
+        geometry_name = "udc3_mCF3_c8_ts_ircr_dias_p0.xyz"
+        output_path = tmp_path / output_name
+        copy(source_dir / geometry_name, tmp_path / geometry_name)
+        text = (source_dir / output_name).read_text(encoding="utf-8")
+        text, charge_count = re.subn(
+            r"(Total Charge\s+Charge\s+\.\.\.\.\s+)0",
+            r"\g<1>-1",
+            text,
+        )
+        text, multiplicity_count = re.subn(
+            r"(Multiplicity\s+Mult\s+\.\.\.\.\s+)1",
+            r"\g<1>2",
+            text,
+        )
+        assert charge_count >= 1
+        assert multiplicity_count >= 1
+        output_path.write_text(text, encoding="utf-8")
+
+        neutral = ORCAOutput(filename=str(source_dir / output_name)).molecule
+        charged_open_shell = ORCAOutput(filename=str(output_path)).molecule
+
+        assert charged_open_shell.charge == -1
+        assert charged_open_shell.multiplicity == 2
+        assert charged_open_shell.energy == -4380.167450201429
+        assert charged_open_shell.structure_id != neutral.structure_id
 
     def test_read_sp_full_print_output(self, dlpno_ccsdt_sp_full_print):
         orca_out = ORCAOutput(filename=dlpno_ccsdt_sp_full_print)

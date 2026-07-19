@@ -81,10 +81,13 @@ class FormulaGrouper(MoleculeGrouper):
         formula_groups = defaultdict(list)
         formula_indices = defaultdict(list)
 
+        total = len(self.molecules)
         for i, mol in enumerate(self.molecules):
+            self._report_progress(i, total)
             formula = mol.chemical_formula
             formula_groups[formula].append(mol)
             formula_indices[formula].append(i)
+        self._report_progress(total, total)
 
         # Convert to lists
         groups = list(formula_groups.values())

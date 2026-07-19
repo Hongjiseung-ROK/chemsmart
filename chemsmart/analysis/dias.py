@@ -224,22 +224,23 @@ class DIASOutputFolder(BaseFolder):
         if self.zero:  # zeroing
             if self.ref_file is None:  # noqa: SIM108
                 # no ref file given, take min of rel tot energy as zero
-                lowest_rel_tot_e = min(self.list_rel_total_energies)
+                reference_offset = min(self.list_rel_total_energies)
             else:
                 # ref file is given, zero ref wrt to the ref file given
-                lowest_rel_tot_e = self.ref_file_rel_energy
+                reference_offset = self.ref_file_rel_energy
         else:
             # no zeroing reference, plot as given
             # (whether ref file is given or not)
-            lowest_rel_tot_e = 0.0
+            reference_offset = 0.0
         rel_total_energies = [
-            i - lowest_rel_tot_e for i in self.list_rel_total_energies
+            i - reference_offset for i in self.list_rel_total_energies
         ]
-        total_strain_energies = [
-            i - lowest_rel_tot_e for i in self.list_total_strain_energies
-        ]
+        # Distortion is defined by the deformed fragments and must not change
+        # when the total curve is re-referenced. Apply the same offset to the
+        # interaction term so ΔE = ΔE_distortion + ΔE_interaction remains true.
+        total_strain_energies = list(self.list_total_strain_energies)
         total_interaction_energies = [
-            i - lowest_rel_tot_e for i in self.list_total_interaction_energies
+            i - reference_offset for i in self.list_total_interaction_energies
         ]
         return (
             rel_total_energies,
@@ -648,7 +649,9 @@ class ORCADIASOutFolder(DIASOutputFolder):
         all_energies = []
         for file in list_of_files:
             oout = ORCAOutput(filename=file)
-            energy = oout.molecule.final_energy
+            energy = oout.final_energy
+            if energy is None:
+                raise ValueError(f"No final ORCA energy found in {file}.")
             # convert energy from Hartree (default unit) to kcal/mol
             energy *= units.Hartree  # convert Hartree to eV using ase
             energy /= units.kcal / units.mol

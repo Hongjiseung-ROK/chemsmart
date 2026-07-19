@@ -1,3 +1,4 @@
+import importlib.util
 import os
 import shutil
 import tempfile
@@ -23,6 +24,8 @@ from chemsmart.jobs.grouper.tanimoto import TanimotoSimilarityGrouper
 from chemsmart.jobs.grouper.tfd import TorsionFingerprintGrouper
 from chemsmart.utils.grouper import StructureGrouperFactory
 from chemsmart.utils.utils import find_irmsd_command, kabsch_align
+
+PYMOL_AVAILABLE = importlib.util.find_spec("pymol") is not None
 
 
 @pytest.fixture
@@ -553,7 +556,52 @@ class Test_IRMSD_grouper:
         assert np.isclose(rmsd, 0.2294, rtol=1e-3)
 
 
+def test_irmsd_ignore_hydrogens_compares_heavy_atom_composition(
+    monkeypatch, temp_working_dir
+):
+    import subprocess
+    from types import SimpleNamespace
+
+    import chemsmart.jobs.grouper.rmsd as rmsd_module
+    from chemsmart.io.molecules.structure import Molecule
+
+    molecule_with_h = Molecule(
+        symbols=["C", "H"],
+        positions=[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+    )
+    heavy_only = Molecule(
+        symbols=["C"],
+        positions=[[0.1, 0.0, 0.0]],
+    )
+    commands = []
+
+    monkeypatch.setattr(
+        rmsd_module, "find_irmsd_command", lambda: "/fake/irmsd"
+    )
+
+    def run(command, **_kwargs):
+        commands.append(command)
+        return SimpleNamespace(
+            returncode=0,
+            stdout="iRMSD: 0.125\nInversion check: auto\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", run)
+    grouper = IRMSDGrouper(
+        [molecule_with_h, heavy_only],
+        ignore_hydrogens=True,
+        record_results=False,
+    )
+
+    assert grouper._calculate_rmsd((0, 1)) == pytest.approx(0.125)
+    assert commands and "--heavy" in commands[0]
+
+
 @pytest.mark.usefixtures("temp_working_dir")
+@pytest.mark.skipif(
+    not PYMOL_AVAILABLE, reason="optional PyMOL is not installed"
+)
 class Test_PymolRMSD_grouper:
     NUM_PROCS = 1
 
@@ -708,6 +756,30 @@ class Test_PymolRMSD_grouper:
 @pytest.mark.usefixtures("temp_working_dir")
 class Test_Tanimoto_similarity_grouper:
     NUM_PROCS = 4
+
+    def test_tanimoto_fails_closed_when_rdkit_conversion_loses_an_input(
+        self, methanol_molecules, monkeypatch
+    ):
+        monkeypatch.setattr(methanol_molecules[1], "to_rdkit", lambda: None)
+
+        with pytest.raises(ValueError, match=r"molecule\(s\) 2"):
+            TanimotoSimilarityGrouper(methanol_molecules)
+
+    def test_tanimoto_fails_closed_when_fingerprint_generation_fails(
+        self, methanol_molecules, monkeypatch
+    ):
+        grouper = TanimotoSimilarityGrouper(methanol_molecules, num_procs=1)
+        original = grouper._get_fingerprint
+        calls = 0
+
+        def fail_second(rdkit_mol):
+            nonlocal calls
+            calls += 1
+            return None if calls == 2 else original(rdkit_mol)
+
+        monkeypatch.setattr(grouper, "_get_fingerprint", fail_second)
+        with pytest.raises(ValueError, match=r"molecule\(s\) 2"):
+            grouper.group()
 
     def test_tanimoto_similarity_grouper(
         self, methanol_molecules, methanol_and_ethanol, temp_working_dir
@@ -1315,20 +1387,23 @@ class Testfactory:
             )
             assert isinstance(irmsd_grouper, RMSDGrouper)
 
-        pymolrmsd_grouper = factory.create(
-            methanol_molecules, strategy="pymolrmsd"
-        )
-        assert isinstance(pymolrmsd_grouper, RMSDGrouper)
+        if PYMOL_AVAILABLE:
+            pymolrmsd_grouper = factory.create(
+                methanol_molecules, strategy="pymolrmsd"
+            )
+            assert isinstance(pymolrmsd_grouper, RMSDGrouper)
 
-        # Explicitly cleanup pymolrmsd_grouper to prevent __del__ from calling quit()
-        if (
-            hasattr(pymolrmsd_grouper, "_temp_dir")
-            and pymolrmsd_grouper._temp_dir
-        ):
-
-            shutil.rmtree(pymolrmsd_grouper._temp_dir, ignore_errors=True)
-            pymolrmsd_grouper._temp_dir = None
-        pymolrmsd_grouper.cmd = None  # Prevent __del__ from calling quit()
+            # Explicit cleanup prevents __del__ from terminating shared PyMOL.
+            if (
+                hasattr(pymolrmsd_grouper, "_temp_dir")
+                and pymolrmsd_grouper._temp_dir
+            ):
+                shutil.rmtree(pymolrmsd_grouper._temp_dir, ignore_errors=True)
+                pymolrmsd_grouper._temp_dir = None
+            pymolrmsd_grouper.cmd = None
+        else:
+            with pytest.raises(ImportError, match="PyMOL not available"):
+                factory.create(methanol_molecules, strategy="pymolrmsd")
 
         torsion_grouper = factory.create(
             methanol_molecules, strategy="torsion"

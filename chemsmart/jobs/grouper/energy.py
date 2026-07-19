@@ -189,6 +189,7 @@ class EnergyGrouper(MoleculeGrouper):
         energy_diff_relative = []  # For output matrix (with sign)
         energy_diff_absolute = []  # For threshold comparison
         for idx, (i, j) in enumerate(indices):
+            self._report_progress(idx, total_pairs)
             rel_diff, abs_diff = self._calculate_energy_diff((i, j))
             energy_diff_relative.append(rel_diff)
             energy_diff_absolute.append(abs_diff)
@@ -196,6 +197,7 @@ class EnergyGrouper(MoleculeGrouper):
                 logger.info(
                     f"The {idx+1}/{total_pairs} pair (conformer{i+1}, conformer{j+1}) calculation finished"
                 )
+        self._report_progress(total_pairs, total_pairs)
 
         # Build full energy difference matrix for output (with sign, relative to smaller index)
         # matrix[i,j] = E_j - E_i (positive means j has higher energy)

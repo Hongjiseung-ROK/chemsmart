@@ -182,7 +182,14 @@ TARGET_CONFIG = {
 class DatabaseQuery:
     """Query and filter records, molecules, or structures from a chemsmart database."""
 
-    def __init__(self, db_file, query_string, target="records", limit=None):
+    def __init__(
+        self,
+        db_file,
+        query_string,
+        target="records",
+        limit=None,
+        cancel_callback=None,
+    ):
         """Initialize a database query.
 
         Args:
@@ -190,6 +197,8 @@ class DatabaseQuery:
             query_string: Optional query expression to filter results.
             target: Query target — "records", "molecules", or "structures".
             limit: Maximum number of results to return.
+            cancel_callback: Optional cooperative cancellation checkpoint used
+                by long SQLite statements.
         """
         if target not in VALID_TARGETS:
             raise ValueError(
@@ -200,7 +209,32 @@ class DatabaseQuery:
         self.query_string = query_string
         self.target = target
         self.limit = limit
+        self.cancel_callback = cancel_callback
+        self._cancellation_error = None
         self._config = TARGET_CONFIG[target]
+
+    def _open_query_connection(self):
+        conn = open_connection(self.db_file)
+        self._cancellation_error = None
+        if self.cancel_callback is not None:
+
+            def progress_handler():
+                try:
+                    self.cancel_callback()
+                except (
+                    Exception
+                ) as error:  # propagated after sqlite interrupts
+                    self._cancellation_error = error
+                    return 1
+                return 0
+
+            conn.set_progress_handler(progress_handler, 100)
+        return conn
+
+    def _raise_query_error(self, error):
+        if self._cancellation_error is not None:
+            raise self._cancellation_error from error
+        raise error
 
     def parse_query(self):
         """Translate a user query string into a parameterised SQL WHERE clause."""
@@ -274,7 +308,7 @@ class DatabaseQuery:
         Returns:
             List of dictionaries, one per matched entity.
         """
-        conn = open_connection(self.db_file)
+        conn = self._open_query_connection()
         conn.row_factory = sqlite3.Row
         try:
             sql = self._config["summary_select"]
@@ -288,6 +322,8 @@ class DatabaseQuery:
                 sql += f" LIMIT {self.limit}"
             rows = conn.execute(sql, params).fetchall()
             return [dict(row) for row in rows]
+        except sqlite3.OperationalError as error:
+            self._raise_query_error(error)
         finally:
             conn.close()
 
@@ -297,9 +333,11 @@ class DatabaseQuery:
         Returns:
             Total number of entities in the database.
         """
-        conn = open_connection(self.db_file)
+        conn = self._open_query_connection()
         try:
             return conn.execute(self._config["count_total_sql"]).fetchone()[0]
+        except sqlite3.OperationalError as error:
+            self._raise_query_error(error)
         finally:
             conn.close()
 
@@ -309,7 +347,7 @@ class DatabaseQuery:
         Returns:
             Number of entities matching the query, or total if no query.
         """
-        conn = open_connection(self.db_file)
+        conn = self._open_query_connection()
         try:
             if self.query_string:
                 where_clause, params = self.parse_query()
@@ -321,6 +359,8 @@ class DatabaseQuery:
                 return conn.execute(
                     self._config["count_total_sql"]
                 ).fetchone()[0]
+        except sqlite3.OperationalError as error:
+            self._raise_query_error(error)
         finally:
             conn.close()
 

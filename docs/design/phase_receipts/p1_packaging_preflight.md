@@ -364,3 +364,44 @@ P1 establishes packaging feasibility and a reproducible candidate. It does not
 claim that the P0 scaffold is the finished researcher UI. Progress reporting,
 cancellation/recovery, accessible controls, researcher workflow depth, and
 continued Apple-design refinement remain mandatory P2–P6 work.
+
+## Fresh authorized confirmation — run 29668168830
+
+On 2026-07-19 the user authorized pushing the already-existing temporary ref,
+running the manual macOS workflow with `candidate=both`, and downloading both
+candidate artifacts. The no-op fork push reported `Everything up-to-date`; run
+`29668168830` executed exact SHA `45d35f56ab1f041131bbb5a0fe116647c9de6d9e`.
+
+All three outer artifact ZIP SHA-256 values match GitHub's digests and pass
+archive integrity checks. Both source suites report `172 passed`. The fresh
+PyInstaller bundle archive SHA-256 is
+`16c397ed0661007412392db9365afbd7505e7833d4e8a82fbc4574cadb10f7c0`,
+matching both internal receipts. Its 812,775,791-byte app again passes all 18
+mandatory gates: arm64/minimum-OS identity, exact bundle identifier, symlink and
+inventory integrity, nested-to-outer signature, all four QtWebEngine helper
+entitlements, three isolated LaunchServices probes, shell navigation,
+Gaussian/ORCA fake inputs, self-dispatch, offline 3Dmol render, archive round
+trip, and local strict/deep re-verification. Gatekeeper rc 3 remains expected
+for an ad-hoc, unnotarized spike. The only Low observation is a 55 ms SF Mono
+substitution.
+
+pyside6-deploy again completed compilation, this time with 6,796/6,796 compiler
+cache hits, but strict normalization stopped before mutation because the pinned
+Nuitka bundle contains `Contents/MacOS/qt6.conf`. No pyside bundle, signature,
+metrics, or launch artifact was accepted. This is the same deterministic
+failure as the immediately preceding `45d35f56` attempt, not compiler
+nondeterminism.
+
+The bounded fallback fix is now specific: do not relocate `qt6.conf` blindly.
+Permit it beside the executable only if it is a regular non-symlink,
+non-executable file with the exact 19-byte `[Paths]\nPrefix = .\n` payload;
+record path, mode, size, and SHA-256 unchanged. Missing, modified, executable,
+symlinked, and additional direct-data cases must fail before mutation. A new
+remote rerun requires new authorization and must still pass normalization,
+signing, helper entitlements, three probes, shell, archive, and checksum gates.
+
+The production recommendation is unchanged: PyInstaller is the release
+baseline; pyside6-deploy remains an experimental, non-blocking fallback. The
+temporary ad-hoc artifact itself is not a release. Current-product integration,
+Developer ID, hardened runtime, notarization, maintained-builder, and
+clean-machine acceptance remain P7 gates.

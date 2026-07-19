@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from enum import Enum
-import threading
 from typing import Callable, Generic, TypeVar
 
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
-
 T = TypeVar("T")
+U = TypeVar("U")
 
 
 class TaskStatus(str, Enum):
@@ -33,10 +33,14 @@ class TaskProgress:
 
     def __post_init__(self) -> None:
         if (self.current is None) != (self.total is None):
-            raise ValueError("Progress current and total must be set together.")
+            raise ValueError(
+                "Progress current and total must be set together."
+            )
         if self.current is not None:
             if self.total is None or self.total <= 0:
-                raise ValueError("Determinate progress needs a positive total.")
+                raise ValueError(
+                    "Determinate progress needs a positive total."
+                )
             if self.current < 0 or self.current > self.total:
                 raise ValueError("Progress current must be within total.")
 
@@ -68,17 +72,48 @@ class TaskCancelled(RuntimeError):
 class CancellationToken:
     def __init__(self) -> None:
         self._event = threading.Event()
+        self._state_lock = threading.Lock()
+        self._commit_sealed = False
+        self._committed = False
 
     @property
     def cancelled(self) -> bool:
         return self._event.is_set()
 
-    def cancel(self) -> None:
-        self._event.set()
+    def cancel(self) -> bool:
+        """Request cancellation unless an irreversible commit has started."""
+
+        with self._state_lock:
+            if self._commit_sealed or self._committed:
+                return False
+            self._event.set()
+            return True
 
     def raise_if_cancelled(self) -> None:
         if self.cancelled:
             raise TaskCancelled("Task cancelled.")
+
+    def commit(self, action: Callable[[], U]) -> U:
+        """Run an irreversible action after atomically sealing cancellation.
+
+        Cancellation wins if it was requested before this method acquires the
+        state lock. Once sealed, later cancellation is rejected so a published
+        side effect cannot be reported as cancelled by the worker.
+        """
+
+        with self._state_lock:
+            if self._event.is_set():
+                raise TaskCancelled("Task cancelled before commit.")
+            self._commit_sealed = True
+        try:
+            result = action()
+        except Exception:
+            with self._state_lock:
+                self._commit_sealed = False
+            raise
+        with self._state_lock:
+            self._committed = True
+        return result
 
 
 class TaskContext:
@@ -95,11 +130,18 @@ class TaskContext:
     def report_indeterminate(self, message: str = "") -> None:
         self._report(TaskProgress(message=message))
 
-    def report_progress(self, current: int, total: int, message: str = "") -> None:
-        self._report(TaskProgress(current=current, total=total, message=message))
+    def report_progress(
+        self, current: int, total: int, message: str = ""
+    ) -> None:
+        self._report(
+            TaskProgress(current=current, total=total, message=message)
+        )
 
     def raise_if_cancelled(self) -> None:
         self.token.raise_if_cancelled()
+
+    def commit(self, action: Callable[[], U]) -> U:
+        return self.token.commit(action)
 
 
 TaskCallable = Callable[[TaskContext], T]
@@ -130,6 +172,7 @@ class _TaskWorker(QObject, Generic[T]):
             lambda value: self.progress.emit(self._generation, value),
         )
         try:
+            self._token.raise_if_cancelled()
             result = self._task(context)
             if self._token.cancelled:
                 self.cancelled.emit(self._generation)
@@ -157,6 +200,14 @@ class _TaskRuntime:
     timer: QTimer | None
 
 
+@dataclass
+class _PendingTask(Generic[T]):
+    generation: int
+    task: TaskCallable[T]
+    token: CancellationToken
+    timeout_ms: int
+
+
 class QtTaskController(QObject, Generic[T]):
     """Own one logical task while safely draining superseded workers."""
 
@@ -173,6 +224,7 @@ class QtTaskController(QObject, Generic[T]):
         self._status = TaskStatus.IDLE
         self._progress = TaskProgress()
         self._runtimes: dict[int, _TaskRuntime] = {}
+        self._pending: _PendingTask[T] | None = None
         self._last_task: TaskCallable[T] | None = None
         self._last_timeout_ms = 0
 
@@ -197,27 +249,45 @@ class QtTaskController(QObject, Generic[T]):
     ) -> int:
         if timeout_ms < 0:
             raise ValueError("timeout_ms must be zero or positive.")
-        self._cancel_generation(self._generation)
+        if not self._cancel_generation(self._generation):
+            raise RuntimeError(
+                "The current task is committing an irreversible result."
+            )
         self._generation += 1
         generation = self._generation
         token = CancellationToken()
-        thread = QThread()
-        worker: _TaskWorker[T] = _TaskWorker(generation, task, token)
-        worker.moveToThread(thread)
-
-        timer = None
-        if timeout_ms:
-            timer = QTimer(self)
-            timer.setSingleShot(True)
-            timer.timeout.connect(
-                lambda current=generation: self._on_timeout(current)
-            )
-
-        runtime = _TaskRuntime(thread, worker, token, timer)
-        self._runtimes[generation] = runtime
+        self._pending = _PendingTask(generation, task, token, timeout_ms)
         self._last_task = task if retain_for_retry else None
         self._last_timeout_ms = timeout_ms if retain_for_retry else 0
 
+        self._status = TaskStatus.RUNNING
+        self._progress = TaskProgress()
+        self._emit_state()
+        if not self._runtimes:
+            self._launch_pending()
+        return generation
+
+    def _launch_pending(self) -> None:
+        pending = self._pending
+        if pending is None or self._runtimes:
+            return
+        self._pending = None
+        thread = QThread()
+        worker: _TaskWorker[T] = _TaskWorker(
+            pending.generation, pending.task, pending.token
+        )
+        worker.moveToThread(thread)
+
+        timer = None
+        if pending.timeout_ms:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(
+                lambda current=pending.generation: self._on_timeout(current)
+            )
+
+        runtime = _TaskRuntime(thread, worker, pending.token, timer)
+        self._runtimes[pending.generation] = runtime
         thread.started.connect(worker.run)
         worker.progress.connect(self._on_progress)
         worker.succeeded.connect(self._on_succeeded)
@@ -226,28 +296,39 @@ class QtTaskController(QObject, Generic[T]):
         worker.done.connect(thread.quit)
         worker.done.connect(worker.deleteLater)
         thread.finished.connect(
-            lambda current=generation: self._release_runtime(current)
+            lambda current=pending.generation: self._release_runtime(current)
         )
         thread.finished.connect(thread.deleteLater)
-
-        self._status = TaskStatus.RUNNING
-        self._progress = TaskProgress()
-        self._emit_state()
         thread.start()
         if timer is not None:
-            timer.start(timeout_ms)
-        return generation
+            timer.start(pending.timeout_ms)
 
     def retry(self) -> int:
         if self._last_task is None:
             raise RuntimeError("No background task is available to retry.")
+        if self._runtimes or self._pending is not None:
+            raise RuntimeError(
+                "The previous background task is still draining."
+            )
         return self.start(self._last_task, timeout_ms=self._last_timeout_ms)
 
     def cancel(self) -> None:
         runtime = self._runtimes.get(self._generation)
-        if runtime is None or self._status != TaskStatus.RUNNING:
+        pending = (
+            self._pending
+            if self._pending is not None
+            and self._pending.generation == self._generation
+            else None
+        )
+        token = (
+            runtime.token
+            if runtime is not None
+            else pending.token if pending else None
+        )
+        if token is None or self._status != TaskStatus.RUNNING:
             return
-        runtime.token.cancel()
+        if not token.cancel():
+            return
         self._status = TaskStatus.CANCELLING
         self._emit_state()
 
@@ -255,6 +336,9 @@ class QtTaskController(QObject, Generic[T]):
         """Request cancellation and wait a bounded time for worker cleanup."""
         if timeout_ms < 0:
             raise ValueError("timeout_ms must be zero or positive.")
+        if self._pending is not None:
+            self._pending.token.cancel()
+            self._pending = None
         for runtime in self._runtimes.values():
             runtime.token.cancel()
         deadline_per_thread = (
@@ -267,10 +351,16 @@ class QtTaskController(QObject, Generic[T]):
             for runtime in list(self._runtimes.values())
         )
 
-    def _cancel_generation(self, generation: int) -> None:
+    def _cancel_generation(self, generation: int) -> bool:
+        if (
+            self._pending is not None
+            and self._pending.generation == generation
+        ):
+            return self._pending.token.cancel()
         runtime = self._runtimes.get(generation)
         if runtime is not None:
-            runtime.token.cancel()
+            return runtime.token.cancel()
+        return True
 
     @Slot(int, object)
     def _on_progress(self, generation: int, progress: TaskProgress) -> None:
@@ -285,7 +375,10 @@ class QtTaskController(QObject, Generic[T]):
 
     @Slot(int, object)
     def _on_succeeded(self, generation: int, result: T) -> None:
-        if generation != self._generation or self._status != TaskStatus.RUNNING:
+        if (
+            generation != self._generation
+            or self._status != TaskStatus.RUNNING
+        ):
             return
         self._finish_timer(generation)
         self._status = TaskStatus.SUCCEEDED
@@ -317,11 +410,14 @@ class QtTaskController(QObject, Generic[T]):
         self.cancelled.emit()
 
     def _on_timeout(self, generation: int) -> None:
-        if generation != self._generation or self._status != TaskStatus.RUNNING:
+        if (
+            generation != self._generation
+            or self._status != TaskStatus.RUNNING
+        ):
             return
         runtime = self._runtimes.get(generation)
-        if runtime is not None:
-            runtime.token.cancel()
+        if runtime is None or not runtime.token.cancel():
+            return
         self._status = TaskStatus.TIMED_OUT
         failure = TaskFailure("The background task timed out.", "TimeoutError")
         self._emit_state(failure.user_message)
@@ -340,7 +436,14 @@ class QtTaskController(QObject, Generic[T]):
             runtime.timer.stop()
             runtime.timer.deleteLater()
         if not self._runtimes:
+            if self._pending is not None:
+                self._launch_pending()
+                return
             self.drained.emit()
+            # Failure and cancellation can be reported just before QThread
+            # emits ``finished``.  Re-emit the stable state so clients can
+            # enable retry only after every worker has actually drained.
+            self._emit_state()
 
     def _emit_state(self, message: str = "") -> None:
         self.state_changed.emit(

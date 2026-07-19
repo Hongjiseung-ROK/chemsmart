@@ -281,12 +281,14 @@ class TorsionFingerprintGrouper(MoleculeGrouper):
         # Calculate TFD values with real-time output
         tfd_values = []
         for idx, (i, j) in enumerate(indices):
+            self._report_progress(idx, total_pairs)
             tfd = self._calculate_tfd((i, j))
             tfd_values.append(tfd)
             if (idx + 1) % 10 == 0 or (idx + 1) == total_pairs:
                 logger.info(
                     f"The {idx+1}/{total_pairs} pair (conformer{i+1}, conformer{j+1}) calculation finished"
                 )
+        self._report_progress(total_pairs, total_pairs)
 
         # Build full TFD matrix
         tfd_matrix = np.zeros((n, n))

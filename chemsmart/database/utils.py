@@ -200,6 +200,16 @@ def file_size(filename):
     return Path(filename).stat().st_size
 
 
+def sha256_file(filename):
+    """Compute a streaming SHA-256 digest for an on-disk source file."""
+
+    digest = hashlib.sha256()
+    with Path(filename).open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def human_size(size_bytes):
     """Convert byte count to human-readable string."""
     if size_bytes is None:

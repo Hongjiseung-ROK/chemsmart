@@ -2,11 +2,11 @@ schema_version: 1
 as_of: "2026-07-19"
 baseline:
   branch: agent-codebase-simplification
-  commit: c79b6df8
+  commit: 5067903d
   phase_commit: containing_this_contract
-  upstream_ahead: 5
+  upstream_ahead_before_phase_commit: 5
   upstream_behind: 6
-  gui_state: p4_unified_agent_chat_complete
+  gui_state: p5_database_analysis_review_green
 
 policies:
   - id: PRESERVE-CLI
@@ -128,6 +128,63 @@ p4_unified_agent_chat:
     - cancelled_session_is_selected_and_new_session_resets_presentation_state
     - provider_direct_and_ai_boundaries_detach_presentation_before_dispatch
     - result_visible_gates_remain_nonzero_at_the_minimum_window
+    - complete_agent_and_gui_regression_suites_green
+
+p5_database_analysis:
+  sources:
+    - chemsmart/gui/application/database_models.py
+    - chemsmart/gui/application/analysis_models.py
+    - chemsmart/gui/services/database_service.py
+    - chemsmart/gui/services/analysis_service.py
+    - chemsmart/gui/screens/database.py
+    - chemsmart/gui/screens/analysis.py
+    - chemsmart/database/query.py
+    - chemsmart/database/assemble.py
+    - chemsmart/database/export.py
+    - chemsmart/cli/database/export.py
+    - chemsmart/gui/application/task_controller.py
+    - chemsmart/jobs/grouper
+    - chemsmart/analysis/dias.py
+    - chemsmart/analysis/thermochemistry.py
+    - chemsmart/io/gaussian/output.py
+    - chemsmart/io/orca/output.py
+  current_capability: read-only database browsing, atomic create-new database assembly, verified JSON/CSV/XYZ/extXYZ export, plus structured Grouper, Thermochemistry, DIAS, and WBI/NBO population analysis through shared domain APIs
+  safety_boundary:
+    - no_real_gaussian_orca_xtb_or_hpc_launch
+    - no_formatted_cli_output_parsing
+    - no_implicit_analysis_output_writes
+    - database_build_and_export_are_explicit_create_new_operations_only
+    - same_directory_staging_integrity_readback_hash_and_atomic_no_overwrite_publish
+    - cancel_or_timeout_before_publish_commit_leaves_no_output
+    - cancel_or_timeout_after_publish_commit_cannot_report_false_cancellation
+    - source_symlinks_out_of_root_paths_and_existing_destinations_fail_closed
+    - indirect_orca_xyzfile_geometry_must_be_regular_and_inside_the_selected_root
+    - database_assembly_counts_outputs_and_geometry_dependencies_toward_2000_files_and_2_gibibytes
+    - referenced_geometry_path_hash_and_size_are_persisted_in_provenance
+    - orca_xyzfile_output_charge_multiplicity_and_energy_override_xyz_comments
+    - parser_errors_and_normal_outputs_without_structures_fail_closed_by_default
+    - json_export_discloses_provenance_source_path_privacy
+    - database_page_batch_and_structure_limits_are_bounded
+    - background_results_use_cancellation_retry_and_stale_result_suppression
+    - optional_pymol_remains_disabled_until_p6_worker_boundary
+    - wbi_surface_claims_only_the_nbo_npa_and_nao_data_actually_parsed
+  gates:
+    - fixed_database_records_molecules_and_structures_parity
+    - database_structure_preview_and_active_sqlite_cancellation
+    - real_gaussian_orca_assembly_round_trip_with_openbabel
+    - orca_xyzfile_dependency_escape_symlink_missing_mutation_and_round_trip
+    - charged_open_shell_xyzfile_structure_identity_and_export_energy_round_trip
+    - all_four_export_formats_share_cli_domain_validation
+    - existing_and_symlink_destinations_are_never_overwritten
+    - concurrent_assembly_and_export_publish_exactly_once
+    - cancellation_timeout_parser_failure_and_no_structure_leave_no_output
+    - irreversible_publish_commit_never_emits_false_cancel_or_timeout
+    - all_eleven_grouper_strategies_preserved_with_optional_pymol_explicit
+    - grouper_pairwise_progress_cancellation_and_no_output_mode
+    - thermochemistry_single_batch_and_boltzmann_numeric_parity
+    - characterized_orca_dias_coordinate_and_energy_parity
+    - gaussian_wbi_nbo_population_and_nao_parity
+    - malformed_missing_repeated_cancelled_and_minimum_window_stress
     - complete_agent_and_gui_regression_suites_green
 
 surfaces:
@@ -274,11 +331,18 @@ surfaces:
       - chemsmart/cli/database
     current_capability: 4 run/sub leaves plus structured library APIs
     desktop_v1: expose
-    preservation: structured summaries/details/query APIs; no parsing of formatted CLI text
+    preservation: shared structured summaries/details/query, SingleFileAssembler, Database, DatabaseExporter, export validator, and method/basis resolver APIs; no parsing of formatted CLI text; no existing destination overwrite
     gates:
       - fixed_database_fixture_parity
       - selector_semantics
       - structure_preview_parity
+      - retry_rebuilds_current_request_after_worker_drain
+      - real_gaussian_orca_create_new_assembly_round_trip
+      - json_csv_xyz_and_extxyz_export_parity
+      - filtered_frame_counts_and_bounded_skipped_structure_ids_are_receipted
+      - same_directory_staging_integrity_readback_hash_and_atomic_publish
+      - parser_no_structure_cancel_timeout_symlink_bounds_and_concurrency_stress
+      - cli_database_export_shared_validator_regression
 
   - id: grouper
     sources:
@@ -286,11 +350,14 @@ surfaces:
       - chemsmart/cli/grouper
     current_capability: 11 run/sub leaves in the live CLI schema
     desktop_v1: expose
-    preservation: GrouperJob and one extracted shared thermochemistry-options helper
+    preservation: existing StructureGrouperFactory and domain groupers; CLI callers retain result recording while the desktop adapter uses explicit no-output callbacks
     gates:
       - grouping_strategy_inventory
       - representative_and_group_count_parity
       - energy_type_mapping_parity
+      - strategy_specific_threshold_units_and_defaults
+      - optional_irmsd_absent_graceful_degradation
+      - unsupported_options_fail_closed
 
   - id: thermochemistry
     sources:
@@ -303,6 +370,26 @@ surfaces:
       - fixed_numeric_fixture_parity
       - units_and_labels
       - background_cancel_error_states
+
+  - id: dias_and_wbi
+    sources:
+      - chemsmart/analysis/dias.py
+      - chemsmart/io/gaussian/output.py
+      - chemsmart/io/orca/output.py
+      - chemsmart/scripts/plot_dias.py
+      - chemsmart/scripts/wbi_analysis.py
+    current_capability: DIAS total, distortion, and interaction series plus Gaussian NBO natural population and NAO properties
+    desktop_v1: expose
+    preservation: direct typed domain results without plot/data writers; WBI naming does not overclaim an unparsed bond-index matrix
+    gates:
+      - characterized_orca_dias_fixture_parity
+      - minimum_reference_preserves_dias_decomposition_identity
+      - orca_single_point_xyzfile_geometry_and_energy_regression
+      - gaussian_nbo_npa_and_nao_fixture_parity
+      - npa_without_nao_fails_closed
+      - bounded_atom_filter_expansion
+      - no_implicit_plot_or_data_file_write
+      - parser_boundary_and_atom_mapping_cancellation
 
   - id: molecule_and_pymol
     sources:

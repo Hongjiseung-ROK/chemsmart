@@ -1,8 +1,8 @@
 import logging
 import math
-import os
 import re
 from functools import cached_property
+from pathlib import Path
 
 import numpy as np
 from ase import units
@@ -971,7 +971,7 @@ class ORCAOutput(ORCAFileMixin):
         """
         Get the final structure from the ORCA output file.
         """
-        if self.optimized_output_lines is not None:
+        if self.optimized_output_lines:
             return self.optimized_structure
         try:
             return (
@@ -1002,32 +1002,91 @@ class ORCAOutput(ORCAFileMixin):
         Get a specific molecule structure by index from the ORCA output file.
         """
         index = string2index_1based(index)
-        return self.all_structures[index]
+        structures = self.all_structures
+        if not structures:
+            # ORCA xyzfile single-point outputs may not print any Cartesian
+            # block. Treat the referenced input geometry as the sole structure
+            # while preserving the established index and slice semantics.
+            structures = [self.final_structure]
+        return structures[index]
 
     def _get_molecule_from_sp_output_file(self):
         """
         Extract molecule structure from single point output file.
         """
-        molecule = None
+        xyz_filepath = self.referenced_geometry_path
+        if xyz_filepath is not None:
+            if not xyz_filepath.is_file():
+                raise FileNotFoundError(
+                    f"Referenced ORCA geometry file does not exist: {xyz_filepath}"
+                )
+            molecule = Molecule.from_filepath(filepath=str(xyz_filepath))
+            return self._attach_single_point_metadata(molecule)
 
-        # if sp output file contains line read from .xyz
-        for line in self.contents:
-            if "coordinates will be read from file:" in line:
-                xyz_file = line.strip().split("file: ")[
-                    -1
-                ]  # the lines here have all been converted to lower case
-                xyz_filepath = os.path.join(self.folder, xyz_file)
-                assert os.path.exists(
-                    xyz_filepath
-                ), f".xyz file read from {xyz_filepath} does not exist!"
-                if os.path.exists(xyz_filepath):
-                    molecule = Molecule.from_filepath(filepath=xyz_filepath)
-                    break
-            else:
-                # If molecule is not found, get it from
-                # the input lines in the output file
-                molecule = self._get_input_structure_in_output()
+        # Otherwise recover coordinates printed in the output input block.
+        return self._get_input_structure_in_output()
+
+    def _attach_single_point_metadata(self, molecule):
+        """Overlay ORCA calculation truth on an external XYZ geometry."""
+
+        molecule.charge = self.charge
+        molecule.multiplicity = self.multiplicity
+        molecule.energy = self.final_energy
+        molecule.frozen_atoms = self.frozen_atoms
+        molecule.is_optimized_structure = False
+        if molecule.structure_index_in_file is None:
+            molecule.structure_index_in_file = 1
+
+        forces = self.forces if self.has_forces else None
+        if forces:
+            molecule.forces = forces[-1]
+        if self.vibrational_modes is not None:
+            molecule = self._attach_vib_metadata(molecule)
+        if self.mulliken_atomic_charges is not None:
+            molecule.mulliken_atomic_charges = self.mulliken_atomic_charges
+        if self.has_dipole_moment:
+            molecule.dipole_moment = self.dipole_moment_in_debye
+            molecule.dipole_moment_magnitude = (
+                self.dipole_moment_magnitude_in_debye
+            )
+        if self.point_group is not None:
+            molecule.point_group = self.point_group
+            molecule.rotational_symmetry_number = (
+                self.rotational_symmetry_number
+            )
+            molecule.rotational_constants = self.rotational_constants_in_Hz
         return molecule
+
+    @cached_property
+    def referenced_geometry_filename(self):
+        """Return the geometry filename declared by an ORCA ``xyzfile`` job.
+
+        The value is intentionally not resolved here. Callers such as the
+        desktop database adapter can apply their own trusted-root and symlink
+        policy before any referenced geometry is parsed.
+        """
+
+        for line in self.contents:
+            if "coordinates will be read from file:" in line.lower():
+                filename = line.split(":", maxsplit=1)[-1].strip()
+                if not filename:
+                    raise ValueError(
+                        "ORCA output declares an empty referenced geometry filename."
+                    )
+                return filename.strip("\"'")
+        return None
+
+    @property
+    def referenced_geometry_path(self):
+        """Return the unresolved path to an ORCA ``xyzfile`` dependency."""
+
+        filename = self.referenced_geometry_filename
+        if filename is None:
+            return None
+        path = Path(filename).expanduser()
+        if path.is_absolute():
+            return path
+        return Path(self.filepath_directory) / path
 
     def _get_input_structure_in_output(self):
         """In ORCA output file, the input structure
@@ -1723,7 +1782,11 @@ class ORCAOutput(ORCAFileMixin):
                         line_j_elements[-1]
                     )
                 all_mulliken_atomic_charges.append(mulliken_atomic_charges)
-        return all_mulliken_atomic_charges[-1]
+        return (
+            all_mulliken_atomic_charges[-1]
+            if all_mulliken_atomic_charges
+            else None
+        )
 
     @property
     def loewdin_atomic_charges(self):
