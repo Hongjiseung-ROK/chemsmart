@@ -120,6 +120,7 @@ class AgentSession:
         transport: Any | None = None,
         stage_prompt: str = "tool_loop.md",
         runtime_v2: str | bool | None = None,
+        decision_listener: Callable[[dict[str, Any]], None] | None = None,
     ) -> None:
         self._provider = provider
         self.registry = registry or ToolRegistry.default()
@@ -137,6 +138,7 @@ class AgentSession:
         self._loop_mode_state: tuple[str, bool] | None = None
         self._last_harness_result: HarnessResult | None = None
         self._training_writer: Any | None = None
+        self._decision_listener = decision_listener
         runtime_setting = (
             runtime_v2
             if runtime_v2 is not None
@@ -260,6 +262,7 @@ class AgentSession:
         log_raw_provider_turns: bool = False,
         policy: PermissionPolicy | None = None,
         approver: Callable[[ToolRequest], ApprovalDecision] | None = None,
+        cancellation_check: Callable[[], bool] | None = None,
     ) -> dict[str, Any]:
         return UnifiedSessionRunner(self).run(
             request,
@@ -268,6 +271,7 @@ class AgentSession:
             log_raw_provider_turns=log_raw_provider_turns,
             policy=policy,
             approver=approver,
+            cancellation_check=cancellation_check,
         )
 
     def _continue_run(
@@ -588,7 +592,9 @@ def _session_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
             "registry",
             "session_root",
             "transport",
+            "stage_prompt",
             "runtime_v2",
+            "decision_listener",
         )
         if key in kwargs
     }

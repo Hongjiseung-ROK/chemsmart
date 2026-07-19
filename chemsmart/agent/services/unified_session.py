@@ -108,6 +108,7 @@ class UnifiedSessionRunner:
         log_raw_provider_turns: bool = False,
         policy: PermissionPolicy | None = None,
         approver: Callable[[ToolRequest], ApprovalDecision] | None = None,
+        cancellation_check: Callable[[], bool] | None = None,
     ) -> dict[str, Any]:
         continuing_ask = self._begin_turn(request)
         setup = self._prepare_setup(
@@ -118,7 +119,11 @@ class UnifiedSessionRunner:
             log_raw_provider_turns=log_raw_provider_turns,
             policy=policy,
         )
-        loop_result = self._run_tool_loop(setup, approver)
+        loop_result = self._run_tool_loop(
+            setup,
+            approver,
+            cancellation_check,
+        )
         self._complete_runtime(setup.runtime_controller, loop_result)
         projection = self._project_result(
             request=request,
@@ -302,6 +307,7 @@ class UnifiedSessionRunner:
         self,
         setup: LoopSetup,
         approver: Callable[[ToolRequest], ApprovalDecision] | None,
+        cancellation_check: Callable[[], bool] | None,
     ) -> dict[str, Any]:
         session = self.session
         assert session.handle_store is not None
@@ -316,6 +322,7 @@ class UnifiedSessionRunner:
             policy=setup.policy,
             approver=approver,
             lifecycle=setup.runtime_lifecycle,
+            cancellation_check=cancellation_check,
         )
         with workflow_state_scope(session.state.session_id):
             return loop.run_turn(
@@ -434,7 +441,7 @@ class UnifiedSessionRunner:
                 "input_tokens": loop_result["total_input_tokens"],
                 "output_tokens": loop_result["total_output_tokens"],
                 "latency_ms": elapsed_ms(session._run_start_time),
-                "success": True,
+                "success": loop_result.get("limit_reason") is None,
             }
         ]
 
@@ -454,10 +461,11 @@ class UnifiedSessionRunner:
         session.state.pending_messages = None
         session.state.pending_ask_user = None
         session._save_state()
+        limit_reason = loop_result["limit_reason"]
         session._finalize_session(
             verdict=None,
-            blocked=False,
-            block_reason=loop_result["limit_reason"],
+            blocked=limit_reason is not None,
+            block_reason=limit_reason,
             dry_run_results=projection.dry_run_results,
             advisory_only=not projection.tool_requests,
             is_chitchat=projection.is_chitchat,
@@ -482,7 +490,7 @@ class UnifiedSessionRunner:
             "plan_text": render_plan(projection.plan),
             "critic_verdict": None,
             "completed_steps": session.state.current_step_index,
-            "blocked": False,
+            "blocked": loop_result["limit_reason"] is not None,
             "dry_run_result": _primary_dry_run_result(
                 projection.dry_run_results
             ),

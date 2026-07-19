@@ -2,11 +2,11 @@ schema_version: 1
 as_of: "2026-07-19"
 baseline:
   branch: agent-codebase-simplification
-  commit: 3356aa08
+  commit: c79b6df8
   phase_commit: containing_this_contract
-  upstream_ahead: 3
+  upstream_ahead: 5
   upstream_behind: 6
-  gui_state: p3_job_builder_complete
+  gui_state: p4_unified_agent_chat_complete
 
 policies:
   - id: PRESERVE-CLI
@@ -86,6 +86,49 @@ p3_job_builder:
     - advanced_form_scroll_and_keyboard_stress_at_minimum_window
     - stale_or_oversized_structure_preview_cleared_or_skipped
     - qt_webengine_lazy_initialization_and_close_cleanup
+
+p4_unified_agent_chat:
+  sources:
+    - chemsmart/agent/core.py
+    - chemsmart/agent/loop.py
+    - chemsmart/agent/services/session_context.py
+    - chemsmart/agent/services/tool_loop_runner.py
+    - chemsmart/agent/services/unified_session.py
+    - chemsmart/gui/services/agent_worker.py
+    - chemsmart/gui/screens/chat.py
+    - chemsmart/gui/screens/job_builder.py
+    - chemsmart/gui/services/cli_schema_service.py
+  current_capability: canonical unified agent Chat with bounded live receipts, cooperative cancellation, explicit resume, deterministic exact-command fallback, and two-way typed JobDraft handoff
+  safety_boundary:
+    - read_only_synthesis_and_project_yaml_registry_only
+    - repair_command_run_local_submit_hpc_execution_and_project_write_tools_absent
+    - canonical_session_decision_log_and_runtime_event_store_are_authoritative
+    - no_raw_provider_turn_or_secret_payload_is_projected_to_chat
+    - provider_failure_never_disables_or_mutates_job_builder
+    - handoff_requires_synthesis_ok_ready_intent_semantic_and_live_schema_parse
+    - accepted_agent_draft_requires_a_new_isolated_safe_preview
+    - cancellation_discards_a_response_completed_after_the_user_cancelled
+    - every_loop_limit_is_blocked_in_result_summary_metadata_and_runtime
+    - cross_session_resume_detaches_prior_transcript_retry_and_draft_context
+    - noncomputational_run_and_sub_routes_rejected_before_evaluator_or_subprocess
+    - newest_relevant_tool_outcome_only_prevents_older_draft_resurrection
+  gates:
+    - durable_decision_listener_cannot_change_agent_outcome
+    - cancellation_before_provider_and_between_tool_requests
+    - one_canonical_session_across_25_repeated_turns
+    - explicit_recent_session_resume_after_worker_recreation
+    - provider_and_model_reused_only_within_the_selected_ai_session
+    - exact_chemsmart_run_uses_no_external_provider
+    - intent_and_semantic_receipts_remain_distinct
+    - not_ready_or_unparseable_command_cannot_become_a_typed_draft
+    - chat_to_builder_typed_state_and_receipt_provenance_round_trip
+    - builder_to_chat_requires_an_accepted_p3_preview
+    - blocking_provider_cancel_discards_stale_assistant_output
+    - cancellation_from_durable_listener_blocks_late_assistant_success
+    - cancelled_session_is_selected_and_new_session_resets_presentation_state
+    - provider_direct_and_ai_boundaries_detach_presentation_before_dispatch
+    - result_visible_gates_remain_nonzero_at_the_minimum_window
+    - complete_agent_and_gui_regression_suites_green
 
 surfaces:
   - id: configuration
@@ -170,7 +213,7 @@ surfaces:
       - chemsmart/agent/core.py
       - chemsmart/agent/registry.py
       - chemsmart/agent/tui/mixins/session_workers.py
-    current_capability: unified run_loop with synthesis, project_yaml, harness_jobs, execution, wizard, diagnostics groups
+    current_capability: unified run_loop remains available to CLI/TUI; native Chat now exposes its read-only synthesis/project-YAML profile with canonical streaming, cancellation, resume, and gated typed drafts
     desktop_v1: expose_safe_profile
     preservation: use run_loop, explicit PermissionPolicy, intent and semantic receipts
     gates:
@@ -179,13 +222,15 @@ surfaces:
       - prompt_and_tool_streaming
       - cancellation_and_resume
       - run_local_and_submit_hpc_denied
+      - deterministic_exact_command_without_provider
+      - synthesis_ready_and_live_schema_handoff
 
   - id: agent_sessions_and_evidence
     sources:
       - chemsmart/agent/runtime
       - chemsmart/agent/services
       - chemsmart/gui/application/runtime_projection.py
-    current_capability: session state, event store, handles, decisions, artifacts
+    current_capability: session state, event store, handles, decisions, and artifacts are shared by CLI, TUI, and native Chat; native Chat projects only bounded public events
     desktop_v1: expose
     preservation: GUI projects existing receipt DTOs; no second event format
     gates:
@@ -193,6 +238,8 @@ surfaces:
       - receipt_projection
       - secret_redaction
       - workspace_isolation
+      - listener_runs_only_after_durable_jsonl_write
+      - no_second_gui_event_store
 
   - id: workspace_project
     sources:

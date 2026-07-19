@@ -77,6 +77,7 @@ class ToolLoop:
         policy: PermissionPolicy | None = None,
         approver: Callable[[ToolRequest], ApprovalDecision] | None = None,
         lifecycle: Any | None = None,
+        cancellation_check: Callable[[], bool] | None = None,
     ) -> None:
         self.provider = provider
         self.registry = registry
@@ -86,6 +87,7 @@ class ToolLoop:
         self.policy = policy or PermissionPolicy(mode=PermissionMode.DRIVING)
         self.approver = approver
         self.lifecycle = lifecycle
+        self.cancellation_check = cancellation_check
 
     def run_turn(
         self,

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
 from chemsmart.agent.handles import HandleStore, store_result_handle
 from chemsmart.agent.models import CriticVerdict, SessionState, utc_now_iso
@@ -19,11 +20,17 @@ from chemsmart.agent.services.result_codec import json_safe, preview_value
 from chemsmart.agent.services.session_store import load_current_session_state
 
 UTC = timezone.utc
+logger = logging.getLogger(__name__)
 
 
 class DecisionLog:
-    def __init__(self, path: Path) -> None:
+    def __init__(
+        self,
+        path: Path,
+        listener: Callable[[dict[str, Any]], None] | None = None,
+    ) -> None:
         self.path = path
+        self._listener = listener
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
     def write(
@@ -37,6 +44,13 @@ class DecisionLog:
         }
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry, sort_keys=True) + "\n")
+        if self._listener is not None:
+            try:
+                self._listener(entry)
+            except Exception:
+                # A presentation subscriber must never change the durable
+                # agent run. The JSONL write above remains authoritative.
+                logger.exception("Decision-log listener failed")
 
     def read_all(self) -> list[dict[str, Any]]:
         if not self.path.exists():
@@ -58,6 +72,7 @@ class SessionContextHost(Protocol):
     _loop_mode_state: tuple[str, bool] | None
     _llm_stats: list[dict[str, Any]]
     _provider: Any | None
+    _decision_listener: Callable[[dict[str, Any]], None] | None
 
 
 class SessionContext:
@@ -71,7 +86,8 @@ class SessionContext:
         session.session_dir.mkdir(parents=True, exist_ok=True)
         session.handle_store = HandleStore(session.session_dir)
         session.decision_log = DecisionLog(
-            session.session_dir / "decision_log.jsonl"
+            session.session_dir / "decision_log.jsonl",
+            listener=session._decision_listener,
         )
         session.state = SessionState(
             session_id=session_id,
@@ -111,7 +127,8 @@ class SessionContext:
         )
         session.handle_store = HandleStore(session.session_dir)
         session.decision_log = DecisionLog(
-            session.session_dir / "decision_log.jsonl"
+            session.session_dir / "decision_log.jsonl",
+            listener=session._decision_listener,
         )
         self.refresh_history()
         expected = max(1, len(session.conversation_history.turns))

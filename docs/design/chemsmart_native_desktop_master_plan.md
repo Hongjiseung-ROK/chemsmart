@@ -1,6 +1,6 @@
 # ChemSmart Native Desktop Master Plan
 
-Status: P3 complete on the containing phase commit; P4 is next, 2026-07-19
+Status: P4 complete on the containing phase commit; P5 is next, 2026-07-19
 Owner: ChemSmart maintainers
 Primary target: Zhang Lab internal macOS desktop app
 Framework: Python 3.10/3.11 + PySide6/Qt 6
@@ -45,9 +45,9 @@ Non-goals for v1:
 
 ## 2. Corrected current baseline
 
-P0 through P2 are committed through
-`agent-codebase-simplification@3356aa08`; P3 is complete on the phase commit
-containing this plan. Before that commit the branch is three local commits ahead
+P0 through P3 are committed through
+`agent-codebase-simplification@c79b6df8`; P4 is complete on the phase commit
+containing this plan. At that boundary the branch is five local commits ahead
 of and six commits behind
 `fork/agent-codebase-simplification`. Do not use `git clean`, `git stash -u`,
 reset, or branch switching as a preparation step.
@@ -57,17 +57,18 @@ reset, or branch switching as a preparation step.
 | Packaging spike | P1 complete; PyInstaller selected | PyInstaller passes the full frozen runtime, helper-entitlement, signature, archive, and shell gates. pyside6-deploy remains a red fallback because its pinned Nuitka bundle mixes data into `Contents/MacOS`. |
 | PySide6 extra and GUI entry point | P0 committed | Source entry and package data are stable; P1 adds a hidden packaging probe and absolute-path frozen CLI dispatch. |
 | Provider config and secrets | P2 reviewer-green | Provider literals remain backward-readable; new credentials use unique staged Keychain references, atomically commit YAML, then retire the old reference. Secret-bearing tasks disable retry retention. Tests use in-memory stores and never touch the real Keychain. |
-| App shell/theme | P3 validated | Native menus, Settings, system palette/font roles, adaptive three-region layout, status, accessible labels, and bounded runtime evidence projection are present. The QtWebEngine structure viewer initializes only after a molecule is selected, clears on source drift, skips oversized synchronous parsing, and closed windows release owned resources. Database and Analysis remain intentional P5 unavailable states. |
-| Job builder | P3 complete | All 29 Gaussian/ORCA/xTB leaves round-trip through a typed draft and live Click schema. Every leaf has GUI-versus-direct-CLI fake artifact parity; high-risk routes, strict xTB state/solvation/project semantics, ORCA NEB dependency hashes, selected workspace settings, pre-read resource bounds, stale async-result invalidation, scroll stress, every-artifact selection, progress, cancel, and retry are covered. Chat handoff remains disabled until P4. |
-| Chat | Visual placeholder | No live `AgentSession` call, streaming, cancellation, approval, or receipts. |
-| Agent worker | Placeholder | It proposes legacy `AgentSession.run()` instead of the current unified `run_loop()` contract used by the TUI. |
+| App shell/theme | P4 validated | Native menus, Settings, system palette/font roles, adaptive three-region layout, status, accessible labels, and bounded runtime evidence projection are present. The QtWebEngine structure viewer initializes only after a molecule is selected, clears on source drift, skips oversized synchronous parsing, and closed windows release owned resources. Database and Analysis remain intentional P5 unavailable states. |
+| Job builder | P4 handoff complete | All 29 Gaussian/ORCA/xTB leaves retain P3 parity and safety. A draft can enter Chat only after an accepted safe-preview receipt; any edit revokes that handoff. A gated agent draft loads as typed state with receipt provenance and requires a new isolated preview before it can be sent onward. |
+| Chat | P4 complete | The native screen runs the canonical unified `run_loop()`, streams bounded durable decision projections, exposes distinct intent/semantic gates, honest indeterminate progress and cooperative cancellation, provider setup/error recovery, recent-session resume, retry, and two-way typed Job Builder handoff. Exact `chemsmart run` input has a deterministic no-provider path. |
+| Agent worker | P4 complete | A read-only desktop registry excludes repair, execution, submission, and project-writing tools while preserving CLI/TUI repair behavior. The adapter reuses canonical session/decision/runtime stores, an explicit `PermissionPolicy`, typed receipts, and strict `ok` + `ready` + two-gate + live-parser handoff acceptance; it does not introduce a second agent event store. |
 | 3D viewer | P1 frozen probe green | Integrity-checked 3Dmol.js 2.5.5 renders offline in the selected PyInstaller QtWebEngine bundle; PyMOL execution is not wired. |
 | Database/analysis | Absent | No screens or services. |
 | Runtime environment | Split | Base Python can render PySide6; the `chemsmart` conda environment lacks PySide6. The current `chemsmart` executable on `PATH` resolves to another Codex worktree. |
-| Validation | P3 final gate | The P3 slice has 29 desktop leaves, byte parity for all 17 Gaussian, 9 ORCA, and 3 xTB leaves, minimum/default-window keyboard stress, resource-limit tests that reject before reads, and a final read-only reviewer loop. Exact receipts live in `docs/design/phase_receipts/p3_job_builder.md`. The P1 remote decision receipt remains the packaging evidence. |
+| Validation | P4 reviewer GREEN | The complete Agent suite passes 1,110 tests and the complete GUI suite passes 211 tests, including canonical streaming/cancellation, the late-assistant cancellation race, 25-turn continuity stress, typed two-way handoff, provider/direct session-boundary isolation, non-computational command rejection, result-visible minimum-window checks, and isolated QtWebEngine rendering. Exact receipts live in `docs/design/phase_receipts/p4_unified_agent_chat.md`; the P1 remote decision receipt remains the packaging evidence. |
 
-The current UI is a useful structural sketch, not a runnable product baseline.
-It should be corrected in place after contract tests are added, not discarded.
+The native Job builder and Chat are runnable source-checkout product slices.
+Database and Analysis remain deliberate unavailable states until P5, and a
+Finder-launched distributable remains a P7 completion gate.
 
 ## 3. Product experience
 
@@ -592,18 +593,20 @@ Exit:
 
 Do these in order:
 
-1. Treat the committed P3 receipt as the frozen Job builder baseline.
-2. Begin P4 by defining the desktop-safe agent registry and typed event adapter
-   over the existing unified `run_loop()` contract.
-3. Stream prose, tool requests, deterministic receipts, cancellation, and
-   recovery without registering `run_local` or `submit_hpc`.
-4. Round-trip an agent-produced typed `JobDraft` into the P3 builder without
-   depending on a shell string.
-5. Stress provider-disabled, provider-error, cancellation, resume, and stale
-   completion paths before enabling Send to Chat.
+1. Treat the committed P4 receipt as the frozen unified Chat and typed-handoff
+   baseline.
+2. Inventory the existing database assemble/select/extract/show/legacy and
+   molecule APIs, then freeze representative structured fixtures before UI work.
+3. Add narrow Database and Analysis service DTOs over existing domain APIs;
+   never parse formatted CLI output or reproduce scientific formulas in Qt.
+4. Implement Database first, reusing the bounded structure viewer, then add
+   Grouper, Thermochemistry, DIAS, and WBI in independently gated slices.
+5. Stress large, missing, malformed, repeated, cancelled, and restart/recovery
+   cases, and retain fixed-fixture library/CLI parity for every exposed result.
 
-Do not rerun the red pyside6-deploy fallback by default. Do not wire live Chat
-or add Database/Analysis business features during P3.
+Do not rerun the red pyside6-deploy fallback by default. Do not expand the P4
+desktop-safe agent registry with execution, submission, remote diagnostics, or
+project-writing tools while implementing P5.
 
 ## 10. Claude/Codex collaboration contract
 

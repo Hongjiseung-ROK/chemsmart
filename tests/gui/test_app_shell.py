@@ -256,10 +256,12 @@ def test_job_builder_runs_real_fake_preview_and_renders_receipt(
         assert "SHA-256" in builder.validation_status.text()
         assert "opt" in builder.output.toPlainText().lower()
         assert "Fake-run receipt: ok" in window.runtime_evidence.text()
+        assert builder.to_chat_button.isEnabled()
         assert not list(workspace.glob(".chemsmart-preview-*"))
 
         fields["charge"].setText("1")
         assert not builder.output.toPlainText()
+        assert not builder.to_chat_button.isEnabled()
         assert "Draft changed" in window.runtime_evidence.text()
     finally:
         window.close()

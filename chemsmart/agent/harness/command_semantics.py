@@ -288,6 +288,9 @@ def _preflight_result(
     cwd: Path,
 ) -> CommandSemanticResult | None:
     if top_level in _COMPUTATIONAL_TOP_LEVEL:
+        program_issue = _computational_program_issue(tokens, top_index)
+        if program_issue is not None:
+            return _rejected_result(command, tokens, (program_issue,))
         contract_issues = _command_contract_issues(tokens, top_index, cwd=cwd)
         rejected = _rejected_result(command, tokens, contract_issues)
         if rejected is not None:
@@ -308,6 +311,64 @@ def _preflight_result(
         tokens,
         _preflight_semantic_issues(tokens, top_index),
     )
+
+
+def _computational_program_issue(
+    tokens: list[str],
+    top_index: int,
+) -> CommandSemanticIssue | None:
+    """Reject non-computational ``run``/``sub`` surfaces before execution."""
+
+    resolved = _resolved_top_level_subcommand(tokens)
+    if resolved in _SOFTWARE_COMMANDS:
+        return None
+    return CommandSemanticIssue(
+        rule_id="cmd.contract.computational_program_required",
+        severity="reject",
+        message=(
+            "semantic runtime validation only executes gaussian, orca, or xtb "
+            "computational commands"
+        ),
+        evidence={
+            "top_level": tokens[top_index] if top_index < len(tokens) else None,
+            "resolved_subcommand": resolved,
+        },
+        missing_info=("gaussian, orca, or xtb computational program",),
+    )
+
+
+def _resolved_top_level_subcommand(tokens: list[str]) -> str | None:
+    """Resolve one nested Click group without invoking any command callback."""
+
+    try:
+        from chemsmart.cli.main import entry_point
+
+        root_context = entry_point.make_context(
+            "chemsmart",
+            tokens[1:],
+            resilient_parsing=False,
+        )
+        top_name, top_command, top_args = entry_point.resolve_command(
+            root_context,
+            tokens[1:],
+        )
+        if top_name not in _COMPUTATIONAL_TOP_LEVEL or not hasattr(
+            top_command, "resolve_command"
+        ):
+            return None
+        top_context = top_command.make_context(
+            top_name,
+            top_args,
+            parent=root_context,
+            resilient_parsing=False,
+        )
+        subcommand, _command, _args = top_command.resolve_command(
+            top_context,
+            top_args,
+        )
+    except Exception:
+        return None
+    return str(subcommand or "") or None
 
 
 def _rejected_result(

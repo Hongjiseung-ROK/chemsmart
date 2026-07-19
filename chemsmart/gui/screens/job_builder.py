@@ -39,6 +39,11 @@ from PySide6.QtWidgets import (
 
 from chemsmart.gui.services import cli_schema_service as schema
 from chemsmart.gui.application.cli_launcher import DryRunRequest, DryRunResult
+from chemsmart.gui.application.job_draft import (
+    DraftProvenance,
+    JobDraft,
+    SourceKind,
+)
 from chemsmart.gui.application.task_controller import (
     TaskFailure,
     TaskProgress,
@@ -82,6 +87,7 @@ class JobBuilderScreen(QWidget):
         self._preview_dependencies = ()
         self._preview_verdict = "ok"
         self._running_command = ""
+        self._draft_provenance = DraftProvenance()
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(16, 14, 16, 14)
@@ -362,7 +368,24 @@ class JobBuilderScreen(QWidget):
             widget.setVisible(visible)
 
     def _current_values(self) -> dict[str, Any]:
-        return {name: getter() for name, getter in self._field_getters.items()}
+        specs = {
+            spec.field_id: spec
+            for spec in schema.field_specs(
+                self.program.currentText(),
+                self.job_type.currentText(),
+            )
+        }
+        values: dict[str, Any] = {}
+        for name, getter in self._field_getters.items():
+            value = getter()
+            spec = specs.get(name)
+            # A checkbox sitting at its inherited Click default is not
+            # caller-owned state and renders no flag. Keeping it in JobDraft
+            # would make a typed Chat round-trip sprout implicit settings.
+            if spec is not None and spec.is_flag and value == spec.default:
+                continue
+            values[name] = value
+        return values
 
     def _current_draft(self):
         """Return typed form state; rendered command text is only a view."""
@@ -370,6 +393,7 @@ class JobBuilderScreen(QWidget):
             self.program.currentText(),
             self.job_type.currentText(),
             self._current_values(),
+            provenance=self._draft_provenance,
         )
 
     def _build_argv(self) -> list[str]:
@@ -624,6 +648,7 @@ class JobBuilderScreen(QWidget):
         )
 
     def _set_preview_artifacts(self, result: DryRunResult) -> None:
+        self._handoff_available = True
         self._preview_artifacts = result.artifacts
         self._preview_dependencies = result.dependencies
         self._preview_verdict = result.semantic.verdict
@@ -676,6 +701,8 @@ class JobBuilderScreen(QWidget):
         )
 
     def _clear_preview_artifacts(self) -> None:
+        self._handoff_available = False
+        self.to_chat_button.setEnabled(False)
         self._preview_artifacts = ()
         self._preview_dependencies = ()
         self._preview_verdict = "ok"
@@ -698,9 +725,58 @@ class JobBuilderScreen(QWidget):
         return self._dry_run_controller.shutdown(timeout_ms)
 
     def _on_hand_off(self) -> None:
-        # Round-trips the built command into the chat via the shared schema
-        # mapping (principle #5). Wired to the chat screen in Phase 4.
+        if not self._handoff_available:
+            return
+        draft = self._current_draft()
         self.window_ref.navigate("chat")
+        chat = self.window_ref._screens["chat"]
+        chat.load_draft(draft)
+
+    def load_draft(self, draft: JobDraft) -> None:
+        """Populate the live schema form from an accepted typed agent draft."""
+
+        if self._task_is_active():
+            raise RuntimeError("Wait for the current safe preview to finish.")
+        values = schema.values_from_draft(draft)
+        self._draft_provenance = draft.provenance
+        self._accepted_command = ""
+        self._clear_preview_artifacts()
+
+        self.program.setCurrentText(draft.program)
+        self.job_type.setCurrentText(draft.kind)
+        source_mode = {
+            SourceKind.PUBCHEM: "pubchem",
+            SourceKind.DATABASE: "database",
+        }.get(draft.source.kind if draft.source else None, "file")
+        source_index = self.source_mode.findData(source_mode)
+        if source_index >= 0:
+            self.source_mode.setCurrentIndex(source_index)
+        # Recreate every field from the selected live-schema leaf so values
+        # from a previously edited draft cannot survive an incoming handoff.
+        self._rebuild_fields()
+
+        advanced_value_loaded = False
+        for field_id, widget in self._field_widgets.items():
+            value = values.get(field_id)
+            if value is None and "." in field_id:
+                value = values.get(field_id.rsplit(".", maxsplit=1)[-1])
+            if value is None:
+                continue
+            _set_field_value(widget, value)
+            if field_id not in _COMMON_FIELDS:
+                advanced_value_loaded = True
+        if advanced_value_loaded:
+            self.advanced_toggle.setChecked(True)
+        self._update_preview()
+        self.validation_status.setText(
+            "Typed agent draft loaded. Review every field, then generate a new "
+            "isolated safe-preview receipt before any further handoff."
+        )
+        if draft.source is not None and draft.source.kind in {
+            SourceKind.FILE,
+            SourceKind.PRIOR_ARTIFACT,
+        }:
+            self._load_structure_preview()
 
 
 def _field_for(opt: dict) -> tuple[QWidget, Callable[[], Any]]:
@@ -772,6 +848,28 @@ def _clear_field(widget: QWidget | None) -> None:
         widget.clear()
     elif isinstance(widget, QComboBox):
         widget.setCurrentIndex(0)
+
+
+def _set_field_value(widget: QWidget, value: Any) -> None:
+    """Set one schema widget without guessing chemistry semantics."""
+
+    if isinstance(widget, QLineEdit):
+        widget.setText(str(value))
+        return
+    if isinstance(widget, QComboBox):
+        text = str(value)
+        index = widget.findText(text)
+        if index < 0:
+            raise ValueError(f"Schema choice no longer accepts {text!r}.")
+        widget.setCurrentIndex(index)
+        return
+    if isinstance(widget, QCheckBox):
+        if value is None and widget.isTristate():
+            widget.setCheckState(Qt.CheckState.PartiallyChecked)
+        else:
+            widget.setChecked(bool(value))
+        return
+    raise TypeError(f"Unsupported Job builder widget: {type(widget).__name__}")
 
 
 def _clear_form(form: QFormLayout) -> None:

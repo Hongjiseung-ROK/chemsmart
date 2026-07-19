@@ -250,6 +250,13 @@ def build_command(
 
 def command_from_draft(draft: JobDraft) -> list[str]:
     """Render a typed draft through the existing schema-owned command path."""
+
+    return build_command(draft.program, draft.kind, values_from_draft(draft))
+
+
+def values_from_draft(draft: JobDraft) -> dict[str, Any]:
+    """Project typed draft roles back into live-schema form values."""
+
     values = dict(draft.settings)
     for field, value in draft.resources.items():
         _insert_unique_value(values, field, value)
@@ -281,7 +288,9 @@ def command_from_draft(draft: JobDraft) -> list[str]:
             source_field = _SOURCE_FIELDS[draft.source.kind]
         if source_field:
             _insert_unique_value(values, source_field, draft.source.value)
-    return build_command(draft.program, draft.kind, values)
+    # Keep this projection gated by the same live schema used for rendering.
+    build_command(draft.program, draft.kind, values)
+    return values
 
 
 def missing_required_fields(draft: JobDraft) -> tuple[str, ...]:

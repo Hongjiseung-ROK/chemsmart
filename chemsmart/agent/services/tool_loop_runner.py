@@ -23,6 +23,7 @@ class LoopHost(Protocol):
     provider: Any
     decision_log: Any
     budgets: Any
+    cancellation_check: Any
 
     def _tool_defs_for_mode(self, provider_name: str, mode: Any) -> list: ...
     def _tool_defs_for_provider(self, provider_name: str) -> list: ...
@@ -79,13 +80,31 @@ class ToolLoopRunner:
         )
         state = TurnState(history=[deepcopy(item) for item in messages])
         while state.model_steps < self.loop.budgets.max_model_steps_per_turn:
+            if self._cancelled():
+                state.limit_reason = "cancelled"
+                break
             response = self._provider_turn(state, definitions)
             if response is None:
                 if state.limit_reason is not None:
                     break
                 continue
+            if self._cancelled():
+                state.limit_reason = "cancelled"
+                break
             requests = self._record_assistant_turn(state, protocol, response)
             if not requests:
+                if self._cancelled():
+                    state.limit_reason = "cancelled"
+                    state.assistant_text = ""
+                    state.stop_reason = None
+                    # The durable assistant_turn remains audit evidence, but a
+                    # response cancelled at that boundary must not enter the
+                    # resumable provider history or public turn result.
+                    if (
+                        state.history
+                        and state.history[-1].get("role") == "assistant"
+                    ):
+                        state.history.pop()
                 break
             should_stop, asked_user = self._process_requests(
                 state, protocol, requests
@@ -188,6 +207,10 @@ class ToolLoopRunner:
         stop_index: int | None = None
         asked_user = False
         for index, request in enumerate(requests):
+            if self._cancelled():
+                state.limit_reason = "cancelled"
+                stop_index = index - 1
+                break
             self._log_request(state, request, index, len(requests))
             if request.name == ASK_USER_TOOL_NAME:
                 outcome = self._ask_user(state, request)
@@ -207,6 +230,10 @@ class ToolLoopRunner:
                 build_tool_result_messages(protocol, outcomes)
             )
         return stop_index is not None, asked_user
+
+    def _cancelled(self) -> bool:
+        check = self.loop.cancellation_check
+        return bool(check is not None and check())
 
     def _process_one(
         self, state: TurnState, request: ToolRequest

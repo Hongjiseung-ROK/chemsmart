@@ -159,6 +159,33 @@ def test_missing_job_subcommand_rejects_before_safe_execution(
     ]
 
 
+def test_noncomputational_run_subcommand_rejects_before_safe_execution(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    output = tmp_path / "must-not-be-written.xyz"
+
+    def should_not_run(*_args, **_kwargs):  # pragma: no cover - defensive
+        output.write_text("unsafe", encoding="utf-8")
+        raise AssertionError("non-computational run must not reach subprocess")
+
+    monkeypatch.setattr(
+        "chemsmart.agent.harness.command_semantics.subprocess.run",
+        should_not_run,
+    )
+
+    result = evaluate_command_semantics(
+        f"chemsmart run database export input.db -o {output}",
+        cwd=tmp_path,
+    )
+
+    assert result.verdict == "reject"
+    assert result.failed_rule_ids == [
+        "cmd.contract.computational_program_required"
+    ]
+    assert not output.exists()
+
+
 def test_db_source_without_selector_rejects_before_safe_execution(
     monkeypatch,
     tmp_path,
