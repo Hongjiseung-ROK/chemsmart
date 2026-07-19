@@ -73,6 +73,8 @@ jobs:
           test "$(sw_vers -productVersion | cut -d. -f1)" = "14"
 
       - name: Install isolated candidate dependencies
+        env:
+          MPLCONFIGDIR: ${{ runner.temp }}/chemsmart-matplotlib-${{ matrix.candidate }}
         run: |
           python -m pip install --no-deps \
             "pip==25.3" \
@@ -91,8 +93,41 @@ jobs:
             --lock packaging/macos/runtime-lock-py311-macos14-arm64.txt \
             --python-version 3.11.9 \
             --receipt "build/p1/${CANDIDATE}/runtime-lock-verification.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from matplotlib import font_manager
+
+          cache_root = Path(os.environ["MPLCONFIGDIR"])
+          font_path = Path(
+              font_manager.findfont(
+                  font_manager.FontProperties(family=["DejaVu Sans"])
+              )
+          )
+          cache_files = sorted(
+              str(path.relative_to(cache_root))
+              for path in cache_root.rglob("*")
+              if path.is_file()
+          )
+          if not font_path.is_file() or not cache_files:
+              raise SystemExit("Matplotlib font-cache prewarm failed")
+          payload = {
+              "cache_files": cache_files,
+              "font_path": str(font_path),
+              "status": "passed",
+          }
+          receipt = Path("build/p1") / os.environ["CANDIDATE"] / "matplotlib-cache.json"
+          receipt.write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
 
       - name: Run source packaging contracts
+        env:
+          MPLCONFIGDIR: ${{ runner.temp }}/chemsmart-matplotlib-${{ matrix.candidate }}
         run: |
           set -o pipefail
           python -m pytest -q \
@@ -227,6 +262,8 @@ jobs:
             build/p1/${{ matrix.candidate }}/uname.txt
             build/p1/${{ matrix.candidate }}/python.txt
             build/p1/${{ matrix.candidate }}/pip-freeze.txt
+            build/p1/${{ matrix.candidate }}/runtime-lock-verification.json
+            build/p1/${{ matrix.candidate }}/matplotlib-cache.json
             build/p1/${{ matrix.candidate }}/source-provenance.json
             build/p1/${{ matrix.candidate }}/source-tests.txt
             build/p1/${{ matrix.candidate }}/dry-run.txt

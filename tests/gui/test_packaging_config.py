@@ -102,6 +102,10 @@ def test_packaging_workflow_defaults_to_selected_candidate_and_keeps_comparison(
     assert "pip freeze --all" in workflow
     assert "python -m pip check" in workflow
     assert "verify_runtime_lock.py" in workflow
+    assert workflow.count("MPLCONFIGDIR:") == 2
+    assert "Matplotlib font-cache prewarm failed" in workflow
+    assert "matplotlib-cache.json" in workflow
+    assert "runtime-lock-verification.json" in workflow
     assert "tests/gui \\" in workflow
     assert "tests/agent/test_secrets.py \\" in workflow
     assert "--dry-run" in workflow
