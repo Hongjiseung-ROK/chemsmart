@@ -247,7 +247,7 @@ class DatabaseScreen(QWidget):
         source_row.addWidget(self.build_source_button)
         root.addLayout(source_row)
 
-        options = QFormLayout()
+        options = self._responsive_form()
         self.build_program = QComboBox()
         self.build_program.setAccessibleName("Calculation program filter")
         self.build_program.addItem("Detect Gaussian and ORCA", "auto")
@@ -258,7 +258,7 @@ class DatabaseScreen(QWidget):
         self.build_structures.addItem("All parsed structures", ":")
         self.build_structures.addItem("Final structure only", "-1")
         self.build_include_failed = QCheckBox(
-            "Include data from calculations without normal termination"
+            "Include incomplete calculations"
         )
         self.build_include_failed.setAccessibleName(
             "Include abnormally terminated calculations"
@@ -266,9 +266,7 @@ class DatabaseScreen(QWidget):
         self.build_include_failed.setToolTip(
             "May include incomplete trajectories. The receipt identifies skipped files."
         )
-        self.build_continue_errors = QCheckBox(
-            "Continue after individual parser errors"
-        )
+        self.build_continue_errors = QCheckBox("Continue after parser errors")
         self.build_continue_errors.setAccessibleName(
             "Allow partial database after parser errors"
         )
@@ -326,7 +324,8 @@ class DatabaseScreen(QWidget):
         )
         self.build_receipt.setMinimumHeight(100)
         root.addWidget(self.build_receipt, stretch=1)
-        self.tabs.addTab(self._scroll_container(content), "Build database")
+        self.build_scroll = self._scroll_container(content)
+        self.tabs.addTab(self.build_scroll, "Build database")
 
     def _build_export_tab(self) -> None:
         content = QWidget()
@@ -351,7 +350,7 @@ class DatabaseScreen(QWidget):
         db_row.addWidget(self.export_db_button)
         root.addLayout(db_row)
 
-        options = QFormLayout()
+        options = self._responsive_form()
         self.export_format = QComboBox()
         self.export_format.setAccessibleName("Database export format")
         for label, suffix in _EXPORT_FORMATS:
@@ -442,10 +441,21 @@ class DatabaseScreen(QWidget):
         )
         self.export_receipt.setMinimumHeight(100)
         root.addWidget(self.export_receipt, stretch=1)
-        self.tabs.addTab(self._scroll_container(content), "Export")
+        self.export_scroll = self._scroll_container(content)
+        self.tabs.addTab(self.export_scroll, "Export")
+
+    @staticmethod
+    def _responsive_form() -> QFormLayout:
+        form = QFormLayout()
+        form.setFieldGrowthPolicy(
+            QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow
+        )
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        return form
 
     @staticmethod
     def _scroll_container(content: QWidget) -> QScrollArea:
+        content.setObjectName("ScrollContent")
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(

@@ -11,13 +11,16 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QLayout,
     QLineEdit,
     QListWidget,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QStackedWidget,
     QTableWidget,
@@ -142,12 +145,19 @@ class AnalysisScreen(QWidget):
 
     def _build_thermochemistry(self) -> QWidget:
         panel = QWidget()
-        root = QVBoxLayout(panel)
+        panel_root = QVBoxLayout(panel)
+        panel_root.setContentsMargins(0, 0, 0, 0)
+        controls = QWidget()
+        root = QVBoxLayout(controls)
+        root.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
         file_actions = QHBoxLayout()
         add = QPushButton("Add output files…")
         add.setAccessibleName("Add Gaussian or ORCA output files")
         add.clicked.connect(self._choose_files)
         self.remove_files = QPushButton("Remove selected")
+        self.remove_files.setAccessibleName(
+            "Remove selected thermochemistry files"
+        )
         self.remove_files.clicked.connect(self._remove_selected_files)
         file_actions.addWidget(add)
         file_actions.addWidget(self.remove_files)
@@ -157,10 +167,11 @@ class AnalysisScreen(QWidget):
 
         self.files = QListWidget()
         self.files.setAccessibleName("Thermochemistry output files")
+        self.files.setMinimumHeight(80)
         self.files.setMaximumHeight(100)
         root.addWidget(self.files)
 
-        form = QFormLayout()
+        form = self._responsive_form()
         self.temperature = QDoubleSpinBox()
         self.temperature.setRange(0.01, 5000.0)
         self.temperature.setDecimals(2)
@@ -186,32 +197,36 @@ class AnalysisScreen(QWidget):
         self.concentration_enabled.toggled.connect(
             self.concentration.setEnabled
         )
-        concentration_row = QWidget()
-        concentration_layout = QHBoxLayout(concentration_row)
-        concentration_layout.setContentsMargins(0, 0, 0, 0)
-        concentration_layout.addWidget(self.concentration_enabled)
-        concentration_layout.addWidget(self.concentration)
         self.energy_units = QComboBox()
         self.energy_units.addItems(ENERGY_UNITS)
         self.energy_units.setAccessibleName("Thermochemistry energy units")
-        self.weighted_mass = QCheckBox("Natural-abundance weighted masses")
+        self.weighted_mass = QCheckBox("Use natural-abundance masses")
+        self.weighted_mass.setAccessibleName(
+            "Use natural-abundance weighted atomic masses"
+        )
         self.weighted_mass.setChecked(True)
-        self.check_imaginary = QCheckBox(
+        self.check_imaginary = QCheckBox("Reject invalid imaginary modes")
+        self.check_imaginary.setAccessibleName(
             "Reject invalid imaginary frequencies"
         )
         self.check_imaginary.setChecked(True)
         form.addRow("Temperature", self.temperature)
         form.addRow("Pressure", self.pressure)
-        form.addRow("Concentration", concentration_row)
+        form.addRow("Solution correction", self.concentration_enabled)
+        form.addRow("Concentration", self.concentration)
         form.addRow("Energy units", self.energy_units)
         form.addRow("Masses", self.weighted_mass)
         form.addRow("Frequency safety", self.check_imaginary)
 
         self.entropy_method = QComboBox()
+        self.entropy_method.setAccessibleName("Entropy correction method")
         self.entropy_method.addItem("No entropy correction", "none")
         self.entropy_method.addItem("Grimme quasi-RRHO", "grimme")
         self.entropy_method.addItem("Truhlar quasi-RRHO", "truhlar")
         self.entropy_cutoff = QDoubleSpinBox()
+        self.entropy_cutoff.setAccessibleName(
+            "Entropy frequency cutoff in inverse centimetres"
+        )
         self.entropy_cutoff.setRange(1.0, 10000.0)
         self.entropy_cutoff.setValue(100.0)
         self.entropy_cutoff.setSuffix(" cm⁻¹")
@@ -221,46 +236,46 @@ class AnalysisScreen(QWidget):
                 self.entropy_method.currentData() != "none"
             )
         )
-        entropy_row = QWidget()
-        entropy_layout = QHBoxLayout(entropy_row)
-        entropy_layout.setContentsMargins(0, 0, 0, 0)
-        entropy_layout.addWidget(self.entropy_method)
-        entropy_layout.addWidget(self.entropy_cutoff)
         self.enthalpy_enabled = QCheckBox("Head-Gordon correction")
+        self.enthalpy_enabled.setAccessibleName(
+            "Use Head-Gordon enthalpy correction"
+        )
         self.enthalpy_cutoff = QDoubleSpinBox()
+        self.enthalpy_cutoff.setAccessibleName(
+            "Enthalpy frequency cutoff in inverse centimetres"
+        )
         self.enthalpy_cutoff.setRange(1.0, 10000.0)
         self.enthalpy_cutoff.setValue(100.0)
         self.enthalpy_cutoff.setSuffix(" cm⁻¹")
         self.enthalpy_cutoff.setEnabled(False)
         self.enthalpy_enabled.toggled.connect(self.enthalpy_cutoff.setEnabled)
-        enthalpy_row = QWidget()
-        enthalpy_layout = QHBoxLayout(enthalpy_row)
-        enthalpy_layout.setContentsMargins(0, 0, 0, 0)
-        enthalpy_layout.addWidget(self.enthalpy_enabled)
-        enthalpy_layout.addWidget(self.enthalpy_cutoff)
         self.alpha = QSpinBox()
+        self.alpha.setAccessibleName("Quasi-RRHO alpha parameter")
         self.alpha.setRange(1, 20)
         self.alpha.setValue(4)
-        form.addRow("Entropy correction", entropy_row)
-        form.addRow("Enthalpy correction", enthalpy_row)
+        form.addRow("Entropy correction", self.entropy_method)
+        form.addRow("Entropy cutoff", self.entropy_cutoff)
+        form.addRow("Enthalpy correction", self.enthalpy_enabled)
+        form.addRow("Enthalpy cutoff", self.enthalpy_cutoff)
         form.addRow("qRRHO alpha", self.alpha)
 
         self.boltzmann = QCheckBox("Boltzmann-average selected conformers")
+        self.boltzmann.setAccessibleName(
+            "Boltzmann-average selected conformers"
+        )
         self.weighting = QComboBox()
+        self.weighting.setAccessibleName("Boltzmann weighting energy")
         self.weighting.addItem("Gibbs free energy", "gibbs")
         self.weighting.addItem("Electronic energy", "electronic")
         self.weighting.setEnabled(False)
         self.boltzmann.toggled.connect(self.weighting.setEnabled)
-        boltzmann_row = QWidget()
-        boltzmann_layout = QHBoxLayout(boltzmann_row)
-        boltzmann_layout.setContentsMargins(0, 0, 0, 0)
-        boltzmann_layout.addWidget(self.boltzmann)
-        boltzmann_layout.addWidget(self.weighting)
-        form.addRow("Conformer ensemble", boltzmann_row)
+        form.addRow("Conformer ensemble", self.boltzmann)
+        form.addRow("Weighting energy", self.weighting)
         root.addLayout(form)
 
         actions = QHBoxLayout()
         self.run_button = QPushButton("Compute", objectName="Primary")
+        self.run_button.setAccessibleName("Compute thermochemistry")
         self.run_button.clicked.connect(self._run_thermochemistry)
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setVisible(False)
@@ -297,16 +312,25 @@ class AnalysisScreen(QWidget):
             ]
         )
         self.results.setAccessibleName("Thermochemistry structured results")
+        self.results.setMinimumHeight(140)
         self.results.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.results.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.ResizeToContents
         )
-        root.addWidget(self.results, stretch=1)
+        self.thermochemistry_scroll = self._scroll_container(
+            controls, "Thermochemistry controls"
+        )
+        panel_root.addWidget(self.thermochemistry_scroll, stretch=3)
+        panel_root.addWidget(self.results, stretch=2)
         return panel
 
     def _build_grouper(self) -> QWidget:
         panel = QWidget()
-        root = QVBoxLayout(panel)
+        panel_root = QVBoxLayout(panel)
+        panel_root.setContentsMargins(0, 0, 0, 0)
+        controls = QWidget()
+        root = QVBoxLayout(controls)
+        root.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
         file_row = QHBoxLayout()
         self.grouper_file = QLineEdit()
         self.grouper_file.setAccessibleName("Multi-structure grouping input")
@@ -314,14 +338,16 @@ class AnalysisScreen(QWidget):
             "Choose a multi-structure molecule file"
         )
         choose = QPushButton("Choose…")
+        choose.setAccessibleName("Choose multi-structure grouping input")
         choose.clicked.connect(self._choose_grouper_file)
         self.grouper_choose_button = choose
         file_row.addWidget(self.grouper_file, stretch=1)
         file_row.addWidget(choose)
         root.addLayout(file_row)
 
-        form = QFormLayout()
+        form = self._responsive_form()
         self.grouper_strategy = QComboBox()
+        self.grouper_strategy.setAccessibleName("Conformer grouping strategy")
         strategy_labels = {
             "rmsd": "RMSD",
             "hrmsd": "Hungarian RMSD",
@@ -360,6 +386,7 @@ class AnalysisScreen(QWidget):
         )
 
         self.grouping_mode = QComboBox()
+        self.grouping_mode.setAccessibleName("Conformer grouping rule")
         self.grouping_mode.addItem("Strategy default", "default")
         self.grouping_mode.addItem("Custom threshold", "threshold")
         self.grouping_mode.addItem("Target number of groups", "groups")
@@ -367,28 +394,32 @@ class AnalysisScreen(QWidget):
             self._update_grouper_options
         )
         self.grouping_threshold = QDoubleSpinBox()
+        self.grouping_threshold.setAccessibleName(
+            "Conformer grouping threshold"
+        )
         self.grouping_threshold.setRange(0.000001, 100000.0)
         self.grouping_threshold.setDecimals(6)
         self.grouping_threshold.setValue(0.5)
         self.grouping_threshold.setEnabled(False)
         self.grouping_count = QSpinBox()
+        self.grouping_count.setAccessibleName(
+            "Target number of conformer groups"
+        )
         self.grouping_count.setRange(1, 2000)
         self.grouping_count.setValue(2)
         self.grouping_count.setEnabled(False)
-        mode_row = QWidget()
-        mode_layout = QHBoxLayout(mode_row)
-        mode_layout.setContentsMargins(0, 0, 0, 0)
-        mode_layout.addWidget(self.grouping_mode)
-        mode_layout.addWidget(self.grouping_threshold)
-        mode_layout.addWidget(self.grouping_count)
-
         self.ignore_hydrogens = QCheckBox(
             "Ignore hydrogen atoms when supported"
         )
+        self.ignore_hydrogens.setAccessibleName(
+            "Ignore hydrogen atoms when supported"
+        )
         self.grouper_workers = QSpinBox()
+        self.grouper_workers.setAccessibleName("Conformer grouping workers")
         self.grouper_workers.setRange(1, 8)
         self.grouper_workers.setValue(1)
         self.fingerprint_type = QComboBox()
+        self.fingerprint_type.setAccessibleName("Tanimoto fingerprint type")
         self.fingerprint_type.addItems(
             [
                 "rdkit",
@@ -402,14 +433,21 @@ class AnalysisScreen(QWidget):
             ]
         )
         self.inversion = QComboBox()
+        self.inversion.setAccessibleName("Invariant RMSD inversion handling")
         self.inversion.addItems(["auto", "on", "off"])
         self.torsion_weights = QCheckBox("Use torsion weights")
+        self.torsion_weights.setAccessibleName("Use torsion weights")
         self.torsion_weights.setChecked(True)
         self.torsion_max_deviation = QComboBox()
+        self.torsion_max_deviation.setAccessibleName(
+            "Torsion maximum-deviation normalization"
+        )
         self.torsion_max_deviation.addItem("Equal normalization", "equal")
         self.torsion_max_deviation.addItem("Specific normalization", "spec")
         form.addRow("Strategy", self.grouper_strategy)
-        form.addRow("Grouping rule", mode_row)
+        form.addRow("Grouping rule", self.grouping_mode)
+        form.addRow("Custom threshold", self.grouping_threshold)
+        form.addRow("Target groups", self.grouping_count)
         form.addRow("Atom selection", self.ignore_hydrogens)
         form.addRow("Workers", self.grouper_workers)
         form.addRow("Tanimoto fingerprint", self.fingerprint_type)
@@ -422,6 +460,7 @@ class AnalysisScreen(QWidget):
         self.group_button = QPushButton(
             "Group structures", objectName="Primary"
         )
+        self.group_button.setAccessibleName("Group conformer structures")
         self.group_button.clicked.connect(self._run_grouper)
         self.group_cancel = QPushButton("Cancel")
         self.group_cancel.setVisible(False)
@@ -449,6 +488,7 @@ class AnalysisScreen(QWidget):
             ["Group", "Members", "Count", "Representative", "Energy (Eh)"]
         )
         self.grouper_results.setAccessibleName("Conformer grouping results")
+        self.grouper_results.setMinimumHeight(140)
         self.grouper_results.setEditTriggers(
             QTableWidget.EditTrigger.NoEditTriggers
         )
@@ -458,13 +498,21 @@ class AnalysisScreen(QWidget):
         self.grouper_results.itemSelectionChanged.connect(
             self._show_group_representative
         )
-        root.addWidget(self.grouper_results, stretch=1)
+        self.grouper_scroll = self._scroll_container(
+            controls, "Conformer grouping controls"
+        )
+        panel_root.addWidget(self.grouper_scroll, stretch=3)
+        panel_root.addWidget(self.grouper_results, stretch=2)
         self._update_grouper_options()
         return panel
 
     def _build_dias_wbi(self) -> QWidget:
         panel = QWidget()
-        root = QVBoxLayout(panel)
+        panel_root = QVBoxLayout(panel)
+        panel_root.setContentsMargins(0, 0, 0, 0)
+        controls = QWidget()
+        root = QVBoxLayout(controls)
+        root.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
         mode_row = QHBoxLayout()
         self.population_mode = QComboBox()
         self.population_mode.addItem("DIAS energy decomposition", "dias")
@@ -483,6 +531,9 @@ class AnalysisScreen(QWidget):
             "DIAS folder or WBI output path"
         )
         self.population_choose = QPushButton("Choose…")
+        self.population_choose.setAccessibleName(
+            "Choose DIAS folder or WBI output"
+        )
         self.population_choose.clicked.connect(self._choose_population_path)
         path_row.addWidget(self.population_path, stretch=1)
         path_row.addWidget(self.population_choose)
@@ -490,8 +541,9 @@ class AnalysisScreen(QWidget):
 
         self.population_options = QStackedWidget()
         dias_options = QWidget()
-        dias_form = QFormLayout(dias_options)
+        dias_form = self._responsive_form(dias_options)
         self.dias_program = QComboBox()
+        self.dias_program.setAccessibleName("DIAS calculation program")
         self.dias_program.addItem("Detect from folder", "auto")
         self.dias_program.addItem("Gaussian", "gaussian")
         self.dias_program.addItem("ORCA", "orca")
@@ -499,17 +551,20 @@ class AnalysisScreen(QWidget):
         atom_layout = QHBoxLayout(atom_row)
         atom_layout.setContentsMargins(0, 0, 0, 0)
         self.dias_atom1 = QSpinBox()
+        self.dias_atom1.setAccessibleName("First reaction-coordinate atom")
         self.dias_atom1.setRange(1, 100000)
         self.dias_atom1.setValue(5)
         self.dias_atom1.setPrefix("Atom 1: ")
         self.dias_atom2 = QSpinBox()
+        self.dias_atom2.setAccessibleName("Second reaction-coordinate atom")
         self.dias_atom2.setRange(1, 100000)
         self.dias_atom2.setValue(7)
         self.dias_atom2.setPrefix("Atom 2: ")
         atom_layout.addWidget(self.dias_atom1)
         atom_layout.addWidget(self.dias_atom2)
-        self.dias_zero = QCheckBox(
-            "Reference decomposition to the total-energy minimum"
+        self.dias_zero = QCheckBox("Reference to minimum total energy")
+        self.dias_zero.setAccessibleName(
+            "Reference DIAS decomposition to the total-energy minimum"
         )
         self.dias_zero.setToolTip(
             "Leaves distortion unchanged and shifts total and interaction by "
@@ -521,7 +576,7 @@ class AnalysisScreen(QWidget):
         self.population_options.addWidget(dias_options)
 
         wbi_options = QWidget()
-        wbi_form = QFormLayout(wbi_options)
+        wbi_form = self._responsive_form(wbi_options)
         self.wbi_atoms = QLineEdit()
         self.wbi_atoms.setMaxLength(4096)
         self.wbi_atoms.setAccessibleName("Optional WBI atom index filter")
@@ -540,6 +595,7 @@ class AnalysisScreen(QWidget):
 
         actions = QHBoxLayout()
         self.population_run = QPushButton("Analyze", objectName="Primary")
+        self.population_run.setAccessibleName("Run DIAS or WBI analysis")
         self.population_run.clicked.connect(self._run_population_analysis)
         self.population_cancel = QPushButton("Cancel")
         self.population_cancel.setVisible(False)
@@ -595,14 +651,44 @@ class AnalysisScreen(QWidget):
         )
         self.wbi_results.setAccessibleName("WBI NBO population results")
         for table in (self.dias_results, self.wbi_results):
+            table.setMinimumHeight(140)
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             table.horizontalHeader().setSectionResizeMode(
                 QHeaderView.ResizeMode.ResizeToContents
             )
             self.population_results.addWidget(table)
-        root.addWidget(self.population_results, stretch=1)
+        self.population_scroll = self._scroll_container(
+            controls, "DIAS and WBI controls"
+        )
+        panel_root.addWidget(self.population_scroll, stretch=3)
+        panel_root.addWidget(self.population_results, stretch=2)
         self._update_population_mode()
         return panel
+
+    @staticmethod
+    def _responsive_form(parent: QWidget | None = None) -> QFormLayout:
+        form = QFormLayout(parent)
+        form.setFieldGrowthPolicy(
+            QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow
+        )
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        return form
+
+    @staticmethod
+    def _scroll_container(
+        content: QWidget, accessible_name: str
+    ) -> QScrollArea:
+        """Keep scientific controls usable in the supported minimum window."""
+        content.setObjectName("ScrollContent")
+        scroll = QScrollArea()
+        scroll.setAccessibleName(accessible_name)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(content)
+        return scroll
 
     def _update_population_mode(self) -> None:
         mode = str(self.population_mode.currentData())

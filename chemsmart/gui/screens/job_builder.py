@@ -22,8 +22,8 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QFileDialog,
-    QFrame,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -37,7 +37,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from chemsmart.gui.services import cli_schema_service as schema
 from chemsmart.gui.application.cli_launcher import DryRunRequest, DryRunResult
 from chemsmart.gui.application.job_draft import (
     DraftProvenance,
@@ -50,8 +49,8 @@ from chemsmart.gui.application.task_controller import (
     TaskSnapshot,
     TaskStatus,
 )
+from chemsmart.gui.services import cli_schema_service as schema
 from chemsmart.gui.services.job_worker import start_dry_run
-
 
 _COMMON_FIELDS = frozenset(
     {
@@ -80,6 +79,7 @@ class JobBuilderScreen(QWidget):
         self._field_getters: dict[str, Callable[[], Any]] = {}
         self._field_widgets: dict[str, QWidget] = {}
         self._field_rows: dict[str, tuple[QLabel, QWidget]] = {}
+        self._field_focus_widgets: dict[str, tuple[QWidget, ...]] = {}
         self._dry_run_controller = None
         self._handoff_available = False
         self._accepted_command = ""
@@ -108,8 +108,10 @@ class JobBuilderScreen(QWidget):
         self.form_scroll.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
-        self.form_scroll.setMinimumHeight(120)
-        self.form_content = QWidget()
+        # Preserve space for the command and generated-input receipt at the
+        # supported 720 x 520 minimum. The form owns its vertical scrolling.
+        self.form_scroll.setMinimumHeight(88)
+        self.form_content = QWidget(objectName="ScrollContent")
         left = QVBoxLayout(self.form_content)
         left.setContentsMargins(0, 0, 0, 0)
         left.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
@@ -151,6 +153,7 @@ class JobBuilderScreen(QWidget):
 
         self.advanced_toggle = QPushButton("Advanced options ▸")
         self.advanced_toggle.setCheckable(True)
+        self.advanced_toggle.setAccessibleName("Advanced job options")
         self.advanced_toggle.setAccessibleDescription(
             "Shows or hides optional fields inherited from the ChemSmart CLI."
         )
@@ -166,7 +169,9 @@ class JobBuilderScreen(QWidget):
         self.preview.setReadOnly(True)
         self.preview.setAccessibleName("Generated ChemSmart command preview")
         self.preview.setMaximumHeight(120)
-        outer.addWidget(QLabel("Command", objectName="FieldLabel"))
+        self.command_label = QLabel("Command", objectName="FieldLabel")
+        self.command_label.setBuddy(self.preview)
+        outer.addWidget(self.command_label)
         outer.addWidget(self.preview)
         self.validation_status = QLabel(
             "",
@@ -177,7 +182,9 @@ class JobBuilderScreen(QWidget):
         outer.addWidget(self.validation_status)
 
         actions = QHBoxLayout()
-        self.dry_run_button = QPushButton("Generate input", objectName="Primary")
+        self.dry_run_button = QPushButton(
+            "Generate input", objectName="Primary"
+        )
         self.dry_run_button.setEnabled(False)
         self.dry_run_button.setToolTip(
             "Generate and validate input with the enforced fake runner."
@@ -235,7 +242,9 @@ class JobBuilderScreen(QWidget):
         self.artifact_selector.setVisible(False)
         outer.addWidget(self.artifact_label)
         outer.addWidget(self.artifact_selector)
-        outer.addWidget(QLabel("Generated input", objectName="FieldLabel"))
+        self.output_label = QLabel("Generated input", objectName="FieldLabel")
+        self.output_label.setBuddy(self.output)
+        outer.addWidget(self.output_label)
         outer.addWidget(self.output)
 
         safe_preview = self.window_ref.menu_actions.get("safe_preview")
@@ -285,6 +294,7 @@ class JobBuilderScreen(QWidget):
         self._field_getters.clear()
         self._field_widgets.clear()
         self._field_rows.clear()
+        self._field_focus_widgets.clear()
 
         program = self.program.currentText()
         job_type = self.job_type.currentText()
@@ -318,16 +328,21 @@ class JobBuilderScreen(QWidget):
                 choose = QPushButton("Choose…")
                 choose.setAccessibleName("Choose molecule file")
                 choose.clicked.connect(
-                    lambda _checked=False, field=widget: self._choose_file(field)
+                    lambda _checked=False, field=widget: self._choose_file(
+                        field
+                    )
                 )
                 row.addWidget(choose)
                 target.addRow(label, row_widget)
+                focus_widgets = (widget, choose)
                 widget.editingFinished.connect(self._load_structure_preview)
                 widget.textChanged.connect(self._clear_structure_preview)
             else:
                 target.addRow(label, widget)
                 row_widget = widget
+                focus_widgets = (widget,)
             self._field_rows[opt["field_id"]] = (label, row_widget)
+            self._field_focus_widgets[opt["field_id"]] = focus_widgets
             if hasattr(widget, "textChanged"):
                 widget.textChanged.connect(self._update_preview)
             elif hasattr(widget, "currentTextChanged"):
@@ -336,6 +351,7 @@ class JobBuilderScreen(QWidget):
                 widget.toggled.connect(self._update_preview)
         self._apply_source_visibility()
         self.form_content.adjustSize()
+        self._apply_tab_order()
         self._update_preview()
 
     def _on_source_mode_changed(self) -> None:
@@ -357,7 +373,9 @@ class JobBuilderScreen(QWidget):
         for field_id, (label, widget) in self._field_rows.items():
             if field_id == "filename":
                 visible = mode in {"file", "database"}
-                label.setText("Database file" if mode == "database" else "Molecule file")
+                label.setText(
+                    "Database file" if mode == "database" else "Molecule file"
+                )
             elif field_id == "pubchem":
                 visible = mode == "pubchem"
             elif field_id in _DATABASE_FIELDS:
@@ -366,6 +384,37 @@ class JobBuilderScreen(QWidget):
                 visible = True
             label.setVisible(visible)
             widget.setVisible(visible)
+        self._apply_tab_order()
+
+    def _apply_tab_order(self) -> None:
+        """Keep dynamic chemistry fields ahead of preview and result views."""
+        if not self._field_focus_widgets:
+            return
+        common: list[QWidget] = []
+        advanced: list[QWidget] = []
+        for field_id, widgets in self._field_focus_widgets.items():
+            _label, row = self._field_rows[field_id]
+            target = (
+                advanced if self.advanced_form.indexOf(row) >= 0 else common
+            )
+            target.extend(widgets)
+        chain = [
+            self.program,
+            self.job_type,
+            self.source_mode,
+            *common,
+            self.advanced_toggle,
+            *advanced,
+            self.preview,
+            self.dry_run_button,
+            self.cancel_button,
+            self.retry_button,
+            self.to_chat_button,
+            self.artifact_selector,
+            self.output,
+        ]
+        for first, second in zip(chain, chain[1:]):
+            QWidget.setTabOrder(first, second)
 
     def _current_values(self) -> dict[str, Any]:
         specs = {
@@ -406,7 +455,9 @@ class JobBuilderScreen(QWidget):
         except ValueError as exc:
             self.preview.clear()
             self._invalidate_previous_preview()
-            self.validation_status.setText(_bounded_validation_message(str(exc)))
+            self.validation_status.setText(
+                _bounded_validation_message(str(exc))
+            )
             self._set_preview_enabled(False)
             self.to_chat_button.setEnabled(False)
             return
@@ -439,6 +490,7 @@ class JobBuilderScreen(QWidget):
         self.advanced_toggle.setText(
             "Advanced options ▾" if shown else "Advanced options ▸"
         )
+        self._apply_tab_order()
 
     # -- actions -------------------------------------------------------- #
 
@@ -539,11 +591,15 @@ class JobBuilderScreen(QWidget):
             )
         except ValueError as exc:
             self._running_command = ""
-            self.validation_status.setText(_bounded_validation_message(str(exc)))
+            self.validation_status.setText(
+                _bounded_validation_message(str(exc))
+            )
             self._update_preview()
             return
         self._dry_run_controller.state_changed.connect(self._on_task_state)
-        self._dry_run_controller.progress_changed.connect(self._on_task_progress)
+        self._dry_run_controller.progress_changed.connect(
+            self._on_task_progress
+        )
         self._on_task_state(self._dry_run_controller.snapshot)
 
     def _on_dry_run_done(self, result: DryRunResult) -> None:
@@ -561,7 +617,9 @@ class JobBuilderScreen(QWidget):
                 f"Safe preview was blocked by deterministic validation: {rules}."
             )
             self.output.setPlainText(
-                _bounded_validation_message(result.output or result.semantic.notice)
+                _bounded_validation_message(
+                    result.output or result.semantic.notice
+                )
             )
             self.retry_button.setVisible(True)
         else:
@@ -712,7 +770,9 @@ class JobBuilderScreen(QWidget):
 
     def _set_task_status(self, message: str) -> None:
         self.window_ref.task_status.setText(message)
-        self.window_ref.task_status.setAccessibleName(f"Task status: {message}")
+        self.window_ref.task_status.setAccessibleName(
+            f"Task status: {message}"
+        )
         self.window_ref.task_status.setAccessibleDescription(
             "No background task is running."
             if message == "Idle"
@@ -827,7 +887,11 @@ def _bounded_validation_message(message: str, limit: int = 320) -> str:
         "Complete these required fields: ",
         1,
     )
-    return normalized if len(normalized) <= limit else normalized[: limit - 1] + "…"
+    return (
+        normalized
+        if len(normalized) <= limit
+        else normalized[: limit - 1] + "…"
+    )
 
 
 def _field_label(name: str) -> str:

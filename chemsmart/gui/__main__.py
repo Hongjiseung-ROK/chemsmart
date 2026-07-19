@@ -64,10 +64,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(raw_args)
 
+    from PySide6.QtCore import QSettings
     from PySide6.QtWidgets import QApplication
 
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("ChemSmart")
+    app.setOrganizationName("ZhangLab")
 
     _ensure_environment()
 
@@ -89,7 +91,11 @@ def main(argv: list[str] | None = None) -> int:
     from chemsmart.gui.app import MainWindow
 
     session_root = Path(args.session_root) if args.session_root else None
-    window = MainWindow(session_root=session_root)
+    preferences = QSettings("ZhangLab", "ChemSmart")
+    window = MainWindow(
+        session_root=session_root,
+        preference_store=preferences,
+    )
     if args.packaging_shell_smoke_receipt:
         from chemsmart.gui.packaging_probe import run_shell_smoke
 

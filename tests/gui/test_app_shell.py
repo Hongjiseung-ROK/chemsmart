@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-
 pytest.importorskip("PySide6")
 
 
@@ -23,7 +22,6 @@ def test_all_visible_navigation_destinations_are_recoverable(qapp) -> None:
 
 def test_closed_main_window_releases_webengine_ownership(qapp) -> None:
     import shiboken6
-
     from PySide6.QtCore import QCoreApplication, QEvent
 
     from chemsmart.gui.app import MainWindow
@@ -39,8 +37,8 @@ def test_closed_main_window_releases_webengine_ownership(qapp) -> None:
 
 
 def test_job_builder_opens_on_gaussian_optimization(qapp) -> None:
-    from chemsmart.gui.application.job_draft import JobDraft
     from chemsmart.gui.app import MainWindow
+    from chemsmart.gui.application.job_draft import JobDraft
 
     window = MainWindow()
     try:
@@ -114,13 +112,17 @@ def test_job_builder_preview_quotes_paths_and_handles_incomplete_database_edits(
 
         fields["record_id"].setText("record-abc")
         assert "--record-id record-abc" in builder.preview.toPlainText()
-        assert "existing local molecule file" in builder.validation_status.text()
+        assert (
+            "existing local molecule file" in builder.validation_status.text()
+        )
         assert not builder.to_chat_button.isEnabled()
     finally:
         window.close()
 
 
-def test_job_builder_source_modes_are_explicit_and_offline_honest(qapp) -> None:
+def test_job_builder_source_modes_are_explicit_and_offline_honest(
+    qapp,
+) -> None:
     from PySide6.QtWidgets import QLineEdit
 
     from chemsmart.gui.app import MainWindow
@@ -152,7 +154,9 @@ def test_job_builder_source_modes_are_explicit_and_offline_honest(qapp) -> None:
         window.close()
 
 
-def test_job_builder_enables_only_a_complete_local_safe_preview(qapp, tmp_path) -> None:
+def test_job_builder_enables_only_a_complete_local_safe_preview(
+    qapp, tmp_path
+) -> None:
     from PySide6.QtWidgets import QLineEdit
 
     from chemsmart.gui.app import MainWindow
@@ -305,7 +309,10 @@ def test_native_menu_status_and_preferences_contract(qapp) -> None:
 
     window = MainWindow()
     try:
-        menu_titles = [action.text().replace("&", "") for action in window.menuBar().actions()]
+        menu_titles = [
+            action.text().replace("&", "")
+            for action in window.menuBar().actions()
+        ]
         assert menu_titles == ["File", "Edit", "View", "Job", "Window", "Help"]
         preferences = window.menu_actions["preferences"]
         assert preferences.shortcut().matches(
@@ -337,7 +344,10 @@ def test_shell_projects_session_evidence_and_recovery(qapp) -> None:
         window.apply_runtime_projection(projection)
 
         assert window.task_status.text() == "Agent: Recovery needed"
-        assert window.task_status.accessibleDescription() == projection.session_label
+        assert (
+            window.task_status.accessibleDescription()
+            == projection.session_label
+        )
         assert projection.session_label in window.runtime_evidence.text()
         assert projection.evidence_label in window.runtime_evidence.text()
         assert projection.recovery_message in window.runtime_evidence.text()
@@ -345,7 +355,9 @@ def test_shell_projects_session_evidence_and_recovery(qapp) -> None:
         window.close()
 
 
-def test_adaptive_shell_collapses_inspector_before_primary_surface(qapp) -> None:
+def test_adaptive_shell_collapses_inspector_before_primary_surface(
+    qapp,
+) -> None:
     from chemsmart.gui.app import MainWindow
 
     window = MainWindow()
@@ -392,7 +404,9 @@ def test_settings_exposes_locked_safe_mode_and_keychain_migration(
         window.close()
 
 
-def test_main_window_launch_does_not_require_agent_config(qapp, monkeypatch) -> None:
+def test_main_window_launch_does_not_require_agent_config(
+    qapp, monkeypatch
+) -> None:
     from PySide6.QtWidgets import QApplication
 
     import chemsmart.gui.__main__ as gui_main
@@ -402,8 +416,9 @@ def test_main_window_launch_does_not_require_agent_config(qapp, monkeypatch) -> 
     shown: list[bool] = []
 
     class FakeWindow:
-        def __init__(self, session_root=None) -> None:
+        def __init__(self, session_root=None, preference_store=None) -> None:
             self.session_root = session_root
+            assert preference_store is not None
 
         def show(self) -> None:
             shown.append(True)
@@ -446,6 +461,18 @@ def test_job_builder_advanced_form_scrolls_without_collapsing_rows(
         ]
         assert visible_rows
         assert all(widget.height() > 0 for widget in visible_rows)
+        assert (
+            builder.form_scroll.geometry().bottom()
+            < builder.command_label.geometry().top()
+        )
+        assert (
+            builder.preview.geometry().bottom()
+            < builder.validation_status.geometry().top()
+        )
+        assert (
+            builder.output_label.geometry().bottom()
+            < builder.output.geometry().top()
+        )
         assert builder.dry_run_button.isVisible()
         assert builder.output.isVisible()
     finally:
@@ -610,7 +637,9 @@ def test_multi_artifact_selector_preserves_warn_route_state_and_content(
         window.close()
 
 
-def test_job_builder_discards_result_when_draft_changed_during_run(qapp) -> None:
+def test_job_builder_discards_result_when_draft_changed_during_run(
+    qapp,
+) -> None:
     from chemsmart.agent.harness.command_semantics import CommandSemanticResult
     from chemsmart.gui.app import MainWindow
     from chemsmart.gui.application.cli_launcher import (
@@ -678,5 +707,151 @@ def test_task_status_accessibility_tracks_running_state(qapp) -> None:
         assert "Background task state" in (
             window.task_status.accessibleDescription()
         )
+    finally:
+        window.close()
+
+
+def test_help_menu_explains_safe_workflows_and_recovery(
+    qapp, monkeypatch
+) -> None:
+    from PySide6.QtWidgets import QMessageBox
+
+    from chemsmart.gui.app import MainWindow
+
+    captured = {}
+    monkeypatch.setattr(
+        QMessageBox,
+        "information",
+        lambda parent, title, message: captured.update(
+            parent=parent,
+            title=title,
+            message=message,
+        ),
+    )
+    window = MainWindow()
+    try:
+        window.menu_actions["help"].trigger()
+
+        assert captured["parent"] is window
+        assert captured["title"] == "ChemSmart Help"
+        assert "Cancel" in captured["message"]
+        assert "Retry" in captured["message"]
+        assert "fake-run safety" in captured["message"]
+        assert "PyMOL" in captured["message"]
+    finally:
+        window.close()
+
+
+def test_settings_validates_persists_and_refreshes_explicit_pymol(
+    qapp, tmp_path, monkeypatch
+) -> None:
+    from PySide6.QtCore import QSettings
+    from PySide6.QtWidgets import QFileDialog
+
+    from chemsmart.gui.app import MainWindow
+    from chemsmart.gui.widgets import structure_viewer as viewer_module
+
+    preferences_path = tmp_path / "desktop-preferences.ini"
+    preferences = QSettings(str(preferences_path), QSettings.Format.IniFormat)
+    invalid = tmp_path / "not-executable"
+    invalid.write_text("not executable", encoding="utf-8")
+    executable = tmp_path / "pymol"
+    executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    executable.chmod(0o755)
+    monkeypatch.setattr(viewer_module, "_webengine_available", lambda: False)
+
+    window = MainWindow(preference_store=preferences)
+    try:
+        viewer = window.ensure_structure_viewer()
+        window.navigate("settings")
+        screen = window._screens["settings"]
+
+        monkeypatch.setattr(
+            QFileDialog,
+            "getOpenFileName",
+            lambda *args, **kwargs: (str(invalid), ""),
+        )
+        screen.choose_pymol.click()
+        assert window.pymol_executable is None
+        assert "not changed" in screen.pymol_status.text()
+        assert preferences.value("visualization/pymol_executable") is None
+
+        monkeypatch.setattr(
+            QFileDialog,
+            "getOpenFileName",
+            lambda *args, **kwargs: (str(executable), ""),
+        )
+        screen.choose_pymol.click()
+
+        resolved = executable.resolve()
+        assert window.pymol_executable == resolved
+        assert viewer._pymol_service.executable == resolved
+        assert viewer.render_button.isEnabled()
+        assert screen.pymol_path.text() == str(resolved)
+        assert preferences.value("visualization/pymol_executable") == str(
+            resolved
+        )
+    finally:
+        window.close()
+
+    reopened = MainWindow(
+        preference_store=QSettings(
+            str(preferences_path), QSettings.Format.IniFormat
+        )
+    )
+    try:
+        assert reopened.pymol_executable == executable.resolve()
+    finally:
+        reopened.close()
+
+
+def test_large_system_font_and_long_settings_status_scroll_at_minimum_size(
+    qapp, monkeypatch
+) -> None:
+    from PySide6.QtCore import Qt
+
+    from chemsmart.gui import theme
+    from chemsmart.gui.app import MainWindow
+
+    monkeypatch.setattr(theme, "system_font_point_size", lambda: 18)
+    window = MainWindow()
+    try:
+        window.resize(720, 520)
+        window.show()
+        window.navigate("settings")
+        screen = window._screens["settings"]
+        screen.pymol_status.setText(
+            "The previously configured optional visualization executable is "
+            "unavailable. Interactive three-dimensional rendering remains "
+            "available while you choose another executable or restore PATH "
+            "discovery."
+        )
+        qapp.processEvents()
+
+        assert screen.scroll.verticalScrollBar().maximum() > 0
+        assert (
+            screen.scroll.horizontalScrollBarPolicy()
+            == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        assert (
+            screen.choose_pymol.height()
+            >= screen.choose_pymol.minimumSizeHint().height()
+        )
+        assert (
+            screen.use_path_pymol.height()
+            >= screen.use_path_pymol.minimumSizeHint().height()
+        )
+        viewport = screen.scroll.viewport()
+        for control in (
+            screen.connect_button,
+            screen.migrate_button,
+            screen.choose_workspace,
+            screen.choose_pymol,
+            screen.use_path_pymol,
+        ):
+            left = control.mapTo(viewport, control.rect().topLeft()).x()
+            right = control.mapTo(viewport, control.rect().bottomRight()).x()
+            assert left >= 0
+            assert right < viewport.width()
     finally:
         window.close()

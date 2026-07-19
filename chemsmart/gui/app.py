@@ -52,7 +52,11 @@ class NavEntry:
 class MainWindow(QMainWindow):
     """Top-level window hosting the sidebar and the screen stack."""
 
-    def __init__(self, session_root: Path | None = None) -> None:
+    def __init__(
+        self,
+        session_root: Path | None = None,
+        preference_store=None,
+    ) -> None:
         super().__init__()
         # A closed top-level window owns QtWebEngine children. Delete it at the
         # accepted close boundary so repeated windows do not retain renderer
@@ -63,6 +67,9 @@ class MainWindow(QMainWindow):
         self.resize(1040, 680)
         self.session_root = session_root
         self.workspace_root = Path.cwd().resolve()
+        self._preference_store = preference_store
+        self._pymol_preference_issue = ""
+        self._pymol_executable = self._load_pymol_executable()
         self._inspector_user_visible = True
 
         self._screens: dict[str, QWidget] = {}
@@ -226,9 +233,14 @@ class MainWindow(QMainWindow):
     def ensure_structure_viewer(self):
         """Create the QtWebEngine-backed viewer only after source selection."""
         if self._structure_viewer is None:
+            from chemsmart.gui.services.pymol_render_service import (
+                PyMOLRenderService,
+            )
             from chemsmart.gui.widgets.structure_viewer import StructureViewer
 
-            self._structure_viewer = StructureViewer()
+            service = PyMOLRenderService(executable=self._pymol_executable)
+            self._pymol_executable = service.executable
+            self._structure_viewer = StructureViewer(pymol_service=service)
             self.inspector.layout().insertWidget(
                 self.inspector.layout().count() - 1,
                 self._structure_viewer,
@@ -236,6 +248,73 @@ class MainWindow(QMainWindow):
             )
         self._structure_viewer.setVisible(True)
         return self._structure_viewer
+
+    @property
+    def pymol_executable(self) -> Path | None:
+        return self._pymol_executable
+
+    @property
+    def pymol_preference_issue(self) -> str:
+        return self._pymol_preference_issue
+
+    def configure_pymol_executable(self, executable: str | Path) -> Path:
+        """Validate, apply, and persist one explicit PyMOL executable."""
+        from chemsmart.gui.services.pymol_render_service import (
+            PyMOLRenderService,
+        )
+
+        service = PyMOLRenderService(executable=Path(executable))
+        if self._structure_viewer is not None:
+            self._structure_viewer.set_pymol_service(service)
+        self._pymol_executable = service.executable
+        self._pymol_preference_issue = ""
+        if self._preference_store is not None:
+            self._preference_store.setValue(
+                "visualization/pymol_executable",
+                str(service.executable),
+            )
+            self._preference_store.sync()
+        return service.executable
+
+    def use_path_pymol_executable(self) -> Path | None:
+        """Return to PATH discovery and remove an explicit preference."""
+        from chemsmart.gui.services.pymol_render_service import (
+            PyMOLRenderService,
+        )
+
+        service = PyMOLRenderService()
+        if self._structure_viewer is not None:
+            self._structure_viewer.set_pymol_service(service)
+        self._pymol_executable = service.executable
+        self._pymol_preference_issue = ""
+        if self._preference_store is not None:
+            self._preference_store.remove("visualization/pymol_executable")
+            self._preference_store.sync()
+        return service.executable
+
+    def _load_pymol_executable(self) -> Path | None:
+        from chemsmart.gui.services.pymol_render_service import (
+            discover_pymol_executable,
+            validate_pymol_executable,
+        )
+
+        detected = discover_pymol_executable()
+        if self._preference_store is None:
+            return detected
+        saved = self._preference_store.value(
+            "visualization/pymol_executable",
+            "",
+        )
+        if not str(saved).strip():
+            return detected
+        try:
+            return validate_pymol_executable(str(saved))
+        except ValueError:
+            self._pymol_preference_issue = (
+                "The saved PyMOL executable is no longer available. "
+                "Choose it again or use PATH discovery."
+            )
+            return detected
 
     def _build_menus(self) -> None:
         self.menu_actions: dict[str, QAction] = {}
@@ -294,6 +373,11 @@ class MainWindow(QMainWindow):
         window_menu.addAction(minimize)
 
         help_menu = self.menuBar().addMenu("&Help")
+        help_contents = QAction("ChemSmart Help…", self)
+        help_contents.setShortcut(QKeySequence.StandardKey.HelpContents)
+        help_contents.triggered.connect(self._show_help)
+        help_menu.addAction(help_contents)
+        help_menu.addSeparator()
         about = QAction("About ChemSmart", self)
         about.triggered.connect(
             lambda: QMessageBox.about(
@@ -308,6 +392,7 @@ class MainWindow(QMainWindow):
             preferences=preferences,
             toggle_inspector=toggle_inspector,
             safe_preview=dry_run,
+            help=help_contents,
         )
 
     def _build_status_bar(self) -> None:
@@ -364,6 +449,23 @@ class MainWindow(QMainWindow):
         if callable(callback):
             callback()
 
+    def _show_help(self) -> None:
+        QMessageBox.information(
+            self,
+            "ChemSmart Help",
+            "Start in Job builder: choose a local molecule source, review the "
+            "exact ChemSmart command, then generate a safe fake-run input.\n\n"
+            "Chat is optional. Database and Analysis use structured local "
+            "ChemSmart results and do not launch Gaussian, ORCA, or HPC jobs.\n\n"
+            "For a background task, use Cancel when it is available. After an "
+            "error, correct the named input and use Retry; no output is accepted "
+            "until its receipt is verified.\n\n"
+            "Interactive 3D works offline. Configure an optional local PyMOL "
+            "executable in Settings when Finder cannot discover it on PATH.\n\n"
+            "The desktop always enforces fake-run safety. Real calculations and "
+            "HPC submission remain in the existing approved CLI workflow.",
+        )
+
     def _set_inspector_visible(self, visible: bool) -> None:
         self._inspector_user_visible = visible
         self.inspector.setVisible(visible and self.width() >= 900)
@@ -393,6 +495,12 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
 
     def closeEvent(self, event) -> None:
+        if self._structure_viewer is not None:
+            shutdown = getattr(self._structure_viewer, "shutdown", None)
+            if callable(shutdown) and not shutdown(500):
+                self.task_status.setText("Background: finishing before close")
+                event.ignore()
+                return
         for screen in self._screens.values():
             shutdown = getattr(screen, "shutdown", None)
             if callable(shutdown) and not shutdown(500):

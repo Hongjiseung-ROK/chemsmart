@@ -56,6 +56,59 @@ def test_analysis_navigation_exposes_scientific_workflows(qapp) -> None:
         window.close()
 
 
+@pytest.mark.parametrize("tab_index", [0, 1, 2])
+def test_analysis_workflows_scroll_without_compressing_controls_at_minimum_size(
+    qapp, tab_index
+) -> None:
+    from PySide6.QtCore import Qt
+
+    from chemsmart.gui.app import MainWindow
+
+    window = MainWindow()
+    try:
+        window.resize(720, 520)
+        window.show()
+        window.navigate("analysis")
+        screen = window._screens["analysis"]
+        screen.tabs.setCurrentIndex(tab_index)
+        qapp.processEvents()
+
+        scroll = (
+            screen.thermochemistry_scroll,
+            screen.grouper_scroll,
+            screen.population_scroll,
+        )[tab_index]
+        assert scroll.verticalScrollBar().maximum() > 0
+        assert (
+            scroll.horizontalScrollBarPolicy()
+            == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        assert (
+            scroll.widget().minimumSizeHint().height()
+            > scroll.viewport().height()
+        )
+
+        controls = {
+            0: (screen.temperature, screen.weighted_mass, screen.run_button),
+            1: (
+                screen.grouper_strategy,
+                screen.ignore_hydrogens,
+                screen.group_button,
+            ),
+            2: (
+                screen.population_mode,
+                screen.dias_atom1,
+                screen.population_run,
+            ),
+        }[tab_index]
+        assert all(
+            control.height() >= control.minimumSizeHint().height()
+            for control in controls
+        )
+    finally:
+        window.close()
+
+
 def test_thermochemistry_ui_runs_domain_adapter_and_labels_units(qapp) -> None:
     from chemsmart.gui.app import MainWindow
 

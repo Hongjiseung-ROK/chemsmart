@@ -23,12 +23,14 @@ from __future__ import annotations
 
 import base64
 import re
-import shutil
 from pathlib import Path
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
+    QProgressBar,
     QPushButton,
     QStackedWidget,
     QVBoxLayout,
@@ -47,7 +49,11 @@ def _webengine_available() -> bool:
 
 def pymol_available() -> bool:
     """True when a ``pymol`` executable is discoverable on PATH."""
-    return shutil.which("pymol") is not None or shutil.which("pymol.exe") is not None
+    from chemsmart.gui.services.pymol_render_service import (
+        discover_pymol_executable,
+    )
+
+    return discover_pymol_executable() is not None
 
 
 _HTML_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8">
@@ -73,7 +79,9 @@ def build_3dmol_html(data: str, background: str, fmt: str = "xyz") -> str:
     from chemsmart.gui.resources import read_threedmol_javascript
 
     if not re.fullmatch(r"#[0-9a-fA-F]{6}", background):
-        raise ValueError("3D viewer background must be a six-digit hex colour.")
+        raise ValueError(
+            "3D viewer background must be a six-digit hex colour."
+        )
 
     def encode(value: str) -> str:
         return base64.b64encode(value.encode("utf-8")).decode("ascii")
@@ -89,11 +97,31 @@ def build_3dmol_html(data: str, background: str, fmt: str = "xyz") -> str:
 class StructureViewer(QWidget):
     """Segmented Interactive / PyMOL viewer over a chemsmart ``Molecule``."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent=None, pymol_service=None) -> None:
         super().__init__(parent)
         self.setAccessibleName("Molecular structure viewer")
         self._molecule = None
         self._source_path: Path | None = None
+        self._pymol_pixmap = QPixmap()
+
+        from chemsmart.gui.application.task_controller import QtTaskController
+        from chemsmart.gui.services.pymol_render_service import (
+            PyMOLRenderService,
+        )
+
+        self._pymol_service = pymol_service or PyMOLRenderService()
+        self._pymol_controller = QtTaskController(self)
+        self._pymol_controller.state_changed.connect(self._on_pymol_state)
+        self._pymol_controller.progress_changed.connect(
+            lambda progress: (
+                self.pymol_status.setText(progress.message)
+                if progress.message
+                else None
+            )
+        )
+        self._pymol_controller.succeeded.connect(self._on_pymol_result)
+        self._pymol_controller.failed.connect(self._on_pymol_failure)
+        self._pymol_controller.cancelled.connect(self._on_pymol_cancelled)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -110,8 +138,16 @@ class StructureViewer(QWidget):
         self.render_button = QPushButton("PyMOL")
         self.render_button.setCheckable(True)
         self.render_button.setAccessibleName("Render with PyMOL")
-        self.render_button.setToolTip("Render with the Zhang Lab PyMOL style")
-        self.render_button.setEnabled(pymol_available())
+        self.render_button.setAccessibleDescription(
+            "Runs the optional local PyMOL executable in a cancellable isolated "
+            "process. The interactive 3D viewer remains the default."
+        )
+        self.render_button.setToolTip(
+            "Render with the Zhang Lab PyMOL style"
+            if self._pymol_service.available
+            else "PyMOL is not available on PATH; interactive 3D remains available."
+        )
+        self.render_button.setEnabled(self._pymol_service.available)
         self.render_button.clicked.connect(lambda: self._set_mode("pymol"))
         toggle.addWidget(self.interactive_button)
         toggle.addWidget(self.render_button)
@@ -120,9 +156,7 @@ class StructureViewer(QWidget):
 
         self.stack = QStackedWidget()
         self._interactive = self._build_interactive()
-        self._pymol_panel = QLabel(
-            "Render with the lab PyMOL style.", objectName="ScreenSubtitle"
-        )
+        self._pymol_panel = self._build_pymol_panel()
         self.stack.addWidget(self._interactive)
         self.stack.addWidget(self._pymol_panel)
         root.addWidget(self.stack, stretch=1)
@@ -141,6 +175,9 @@ class StructureViewer(QWidget):
             return
         self._molecule = None
         self._source_path = None
+        self._pymol_controller.cancel()
+        self._pymol_pixmap = QPixmap()
+        self.pymol_image.clear()
         if self._web is not None:
             from chemsmart.gui import theme
 
@@ -152,7 +189,11 @@ class StructureViewer(QWidget):
                 "font:13px -apple-system'>Select a molecule source to preview "
                 "its 3D structure.</body></html>"
             )
-        self._pymol_panel.setText("Render with the lab PyMOL style.")
+        self.pymol_status.setText(
+            "PyMOL is not available; use the interactive 3D viewer."
+            if not self._pymol_service.available
+            else "Select a molecule, then choose PyMOL to render it."
+        )
 
     # -- internals ------------------------------------------------------ #
 
@@ -161,6 +202,10 @@ class StructureViewer(QWidget):
             from PySide6.QtWebEngineWidgets import QWebEngineView
 
             self._web = QWebEngineView()
+            self._web.setAccessibleName("Interactive 3D molecular structure")
+            self._web.setAccessibleDescription(
+                "Rotate and zoom the selected molecular geometry."
+            )
             from chemsmart.gui import theme
 
             palette = theme.palette_for()
@@ -174,12 +219,56 @@ class StructureViewer(QWidget):
             return self._web
         # Fallback when QtWebEngine could not be bundled (plan Phase 0 note).
         self._web = None
-        return QLabel(
+        fallback = QLabel(
             "3D viewer unavailable (QtWebEngine not installed).",
             objectName="ScreenSubtitle",
         )
+        fallback.setAccessibleName("Interactive 3D viewer unavailable")
+        return fallback
+
+    def _build_pymol_panel(self) -> QWidget:
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.pymol_image = QLabel()
+        self.pymol_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pymol_image.setAccessibleName("PyMOL rendered molecule image")
+        self.pymol_status = QLabel(
+            (
+                "Select a molecule, then choose PyMOL to render it."
+                if self._pymol_service.available
+                else "PyMOL is not available; use the interactive 3D viewer."
+            ),
+            objectName="ScreenSubtitle",
+        )
+        self.pymol_status.setWordWrap(True)
+        self.pymol_status.setAccessibleName("PyMOL render status")
+        self.pymol_progress = QProgressBar()
+        self.pymol_progress.setRange(0, 0)
+        self.pymol_progress.setTextVisible(False)
+        self.pymol_progress.setAccessibleName("PyMOL render progress")
+        self.pymol_progress.setVisible(False)
+        actions = QHBoxLayout()
+        self.pymol_cancel = QPushButton("Cancel render")
+        self.pymol_cancel.setAccessibleName("Cancel PyMOL render")
+        self.pymol_cancel.setVisible(False)
+        self.pymol_cancel.clicked.connect(self._pymol_controller.cancel)
+        self.pymol_retry = QPushButton("Retry render")
+        self.pymol_retry.setAccessibleName("Retry PyMOL render")
+        self.pymol_retry.setVisible(False)
+        self.pymol_retry.clicked.connect(self._start_pymol_render)
+        actions.addWidget(self.pymol_cancel)
+        actions.addWidget(self.pymol_retry)
+        actions.addStretch(1)
+        layout.addWidget(self.pymol_image, stretch=1)
+        layout.addWidget(self.pymol_status)
+        layout.addWidget(self.pymol_progress)
+        layout.addLayout(actions)
+        return panel
 
     def _set_mode(self, mode: str) -> None:
+        if mode == "pymol" and not self._pymol_service.available:
+            mode = "interactive"
         self.interactive_button.setChecked(mode == "interactive")
         self.render_button.setChecked(mode == "pymol")
         self.stack.setCurrentWidget(
@@ -193,13 +282,118 @@ class StructureViewer(QWidget):
         if self.stack.currentWidget() is self._interactive and self._web:
             self._render_interactive()
         elif self.stack.currentWidget() is self._pymol_panel:
-            # PyMOL render runs on a worker in the job screen; the panel here
-            # displays the resulting PNG. Wiring lands with Phase 5 mol work.
-            self._pymol_panel.setText(
-                "PyMOL render pending — run to generate the lab-style image."
-                if pymol_available()
-                else "PyMOL not found on PATH; render mode disabled."
+            self._start_pymol_render()
+
+    def _start_pymol_render(self) -> None:
+        if not self._pymol_service.available:
+            self.pymol_status.setText(
+                "PyMOL is not available; use the interactive 3D viewer."
             )
+            return
+        if self._molecule is None:
+            self.pymol_status.setText("Select a molecule before rendering.")
+            return
+        molecule = self._molecule
+        # Never show a prior molecule while a new render is pending. A stale
+        # image beside a current status would be scientifically misleading.
+        self._pymol_pixmap = QPixmap()
+        self.pymol_image.clear()
+        self.pymol_status.setText(
+            "Starting PyMOL render for selected molecule…"
+        )
+        self.pymol_retry.setVisible(False)
+        self._pymol_controller.start(
+            lambda context: self._pymol_service.render(molecule, context),
+            timeout_ms=120_000,
+        )
+
+    def _on_pymol_state(self, snapshot) -> None:
+        from chemsmart.gui.application.task_controller import TaskStatus
+
+        active = snapshot.status in {
+            TaskStatus.RUNNING,
+            TaskStatus.CANCELLING,
+        }
+        self.pymol_progress.setVisible(active)
+        self.pymol_cancel.setVisible(active)
+        self.render_button.setEnabled(
+            self._pymol_service.available and not active
+        )
+
+    def _on_pymol_result(self, result) -> None:
+        pixmap = QPixmap()
+        if not pixmap.loadFromData(result.png_bytes, "PNG"):
+            self._pymol_pixmap = QPixmap()
+            self.pymol_image.clear()
+            self.pymol_status.setText(
+                "PyMOL returned an image that Qt could not display."
+            )
+            self.pymol_retry.setVisible(True)
+            return
+        self._pymol_pixmap = pixmap
+        self._scale_pymol_image()
+        self.pymol_status.setText(
+            f"PyMOL render verified · SHA-256 {result.sha256[:12]}…"
+        )
+
+    def _on_pymol_failure(self, failure) -> None:
+        self._pymol_pixmap = QPixmap()
+        self.pymol_image.clear()
+        self.pymol_status.setText(
+            "PyMOL rendering failed "
+            f"({failure.diagnostic_type}). Check the local PyMOL installation."
+        )
+        self.pymol_retry.setVisible(True)
+
+    def _on_pymol_cancelled(self) -> None:
+        self.pymol_status.setText(
+            "PyMOL rendering cancelled; no image was accepted."
+        )
+        self.pymol_retry.setVisible(True)
+
+    def _scale_pymol_image(self) -> None:
+        if self._pymol_pixmap.isNull():
+            return
+        target = self.pymol_image.size()
+        self.pymol_image.setPixmap(
+            self._pymol_pixmap.scaled(
+                target,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._scale_pymol_image()
+
+    def shutdown(self, timeout_ms: int = 1000) -> bool:
+        return self._pymol_controller.shutdown(timeout_ms)
+
+    def set_pymol_service(self, service) -> None:
+        """Apply a validated optional renderer after draining the old one."""
+        if self._pymol_controller.active_thread_count:
+            self._pymol_controller.cancel()
+            raise RuntimeError(
+                "The existing PyMOL render is still stopping; try again."
+            )
+        self._pymol_service = service
+        available = service.available
+        self.render_button.setEnabled(available)
+        self.render_button.setToolTip(
+            "Render with the Zhang Lab PyMOL style"
+            if available
+            else "PyMOL is not available on PATH; interactive 3D remains available."
+        )
+        if not available and self.stack.currentWidget() is self._pymol_panel:
+            self._set_mode("interactive")
+        self._pymol_pixmap = QPixmap()
+        self.pymol_image.clear()
+        self.pymol_status.setText(
+            f"PyMOL ready: {service.executable}"
+            if available
+            else "PyMOL is not available; use the interactive 3D viewer."
+        )
 
     def _render_interactive(self) -> None:
         from chemsmart.gui import theme

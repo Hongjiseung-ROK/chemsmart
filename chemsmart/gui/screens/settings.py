@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QFileDialog,
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -36,7 +38,10 @@ class SettingsScreen(QWidget):
         self._migration.failed.connect(self._on_migration_failed)
         self._migration.cancelled.connect(self._on_migration_cancelled)
 
-        outer = QVBoxLayout(self)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        content = QWidget(objectName="ScrollContent")
+        outer = QVBoxLayout(content)
         outer.setContentsMargins(20, 18, 20, 18)
         outer.addWidget(QLabel("Settings", objectName="ScreenTitle"))
         subtitle = QLabel(
@@ -49,14 +54,14 @@ class SettingsScreen(QWidget):
 
         provider_box = QGroupBox("AI provider (optional)")
         provider_layout = QVBoxLayout(provider_box)
-        provider_layout.addWidget(
-            QLabel(
-                "ChemSmart works without AI. Connect a provider only when you "
-                "want agent assistance.",
-                objectName="ScreenSubtitle",
-            )
+        provider_help = QLabel(
+            "ChemSmart works without AI. Connect a provider only when you "
+            "want agent assistance.",
+            objectName="ScreenSubtitle",
         )
-        provider_actions = QHBoxLayout()
+        provider_help.setWordWrap(True)
+        provider_layout.addWidget(provider_help)
+        provider_actions = QVBoxLayout()
         self.connect_button = QPushButton("Connect or update provider")
         self.connect_button.setAccessibleDescription(
             "Tests an in-memory provider draft before storing its credential "
@@ -71,7 +76,6 @@ class SettingsScreen(QWidget):
         self.migrate_button.clicked.connect(self._start_migration)
         provider_actions.addWidget(self.connect_button)
         provider_actions.addWidget(self.migrate_button)
-        provider_actions.addStretch(1)
         provider_layout.addLayout(provider_actions)
 
         self.progress = QProgressBar()
@@ -95,15 +99,63 @@ class SettingsScreen(QWidget):
         )
         self.workspace_path.setReadOnly(True)
         self.workspace_path.setAccessibleName("Current workspace path")
-        choose_workspace = QPushButton("Choose…")
-        choose_workspace.clicked.connect(self._choose_workspace)
-        workspace_row = QHBoxLayout()
-        workspace_row.addWidget(self.workspace_path, stretch=1)
-        workspace_row.addWidget(choose_workspace)
+        self.choose_workspace = QPushButton("Choose…")
+        self.choose_workspace.setAccessibleName("Choose ChemSmart workspace")
+        self.choose_workspace.clicked.connect(self._choose_workspace)
         workspace_label = QLabel("Current workspace", objectName="FieldLabel")
-        workspace_label.setBuddy(choose_workspace)
-        workspace_form.addRow(workspace_label, workspace_row)
+        workspace_label.setBuddy(self.workspace_path)
+        workspace_form.addRow(workspace_label, self.workspace_path)
+        workspace_actions = QHBoxLayout()
+        workspace_actions.addStretch(1)
+        workspace_actions.addWidget(self.choose_workspace)
+        workspace_form.addRow("", workspace_actions)
         outer.addWidget(workspace_box)
+
+        visualization_box = QGroupBox("Optional visualization")
+        visualization_layout = QVBoxLayout(visualization_box)
+        visualization_help = QLabel(
+            "Interactive 3D works without PyMOL. To use the optional Zhang "
+            "Lab render, choose its local executable explicitly when a "
+            "Finder-launched app cannot discover it on PATH.",
+            objectName="ScreenSubtitle",
+        )
+        visualization_help.setWordWrap(True)
+        visualization_layout.addWidget(visualization_help)
+        self.pymol_path = QLineEdit(
+            str(window.pymol_executable) if window.pymol_executable else ""
+        )
+        self.pymol_path.setReadOnly(True)
+        self.pymol_path.setPlaceholderText("PyMOL not found on PATH")
+        self.pymol_path.setAccessibleName("Configured PyMOL executable")
+        self.choose_pymol = QPushButton("Choose PyMOL…")
+        self.choose_pymol.setAccessibleName("Choose PyMOL executable")
+        self.choose_pymol.clicked.connect(self._choose_pymol_executable)
+        self.use_path_pymol = QPushButton("Use PATH")
+        self.use_path_pymol.setAccessibleName("Discover PyMOL on PATH")
+        self.use_path_pymol.clicked.connect(self._use_path_pymol)
+        pymol_label = QLabel("PyMOL executable", objectName="FieldLabel")
+        pymol_label.setBuddy(self.pymol_path)
+        form = QFormLayout()
+        form.addRow(pymol_label, self.pymol_path)
+        visualization_layout.addLayout(form)
+        pymol_actions = QHBoxLayout()
+        pymol_actions.addStretch(1)
+        pymol_actions.addWidget(self.choose_pymol)
+        pymol_actions.addWidget(self.use_path_pymol)
+        visualization_layout.addLayout(pymol_actions)
+        self.pymol_status = QLabel(
+            window.pymol_preference_issue
+            or (
+                "PyMOL is ready for optional local rendering."
+                if window.pymol_executable
+                else "PyMOL is optional and currently unavailable."
+            ),
+            objectName="ScreenSubtitle",
+        )
+        self.pymol_status.setWordWrap(True)
+        self.pymol_status.setAccessibleName("PyMOL configuration status")
+        visualization_layout.addWidget(self.pymol_status)
+        outer.addWidget(visualization_box)
 
         safety_box = QGroupBox("Safety and appearance")
         safety_layout = QVBoxLayout(safety_box)
@@ -114,14 +166,21 @@ class SettingsScreen(QWidget):
             "Desktop v1 cannot disable fake-run safety or submit HPC jobs."
         )
         safety_layout.addWidget(self.safe_mode)
-        safety_layout.addWidget(
-            QLabel(
-                "Appearance, contrast, and fonts follow macOS system settings.",
-                objectName="ScreenSubtitle",
-            )
+        appearance_help = QLabel(
+            "Appearance, contrast, and fonts follow macOS system settings.",
+            objectName="ScreenSubtitle",
         )
+        appearance_help.setWordWrap(True)
+        safety_layout.addWidget(appearance_help)
         outer.addWidget(safety_box)
         outer.addStretch(1)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.scroll.setWidget(content)
+        root.addWidget(self.scroll)
 
     def _open_provider_setup(self) -> None:
         from chemsmart.gui.screens.onboarding import OnboardingDialog
@@ -169,7 +228,9 @@ class SettingsScreen(QWidget):
             "already_referenced": "Credential already uses the system Keychain.",
             "no_plaintext_secret": "No plaintext credential needs migration.",
         }
-        self.provider_status.setText(messages.get(result.status, "Migration complete."))
+        self.provider_status.setText(
+            messages.get(result.status, "Migration complete.")
+        )
         if result.status in {"migrated", "already_referenced"}:
             self.window_ref.set_provider_status("Provider configured")
 
@@ -200,6 +261,46 @@ class SettingsScreen(QWidget):
             path = Path(selected).resolve()
             self.window_ref.set_workspace(path)
             self.workspace_path.setText(str(path))
+
+    def _choose_pymol_executable(self) -> None:
+        current = self.window_ref.pymol_executable
+        start = str(current.parent if current else Path("/Applications"))
+        selected, _filter = QFileDialog.getOpenFileName(
+            self,
+            "Choose the PyMOL executable",
+            start,
+            "Executable files (*)",
+        )
+        if not selected:
+            return
+        try:
+            executable = self.window_ref.configure_pymol_executable(selected)
+        except (OSError, RuntimeError, ValueError) as exc:
+            self.pymol_status.setText(
+                "PyMOL was not changed. Choose an executable regular file. "
+                f"({type(exc).__name__})"
+            )
+            return
+        self.pymol_path.setText(str(executable))
+        self.pymol_status.setText(
+            "PyMOL is ready for optional local rendering."
+        )
+
+    def _use_path_pymol(self) -> None:
+        try:
+            executable = self.window_ref.use_path_pymol_executable()
+        except RuntimeError as exc:
+            self.pymol_status.setText(
+                "PyMOL was not changed while the previous render stops. "
+                f"({type(exc).__name__})"
+            )
+            return
+        self.pymol_path.setText(str(executable) if executable else "")
+        self.pymol_status.setText(
+            "PyMOL is ready from PATH."
+            if executable
+            else "PyMOL was not found on PATH; interactive 3D remains available."
+        )
 
     def shutdown(self, timeout_ms: int = 500) -> bool:
         return self._migration.shutdown(timeout_ms)

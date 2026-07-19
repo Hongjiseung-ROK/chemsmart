@@ -121,7 +121,17 @@ def sans_font_family() -> str:
 
 def serif_font_family() -> str:
     """Serif family reserved for the agent's voice (principle #3)."""
-    return "'New York', Georgia, 'Times New Roman', serif"
+    try:
+        from PySide6.QtGui import QFontDatabase, QGuiApplication
+
+        if QGuiApplication.instance() is not None:
+            available = set(QFontDatabase.families())
+            for family in ("New York", "Georgia", "Times New Roman"):
+                if family in available:
+                    return f"'{family}'"
+    except Exception:
+        pass
+    return "serif"
 
 
 def system_font_point_size() -> int:
@@ -262,6 +272,9 @@ def stylesheet(mode: str | None = None) -> str:
 
     /* Content panels */
     QWidget#Screen {{ background: {p.surface_0}; }}
+    QWidget#ScrollContent, QScrollArea {{
+        background: {p.surface_0};
+    }}
     QLabel#ScreenTitle {{ font-size: {system_size + 2}pt; font-weight: 500; }}
     QLabel#ScreenSubtitle {{ color: {p.text_muted}; font-size: {max(9, system_size - 2)}pt; }}
     QLabel#FieldLabel {{ color: {p.text_secondary}; font-size: {max(9, system_size - 2)}pt; }}
@@ -274,8 +287,9 @@ def stylesheet(mode: str | None = None) -> str:
         padding: 4px 8px;
         selection-background-color: {p.accent_bg};
     }}
-    QLineEdit:focus, QComboBox:focus, QPlainTextEdit:focus {{
-        border: 1px solid {p.accent};
+    QLineEdit:focus, QComboBox:focus, QPlainTextEdit:focus, QTextEdit:focus,
+    QAbstractSpinBox:focus, QAbstractItemView:focus {{
+        border: 2px solid {p.accent};
     }}
     *[density="compact"] QLineEdit,
     *[density="compact"] QComboBox {{
@@ -298,6 +312,10 @@ def stylesheet(mode: str | None = None) -> str:
         min-height: {compact['control']}px;
     }}
     QPushButton:hover {{ background: {p.surface_1}; }}
+    QPushButton:focus {{
+        border: 2px solid {p.accent};
+        padding: 4px 11px;
+    }}
     QPushButton:disabled {{
         background: {p.surface_1};
         color: {p.border_strong};
@@ -308,10 +326,21 @@ def stylesheet(mode: str | None = None) -> str:
         color: {p.accent_text};
         border: none;
     }}
+    QPushButton#Primary:focus {{
+        border: 2px solid {p.accent_text};
+        padding: 3px 10px;
+    }}
     QPushButton#Primary:disabled {{
         background: {p.surface_1};
         color: {p.border_strong};
         border: 1px solid {p.border};
+    }}
+    QCheckBox:focus {{
+        border: 2px solid {p.accent};
+        border-radius: {compact['radius']}px;
+    }}
+    QTabBar::tab:focus {{
+        border-bottom: 2px solid {p.accent};
     }}
 
     /* Agent voice: serif, quiet accent left border (principles #3, #4) */
