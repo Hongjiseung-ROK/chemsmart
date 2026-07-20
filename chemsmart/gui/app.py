@@ -285,7 +285,13 @@ class MainWindow(QMainWindow):
         )
 
     def ensure_structure_viewer(self):
-        """Create the QtWebEngine-backed viewer only after source selection."""
+        """Create the QtWebEngine-backed viewer only after source selection.
+
+        Since P8.3 the viewer is hosted inside the Job builder's molecule
+        stage — the 3D structure is the primary work canvas, not inspector
+        marginalia. The inspector remains the home for validation and
+        receipt evidence, and stays the fallback host if no stage exists.
+        """
         if self._structure_viewer is None:
             from chemsmart.gui.services.pymol_render_service import (
                 PyMOLRenderService,
@@ -295,11 +301,16 @@ class MainWindow(QMainWindow):
             service = PyMOLRenderService(executable=self._pymol_executable)
             self._pymol_executable = service.executable
             self._structure_viewer = StructureViewer(pymol_service=service)
-            self.inspector.layout().insertWidget(
-                self.inspector.layout().count() - 1,
-                self._structure_viewer,
-                stretch=1,
-            )
+            builder = self._screens.get("job_builder")
+            host = getattr(builder, "viewer_host", None)
+            if host is not None:
+                host.addWidget(self._structure_viewer, stretch=1)
+            else:
+                self.inspector.layout().insertWidget(
+                    self.inspector.layout().count() - 1,
+                    self._structure_viewer,
+                    stretch=1,
+                )
         self._structure_viewer.setVisible(True)
         return self._structure_viewer
 

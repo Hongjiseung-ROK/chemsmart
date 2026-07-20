@@ -39,6 +39,7 @@ class Palette:
     success: str
     warning: str
     danger: str
+    viewport: str  # molecule stage background
 
 
 def _palette_from_tokens(tokens: Tokens) -> Palette:
@@ -57,6 +58,7 @@ def _palette_from_tokens(tokens: Tokens) -> Palette:
         success=tokens.verified.fg,
         warning=tokens.warning.fg,
         danger=tokens.danger.fg,
+        viewport=tokens.molecule_viewport,
     )
 
 
@@ -200,6 +202,7 @@ def _system_palette() -> Palette | None:
             success=fallback.success,
             warning=fallback.warning,
             danger=fallback.danger,
+            viewport=color(QPalette.ColorRole.Base),
         )
     except Exception:
         return None
@@ -267,6 +270,21 @@ def stylesheet(mode: str | None = None) -> str:
 
     /* Content panels */
     QWidget#Screen {{ background: {p.surface_0}; }}
+
+    /* Molecule hero stage (P8.3): the 3D viewport owns the canvas */
+    QWidget#MoleculeStage {{
+        background: {p.viewport};
+        border-left: 1px solid {p.border};
+    }}
+    QLabel#StageTitle {{
+        font-size: {system_size}pt; font-weight: 600;
+        background: transparent;
+    }}
+    QLabel#StageMeta {{
+        color: {p.text_muted};
+        font-size: {max(9, system_size - 2)}pt;
+        background: transparent;
+    }}
     QWidget#ScrollContent, QScrollArea {{
         background: {p.surface_0};
     }}

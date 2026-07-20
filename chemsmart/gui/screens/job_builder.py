@@ -89,17 +89,24 @@ class JobBuilderScreen(QWidget):
         self._running_command = ""
         self._draft_provenance = DraftProvenance()
 
-        # Full-screen readability: the working column is width-bounded so
-        # fields keep a scannable measure on wide displays; leftover canvas
-        # stays quiet on the right (P8.3).
+        # 3D-centric workbench (P8.3 gold slice): the typed form lives in a
+        # compact left column and the molecule stage owns the remaining
+        # canvas. All existing widget names, ordering contracts, and safety
+        # behavior are unchanged — only the geometry is recomposed.
         shell = QHBoxLayout(self)
-        shell.setContentsMargins(24, 16, 16, 14)
+        shell.setContentsMargins(16, 16, 0, 0)
+        shell.setSpacing(12)
         column = QWidget()
-        column.setMaximumWidth(860)
-        shell.addWidget(column, 4)
-        shell.addStretch(1)
+        column.setMinimumWidth(300)
+        column.setMaximumWidth(360)
+        shell.addWidget(column)
         outer = QVBoxLayout(column)
-        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setContentsMargins(0, 0, 0, 12)
+        # The narrow column wraps more text than the old wide canvas did;
+        # tighten inter-widget spacing so every row keeps its minimum height
+        # at the supported 720x520 window.
+        outer.setSpacing(4)
+        self._build_molecule_stage(shell)
 
         outer.addWidget(QLabel("Job builder", objectName="ScreenTitle"))
         subtitle = QLabel(
@@ -118,8 +125,10 @@ class JobBuilderScreen(QWidget):
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
         # Preserve space for the command and generated-input receipt at the
-        # supported 720 x 520 minimum. The form owns its vertical scrolling.
-        self.form_scroll.setMinimumHeight(88)
+        # supported 720 x 520 minimum. The form owns its vertical scrolling;
+        # the narrow P8.3 column wraps more text, so the floor leaves slack
+        # rather than sitting exactly at the layout minimum.
+        self.form_scroll.setMinimumHeight(76)
         self.form_content = QWidget(objectName="ScrollContent")
         left = QVBoxLayout(self.form_content)
         left.setContentsMargins(0, 0, 0, 0)
@@ -531,6 +540,70 @@ class JobBuilderScreen(QWidget):
         field.setText(filename)
         self._load_structure_preview()
 
+    def _build_molecule_stage(self, shell: QHBoxLayout) -> None:
+        """The 3D hero stage hosting the shared structure viewer (P8.3)."""
+        from chemsmart.gui.design.tokens import resolve_tokens
+        from chemsmart.gui.widgets.empty_state import EmptyState
+
+        self.stage = QWidget(objectName="MoleculeStage")
+        stage_layout = QVBoxLayout(self.stage)
+        stage_layout.setContentsMargins(14, 12, 14, 12)
+        stage_layout.setSpacing(6)
+
+        header = QHBoxLayout()
+        identity = QVBoxLayout()
+        identity.setSpacing(1)
+        self.stage_title = QLabel("", objectName="StageTitle")
+        self.stage_title.setAccessibleName("Loaded molecule")
+        self.stage_meta = QLabel("", objectName="StageMeta")
+        self.stage_meta.setAccessibleName("Molecule details")
+        identity.addWidget(self.stage_title)
+        identity.addWidget(self.stage_meta)
+        header.addLayout(identity)
+        header.addStretch(1)
+        stage_layout.addLayout(header)
+
+        self.viewer_host = QVBoxLayout()
+        self.viewer_host.setContentsMargins(0, 0, 0, 0)
+        stage_layout.addLayout(self.viewer_host, stretch=1)
+
+        self.stage_empty = EmptyState(
+            "atom",
+            "No structure yet",
+            "Choose a local molecule file to inspect it here in 3D. "
+            "Generated-input evidence appears in the inspector.",
+            tokens=resolve_tokens(),
+            parent=self.stage,
+        )
+        stage_layout.addWidget(self.stage_empty, stretch=2)
+        self._set_stage_molecule(None, None)
+        shell.addWidget(self.stage, 1)
+
+    def _set_stage_molecule(self, path, molecule) -> None:
+        """Reflect the loaded structure in the stage identity header."""
+        has_molecule = path is not None
+        self.stage_title.setVisible(has_molecule)
+        self.stage_meta.setVisible(has_molecule)
+        self.stage_empty.setVisible(not has_molecule)
+        if not has_molecule:
+            self.stage_title.clear()
+            self.stage_meta.clear()
+            return
+        self.stage_title.setText(path.name)
+        details = []
+        try:
+            count = len(molecule)
+        except Exception:
+            count = None
+        if count:
+            details.append(f"{count} atoms")
+        formula = getattr(molecule, "chemical_formula", None)
+        if isinstance(formula, str) and formula:
+            details.append(formula)
+        self.stage_meta.setText(
+            " · ".join(details) if details else "structure loaded"
+        )
+
     def _load_structure_preview(self) -> None:
         self._clear_structure_preview()
         if self.source_mode.currentData() != "file":
@@ -569,12 +642,14 @@ class JobBuilderScreen(QWidget):
             return
         viewer = self.window_ref.ensure_structure_viewer()
         viewer.load_molecule(molecule, source_path=path)
+        self._set_stage_molecule(path, molecule)
         self.window_ref.inspector_status.setText(
             f"Selected source: {path.name}. Generated-input evidence will "
             "appear after safe preview."
         )
 
     def _clear_structure_preview(self) -> None:
+        self._set_stage_molecule(None, None)
         viewer = getattr(self.window_ref, "_structure_viewer", None)
         if viewer is None:
             return
