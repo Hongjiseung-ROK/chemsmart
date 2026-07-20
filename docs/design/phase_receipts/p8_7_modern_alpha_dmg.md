@@ -1,5 +1,22 @@
 # P8.7 modern internal-alpha DMG receipt
 
+> Superseded 2026-07-20 (same day) by the 3D-stage candidate below — the
+> original `bc02f002` artifact remains historical evidence.
+>
+> **Accepted current artifact**: source
+> `9b9360c093eae8853f420263cc32f0845fd47d8f` (adds the P8.3 gold slice:
+> 3D molecule stage in the Job builder), run
+> [`29723729765`](https://github.com/Hongjiseung-ROK/chemsmart/actions/runs/29723729765),
+> `status: passed`. DMG SHA-256
+> `3d669e8dbf3e856295938a7e16bac50896db9234598eddb24f9100a08385d5a8`
+> (338,531,033 bytes). Independent local checks repeated: distributed
+> checksums OK, `hdiutil verify` VALID, strict deep codesign OK, clean
+> mount/detach. Delivered to
+> `~/Desktop/ChemSmart-2.0.1-macos14-arm64-internal-alpha.dmg`
+> (replacing the earlier build) with `SHA256SUMS.txt`.
+> Complete GUI suite at that source: 580 passed, 1 skipped, three
+> consecutive runs. Stage contracts: `tests/gui/test_molecule_stage.py`.
+
 Date: 2026-07-20
 Status: accepted exact-source PyInstaller candidate (ad-hoc internal alpha)
 Source: `bc02f002550917b98d08aeec504fcc0e7723446c`
