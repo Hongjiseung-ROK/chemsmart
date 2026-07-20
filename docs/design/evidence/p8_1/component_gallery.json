@@ -1,0 +1,36 @@
+{
+  "screenshots": {
+    "dark": {
+      "bytes": 121537,
+      "height": 1400,
+      "path": "/Users/hongjiseung/developer/chemsmart/docs/design/evidence/p8_1/component_gallery_dark.png",
+      "sampled_nonblank": 4224,
+      "sha256": "0d5f66e5986359c9245579e21f0ebf1c36d2aaf964d6301562d7b0d72b5d856f",
+      "width": 760
+    },
+    "dark-hc": {
+      "bytes": 122218,
+      "height": 1400,
+      "path": "/Users/hongjiseung/developer/chemsmart/docs/design/evidence/p8_1/component_gallery_dark-hc.png",
+      "sampled_nonblank": 4224,
+      "sha256": "c1658029c662f13f43c9d866cdf2870d633ca96bef957bfb1731c5b11356402b",
+      "width": 760
+    },
+    "light": {
+      "bytes": 121869,
+      "height": 1400,
+      "path": "/Users/hongjiseung/developer/chemsmart/docs/design/evidence/p8_1/component_gallery_light.png",
+      "sampled_nonblank": 4224,
+      "sha256": "7c68f25d2df9b76bebc1e119f2cd4151c09a11379b25db0658d1b0342b14f41e",
+      "width": 760
+    },
+    "light-hc": {
+      "bytes": 121335,
+      "height": 1400,
+      "path": "/Users/hongjiseung/developer/chemsmart/docs/design/evidence/p8_1/component_gallery_light-hc.png",
+      "sampled_nonblank": 4224,
+      "sha256": "fca74b29566d016873b96c1c5068fb5feefedfc9ce2364a91fa2c1c92a48b8b2",
+      "width": 760
+    }
+  }
+}
