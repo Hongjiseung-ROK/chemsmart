@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QAction, QGuiApplication, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -26,10 +26,10 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QMessageBox,
-    QPushButton,
     QSizePolicy,
     QSplitter,
     QStackedWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -43,11 +43,12 @@ from chemsmart.gui.application.runtime_projection import (
 
 @dataclass(frozen=True)
 class NavEntry:
-    """One sidebar item and the factory that builds its screen on demand."""
+    """One activity-rail item and the factory building its screen on demand."""
 
     key: str
     label: str
     group: str  # "Build" or "Explore"
+    icon: str  # pinned icon name (chemsmart.gui.design.icons)
     factory: Callable[["MainWindow"], QWidget]
 
 
@@ -66,7 +67,7 @@ class MainWindow(QMainWindow):
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         self.setWindowTitle("ChemSmart")
         self.setMinimumSize(720, 520)
-        self.resize(1040, 680)
+        self.resize(1280, 800)
         self.session_root = session_root
         self.workspace_root = Path.cwd().resolve()
         self._preference_store = preference_store
@@ -75,7 +76,7 @@ class MainWindow(QMainWindow):
         self._inspector_user_visible = True
 
         self._screens: dict[str, QWidget] = {}
-        self._nav_buttons: dict[str, QPushButton] = {}
+        self._nav_buttons: dict[str, QToolButton] = {}
 
         root = QWidget(objectName="Root")
         layout = QHBoxLayout(root)
@@ -94,8 +95,9 @@ class MainWindow(QMainWindow):
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setStretchFactor(2, 0)
+        self.splitter.setCollapsible(0, False)
         self.splitter.setCollapsible(2, True)
-        self.splitter.setSizes([160, 620, 260])
+        self.splitter.setSizes([84, 880, 316])
         layout.addWidget(self.splitter)
         self.setCentralWidget(root)
 
@@ -112,49 +114,98 @@ class MainWindow(QMainWindow):
         # Imports are deferred to the factories so unopened screens never
         # import their heavy dependencies.
         return [
-            NavEntry("job_builder", "Job builder", "Build", _make_job_builder),
-            NavEntry("chat", "Chat", "Build", _make_chat),
-            NavEntry("database", "Database", "Explore", _make_database),
-            NavEntry("analysis", "Analysis", "Explore", _make_analysis),
+            NavEntry(
+                "job_builder",
+                "Job builder",
+                "Build",
+                "flask-conical",
+                _make_job_builder,
+            ),
+            NavEntry("chat", "Chat", "Build", "message-square", _make_chat),
+            NavEntry(
+                "database", "Database", "Explore", "database", _make_database
+            ),
+            NavEntry(
+                "analysis",
+                "Analysis",
+                "Explore",
+                "chart-column",
+                _make_analysis,
+            ),
         ]
 
     def _build_sidebar(self) -> QWidget:
+        """The activity rail: icon-over-label buttons in a fixed column."""
         sidebar = QWidget(objectName="Sidebar")
-        sidebar.setMinimumWidth(144)
-        sidebar.setMaximumWidth(220)
+        sidebar.setMinimumWidth(84)
+        sidebar.setMaximumWidth(84)
         sidebar.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Fixed,
             QSizePolicy.Policy.Expanding,
         )
         sidebar.setAccessibleName("Primary navigation")
         col = QVBoxLayout(sidebar)
-        col.setContentsMargins(8, 12, 8, 12)
-        col.setSpacing(1)
+        col.setContentsMargins(6, 10, 6, 10)
+        col.setSpacing(2)
 
         group = QButtonGroup(self)
         group.setExclusive(True)
         self._nav_group = group
+        self._nav_icons: dict[str, str] = {}
 
         current_group = None
         for entry in self._entries():
             if entry.group != current_group:
                 current_group = entry.group
                 col.addWidget(QLabel(entry.group, objectName="SidebarGroup"))
-            button = QPushButton(entry.label, objectName="NavItem")
+            button = QToolButton(objectName="NavItem")
+            button.setText(entry.label)
             button.setCheckable(True)
+            button.setToolButtonStyle(
+                Qt.ToolButtonStyle.ToolButtonTextUnderIcon
+            )
+            button.setIconSize(QSize(20, 20))
+            button.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Fixed,
+            )
+            button.setMinimumHeight(52)
             button.setAccessibleName(f"Open {entry.label}")
             button.setAccessibleDescription(
                 f"Shows the {entry.label} work surface."
             )
+            button.setToolTip(entry.label)
             button.clicked.connect(
                 lambda _checked=False, key=entry.key: self.navigate(key)
             )
             group.addButton(button)
             col.addWidget(button)
             self._nav_buttons[entry.key] = button
+            self._nav_icons[entry.key] = entry.icon
 
         col.addStretch(1)
         return sidebar
+
+    def _refresh_nav_icons(self) -> None:
+        """Recolor rail icons for the current appearance mode."""
+        from chemsmart.gui.design import icons as design_icons
+
+        palette = theme.palette_for()
+        for key, button in self._nav_buttons.items():
+            icon_name = self._nav_icons.get(key)
+            if not icon_name:
+                continue
+            color = (
+                palette.text_primary
+                if button.isChecked()
+                else palette.text_secondary
+            )
+            try:
+                button.setIcon(design_icons.icon(icon_name, color, 20))
+            except design_icons.IconError:
+                # A missing/tampered icon must never break navigation; the
+                # text label remains the accessible, visible fallback.
+                continue
 
     def _build_inspector(self) -> QWidget:
         inspector = QWidget(objectName="Inspector")
@@ -204,6 +255,7 @@ class MainWindow(QMainWindow):
             for nav_button in self._nav_buttons.values():
                 nav_button.setChecked(False)
             self._nav_group.setExclusive(True)
+        self._refresh_nav_icons()
 
     def _update_inspector(self, key: str) -> None:
         if key == "job_builder":
@@ -364,6 +416,13 @@ class MainWindow(QMainWindow):
         toggle_inspector.setShortcut("Ctrl+Alt+I")
         toggle_inspector.toggled.connect(self._set_inspector_visible)
         view_menu.addAction(toggle_inspector)
+        command_palette = QAction("Command Palette…", self)
+        command_palette.setShortcut(QKeySequence("Ctrl+Shift+P"))
+        command_palette.setStatusTip(
+            "Search and run any available ChemSmart action."
+        )
+        command_palette.triggered.connect(self.open_command_palette)
+        view_menu.addAction(command_palette)
 
         job_menu = self.menuBar().addMenu("&Job")
         dry_run = QAction("Run Safe Preview", self)
@@ -407,11 +466,27 @@ class MainWindow(QMainWindow):
             preferences=preferences,
             quit=quit_application,
             toggle_inspector=toggle_inspector,
+            command_palette=command_palette,
             safe_preview=dry_run,
             help=help_contents,
             support_bundle=support_bundle,
             about=about,
         )
+
+    def open_command_palette(self) -> None:
+        """Open the searchable, contract-authorized command palette."""
+        from chemsmart.gui.design.tokens import resolve_tokens
+        from chemsmart.gui.workbench.command_palette import (
+            CommandPalette,
+            commands_for_window,
+        )
+
+        palette = CommandPalette(
+            commands_for_window(self),
+            tokens=resolve_tokens(),
+            parent=self,
+        )
+        palette.exec()
 
     def _build_status_bar(self) -> None:
         status = self.statusBar()
@@ -564,6 +639,7 @@ class MainWindow(QMainWindow):
 
     def _apply_theme(self, *_args) -> None:
         self.setStyleSheet(theme.stylesheet())
+        self._refresh_nav_icons()
 
     def resizeEvent(self, event) -> None:
         self.inspector.setVisible(

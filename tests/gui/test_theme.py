@@ -47,7 +47,7 @@ def test_stylesheet_exposes_two_pixel_keyboard_focus_indicators() -> None:
     assert "QAbstractSpinBox:focus" in qss
     assert "QAbstractItemView:focus" in qss
     assert "QPushButton#Primary:focus" in qss
-    assert "border: 2px solid #185fa5" in qss
+    assert f"border: 2px solid {theme.LIGHT.accent}" in qss
 
 
 def test_primary_action_has_a_visible_keyboard_focus_ring(qapp) -> None:

@@ -1,33 +1,29 @@
-"""Design tokens and QSS stylesheet for the ChemSmart GUI.
+"""Application stylesheet generated from the P8 semantic design tokens.
 
-Encodes the approved design north star — CDS restraint + Codex density — as a
-small set of semantic tokens with light/dark variants, rendered into a Qt
-stylesheet. Screens must reference these tokens (via the generated QSS object
-names / classes) rather than hard-coding colors, so both appearance modes and
-the density split stay consistent.
+Since P8.2 this module is a consumer of :mod:`chemsmart.gui.design.tokens` —
+the single source of color truth for the workbench. The legacy ``Palette``
+shape is kept as a thin mapping so existing screens and tests keep one
+stable surface, but every value now derives from the token sets that the
+P8.1 contrast matrix verifies.
 
-Principles implemented here:
-- One accent, semantic tokens only, no gradients/shadows (principle #1).
-- Density adapts to surface: ``comfortable`` vs ``compact`` metrics
-  (principle #2). Screens opt into a density by setting the ``density``
-  dynamic property on their root widget.
-- Monospace is the surface of fact — commands/coordinates/energies use the
-  ``mono`` object name / ``QFont`` from :func:`mono_font` (principles #3, #9).
+The serif "agent voice" is retired (user decision 2026-07-19): all interface
+and agent text uses the system sans family; agent identity is conveyed by
+labels, cell structure, and provenance. System monospace remains reserved
+for facts — commands, coordinates, energies, receipts.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from chemsmart.gui.design.tokens import DARK as _DARK_TOKENS
+from chemsmart.gui.design.tokens import LIGHT as _LIGHT_TOKENS
+from chemsmart.gui.design.tokens import Tokens
+
 
 @dataclass(frozen=True)
 class Palette:
-    """Semantic color tokens for a single appearance mode.
-
-    Values are close to the CDS ramp stops but expressed as literal hex here
-    because Qt has no dynamic token layer; :func:`stylesheet` is the single
-    place that maps tokens to widgets.
-    """
+    """Legacy semantic color surface consumed by pre-P8.2 screens."""
 
     surface_0: str  # page canvas
     surface_1: str  # in-flow card / sidebar
@@ -37,50 +33,38 @@ class Palette:
     text_muted: str
     border: str
     border_strong: str
-    accent: str  # user primary actions only (principle #4)
+    accent: str  # user primary actions only
     accent_text: str  # text/icon on an accent fill
-    accent_bg: str  # quiet accent tint (selection, AI marker)
+    accent_bg: str  # quiet accent tint (selection)
     success: str
     warning: str
     danger: str
 
 
-LIGHT = Palette(
-    surface_0="#f7f6f2",
-    surface_1="#f1efe8",
-    surface_2="#ffffff",
-    text_primary="#2c2c2a",
-    text_secondary="#5f5e5a",
-    text_muted="#686761",
-    border="#e2e0d8",
-    border_strong="#c9c7bd",
-    accent="#185fa5",
-    accent_text="#ffffff",
-    accent_bg="#e6f1fb",
-    success="#3b6d11",
-    warning="#854f0b",
-    danger="#a32d2d",
-)
-
-DARK = Palette(
-    surface_0="#1c1c1a",
-    surface_1="#242422",
-    surface_2="#2f2f2c",
-    text_primary="#f1efe8",
-    text_secondary="#b4b2a9",
-    text_muted="#9c9b94",
-    border="#3a3a37",
-    border_strong="#4a4a46",
-    accent="#378add",
-    accent_text="#04182c",
-    accent_bg="#0c2c47",
-    success="#97c459",
-    warning="#ef9f27",
-    danger="#e24b4a",
-)
+def _palette_from_tokens(tokens: Tokens) -> Palette:
+    return Palette(
+        surface_0=tokens.canvas,
+        surface_1=tokens.sidebar,
+        surface_2=tokens.panel,
+        text_primary=tokens.text_primary,
+        text_secondary=tokens.text_secondary,
+        text_muted=tokens.text_tertiary,
+        border=tokens.chart_grid,
+        border_strong=tokens.separator,
+        accent=tokens.accent,
+        accent_text=tokens.accent_on_fill,
+        accent_bg=tokens.selection,
+        success=tokens.verified.fg,
+        warning=tokens.warning.fg,
+        danger=tokens.danger.fg,
+    )
 
 
-# Density metrics: (control height, base font pt, dense font pt, pad px).
+LIGHT = _palette_from_tokens(_LIGHT_TOKENS)
+DARK = _palette_from_tokens(_DARK_TOKENS)
+
+
+# Density metrics: (control height, base font pt, pad px, radius px).
 _DENSITY = {
     "comfortable": {"control": 34, "font": 13, "pad": 12, "radius": 8},
     "compact": {"control": 28, "font": 12, "pad": 8, "radius": 6},
@@ -120,7 +104,11 @@ def sans_font_family() -> str:
 
 
 def serif_font_family() -> str:
-    """Serif family reserved for the agent's voice (principle #3)."""
+    """Deprecated: the serif agent voice is retired (P8.2).
+
+    Kept only so external callers keep resolving a valid family; nothing in
+    the shipped stylesheet uses it anymore.
+    """
     try:
         from PySide6.QtGui import QFontDatabase, QGuiApplication
 
@@ -151,11 +139,7 @@ def system_font_point_size() -> int:
 
 
 def is_dark_mode() -> bool:
-    """Best-effort detection of the system appearance via Qt style hints.
-
-    Falls back to light when the running Qt is older than 6.5 (no
-    ``colorScheme``) or no ``QGuiApplication`` exists yet.
-    """
+    """Best-effort detection of the system appearance via Qt style hints."""
     try:
         from PySide6.QtCore import Qt
         from PySide6.QtGui import QGuiApplication
@@ -183,7 +167,12 @@ def palette_for(mode: str | None = None) -> Palette:
 
 
 def _system_palette() -> Palette | None:
-    """Map current QPalette semantic roles into ChemSmart surface tokens."""
+    """Map current QPalette semantic roles into ChemSmart surface tokens.
+
+    This keeps system increased-contrast palettes authoritative: when the OS
+    supplies extreme colors, the stylesheet renders them instead of the fixed
+    token sets.
+    """
     try:
         from PySide6.QtGui import QGuiApplication, QPalette
 
@@ -219,9 +208,9 @@ def _system_palette() -> Palette | None:
 def stylesheet(mode: str | None = None) -> str:
     """Build the application QSS for the given appearance mode.
 
-    Widgets select their look through object names and the ``density`` dynamic
-    property. Keeping every color in this one function is the Qt equivalent of
-    CDS's "reference tokens, never raw hex" rule.
+    Widgets select their look through object names and the ``density``
+    dynamic property. Keeping every color in this one function is the Qt
+    equivalent of the "reference tokens, never raw hex" rule.
     """
     p = palette_for(mode)
     system_size = system_font_point_size()
@@ -241,7 +230,7 @@ def stylesheet(mode: str | None = None) -> str:
     }}
     QWidget#Root {{ background: {p.surface_0}; }}
 
-    /* Sidebar (principle #5 tool-first nav) */
+    /* Activity rail: icon-over-label navigation (P8.2 workbench) */
     QWidget#Sidebar {{
         background: {p.surface_1};
         border-right: 1px solid {p.border};
@@ -252,22 +241,28 @@ def stylesheet(mode: str | None = None) -> str:
     }}
     QLabel#SidebarGroup {{
         color: {p.text_muted};
-        font-size: {max(9, system_size - 3)}pt;
-        text-transform: uppercase;
-        padding: 10px 12px 4px 12px;
+        font-size: {max(9, system_size - 4)}pt;
+        font-weight: 600;
+        padding: 10px 0 2px 0;
+        qproperty-alignment: AlignHCenter;
     }}
-    QPushButton#NavItem {{
-        text-align: left;
+    QToolButton#NavItem {{
         border: none;
         background: transparent;
         color: {p.text_secondary};
-        padding: 7px 10px;
+        padding: 6px 2px;
         border-radius: {comfortable['radius']}px;
+        font-size: {max(9, system_size - 3)}pt;
     }}
-    QPushButton#NavItem:hover {{ background: {p.surface_2}; }}
-    QPushButton#NavItem:checked {{
-        background: {p.accent};
-        color: {p.accent_text};
+    QToolButton#NavItem:hover {{ background: {p.surface_2}; }}
+    QToolButton#NavItem:checked {{
+        background: {p.accent_bg};
+        color: {p.text_primary};
+        font-weight: 600;
+    }}
+    QToolButton#NavItem:focus {{
+        border: 2px solid {p.accent};
+        padding: 4px 0;
     }}
 
     /* Content panels */
@@ -275,9 +270,18 @@ def stylesheet(mode: str | None = None) -> str:
     QWidget#ScrollContent, QScrollArea {{
         background: {p.surface_0};
     }}
-    QLabel#ScreenTitle {{ font-size: {system_size + 2}pt; font-weight: 500; }}
+    QLabel#ScreenTitle {{ font-size: {system_size + 2}pt; font-weight: 600; }}
     QLabel#ScreenSubtitle {{ color: {p.text_muted}; font-size: {max(9, system_size - 2)}pt; }}
     QLabel#FieldLabel {{ color: {p.text_secondary}; font-size: {max(9, system_size - 2)}pt; }}
+    QLabel#EvidenceSummary {{
+        color: {p.text_secondary};
+        font-family: {mono};
+        font-size: {max(9, system_size - 2)}pt;
+        background: {p.surface_2};
+        border: 1px solid {p.border};
+        border-radius: {compact['radius']}px;
+        padding: 6px;
+    }}
 
     /* Inputs — compact + monospace on the dense/data surfaces */
     QLineEdit, QComboBox, QPlainTextEdit, QTextEdit {{
@@ -303,7 +307,7 @@ def stylesheet(mode: str | None = None) -> str:
         background: {p.surface_1};
     }}
 
-    /* Buttons — one accent primary per view (principle #4) */
+    /* Buttons — one accent primary per view */
     QPushButton {{
         background: {p.surface_2};
         border: 1px solid {p.border_strong};
@@ -325,6 +329,7 @@ def stylesheet(mode: str | None = None) -> str:
         background: {p.accent};
         color: {p.accent_text};
         border: none;
+        font-weight: 600;
     }}
     QPushButton#Primary:focus {{
         border: 2px solid {p.accent_text};
@@ -343,10 +348,10 @@ def stylesheet(mode: str | None = None) -> str:
         border-bottom: 2px solid {p.accent};
     }}
 
-    /* Agent voice: serif, quiet accent left border (principles #3, #4) */
+    /* Agent text: sans like everything else; identity comes from the quiet
+       accent border and labels, never a different typeface. */
     QLabel#AgentText, QTextEdit#AgentText {{
-        font-family: {serif_font_family()};
-        color: {p.text_secondary};
+        color: {p.text_primary};
         border-left: 2px solid {p.accent};
         padding-left: 10px;
     }}
@@ -378,6 +383,8 @@ def stylesheet(mode: str | None = None) -> str:
         max-height: 6px;
         border: none;
         background: {p.surface_1};
+        border-radius: 3px;
     }}
-    QProgressBar::chunk {{ background: {p.accent}; }}
+    QProgressBar::chunk {{ background: {p.accent}; border-radius: 3px; }}
+    QSplitter::handle {{ background: {p.border}; width: 1px; }}
     """
