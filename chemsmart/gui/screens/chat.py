@@ -73,8 +73,16 @@ class ChatScreen(QWidget):
         self._worker.approval_requested.connect(self._on_approval_requested)
         self._worker.session_changed.connect(self._on_session_changed)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 14, 16, 14)
+        # Width-bounded conversation column for full-screen readability
+        # (P8.4); leftover canvas stays quiet on the right.
+        shell = QHBoxLayout(self)
+        shell.setContentsMargins(24, 16, 16, 14)
+        column = QWidget()
+        column.setMaximumWidth(920)
+        shell.addWidget(column, 4)
+        shell.addStretch(1)
+        layout = QVBoxLayout(column)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.addWidget(QLabel("Chat", objectName="ScreenTitle"))
         subtitle = QLabel(
@@ -121,7 +129,9 @@ class ChatScreen(QWidget):
 
         self.transcript = QTextEdit(objectName="AgentText")
         self.transcript.setReadOnly(True)
-        self.transcript.setAccessibleName("Agent conversation and live receipts")
+        self.transcript.setAccessibleName(
+            "Agent conversation and live receipts"
+        )
         self.transcript.setPlaceholderText(
             "Agent prose, requested tools, permission decisions, and receipts "
             "will appear here."
@@ -195,7 +205,7 @@ class ChatScreen(QWidget):
         composer.addWidget(self.cancel_button)
         layout.addLayout(composer)
 
-        disclosure = QLabel(
+        self.disclosure = disclosure = QLabel(
             "AI advisory: your request, conversation, and project/tool context "
             "you ask Chat to inspect may go to the provider; credentials stay "
             "in Keychain. Chat cannot run or submit jobs.",
@@ -245,9 +255,13 @@ class ChatScreen(QWidget):
         )
 
     def _request_with_draft_context(self, request: str) -> str:
-        if self._incoming_draft is None or request.startswith("chemsmart run "):
+        if self._incoming_draft is None or request.startswith(
+            "chemsmart run "
+        ):
             return request
-        from chemsmart.gui.services.cli_schema_service import command_from_draft
+        from chemsmart.gui.services.cli_schema_service import (
+            command_from_draft,
+        )
 
         command = command_from_draft(self._incoming_draft)
         return (
@@ -310,7 +324,8 @@ class ChatScreen(QWidget):
             options = result.ask_user.get("options") or []
             if options:
                 self.input.setPlaceholderText(
-                    "Reply with: " + " · ".join(str(item) for item in options[:3])
+                    "Reply with: "
+                    + " · ".join(str(item) for item in options[:3])
                 )
             self.input.setFocus(Qt.FocusReason.OtherFocusReason)
         self._refresh_sessions()
@@ -350,7 +365,9 @@ class ChatScreen(QWidget):
         self.progress.setVisible(active)
         self.cancel_button.setVisible(active)
         self.cancel_button.setEnabled(snapshot.status is TaskStatus.RUNNING)
-        self._set_controls_enabled(not active and not self._controller.active_thread_count)
+        self._set_controls_enabled(
+            not active and not self._controller.active_thread_count
+        )
         if active:
             message = (
                 "Agent: cancelling after the current provider/tool boundary"
@@ -374,7 +391,9 @@ class ChatScreen(QWidget):
             self.progress.setValue(progress.current or 0)
         if progress.message:
             self.window_ref.task_status.setText(progress.message)
-            self.window_ref.task_status.setAccessibleDescription(progress.message)
+            self.window_ref.task_status.setAccessibleDescription(
+                progress.message
+            )
 
     def _finish_visible_task(self) -> None:
         self.progress.setVisible(False)
@@ -494,7 +513,9 @@ class ChatScreen(QWidget):
         self._reset_session_presentation()
         self._visible_session_id = ""
         self._awaiting_session_id = True
-        label = "AI conversation" if mode == "ai" else "local deterministic check"
+        label = (
+            "AI conversation" if mode == "ai" else "local deterministic check"
+        )
         self._append_transcript(
             "Session boundary",
             f"Starting an isolated {label} session. Earlier transcript and "
@@ -560,7 +581,9 @@ class ChatScreen(QWidget):
     def load_draft(self, draft: JobDraft) -> None:
         """Receive typed state from Job builder without reverse-parsing text."""
 
-        from chemsmart.gui.services.cli_schema_service import command_from_draft
+        from chemsmart.gui.services.cli_schema_service import (
+            command_from_draft,
+        )
 
         # An explicit Builder handoff supersedes any previously accepted agent
         # result. Otherwise the Open action would prefer stale chemistry from
@@ -572,7 +595,9 @@ class ChatScreen(QWidget):
         self.command.setVisible(True)
         self.open_builder_button.setEnabled(True)
         self.intent_status.setText("Intent · user-reviewed typed draft")
-        self.semantic_status.setText("Semantic · safe preview receipt accepted")
+        self.semantic_status.setText(
+            "Semantic · safe preview receipt accepted"
+        )
         self.input.setPlaceholderText(
             "Ask the agent to explain or revise this typed draft"
         )
@@ -597,8 +622,12 @@ class ChatScreen(QWidget):
     def _show_gate(label: QLabel, gate: GateReceipt) -> None:
         verdict = gate.verdict.replace("_", " ")
         issue_count = len(gate.rule_ids)
-        issue_label = f" · {issue_count} issue{'s' if issue_count != 1 else ''}"
-        visible = f"{gate.name} · {verdict}{issue_label if issue_count else ''}"
+        issue_label = (
+            f" · {issue_count} issue{'s' if issue_count != 1 else ''}"
+        )
+        visible = (
+            f"{gate.name} · {verdict}{issue_label if issue_count else ''}"
+        )
         details = visible
         if gate.rule_ids:
             details += f" · {', '.join(gate.rule_ids)}"

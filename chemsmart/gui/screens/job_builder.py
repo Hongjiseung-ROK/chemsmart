@@ -89,8 +89,17 @@ class JobBuilderScreen(QWidget):
         self._running_command = ""
         self._draft_provenance = DraftProvenance()
 
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(16, 14, 16, 14)
+        # Full-screen readability: the working column is width-bounded so
+        # fields keep a scannable measure on wide displays; leftover canvas
+        # stays quiet on the right (P8.3).
+        shell = QHBoxLayout(self)
+        shell.setContentsMargins(24, 16, 16, 14)
+        column = QWidget()
+        column.setMaximumWidth(860)
+        shell.addWidget(column, 4)
+        shell.addStretch(1)
+        outer = QVBoxLayout(column)
+        outer.setContentsMargins(0, 0, 0, 0)
 
         outer.addWidget(QLabel("Job builder", objectName="ScreenTitle"))
         subtitle = QLabel(

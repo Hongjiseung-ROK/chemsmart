@@ -57,7 +57,7 @@ def test_chat_exposes_provider_session_progress_gates_and_disclosure(
         assert "not run" in chat.semantic_status.text()
         assert chat.progress.accessibleName() == "Agent turn progress"
         assert chat.session_selector.itemText(0) == "Start a new session"
-        disclosure = chat.layout().itemAt(chat.layout().count() - 1).widget()
+        disclosure = chat.disclosure
         assert "cannot run or submit jobs" in disclosure.text()
         assert "real local execution" in disclosure.accessibleDescription()
         assert "HPC submission" in disclosure.accessibleDescription()
@@ -69,7 +69,10 @@ def test_chat_result_keeps_gate_evidence_visible_at_minimum_window(
     qapp, tmp_path
 ):
     from chemsmart.gui.app import MainWindow
-    from chemsmart.gui.services.agent_worker import AgentTurnResult, GateReceipt
+    from chemsmart.gui.services.agent_worker import (
+        AgentTurnResult,
+        GateReceipt,
+    )
 
     window = MainWindow(session_root=tmp_path / "sessions")
     try:
@@ -150,7 +153,10 @@ def test_new_builder_handoff_supersedes_previous_accepted_agent_draft(
     qapp, tmp_path
 ):
     from chemsmart.gui.app import MainWindow
-    from chemsmart.gui.services.agent_worker import AgentTurnResult, GateReceipt
+    from chemsmart.gui.services.agent_worker import (
+        AgentTurnResult,
+        GateReceipt,
+    )
 
     molecule = tmp_path / "radical.xyz"
     molecule.write_text(
@@ -343,8 +349,7 @@ def test_chat_cancel_suppresses_post_cancel_tool_stream_but_seals_blocked_receip
             "ok": True,
             "status": "ready",
             "command": (
-                "chemsmart run gaussian -p demo -f water.xyz "
-                "-c 0 -m 1 opt"
+                "chemsmart run gaussian -p demo -f water.xyz " "-c 0 -m 1 opt"
             ),
             "intent": {"verdict": "ok", "failed_rule_ids": []},
             "semantic": {"verdict": "ok", "failed_rule_ids": []},
@@ -423,9 +428,7 @@ def test_chat_cancel_suppresses_post_cancel_tool_stream_but_seals_blocked_receip
             .splitlines()
         ]
         tool_receipt = next(
-            entry
-            for entry in entries
-            if entry["kind"] == "tool_use_result"
+            entry for entry in entries if entry["kind"] == "tool_use_result"
         )
         summary = entries[-1]
         assert tool_receipt["payload"]["status"] == "ok"
@@ -586,10 +589,7 @@ def test_ai_direct_ai_boundaries_detach_transcript_and_typed_draft(
 
         chat.load_draft(_agent_draft(str(molecule)))
         assert chat._incoming_draft is not None
-        send(
-            "chemsmart run gaussian -p demo -f water.xyz "
-            "-c 0 -m 1 opt"
-        )
+        send("chemsmart run gaussian -p demo -f water.xyz " "-c 0 -m 1 opt")
         direct_session = worker.active_session_id
         direct_transcript = chat.transcript.toPlainText()
         assert direct_session != first_session
