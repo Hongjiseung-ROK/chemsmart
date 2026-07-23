@@ -279,6 +279,7 @@ class SessionContext:
                 session_id=session.state.session_id,
                 registry=session.registry,
                 mode=session.runtime_v2_mode,
+                tool_profile=session.tool_profile,
             )
         return session._runtime_controller
 

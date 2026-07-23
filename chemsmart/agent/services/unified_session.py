@@ -41,6 +41,7 @@ class SessionLoopHost(Protocol):
     handle_store: Any | None
     decision_log: Any | None
     registry: Any
+    tool_profile: Any
     runtime_v2_mode: RuntimeV2Mode
     _run_start_time: float | None
     _llm_stats: list[dict[str, Any]]

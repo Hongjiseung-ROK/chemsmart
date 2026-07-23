@@ -81,6 +81,27 @@ class ArtifactRef(RuntimeContract):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class OpaqueArtifactRef(RuntimeContract):
+    """Model-safe artifact identity with no host filesystem location."""
+
+    artifact_id: str = Field(
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9._:-]+$",
+    )
+    kind: str = Field(
+        min_length=1,
+        max_length=64,
+        pattern=r"^[a-z][a-z0-9_.-]*$",
+    )
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    size_bytes: int = Field(ge=0)
+    media_type: str = "application/octet-stream"
+    display_name: str = Field(
+        default="", max_length=255, pattern=r"^[^/\\\x00]*$"
+    )
+
+
 class WorkspaceRef(RuntimeContract):
     name: str
     program: str = ""
@@ -130,6 +151,7 @@ __all__ = [
     "AgentDecision",
     "ArtifactRef",
     "ExecutionMode",
+    "OpaqueArtifactRef",
     "ProviderRole",
     "RuntimeV2Mode",
     "TaskEnvelope",

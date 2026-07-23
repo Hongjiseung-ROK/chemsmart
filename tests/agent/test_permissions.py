@@ -533,6 +533,8 @@ def test_prompt_risky_converts_driving_deny_to_user_approval(tool):
         "execute_chemsmart_command",
         "run_local",
         "submit_hpc",
+        "start_prepared_optimization",
+        "import_completed_calculation",
     ],
 )
 def test_unified_risky_tools_always_require_approval(tool):
@@ -590,6 +592,15 @@ def test_runtime_permission_mode_placeholders_are_stable():
         "validate_project_yaml",
         "critic_project_yaml",
         "search_basis_sets",
+        "get_studio_context",
+        "analyze_current_molecule",
+        "prepare_molecule_optimization",
+        "validate_prepared_optimization",
+        "get_optimization_status",
+        "list_calculation_artifacts",
+        "read_calculation_artifact",
+        "get_optimization_replay",
+        "compare_optimization_frames",
     }
     assert EDIT_SAFE_TOOLS == {"edit", "write"}
 

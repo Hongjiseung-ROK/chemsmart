@@ -21,7 +21,11 @@ from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.runtime.events import EventKind, RuntimeEvent
 from chemsmart.agent.runtime.lifecycle import RuntimeLifecycle
 from chemsmart.agent.runtime.reducer import apply_event, reduce_events
-from chemsmart.agent.runtime.tool_catalog import ToolCatalog, ToolSelection
+from chemsmart.agent.runtime.tool_catalog import (
+    PhaseToolProfile,
+    ToolCatalog,
+    ToolSelection,
+)
 
 _LOCAL_PROVIDER_MARKERS = ("local", "mlx", "vllm")
 _TRANSITIONS: dict[TaskPhase, frozenset[TaskPhase]] = {
@@ -116,6 +120,7 @@ class RuntimeController:
         session_id: str,
         registry: Any,
         mode: RuntimeV2Mode,
+        tool_profile: PhaseToolProfile | None = None,
     ) -> None:
         self.session_dir = Path(session_dir)
         self.session_id = session_id
@@ -127,7 +132,7 @@ class RuntimeController:
         events = self.store.load()
         self.state = reduce_events(events)
         self.turn_id = self.state.turn_id
-        self.catalog = ToolCatalog(registry)
+        self.catalog = ToolCatalog(registry, profile=tool_profile)
         self.selection: ToolSelection | None = None
 
     def ensure_session(self, *, cwd: str) -> None:

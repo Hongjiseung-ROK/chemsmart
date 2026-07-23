@@ -43,6 +43,8 @@ ALWAYS_REQUIRE_APPROVAL = {
     "submit_hpc",
     "save_geometry",
     "write_behavior_rules",
+    "start_prepared_optimization",
+    "import_completed_calculation",
 }
 READ_ONLY_TOOLS = {
     "read",
@@ -59,6 +61,15 @@ READ_ONLY_TOOLS = {
     "validate_project_yaml",
     "critic_project_yaml",
     "search_basis_sets",
+    "get_studio_context",
+    "analyze_current_molecule",
+    "prepare_molecule_optimization",
+    "validate_prepared_optimization",
+    "get_optimization_status",
+    "list_calculation_artifacts",
+    "read_calculation_artifact",
+    "get_optimization_replay",
+    "compare_optimization_frames",
 }
 EDIT_SAFE_TOOLS = {"edit", "write"}
 PLAN_MODE_REASON = "plan mode active"

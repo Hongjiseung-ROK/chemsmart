@@ -46,6 +46,7 @@ from chemsmart.agent.providers import get_provider
 from chemsmart.agent.registry import ToolRegistry
 from chemsmart.agent.runtime.contracts import RuntimeV2Mode
 from chemsmart.agent.runtime.orchestrator import RuntimeController
+from chemsmart.agent.runtime.tool_catalog import PhaseToolProfile
 from chemsmart.agent.services.conversation_memory import ConversationMemory
 from chemsmart.agent.services.plan_support import (
     classify_intent,
@@ -121,6 +122,7 @@ class AgentSession:
         transport: Any | None = None,
         stage_prompt: str = "tool_loop.md",
         runtime_v2: str | bool | None = None,
+        tool_profile: PhaseToolProfile | None = None,
     ) -> None:
         self._provider = provider
         self.registry = registry or ToolRegistry.default()
@@ -144,6 +146,7 @@ class AgentSession:
             else os.environ.get("CHEMSMART_AGENT_RUNTIME_V2")
         )
         self.runtime_v2_mode = RuntimeV2Mode.parse(runtime_setting)
+        self.tool_profile = tool_profile
         self._runtime_controller: RuntimeController | None = None
 
     @property
@@ -591,6 +594,7 @@ def _session_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
             "session_root",
             "transport",
             "runtime_v2",
+            "tool_profile",
         )
         if key in kwargs
     }

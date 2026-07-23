@@ -1,0 +1,347 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+import pytest
+
+from chemsmart.agent.core import AgentSession
+from chemsmart.agent.permissions import (
+    ALWAYS_REQUIRE_APPROVAL,
+    READ_ONLY_TOOLS,
+)
+from chemsmart.agent.registry import ToolRegistry, build_tool_spec
+from chemsmart.agent.runtime.contracts import (
+    OpaqueArtifactRef,
+    ProviderRole,
+    TaskPhase,
+)
+from chemsmart.agent.runtime.tool_catalog import ToolCatalog
+from chemsmart.agent.studio import (
+    STUDIO_TOOL_NAMES,
+    STUDIO_TOOL_PROFILE,
+    StudioToolAdapters,
+    build_studio_tool_specs,
+)
+from chemsmart.agent.tool_protocol import RuntimeToolMetadata
+
+
+def _schema(*properties: str) -> dict[str, Any]:
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+            name: {"type": "string", "minLength": 1} for name in properties
+        },
+        "required": list(properties),
+        "additionalProperties": False,
+    }
+
+
+def _studio_schemas() -> dict[str, dict[str, Any]]:
+    return {name: _schema("requestId") for name in STUDIO_TOOL_NAMES}
+
+
+def test_public_tool_spec_factory_uses_self_contained_json_schema():
+    calls: list[dict[str, Any]] = []
+
+    def inspect(**arguments: Any) -> dict[str, Any]:
+        calls.append(arguments)
+        return arguments
+
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$defs": {"identifier": {"type": "string", "minLength": 1}},
+        "type": "object",
+        "properties": {"artifactId": {"$ref": "#/$defs/identifier"}},
+        "required": ["artifactId"],
+        "additionalProperties": False,
+    }
+    spec = build_tool_spec(
+        inspect,
+        registered_name="inspect_artifact",
+        input_json_schema=schema,
+        metadata=RuntimeToolMetadata(read_only=True),
+    )
+    registry = ToolRegistry([]).with_tools([spec])
+
+    assert registry.openai_tool_defs()[0]["function"]["parameters"] == schema
+    assert registry.call("inspect_artifact", {"artifactId": "artifact-1"}) == {
+        "artifactId": "artifact-1"
+    }
+    assert calls == [{"artifactId": "artifact-1"}]
+
+    invalid = registry.call("inspect_artifact", {"path": "/tmp/private"})
+    assert invalid["ok"] is False
+    assert invalid["error"]["type"] == "ValidationError"
+    assert calls == [{"artifactId": "artifact-1"}]
+
+
+def test_public_tool_spec_factory_rejects_external_schema_references():
+    with pytest.raises(ValueError, match="external schema references"):
+        build_tool_spec(
+            lambda **_: None,
+            registered_name="external_schema",
+            input_json_schema={
+                "type": "object",
+                "properties": {
+                    "payload": {"$ref": "https://example.com/schema.json"}
+                },
+            },
+        )
+
+
+def test_registry_with_tools_is_explicit_immutable_and_duplicate_safe():
+    first = build_tool_spec(lambda: "first", registered_name="first")
+    second = build_tool_spec(lambda: "second", registered_name="second")
+    original = ToolRegistry([first])
+
+    extended = original.with_tools([second])
+
+    assert original.get_tool("second") is None
+    assert [tool.name for tool in extended.list_tools()] == ["first", "second"]
+    with pytest.raises(ValueError, match="already registered"):
+        original.with_tools([first])
+
+
+@dataclass
+class _HostAdapter:
+    calls: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+
+    def get_studio_context(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self.calls.append(("get_studio_context", arguments))
+        return {"context": arguments["requestId"]}
+
+    def analyze_current_molecule(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        self.calls.append(("analyze_current_molecule", arguments))
+        return {"analysis": arguments["requestId"]}
+
+
+@dataclass
+class _ExecutionAdapter:
+    calls: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+
+    def __getattr__(self, name: str):
+        def invoke(arguments: dict[str, Any]) -> dict[str, Any]:
+            self.calls.append((name, arguments))
+            return {"operation": name, "requestId": arguments["requestId"]}
+
+        return invoke
+
+
+@dataclass
+class _ArtifactAdapter:
+    calls: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+
+    def list_calculation_artifacts(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        self.calls.append(("list_calculation_artifacts", arguments))
+        return {"artifacts": []}
+
+    def read_calculation_artifact(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        self.calls.append(("read_calculation_artifact", arguments))
+        return {"artifactId": arguments["requestId"], "content": "bounded"}
+
+
+@dataclass
+class _ApprovalAdapter:
+    calls: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+
+    def require_approval(
+        self, tool_name: str, arguments: dict[str, Any]
+    ) -> None:
+        self.calls.append((tool_name, arguments))
+
+
+@dataclass
+class _DenyingApprovalAdapter:
+    calls: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
+
+    def require_approval(
+        self, tool_name: str, arguments: dict[str, Any]
+    ) -> None:
+        self.calls.append((tool_name, arguments))
+        raise PermissionError("Studio approval was denied")
+
+
+def test_studio_tools_dispatch_through_owned_adapters_and_approval_boundary():
+    host = _HostAdapter()
+    execution = _ExecutionAdapter()
+    artifacts = _ArtifactAdapter()
+    approvals = _ApprovalAdapter()
+    adapters = StudioToolAdapters(
+        host=host,
+        execution=execution,
+        artifacts=artifacts,
+        approvals=approvals,
+    )
+    registry = ToolRegistry([]).with_tools(
+        build_studio_tool_specs(adapters, _studio_schemas())
+    )
+
+    assert registry.call("get_studio_context", {"requestId": "context-1"}) == {
+        "context": "context-1"
+    }
+    assert approvals.calls == []
+
+    started = registry.call(
+        "start_prepared_optimization", {"requestId": "plan-1"}
+    )
+    assert started == {
+        "operation": "start_prepared_optimization",
+        "requestId": "plan-1",
+    }
+    assert approvals.calls == [
+        ("start_prepared_optimization", {"requestId": "plan-1"})
+    ]
+
+    imported = registry.call(
+        "import_completed_calculation", {"requestId": "import-1"}
+    )
+    assert imported["operation"] == "import_completed_calculation"
+    assert approvals.calls[-1] == (
+        "import_completed_calculation",
+        {"requestId": "import-1"},
+    )
+
+
+def test_studio_approval_denial_never_calls_execution_adapter():
+    execution = _ExecutionAdapter()
+    approvals = _DenyingApprovalAdapter()
+    adapters = StudioToolAdapters(
+        host=_HostAdapter(),
+        execution=execution,
+        artifacts=_ArtifactAdapter(),
+        approvals=approvals,
+    )
+    registry = ToolRegistry([]).with_tools(
+        build_studio_tool_specs(adapters, _studio_schemas())
+    )
+
+    result = registry.call(
+        "start_prepared_optimization", {"requestId": "denied-plan"}
+    )
+
+    assert result["ok"] is False
+    assert result["error"]["type"] == "PermissionError"
+    assert approvals.calls == [
+        ("start_prepared_optimization", {"requestId": "denied-plan"})
+    ]
+    assert execution.calls == []
+
+
+def test_studio_profile_is_bounded_and_hides_unrestricted_or_legacy_start():
+    adapters = StudioToolAdapters(
+        host=_HostAdapter(),
+        execution=_ExecutionAdapter(),
+        artifacts=_ArtifactAdapter(),
+        approvals=_ApprovalAdapter(),
+    )
+    registry = ToolRegistry.default().with_tools(
+        build_studio_tool_specs(adapters, _studio_schemas())
+    )
+    legacy_start = build_tool_spec(
+        lambda **_: None,
+        registered_name="start_molecule_optimization",
+        input_json_schema=_schema("requestId"),
+    )
+    registry = registry.with_tools([legacy_start])
+    catalog = ToolCatalog(registry, profile=STUDIO_TOOL_PROFILE)
+
+    for phase in TaskPhase:
+        selection = catalog.select(
+            phase=phase,
+            provider_role=ProviderRole.CONTROLLER,
+        )
+        assert len(selection.direct) <= 5
+        assert "read" not in selection.direct
+        assert "start_molecule_optimization" not in selection.direct
+
+    execution = catalog.select(
+        phase=TaskPhase.EXECUTION,
+        provider_role=ProviderRole.CONTROLLER,
+    )
+    assert "start_prepared_optimization" in execution.direct
+
+
+def test_agent_session_injects_studio_phase_profile(tmp_path):
+    adapters = StudioToolAdapters(
+        host=_HostAdapter(),
+        execution=_ExecutionAdapter(),
+        artifacts=_ArtifactAdapter(),
+        approvals=_ApprovalAdapter(),
+    )
+    registry = ToolRegistry([]).with_tools(
+        build_studio_tool_specs(adapters, _studio_schemas())
+    )
+    session = AgentSession(
+        registry=registry,
+        session_root=tmp_path,
+        runtime_v2="active",
+        tool_profile=STUDIO_TOOL_PROFILE,
+    )
+    session._start_new_session("Start the prepared optimization.")
+
+    controller = session._ensure_runtime_controller()
+
+    assert controller is not None
+    assert controller.catalog.profile is STUDIO_TOOL_PROFILE
+    selection = controller.catalog.select(
+        phase=TaskPhase.EXECUTION,
+        provider_role=ProviderRole.CONTROLLER,
+    )
+    assert "start_prepared_optimization" in selection.direct
+
+
+def test_studio_tool_metadata_matches_read_and_approval_policy():
+    adapters = StudioToolAdapters(
+        host=_HostAdapter(),
+        execution=_ExecutionAdapter(),
+        artifacts=_ArtifactAdapter(),
+        approvals=_ApprovalAdapter(),
+    )
+    specs = {
+        spec.name: spec
+        for spec in build_studio_tool_specs(adapters, _studio_schemas())
+    }
+    risky = {
+        "start_prepared_optimization",
+        "import_completed_calculation",
+    }
+
+    assert set(specs) == set(STUDIO_TOOL_NAMES)
+    assert risky <= ALWAYS_REQUIRE_APPROVAL
+    assert risky.isdisjoint(READ_ONLY_TOOLS)
+    for name, spec in specs.items():
+        assert spec.metadata.read_only is (name not in risky)
+        assert (name in READ_ONLY_TOOLS) is (name not in risky)
+
+
+def test_opaque_artifact_reference_has_no_model_visible_path():
+    artifact = OpaqueArtifactRef(
+        artifact_id="artifact-1",
+        kind="optimization_log",
+        sha256="a" * 64,
+        size_bytes=123,
+        media_type="text/plain",
+    )
+
+    payload = artifact.model_dump(mode="json")
+
+    assert payload["artifact_id"] == "artifact-1"
+    assert "path" not in payload
+    assert "metadata" not in payload
+
+    with pytest.raises(ValueError):
+        OpaqueArtifactRef(
+            artifact_id="artifact-2",
+            kind="optimization_log",
+            sha256="b" * 64,
+            size_bytes=123,
+            display_name="private/log.txt",
+        )

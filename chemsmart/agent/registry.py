@@ -5,9 +5,11 @@ import inspect
 import logging
 import os
 from collections.abc import Iterable
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Literal, get_args, get_origin, get_type_hints
 
+from jsonschema import Draft202012Validator
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -419,6 +421,7 @@ class ToolSpec:
     schema_overrides: dict[str, dict[str, Any]] = field(default_factory=dict)
     model_excluded_fields: frozenset[str] = frozenset()
     metadata: RuntimeToolMetadata = field(default_factory=RuntimeToolMetadata)
+    input_json_schema: dict[str, Any] | None = None
 
     def openai_tool_def(self) -> dict[str, Any]:
         schema = self._schema_with_overrides()
@@ -443,6 +446,8 @@ class ToolSpec:
         }
 
     def _schema_with_overrides(self) -> dict[str, Any]:
+        if self.input_json_schema is not None:
+            return deepcopy(self.input_json_schema)
         schema = self.input_schema.model_json_schema()
         schema.pop("title", None)
         schema.pop("$defs", None)
@@ -467,6 +472,21 @@ class ToolSpec:
             properties[field_name].update(override)
         return schema
 
+    def validate_args(
+        self,
+        args: dict[str, Any],
+        *,
+        exclude_defaults: bool = False,
+    ) -> dict[str, Any]:
+        if self.input_json_schema is not None:
+            Draft202012Validator(self.input_json_schema).validate(args)
+            return dict(args)
+        validated = self.input_schema.model_validate(args)
+        payload = dict(validated.model_dump(exclude_defaults=exclude_defaults))
+        if self.accepts_kwargs and validated.model_extra:
+            payload.update(validated.model_extra)
+        return payload
+
 
 class ToolRegistry:
     def __init__(self, tools: list[ToolSpec]):
@@ -480,7 +500,7 @@ class ToolRegistry:
         enabled_tools = resolve_tool_groups(groups)
         return cls(
             [
-                _build_tool_spec(
+                build_tool_spec(
                     _load_agent_tool(name, module_name),
                     registered_name=name,
                     description=description,
@@ -496,6 +516,21 @@ class ToolRegistry:
 
     def get_tool(self, name: str) -> ToolSpec | None:
         return self._tools.get(name)
+
+    def with_tools(
+        self,
+        tools: Iterable[ToolSpec],
+    ) -> "ToolRegistry":
+        """Return a new registry extended by explicit tool specifications."""
+
+        extended = self.list_tools()
+        names = {tool.name for tool in extended}
+        for tool in tools:
+            if tool.name in names:
+                raise ValueError(f"Tool {tool.name!r} is already registered")
+            names.add(tool.name)
+            extended.append(tool)
+        return ToolRegistry(extended)
 
     def openai_tool_defs(
         self,
@@ -543,14 +578,9 @@ class ToolRegistry:
         tool = self._tools[name]
         payload = dict(args or {})
         try:
-            validated = tool.input_schema.model_validate(payload)
+            return tool.validate_args(payload, exclude_defaults=True)
         except Exception:
             return payload
-
-        normalized = dict(validated.model_dump(exclude_defaults=True))
-        if tool.accepts_kwargs and validated.model_extra:
-            normalized.update(validated.model_extra)
-        return normalized
 
     def describe_tool(self, name: str) -> str:
         tool = self.get_tool(name)
@@ -569,7 +599,7 @@ class ToolRegistry:
         tool = self._tools[name]
         args = args or {}
         try:
-            validated = tool.input_schema.model_validate(args)
+            payload = tool.validate_args(args)
         except Exception as exc:
             return {
                 "ok": False,
@@ -579,11 +609,6 @@ class ToolRegistry:
                     "tool": name,
                 },
             }
-
-        payload = dict(validated.model_dump())
-        if tool.accepts_kwargs and validated.model_extra:
-            payload.update(validated.model_extra)
-
         try:
             return tool.func(**payload)
         except Exception as exc:
@@ -597,12 +622,14 @@ class ToolRegistry:
             }
 
 
-def _build_tool_spec(
+def build_tool_spec(
     func: Any,
     registered_name: str | None = None,
     description: str | None = None,
     metadata: RuntimeToolMetadata | None = None,
+    input_json_schema: dict[str, Any] | None = None,
 ) -> ToolSpec:
+    validated_json_schema = _validated_input_json_schema(input_json_schema)
     fields: dict[str, Any] = {}
     schema_overrides: dict[str, dict[str, Any]] = {}
     model_excluded_fields: set[str] = set()
@@ -659,7 +686,48 @@ def _build_tool_spec(
         schema_overrides=schema_overrides,
         model_excluded_fields=frozenset(model_excluded_fields),
         metadata=metadata or RuntimeToolMetadata(),
+        input_json_schema=validated_json_schema,
     )
+
+
+def _build_tool_spec(
+    func: Any,
+    registered_name: str | None = None,
+    description: str | None = None,
+    metadata: RuntimeToolMetadata | None = None,
+) -> ToolSpec:
+    """Backward-compatible private alias for pre-public-factory callers."""
+
+    return build_tool_spec(
+        func,
+        registered_name=registered_name,
+        description=description,
+        metadata=metadata,
+    )
+
+
+def _validated_input_json_schema(
+    schema: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if schema is None:
+        return None
+    if not isinstance(schema, dict) or schema.get("type") != "object":
+        raise ValueError("tool input JSON Schema must describe an object")
+    Draft202012Validator.check_schema(schema)
+
+    pending: list[Any] = [schema]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            reference = value.get("$ref")
+            if isinstance(reference, str) and not reference.startswith("#/"):
+                raise ValueError(
+                    "tool input JSON Schema cannot contain external schema references"
+                )
+            pending.extend(value.values())
+        elif isinstance(value, list):
+            pending.extend(value)
+    return deepcopy(schema)
 
 
 def _annotation_to_schema(annotation: Any) -> dict[str, Any] | None:

@@ -20,6 +20,12 @@ __all__ = [
     "LocalDryRunTransport",
     "SshQsubTransport",
     "MockTransport",
+    "CalculationExecutionAdapter",
+    "StudioApprovalAdapter",
+    "StudioArtifactAdapter",
+    "StudioHostAdapter",
+    "StudioToolAdapters",
+    "build_studio_tool_specs",
 ]
 
 _EXPORTS = {
@@ -47,6 +53,24 @@ _EXPORTS = {
     ),
     "SshQsubTransport": ("chemsmart.agent.transport", "SshQsubTransport"),
     "MockTransport": ("chemsmart.agent.transport", "MockTransport"),
+    "CalculationExecutionAdapter": (
+        "chemsmart.agent.studio",
+        "CalculationExecutionAdapter",
+    ),
+    "StudioApprovalAdapter": (
+        "chemsmart.agent.studio",
+        "StudioApprovalAdapter",
+    ),
+    "StudioArtifactAdapter": (
+        "chemsmart.agent.studio",
+        "StudioArtifactAdapter",
+    ),
+    "StudioHostAdapter": ("chemsmart.agent.studio", "StudioHostAdapter"),
+    "StudioToolAdapters": ("chemsmart.agent.studio", "StudioToolAdapters"),
+    "build_studio_tool_specs": (
+        "chemsmart.agent.studio",
+        "build_studio_tool_specs",
+    ),
 }
 
 
