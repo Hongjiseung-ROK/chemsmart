@@ -345,6 +345,10 @@ def route_initial_phase(
     if role is ProviderRole.SYNTHESIS_SPECIALIST:
         return TaskPhase.SYNTHESIS
     text = str(request or "").lower()
+    if _is_studio_project_write(text):
+        return TaskPhase.PROJECT_WRITE
+    if _is_studio_execution(text):
+        return TaskPhase.EXECUTION
     if _is_direct_project_write(text):
         return TaskPhase.PROJECT_WRITE
     if (
@@ -519,6 +523,50 @@ def _is_direct_project_write(text: str) -> bool:
         )
     )
     return writes_candidate and candidate_exists
+
+
+def _is_studio_project_write(text: str) -> bool:
+    return any(
+        marker in text
+        for marker in (
+            "commit preview",
+            "commit the preview",
+            "commit both molecule previews",
+            "commit both previews",
+            "discard preview",
+            "discard the preview",
+            "accept final geometry",
+            "accept the final geometry",
+            "reject final geometry",
+            "reject the final geometry",
+            "preview를 commit",
+            "preview를 discard",
+            "최종 구조를 accept",
+            "최종 구조를 reject",
+            "최종 구조 수락",
+            "최종 구조 거절",
+        )
+    )
+
+
+def _is_studio_execution(text: str) -> bool:
+    return _matches(
+        text,
+        r"(?:start|cancel).{0,48}(?:prepared|validated|controlled)?"
+        r".{0,32}(?:plan|optimization)",
+    ) or any(
+        marker in text
+        for marker in (
+            "start optimization",
+            "start the optimization",
+            "cancel optimization",
+            "cancel the optimization",
+            "최적화를 시작",
+            "최적화 시작",
+            "최적화 실행을 취소",
+            "최적화를 취소",
+        )
+    )
 
 
 def _project_authoring_requested(request: str) -> bool:

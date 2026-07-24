@@ -279,6 +279,42 @@ def test_router_preserves_local_specialist_and_write_boundary():
     )
 
 
+@pytest.mark.parametrize(
+    "user_input",
+    [
+        "Commit both molecule previews.",
+        "Commit both previews.",
+        "Discard preview-1.",
+        "Accept the final geometry.",
+        "Reject the final geometry.",
+        "분자 preview를 commit하세요.",
+        "최종 구조를 reject하세요.",
+    ],
+)
+def test_router_maps_studio_revision_decisions_to_project_write(user_input):
+    assert (
+        route_initial_phase(user_input, role=ProviderRole.CONTROLLER)
+        is TaskPhase.PROJECT_WRITE
+    )
+
+
+@pytest.mark.parametrize(
+    "user_input",
+    [
+        "Start the validated controlled plan.",
+        "Start the prepared optimization.",
+        "Cancel the optimization.",
+        "준비된 최적화를 시작하세요.",
+        "최적화 실행을 취소하세요.",
+    ],
+)
+def test_router_maps_studio_run_controls_to_execution(user_input):
+    assert (
+        route_initial_phase(user_input, role=ProviderRole.CONTROLLER)
+        is TaskPhase.EXECUTION
+    )
+
+
 def test_active_lifecycle_rejects_unexposed_internal_tool(tmp_path):
     controller = RuntimeController(
         session_dir=tmp_path,
