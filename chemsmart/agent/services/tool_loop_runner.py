@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -14,9 +15,21 @@ from chemsmart.agent.provider_adapter import (
     normalize_response,
     response_payload,
 )
-from chemsmart.agent.providers import DEFAULT_TIMEOUT_S, extract_response_usage
+from chemsmart.agent.providers import (
+    DEFAULT_TIMEOUT_S,
+    extract_response_metadata,
+    extract_response_usage,
+)
 
 ASK_USER_TOOL_NAME = "ask_user"
+_PRIVATE_REASONING_KEYS = frozenset(
+    {"reasoning_content", "thinking", "analysis", "<think>"}
+)
+_THINK_BLOCK = re.compile(
+    r"<think\b[^>]*>.*?</think>",
+    flags=re.DOTALL | re.IGNORECASE,
+)
+_UNCLOSED_THINK = re.compile(r"<think\b", flags=re.IGNORECASE)
 
 
 class LoopHost(Protocol):
@@ -60,6 +73,7 @@ class TurnState:
     denials_count: int = 0
     ask_user_outcome: dict[str, Any] | None = None
     provider_errors: int = 0
+    provider_responses: list[dict[str, Any]] = field(default_factory=list)
 
 
 class ToolLoopRunner:
@@ -149,7 +163,10 @@ class ToolLoopRunner:
         if self.loop.budgets.log_provider_turn_raw:
             self.loop.decision_log.write(
                 "provider_turn_raw",
-                {"step": state.model_steps, "response_dict": payload},
+                {
+                    "step": state.model_steps,
+                    "response_dict": public_provider_response(payload),
+                },
             )
         return payload
 
@@ -161,7 +178,14 @@ class ToolLoopRunner:
     ) -> list[ToolRequest]:
         message = assistant_message(protocol, response)
         text, requests, stop_reason = normalize_response(protocol, response)
+        text = public_assistant_text(text)
         usage = extract_response_usage(response)
+        provider_response = {
+            "provider": _provider_name(self.loop.provider, protocol),
+            "wire_protocol": protocol,
+            **extract_response_metadata(response),
+        }
+        state.provider_responses.append(provider_response)
         state.assistant_text = text
         state.stop_reason = stop_reason
         state.total_input_tokens += int(usage["input_tokens"] or 0)
@@ -173,6 +197,7 @@ class ToolLoopRunner:
                 "assistant_text": text,
                 "stop_reason": stop_reason,
                 "usage": usage,
+                "provider_response": provider_response,
             },
         )
         state.history.append(message)
@@ -372,6 +397,67 @@ def canonical_args_json(request: ToolRequest) -> str:
     return json.dumps(request.arguments, sort_keys=True)
 
 
+def public_assistant_text(text: str) -> str:
+    """Remove provider-private reasoning blocks from public assistant text."""
+
+    public = _THINK_BLOCK.sub("", text)
+    unclosed = _UNCLOSED_THINK.search(public)
+    if unclosed is not None:
+        public = public[: unclosed.start()]
+    return public.strip()
+
+
+def public_message_history(
+    messages: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return persistable history without provider-private reasoning."""
+
+    public: list[dict[str, Any]] = []
+    for message in messages:
+        copied = deepcopy(message)
+        if copied.get("role") == "assistant":
+            copied = _strip_private_reasoning(copied)
+        public.append(copied)
+    return public
+
+
+def public_provider_response(response: dict[str, Any]) -> dict[str, Any]:
+    """Return debug evidence with provider-private reasoning removed."""
+
+    public = _strip_private_reasoning(deepcopy(response))
+    return public if isinstance(public, dict) else {}
+
+
+def _strip_private_reasoning(value: Any) -> Any:
+    if isinstance(value, dict):
+        block_type = value.get("type")
+        if (
+            isinstance(block_type, str)
+            and block_type.lower() in _PRIVATE_REASONING_KEYS
+        ):
+            return None
+        return {
+            key: _strip_private_reasoning(item)
+            for key, item in value.items()
+            if key not in _PRIVATE_REASONING_KEYS
+        }
+    if isinstance(value, list):
+        public_items = []
+        for item in value:
+            public_item = _strip_private_reasoning(item)
+            if public_item is not None:
+                public_items.append(public_item)
+        return public_items
+    if isinstance(value, str):
+        return public_assistant_text(value)
+    return value
+
+
+def _provider_name(provider: Any, fallback: str) -> str:
+    name = getattr(provider, "name", None)
+    return name.strip() if isinstance(name, str) and name.strip() else fallback
+
+
 def _result(state: TurnState) -> dict[str, Any]:
     return {
         "assistant_text": state.assistant_text,
@@ -382,7 +468,8 @@ def _result(state: TurnState) -> dict[str, Any]:
         "limit_reason": state.limit_reason,
         "total_input_tokens": state.total_input_tokens,
         "total_output_tokens": state.total_output_tokens,
-        "messages": state.history,
+        "messages": public_message_history(state.history),
+        "provider_responses": deepcopy(state.provider_responses),
         "approvals_count": state.approvals_count,
         "denials_count": state.denials_count,
         "ask_user": state.ask_user_outcome,
@@ -390,4 +477,11 @@ def _result(state: TurnState) -> dict[str, Any]:
     }
 
 
-__all__ = ["ToolLoopRunner", "assistant_message", "canonical_args_json"]
+__all__ = [
+    "ToolLoopRunner",
+    "assistant_message",
+    "canonical_args_json",
+    "public_assistant_text",
+    "public_message_history",
+    "public_provider_response",
+]

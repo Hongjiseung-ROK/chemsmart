@@ -127,19 +127,26 @@ def test_run_turn_returns_ask_user_and_skips_permission_resolution(tmp_path):
 def test_run_loop_surfaces_ask_user_question_and_keeps_turn_in_progress(
     tmp_path,
 ):
+    response = openai_tool_call_response(
+        tool_call(
+            "call_ask",
+            ASK_USER_TOOL_NAME,
+            {
+                "question": "which server?",
+                "options": ["chemnode1", "chemnode2"],
+            },
+        )
+    )
+    response.update(
+        {
+            "id": "response-ask-user",
+            "model": "deepseek-v4-pro",
+        }
+    )
     provider = FakeProvider(
         [
             {
-                "__raw_response__": openai_tool_call_response(
-                    tool_call(
-                        "call_ask",
-                        ASK_USER_TOOL_NAME,
-                        {
-                            "question": "which server?",
-                            "options": ["chemnode1", "chemnode2"],
-                        },
-                    )
-                )
+                "__raw_response__": response,
             }
         ]
     )
@@ -161,6 +168,10 @@ def test_run_loop_surfaces_ask_user_question_and_keeps_turn_in_progress(
     assert session.state is not None
     assert session.state.pending_ask_user == result["ask_user_question"]
     assert session.state.pending_messages is not None
+    assert result["provider_responses"][0]["response_id"] == (
+        "response-ask-user"
+    )
+    assert result["provider_responses"][0]["model"] == "deepseek-v4-pro"
 
 
 def test_run_loop_answer_continues_pending_ask_user_turn(tmp_path):

@@ -492,6 +492,7 @@ class UnifiedSessionRunner:
             "preview_submit": None,
             "results": projection.results,
             "assistant_output": loop_result["assistant_text"],
+            "provider_responses": loop_result["provider_responses"],
             "tool_requests": projection.tool_requests,
             "tool_outcomes": projection.tool_outcomes,
             "loop_state": _loop_state(loop_result, projection.tool_outcomes),

@@ -482,3 +482,68 @@ def extract_response_usage(response: Any) -> dict[str, int | None]:
             int(output_tokens) if isinstance(output_tokens, int) else None
         ),
     }
+
+
+def extract_response_metadata(response: Any) -> dict[str, Any]:
+    """Project a provider response into safe, non-content evidence."""
+
+    if isinstance(response, dict):
+        payload = response
+    elif hasattr(response, "model_dump"):
+        payload = response.model_dump()
+    else:
+        payload = {}
+
+    usage = payload.get("usage")
+    usage = usage if isinstance(usage, dict) else {}
+    prompt_details = usage.get("prompt_tokens_details")
+    prompt_details = prompt_details if isinstance(prompt_details, dict) else {}
+    completion_details = usage.get("completion_tokens_details")
+    completion_details = (
+        completion_details if isinstance(completion_details, dict) else {}
+    )
+
+    input_tokens = usage.get("input_tokens", usage.get("prompt_tokens"))
+    output_tokens = usage.get("output_tokens", usage.get("completion_tokens"))
+    return {
+        "response_id": _safe_provider_label(payload.get("id")),
+        "model": _safe_provider_label(payload.get("model")),
+        "usage": {
+            "input_tokens": _safe_token_count(input_tokens),
+            "output_tokens": _safe_token_count(output_tokens),
+            "total_tokens": _safe_token_count(usage.get("total_tokens")),
+            "cache_hit_tokens": _first_token_count(
+                usage.get("prompt_cache_hit_tokens"),
+                prompt_details.get("cached_tokens"),
+            ),
+            "cache_miss_tokens": _safe_token_count(
+                usage.get("prompt_cache_miss_tokens")
+            ),
+            "reasoning_tokens": _safe_token_count(
+                completion_details.get("reasoning_tokens")
+            ),
+        },
+    }
+
+
+def _safe_provider_label(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    label = value.strip()
+    if not label or len(label) > 512:
+        return None
+    return label
+
+
+def _safe_token_count(value: Any) -> int | None:
+    if type(value) is not int or value < 0:
+        return None
+    return value
+
+
+def _first_token_count(*values: Any) -> int | None:
+    for value in values:
+        count = _safe_token_count(value)
+        if count is not None:
+            return count
+    return None
