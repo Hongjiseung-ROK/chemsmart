@@ -20,7 +20,11 @@ def test_openai_provider_suppresses_sensitive_transport_debug_logs(
         for name in logger_names:
             logging.getLogger(name).setLevel(logging.DEBUG)
 
-        OpenAIProvider("test-key")
+        provider = OpenAIProvider("test-key")
+        for name in logger_names:
+            logging.getLogger(name).setLevel(logging.DEBUG)
+
+        provider.chat([{"role": "user", "content": "Hello"}])
 
         assert all(
             logging.getLogger(name).getEffectiveLevel() >= logging.WARNING

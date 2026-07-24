@@ -82,6 +82,7 @@ class AnthropicProvider:
         tools: Optional[list] = None,
         timeout_s: float = DEFAULT_TIMEOUT_S,
     ) -> dict:
+        _suppress_sensitive_transport_debug_logging()
         kwargs: dict[str, Any] = {
             "model": self.default_model,
             "max_tokens": 4096,
@@ -94,6 +95,7 @@ class AnthropicProvider:
         return response.model_dump()
 
     def ping(self) -> dict[str, Any]:
+        _suppress_sensitive_transport_debug_logging()
         started = time.perf_counter()
         try:
             response = self._client.messages.create(
@@ -145,6 +147,7 @@ class OpenAIProvider:
         tools: Optional[list] = None,
         timeout_s: float = DEFAULT_TIMEOUT_S,
     ) -> dict:
+        _suppress_sensitive_transport_debug_logging()
         kwargs: dict[str, Any] = {
             "model": self.default_model,
             "messages": messages,
@@ -156,6 +159,7 @@ class OpenAIProvider:
         return response.model_dump()
 
     def ping(self) -> dict[str, Any]:
+        _suppress_sensitive_transport_debug_logging()
         started = time.perf_counter()
         try:
             kwargs: dict[str, Any] = {
