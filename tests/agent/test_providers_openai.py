@@ -1,9 +1,34 @@
 """Tests for the OpenAI provider adapter."""
 
+import logging
 import sys
 from unittest.mock import MagicMock
 
 from chemsmart.agent.providers import OpenAIProvider
+
+
+def test_openai_provider_suppresses_sensitive_transport_debug_logs(
+    monkeypatch,
+):
+    openai_module = MagicMock()
+    monkeypatch.setitem(sys.modules, "openai", openai_module)
+    logger_names = ("openai", "httpx", "httpcore")
+    original_levels = {
+        name: logging.getLogger(name).level for name in logger_names
+    }
+    try:
+        for name in logger_names:
+            logging.getLogger(name).setLevel(logging.DEBUG)
+
+        OpenAIProvider("test-key")
+
+        assert all(
+            logging.getLogger(name).getEffectiveLevel() >= logging.WARNING
+            for name in logger_names
+        )
+    finally:
+        for name, level in original_levels.items():
+            logging.getLogger(name).setLevel(level)
 
 
 def test_openai_provider_chat_returns_dict_and_forwards_tools(monkeypatch):

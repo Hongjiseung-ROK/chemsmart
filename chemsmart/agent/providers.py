@@ -8,6 +8,7 @@ retained for one compatibility release.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import time
@@ -29,11 +30,21 @@ _SUPPORTED = frozenset({"openai", "anthropic"})
 _PING_MESSAGES: Any = [{"role": "user", "content": "ping"}]
 DEFAULT_TIMEOUT_S = 30
 _OPENAI_USES_MCT = re.compile(r"^(gpt-5|o1|o3|o4)")
+_SENSITIVE_TRANSPORT_LOGGERS = ("openai", "httpx", "httpcore")
 
 
 def _openai_uses_max_completion_tokens(model: str | None) -> bool:
     """Return whether an OpenAI-family model requires max_completion_tokens."""
     return bool(_OPENAI_USES_MCT.match((model or "").strip().lower()))
+
+
+def _suppress_sensitive_transport_debug_logging() -> None:
+    """Prevent provider request bodies and credentials from debug logging."""
+
+    for logger_name in _SENSITIVE_TRANSPORT_LOGGERS:
+        logger = logging.getLogger(logger_name)
+        if logger.getEffectiveLevel() < logging.WARNING:
+            logger.setLevel(logging.WARNING)
 
 
 class ProviderError(Exception):
@@ -53,6 +64,7 @@ class AnthropicProvider:
         base_url: str | None = None,
         extra_headers: dict[str, str] | None = None,
     ) -> None:
+        _suppress_sensitive_transport_debug_logging()
         import anthropic
 
         self.default_model = model or type(self).default_model
@@ -114,6 +126,7 @@ class OpenAIProvider:
         extra_headers: dict[str, str] | None = None,
         provider_name: str | None = None,
     ) -> None:
+        _suppress_sensitive_transport_debug_logging()
         import openai
 
         self.name = (provider_name or type(self).name).strip()
