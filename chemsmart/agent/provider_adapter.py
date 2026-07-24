@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from chemsmart.agent.public_visibility import sanitize_public_payload
+
 ToolOutcomeStatus = Literal[
     "ok",
     "ask_user",
@@ -235,20 +237,23 @@ def _anthropic_tool_result_block(outcome: ToolOutcome) -> dict[str, Any]:
 
 def _outcome_payload(outcome: ToolOutcome) -> Any:
     if outcome.display_result is not None:
-        return outcome.display_result
-    if outcome.result is not None:
-        return outcome.result
-    if outcome.status == "ok":
-        return {"ok": True}
-    return {
-        "ok": False,
-        "error": {
-            "type": outcome.error_type or _default_error_type(outcome.status),
-            "message": outcome.error_message
-            or _default_error_message(outcome),
-            "tool": outcome.name,
-        },
-    }
+        payload = outcome.display_result
+    elif outcome.result is not None:
+        payload = outcome.result
+    elif outcome.status == "ok":
+        payload = {"ok": True}
+    else:
+        payload = {
+            "ok": False,
+            "error": {
+                "type": outcome.error_type
+                or _default_error_type(outcome.status),
+                "message": outcome.error_message
+                or _default_error_message(outcome),
+                "tool": outcome.name,
+            },
+        }
+    return sanitize_public_payload(payload)
 
 
 def _default_error_type(status: ToolOutcomeStatus) -> str:

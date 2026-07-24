@@ -15,6 +15,7 @@ from chemsmart.agent.provider_adapter import (
     normalize_response,
     response_payload,
 )
+from chemsmart.agent.public_visibility import sanitize_public_text
 from chemsmart.agent.providers import (
     DEFAULT_TIMEOUT_S,
     extract_response_metadata,
@@ -398,13 +399,13 @@ def canonical_args_json(request: ToolRequest) -> str:
 
 
 def public_assistant_text(text: str) -> str:
-    """Remove provider-private reasoning blocks from public assistant text."""
+    """Remove provider-private reasoning and absolute paths from public text."""
 
     public = _THINK_BLOCK.sub("", text)
     unclosed = _UNCLOSED_THINK.search(public)
     if unclosed is not None:
         public = public[: unclosed.start()]
-    return public.strip()
+    return sanitize_public_text(public).strip()
 
 
 def public_message_history(

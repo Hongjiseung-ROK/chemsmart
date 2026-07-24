@@ -5,6 +5,7 @@ import json
 from chemsmart.agent.core import DecisionLog
 from chemsmart.agent.handles import HandleStore
 from chemsmart.agent.loop import ToolLoop, ToolLoopBudgets
+from chemsmart.agent.services.tool_loop_runner import public_assistant_text
 
 from ._agent_session_helpers import FakeProvider
 from ._loop_helpers import (
@@ -59,6 +60,19 @@ def test_tool_loop_writes_new_decision_log_kinds_in_order(tmp_path):
         "provider_turn_raw",
         "assistant_turn",
     ]
+
+
+def test_public_assistant_text_masks_absolute_paths():
+    text = (
+        "Generated /private/var/folders/example/T/run.com and "
+        "file:///Users/researcher/project/run.log."
+    )
+
+    public = public_assistant_text(text)
+
+    assert "/private/var/folders" not in public
+    assert "/Users/researcher" not in public
+    assert public.count("[opaque-path]") == 2
 
 
 def test_tool_loop_keeps_reasoning_ephemeral_and_records_safe_metadata(

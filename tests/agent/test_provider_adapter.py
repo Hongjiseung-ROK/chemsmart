@@ -302,3 +302,48 @@ def test_build_tool_result_messages_for_openai():
             ),
         },
     ]
+
+
+def test_tool_result_messages_mask_paths_but_preserve_trusted_raw_result():
+    raw_result = {
+        "generated_inputs": [
+            {
+                "path": (
+                    "/private/var/folders/example/T/" "chemsmart-gate/run.com"
+                )
+            }
+        ],
+        "message": "Read /Users/researcher/project/run.log for details.",
+    }
+    outcome = ToolOutcome(
+        request_id="openai:call_path",
+        provider_call_id="call_path",
+        name="synthesize_command",
+        status="ok",
+        display_result=raw_result,
+        raw_result=raw_result,
+    )
+
+    messages = build_tool_result_messages("openai", [outcome])
+    provider_payload = messages[0]["content"]
+
+    assert "/private/var/folders" not in provider_payload
+    assert "/Users/researcher" not in provider_payload
+    assert provider_payload.count("[opaque-path]") == 2
+    assert outcome.raw_result == raw_result
+
+
+def test_tool_result_messages_mask_paths_in_error_text():
+    outcome = ToolOutcome(
+        request_id="openai:call_error",
+        provider_call_id="call_error",
+        name="synthesize_command",
+        status="error",
+        error_type="RuntimeError",
+        error_message="Could not read C:\\Users\\researcher\\run.com",
+    )
+
+    messages = build_tool_result_messages("openai", [outcome])
+
+    assert "C:\\\\Users" not in messages[0]["content"]
+    assert "[opaque-path]" in messages[0]["content"]
