@@ -93,7 +93,9 @@ def test_public_synthesis_trace_excludes_provider_private_reasoning():
     assert "private" not in trace.lower()
 
 
-def test_inspect_command_returns_path_free_static_evidence(monkeypatch, tmp_path):
+def test_inspect_command_returns_path_free_static_evidence(
+    monkeypatch, tmp_path
+):
     def should_not_run(*_args, **_kwargs):  # pragma: no cover - defensive
         raise AssertionError("command inspection must not start a process")
 
@@ -142,6 +144,36 @@ def test_inspect_command_returns_path_free_static_evidence(monkeypatch, tmp_path
     assert command not in repr(result)
 
 
+def test_inspect_command_accepts_program_agnostic_natural_research_intent(
+    monkeypatch, tmp_path
+):
+    def should_not_run(*_args, **_kwargs):  # pragma: no cover - defensive
+        raise AssertionError("command inspection must not start a process")
+
+    monkeypatch.setattr(
+        "chemsmart.agent.harness.command_semantics.subprocess.run",
+        should_not_run,
+    )
+
+    result = tools_command.inspect_chemsmart_command(
+        "chemsmart run xtb -f water.xyz -c 0 -m 1 -g gfn2 opt",
+        "Inspect a neutral singlet water geometry optimization without executing it.",
+        cwd=tmp_path,
+    )
+
+    assert result["status"] == "ready_for_dry_run"
+    assert result["intent"] == {
+        "verdict": "ok",
+        "failed_rule_ids": [],
+        "assertions": [
+            {"id": "intent.kind", "status": "pass"},
+            {"id": "intent.charge", "status": "pass"},
+            {"id": "intent.multiplicity", "status": "pass"},
+        ],
+    }
+    assert result["dry_run"]["process_started"] is False
+
+
 def test_inspect_command_reports_intent_mismatch_without_dry_run(tmp_path):
     result = tools_command.inspect_chemsmart_command(
         "chemsmart run xtb -f water.xyz -c 0 -m 1 sp",
@@ -164,6 +196,36 @@ def test_inspect_command_requires_explicit_research_intent(tmp_path):
     assert result["status"] == "needs_clarification"
     assert result["intent"]["verdict"] == "unavailable"
     assert result["missing_info"] == ["explicit research intent"]
+
+
+def test_inspect_command_requires_extractable_research_intent(tmp_path):
+    result = tools_command.inspect_chemsmart_command(
+        "chemsmart run xtb -f water.xyz -c 0 -m 1 opt",
+        "Check this command before I decide.",
+        cwd=tmp_path,
+    )
+
+    assert result["status"] == "needs_clarification"
+    assert result["intent"] == {
+        "verdict": "unavailable",
+        "failed_rule_ids": [],
+        "assertions": [],
+    }
+    assert result["missing_info"] == ["extractable research intent"]
+
+
+def test_inspect_command_does_not_infer_job_kind_from_input_filename(tmp_path):
+    result = tools_command.inspect_chemsmart_command(
+        "chemsmart sub gaussian -p water -f crest_best.xyz opt",
+        "Optimize crest_best.xyz.",
+        cwd=tmp_path,
+    )
+
+    assert result["status"] == "ready_for_dry_run"
+    assert result["intent"]["assertions"] == [
+        {"id": "intent.kind", "status": "pass"},
+        {"id": "intent.input_path", "status": "pass"},
+    ]
 
 
 def test_execute_command_test_mode_adds_fake_runner_flags(monkeypatch):
@@ -256,8 +318,7 @@ def test_submit_terminal_state_records_server_yaml_and_scheduler(
     monkeypatch.setattr(tools_command, "execute_observed_process", fake_run)
 
     command = (
-        "chemsmart sub -s mock-pbs gaussian -p demo "
-        "-f h2o.xyz -c 0 -m 1 opt"
+        "chemsmart sub -s mock-pbs gaussian -p demo -f h2o.xyz -c 0 -m 1 opt"
     )
     tools_command.register_command_intent(
         command,
@@ -305,8 +366,7 @@ def test_submit_terminal_state_rejects_stale_submit_script(
     )
     select_workspace_project("demo", "gaussian")
     command = (
-        "chemsmart sub -s mock-pbs gaussian -p demo "
-        "-f h2o.xyz -c 0 -m 1 opt"
+        "chemsmart sub -s mock-pbs gaussian -p demo -f h2o.xyz -c 0 -m 1 opt"
     )
     tools_command.register_command_intent(
         command,

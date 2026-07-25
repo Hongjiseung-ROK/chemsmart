@@ -67,9 +67,13 @@ class IntentSpec:
         kind = _kind_from_request(lowered, program)
         action = _action_from_request(lowered)
         charge = _number_after(text, ("charge", "-c"), integer=True)
+        if charge is None and re.search(r"\bneutral\b", lowered):
+            charge = 0
         multiplicity = _number_after(
             text, ("multiplicity", "-m"), integer=True
         )
+        if multiplicity is None:
+            multiplicity = _spin_multiplicity_from_request(lowered, kind)
         chemistry = _chemistry_from_request(text, lowered, kind)
         return cls(
             action=action,
@@ -83,7 +87,9 @@ class IntentSpec:
             execution_mode=(
                 "submit"
                 if action == "sub"
-                else "local" if action == "run" else None
+                else "local"
+                if action == "run"
+                else None
             ),
             chemistry=chemistry,
         )
@@ -307,7 +313,9 @@ class ObservedIntent:
             execution_mode=(
                 "submit"
                 if parsed.action == "sub"
-                else "local" if parsed.action == "run" else None
+                else "local"
+                if parsed.action == "run"
+                else None
             ),
             chemistry=chemistry,
         )
@@ -453,6 +461,7 @@ def evaluate_intent(
             expected_value,
             observed_value,
             path=field_name.endswith("path"),
+            kind=field_name == "kind",
         )
     for key, expected_value in spec.chemistry.items():
         if expected_value is None:
@@ -497,8 +506,9 @@ def _append_assertion(
     observed: Any,
     *,
     path: bool = False,
+    kind: bool = False,
 ) -> None:
-    same = _equivalent(expected, observed, path=path)
+    same = _equivalent(expected, observed, path=path, kind=kind)
     rows.append(
         IntentAssertion(
             id=rule_id,
@@ -509,7 +519,20 @@ def _append_assertion(
     )
 
 
-def _equivalent(expected: Any, observed: Any, *, path: bool = False) -> bool:
+def _equivalent(
+    expected: Any,
+    observed: Any,
+    *,
+    path: bool = False,
+    kind: bool = False,
+) -> bool:
+    if kind and expected is not None and observed is not None:
+        expected_kind = str(expected).strip().lower()
+        observed_kind = str(observed).strip().lower()
+        if "." not in expected_kind and observed_kind.endswith(
+            f".{expected_kind}"
+        ):
+            return True
     if path and expected is not None and observed is not None:
         return str(PurePath(str(expected))) == str(PurePath(str(observed)))
     if isinstance(expected, (list, tuple)):
@@ -597,17 +620,25 @@ _TRAJECTORY_INTENT_RE = re.compile(
 
 
 def _kind_from_request(lowered: str, program: str | None) -> str | None:
-    if not program:
-        return None
-    if program == "gaussian" and _TRAJECTORY_INTENT_RE.search(lowered):
-        return "gaussian.traj"
-    if not _TS_INTENT_RE.search(lowered):
-        if _SCAN_INTENT_RE.search(lowered):
-            return f"{program}.scan"
-        if _FREEZE_INTENT_RE.search(lowered) and not _SCAN_VERB_RE.search(
-            lowered
+    def qualify(suffix: str) -> str:
+        return f"{program}.{suffix}" if program else suffix
+
+    intent_text = re.sub(
+        r"(?<![\w./-])[\w./-]+\.(?:xyz|log|out|com|gjf|inp|db|hess)\b",
+        " ",
+        lowered,
+    )
+    if program in {None, "gaussian"} and _TRAJECTORY_INTENT_RE.search(
+        intent_text
+    ):
+        return qualify("traj")
+    if not _TS_INTENT_RE.search(intent_text):
+        if _SCAN_INTENT_RE.search(intent_text):
+            return qualify("scan")
+        if _FREEZE_INTENT_RE.search(intent_text) and not _SCAN_VERB_RE.search(
+            intent_text
         ):
-            return f"{program}.modred"
+            return qualify("modred")
     markers = (
         ("qmmm", ("qm/mm", "qmmm", "oniom")),
         ("userjob", ("user job", "userjob", "custom gaussian job")),
@@ -636,21 +667,45 @@ def _kind_from_request(lowered: str, program: str | None) -> str | None:
         ("sp", ("single point", "single-point")),
         ("opt", ("optimization", "optimisation", "optimize", "optimise")),
     )
-    padded = f" {lowered} "
+    padded = f" {intent_text} "
     for suffix, words in markers:
         if any(word in padded for word in words):
-            if suffix == "tddft" and program != "gaussian":
+            if suffix == "tddft" and program not in {None, "gaussian"}:
                 return None
-            if (
-                suffix
-                in {"dias", "crest", "traj", "resp", "nci", "userjob", "wbi"}
-                and program != "gaussian"
-            ):
+            if suffix in {
+                "dias",
+                "crest",
+                "traj",
+                "resp",
+                "nci",
+                "userjob",
+                "wbi",
+            } and program not in {None, "gaussian"}:
                 return None
-            if suffix == "neb" and program != "orca":
+            if suffix == "neb" and program not in {None, "orca"}:
                 return None
-            return f"{program}.{suffix}"
+            return qualify(suffix)
     return None
+
+
+def _spin_multiplicity_from_request(
+    lowered: str, kind: str | None
+) -> int | None:
+    if kind in {"tddft", "gaussian.tddft"}:
+        return None
+    match = re.search(
+        r"\b(singlet|doublet|triplet|quartet|quintet|sextet)\b", lowered
+    )
+    if not match:
+        return None
+    return {
+        "singlet": 1,
+        "doublet": 2,
+        "triplet": 3,
+        "quartet": 4,
+        "quintet": 5,
+        "sextet": 6,
+    }[match.group(1)]
 
 
 def _server_from_request(text: str) -> str | None:

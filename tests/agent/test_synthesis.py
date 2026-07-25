@@ -422,7 +422,7 @@ def test_prepare_command_repairs_missing_job_before_intent_gate(
     bad = {
         "status": "ready",
         "command": (
-            "chemsmart run gaussian -p demo -f water.xyz -c 0 -m 1 " "-r freq"
+            "chemsmart run gaussian -p demo -f water.xyz -c 0 -m 1 -r freq"
         ),
         "explanation": "Optimization and frequency.",
         "confidence": "high",
@@ -701,8 +701,13 @@ def test_multiturn_clarification_is_carried_in_memory(
         "missing_info": ["What basis set?"],
         "alternatives": [],
     }
+    clarified_ready = {
+        **READY,
+        "command": "chemsmart sub gaussian opt -p oxetane -b def2-svp",
+        "explanation": "Prepare a Gaussian geometry optimization.",
+    }
     provider = DummyProvider(
-        [_json_response(clarification), _json_response(READY)]
+        [_json_response(clarification), _json_response(clarified_ready)]
     )
     session = SynthesisSession(provider=provider, semantic_gate=False)
 

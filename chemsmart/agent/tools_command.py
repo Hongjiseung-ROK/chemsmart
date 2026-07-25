@@ -354,20 +354,23 @@ def inspect_chemsmart_command(
         if request.strip()
         else None
     )
+    intent_available = intent is not None and bool(intent.assertions)
 
     if semantic.verdict == "reject":
         status = "rejected"
-    elif intent is not None and intent.verdict == "reject":
-        status = "intent_reject"
-    elif intent is None:
+    elif not intent_available:
         status = "needs_clarification"
+    elif intent.verdict == "reject":
+        status = "intent_reject"
     else:
         status = "ready_for_dry_run"
 
     return {
         "schema_version": "1",
         "status": status,
-        "command_digest": hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
+        "command_digest": hashlib.sha256(
+            normalized.encode("utf-8")
+        ).hexdigest(),
         "parse": {
             "accepted": parsed.parse_error is None,
             "action": parsed.action,
@@ -387,13 +390,13 @@ def inspect_chemsmart_command(
             },
         },
         "intent": {
-            "verdict": intent.verdict if intent is not None else "unavailable",
+            "verdict": intent.verdict if intent_available else "unavailable",
             "failed_rule_ids": (
-                intent.failed_rule_ids if intent is not None else []
+                intent.failed_rule_ids if intent_available else []
             ),
             "assertions": [
                 {"id": row.id, "status": row.status}
-                for row in (intent.assertions if intent is not None else ())
+                for row in (intent.assertions if intent_available else ())
             ],
         },
         "semantic": {
@@ -416,7 +419,8 @@ def inspect_chemsmart_command(
         },
         "missing_info": (
             ["explicit research intent"] if not request.strip() else []
-        ),
+        )
+        or (["extractable research intent"] if not intent_available else []),
     }
 
 
