@@ -97,6 +97,8 @@ def _program_from_request(lowered: str) -> str | None:
         return "gaussian"
     if "orca" in lowered:
         return "orca"
+    if "xtb" in lowered:
+        return "xtb"
     return None
 
 

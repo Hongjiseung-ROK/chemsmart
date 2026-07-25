@@ -6,7 +6,51 @@ from pathlib import Path
 
 from chemsmart.agent.harness.command_semantics import (
     evaluate_command_semantics,
+    inspect_command_semantics,
 )
+
+
+def test_static_inspection_requires_dry_run_without_starting_process(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    def should_not_run(*_args, **_kwargs):  # pragma: no cover - defensive
+        raise AssertionError("static inspection must not start a process")
+
+    monkeypatch.setattr(
+        "chemsmart.agent.harness.command_semantics.subprocess.run",
+        should_not_run,
+    )
+
+    result = inspect_command_semantics(
+        "chemsmart run xtb -f water.xyz -c 0 -m 1 opt",
+        cwd=tmp_path,
+    )
+
+    assert result.verdict == "warn"
+    assert result.failed_rule_ids == ["cmd.semantic.dry_run_required"]
+    assert result.generated_inputs == ()
+
+
+def test_static_inspection_rejects_invalid_command_without_starting_process(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    def should_not_run(*_args, **_kwargs):  # pragma: no cover - defensive
+        raise AssertionError("static inspection must not start a process")
+
+    monkeypatch.setattr(
+        "chemsmart.agent.harness.command_semantics.subprocess.run",
+        should_not_run,
+    )
+
+    result = inspect_command_semantics(
+        "chemsmart run xtb opt -f water.xyz -c 0 -m 1",
+        cwd=tmp_path,
+    )
+
+    assert result.verdict == "reject"
+    assert result.failed_rule_ids == ["cmd.semantic.option_order"]
 
 
 def test_run_command_semantic_gate_uses_safe_fake_execution(

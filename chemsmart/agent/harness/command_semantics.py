@@ -172,6 +172,72 @@ def evaluate_command_semantics(
     )
 
 
+def inspect_command_semantics(
+    command: str,
+    *,
+    cwd: str | os.PathLike[str] | None = None,
+) -> CommandSemanticResult:
+    """Run deterministic preflight checks without starting a process.
+
+    A non-rejected computational command remains ``warn`` until the separate
+    safe runtime gate proves generated-input and runtime semantics.
+    """
+
+    tokenized = _tokenize_chemsmart_command(command)
+    if isinstance(tokenized, CommandSemanticResult):
+        return tokenized
+    tokens = tokenized
+    base_cwd = Path(cwd or os.getcwd()).resolve()
+    top_index, top_level = _top_level_command(tokens)
+    issues = list(
+        _command_contract_issues(
+            tokens,
+            top_index,
+            cwd=base_cwd,
+        )
+        if top_level in _COMPUTATIONAL_TOP_LEVEL
+        else ()
+    )
+    parse_issue = _strict_parser_issue(command, tokens)
+    if parse_issue is not None:
+        issues.append(parse_issue)
+    if top_level in _COMPUTATIONAL_TOP_LEVEL:
+        for issue in (
+            _option_order_issue(tokens, top_index),
+            _safety_issue(tokens, top_index, top_level),
+        ):
+            if issue is not None:
+                issues.append(issue)
+        issues.extend(_preflight_semantic_issues(tokens, top_index))
+
+    if any(issue.severity == "reject" for issue in issues):
+        return CommandSemanticResult(
+            verdict="reject",
+            command=command,
+            checked_argv=tuple(tokens),
+            issues=tuple(issues),
+        )
+    if top_level not in _COMPUTATIONAL_TOP_LEVEL:
+        return _non_computational_result(command, tokens, top_level)
+
+    issues.append(
+        CommandSemanticIssue(
+            rule_id="cmd.semantic.dry_run_required",
+            severity="warn",
+            message=(
+                "static preflight passed; isolated safe runtime validation "
+                "is still required before execution"
+            ),
+        )
+    )
+    return CommandSemanticResult(
+        verdict="warn",
+        command=command,
+        checked_argv=tuple(tokens),
+        issues=tuple(issues),
+    )
+
+
 def _tokenize_chemsmart_command(
     command: str,
 ) -> list[str] | CommandSemanticResult:

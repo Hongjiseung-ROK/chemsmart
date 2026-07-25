@@ -93,6 +93,79 @@ def test_public_synthesis_trace_excludes_provider_private_reasoning():
     assert "private" not in trace.lower()
 
 
+def test_inspect_command_returns_path_free_static_evidence(monkeypatch, tmp_path):
+    def should_not_run(*_args, **_kwargs):  # pragma: no cover - defensive
+        raise AssertionError("command inspection must not start a process")
+
+    monkeypatch.setattr(
+        "chemsmart.agent.harness.command_semantics.subprocess.run",
+        should_not_run,
+    )
+    command = (
+        "chemsmart run xtb -f /private/research/water.xyz "
+        "-c 0 -m 1 -g gfn2 opt"
+    )
+
+    result = tools_command.inspect_chemsmart_command(
+        command,
+        "Run a local neutral singlet GFN2-xTB geometry optimization.",
+        cwd=tmp_path,
+    )
+
+    assert result["status"] == "ready_for_dry_run"
+    assert result["parse"] == {
+        "accepted": True,
+        "action": "run",
+        "program": "xtb",
+        "job": "opt",
+        "project": None,
+        "input_name": "water.xyz",
+        "charge": "0",
+        "multiplicity": "1",
+        "method": {
+            "functional": None,
+            "ab_initio": None,
+            "basis": None,
+            "aux_basis": None,
+            "solvent_model": None,
+            "solvent_id": None,
+        },
+    }
+    assert result["intent"]["verdict"] == "ok"
+    assert result["semantic"]["verdict"] == "warn"
+    assert result["semantic"]["complete"] is False
+    assert result["dry_run"] == {
+        "state": "required",
+        "process_started": False,
+    }
+    assert "/private/research" not in repr(result)
+    assert command not in repr(result)
+
+
+def test_inspect_command_reports_intent_mismatch_without_dry_run(tmp_path):
+    result = tools_command.inspect_chemsmart_command(
+        "chemsmart run xtb -f water.xyz -c 0 -m 1 sp",
+        "Run a local neutral singlet GFN2-xTB geometry optimization.",
+        cwd=tmp_path,
+    )
+
+    assert result["status"] == "intent_reject"
+    assert result["intent"]["failed_rule_ids"] == ["intent.kind"]
+    assert result["dry_run"]["process_started"] is False
+
+
+def test_inspect_command_requires_explicit_research_intent(tmp_path):
+    result = tools_command.inspect_chemsmart_command(
+        "chemsmart run xtb -f water.xyz -c 0 -m 1 opt",
+        "",
+        cwd=tmp_path,
+    )
+
+    assert result["status"] == "needs_clarification"
+    assert result["intent"]["verdict"] == "unavailable"
+    assert result["missing_info"] == ["explicit research intent"]
+
+
 def test_execute_command_test_mode_adds_fake_runner_flags(monkeypatch):
     seen = {}
 

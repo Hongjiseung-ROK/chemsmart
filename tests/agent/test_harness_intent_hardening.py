@@ -116,6 +116,28 @@ def test_intent_rejects_freeze_collapsed_to_opt() -> None:
     )
 
 
+def test_intent_recognizes_xtb_and_rejects_job_drift() -> None:
+    request = "Run a local GFN2-xTB geometry optimization."
+    expected = IntentSpec.from_request(request)
+
+    assert expected.program == "xtb"
+    assert expected.kind == "xtb.opt"
+    assert (
+        evaluate_intent(
+            "chemsmart run xtb -f water.xyz -g gfn2 opt",
+            expected,
+        ).verdict
+        == "ok"
+    )
+    assert (
+        evaluate_intent(
+            "chemsmart run xtb -f water.xyz -g gfn2 sp",
+            expected,
+        ).failed_rule_ids
+        == ["intent.kind"]
+    )
+
+
 def test_intent_accepts_correct_scan_and_rejects_modred_substitution() -> None:
     # correct scan
     assert (

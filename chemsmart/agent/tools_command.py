@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import re
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +13,7 @@ from chemsmart.agent.cli_schema import build_chemsmart_cli_schema
 from chemsmart.agent.harness.command_semantics import (
     CommandSemanticResult,
     evaluate_command_semantics,
+    inspect_command_semantics,
 )
 from chemsmart.agent.harness.intent import (
     INTENT_CORE_FIELDS,
@@ -323,6 +326,104 @@ def register_command_intent(
     if spec.project and spec.program in PROJECT_PROGRAMS:
         select_workspace_project(spec.project, spec.program)
     return result
+
+
+def inspect_chemsmart_command(
+    command: str,
+    request: str,
+    *,
+    cwd: str | Path | None = None,
+) -> JsonDict:
+    """Inspect a ChemSmart command without launching a process.
+
+    The public result intentionally omits argv, workspace paths, raw evidence,
+    and provider reasoning. A successful static inspection is never presented
+    as runtime semantic proof; it remains ready only for a separate dry run.
+    """
+
+    normalized = command.strip()
+    base_cwd = str(Path(cwd or Path.cwd()).resolve())
+    parsed = parse_model_command(normalized, cwd=base_cwd)
+    semantic = inspect_command_semantics(normalized, cwd=base_cwd)
+    intent = (
+        evaluate_intent(
+            normalized,
+            IntentSpec.from_request(request),
+            cwd=base_cwd,
+        )
+        if request.strip()
+        else None
+    )
+
+    if semantic.verdict == "reject":
+        status = "rejected"
+    elif intent is not None and intent.verdict == "reject":
+        status = "intent_reject"
+    elif intent is None:
+        status = "needs_clarification"
+    else:
+        status = "ready_for_dry_run"
+
+    return {
+        "schema_version": "1",
+        "status": status,
+        "command_digest": hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
+        "parse": {
+            "accepted": parsed.parse_error is None,
+            "action": parsed.action,
+            "program": parsed.program,
+            "job": parsed.job,
+            "project": parsed.project,
+            "input_name": _display_input_name(parsed.filename),
+            "charge": parsed.charge,
+            "multiplicity": parsed.multiplicity,
+            "method": {
+                "functional": parsed.functional,
+                "ab_initio": parsed.ab_initio,
+                "basis": parsed.basis,
+                "aux_basis": parsed.aux_basis,
+                "solvent_model": parsed.solvent_model,
+                "solvent_id": parsed.solvent_id,
+            },
+        },
+        "intent": {
+            "verdict": intent.verdict if intent is not None else "unavailable",
+            "failed_rule_ids": (
+                intent.failed_rule_ids if intent is not None else []
+            ),
+            "assertions": [
+                {"id": row.id, "status": row.status}
+                for row in (intent.assertions if intent is not None else ())
+            ],
+        },
+        "semantic": {
+            "verdict": semantic.verdict,
+            "complete": False,
+            "failed_rule_ids": semantic.failed_rule_ids,
+            "missing_info": semantic.missing_info,
+            "issues": [
+                {
+                    "rule_id": issue.rule_id,
+                    "severity": issue.severity,
+                    "message": issue.message,
+                }
+                for issue in semantic.issues
+            ],
+        },
+        "dry_run": {
+            "state": "required",
+            "process_started": False,
+        },
+        "missing_info": (
+            ["explicit research intent"] if not request.strip() else []
+        ),
+    }
+
+
+def _display_input_name(filename: str | None) -> str | None:
+    if not filename:
+        return None
+    return re.split(r"[/\\]", filename)[-1] or None
 
 
 def _expected_intent_for_repair(
