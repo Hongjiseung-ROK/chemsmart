@@ -88,7 +88,7 @@ class SessionContext:
         session = self.session
         assert session.state is not None
         assert session.decision_log is not None
-        if self.logged_summary() is None and session.state.plan is not None:
+        if self.logged_summary() is None:
             raise RuntimeError(
                 "Cannot start a new request while the current turn is still "
                 "open. Resume or finish the existing turn first."
