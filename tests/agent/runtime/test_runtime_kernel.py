@@ -301,6 +301,21 @@ def test_router_maps_studio_revision_decisions_to_project_write(user_input):
 @pytest.mark.parametrize(
     "user_input",
     [
+        "Inspect the current Studio context.",
+        "Show the Studio context.",
+        "스튜디오 컨텍스트를 확인하세요.",
+    ],
+)
+def test_router_maps_studio_context_reads_to_route(user_input):
+    assert (
+        route_initial_phase(user_input, role=ProviderRole.CONTROLLER)
+        is TaskPhase.ROUTE
+    )
+
+
+@pytest.mark.parametrize(
+    "user_input",
+    [
         "Start the validated controlled plan.",
         "Start the prepared optimization.",
         "Cancel the optimization.",

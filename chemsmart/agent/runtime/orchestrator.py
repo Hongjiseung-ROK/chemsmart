@@ -351,6 +351,8 @@ def route_initial_phase(
         return TaskPhase.EXECUTION
     if _is_direct_project_write(text):
         return TaskPhase.PROJECT_WRITE
+    if _is_studio_context_read(text):
+        return TaskPhase.ROUTE
     if (
         _matches(
             text,
@@ -545,6 +547,31 @@ def _is_studio_project_write(text: str) -> bool:
             "최종 구조를 reject",
             "최종 구조 수락",
             "최종 구조 거절",
+        )
+    )
+
+
+def _is_studio_context_read(text: str) -> bool:
+    return (
+        _matches(
+            text,
+            r"(?:read|show|inspect|check|get).{0,48}studio context",
+        )
+        or _matches(
+            text,
+            r"studio context.{0,48}(?:read|show|inspect|check|get)",
+        )
+        or any(
+            marker in text
+            for marker in (
+                "studio context 조회",
+                "studio context 확인",
+                "스튜디오 컨텍스트 조회",
+                "스튜디오 컨텍스트 확인",
+                "스튜디오 컨텍스트를 확인",
+                "查看 studio 上下文",
+                "读取 studio 上下文",
+            )
         )
     )
 
