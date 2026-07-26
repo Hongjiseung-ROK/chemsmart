@@ -6,6 +6,7 @@ from importlib import import_module
 
 __all__ = [
     "AgentSession",
+    "CommandSynthesisSession",
     "run_agent",
     "build_molecule",
     "build_gaussian_settings",
@@ -30,6 +31,10 @@ __all__ = [
 
 _EXPORTS = {
     "AgentSession": ("chemsmart.agent.core", "AgentSession"),
+    "CommandSynthesisSession": (
+        "chemsmart.agent.tools_command",
+        "CommandSynthesisSession",
+    ),
     "run_agent": ("chemsmart.agent.core", "run_agent"),
     "build_molecule": ("chemsmart.agent.tools", "build_molecule"),
     "build_gaussian_settings": (

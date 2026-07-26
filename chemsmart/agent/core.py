@@ -153,6 +153,18 @@ class AgentSession:
     def stage_prompt(self) -> str:
         return self._stage_prompt
 
+    def bind_provider(self, provider: Any) -> None:
+        """Bind the host-owned provider used by subsequent session turns.
+
+        Embedders may change models between serialized turns without reaching
+        into private session state. A missing provider is rejected so the next
+        turn cannot silently fall back to user-level provider discovery.
+        """
+
+        if provider is None:
+            raise ValueError("provider is required")
+        self._provider = provider
+
     @classmethod
     def load(
         cls,

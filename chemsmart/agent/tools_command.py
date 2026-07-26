@@ -7,6 +7,7 @@ import re
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
+from threading import RLock
 from typing import Any, Callable
 
 from chemsmart.agent.cli_schema import build_chemsmart_cli_schema
@@ -31,6 +32,7 @@ from chemsmart.agent.harness.workflow_state import (
     select_workspace_project,
 )
 from chemsmart.agent.model_command_parser import parse_model_command
+from chemsmart.agent.public_visibility import sanitize_public_payload
 from chemsmart.agent.runtime.calculations import (
     CalculationContext,
     CalculationEvent,
@@ -49,6 +51,7 @@ from chemsmart.agent.synthesis import (
     quiet_chemsmart_argv,
     resolve_default_project,
 )
+from chemsmart.agent.tool_protocol import RuntimeToolMetadata
 from chemsmart.settings.workspace_project import (
     PROJECT_PROGRAMS,
     iter_workspace_project_yaml,
@@ -89,10 +92,123 @@ def reset_command_tools_state() -> None:
     reset_workflow_state()
 
 
+class CommandSynthesisSession:
+    """Host-bound command tools that never discover a provider from user config.
+
+    Embedders such as ChemSmart Studio own provider credentials and model
+    selection. Requiring the provider here keeps command synthesis on that
+    authority path instead of falling back to ``providers.get_provider()``.
+    """
+
+    def __init__(
+        self,
+        provider: Any,
+        *,
+        default_project: str | None = None,
+        semantic_timeout_s: float = 30.0,
+    ) -> None:
+        if provider is None:
+            raise ValueError("provider is required for a bound command session")
+        self._lock = RLock()
+        self._resolve_default_project = default_project is None
+        self._session = SynthesisSession(
+            provider=provider,
+            schema=_command_schema(),
+            semantic_timeout_s=semantic_timeout_s,
+            default_project=default_project,
+            enable_intent_router=False,
+        )
+
+    def synthesize_command(self, request: str) -> JsonDict:
+        """Synthesize through the provider injected when this session was built."""
+
+        with self._lock:
+            self._refresh_default_project()
+            return _host_visible_command_result(
+                _synthesize_command_with_session(self._session, request)
+            )
+
+    def repair_command(
+        self,
+        command: str,
+        failure: str = "",
+        request: str = "",
+    ) -> JsonDict:
+        """Repair through the provider injected when this session was built."""
+
+        with self._lock:
+            self._refresh_default_project()
+            return _host_visible_command_result(
+                _repair_command_with_session(
+                    self._session,
+                    command,
+                    failure=failure,
+                    request=request,
+                )
+            )
+
+    def tool_specs(self) -> list[Any]:
+        """Return explicit registry specs bound to this host-owned session."""
+
+        from chemsmart.agent.registry import build_tool_spec
+
+        return [
+            build_tool_spec(
+                self.synthesize_command,
+                registered_name="synthesize_command",
+                metadata=RuntimeToolMetadata(read_only=True),
+            ),
+            build_tool_spec(
+                self.repair_command,
+                registered_name="repair_command",
+                metadata=RuntimeToolMetadata(read_only=True),
+            ),
+        ]
+
+    def _refresh_default_project(self) -> None:
+        if self._resolve_default_project:
+            self._session.default_project = (
+                resolve_default_project() or ""
+            ).strip()
+
+
+def _host_visible_command_result(payload: JsonDict) -> JsonDict:
+    """Project a command-tool answer onto observable, path-sanitized evidence."""
+
+    visible = {
+        key: payload[key]
+        for key in (
+            "ok",
+            "status",
+            "command",
+            "original_command",
+            "repaired",
+            "explanation",
+            "confidence",
+            "project",
+            "missing_info",
+            "action",
+            "semantic",
+            "intent",
+            "issues",
+            "reasoning",
+            "reasoning_provenance",
+        )
+        if key in payload
+    }
+    return sanitize_public_payload(visible)
+
+
 def synthesize_command(request: str) -> JsonDict:
     """Synthesize one grounded chemsmart CLI command from a user request."""
 
-    session = _session_for_cwd()
+    return _synthesize_command_with_session(_session_for_cwd(), request)
+
+
+def _synthesize_command_with_session(
+    session: SynthesisSession,
+    request: str,
+) -> JsonDict:
     full_schema = session.schema
     pruned = prune_schema_for_request(
         full_schema, request, workspace_program=_workspace_program()
@@ -222,7 +338,21 @@ def repair_command(
 ) -> JsonDict:
     """Repair a failed chemsmart CLI command and re-run semantic validation."""
 
-    session = _session_for_cwd()
+    return _repair_command_with_session(
+        _session_for_cwd(),
+        command,
+        failure=failure,
+        request=request,
+    )
+
+
+def _repair_command_with_session(
+    session: SynthesisSession,
+    command: str,
+    *,
+    failure: str = "",
+    request: str = "",
+) -> JsonDict:
     original = command.strip()
     original_semantic = _gate_command(original)
     expected_intent = _expected_intent_for_repair(original, request)
@@ -259,8 +389,7 @@ def repair_command(
     }
     # Repairs are rare and correctness-critical: always run them against the
     # full schema, never a request-pruned one.
-    if _SCHEMA is not None:
-        session.schema = _SCHEMA
+    session.schema = _command_schema()
     repaired = session._repair_ready_result(repair_request, result)
     if repaired is None:
         return {
@@ -595,11 +724,9 @@ def execute_chemsmart_command_observed(
 
 
 def _session_for_cwd() -> SynthesisSession:
-    global _SCHEMA, _SESSION
+    global _SESSION
     cwd = str(Path.cwd().resolve())
     workflow_scope = current_workflow_scope()
-    if _SCHEMA is None:
-        _SCHEMA = build_chemsmart_cli_schema()
     provider_name = _provider_name()
     if (
         _SESSION is None
@@ -612,7 +739,7 @@ def _session_for_cwd() -> SynthesisSession:
             provider_name=provider_name,
             workflow_scope=workflow_scope,
             session=SynthesisSession(
-                schema=_SCHEMA,
+                schema=_command_schema(),
                 enable_intent_router=False,
             ),
         )
@@ -623,6 +750,13 @@ def _session_for_cwd() -> SynthesisSession:
         resolve_default_project() or ""
     ).strip()
     return _SESSION.session
+
+
+def _command_schema() -> JsonDict:
+    global _SCHEMA
+    if _SCHEMA is None:
+        _SCHEMA = build_chemsmart_cli_schema()
+    return _SCHEMA
 
 
 def _workspace_program() -> str | None:
