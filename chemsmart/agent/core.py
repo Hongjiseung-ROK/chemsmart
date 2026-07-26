@@ -276,6 +276,7 @@ class AgentSession:
         log_raw_provider_turns: bool = False,
         policy: PermissionPolicy | None = None,
         approver: Callable[[ToolRequest], ApprovalDecision] | None = None,
+        on_session_created: Callable[[str], None] | None = None,
     ) -> dict[str, Any]:
         return UnifiedSessionRunner(self).run(
             request,
@@ -284,6 +285,7 @@ class AgentSession:
             log_raw_provider_turns=log_raw_provider_turns,
             policy=policy,
             approver=approver,
+            on_session_created=on_session_created,
         )
 
     def _continue_run(

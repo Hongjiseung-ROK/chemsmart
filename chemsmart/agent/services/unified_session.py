@@ -109,8 +109,11 @@ class UnifiedSessionRunner:
         log_raw_provider_turns: bool = False,
         policy: PermissionPolicy | None = None,
         approver: Callable[[ToolRequest], ApprovalDecision] | None = None,
+        on_session_created: Callable[[str], None] | None = None,
     ) -> dict[str, Any]:
-        continuing_ask = self._begin_turn(request)
+        continuing_ask, created_session_id = self._begin_turn(request)
+        if created_session_id is not None and on_session_created is not None:
+            on_session_created(created_session_id)
         setup = self._prepare_setup(
             request=request,
             continuing_ask=continuing_ask,
@@ -142,14 +145,17 @@ class UnifiedSessionRunner:
         self._finalize_completed_turn(setup, projection, loop_result)
         return self._result_payload(setup, projection, loop_result)
 
-    def _begin_turn(self, request: str) -> bool:
+    def _begin_turn(self, request: str) -> tuple[bool, str | None]:
         session = self.session
         session._run_start_time = time.perf_counter()
         session._llm_stats = []
         session._last_harness_result = None
+        created_session_id = None
         if session.state is None or session.session_dir is None:
             session._start_new_session(request)
             continuing_ask = False
+            assert session.state is not None
+            created_session_id = session.state.session_id
         elif session._has_pending_ask_user():
             session._resume_pending_ask_user(request)
             continuing_ask = True
@@ -166,7 +172,7 @@ class UnifiedSessionRunner:
                 "request", {"request": request}, rationale=request
             )
         session._refresh_conversation_history()
-        return continuing_ask
+        return continuing_ask, created_session_id
 
     def _prepare_setup(
         self,

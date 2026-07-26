@@ -8,6 +8,9 @@ import chemsmart.agent.tools_command as tools_command
 from chemsmart.agent.core import AgentSession
 from chemsmart.agent.registry import ToolRegistry
 
+from ._agent_session_helpers import FakeProvider
+from ._loop_helpers import ScriptedRegistry, openai_final_response
+
 
 class _FakeSynthesisSession:
     def __init__(self, provider: Any, **options: Any) -> None:
@@ -106,3 +109,57 @@ def test_agent_session_rebinds_only_to_an_explicit_provider(tmp_path):
     with pytest.raises(ValueError, match="provider is required"):
         session.bind_provider(None)
     assert session._provider_instance() is second
+
+
+def test_session_created_callback_runs_after_request_persistence_before_provider(
+    tmp_path,
+):
+    provider = FakeProvider(
+        [{"__raw_response__": openai_final_response("Ready.")}]
+    )
+    session = AgentSession(
+        provider=provider,
+        registry=ScriptedRegistry({}),
+        session_root=tmp_path,
+    )
+    observed: list[str] = []
+
+    def observe_created_session(session_id: str) -> None:
+        session_directory = tmp_path / session_id
+        assert (session_directory / "session.json").is_file()
+        assert '"kind": "request"' in (
+            session_directory / "decision_log.jsonl"
+        ).read_text()
+        assert provider.calls == []
+        observed.append(session_id)
+
+    result = session.run_loop(
+        "Inspect the current molecule.",
+        on_session_created=observe_created_session,
+    )
+
+    assert observed == [result["session_id"]]
+    assert len(provider.calls) == 1
+
+
+def test_session_created_callback_failure_prevents_provider_call(tmp_path):
+    provider = FakeProvider(
+        [{"__raw_response__": openai_final_response("Must not run.")}]
+    )
+    session = AgentSession(
+        provider=provider,
+        registry=ScriptedRegistry({}),
+        session_root=tmp_path,
+    )
+
+    def reject_binding(session_id: str) -> None:
+        assert (tmp_path / session_id / "session.json").is_file()
+        raise RuntimeError("host binding failed")
+
+    with pytest.raises(RuntimeError, match="host binding failed"):
+        session.run_loop(
+            "Inspect the current molecule.",
+            on_session_created=reject_binding,
+        )
+
+    assert provider.calls == []
