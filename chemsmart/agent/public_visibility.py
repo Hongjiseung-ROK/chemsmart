@@ -14,6 +14,13 @@ _COMMON_POSIX_PATH = re.compile(
     r"System|usr|etc|dev|proc)"
     r"(?:/[^\s\"'<>`;,)\]}]+)+"
 )
+_COMMON_POSIX_ROOT = re.compile(
+    r"(?<![A-Za-z0-9:+])"
+    r"(?:file://)?/"
+    r"(?:Users|home|private|var|tmp|opt|Library|Volumes|Applications|"
+    r"System|usr|etc|dev|proc)"
+    r"/?(?=$|[\s\"'<>`;,.!?:)\]}])"
+)
 _WINDOWS_PATH = re.compile(
     r"(?<![A-Za-z0-9])"
     r"(?:file:///)?[A-Za-z]:[\\/]"
@@ -46,6 +53,7 @@ def sanitize_public_text(value: str) -> str:
     if _WHOLE_ABSOLUTE_PATH.fullmatch(stripped):
         return value.replace(stripped, OPAQUE_PATH)
     public = _COMMON_POSIX_PATH.sub(OPAQUE_PATH, value)
+    public = _COMMON_POSIX_ROOT.sub(OPAQUE_PATH, public)
     return _WINDOWS_PATH.sub(OPAQUE_PATH, public)
 
 

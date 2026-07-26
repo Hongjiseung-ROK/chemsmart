@@ -6,6 +6,7 @@ import pytest
 
 import chemsmart.agent.tools_command as tools_command
 from chemsmart.agent.core import AgentSession
+from chemsmart.agent.public_visibility import sanitize_public_text
 from chemsmart.agent.registry import ToolRegistry
 
 from ._agent_session_helpers import FakeProvider
@@ -96,6 +97,12 @@ def test_host_visible_command_result_omits_private_provider_and_workspace_state(
     assert "raw_response" not in result
     assert "/Users/researcher" not in repr(result)
     assert "[opaque-path]" in repr(result)
+
+
+def test_public_text_redacts_root_level_absolute_paths():
+    assert sanitize_public_text("Use /tmp, then inspect /etc.") == (
+        "Use [opaque-path], then inspect [opaque-path]."
+    )
 
 
 def test_agent_session_rebinds_only_to_an_explicit_provider(tmp_path):
