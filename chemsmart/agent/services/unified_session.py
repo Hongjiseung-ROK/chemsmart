@@ -452,6 +452,7 @@ class UnifiedSessionRunner:
         loop_result: dict[str, Any],
     ) -> None:
         session = self.session
+        limit_reason = loop_result["limit_reason"]
         session._write_training_episode(
             provider_name=setup.provider_name,
             provider=setup.provider,
@@ -463,8 +464,8 @@ class UnifiedSessionRunner:
         session._save_state()
         session._finalize_session(
             verdict=None,
-            blocked=False,
-            block_reason=loop_result["limit_reason"],
+            blocked=limit_reason is not None,
+            block_reason=limit_reason,
             dry_run_results=projection.dry_run_results,
             advisory_only=not projection.tool_requests,
             is_chitchat=projection.is_chitchat,
@@ -482,6 +483,7 @@ class UnifiedSessionRunner:
         assert session.state is not None
         assert session.session_dir is not None
         ask_user = loop_result.get("ask_user")
+        limit_reason = loop_result["limit_reason"]
         return {
             "session_id": session.state.session_id,
             "session_dir": str(session.session_dir),
@@ -489,7 +491,7 @@ class UnifiedSessionRunner:
             "plan_text": render_plan(projection.plan),
             "critic_verdict": None,
             "completed_steps": session.state.current_step_index,
-            "blocked": False,
+            "blocked": limit_reason is not None,
             "dry_run_result": _primary_dry_run_result(
                 projection.dry_run_results
             ),
@@ -503,7 +505,7 @@ class UnifiedSessionRunner:
             "tool_outcomes": projection.tool_outcomes,
             "loop_state": _loop_state(loop_result, projection.tool_outcomes),
             "final_message": loop_result["assistant_text"],
-            "limit_reason": loop_result["limit_reason"],
+            "limit_reason": limit_reason,
             "provider_errors": loop_result["provider_errors"],
             "advisory_only": not projection.tool_requests,
             "is_chitchat": projection.is_chitchat,

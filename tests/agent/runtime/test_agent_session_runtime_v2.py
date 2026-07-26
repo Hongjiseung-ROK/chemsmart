@@ -19,6 +19,20 @@ from .._loop_helpers import (
 )
 
 
+class FailingProvider:
+    name = "openai"
+    wire_protocol = "openai"
+    default_model = "failing-provider"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def chat(self, messages, tools=None, timeout_s=30):
+        del messages, tools, timeout_s
+        self.calls += 1
+        raise TimeoutError("provider unavailable")
+
+
 def test_active_runtime_limits_tools_and_writes_replayable_events(tmp_path):
     provider = FakeProvider(
         [
@@ -75,6 +89,33 @@ def test_active_runtime_limits_tools_and_writes_replayable_events(tmp_path):
     assert metadata["runtime_v2_mode"] == "active"
     assert metadata["runtime_v2_phase"] == "complete"
     assert metadata["runtime_v2_event_count"] > 0
+
+
+def test_provider_error_budget_is_a_blocked_terminal_turn(tmp_path):
+    provider = FailingProvider()
+    session = AgentSession(
+        provider=provider,
+        registry=_registry(),
+        session_root=tmp_path / "sessions",
+        runtime_v2="active",
+    )
+
+    result = session.run_loop("Inspect the current molecule.")
+
+    assert provider.calls == 2
+    assert result["limit_reason"] == "provider_errors"
+    assert result["provider_errors"] == 2
+    assert result["blocked"] is True
+    assert result["runtime_v2"]["phase"] == "blocked"
+    assert session.decision_log is not None
+    summary = [
+        entry["payload"]
+        for entry in session.decision_log.read_all()
+        if entry["kind"] == "session_summary"
+    ][-1]
+    assert summary["blocked"] is True
+    assert summary["block_reason"] == "provider_errors"
+    assert summary["exit_status"] == "blocked"
 
 
 def test_active_runtime_uses_same_contract_with_anthropic_tools(tmp_path):
