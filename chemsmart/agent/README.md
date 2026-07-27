@@ -92,9 +92,10 @@ CHEMSMART_AGENT_RUNTIME_V2=active chemsmart agent  # enforce phase tool sets
 ```
 
 `shadow` keeps the legacy tool surface and records exposure violations.
-`active` exposes at most five real tools for the current phase plus the virtual
-`ask_user` tool. The flag remains off by default until the frozen HighRisk48
-regression matrix passes.
+`active` exposes at most `MAX_DIRECT_TOOLS_PER_PHASE` real tools for the current
+phase plus the virtual `ask_user` tool. The cap guards routing reliability, which
+degrades as the menu grows; per-phase menus stay curated well inside it. The flag
+remains off by default until the frozen HighRisk48 regression matrix passes.
 
 The autonomy boundary is fixed in runtime policy:
 

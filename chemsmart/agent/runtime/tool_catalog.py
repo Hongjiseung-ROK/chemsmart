@@ -11,6 +11,20 @@ from pydantic import BaseModel, ConfigDict
 from chemsmart.agent.runtime.contracts import ProviderRole, TaskPhase
 
 
+#: Most direct tools a single runtime phase may offer the model at once.
+#:
+#: The cap exists because routing reliability falls off as the menu grows — a small
+#: local model asked to choose among many similar tools picks the wrong one. It is a
+#: guardrail on menu size, not a statement that five is the right number for every
+#: embedding of the harness.
+#:
+#: Raised from 5 to 10 so a host can expose the execution and diagnostics tools
+#: alongside the per-phase essentials without displacing them. Per-phase menus are
+#: still curated deliberately; nothing should fill this budget just because it is
+#: available.
+MAX_DIRECT_TOOLS_PER_PHASE = 10
+
+
 class ToolExposure(str, Enum):
     DIRECT = "direct"
     DEFERRED = "deferred"
@@ -105,9 +119,10 @@ class PhaseToolProfile:
 
     @staticmethod
     def _validate_names(names: tuple[str, ...], *, context: str) -> None:
-        if len(names) > 5:
+        if len(names) > MAX_DIRECT_TOOLS_PER_PHASE:
             raise ValueError(
-                f"runtime phase {context!r} may expose at most five real tools"
+                f"runtime phase {context!r} may expose at most "
+                f"{MAX_DIRECT_TOOLS_PER_PHASE} real tools"
             )
         if len(names) != len(set(names)):
             raise ValueError(
@@ -164,9 +179,10 @@ class ToolCatalog:
         available = tuple(tool.name for tool in self.registry.list_tools())
         requested = self.profile.tools_for(phase, provider_role)
         direct = tuple(name for name in requested if name in available)
-        if len(direct) > 5:
+        if len(direct) > MAX_DIRECT_TOOLS_PER_PHASE:
             raise ValueError(
-                "runtime phases may expose at most five real tools"
+                "runtime phases may expose at most "
+                f"{MAX_DIRECT_TOOLS_PER_PHASE} real tools"
             )
         phase_capabilities = self.profile.capability_names
         deferred = tuple(
