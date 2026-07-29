@@ -18,6 +18,9 @@ from chemsmart.agent.harness.intent import (
     IntentSpec,
     evaluate_intent,
 )
+from chemsmart.agent.harness.preflight_receipt import (
+    build_command_preflight_receipt,
+)
 from chemsmart.agent.harness.workflow_state import (
     clear_resolved_slots,
     current_workflow_scope,
@@ -143,6 +146,15 @@ def synthesize_command(request: str) -> JsonDict:
         "decision_trace": result.get("decision_trace") or {},
         "semantic": semantic.to_dict() if semantic is not None else None,
         "intent": intent.to_dict() if intent is not None else None,
+        "preflight": (
+            build_command_preflight_receipt(
+                command,
+                semantic,
+                intent,
+            ).to_dict()
+            if command and semantic is not None
+            else None
+        ),
         "workflow_state": current_workflow_state().to_dict(),
         "raw_response": session._last_raw_response,
         # Provider chain-of-thought is only an ephemeral parser aid. The
@@ -240,6 +252,11 @@ def repair_command(
             "repaired": False,
             "semantic": original_semantic.to_dict(),
             "intent": intent.to_dict() if intent is not None else None,
+            "preflight": build_command_preflight_receipt(
+                original,
+                original_semantic,
+                intent,
+            ).to_dict(),
             "issues": intent.failed_rule_ids if intent_rejected else [],
         }
 
@@ -296,6 +313,11 @@ def repair_command(
         "repaired": repaired_command != original,
         "semantic": semantic.to_dict(),
         "intent": intent.to_dict() if intent is not None else None,
+        "preflight": build_command_preflight_receipt(
+            repaired_command,
+            semantic,
+            intent,
+        ).to_dict(),
         "issues": [
             *semantic.failed_rule_ids,
             *(intent.failed_rule_ids if intent_rejected else []),
