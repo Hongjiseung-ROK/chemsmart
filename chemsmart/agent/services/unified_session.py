@@ -22,6 +22,7 @@ from chemsmart.agent.permissions import (
 )
 from chemsmart.agent.prompts.identity import ensure_system_message
 from chemsmart.agent.provider_adapter import ToolRequest
+from chemsmart.agent.provider_privacy import strip_private_reasoning_fields
 from chemsmart.agent.runtime.contracts import RuntimeV2Mode, TaskPhase
 from chemsmart.agent.runtime.events import EventKind
 from chemsmart.agent.runtime.orchestrator import RuntimeController
@@ -420,7 +421,9 @@ class UnifiedSessionRunner:
         )
         session.state.total_steps_planned = len(projection.tool_requests)
         session.state.current_step_index = len(projection.results)
-        session.state.pending_messages = loop_result.get("messages")
+        session.state.pending_messages = strip_private_reasoning_fields(
+            loop_result.get("messages")
+        )
         session.state.pending_ask_user = loop_result.get("ask_user")
         session._save_state()
         session._llm_stats = [

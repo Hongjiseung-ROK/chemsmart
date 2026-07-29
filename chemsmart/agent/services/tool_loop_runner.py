@@ -14,6 +14,7 @@ from chemsmart.agent.provider_adapter import (
     normalize_response,
     response_payload,
 )
+from chemsmart.agent.provider_privacy import strip_private_reasoning_fields
 from chemsmart.agent.providers import DEFAULT_TIMEOUT_S, extract_response_usage
 
 ASK_USER_TOOL_NAME = "ask_user"
@@ -149,7 +150,10 @@ class ToolLoopRunner:
         if self.loop.budgets.log_provider_turn_raw:
             self.loop.decision_log.write(
                 "provider_turn_raw",
-                {"step": state.model_steps, "response_dict": payload},
+                {
+                    "step": state.model_steps,
+                    "response_dict": strip_private_reasoning_fields(payload),
+                },
             )
         return payload
 
@@ -259,7 +263,7 @@ class ToolLoopRunner:
                 "description": self.loop._tool_description(request.name),
                 "queue_index": index + 1,
                 "queue_total": total,
-                "raw": request.raw,
+                "raw": strip_private_reasoning_fields(request.raw),
             },
         )
 

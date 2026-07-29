@@ -30,6 +30,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from chemsmart.agent.provider_privacy import strip_private_reasoning_fields
+
 JsonDict = dict[str, Any]
 
 EPISODE_SCHEMA_VERSION = 2
@@ -361,7 +363,9 @@ def _jsonable(value: Any) -> Any:
 
 def _public_message(message: JsonDict) -> JsonDict:
     return {
-        key: message[key] for key in _PUBLIC_MESSAGE_KEYS if key in message
+        key: strip_private_reasoning_fields(message[key])
+        for key in _PUBLIC_MESSAGE_KEYS
+        if key in message
     }
 
 

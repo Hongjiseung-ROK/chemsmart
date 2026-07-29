@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from chemsmart.agent.provider_privacy import strip_private_reasoning_fields
 from chemsmart.agent.services.result_codec import json_safe
 
 
@@ -61,7 +62,11 @@ class TrainingCapture:
             turn=session.state.turn_index,
             provider_name=provider_name,
             model=getattr(provider, "default_model", None),
-            messages=json_safe(loop_result.get("messages") or []),
+            messages=json_safe(
+                strip_private_reasoning_fields(
+                    loop_result.get("messages") or []
+                )
+            ),
             tool_records=tool_records_from_outcomes(
                 outcomes,
                 requests=list(loop_result.get("tool_requests") or []),

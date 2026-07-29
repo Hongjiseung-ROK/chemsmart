@@ -12,6 +12,10 @@ from chemsmart.agent.loop import (
 from chemsmart.agent.permissions import RuntimePermissionMode
 from chemsmart.agent.prompts.identity import build_system_prompt
 from chemsmart.agent.registry import ToolRegistry
+from chemsmart.agent.training_log import (
+    TrainingEpisodeWriter,
+    TrainingLogConfig,
+)
 
 from ._agent_session_helpers import FakeProvider
 from ._loop_helpers import (
@@ -161,6 +165,53 @@ def test_run_loop_surfaces_ask_user_question_and_keeps_turn_in_progress(
     assert session.state is not None
     assert session.state.pending_ask_user == result["ask_user_question"]
     assert session.state.pending_messages is not None
+
+
+def test_pending_ask_user_persistence_strips_provider_reasoning(tmp_path):
+    private_trace = "private-deepseek-reasoning"
+    response = openai_tool_call_response(
+        tool_call(
+            "call_ask",
+            ASK_USER_TOOL_NAME,
+            {
+                "question": "which server?",
+                "options": ["chemnode1", "chemnode2"],
+            },
+        )
+    )
+    response["choices"][0]["message"]["reasoning_content"] = private_trace
+    response["choices"][0]["message"]["provider_metadata"] = {
+        "thinking": private_trace,
+        "nested": {"analysis": private_trace, "<think>": private_trace},
+    }
+    provider = FakeProvider([{"__raw_response__": response}])
+    session = AgentSession(
+        provider=provider,
+        registry=ScriptedRegistry({}),
+        session_root=tmp_path / "sessions",
+    )
+    training_dir = tmp_path / "training"
+    session._training_writer = TrainingEpisodeWriter(
+        TrainingLogConfig(enabled=True, dir=training_dir)
+    )
+
+    result = session.run_loop(
+        "Check the queue.",
+        log_raw_provider_turns=True,
+    )
+
+    assert result["ask_user_question"] is not None
+    assert session.state is not None
+    assert session.state.pending_messages is not None
+    assert private_trace not in json.dumps(session.state.pending_messages)
+    assert session.session_dir is not None
+    for path in (
+        session.session_dir / "session.json",
+        session.session_dir / "state.json",
+        session.session_dir / "decision_log.jsonl",
+        next((training_dir / "episodes").glob("*.jsonl")),
+    ):
+        assert private_trace not in path.read_text(encoding="utf-8")
 
 
 def test_run_loop_answer_continues_pending_ask_user_turn(tmp_path):
