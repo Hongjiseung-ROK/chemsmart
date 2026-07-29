@@ -436,6 +436,73 @@ def test_agent_session_injects_studio_phase_profile(tmp_path):
     assert "start_prepared_optimization" in selection.direct
 
 
+def test_agent_session_rebinds_studio_profile_between_turns(tmp_path):
+    adapters = StudioToolAdapters(
+        host=_HostAdapter(),
+        execution=_ExecutionAdapter(),
+        artifacts=_ArtifactAdapter(),
+        approvals=_ApprovalAdapter(),
+    )
+    registry = ToolRegistry([]).with_tools(
+        build_studio_tool_specs(adapters, _studio_schemas())
+    )
+    provider = FakeProvider(
+        [
+            {"__raw_response__": openai_final_response("Plan is ready.")},
+            {"__raw_response__": openai_final_response("Ready to start.")},
+        ]
+    )
+    plan_profile = build_studio_tool_profile(StudioCapability.PLAN)
+    act_profile = build_studio_tool_profile(StudioCapability.ACT)
+    session = AgentSession(
+        provider=provider,
+        registry=registry,
+        session_root=tmp_path,
+        runtime_v2="active",
+        tool_profile=plan_profile,
+        training_capture=False,
+    )
+
+    session.run_loop("Start the prepared optimization.")
+
+    assert session.state is not None
+    assert session._runtime_controller is not None
+    session_id = session.state.session_id
+    session_directory = session.session_dir
+    controller = session._runtime_controller
+    previous_catalog = controller.catalog
+    previous_sequence = controller.state.latest_sequence
+    previous_event_count = len(controller.store.load())
+    first_turn_tools = {
+        definition["function"]["name"]
+        for definition in provider.calls[0]["tools"]
+    }
+    assert "start_prepared_optimization" not in first_turn_tools
+
+    session.bind_tool_profile(act_profile)
+
+    assert session._runtime_controller is controller
+    assert controller.catalog is not previous_catalog
+    assert controller.catalog.profile is act_profile
+    assert controller.selection is None
+    assert controller.state.latest_sequence == previous_sequence
+    assert len(controller.store.load()) == previous_event_count
+
+    session.run_loop("Start the prepared optimization.")
+
+    second_turn_tools = {
+        definition["function"]["name"]
+        for definition in provider.calls[1]["tools"]
+    }
+    assert "start_prepared_optimization" in second_turn_tools
+    assert session.state.session_id == session_id
+    assert session.state.turn_index == 2
+    assert session.session_dir == session_directory
+    assert session._runtime_controller is controller
+    assert controller.state.latest_sequence > previous_sequence
+    assert len(controller.store.load()) > previous_event_count
+
+
 def test_studio_xtb_dry_run_routes_to_nonstarting_preflight_surface():
     request = (
         "Inspect the current molecule, identify its composition and draft "

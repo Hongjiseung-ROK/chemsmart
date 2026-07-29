@@ -171,6 +171,15 @@ class AgentSession:
             raise ValueError("provider is required")
         self._provider = provider
 
+    def bind_tool_profile(self, tool_profile: PhaseToolProfile) -> None:
+        """Bind the host-owned capability ceiling for subsequent turns."""
+
+        if not isinstance(tool_profile, PhaseToolProfile):
+            raise ValueError("tool profile is required")
+        if self._runtime_controller is not None:
+            self._runtime_controller.bind_tool_profile(tool_profile)
+        self.tool_profile = tool_profile
+
     @classmethod
     def load(
         cls,

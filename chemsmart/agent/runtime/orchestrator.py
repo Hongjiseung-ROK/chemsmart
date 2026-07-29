@@ -142,6 +142,12 @@ class RuntimeController:
         self.catalog = ToolCatalog(registry, profile=tool_profile)
         self.selection: ToolSelection | None = None
 
+    def bind_tool_profile(self, tool_profile: PhaseToolProfile) -> None:
+        """Replace transient tool exposure without resetting durable state."""
+
+        self.catalog = ToolCatalog(self.registry, profile=tool_profile)
+        self.selection = None
+
     def ensure_session(self, *, cwd: str) -> None:
         if self.state.session_id:
             return
