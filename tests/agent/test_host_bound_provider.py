@@ -111,6 +111,31 @@ def test_bound_command_session_runs_inside_the_embedder_owned_directory(
     assert Path.cwd() == original_cwd
 
 
+def test_bound_command_execution_uses_the_same_embedder_owned_directory(
+    monkeypatch,
+    tmp_path,
+):
+    observed: list[tuple[Path, str, bool, int]] = []
+    monkeypatch.setattr(tools_command, "SynthesisSession", _FakeSynthesisSession)
+    monkeypatch.setattr(tools_command, "_command_schema", lambda: {})
+    monkeypatch.setattr(
+        tools_command,
+        "execute_chemsmart_command",
+        lambda command, test, timeout_s: observed.append(
+            (Path.cwd(), command, test, timeout_s)
+        )
+        or {"ok": True},
+    )
+    session = tools_command.CommandSynthesisSession(
+        object(),
+        default_project="",
+        working_directory=tmp_path,
+    )
+
+    assert session.execute_command("chemsmart run xtb -f water.xyz sp", timeout_s=90) == {"ok": True}
+    assert observed == [(tmp_path.resolve(), "chemsmart run xtb -f water.xyz sp", False, 90)]
+
+
 def test_host_visible_command_result_omits_private_provider_and_workspace_state():
     result = tools_command._host_visible_command_result(
         {

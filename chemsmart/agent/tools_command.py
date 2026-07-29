@@ -163,6 +163,21 @@ class CommandSynthesisSession:
                 )
             )
 
+    def execute_command(
+        self,
+        command: str,
+        test: bool = False,
+        timeout_s: int = 3600,
+    ) -> JsonDict:
+        """Execute an approved command inside the embedder-owned directory."""
+
+        with self._lock, _command_session_directory(self._working_directory):
+            return execute_chemsmart_command(
+                command,
+                test=test,
+                timeout_s=timeout_s,
+            )
+
     def tool_specs(self) -> list[Any]:
         """Return explicit registry specs bound to this host-owned session."""
 
