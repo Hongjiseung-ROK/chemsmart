@@ -22,6 +22,11 @@ from chemsmart.agent.harness.models import (
     InvariantIssue,
     InvariantResult,
 )
+from chemsmart.agent.harness.preflight_receipt import (
+    COMMAND_PREFLIGHT_SCHEMA_VERSION,
+    CommandPreflightReceipt,
+    build_command_preflight_receipt,
+)
 from chemsmart.agent.harness.runner import evaluate_harness
 from chemsmart.agent.harness.sub_intent import build_sub_intent_assertions
 from chemsmart.agent.harness.terminal_state import (
@@ -40,6 +45,8 @@ from chemsmart.agent.harness.workflow_state import (
 __all__ = [
     "CommandSemanticIssue",
     "CommandSemanticResult",
+    "COMMAND_PREFLIGHT_SCHEMA_VERSION",
+    "CommandPreflightReceipt",
     "ENGINE_CAPABILITIES",
     "EngineCapability",
     "HarnessResult",
@@ -54,6 +61,7 @@ __all__ = [
     "evaluate_intent",
     "requires_project_configuration",
     "build_sub_intent_assertions",
+    "build_command_preflight_receipt",
     "TERMINAL_STATE_SCHEMA_VERSION",
     "assertion",
     "build_terminal_state",
