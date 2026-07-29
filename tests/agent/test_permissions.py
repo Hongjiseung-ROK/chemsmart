@@ -609,15 +609,15 @@ class TestXtbRealRunPolicy:
     @pytest.mark.parametrize(
         ("mode", "program", "atoms", "expected"),
         [
-            ("auto", "xtb", 3, ResolvedDecision.AUTO_ALLOW),
-            ("auto", "xtb", 200, ResolvedDecision.AUTO_ALLOW),
+            ("auto", "xtb", 3, None),
+            ("auto", "xtb", 200, None),
             ("auto", "xtb", 201, None),
             ("auto", "xtb", None, None),
             ("auto", "gaussian", 3, None),
             ("ask", "xtb", 3, None),
             ("never", "xtb", 3, ResolvedDecision.AUTO_DENY),
             ("never", "orca", 3, None),
-            ("AUTO", "XTB", 3, ResolvedDecision.AUTO_ALLOW),
+            ("AUTO", "XTB", 3, None),
             ("bogus-mode", "xtb", 3, None),
         ],
     )
@@ -664,17 +664,21 @@ class TestLoopXtbRunOverride:
         from chemsmart.agent.loop import ToolLoop
         from chemsmart.agent.registry import ToolRegistry
 
-        class _Log:
-            def write(self, *args, **kwargs) -> None:
-                pass
+        events = []
 
-        return ToolLoop(
+        class _Log:
+            def write(self, kind, payload) -> None:
+                events.append((kind, payload))
+
+        loop = ToolLoop(
             provider=None,
             registry=ToolRegistry.default(),
             handle_store=HandleStore(tmp_path),
             decision_log=_Log(),
             policy=policy,
         )
+        loop._test_events = events
+        return loop
 
     def _store_job(self, loop, kind: str, xyz_path) -> str:
         from chemsmart.agent.tools import (
@@ -703,8 +707,8 @@ class TestLoopXtbRunOverride:
         )
         return path
 
-    def test_auto_upgrades_small_xtb_job_only(
-        self, tmp_path, water_xyz
+    def test_auto_still_requires_exact_one_shot_approval(
+        self, monkeypatch, tmp_path, water_xyz
     ) -> None:
         policy = PermissionPolicy(
             mode=PermissionMode.DRIVING, xtb_real_runs="auto"
@@ -713,19 +717,49 @@ class TestLoopXtbRunOverride:
         xtb_handle = self._store_job(loop, "xtb.opt", water_xyz)
         gaussian_handle = self._store_job(loop, "gaussian.opt", water_xyz)
 
-        upgraded = loop._xtb_run_policy_override(
-            make_request_with_args("run_local", {"job": xtb_handle})
+        assert (
+            loop._xtb_run_policy_override(
+                make_request_with_args("run_local", {"job": xtb_handle})
+            )
+            is None
         )
-        assert upgraded is not None
-        assert upgraded.decision == ResolvedDecision.AUTO_ALLOW
-        assert upgraded.reason == "xtb_real_runs_auto"
-
         assert (
             loop._xtb_run_policy_override(
                 make_request_with_args("run_local", {"job": gaussian_handle})
             )
             is None
         )
+
+        approved_arguments = []
+
+        def approve(request):
+            approved_arguments.append(dict(request.arguments))
+            return ApprovalDecision.ALLOW_SESSION
+
+        loop.approver = approve
+        monkeypatch.setattr(
+            loop.registry,
+            "call",
+            lambda name, args: {"ok": True, "tool": name},
+        )
+        request = make_request_with_args("run_local", {"job": xtb_handle})
+
+        first, first_approved = loop._run_one_request(1, request)
+        second, second_approved = loop._run_one_request(2, request)
+
+        assert first.status == second.status == "ok"
+        assert first_approved is second_approved is True
+        assert approved_arguments == [
+            {"job": xtb_handle},
+            {"job": xtb_handle},
+        ]
+        assert "run_local" not in policy.session_allow
+        scopes = [
+            payload["scope"]
+            for kind, payload in loop._test_events
+            if kind == "tool_use_approved"
+        ]
+        assert scopes == ["once", "once"]
         assert (
             loop._xtb_run_policy_override(
                 make_request_with_args("run_local", {"job": "job_ffff"})

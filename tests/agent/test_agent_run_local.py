@@ -10,7 +10,7 @@ from chemsmart.agent.tools import (
 )
 
 
-def _build_job(single_molecule_xyz_file, tmp_path: Path):
+def _build_job(single_molecule_xyz_file, tmp_path: Path, jobrunner):
     molecule = build_molecule(single_molecule_xyz_file)
     settings = build_gaussian_settings("B3LYP", "6-31G*")
     job = build_job(
@@ -18,6 +18,7 @@ def _build_job(single_molecule_xyz_file, tmp_path: Path):
         molecule=molecule,
         settings=settings,
         label="agent_run_local",
+        jobrunner=jobrunner,
     )
     job.set_folder(str(tmp_path))
     return job
@@ -28,8 +29,13 @@ def test_run_local_parses_gaussian_output_summary(
     tmp_path: Path,
     single_molecule_xyz_file,
     gaussian_co2_opt_outfile,
+    gaussian_jobrunner_no_scratch,
 ):
-    job = _build_job(single_molecule_xyz_file, tmp_path)
+    job = _build_job(
+        single_molecule_xyz_file,
+        tmp_path,
+        gaussian_jobrunner_no_scratch,
+    )
 
     def fake_run():
         Path(job.outputfile).write_text(
@@ -55,8 +61,13 @@ def test_run_local_returns_failure_when_job_run_raises(
     monkeypatch,
     tmp_path: Path,
     single_molecule_xyz_file,
+    gaussian_jobrunner_no_scratch,
 ):
-    job = _build_job(single_molecule_xyz_file, tmp_path)
+    job = _build_job(
+        single_molecule_xyz_file,
+        tmp_path,
+        gaussian_jobrunner_no_scratch,
+    )
 
     def fake_run():
         raise RuntimeError("boom")
@@ -75,8 +86,13 @@ def test_run_local_returns_empty_summary_for_malformed_output(
     monkeypatch,
     tmp_path: Path,
     single_molecule_xyz_file,
+    gaussian_jobrunner_no_scratch,
 ):
-    job = _build_job(single_molecule_xyz_file, tmp_path)
+    job = _build_job(
+        single_molecule_xyz_file,
+        tmp_path,
+        gaussian_jobrunner_no_scratch,
+    )
 
     def fake_run():
         Path(job.outputfile).write_text("not a valid gaussian output\n")

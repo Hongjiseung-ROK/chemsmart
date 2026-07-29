@@ -12,6 +12,7 @@ from chemsmart.agent.handles import (
     store_result_handle,
 )
 from chemsmart.agent.permissions import (
+    ALWAYS_REQUIRE_APPROVAL,
     ApprovalDecision,
     PermissionMode,
     PermissionPolicy,
@@ -165,6 +166,11 @@ class ToolLoop:
                     False,
                 )
 
+            if (
+                request.name in ALWAYS_REQUIRE_APPROVAL
+                and approval == ApprovalDecision.ALLOW_SESSION
+            ):
+                approval = ApprovalDecision.ALLOW_ONCE
             self.policy.record(request.name, approval)
             self._runtime_permission(
                 request,
@@ -294,13 +300,13 @@ class ToolLoop:
         self,
         request: ToolRequest,
     ) -> ResolvedPermission | None:
-        """Apply the rule-based xtb_real_runs policy to a run_local request.
+        """Apply the xTB administrative deny policy to run_local.
 
         Permission resolution happens before handle resolution, so the loop
         (which owns the handle store) is the earliest point that can tell
-        whether the requested job is an xTB job and how large it is. Returns
-        None for ask mode, non-xTB jobs, unknown handles, or failed guards —
-        all of which fall back to the normal approval flow.
+        whether the requested job is an xTB job. ``auto`` and ``ask`` both
+        return None and use exact one-shot approval. Unknown handles and
+        non-xTB jobs also fall back to that flow.
         """
 
         policy_value = getattr(self.policy, "xtb_real_runs", "ask")
