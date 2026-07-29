@@ -5,6 +5,12 @@ from chemsmart.agent.harness.command_semantics import (
     CommandSemanticResult,
     evaluate_command_semantics,
 )
+from chemsmart.agent.harness.engine_capabilities import (
+    ENGINE_CAPABILITIES,
+    EngineCapability,
+    engine_capability,
+    requires_project_configuration,
+)
 from chemsmart.agent.harness.intent import (
     IntentResult,
     IntentSpec,
@@ -34,6 +40,8 @@ from chemsmart.agent.harness.workflow_state import (
 __all__ = [
     "CommandSemanticIssue",
     "CommandSemanticResult",
+    "ENGINE_CAPABILITIES",
+    "EngineCapability",
     "HarnessResult",
     "InvariantIssue",
     "InvariantResult",
@@ -41,8 +49,10 @@ __all__ = [
     "IntentSpec",
     "ObservedIntent",
     "evaluate_command_semantics",
+    "engine_capability",
     "evaluate_harness",
     "evaluate_intent",
+    "requires_project_configuration",
     "build_sub_intent_assertions",
     "TERMINAL_STATE_SCHEMA_VERSION",
     "assertion",

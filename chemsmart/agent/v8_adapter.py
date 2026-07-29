@@ -6,6 +6,9 @@ import json
 import shlex
 from typing import Any
 
+from chemsmart.agent.harness.engine_capabilities import (
+    requires_project_configuration,
+)
 from chemsmart.agent.postprocess_v8 import postprocess
 
 # Map SPEC kind suffixes to real CLI subcommands. Gaussian/ORCA single-point is
@@ -320,7 +323,9 @@ def _job_command(
     if job.get("server"):
         parts += ["-s", shlex.quote(str(job["server"]))]
     parts.append(program)
-    project = job.get("project") or default_project
+    project = job.get("project")
+    if project is None and requires_project_configuration(program):
+        project = default_project
     if project:
         parts += ["-p", shlex.quote(str(project))]
 

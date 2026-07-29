@@ -12,6 +12,10 @@ from typing import Any
 import click
 
 from chemsmart.agent.harness.command_semantics import CommandSemanticResult
+from chemsmart.agent.harness.engine_capabilities import (
+    requires_project_configuration,
+)
+from chemsmart.agent.harness.intent import IntentSpec
 from chemsmart.agent.harness.workflow_state import current_workflow_state
 from chemsmart.agent.model_command_parser import parse_model_command
 from chemsmart.agent.provider_adapter import extract_response_text
@@ -250,6 +254,9 @@ def _extract_command_from_text(text: str) -> str:
 
 
 def _request_needs_workspace_project(request: str) -> bool:
+    intent = IntentSpec.from_request(request)
+    if intent.program is not None:
+        return requires_project_configuration(intent.program)
     lowered = request.lower()
     if "chemsmart " in lowered and (
         "explain" in lowered or "what" in lowered or "mean" in lowered
@@ -384,6 +391,8 @@ def _ensure_program_project(command: str, project: str) -> str:
         return command
     program_index = _find_program_index(tokens)
     if program_index is None:
+        return command
+    if not requires_project_configuration(tokens[program_index]):
         return command
     updated = list(tokens)
     for index in range(program_index + 1, len(updated)):

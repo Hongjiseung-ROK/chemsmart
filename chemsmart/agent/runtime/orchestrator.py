@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from chemsmart.agent.harness.intent import IntentSpec
 from chemsmart.agent.harness.workflow_state import WorkflowState
 from chemsmart.agent.runtime.contracts import (
     AgentDecision,
@@ -151,7 +152,8 @@ class RuntimeController:
     ) -> TaskEnvelope:
         self.ensure_session(cwd=cwd)
         role = provider_role(provider_name)
-        phase = route_initial_phase(request, role=role)
+        intent = IntentSpec.from_request(request)
+        phase = route_initial_phase(request, role=role, intent=intent)
         self.turn_id = f"turn_{turn_index:04d}"
         self.emit(
             EventKind.TURN_STARTED,
@@ -162,7 +164,11 @@ class RuntimeController:
             },
             idempotency_key=f"turn-start:{self.turn_id}",
         )
-        self.selection = self.catalog.select(phase=phase, provider_role=role)
+        self.selection = self.catalog.select(
+            phase=phase,
+            provider_role=role,
+            program=intent.program,
+        )
         self.emit(
             EventKind.EXPOSURE_PLANNED,
             {
@@ -336,10 +342,12 @@ def route_initial_phase(
     request: str,
     *,
     role: ProviderRole,
+    intent: IntentSpec | None = None,
 ) -> TaskPhase:
     if role is ProviderRole.SYNTHESIS_SPECIALIST:
         return TaskPhase.SYNTHESIS
     text = str(request or "").lower()
+    intent = intent or IntentSpec.from_request(request)
     if _is_direct_project_write(text):
         return TaskPhase.PROJECT_WRITE
     if (
@@ -408,49 +416,19 @@ def route_initial_phase(
         )
     ):
         return TaskPhase.REPAIR
-    if any(
-        marker in text
-        for marker in (
-            "execute this command",
-            "run it now",
-            "submit it",
-            "실제로 실행",
-            "지금 실행",
-            "제출해",
-            "立即执行",
-            "提交作业",
-        )
-    ):
+    if intent.action in {"run", "sub"}:
         return TaskPhase.EXECUTION
     return TaskPhase.SYNTHESIS
 
 
 def execution_mode_from_request(request: str) -> ExecutionMode:
     text = str(request or "").lower()
+    intent = IntentSpec.from_request(request)
     if "--test" in text or "--fake" in text or "fake run" in text:
         return ExecutionMode.TEST_FAKE
-    if any(
-        marker in text
-        for marker in (
-            "submit",
-            "scheduler",
-            "slurm",
-            "pbs",
-            "hpc",
-            "제출",
-            "提交",
-        )
-    ):
+    if intent.action == "sub":
         return ExecutionMode.HPC
-    if any(
-        marker in text
-        for marker in (
-            "execute this command",
-            "run it now",
-            "실제로 실행",
-            "立即执行",
-        )
-    ):
+    if intent.action == "run":
         return ExecutionMode.LOCAL
     return ExecutionMode.NONE
 
