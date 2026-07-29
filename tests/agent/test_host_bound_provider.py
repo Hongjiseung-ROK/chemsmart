@@ -136,6 +136,37 @@ def test_bound_command_execution_uses_the_same_embedder_owned_directory(
     assert observed == [(tmp_path.resolve(), "chemsmart run xtb -f water.xyz sp", False, 90)]
 
 
+def test_bound_command_execution_requires_the_embedder_boundary_before_process(
+    monkeypatch,
+    tmp_path,
+):
+    observed: list[tuple[str, str]] = []
+    monkeypatch.setattr(tools_command, "SynthesisSession", _FakeSynthesisSession)
+    monkeypatch.setattr(tools_command, "_command_schema", lambda: {})
+    monkeypatch.setattr(
+        tools_command,
+        "execute_chemsmart_command",
+        lambda command, **_options: observed.append(("process", command))
+        or {"ok": True},
+    )
+
+    def deny(command: str, _test: bool, _timeout_s: int) -> None:
+        observed.append(("boundary", command))
+        raise PermissionError("trusted Studio state changed")
+
+    session = tools_command.CommandSynthesisSession(
+        object(),
+        before_execute=deny,
+        default_project="",
+        working_directory=tmp_path,
+    )
+
+    with pytest.raises(PermissionError, match="trusted Studio state changed"):
+        session.execute_command("chemsmart run xtb -f water.xyz sp")
+
+    assert observed == [("boundary", "chemsmart run xtb -f water.xyz sp")]
+
+
 def test_host_visible_command_result_omits_private_provider_and_workspace_state():
     result = tools_command._host_visible_command_result(
         {

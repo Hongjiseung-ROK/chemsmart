@@ -109,6 +109,7 @@ class CommandSynthesisSession:
         self,
         provider: Any,
         *,
+        before_execute: Callable[[str, bool, int], None] | None = None,
         default_project: str | None = None,
         semantic_timeout_s: float = 30.0,
         working_directory: str | Path | None = None,
@@ -116,6 +117,7 @@ class CommandSynthesisSession:
         if provider is None:
             raise ValueError("provider is required for a bound command session")
         self._lock = RLock()
+        self._before_execute = before_execute
         self._working_directory = (
             Path(working_directory).resolve()
             if working_directory is not None
@@ -172,6 +174,8 @@ class CommandSynthesisSession:
         """Execute an approved command inside the embedder-owned directory."""
 
         with self._lock, _command_session_directory(self._working_directory):
+            if self._before_execute is not None:
+                self._before_execute(command, test, timeout_s)
             return execute_chemsmart_command(
                 command,
                 test=test,
