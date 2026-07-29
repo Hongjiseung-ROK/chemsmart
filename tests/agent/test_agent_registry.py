@@ -4,7 +4,12 @@ import pytest
 from pydantic import create_model
 
 from chemsmart.agent.permissions import RuntimePermissionMode
-from chemsmart.agent.registry import ToolInputModel, ToolRegistry, ToolSpec
+from chemsmart.agent.registry import (
+    ToolInputModel,
+    ToolRegistry,
+    ToolSpec,
+    build_tool_spec,
+)
 from chemsmart.agent.tool_protocol import RuntimeToolMetadata
 from chemsmart.jobs.gaussian.settings import GaussianJobSettings
 
@@ -143,6 +148,55 @@ def test_registry_forbids_unexpected_tool_arguments():
     assert result["ok"] is False
     assert result["error"]["type"] == "ValidationError"
     assert "unexpected" in result["error"]["message"]
+
+
+def test_public_build_tool_spec_uses_host_schema_without_weakening_validation():
+    def inspect_snapshot(document_id: str) -> dict[str, str]:
+        return {"documentId": document_id}
+
+    host_schema = {
+        "additionalProperties": False,
+        "properties": {
+            "document_id": {
+                "type": "string",
+                "pattern": r"^document_[0-9a-f]+$",
+            }
+        },
+        "required": ["document_id"],
+        "type": "object",
+    }
+    spec = build_tool_spec(
+        inspect_snapshot,
+        description="Inspect an opaque Studio document.",
+        input_json_schema=host_schema,
+    )
+    registry = ToolRegistry([spec])
+
+    assert spec.openai_tool_def()["function"]["parameters"] == host_schema
+    host_schema["properties"]["document_id"]["pattern"] = "mutated"
+    assert (
+        spec.openai_tool_def()["function"]["parameters"]["properties"][
+            "document_id"
+        ]["pattern"]
+        == r"^document_[0-9a-f]+$"
+    )
+    assert registry.call(
+        "inspect_snapshot", {"document_id": "document_ab12"}
+    ) == {"documentId": "document_ab12"}
+    invalid = registry.call("inspect_snapshot", {"document_id": 7})
+    assert invalid["ok"] is False
+    assert invalid["error"]["type"] == "ValidationError"
+
+
+def test_public_build_tool_spec_rejects_non_object_provider_schema():
+    def inspect_snapshot(document_id: str) -> dict[str, str]:
+        return {"documentId": document_id}
+
+    with pytest.raises(ValueError, match="object JSON Schema"):
+        build_tool_spec(
+            inspect_snapshot,
+            input_json_schema={"type": "string", "properties": {}},
+        )
 
 
 def test_registry_exposes_machine_readable_tool_descriptions():

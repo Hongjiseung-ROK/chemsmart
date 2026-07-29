@@ -5,6 +5,7 @@ import inspect
 import logging
 import os
 from collections.abc import Iterable
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Literal, get_args, get_origin, get_type_hints
 
@@ -414,6 +415,7 @@ class ToolSpec:
     name: str
     func: Any
     input_schema: type[ToolInputModel]
+    input_json_schema: dict[str, Any] | None = None
     description: str | None = None
     accepts_kwargs: bool = False
     schema_overrides: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -443,6 +445,8 @@ class ToolSpec:
         }
 
     def _schema_with_overrides(self) -> dict[str, Any]:
+        if self.input_json_schema is not None:
+            return deepcopy(self.input_json_schema)
         schema = self.input_schema.model_json_schema()
         schema.pop("title", None)
         schema.pop("$defs", None)
@@ -480,7 +484,7 @@ class ToolRegistry:
         enabled_tools = resolve_tool_groups(groups)
         return cls(
             [
-                _build_tool_spec(
+                build_tool_spec(
                     _load_agent_tool(name, module_name),
                     registered_name=name,
                     description=description,
@@ -595,6 +599,60 @@ class ToolRegistry:
                     "tool": name,
                 },
             }
+
+
+def build_tool_spec(
+    func: Any,
+    registered_name: str | None = None,
+    description: str | None = None,
+    metadata: RuntimeToolMetadata | None = None,
+    input_json_schema: dict[str, Any] | None = None,
+) -> ToolSpec:
+    """Build a validated tool spec with an optional provider JSON contract.
+
+    The callable signature remains the authority for runtime validation.
+    ``input_json_schema`` only narrows the schema advertised to a provider,
+    which lets an embedding host expose opaque IDs and bounded strings without
+    weakening the Pydantic call boundary.
+    """
+
+    spec = _build_tool_spec(
+        func,
+        registered_name=registered_name,
+        description=description,
+        metadata=metadata,
+    )
+    if input_json_schema is None:
+        return spec
+    return ToolSpec(
+        name=spec.name,
+        func=spec.func,
+        input_schema=spec.input_schema,
+        input_json_schema=_validated_input_json_schema(input_json_schema),
+        description=spec.description,
+        accepts_kwargs=spec.accepts_kwargs,
+        schema_overrides=spec.schema_overrides,
+        model_excluded_fields=spec.model_excluded_fields,
+        metadata=spec.metadata,
+    )
+
+
+def _validated_input_json_schema(
+    value: dict[str, Any],
+) -> dict[str, Any]:
+    if not isinstance(value, dict) or value.get("type") != "object":
+        raise ValueError("input_json_schema must be an object JSON Schema")
+    properties = value.get("properties")
+    if not isinstance(properties, dict):
+        raise ValueError("input_json_schema.properties must be an object")
+    required = value.get("required", [])
+    if not isinstance(required, list) or not all(
+        isinstance(item, str) and item in properties for item in required
+    ):
+        raise ValueError(
+            "input_json_schema.required must name declared properties"
+        )
+    return deepcopy(value)
 
 
 def _build_tool_spec(
