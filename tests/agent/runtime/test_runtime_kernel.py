@@ -330,6 +330,36 @@ def test_router_maps_studio_run_controls_to_execution(user_input):
     )
 
 
+def test_router_uses_structured_xtb_execution_intent() -> None:
+    assert (
+        route_initial_phase(
+            "Run an xTB single-point calculation on water.xyz.",
+            role=ProviderRole.CONTROLLER,
+        )
+        is TaskPhase.EXECUTION
+    )
+    assert (
+        route_initial_phase(
+            "현재 water.xyz에 xTB를 실행해",
+            role=ProviderRole.CONTROLLER,
+        )
+        is TaskPhase.EXECUTION
+    )
+
+
+def test_xtb_execution_surface_withholds_project_yaml() -> None:
+    catalog = ToolCatalog(_Registry())
+
+    selection = catalog.select(
+        phase=TaskPhase.EXECUTION,
+        provider_role=ProviderRole.CONTROLLER,
+        program="xtb",
+    )
+
+    assert "read_project_yaml" not in selection.direct
+    assert selection.program == "xtb"
+
+
 def test_active_lifecycle_rejects_unexposed_internal_tool(tmp_path):
     controller = RuntimeController(
         session_dir=tmp_path,

@@ -103,17 +103,23 @@ def _program_from_request(lowered: str) -> str | None:
         return "gaussian"
     if "orca" in lowered:
         return "orca"
-    if "xtb" in lowered:
+    if re.search(r"(?<![a-z0-9])x-?tb(?![a-z0-9])", lowered):
         return "xtb"
     return None
 
 
 def _action_from_request(lowered: str) -> str | None:
     if re.search(
-        r"\b(submit|submission|queue|cluster|hpc|chemsmart\s+sub)\b", lowered
+        r"\b(submit|submission|queue|cluster|hpc|chemsmart\s+sub)\b"
+        r"|제출(?:해|하|해줘)?|提交",
+        lowered,
     ):
         return "sub"
-    if re.search(r"\b(run|locally|chemsmart\s+run)\b", lowered):
+    if re.search(
+        r"\b(run|execute|locally|chemsmart\s+run)\b"
+        r"|실행(?:해|하|해줘)?|돌려|运行|执行",
+        lowered,
+    ):
         return "run"
     return None
 
@@ -628,6 +634,17 @@ def _kind_from_request(lowered: str, program: str | None) -> str | None:
         " ",
         lowered,
     )
+    if program == "xtb":
+        if re.search(r"\b(hess(?:ian)?|frequenc(?:y|ies))\b", intent_text):
+            return "xtb.hess"
+        if re.search(r"\b(single[- ]?point|sp)\b", intent_text):
+            return "xtb.sp"
+        if re.search(
+            r"\b(optimi[sz](?:e|ation)|geometry\s+opt|opt)\b",
+            intent_text,
+        ):
+            return "xtb.opt"
+        return None
     if program in {None, "gaussian"} and _TRAJECTORY_INTENT_RE.search(
         intent_text
     ):

@@ -8,6 +8,9 @@ from typing import Any, Iterable, Mapping
 
 from pydantic import BaseModel, ConfigDict
 
+from chemsmart.agent.harness.engine_capabilities import (
+    requires_project_configuration,
+)
 from chemsmart.agent.runtime.contracts import ProviderRole, TaskPhase
 
 
@@ -36,6 +39,7 @@ class ToolSelection(BaseModel):
 
     phase: TaskPhase
     provider_role: ProviderRole
+    program: str = ""
     direct: tuple[str, ...]
     deferred: tuple[str, ...]
     hidden: tuple[str, ...]
@@ -175,9 +179,14 @@ class ToolCatalog:
         *,
         phase: TaskPhase,
         provider_role: ProviderRole,
+        program: str | None = None,
     ) -> ToolSelection:
         available = tuple(tool.name for tool in self.registry.list_tools())
         requested = self.profile.tools_for(phase, provider_role)
+        if program and not requires_project_configuration(program):
+            requested = tuple(
+                name for name in requested if name != "read_project_yaml"
+            )
         direct = tuple(name for name in requested if name in available)
         if len(direct) > MAX_DIRECT_TOOLS_PER_PHASE:
             raise ValueError(
@@ -198,6 +207,7 @@ class ToolCatalog:
         return ToolSelection(
             phase=phase,
             provider_role=provider_role,
+            program=str(program or ""),
             direct=direct,
             deferred=deferred,
             hidden=hidden,
