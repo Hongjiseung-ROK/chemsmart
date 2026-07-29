@@ -49,23 +49,31 @@ def dry_run_input(job: Job) -> dict[str, Any]:
     command = reconstruct_run_cli_command(job)
     target_directory = os.path.abspath(job.folder)
     job.set_folder(target_directory)
-    if job.jobrunner is None:
-        job.jobrunner = SimpleNamespace(num_cores=12, mem_gb=16)
-    if isinstance(job, GaussianJob):
-        GaussianInputWriter(job=job).write(target_directory=target_directory)
-    elif isinstance(job, ORCAJob):
-        ORCAInputWriter(job=job).write(target_directory=target_directory)
-    elif isinstance(job, XTBJob):
-        # xTB takes a bare geometry and its whole method on the command line,
-        # so the geometry is the only file to render; the grounded command
-        # below carries the rest of the calculation.
-        os.makedirs(target_directory, exist_ok=True)
-        job.molecule.write_xyz(os.path.abspath(job.xyzfile), mode="w")
-    else:
-        raise ValueError(
-            "dry_run_input only supports GaussianJob, ORCAJob, and XTBJob "
-            "instances"
-        )
+    original_runner = job.jobrunner
+    try:
+        if original_runner is None:
+            # Writers need resource values, but a preview runner must never
+            # survive into run_local. The execution path attaches its own
+            # concrete non-fake runner after exact approval.
+            job.jobrunner = SimpleNamespace(num_cores=12, mem_gb=16)
+        if isinstance(job, GaussianJob):
+            GaussianInputWriter(job=job).write(
+                target_directory=target_directory
+            )
+        elif isinstance(job, ORCAJob):
+            ORCAInputWriter(job=job).write(target_directory=target_directory)
+        elif isinstance(job, XTBJob):
+            # xTB takes a bare geometry and its whole method on the command
+            # line, so the geometry is the only file to render.
+            os.makedirs(target_directory, exist_ok=True)
+            job.molecule.write_xyz(os.path.abspath(job.xyzfile), mode="w")
+        else:
+            raise ValueError(
+                "dry_run_input only supports GaussianJob, ORCAJob, and "
+                "XTBJob instances"
+            )
+    finally:
+        job.jobrunner = original_runner
     inputfile = os.path.abspath(job.inputfile)
     with open(inputfile) as file:
         content = file.read()

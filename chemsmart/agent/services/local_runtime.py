@@ -188,6 +188,7 @@ def run_local(job: Job) -> dict[str, Any]:
     folder = os.path.abspath(job.folder)
     os.makedirs(folder, exist_ok=True)
     job.set_folder(folder)
+    _attach_local_runner(job)
     stdout_path = os.path.join(folder, f"{job.label}.stdout")
     stderr_path = os.path.join(folder, f"{job.label}.stderr")
     job.local = True
@@ -200,6 +201,19 @@ def run_local(job: Job) -> dict[str, Any]:
         "stderr_path": stderr_path,
         "output_summary": summary,
     }
+
+
+def _attach_local_runner(job: Job) -> None:
+    """Restore the concrete runner omitted from model-facing job handles."""
+
+    if job.jobrunner is not None:
+        return
+    job.jobrunner = JobRunner.from_job(
+        job=job,
+        server=Server.current(),
+        scratch=False,
+        fake=False,
+    )
 
 
 def _execute_job(job: Job, stdout_path: str, stderr_path: str) -> int:

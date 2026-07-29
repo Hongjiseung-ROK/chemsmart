@@ -95,6 +95,66 @@ class TestSummarizeXtbLocalOutput:
 
 
 class TestXtbPrepChain:
+    def test_preview_does_not_replace_execution_runner(
+        self,
+        monkeypatch,
+        tmp_path,
+        single_molecule_xyz_file,
+        pbs_server,
+        xtb_jobrunner_no_scratch,
+    ) -> None:
+        from chemsmart.agent.services import local_runtime
+
+        molecule = build_molecule(single_molecule_xyz_file)
+        job = build_job(
+            "xtb.opt",
+            molecule=molecule,
+            settings=build_xtb_settings(charge=0, multiplicity=1),
+            label="runner_handoff",
+        )
+        job.set_folder(str(tmp_path / "runner_handoff"))
+
+        preview = dry_run_input(job)
+
+        assert preview["cli_grounded"] is True
+        assert " -p " not in f" {preview['command']} "
+        assert job.jobrunner is None
+
+        calls = []
+
+        def attach_runner(*, job, server, scratch, fake):
+            calls.append(
+                {
+                    "job": job,
+                    "server": server,
+                    "scratch": scratch,
+                    "fake": fake,
+                }
+            )
+            return xtb_jobrunner_no_scratch
+
+        monkeypatch.setattr(
+            local_runtime.Server, "current", lambda: pbs_server
+        )
+        monkeypatch.setattr(
+            local_runtime.JobRunner,
+            "from_job",
+            attach_runner,
+        )
+
+        result = run_local(job)
+
+        assert result["ok"] is True
+        assert calls == [
+            {
+                "job": job,
+                "server": pbs_server,
+                "scratch": False,
+                "fake": False,
+            }
+        ]
+        assert job.jobrunner is xtb_jobrunner_no_scratch
+
     def test_fake_xtb_preopt_feeds_a_grounded_gaussian_job(
         self,
         monkeypatch,
