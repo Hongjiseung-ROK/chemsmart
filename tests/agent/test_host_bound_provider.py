@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -78,6 +79,36 @@ def test_bound_command_specs_dispatch_to_the_injected_session(monkeypatch):
 def test_bound_command_session_requires_a_provider():
     with pytest.raises(ValueError, match="provider is required"):
         tools_command.CommandSynthesisSession(None)
+
+
+def test_bound_command_session_runs_inside_the_embedder_owned_directory(
+    monkeypatch,
+    tmp_path,
+):
+    provider = object()
+    original_cwd = Path.cwd()
+    observed: list[Path] = []
+    monkeypatch.setattr(
+        tools_command, "SynthesisSession", _FakeSynthesisSession
+    )
+    monkeypatch.setattr(tools_command, "_command_schema", lambda: {})
+    monkeypatch.setattr(
+        tools_command,
+        "_synthesize_command_with_session",
+        lambda _session, _request: (
+            observed.append(Path.cwd()) or {"status": "ready"}
+        ),
+    )
+    session = tools_command.CommandSynthesisSession(
+        provider,
+        default_project="",
+        working_directory=tmp_path,
+    )
+
+    session.synthesize_command("prepare a dry-run command")
+
+    assert observed == [tmp_path.resolve()]
+    assert Path.cwd() == original_cwd
 
 
 def test_host_visible_command_result_omits_private_provider_and_workspace_state():

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import hashlib
+import os
 import re
 import shlex
 from dataclasses import dataclass
@@ -109,10 +111,21 @@ class CommandSynthesisSession:
         *,
         default_project: str | None = None,
         semantic_timeout_s: float = 30.0,
+        working_directory: str | Path | None = None,
     ) -> None:
         if provider is None:
             raise ValueError("provider is required for a bound command session")
         self._lock = RLock()
+        self._working_directory = (
+            Path(working_directory).resolve()
+            if working_directory is not None
+            else None
+        )
+        if (
+            self._working_directory is not None
+            and not self._working_directory.is_dir()
+        ):
+            raise ValueError("working_directory must be an existing directory")
         self._resolve_default_project = default_project is None
         self._session = SynthesisSession(
             provider=provider,
@@ -125,7 +138,7 @@ class CommandSynthesisSession:
     def synthesize_command(self, request: str) -> JsonDict:
         """Synthesize through the provider injected when this session was built."""
 
-        with self._lock:
+        with self._lock, _command_session_directory(self._working_directory):
             self._refresh_default_project()
             return _host_visible_command_result(
                 _synthesize_command_with_session(self._session, request)
@@ -139,7 +152,7 @@ class CommandSynthesisSession:
     ) -> JsonDict:
         """Repair through the provider injected when this session was built."""
 
-        with self._lock:
+        with self._lock, _command_session_directory(self._working_directory):
             self._refresh_default_project()
             return _host_visible_command_result(
                 _repair_command_with_session(
@@ -173,6 +186,23 @@ class CommandSynthesisSession:
             self._session.default_project = (
                 resolve_default_project() or ""
             ).strip()
+
+
+_COMMAND_SESSION_DIRECTORY_LOCK = RLock()
+
+
+@contextmanager
+def _command_session_directory(directory: Path | None):
+    if directory is None:
+        yield
+        return
+    with _COMMAND_SESSION_DIRECTORY_LOCK:
+        previous = Path.cwd()
+        os.chdir(directory)
+        try:
+            yield
+        finally:
+            os.chdir(previous)
 
 
 def _host_visible_command_result(payload: JsonDict) -> JsonDict:
