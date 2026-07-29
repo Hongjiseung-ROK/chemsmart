@@ -371,6 +371,104 @@ def test_report_studio_result_ends_turn_without_provider_follow_up(tmp_path):
     ] == [("report_studio_result", "ok")]
 
 
+def test_studio_tool_turn_gets_one_bounded_terminal_result_reminder(tmp_path):
+    provider = FakeProvider(
+        [
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call(
+                        "context-1",
+                        "get_studio_context",
+                        {"requestId": "context-1"},
+                    )
+                )
+            },
+            {"__raw_response__": openai_final_response("Three atoms.")},
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call(
+                        "report-1",
+                        "report_studio_result",
+                        {"requestId": "answer-1"},
+                    )
+                )
+            },
+        ]
+    )
+    registry = ToolRegistry([]).with_tools(
+        build_studio_tool_specs(
+            StudioToolAdapters(
+                host=_HostAdapter(),
+                execution=_ExecutionAdapter(),
+                artifacts=_ArtifactAdapter(),
+                approvals=_ApprovalAdapter(),
+            ),
+            _studio_schemas(),
+        )
+    )
+    session = AgentSession(
+        provider=provider,
+        registry=registry,
+        session_root=tmp_path,
+        training_capture=False,
+    )
+
+    result = session.run_loop("Inspect and report the result.")
+
+    assert len(provider.calls) == 3
+    assert result["terminal_outcome"] == "completed"
+    assert result["loop_state"]["stop_reason"] == "terminal_tool"
+    assert [
+        (outcome.name, outcome.status) for outcome in result["tool_outcomes"]
+    ] == [
+        ("get_studio_context", "ok"),
+        ("report_studio_result", "ok"),
+    ]
+
+
+def test_studio_terminal_result_reminder_fails_closed_after_one_retry(
+    tmp_path,
+):
+    provider = FakeProvider(
+        [
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call(
+                        "context-1",
+                        "get_studio_context",
+                        {"requestId": "context-1"},
+                    )
+                )
+            },
+            {"__raw_response__": openai_final_response("Three atoms.")},
+            {"__raw_response__": openai_final_response("Still plain text.")},
+        ]
+    )
+    registry = ToolRegistry([]).with_tools(
+        build_studio_tool_specs(
+            StudioToolAdapters(
+                host=_HostAdapter(),
+                execution=_ExecutionAdapter(),
+                artifacts=_ArtifactAdapter(),
+                approvals=_ApprovalAdapter(),
+            ),
+            _studio_schemas(),
+        )
+    )
+    session = AgentSession(
+        provider=provider,
+        registry=registry,
+        session_root=tmp_path,
+        training_capture=False,
+    )
+
+    result = session.run_loop("Inspect and report the result.")
+
+    assert len(provider.calls) == 3
+    assert result["terminal_outcome"] == "failed"
+    assert result["limit_reason"] == "studio_result_required"
+
+
 def test_inspect_capability_cannot_be_widened_by_execution_text(tmp_path):
     provider = FakeProvider(
         [{"__raw_response__": openai_final_response("Cannot execute.")}]

@@ -23,6 +23,11 @@ from chemsmart.agent.providers import (
 from chemsmart.agent.public_visibility import sanitize_public_text
 
 ASK_USER_TOOL_NAME = "ask_user"
+STUDIO_RESULT_TOOL_NAME = "report_studio_result"
+_STUDIO_RESULT_REMINDER = (
+    "This Studio turn used tools and must now finish by calling "
+    "report_studio_result. Do not answer with plain text."
+)
 _PRIVATE_REASONING_KEYS = frozenset(
     {"reasoning_content", "thinking", "analysis", "<think>"}
 )
@@ -76,6 +81,7 @@ class TurnState:
     ask_user_outcome: dict[str, Any] | None = None
     provider_errors: int = 0
     provider_responses: list[dict[str, Any]] = field(default_factory=list)
+    studio_result_reminders: int = 0
 
 
 class ToolLoopRunner:
@@ -102,6 +108,18 @@ class ToolLoopRunner:
                 continue
             requests = self._record_assistant_turn(state, protocol, response)
             if not requests:
+                if self._studio_result_is_required(state, definitions):
+                    if state.studio_result_reminders >= 1:
+                        state.limit_reason = "studio_result_required"
+                        break
+                    state.studio_result_reminders += 1
+                    state.history.append(
+                        {
+                            "role": "system",
+                            "content": _STUDIO_RESULT_REMINDER,
+                        }
+                    )
+                    continue
                 break
             should_stop, asked_user = self._process_requests(
                 state, protocol, requests
@@ -112,6 +130,23 @@ class ToolLoopRunner:
             state.limit_reason = "max_model_steps"
         self._log_limit(state)
         return _result(state)
+
+    def _studio_result_is_required(
+        self,
+        state: TurnState,
+        definitions: list[dict[str, Any]],
+    ) -> bool:
+        if not state.tool_requests:
+            return False
+        if any(
+            outcome.name == STUDIO_RESULT_TOOL_NAME and outcome.status == "ok"
+            for outcome in state.tool_outcomes
+        ):
+            return False
+        return any(
+            _tool_definition_name(definition) == STUDIO_RESULT_TOOL_NAME
+            for definition in definitions
+        )
 
     def _wire_protocol(self) -> str:
         provider = self.loop.provider
@@ -415,6 +450,18 @@ def canonical_args_json(request: ToolRequest) -> str:
     import json
 
     return json.dumps(request.arguments, sort_keys=True)
+
+
+def _tool_definition_name(definition: dict[str, Any]) -> str | None:
+    direct = definition.get("name")
+    if isinstance(direct, str):
+        return direct
+    function = definition.get("function")
+    if isinstance(function, dict):
+        name = function.get("name")
+        if isinstance(name, str):
+            return name
+    return None
 
 
 def public_assistant_text(text: str) -> str:
