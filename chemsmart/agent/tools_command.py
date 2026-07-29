@@ -193,6 +193,7 @@ def _host_visible_command_result(payload: JsonDict) -> JsonDict:
             "action",
             "semantic",
             "intent",
+            "preflight",
             "issues",
             "reasoning",
             "reasoning_provenance",

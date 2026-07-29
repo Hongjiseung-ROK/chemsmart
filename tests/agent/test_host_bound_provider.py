@@ -90,11 +90,21 @@ def test_host_visible_command_result_omits_private_provider_and_workspace_state(
             "raw_response": {"provider": "private"},
             "semantic": {"verdict": "ok"},
             "intent": {"verdict": "ok"},
+            "preflight": {
+                "receipt_id": "sha256:abc123",
+                "input": {
+                    "basename": "water.xyz",
+                    "digest": "sha256:def456",
+                },
+                "workspace_path": "/Users/researcher/private",
+            },
         }
     )
 
     assert "workflow_state" not in result
     assert "raw_response" not in result
+    assert result["preflight"]["receipt_id"] == "sha256:abc123"
+    assert result["preflight"]["input"]["basename"] == "water.xyz"
     assert "/Users/researcher" not in repr(result)
     assert "[opaque-path]" in repr(result)
 
