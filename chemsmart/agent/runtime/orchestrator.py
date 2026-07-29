@@ -29,6 +29,12 @@ from chemsmart.agent.runtime.tool_catalog import (
 )
 
 _LOCAL_PROVIDER_MARKERS = ("local", "mlx", "vllm")
+_SAFE_PREFLIGHT_MODE_RE = re.compile(
+    r"\b(?:dry|fake)[-\s]?run\b"
+    r"|\bpre[-\s]?flight\b"
+    r"|(?:^|\s)--(?:test|fake)(?:\s|=|$)",
+    re.IGNORECASE,
+)
 _TRANSITIONS: dict[TaskPhase, frozenset[TaskPhase]] = {
     TaskPhase.ROUTE: frozenset(
         {
@@ -355,6 +361,12 @@ def route_initial_phase(
     intent = intent or IntentSpec.from_request(request)
     if _is_studio_project_write(text):
         return TaskPhase.PROJECT_WRITE
+    execution_mode = execution_mode_from_request(request, intent=intent)
+    if (
+        intent.program == "xtb"
+        and execution_mode is ExecutionMode.TEST_FAKE
+    ):
+        return TaskPhase.SYNTHESIS
     if _is_studio_execution(text):
         return TaskPhase.EXECUTION
     if _is_direct_project_write(text):
@@ -432,10 +444,14 @@ def route_initial_phase(
     return TaskPhase.SYNTHESIS
 
 
-def execution_mode_from_request(request: str) -> ExecutionMode:
+def execution_mode_from_request(
+    request: str,
+    *,
+    intent: IntentSpec | None = None,
+) -> ExecutionMode:
     text = str(request or "").lower()
-    intent = IntentSpec.from_request(request)
-    if "--test" in text or "--fake" in text or "fake run" in text:
+    intent = intent or IntentSpec.from_request(request)
+    if _SAFE_PREFLIGHT_MODE_RE.search(text):
         return ExecutionMode.TEST_FAKE
     if intent.action == "sub":
         return ExecutionMode.HPC

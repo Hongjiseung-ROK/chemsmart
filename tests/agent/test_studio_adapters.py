@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from chemsmart.agent.core import AgentSession
+from chemsmart.agent.harness.intent import IntentSpec
 from chemsmart.agent.permissions import (
     ALWAYS_REQUIRE_APPROVAL,
     READ_ONLY_TOOLS,
@@ -15,6 +16,10 @@ from chemsmart.agent.runtime.contracts import (
     OpaqueArtifactRef,
     ProviderRole,
     TaskPhase,
+)
+from chemsmart.agent.runtime.orchestrator import (
+    execution_mode_from_request,
+    route_initial_phase,
 )
 from chemsmart.agent.runtime.tool_catalog import ToolCatalog
 from chemsmart.agent.studio import (
@@ -296,6 +301,52 @@ def test_agent_session_injects_studio_phase_profile(tmp_path):
         provider_role=ProviderRole.CONTROLLER,
     )
     assert "start_prepared_optimization" in selection.direct
+
+
+def test_studio_xtb_dry_run_routes_to_nonstarting_preflight_surface():
+    request = (
+        "Inspect the current molecule, identify its composition and draft "
+        "state, then prepare and validate a GFN2-xTB optimization dry-run "
+        "without project YAML. Do not start the calculation."
+    )
+    intent = IntentSpec.from_request(request)
+    phase = route_initial_phase(
+        request,
+        role=ProviderRole.CONTROLLER,
+        intent=intent,
+    )
+    registry = ToolRegistry([]).with_tools(
+        build_studio_tool_specs(
+            StudioToolAdapters(
+                host=_HostAdapter(),
+                execution=_ExecutionAdapter(),
+                artifacts=_ArtifactAdapter(),
+                approvals=_ApprovalAdapter(),
+            ),
+            _studio_schemas(),
+        )
+    )
+    selection = ToolCatalog(
+        registry,
+        profile=STUDIO_TOOL_PROFILE,
+    ).select(
+        phase=phase,
+        provider_role=ProviderRole.CONTROLLER,
+        program=intent.program,
+    )
+
+    assert intent.program == "xtb"
+    assert intent.kind == "xtb.opt"
+    assert intent.execution_mode == "local"
+    assert execution_mode_from_request(request).value == "test_fake"
+    assert phase is TaskPhase.SYNTHESIS
+    assert selection.direct == (
+        "get_studio_context",
+        "analyze_current_molecule",
+        "prepare_molecule_optimization",
+        "validate_prepared_optimization",
+    )
+    assert "start_prepared_optimization" not in selection.direct
 
 
 def test_studio_tool_metadata_matches_read_and_approval_policy():
