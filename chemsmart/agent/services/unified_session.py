@@ -348,6 +348,8 @@ class UnifiedSessionRunner:
                     "question": ask_user.get("question", ""),
                 },
             )
+        elif loop_result.get("terminal_outcome") == "denied":
+            controller.block(reason="permission_denied")
         elif loop_result.get("limit_reason"):
             controller.block(reason=str(loop_result["limit_reason"]))
         elif not ask_user:
@@ -453,6 +455,7 @@ class UnifiedSessionRunner:
     ) -> None:
         session = self.session
         limit_reason = loop_result["limit_reason"]
+        terminal_outcome = loop_result["terminal_outcome"]
         session._write_training_episode(
             provider_name=setup.provider_name,
             provider=setup.provider,
@@ -464,8 +467,12 @@ class UnifiedSessionRunner:
         session._save_state()
         session._finalize_session(
             verdict=None,
-            blocked=limit_reason is not None,
-            block_reason=limit_reason,
+            blocked=limit_reason is not None or terminal_outcome == "denied",
+            block_reason=(
+                "permission_denied"
+                if terminal_outcome == "denied"
+                else limit_reason
+            ),
             dry_run_results=projection.dry_run_results,
             advisory_only=not projection.tool_requests,
             is_chitchat=projection.is_chitchat,
@@ -491,7 +498,10 @@ class UnifiedSessionRunner:
             "plan_text": render_plan(projection.plan),
             "critic_verdict": None,
             "completed_steps": session.state.current_step_index,
-            "blocked": limit_reason is not None,
+            "blocked": (
+                limit_reason is not None
+                or loop_result["terminal_outcome"] == "denied"
+            ),
             "dry_run_result": _primary_dry_run_result(
                 projection.dry_run_results
             ),
@@ -507,6 +517,7 @@ class UnifiedSessionRunner:
             "final_message": loop_result["assistant_text"],
             "limit_reason": limit_reason,
             "provider_errors": loop_result["provider_errors"],
+            "terminal_outcome": loop_result["terminal_outcome"],
             "advisory_only": not projection.tool_requests,
             "is_chitchat": projection.is_chitchat,
             "approval_mode": setup.policy.mode.value,

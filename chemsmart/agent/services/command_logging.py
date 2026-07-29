@@ -3,6 +3,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from chemsmart.agent.private_io import (
+    ensure_private_directory,
+    ensure_private_file,
+    write_private_text,
+)
+
 _FORMATTER = logging.Formatter(
     "{asctime} - {levelname:6s} - [{name}] {message}",
     style="{",
@@ -95,7 +101,7 @@ def _silence_console_logging(
 ) -> Path:
     """Redirect console logging to a per-install agent log file."""
     session_root = Path(session_root)
-    session_root.mkdir(parents=True, exist_ok=True)
+    ensure_private_directory(session_root)
     log_path = session_root / log_name
     root = logging.getLogger()
     root.setLevel(logging.DEBUG)
@@ -118,11 +124,13 @@ def _silence_console_logging(
 
     existing_handler = next(iter(file_handlers), None)
     if existing_handler is not None:
+        ensure_private_file(log_path)
         existing_handler.setLevel(logging.DEBUG)
         existing_handler.setFormatter(_FORMATTER)
         return log_path
 
-    handler = logging.FileHandler(log_path, mode="w", encoding="utf-8")
+    write_private_text(log_path, "")
+    handler = logging.FileHandler(log_path, mode="a", encoding="utf-8")
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(_FORMATTER)
     root.addHandler(handler)

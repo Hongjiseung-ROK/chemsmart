@@ -63,6 +63,7 @@ READ_ONLY_TOOLS = {
     "search_basis_sets",
     "get_studio_context",
     "analyze_current_molecule",
+    "report_studio_result",
     "prepare_molecule_optimization",
     "validate_prepared_optimization",
     "get_optimization_status",

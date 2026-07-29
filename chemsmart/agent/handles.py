@@ -7,6 +7,10 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from chemsmart.agent.private_io import (
+    append_private_text,
+    ensure_private_directory,
+)
 from chemsmart.agent.serialization import generic_json_safe
 
 #: Tools that return a program settings object. Each program has its own
@@ -51,7 +55,7 @@ class HandleStore:
 
     def __init__(self, session_dir: str | Path) -> None:
         self.session_dir = Path(session_dir)
-        self.session_dir.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(self.session_dir)
         self.path = self.session_dir / "handles.jsonl"
         self._objects: dict[str, Any] = {}
         self._summaries: dict[str, dict[str, Any]] = {}
@@ -72,18 +76,18 @@ class HandleStore:
         self._objects[handle_id] = obj
         self._summaries[handle_id] = safe_summary
         self._kinds[handle_id] = kind
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(
-                json.dumps(
-                    {
-                        "handle_id": handle_id,
-                        "kind": kind,
-                        "summary": safe_summary,
-                    },
-                    sort_keys=True,
-                )
-                + "\n"
+        append_private_text(
+            self.path,
+            json.dumps(
+                {
+                    "handle_id": handle_id,
+                    "kind": kind,
+                    "summary": safe_summary,
+                },
+                sort_keys=True,
             )
+            + "\n",
+        )
         return handle_id
 
     def get(self, handle_id: str) -> Any:

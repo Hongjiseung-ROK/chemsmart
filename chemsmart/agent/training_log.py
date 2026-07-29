@@ -30,6 +30,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from chemsmart.agent.private_io import (
+    append_private_text,
+    ensure_private_directory,
+    write_private_text,
+)
+
 JsonDict = dict[str, Any]
 
 EPISODE_SCHEMA_VERSION = 2
@@ -276,11 +282,10 @@ class TrainingEpisodeWriter:
             record["dataset_provenance"] = provenance
 
         episode_path = self._episode_path()
-        episode_path.parent.mkdir(parents=True, exist_ok=True)
-        with episode_path.open("a", encoding="utf-8") as handle:
-            handle.write(
-                json.dumps(record, sort_keys=True, default=str) + "\n"
-            )
+        append_private_text(
+            episode_path,
+            json.dumps(record, sort_keys=True, default=str) + "\n",
+        )
         return episode_path
 
     def _episode_path(self) -> Path:
@@ -292,8 +297,8 @@ class TrainingEpisodeWriter:
         prompt_dir = self.config.dir / "prompts"
         prompt_path = prompt_dir / f"{digest}.txt"
         if not prompt_path.exists():
-            prompt_dir.mkdir(parents=True, exist_ok=True)
-            prompt_path.write_text(content, encoding="utf-8")
+            ensure_private_directory(prompt_dir)
+            write_private_text(prompt_path, content)
         return digest
 
 

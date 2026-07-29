@@ -10,6 +10,7 @@ from chemsmart.agent.permissions import RuntimePermissionMode
 class RuntimeToolMetadata:
     read_only: bool = False
     edit_safe: bool = False
+    terminal: bool = False
     requires_mode: frozenset[RuntimePermissionMode] = frozenset()
     ui_summary_template: str | None = None
     side_effect: str | None = None
@@ -17,6 +18,10 @@ class RuntimeToolMetadata:
 
 def is_read_only(spec: Any) -> bool:
     return _metadata_for(spec).read_only
+
+
+def is_terminal(spec: Any) -> bool:
+    return _metadata_for(spec).terminal
 
 
 def is_allowed_in_mode(

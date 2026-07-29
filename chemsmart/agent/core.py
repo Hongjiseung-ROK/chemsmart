@@ -37,6 +37,7 @@ from chemsmart.agent.permissions import (
     ApprovalDecision,
     PermissionPolicy,
 )
+from chemsmart.agent.private_io import ensure_private_directory
 from chemsmart.agent.prompts import load_prompt
 from chemsmart.agent.prompts.identity import (
     build_system_prompt,
@@ -96,6 +97,7 @@ from chemsmart.agent.services.step_executor import (
 )
 from chemsmart.agent.services.training_capture import (
     TrainingCapture,
+    TrainingCapturePolicy,
     registry_tool_names,
 )
 from chemsmart.agent.services.unified_session import UnifiedSessionRunner
@@ -123,13 +125,14 @@ class AgentSession:
         stage_prompt: str = "tool_loop.md",
         runtime_v2: str | bool | None = None,
         tool_profile: PhaseToolProfile | None = None,
+        training_capture: TrainingCapturePolicy | str | bool | None = None,
     ) -> None:
         self._provider = provider
         self.registry = registry or ToolRegistry.default()
         self.transport = transport
         self._stage_prompt = stage_prompt
         self.session_root = Path(session_root or _default_session_root())
-        self.session_root.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(self.session_root)
         self.state: SessionState | None = None
         self.session_dir: Path | None = None
         self.decision_log: DecisionLog | None = None
@@ -140,6 +143,9 @@ class AgentSession:
         self._loop_mode_state: tuple[str, bool] | None = None
         self._last_harness_result: HarnessResult | None = None
         self._training_writer: Any | None = None
+        self.training_capture_policy = TrainingCapturePolicy.parse(
+            training_capture
+        )
         runtime_setting = (
             runtime_v2
             if runtime_v2 is not None
@@ -609,6 +615,7 @@ def _session_kwargs(kwargs: dict[str, Any]) -> dict[str, Any]:
             "transport",
             "runtime_v2",
             "tool_profile",
+            "training_capture",
         )
         if key in kwargs
     }

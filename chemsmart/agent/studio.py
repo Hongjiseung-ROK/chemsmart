@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Mapping, Protocol
 
 from chemsmart.agent.registry import ToolSpec, build_tool_spec
@@ -15,6 +16,8 @@ class StudioHostAdapter(Protocol):
     def get_studio_context(self, arguments: dict[str, Any]) -> Any: ...
 
     def analyze_current_molecule(self, arguments: dict[str, Any]) -> Any: ...
+
+    def report_studio_result(self, arguments: dict[str, Any]) -> Any: ...
 
 
 class CalculationExecutionAdapter(Protocol):
@@ -68,6 +71,7 @@ class StudioToolAdapters:
 STUDIO_TOOL_NAMES = (
     "get_studio_context",
     "analyze_current_molecule",
+    "report_studio_result",
     "prepare_molecule_optimization",
     "validate_prepared_optimization",
     "start_prepared_optimization",
@@ -93,6 +97,10 @@ _TOOL_DESCRIPTIONS = {
     ),
     "analyze_current_molecule": (
         "Analyze the current committed Studio molecule without changing it."
+    ),
+    "report_studio_result": (
+        "Publish the final schema-validated public answer and scientific "
+        "artifacts for this Studio turn."
     ),
     "prepare_molecule_optimization": (
         "Prepare a revision-bound optimization plan without starting an engine."
@@ -124,6 +132,7 @@ _TOOL_DESCRIPTIONS = {
 _TOOL_TARGETS = {
     "get_studio_context": ("host", "get_studio_context"),
     "analyze_current_molecule": ("host", "analyze_current_molecule"),
+    "report_studio_result": ("host", "report_studio_result"),
     "prepare_molecule_optimization": (
         "execution",
         "prepare_molecule_optimization",
@@ -208,6 +217,7 @@ def build_studio_tool_specs(
                 description=_TOOL_DESCRIPTIONS[tool_name],
                 metadata=RuntimeToolMetadata(
                     read_only=not requires_approval,
+                    terminal=tool_name == "report_studio_result",
                     side_effect=(
                         None
                         if not requires_approval
@@ -224,74 +234,135 @@ def build_studio_tool_specs(
     return tuple(specs)
 
 
-STUDIO_TOOL_PROFILE = PhaseToolProfile(
-    {
-        TaskPhase.ROUTE: (
-            "get_studio_context",
-            "analyze_current_molecule",
-        ),
-        TaskPhase.PROJECT: (
-            "get_studio_context",
-            "analyze_current_molecule",
-            "prepare_molecule_optimization",
-            "validate_prepared_optimization",
-        ),
-        TaskPhase.PROJECT_READ: (
-            "get_studio_context",
-            "analyze_current_molecule",
-            "get_optimization_status",
-            "get_optimization_replay",
-            "compare_optimization_frames",
-        ),
-        TaskPhase.PROJECT_WRITE: (
-            "get_studio_context",
-            "list_calculation_artifacts",
-            "read_calculation_artifact",
-            "import_completed_calculation",
-            "get_optimization_status",
-        ),
-        TaskPhase.SYNTHESIS: (
-            "get_studio_context",
-            "analyze_current_molecule",
-            "prepare_molecule_optimization",
-            "validate_prepared_optimization",
-        ),
-        TaskPhase.VALIDATION: (
-            "analyze_current_molecule",
-            "validate_prepared_optimization",
-            "get_optimization_status",
-            "get_optimization_replay",
-            "compare_optimization_frames",
-        ),
-        TaskPhase.REPAIR: (
-            "get_studio_context",
-            "analyze_current_molecule",
-            "prepare_molecule_optimization",
-            "validate_prepared_optimization",
-            "get_optimization_status",
-        ),
-        TaskPhase.EXECUTION: (
-            "validate_prepared_optimization",
-            "start_prepared_optimization",
-            "get_optimization_status",
-            "get_optimization_replay",
-            "compare_optimization_frames",
-        ),
-        TaskPhase.DIAGNOSTICS: (
-            "get_optimization_status",
-            "list_calculation_artifacts",
-            "read_calculation_artifact",
-            "get_optimization_replay",
-            "import_completed_calculation",
-        ),
-    },
-    specialist_tools=(
+class StudioCapability(str, Enum):
+    """Host-selected ceiling for one Studio turn."""
+
+    INSPECT = "inspect"
+    PLAN = "plan"
+    ACT = "act"
+
+
+_STUDIO_PHASE_TOOLS = {
+    TaskPhase.ROUTE: (
+        "get_studio_context",
+        "analyze_current_molecule",
+        "report_studio_result",
+    ),
+    TaskPhase.PROJECT: (
         "get_studio_context",
         "analyze_current_molecule",
         "prepare_molecule_optimization",
         "validate_prepared_optimization",
+        "report_studio_result",
     ),
+    TaskPhase.PROJECT_READ: (
+        "get_studio_context",
+        "analyze_current_molecule",
+        "get_optimization_status",
+        "get_optimization_replay",
+        "compare_optimization_frames",
+        "report_studio_result",
+    ),
+    TaskPhase.PROJECT_WRITE: (
+        "get_studio_context",
+        "list_calculation_artifacts",
+        "read_calculation_artifact",
+        "import_completed_calculation",
+        "get_optimization_status",
+        "report_studio_result",
+    ),
+    TaskPhase.SYNTHESIS: (
+        "get_studio_context",
+        "analyze_current_molecule",
+        "prepare_molecule_optimization",
+        "validate_prepared_optimization",
+        "report_studio_result",
+    ),
+    TaskPhase.VALIDATION: (
+        "analyze_current_molecule",
+        "validate_prepared_optimization",
+        "get_optimization_status",
+        "get_optimization_replay",
+        "compare_optimization_frames",
+        "report_studio_result",
+    ),
+    TaskPhase.REPAIR: (
+        "get_studio_context",
+        "analyze_current_molecule",
+        "prepare_molecule_optimization",
+        "validate_prepared_optimization",
+        "get_optimization_status",
+        "report_studio_result",
+    ),
+    TaskPhase.EXECUTION: (
+        "validate_prepared_optimization",
+        "start_prepared_optimization",
+        "get_optimization_status",
+        "get_optimization_replay",
+        "compare_optimization_frames",
+        "report_studio_result",
+    ),
+    TaskPhase.DIAGNOSTICS: (
+        "get_optimization_status",
+        "list_calculation_artifacts",
+        "read_calculation_artifact",
+        "get_optimization_replay",
+        "import_completed_calculation",
+        "report_studio_result",
+    ),
+}
+_STUDIO_SPECIALIST_TOOLS = (
+    "get_studio_context",
+    "analyze_current_molecule",
+    "prepare_molecule_optimization",
+    "validate_prepared_optimization",
+    "report_studio_result",
 )
+_INSPECT_TOOLS = frozenset(
+    {
+        "get_studio_context",
+        "analyze_current_molecule",
+        "get_optimization_status",
+        "list_calculation_artifacts",
+        "read_calculation_artifact",
+        "get_optimization_replay",
+        "compare_optimization_frames",
+        "report_studio_result",
+    }
+)
+_PLAN_TOOLS = _INSPECT_TOOLS | {
+    "prepare_molecule_optimization",
+    "validate_prepared_optimization",
+}
+
+
+def build_studio_tool_profile(
+    capability: StudioCapability | str,
+) -> PhaseToolProfile:
+    """Build a profile whose tools cannot exceed the host-selected ceiling."""
+
+    resolved = StudioCapability(capability)
+    allowed = (
+        _INSPECT_TOOLS
+        if resolved is StudioCapability.INSPECT
+        else (
+            _PLAN_TOOLS
+            if resolved is StudioCapability.PLAN
+            else frozenset(STUDIO_TOOL_NAMES)
+        )
+    )
+    return PhaseToolProfile(
+        {
+            phase: tuple(name for name in names if name in allowed)
+            for phase, names in _STUDIO_PHASE_TOOLS.items()
+        },
+        specialist_tools=tuple(
+            name for name in _STUDIO_SPECIALIST_TOOLS if name in allowed
+        ),
+    )
+
+
+STUDIO_TOOL_PROFILE = build_studio_tool_profile(StudioCapability.ACT)
 
 
 __all__ = [
@@ -300,7 +371,9 @@ __all__ = [
     "STUDIO_TOOL_PROFILE",
     "StudioApprovalAdapter",
     "StudioArtifactAdapter",
+    "StudioCapability",
     "StudioHostAdapter",
     "StudioToolAdapters",
+    "build_studio_tool_profile",
     "build_studio_tool_specs",
 ]

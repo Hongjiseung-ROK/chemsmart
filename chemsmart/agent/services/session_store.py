@@ -10,6 +10,10 @@ import uuid
 from pathlib import Path
 
 from chemsmart.agent.models import SessionState, utc_now_iso
+from chemsmart.agent.private_io import (
+    secure_private_tree,
+    write_private_text,
+)
 
 CURRENT_STATE_NAME = "session.json"
 LEGACY_STATE_NAME = "state.json"
@@ -103,10 +107,11 @@ def migrate_legacy_session(
             "session_id": legacy_state.session_id,
             "source_artifact_sha256": source_hashes,
         }
-        (temporary / MIGRATION_MANIFEST_NAME).write_text(
+        write_private_text(
+            temporary / MIGRATION_MANIFEST_NAME,
             json.dumps(manifest, indent=2, sort_keys=True),
-            encoding="utf-8",
         )
+        secure_private_tree(temporary)
         temporary.replace(target_path)
     except Exception:
         shutil.rmtree(temporary, ignore_errors=True)

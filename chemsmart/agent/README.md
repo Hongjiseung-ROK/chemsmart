@@ -139,6 +139,15 @@ Provider identity is independent from the wire protocol. OpenAI-compatible
 providers such as DeepSeek keep their own identity for routing and receipts but
 declare `wire_protocol = "openai"` for tool-call parsing and tool-result messages.
 
+Embedded hosts own training capture and Studio capability selection. A packaged
+Studio session must pass `training_capture="disabled"` to `AgentSession`; this
+prevents repository-local SFT artifacts regardless of the user's standalone
+agent configuration. Studio also supplies a host-selected
+`build_studio_tool_profile("inspect" | "plan" | "act")` for each turn. The
+profile is a capability ceiling: request text and model tool calls cannot widen
+it. `report_studio_result` is the terminal, schema-validated publication tool;
+successful publication ends the turn without another provider call.
+
 If provider config sets `project: test`, the TUI uses it only to select an
 unambiguous matching YAML from the current workspace. Workspace selection takes
 precedence, and a configured name does not make an absent YAML valid. The model

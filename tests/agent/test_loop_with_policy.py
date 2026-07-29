@@ -173,3 +173,51 @@ def test_permission_mode_without_approver_auto_denies(tmp_path):
     ]
     assert result["tool_outcomes"][0].error_message == "no_approver"
     assert registry.calls == []
+
+
+def test_denial_skips_sibling_tools_and_ends_turn(tmp_path):
+    provider = FakeProvider(
+        [
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call("call_1", "run_local", {"job": "job_1"}),
+                    tool_call(
+                        "call_2",
+                        "recommend_method",
+                        {"task": "try an alternative"},
+                    ),
+                )
+            }
+        ]
+    )
+    registry = ScriptedRegistry(
+        {
+            "run_local": {"ok": True},
+            "recommend_method": {"method": "wb97xd"},
+        }
+    )
+    approver = FakeApprover([ApprovalDecision.DENY])
+    loop = ToolLoop(
+        provider=provider,
+        registry=registry,
+        handle_store=HandleStore(tmp_path),
+        decision_log=DecisionLog(tmp_path / "decision_log.jsonl"),
+        policy=PermissionPolicy(mode=PermissionMode.PERMISSION),
+        approver=approver,
+    )
+
+    result = loop.run_turn(
+        messages=[{"role": "user", "content": "Run, then recommend."}],
+        tool_defs=registry.openai_tool_defs(),
+    )
+
+    assert len(provider.calls) == 1
+    assert approver.calls == ["run_local"]
+    assert registry.calls == []
+    assert [
+        (outcome.name, outcome.status) for outcome in result["tool_outcomes"]
+    ] == [
+        ("run_local", "denied"),
+        ("recommend_method", "skipped"),
+    ]
+    assert result["terminal_outcome"] == "denied"

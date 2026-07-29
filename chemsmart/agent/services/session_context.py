@@ -12,6 +12,12 @@ from typing import Any, Protocol
 from chemsmart.agent.handles import HandleStore, store_result_handle
 from chemsmart.agent.models import CriticVerdict, SessionState, utc_now_iso
 from chemsmart.agent.permissions import PermissionPolicy
+from chemsmart.agent.private_io import (
+    append_private_text,
+    ensure_private_directory,
+    secure_private_tree,
+    write_private_text,
+)
 from chemsmart.agent.runtime.contracts import RuntimeV2Mode
 from chemsmart.agent.runtime.orchestrator import RuntimeController
 from chemsmart.agent.services.conversation_memory import ConversationMemory
@@ -24,7 +30,7 @@ UTC = timezone.utc
 class DecisionLog:
     def __init__(self, path: Path) -> None:
         self.path = path
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(self.path.parent)
 
     def write(
         self, kind: str, payload: dict[str, Any], rationale: str = ""
@@ -35,8 +41,10 @@ class DecisionLog:
             "payload": json_safe(payload),
             "rationale": rationale,
         }
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(entry, sort_keys=True) + "\n")
+        append_private_text(
+            self.path,
+            json.dumps(entry, sort_keys=True) + "\n",
+        )
 
     def read_all(self) -> list[dict[str, Any]]:
         if not self.path.exists():
@@ -68,7 +76,7 @@ class SessionContext:
         session = self.session
         session_id = new_session_id()
         session.session_dir = session.session_root / session_id
-        session.session_dir.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(session.session_dir)
         session.handle_store = HandleStore(session.session_dir)
         session.decision_log = DecisionLog(
             session.session_dir / "decision_log.jsonl"
@@ -106,6 +114,7 @@ class SessionContext:
     def load_existing(self, session_id: str) -> None:
         session = self.session
         session.session_dir = session.session_root / session_id
+        secure_private_tree(session.session_dir)
         session.state = load_current_session_state(
             session.session_dir, required=True
         )
@@ -150,9 +159,9 @@ class SessionContext:
         path = session.session_dir / (
             f"turn_{session.state.turn_index:02d}_step_{step_index + 1:02d}.json"
         )
-        path.write_text(
+        write_private_text(
+            path,
             json.dumps(json_safe(result), indent=2, sort_keys=True),
-            encoding="utf-8",
         )
         return path
 

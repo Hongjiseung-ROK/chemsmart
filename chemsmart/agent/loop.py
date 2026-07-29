@@ -27,6 +27,7 @@ from chemsmart.agent.provider_adapter import (
 )
 from chemsmart.agent.registry import ToolRegistry
 from chemsmart.agent.services.tool_loop_runner import ToolLoopRunner
+from chemsmart.agent.tool_protocol import is_terminal
 
 ASK_USER_TOOL_NAME = "ask_user"
 ASK_USER_TOOL_DEF: dict[str, Any] = {
@@ -100,6 +101,13 @@ class ToolLoop:
         return ToolLoopRunner(self).run(
             messages, tool_defs, mode, allowed_tool_names
         )
+
+    def _tool_is_terminal(self, tool_name: str) -> bool:
+        get_tool = getattr(self.registry, "get_tool", None)
+        if not callable(get_tool):
+            return False
+        spec = get_tool(tool_name)
+        return spec is not None and is_terminal(spec)
 
     def _run_one_request(
         self,

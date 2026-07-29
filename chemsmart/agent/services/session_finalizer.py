@@ -9,6 +9,7 @@ from typing import Any, Protocol
 from chemsmart.agent.harness.models import HarnessResult
 from chemsmart.agent.harness.trace import write_harness_result
 from chemsmart.agent.models import CriticVerdict, SessionState, utc_now_iso
+from chemsmart.agent.private_io import write_private_text
 from chemsmart.agent.services.runtime_metrics import (
     elapsed_ms,
     git_sha,
@@ -137,9 +138,9 @@ class SessionFinalizer:
             is_chitchat=is_chitchat,
             rationale=rationale,
         )
-        (session.session_dir / "session_metadata.json").write_text(
+        write_private_text(
+            session.session_dir / "session_metadata.json",
             json.dumps(metadata, indent=2, sort_keys=True),
-            encoding="utf-8",
         )
 
     def _summary(

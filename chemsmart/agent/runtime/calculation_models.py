@@ -11,6 +11,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
+from chemsmart.agent.private_io import (
+    append_private_text,
+    ensure_private_directory,
+    write_private_text,
+)
+
 UTC = timezone.utc
 
 
@@ -155,12 +161,12 @@ class CalculationStore:
     def __init__(self, session_dir: str | Path) -> None:
         self.session_dir = Path(session_dir)
         self.root = self.session_dir / "calculations"
-        self.root.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(self.root)
         self._lock = threading.Lock()
 
     def run_dir(self, run_id: str) -> Path:
         path = self.root / run_id
-        path.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(path)
         return path
 
     def write_run(self, run: CalculationRun) -> None:
@@ -168,14 +174,14 @@ class CalculationStore:
         temporary = destination.with_suffix(".json.tmp")
         payload = json.dumps(run.to_dict(), indent=2, sort_keys=True)
         with self._lock:
-            temporary.write_text(payload, encoding="utf-8")
+            write_private_text(temporary, payload)
             temporary.replace(destination)
 
     def append_event(self, event: CalculationEvent) -> None:
         path = self.run_dir(event.run.run_id) / "events.jsonl"
         line = json.dumps(event.to_dict(), sort_keys=True)
-        with self._lock, path.open("a", encoding="utf-8") as handle:
-            handle.write(line + "\n")
+        with self._lock:
+            append_private_text(path, line + "\n")
 
     def record(self, event: CalculationEvent) -> None:
         self.write_run(event.run)

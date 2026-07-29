@@ -24,8 +24,11 @@ __all__ = [
     "CalculationExecutionAdapter",
     "StudioApprovalAdapter",
     "StudioArtifactAdapter",
+    "StudioCapability",
     "StudioHostAdapter",
     "StudioToolAdapters",
+    "TrainingCapturePolicy",
+    "build_studio_tool_profile",
     "build_studio_tool_specs",
 ]
 
@@ -70,11 +73,20 @@ _EXPORTS = {
         "chemsmart.agent.studio",
         "StudioArtifactAdapter",
     ),
+    "StudioCapability": ("chemsmart.agent.studio", "StudioCapability"),
     "StudioHostAdapter": ("chemsmart.agent.studio", "StudioHostAdapter"),
     "StudioToolAdapters": ("chemsmart.agent.studio", "StudioToolAdapters"),
     "build_studio_tool_specs": (
         "chemsmart.agent.studio",
         "build_studio_tool_specs",
+    ),
+    "build_studio_tool_profile": (
+        "chemsmart.agent.studio",
+        "build_studio_tool_profile",
+    ),
+    "TrainingCapturePolicy": (
+        "chemsmart.agent.services.training_capture",
+        "TrainingCapturePolicy",
     ),
 }
 

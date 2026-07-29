@@ -15,12 +15,12 @@ from chemsmart.agent.provider_adapter import (
     normalize_response,
     response_payload,
 )
-from chemsmart.agent.public_visibility import sanitize_public_text
 from chemsmart.agent.providers import (
     DEFAULT_TIMEOUT_S,
     extract_response_metadata,
     extract_response_usage,
 )
+from chemsmart.agent.public_visibility import sanitize_public_text
 
 ASK_USER_TOOL_NAME = "ask_user"
 _PRIVATE_REASONING_KEYS = frozenset(
@@ -51,6 +51,7 @@ class LoopHost(Protocol):
     def _run_one_request(
         self, step: int, request: ToolRequest
     ) -> tuple[ToolOutcome, bool]: ...
+    def _tool_is_terminal(self, tool_name: str) -> bool: ...
     def _skipped_outcome(
         self, step: int, request: ToolRequest, *, reason: str
     ) -> ToolOutcome: ...
@@ -255,6 +256,8 @@ class ToolLoopRunner:
             state.tool_calls += 1
         elif outcome.status == "denied":
             state.denials_count += 1
+            state.stop_reason = "denied"
+            return outcome, True
         if outcome.status == "error":
             state.consecutive_tool_errors += 1
         else:
@@ -264,6 +267,11 @@ class ToolLoopRunner:
         )
         if should_stop:
             state.limit_reason = "max_consecutive_errors"
+        elif outcome.status == "ok" and self.loop._tool_is_terminal(
+            request.name
+        ):
+            state.stop_reason = "terminal_tool"
+            should_stop = True
         return outcome, should_stop
 
     def _log_request(
@@ -360,7 +368,18 @@ class ToolLoopRunner:
             self._log_request(state, request, index, len(requests))
             outcomes.append(
                 self._skip(
-                    state, request, state.limit_reason or "loop_stopped"
+                    state,
+                    request,
+                    state.limit_reason
+                    or (
+                        "permission_denied"
+                        if state.stop_reason == "denied"
+                        else (
+                            "terminal_tool_completed"
+                            if state.stop_reason == "terminal_tool"
+                            else "loop_stopped"
+                        )
+                    ),
                 )
             )
         return outcomes
@@ -460,6 +479,15 @@ def _provider_name(provider: Any, fallback: str) -> str:
 
 
 def _result(state: TurnState) -> dict[str, Any]:
+    terminal_outcome = (
+        "needs_user"
+        if state.ask_user_outcome
+        else (
+            "denied"
+            if state.denials_count
+            else ("failed" if state.limit_reason else "completed")
+        )
+    )
     return {
         "assistant_text": state.assistant_text,
         "tool_requests": state.tool_requests,
@@ -475,6 +503,7 @@ def _result(state: TurnState) -> dict[str, Any]:
         "denials_count": state.denials_count,
         "ask_user": state.ask_user_outcome,
         "provider_errors": state.provider_errors,
+        "terminal_outcome": terminal_outcome,
     }
 
 

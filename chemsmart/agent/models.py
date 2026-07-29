@@ -8,6 +8,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from chemsmart.agent.private_io import write_private_text
+
 UTC = timezone.utc
 
 
@@ -68,7 +70,7 @@ class SessionState(BaseModel):
         # chemistry symbols, spinner glyphs). Without an explicit encoding
         # Windows writes cp1252 and the save raises UnicodeEncodeError,
         # losing the turn.
-        path.write_text(self.model_dump_json(indent=2), encoding="utf-8")
+        write_private_text(path, self.model_dump_json(indent=2))
 
     @classmethod
     def load(cls, path: Path) -> "SessionState":

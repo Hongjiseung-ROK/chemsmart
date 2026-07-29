@@ -2,15 +2,48 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+from enum import Enum
 from typing import Any, Protocol
 
 from chemsmart.agent.services.result_codec import json_safe
+
+
+class TrainingCapturePolicy(str, Enum):
+    """Host-owned policy for optional SFT episode capture."""
+
+    CONFIGURED = "configured"
+    ENABLED = "enabled"
+    DISABLED = "disabled"
+
+    @classmethod
+    def parse(
+        cls,
+        value: "TrainingCapturePolicy | str | bool | None",
+    ) -> "TrainingCapturePolicy":
+        if value is None:
+            return cls.CONFIGURED
+        if isinstance(value, cls):
+            return value
+        if value is True:
+            return cls.ENABLED
+        if value is False:
+            return cls.DISABLED
+        normalized = str(value).strip().lower()
+        if normalized in {"configured", "config", "default"}:
+            return cls.CONFIGURED
+        if normalized in {"enabled", "enable", "on", "true", "1"}:
+            return cls.ENABLED
+        if normalized in {"disabled", "disable", "off", "false", "0"}:
+            return cls.DISABLED
+        raise ValueError(f"Unsupported training capture policy: {value!r}")
 
 
 class TrainingCaptureHost(Protocol):
     state: Any | None
     registry: Any
     _training_writer: Any | None
+    training_capture_policy: TrainingCapturePolicy
 
 
 class TrainingCapture:
@@ -46,12 +79,22 @@ class TrainingCapture:
     ) -> None:
         from chemsmart.agent.training_log import (
             TrainingEpisodeWriter,
+            TrainingLogConfig,
+            load_training_log_config,
             tool_records_from_outcomes,
         )
 
         session = self.session
+        if session.training_capture_policy is TrainingCapturePolicy.DISABLED:
+            return
         if session._training_writer is None:
-            session._training_writer = TrainingEpisodeWriter()
+            config: TrainingLogConfig | None = None
+            if (
+                session.training_capture_policy
+                is TrainingCapturePolicy.ENABLED
+            ):
+                config = replace(load_training_log_config(), enabled=True)
+            session._training_writer = TrainingEpisodeWriter(config=config)
         writer = session._training_writer
         if not writer.enabled or session.state is None:
             return
@@ -97,4 +140,8 @@ def _terminal_state(outcomes: list[Any]) -> dict[str, Any] | None:
     return None
 
 
-__all__ = ["TrainingCapture", "registry_tool_names"]
+__all__ = [
+    "TrainingCapture",
+    "TrainingCapturePolicy",
+    "registry_tool_names",
+]

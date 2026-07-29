@@ -8,6 +8,11 @@ from pathlib import Path
 from threading import RLock
 from typing import IO, Any, Iterable
 
+from chemsmart.agent.private_io import (
+    PRIVATE_FILE_MODE,
+    ensure_private_directory,
+    ensure_private_file,
+)
 from chemsmart.agent.runtime.events import EventKind, RuntimeEvent
 
 if os.name == "nt":  # Windows has no fcntl; use byte-range locks instead.
@@ -42,7 +47,7 @@ class EventStoreCorruptionError(RuntimeError):
 class RuntimeEventStore:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(self.path.parent)
         self._lock = RLock()
 
     def append(
@@ -54,7 +59,19 @@ class RuntimeEventStore:
         payload: dict[str, Any] | None = None,
         idempotency_key: str = "",
     ) -> RuntimeEvent:
-        with self._lock, self.path.open("a+", encoding="utf-8") as handle:
+        descriptor = os.open(
+            self.path,
+            os.O_RDWR
+            | os.O_CREAT
+            | os.O_APPEND
+            | getattr(os, "O_NOFOLLOW", 0),
+            PRIVATE_FILE_MODE,
+        )
+        with (
+            self._lock,
+            os.fdopen(descriptor, "a+", encoding="utf-8") as handle,
+        ):
+            ensure_private_file(self.path)
             _lock_exclusive(handle)
             try:
                 handle.seek(0)
@@ -93,14 +110,23 @@ class RuntimeEventStore:
         self, payload: dict[str, Any], path: str | Path
     ) -> None:
         target = Path(path)
-        target.parent.mkdir(parents=True, exist_ok=True)
+        ensure_private_directory(target.parent)
         temporary = target.with_name(f".{target.name}.{os.getpid()}.tmp")
-        with temporary.open("w", encoding="utf-8") as handle:
+        descriptor = os.open(
+            temporary,
+            os.O_WRONLY
+            | os.O_CREAT
+            | os.O_TRUNC
+            | getattr(os, "O_NOFOLLOW", 0),
+            PRIVATE_FILE_MODE,
+        )
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, indent=2, sort_keys=True)
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, target)
+        ensure_private_file(target)
 
     @staticmethod
     def _parse_lines(lines: Iterable[str]) -> list[RuntimeEvent]:
