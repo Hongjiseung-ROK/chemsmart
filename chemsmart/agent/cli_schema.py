@@ -13,6 +13,9 @@ from chemsmart import __version__
 
 JsonDict = dict[str, Any]
 
+_PRIMARY_PROGRAMS = frozenset({"gaussian", "orca", "xtb"})
+_NEVER_SUGGESTED_ROOTS = frozenset({"agent", "config"})
+
 
 def build_chemsmart_cli_schema() -> JsonDict:
     """Return a stable, JSON-serializable schema for the ChemSmart CLI.
@@ -26,7 +29,7 @@ def build_chemsmart_cli_schema() -> JsonDict:
     from chemsmart.cli.main import entry_point
 
     with click.Context(entry_point, info_name="chemsmart") as ctx:
-        return _command_schema(entry_point, ctx)
+        return _command_schema(entry_point, ctx, ("chemsmart",))
 
 
 def dump_schema_to_json(path: str | Path) -> JsonDict:
@@ -62,7 +65,11 @@ def schema_with_metadata(schema: JsonDict) -> JsonDict:
     return document
 
 
-def _command_schema(command: click.Command, ctx: click.Context) -> JsonDict:
+def _command_schema(
+    command: click.Command,
+    ctx: click.Context,
+    command_path: tuple[str, ...],
+) -> JsonDict:
     resolved_command = _resolve_deferred_group(command)
     if resolved_command is not command:
         command = resolved_command
@@ -70,15 +77,22 @@ def _command_schema(command: click.Command, ctx: click.Context) -> JsonDict:
             command, info_name=ctx.info_name, parent=ctx.parent
         )
 
-    schema: JsonDict = {
-        "name": ctx.info_name or command.name,
-        "description": _command_description(command),
-        "options": [_parameter_schema(param) for param in command.params],
-        "subcommands": {},
-    }
     semantic_required_options = getattr(
         command, "semantic_required_options", ()
     )
+    semantic_required_names = {
+        name for name, _label in semantic_required_options
+    }
+    schema: JsonDict = {
+        "name": ctx.info_name or command.name,
+        "description": _command_description(command),
+        "options": [
+            _parameter_schema(param, command_path, semantic_required_names)
+            for param in command.params
+        ],
+        "subcommands": {},
+        "completion": _command_completion(command_path),
+    }
     if semantic_required_options:
         schema["semantic"] = {
             "required_options": [
@@ -97,10 +111,43 @@ def _command_schema(command: click.Command, ctx: click.Context) -> JsonDict:
             child_ctx = click.Context(
                 child, info_name=command_name, parent=ctx
             )
-            subcommands[command_name] = _command_schema(child, child_ctx)
+            subcommands[command_name] = _command_schema(
+                child, child_ctx, (*command_path, command_name)
+            )
         schema["subcommands"] = subcommands
 
     return schema
+
+
+def _command_completion(command_path: tuple[str, ...]) -> JsonDict:
+    """Publish Studio guidance without changing Click's executable tree."""
+
+    if len(command_path) == 1:
+        return {
+            "suggest": True,
+            "tier": "primary",
+            "inspection_profile": "human_shell",
+        }
+
+    root_command = command_path[1]
+    if root_command in _NEVER_SUGGESTED_ROOTS:
+        return {
+            "suggest": False,
+            "tier": "advanced",
+            "inspection_profile": "human_shell",
+        }
+    if root_command in {"run", "sub"}:
+        primary = len(command_path) == 2 or command_path[2] in _PRIMARY_PROGRAMS
+        return {
+            "suggest": True,
+            "tier": "primary" if primary else "advanced",
+            "inspection_profile": "calculation",
+        }
+    return {
+        "suggest": True,
+        "tier": "advanced",
+        "inspection_profile": "human_shell",
+    }
 
 
 def _resolve_deferred_group(command: click.Command) -> click.Command:
@@ -132,7 +179,17 @@ def inspect_cleandoc(text: str) -> str:
     return inspect.cleandoc(text)
 
 
-def _parameter_schema(param: click.Parameter) -> JsonDict:
+def _parameter_schema(
+    param: click.Parameter,
+    command_path: tuple[str, ...],
+    semantic_required_names: set[str],
+) -> JsonDict:
+    is_xtb_project = (
+        len(command_path) >= 3
+        and command_path[1] in {"run", "sub"}
+        and command_path[2] == "xtb"
+        and param.name == "project"
+    )
     schema: JsonDict = {
         "name": param.name,
         "opts": _parameter_opts(param),
@@ -144,6 +201,14 @@ def _parameter_schema(param: click.Parameter) -> JsonDict:
         "multiple": bool(param.multiple),
         "required": bool(param.required),
         "nargs": param.nargs,
+        "completion": {
+            "suggest": not is_xtb_project,
+            "tier": (
+                "primary"
+                if param.required or param.name in semantic_required_names
+                else "advanced"
+            ),
+        },
     }
     return schema
 

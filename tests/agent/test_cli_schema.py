@@ -58,6 +58,58 @@ def test_top_level_subcommands() -> None:
     }
 
 
+def test_completion_metadata_publishes_the_guided_primary_tree() -> None:
+    schema = build_chemsmart_cli_schema()
+    commands = schema["subcommands"]
+
+    assert schema["completion"] == {
+        "suggest": True,
+        "tier": "primary",
+        "inspection_profile": "human_shell",
+    }
+    for name in ("run", "sub"):
+        assert commands[name]["completion"] == {
+            "suggest": True,
+            "tier": "primary",
+            "inspection_profile": "calculation",
+        }
+        programs = commands[name]["subcommands"]
+        for program in ("gaussian", "orca", "xtb"):
+            assert programs[program]["completion"] == {
+                "suggest": True,
+                "tier": "primary",
+                "inspection_profile": "calculation",
+            }
+        assert programs["database"]["completion"] == {
+            "suggest": True,
+            "tier": "advanced",
+            "inspection_profile": "calculation",
+        }
+
+
+def test_completion_metadata_keeps_manual_shell_commands_out_of_primary_guidance() -> (
+    None
+):
+    schema = build_chemsmart_cli_schema()
+    commands = schema["subcommands"]
+
+    assert commands["update"]["completion"] == {
+        "suggest": True,
+        "tier": "advanced",
+        "inspection_profile": "human_shell",
+    }
+    for name in ("agent", "config"):
+        assert commands[name]["completion"] == {
+            "suggest": False,
+            "tier": "advanced",
+            "inspection_profile": "human_shell",
+        }
+        assert all(
+            not child["completion"]["suggest"]
+            for child in commands[name]["subcommands"].values()
+        )
+
+
 def test_sub_gaussian_subcommands_include_expected_commands() -> None:
     schema = build_chemsmart_cli_schema()
     gaussian = schema["subcommands"]["sub"]["subcommands"]["gaussian"]
@@ -129,6 +181,13 @@ def test_xtb_schema_publishes_runtime_filename_requirement() -> None:
         requirement["name"] != "project"
         for requirement in xtb["semantic"]["required_options"]
     )
+    project = next(
+        option for option in xtb["options"] if option["name"] == "project"
+    )
+    assert project["completion"] == {
+        "suggest": False,
+        "tier": "advanced",
+    }
 
 
 def test_schema_is_json_serializable() -> None:

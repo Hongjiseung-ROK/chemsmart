@@ -1,9 +1,18 @@
 {
+  "completion": {
+    "inspection_profile": "calculation",
+    "suggest": true,
+    "tier": "primary"
+  },
   "description": "CLI subcommand for running Gaussian transition state calculation.",
   "name": "ts",
   "options": [
     {
       "choices": null,
+      "completion": {
+        "suggest": true,
+        "tier": "advanced"
+      },
       "default": true,
       "help": "Skip completed jobs. Use -R to rerun completed jobs.",
       "is_flag": true,
@@ -21,6 +30,10 @@
     },
     {
       "choices": null,
+      "completion": {
+        "suggest": true,
+        "tier": "advanced"
+      },
       "default": null,
       "help": "Indices of atoms to freeze for constrained optimization. 1-indexed.",
       "is_flag": false,
@@ -37,11 +50,20 @@
   ],
   "subcommands": {
     "qmmm": {
+      "completion": {
+        "inspection_profile": "calculation",
+        "suggest": true,
+        "tier": "primary"
+      },
       "description": "Run a QM/MM calculation for this job type.",
       "name": "qmmm",
       "options": [
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Functional for high-level QM region.",
           "is_flag": false,
@@ -57,6 +79,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Basis set for high-level QM region.",
           "is_flag": false,
@@ -72,6 +98,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Force field for high-level region.",
           "is_flag": false,
@@ -87,6 +117,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Functional for medium-level QM region.",
           "is_flag": false,
@@ -102,6 +136,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Basis set for medium-level QM region.",
           "is_flag": false,
@@ -117,6 +155,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Force field for medium-level region.",
           "is_flag": false,
@@ -132,6 +174,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Functional for low-level MM region.",
           "is_flag": false,
@@ -147,6 +193,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Basis set for low-level MM region.",
           "is_flag": false,
@@ -162,6 +212,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Force field for low-level MM region.",
           "is_flag": false,
@@ -177,6 +231,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Total system charge (1-indexed atoms)",
           "is_flag": false,
@@ -192,6 +250,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Total system multiplicity (2S+1)",
           "is_flag": false,
@@ -207,6 +269,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Charge of intermediate (high+medium) system",
           "is_flag": false,
@@ -222,6 +288,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Multiplicity of intermediate (high+medium) system",
           "is_flag": false,
@@ -237,6 +307,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Charge of high-level (model) system",
           "is_flag": false,
@@ -252,6 +326,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Multiplicity of high-level (model) system",
           "is_flag": false,
@@ -267,6 +345,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Atom indices for high-level QM region (1-indexed, e.g., '1-10,15,20').",
           "is_flag": false,
@@ -282,6 +364,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Atom indices for medium-level region (1-indexed).",
           "is_flag": false,
@@ -297,6 +383,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Atom indices for low-level MM region (1-indexed).",
           "is_flag": false,
@@ -312,6 +402,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Bonded atom pairs at QM/MM boundary as string representation of dict.",
           "is_flag": false,
@@ -327,6 +421,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": null,
           "help": "Scale factors for QM/MM calculations as string representation of dict.",
           "is_flag": false,
@@ -342,6 +440,10 @@
         },
         {
           "choices": null,
+          "completion": {
+            "suggest": true,
+            "tier": "advanced"
+          },
           "default": true,
           "help": "Skip completed jobs. Use -R to rerun completed jobs.",
           "is_flag": true,
