@@ -76,6 +76,16 @@ def _command_schema(command: click.Command, ctx: click.Context) -> JsonDict:
         "options": [_parameter_schema(param) for param in command.params],
         "subcommands": {},
     }
+    semantic_required_options = getattr(
+        command, "semantic_required_options", ()
+    )
+    if semantic_required_options:
+        schema["semantic"] = {
+            "required_options": [
+                {"name": name, "label": label}
+                for name, label in semantic_required_options
+            ]
+        }
 
     if isinstance(command, click.Group):
         subcommands: dict[str, JsonDict] = {}

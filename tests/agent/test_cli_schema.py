@@ -118,6 +118,19 @@ def test_choice_and_path_types_round_trip() -> None:
     }
 
 
+def test_xtb_schema_publishes_runtime_filename_requirement() -> None:
+    schema = build_chemsmart_cli_schema()
+    xtb = schema["subcommands"]["run"]["subcommands"]["xtb"]
+
+    assert xtb["semantic"] == {
+        "required_options": [{"name": "filename", "label": "file"}]
+    }
+    assert all(
+        requirement["name"] != "project"
+        for requirement in xtb["semantic"]["required_options"]
+    )
+
+
 def test_schema_is_json_serializable() -> None:
     schema = build_chemsmart_cli_schema()
 

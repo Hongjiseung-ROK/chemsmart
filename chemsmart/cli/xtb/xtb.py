@@ -193,6 +193,12 @@ def xtb(
     ctx.obj["filename"] = filename
 
 
+# Click keeps ``--filename`` optional so leaf ``--help`` can render. The real
+# execution contract above still requires it, so publish that semantic fact to
+# completion clients alongside the Click grammar.
+xtb.semantic_required_options = (("filename", "file"),)
+
+
 @xtb.result_callback()
 @click.pass_context
 def xtb_process_pipeline(ctx, *args, **kwargs):
