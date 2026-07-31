@@ -1,0 +1,4 @@
+interface:
+  display_name: "ChemSmart Evidence Audit"
+  short_description: "Audit scientific agent evidence"
+  default_prompt: "Use $chemsmart-evidence-audit to audit ChemSmart claims and run evidence."
