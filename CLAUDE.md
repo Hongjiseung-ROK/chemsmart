@@ -1,17 +1,14 @@
-# CLAUDE.md — ChemSmart agent SFT corpus
+# CLAUDE.md — historical SFT supplement
 
-Working context for Claude Code in this repo. Cline reads `.clinerules/` +
-`memory-bank/`; this file is the equivalent entry point for Claude.
+`AGENTS.md` is the authoritative repository contract. Read it first, then use
+the current checkout, parser, runtime contracts, and tests as ground truth.
 
-**Read first:** `memory-bank/progress.md` (live numbers), then
-`.clinerules/01-safety-invariants.md` and `.clinerules/04-cli-ground-truth.md`.
+This document preserves a 2026-07-10 SFT-collection snapshot for historical
+context. It is **not** the current ChemSmart mission, does not authorize live
+collection or computation, and must not override current approval, evidence, or
+CLI-scope policy.
 
-## Mission
-
-Build a production-grade SFT corpus and fine-tuned local model for the ChemSmart
-agent (Gaussian/ORCA CLI synthesis + HPC submission). Teachers run the real agent
-loop; the deterministic semantic gate acts as rejection sampling. Only
-gate-positive trajectories become trusted training rows.
+## Historical SFT context (not active project guidance)
 
 ## Hard rules (violating these has broken the machine or the data before)
 

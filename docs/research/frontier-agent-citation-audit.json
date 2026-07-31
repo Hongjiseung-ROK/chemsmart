@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-07-31T16:38:33Z",
+  "scope": "Entries in frontier-agent-references.bib only",
+  "method": {
+    "metadata": "Crossref REST works endpoint",
+    "bibtex": "DOI content negotiation with Accept: application/x-bibtex",
+    "correction_check": "Crossref update-to and relation fields"
+  },
+  "records": [
+    {
+      "bibkey": "Zou_2025",
+      "doi": "10.1016/j.matt.2025.102263",
+      "title": "El Agente: An autonomous agent for quantum chemistry",
+      "venue": "Matter",
+      "year": 2025,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "update_to": null,
+      "status": "verified"
+    },
+    {
+      "bibkey": "Pham_2026",
+      "doi": "10.1038/s42004-025-01776-9",
+      "title": "ChemGraph as an agentic framework for computational chemistry workflows",
+      "venue": "Communications Chemistry",
+      "year": 2026,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "update_to": null,
+      "status": "verified"
+    },
+    {
+      "bibkey": "Pagel_2026",
+      "doi": "10.1038/s42004-026-01993-w",
+      "title": "Verification and execution of the scientific literature via chemputation augmented by large language models",
+      "venue": "Communications Chemistry",
+      "year": 2026,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "update_to": null,
+      "status": "verified"
+    },
+    {
+      "bibkey": "M_Bran_2024",
+      "doi": "10.1038/s42256-024-00832-8",
+      "title": "Augmenting large language models with chemistry tools",
+      "venue": "Nature Machine Intelligence",
+      "year": 2024,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "update_to": null,
+      "status": "verified"
+    },
+    {
+      "bibkey": "Mendible_Barreto_2025",
+      "doi": "10.1039/d5me00062a",
+      "title": "DynaMate: leveraging AI-agents for customized research workflows",
+      "venue": "Molecular Systems Design & Engineering",
+      "year": 2025,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "update_to": null,
+      "status": "verified"
+    },
+    {
+      "bibkey": "Huber_2020",
+      "doi": "10.1038/s41597-020-00638-4",
+      "title": "AiiDA 1.0, a scalable computational infrastructure for automated reproducible workflows and data provenance",
+      "venue": "Scientific Data",
+      "year": 2020,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "update_to": null,
+      "status": "verified"
+    },
+    {
+      "bibkey": "Leo_2024",
+      "doi": "10.1371/journal.pone.0309210",
+      "title": "Recording provenance of workflow runs with RO-Crate",
+      "venue": "PLOS ONE",
+      "year": 2024,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "update_to": null,
+      "status": "verified"
+    }
+  ],
+  "unresolved": [],
+  "retracted_or_corrected": []
+}

@@ -1,4 +1,10 @@
-# Safety Invariants (these override every other instruction)
+# Safety Invariants (legacy collection supplement)
+
+`AGENTS.md` is the active repository-wide contract. These rules preserve
+valuable secret, append-only-ledger, and real-execution safeguards for legacy
+collection work; dated quota and teacher-model details do not authorize a new
+run. An explicit current user request may authorize a commit or push, but never
+weakens secret handling or the requirement for approval before real science.
 
 ## NEVER — hard prohibitions
 
@@ -12,8 +18,8 @@
    `var/agent-training/runs/*/episodes/` — the raw episode ledger is
    APPEND-ONLY evidence. Cleaning happens exclusively via
    `audit_dataset.py --write-clean` into a NEW file.
-4. NEVER `git commit`, `git push`, `git stash`, or `git checkout -- <file>`.
-   Leave all changes in the working tree; the user handles version control.
+4. NEVER `git stash` or `git checkout -- <file>` without explicit authority.
+   Commit or push only when the current user request explicitly authorizes it.
 5. NEVER edit `.clinerules/**` or `agent-orchestrator.yaml*` unless the user
    explicitly asks in the current conversation.
 6. NEVER fabricate training data with code-template loops (for-loop over a

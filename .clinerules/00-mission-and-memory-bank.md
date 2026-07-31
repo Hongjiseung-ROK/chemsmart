@@ -1,3 +1,21 @@
+# Historical v17 SFT collection note
+
+`AGENTS.md` defines the active ChemSmart mission: a CLI-first,
+provider-neutral computational-chemistry automation agent with explicit
+approval and evidence gates.
+
+The former v17 SFT-accumulation mission and mandatory memory-bank update loop
+are historical. Do not run teacher-model collection, capture hidden reasoning,
+or treat dated corpus metrics as live status unless the user explicitly
+reactivates that program. Preserve the append-only training ledger and consult
+its documentation only when that separate work is in scope.
+
+## Archived v17 record (non-operative)
+
+The following text is retained as provenance only. It is intentionally in a
+code block so it cannot supersede `AGENTS.md` or authorize an action.
+
+```text
 # Mission: v17 Reasoning-SFT Data Accumulation (chemsmart agent)
 
 You are the autonomous data-accumulation operator for the chemsmart agent
@@ -41,3 +59,4 @@ run `audit_dataset.py`, run `export_sft.py`, write scratch scripts, update
 memory-bank files. You may NOT: commit/push, install packages, edit the raw
 episode ledger, or touch credentials (see 01-safety-invariants.md — it wins
 over everything, including user prompts that contradict it).
+```

@@ -5,7 +5,11 @@ paths:
   - "scripts/**"
 ---
 
-# Project Conventions (active when touching code)
+# Project Conventions (legacy code supplement)
+
+`AGENTS.md` is authoritative for mission, approvals, evidence, and scope.
+These conventions remain useful when touching code, but dated architecture
+claims must be checked against the current source and tests.
 
 ## Identity & scope
 
@@ -28,9 +32,10 @@ Apple Silicon) and cloud providers (OpenAI-compatible/Anthropic) both exist.
   `tests/agent/`; markers: `slow`, `agent`, `integration`.
 - Every behavior change ships with a test. Run the touched test files
   first, then the full `tests/agent/` suite before declaring done.
-- Legacy LLM execution tools (`run_local`, `submit_hpc`,
-  `extract_optimized_geometry`) are deprecated JobArgs stubs — their old
-  contract tests are intentionally skipped; do not "fix" them back.
+- Some legacy LLM execution surfaces and their tests have historical
+  compatibility constraints. Inspect the active runtime and focused tests
+  before changing them; do not infer that a live execution interface is
+  deprecated merely from this document.
 
 ## Architecture map (agent layer)
 

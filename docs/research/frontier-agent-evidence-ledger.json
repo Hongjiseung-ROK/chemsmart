@@ -1,0 +1,489 @@
+{
+  "schema_version": 1,
+  "retrieved_at": "2026-07-31T16:38:33Z",
+  "baseline": {
+    "commit": "cf986251077b7ee65f8afa951ee76052146c7613",
+    "source_ref": "fork/codex/v015-cli-schema",
+    "cli_schema": {
+      "chemsmart_version": "2.0.1",
+      "sha256": "0cc218099762f0dd3f5bc0dabecbd29dab5c29666c8691dbc5d0f9b633850ebb",
+      "command_nodes": 171
+    },
+    "focused_validation": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/test_cli_schema.py tests/agent/test_schema_prune.py tests/agent/test_agent_registry.py tests/agent/test_permissions.py tests/agent/runtime -q",
+      "result": "206 passed in 4.80s"
+    }
+  },
+  "adoption_policy": {
+    "third_party_code": "No upstream skill or agent implementation is vendored by this foundation.",
+    "clean_room_adaptation": "Use concepts only after recording source revision, license status, executable surface, and decision.",
+    "execution": "Reference-only sources never bypass ChemSmart parser, approval, receipt, or validation policy."
+  },
+  "foundation_validation": {
+    "full_agent_suite": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent -q",
+      "result": "1231 passed, 6 warnings in 65.56s",
+      "checked_at": "2026-07-31T16:59:55Z"
+    },
+    "offline_contract": {
+      "command": "conda run -n chemsmart python scripts/review/validate_frontier_foundation.py --repo .",
+      "result": "passed",
+      "checked_at": "2026-07-31T16:59:55Z"
+    },
+    "skill_validation": {
+      "command": "/opt/anaconda3/bin/python quick_validate.py <skill>",
+      "result": "all three project-local skills valid",
+      "checked_at": "2026-07-31T16:59:55Z"
+    },
+    "forward_tests": {
+      "agent_harness": "Read-only test correctly separated current Chat Completions history replay from a future adapter-owned Responses-style continuation checkpoint.",
+      "scientific_workflow": "Read-only test withheld a TS/frequency validation claim until a rendered vibrational step and native artifacts exist; the skill now records this boundary.",
+      "evidence_audit": "Read-only test classified screenshot-plus-prose evidence as an unresolved, blocked computed-result claim rather than a validated calculation.",
+      "result": "three representative clean-context skill tests completed without file changes or execution"
+    }
+  },
+  "sources": [
+    {
+      "id": "el-agente-q",
+      "kind": "peer_reviewed_article",
+      "status": "peer_reviewed",
+      "title": "El Agente: An autonomous agent for quantum chemistry",
+      "doi": "10.1016/j.matt.2025.102263",
+      "url": "https://doi.org/10.1016/j.matt.2025.102263",
+      "bibkey": "Zou_2025",
+      "metadata_source": "Crossref REST and DOI content negotiation",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "repository_status": "No verified official reusable implementation repository was identified; treat as a benchmark paper and replication-data source.",
+      "adoption": "benchmark_only",
+      "supports": [
+        "Hierarchical computational-chemistry role decomposition",
+        "Human-authored domain context and tool-driven error recovery",
+        "Trace export as a reproducibility aid"
+      ],
+      "limitations": [
+        "Hierarchy is manually engineered",
+        "No verified reusable official codebase",
+        "Traceability is not independent scientific verification"
+      ]
+    },
+    {
+      "id": "el-agente-q-replication-data",
+      "kind": "research_data",
+      "status": "replication_data",
+      "title": "El Agente replication data",
+      "doi": "10.5683/SP3/JU2BQK",
+      "url": "https://doi.org/10.5683/SP3/JU2BQK",
+      "metadata_source": "DOI landing record",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "benchmark_data_reference",
+      "supports": [
+        "Reproducible benchmark inspection"
+      ],
+      "limitations": [
+        "Data availability does not imply implementation reuse rights"
+      ]
+    },
+    {
+      "id": "chemgraph",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "ChemGraph as an agentic framework for computational chemistry workflows",
+      "doi": "10.1038/s42004-025-01776-9",
+      "url": "https://doi.org/10.1038/s42004-025-01776-9",
+      "bibkey": "Pham_2026",
+      "repository": "https://github.com/argonne-lcf/ChemGraph",
+      "repository_license": "Apache-2.0 reported by the GitHub repository metadata at retrieval.",
+      "artifact_archive": "https://zenodo.org/records/17290519",
+      "metadata_source": "Crossref REST, DOI content negotiation, and repository metadata",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "architecture_and_evaluation_reference",
+      "supports": [
+        "Task decomposition for independently computable reaction components",
+        "Structured tool and aggregation design",
+        "Direct computational-chemistry multi-agent ablation evidence"
+      ],
+      "limitations": [
+        "Ablation scope is limited to selected reaction-property tasks",
+        "Not evidence for a fixed large specialist hierarchy"
+      ]
+    },
+    {
+      "id": "acra",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed_adjacent_domain",
+      "title": "Verification and execution of the scientific literature via chemputation augmented by large language models",
+      "doi": "10.1038/s42004-026-01993-w",
+      "url": "https://doi.org/10.1038/s42004-026-01993-w",
+      "bibkey": "Pagel_2026",
+      "repository": "https://github.com/croningp/acra",
+      "repository_license": "BSD-3-Clause reported by the GitHub repository metadata at retrieval.",
+      "metadata_source": "Crossref REST, DOI content negotiation, and repository metadata",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "critic_and_validator_pattern_reference",
+      "supports": [
+        "Critique combined with deterministic parsing and constrained execution",
+        "Independent verification as a complement to an LLM critic"
+      ],
+      "limitations": [
+        "Chemputation and wet-synthesis procedures are adjacent to, not equivalent to, quantum chemistry",
+        "An LLM critic alone cannot establish physical validity"
+      ]
+    },
+    {
+      "id": "chemcrow",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "Augmenting large language models with chemistry tools",
+      "doi": "10.1038/s42256-024-00832-8",
+      "url": "https://doi.org/10.1038/s42256-024-00832-8",
+      "bibkey": "M_Bran_2024",
+      "repository": "https://github.com/ur-whitelab/chemcrow-public",
+      "metadata_source": "Crossref REST and DOI content negotiation",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "tool_augmented_agent_reference",
+      "supports": [
+        "Tool augmentation as a chemistry-agent design pattern"
+      ],
+      "limitations": [
+        "Does not replace Chemistry-specific execution or reproducibility gates"
+      ]
+    },
+    {
+      "id": "dynamate",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "DynaMate: leveraging AI-agents for customized research workflows",
+      "doi": "10.1039/D5ME00062A",
+      "url": "https://doi.org/10.1039/D5ME00062A",
+      "bibkey": "Mendible_Barreto_2025",
+      "repository": "https://github.com/omendibleba/DynaMate",
+      "metadata_source": "Crossref REST and DOI content negotiation",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "modular_workflow_reference",
+      "supports": [
+        "Modular scheduling over expert-defined simulation tools"
+      ],
+      "limitations": [
+        "Limited direct evidence for autonomous or multi-agent superiority"
+      ]
+    },
+    {
+      "id": "mdcrow",
+      "kind": "preprint_and_repository",
+      "status": "preprint",
+      "title": "MDCrow: Automating Molecular Dynamics Workflows with Large Language Models",
+      "arxiv": "2502.09565",
+      "url": "https://arxiv.org/abs/2502.09565",
+      "repository": "https://github.com/ur-whitelab/MDCrow",
+      "metadata_source": "arXiv API",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "tool_coverage_reference_only",
+      "supports": [
+        "Expert molecular-dynamics tool catalog design"
+      ],
+      "limitations": [
+        "Preprint status",
+        "No independent scientific verifier or formal provenance layer"
+      ]
+    },
+    {
+      "id": "quasar",
+      "kind": "preprint_and_repository",
+      "status": "preprint",
+      "title": "QUASAR: A Universal Autonomous System for Atomistic Simulation and a Benchmark of Its Capabilities",
+      "arxiv": "2602.00185",
+      "url": "https://arxiv.org/abs/2602.00185",
+      "repository": "https://github.com/fengxuyy/QUASAR",
+      "metadata_source": "arXiv API",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "lifecycle_reference_only",
+      "supports": [
+        "Checkpoint, restart, and long-job check-in design"
+      ],
+      "limitations": [
+        "Preprint status and author-designed benchmark",
+        "License and evaluation design require separate review before reuse"
+      ]
+    },
+    {
+      "id": "virtuallab-cc",
+      "kind": "journal_article_and_repository",
+      "status": "journal_article",
+      "title": "VirtualLab_CC",
+      "doi": "10.1016/j.aichem.2026.100129",
+      "url": "https://doi.org/10.1016/j.aichem.2026.100129",
+      "repository": "https://github.com/CCBG-Lab/VirtualLab_CC",
+      "artifact_archive": "https://doi.org/10.5281/zenodo.21396720",
+      "metadata_source": "publisher and repository record",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "gated_lifecycle_reference_only",
+      "supports": [
+        "Calculation-stage gates, evidence logs, and structured result records"
+      ],
+      "limitations": [
+        "Young work-in-progress repository and limited published ablation evidence"
+      ]
+    },
+    {
+      "id": "aiida",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "AiiDA 1.0, a scalable computational infrastructure for automated reproducible workflows and data provenance",
+      "doi": "10.1038/s41597-020-00638-4",
+      "url": "https://doi.org/10.1038/s41597-020-00638-4",
+      "bibkey": "Huber_2020",
+      "repository": "https://github.com/aiidateam/aiida-core",
+      "metadata_source": "Crossref REST and DOI content negotiation",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "provenance_reference",
+      "supports": [
+        "Immutable process/data provenance and restartable workflow principles"
+      ],
+      "limitations": [
+        "Not an LLM-agent framework or a direct dependency decision"
+      ]
+    },
+    {
+      "id": "qcschema",
+      "kind": "open_specification",
+      "status": "open_specification",
+      "title": "QCSchema",
+      "url": "https://github.com/MolSSI/QCSchema",
+      "metadata_source": "official repository",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "compatibility_target",
+      "supports": [
+        "Structured quantum-chemistry input and result representation"
+      ],
+      "limitations": [
+        "Compatibility target; this foundation adds no dependency"
+      ]
+    },
+    {
+      "id": "ro-crate-workflow-run",
+      "kind": "peer_reviewed_article",
+      "status": "peer_reviewed",
+      "title": "Recording provenance of workflow runs with RO-Crate",
+      "doi": "10.1371/journal.pone.0309210",
+      "url": "https://doi.org/10.1371/journal.pone.0309210",
+      "bibkey": "Leo_2024",
+      "metadata_source": "Crossref REST and DOI content negotiation",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "manifest_reference",
+      "supports": [
+        "Workflow-run provenance packaging"
+      ],
+      "limitations": [
+        "Manifest format does not itself prove scientific validity"
+      ]
+    },
+    {
+      "id": "openai-codex-loop",
+      "kind": "official_product_documentation_and_open_repository",
+      "status": "official_documentation",
+      "title": "Unrolling the Codex agent loop",
+      "url": "https://openai.com/index/unrolling-the-codex-agent-loop/",
+      "repository": "https://github.com/openai/codex",
+      "metadata_source": "official OpenAI publication and repository",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "harness_reference",
+      "supports": [
+        "Iterative tool loop, durable state, approvals, and outcome-oriented validation"
+      ],
+      "limitations": [
+        "Does not disclose a complete current frontier-model training recipe"
+      ]
+    },
+    {
+      "id": "claude-code-subagents",
+      "kind": "official_product_documentation",
+      "status": "official_documentation",
+      "title": "Claude Code subagents",
+      "url": "https://code.claude.com/docs/en/sub-agents",
+      "repository": "https://github.com/anthropics/claude-agent-sdk-python",
+      "metadata_source": "official Anthropic documentation and repository",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "harness_reference",
+      "supports": [
+        "Isolated specialist contexts, permissions, and progressive instructions"
+      ],
+      "limitations": [
+        "No public evidence that the exact product harness is the model's training environment"
+      ]
+    },
+    {
+      "id": "kimi-code",
+      "kind": "open_repository",
+      "status": "open_repository",
+      "title": "Kimi Code",
+      "url": "https://github.com/MoonshotAI/kimi-code",
+      "metadata_source": "official repository",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "harness_reference",
+      "supports": [
+        "Goals, JSONL sessions, approvals, resumable and nested agent patterns"
+      ],
+      "limitations": [
+        "Architecture reference, not a ChemSmart dependency"
+      ]
+    },
+    {
+      "id": "kimi-k2",
+      "kind": "technical_report",
+      "status": "preprint",
+      "title": "Kimi K2: Open Agentic Intelligence",
+      "arxiv": "2507.20534",
+      "url": "https://arxiv.org/abs/2507.20534",
+      "metadata_source": "arXiv API",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "training_roadmap_reference",
+      "supports": [
+        "Verifiable reinforcement learning, stateful simulations, and anti-hacking evaluation ideas"
+      ],
+      "limitations": [
+        "Technical report, not independent peer review"
+      ]
+    },
+    {
+      "id": "kimi-k2-5",
+      "kind": "technical_report",
+      "status": "preprint",
+      "title": "Kimi K2.5: Visual Agentic Intelligence",
+      "arxiv": "2602.02276",
+      "url": "https://arxiv.org/abs/2602.02276",
+      "metadata_source": "arXiv API",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "training_roadmap_reference",
+      "supports": [
+        "Parallel-agent orchestration and latency-focused evaluation"
+      ],
+      "limitations": [
+        "Technical report, not independent peer review"
+      ]
+    },
+    {
+      "id": "kimi-k3",
+      "kind": "technical_report_and_open_repository",
+      "status": "preprint",
+      "title": "Kimi K3: Open Frontier Intelligence",
+      "arxiv": "2607.24653",
+      "url": "https://arxiv.org/abs/2607.24653",
+      "repository": "https://github.com/MoonshotAI/Kimi-K3",
+      "metadata_source": "arXiv API and official repository",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "training_and_portability_reference",
+      "supports": [
+        "Cross-harness training and provider-portable evaluation ideas"
+      ],
+      "limitations": [
+        "Technical report; do not claim a uniquely native agent harness"
+      ]
+    },
+    {
+      "id": "multiagentbench",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "MultiAgentBench",
+      "url": "https://aclanthology.org/2025.acl-long.421/",
+      "repository": "https://github.com/ulab-uiuc/MARBLE",
+      "metadata_source": "ACL Anthology and repository",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "evaluation_reference",
+      "supports": [
+        "Topology-sensitive multi-agent evaluation"
+      ],
+      "limitations": [
+        "General benchmark, not a quantum-chemistry validation"
+      ]
+    },
+    {
+      "id": "correlated-llm-errors",
+      "kind": "peer_reviewed_article",
+      "status": "peer_reviewed",
+      "title": "Correlated Errors in LLMs",
+      "url": "https://proceedings.mlr.press/v267/kim25e.html",
+      "metadata_source": "Proceedings of Machine Learning Research",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "red_team_reference",
+      "supports": [
+        "Non-independence of model errors as a reason to use deterministic arbitration"
+      ],
+      "limitations": [
+        "General LLM evidence, not a scientific-validation study"
+      ]
+    },
+    {
+      "id": "openai-cli-creator",
+      "kind": "skill_source",
+      "status": "reference_only",
+      "title": "OpenAI cli-creator skill",
+      "url": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/cli-creator",
+      "revision": "49f948faa9258a0c61caceaf225e179651397431",
+      "license_status": "NOASSERTION reported by GitHub repository metadata at retrieval.",
+      "metadata_source": "GitHub repository metadata and pinned source URL",
+      "reviewed_surface": [
+        "Skill authoring guidance",
+        "CLI design and test concepts"
+      ],
+      "adoption": "clean_room_concept_reference",
+      "rationale": "Do not copy or vendor an upstream skill with no asserted repository license at the inspected revision."
+    },
+    {
+      "id": "kdense-scientific-skills",
+      "kind": "skill_source",
+      "status": "reference_only",
+      "title": "K-Dense scientific-agent-skills",
+      "url": "https://github.com/K-Dense-AI/scientific-agent-skills/tree/ab2f84ab10597c59fac186ecda6d5edd5dcc8b92",
+      "revision": "ab2f84ab10597c59fac186ecda6d5edd5dcc8b92",
+      "license_status": "MIT",
+      "metadata_source": "GitHub repository metadata, LICENSE.md, and pinned source URL",
+      "reviewed_surface": [
+        "scientific-writing",
+        "scientific-critical-thinking",
+        "peer-review"
+      ],
+      "adoption": "clean_room_concept_reference",
+      "rationale": "Use claim, falsification, and review concepts without importing a broad executable skill collection."
+    },
+    {
+      "id": "atomistic-skills",
+      "kind": "skill_source",
+      "status": "reference_only",
+      "title": "AtomisticSkills",
+      "url": "https://github.com/learningmatter-mit/AtomisticSkills/tree/e4a1ba1c1e6657b09d7dfd69286fd3a8af411035",
+      "revision": "e4a1ba1c1e6657b09d7dfd69286fd3a8af411035",
+      "license_status": "MIT",
+      "metadata_source": "Pinned repository LICENSE and source URL",
+      "reviewed_surface": [
+        "general-property-units",
+        "general-fair-data-review",
+        "ORCA and physical-analysis workflow examples"
+      ],
+      "adoption": "clean_room_concept_reference",
+      "rationale": "Its standalone execution assumptions bypass ChemSmart approvals, receipts, and program-specific validation."
+    },
+    {
+      "id": "dpdispatcher-skill",
+      "kind": "skill_source",
+      "status": "reference_only",
+      "title": "DPDispatcher dpdisp-submit skill",
+      "url": "https://github.com/deepmodeling/dpdispatcher/tree/92be874aca92f5506534122b308e10a00b10f03b/skills/dpdisp-submit",
+      "revision": "92be874aca92f5506534122b308e10a00b10f03b",
+      "license_status": "LGPL-3.0-or-later",
+      "metadata_source": "Pinned repository LICENSE and source URL",
+      "reviewed_surface": [
+        "Scheduler submission workflow",
+        "Remote execution assumptions"
+      ],
+      "adoption": "future_adapter_reference_only",
+      "rationale": "Do not install a network-resolved, shell-capable scheduler path until a separately approved adapter can enforce redaction, schema validation, dry-run, exact allowlists, and approval-bound receipts."
+    }
+  ]
+}

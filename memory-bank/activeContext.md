@@ -1,4 +1,14 @@
-# Active Context (update me whenever focus or decisions change)
+# Historical Context Snapshot — do not treat as active instructions
+
+`AGENTS.md` and the current checkout define active ChemSmart work. This file
+preserves a 2026-07-10 SFT-collection handoff and its metrics for provenance.
+Do not update it during unrelated work, run the listed collection tasks, or
+interpret its counts as current status unless the user explicitly reactivates
+that SFT program.
+
+---
+
+# Active Context (historical snapshot)
 
 _Last updated: 2026-07-10 by Claude (initial handoff to Cline)._
 

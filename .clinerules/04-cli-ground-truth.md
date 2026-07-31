@@ -1,20 +1,25 @@
-# chemsmart CLI Ground Truth (for judging synthesized commands)
+# ChemSmart CLI Ground Truth (legacy corpus supplement)
 
-Source-verified facts. When in doubt, trust the semantic gate's verdict and
-the real click parser over any model output (including your own reasoning).
+`chemsmart/agent/cli_schema.py` and the live Click parser are the authoritative
+source. Regenerate and inspect the schema when command coverage matters; this
+document is not an exhaustive command inventory. Trust the real parser and
+semantic gate over any model output or prose.
 
 ## Command shape
 
 ```
-chemsmart {run|sub} [group opts] {gaussian|orca} [-p PROJECT] -f FILE \
+chemsmart {run|sub} [group opts] {gaussian|orca|xtb} [-p PROJECT] -f FILE \
     -c CHARGE -m MULT <jobkind> [job-specific structural opts]
 ```
 - `run` = local execution; `sub` = HPC submission. Server/cores/mem/time
   flags belong on the run/sub GROUP (before the engine), never after it.
 - Test-mode injection (only when actually executing): `run` → add
   `--fake --no-scratch`; `sub` → add `--fake --test`.
+- xTB is a primary calculation program. Its current leaf commands include
+  `sp`, `opt`, and `hess`; inspect the generated schema and program help for
+  exact options rather than copying Gaussian/ORCA assumptions.
 
-## Job kinds (canonical, exhaustive)
+## Historical Gaussian/ORCA corpus subset (not exhaustive CLI ground truth)
 
 - gaussian: `com crest dias irc link modred nci opt qrc resp scan sp td
   traj ts userjob wbi` (TDDFT's CLI name is `td`, not `tddft`)
