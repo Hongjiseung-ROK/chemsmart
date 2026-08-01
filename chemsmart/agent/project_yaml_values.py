@@ -19,6 +19,8 @@ SOLVENT_ALIASES = {
     "dmso": "dmso",
     "ethanol": "ethanol",
     "methanol": "methanol",
+    "n hexane": "n-hexane",
+    "nhexane": "n-hexane",
     "thf": "thf",
     "tetrahydrofuran": "thf",
     "toluene": "toluene",
