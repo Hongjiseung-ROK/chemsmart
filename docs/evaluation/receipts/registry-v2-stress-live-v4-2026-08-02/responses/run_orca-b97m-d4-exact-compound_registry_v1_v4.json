@@ -1,0 +1,223 @@
+{
+  "assistant_text": "The proposal was submitted successfully and accepted with a valid contract (`raw_contract_valid: true`, no normalization applied — all source literals preserved verbatim).\n\n## Summary\n\n**Case:** `orca-b97m-d4-exact-compound` · ORCA 6.1 · task kind `freq` (accessor job kind `opt`)\n\n**Registry findings (read-only):**\n- **Functional `B97M-D4`** → `unknown_unverified` (rule `scientific_settings.unknown_unverified`). The functional inventory matched 0 of 1 entries, exposed zero candidates, canonical value null, loader/renderer not observed. No exact, request-bound receipt exists to discharge this setting, and no fuzzy substitute is selectable. The compound functional is preserved verbatim as `\"B97M-D4\"`.\n- **Basis `def2-SVP`** → `exact_registered` (canonical literal, capability `orca.basis.bse.def2svp`, loader accepted, renderer preserved).\n\n**Decision:** `readiness = blocked_unverified_setting`, blocked by `scientific_settings.unknown_unverified`. Settings preserve the exact source literals (`functional: \"B97M-D4\"`, `basis: \"def2-SVP\"`, `freq: true`); all other fields left null/empty since no compound, solvent, grid, or dispersion was requested.\n\n**Constraints honored:** no fuzzy candidate selected, no silent substitution, no native input / ChemSmart command authored, no project write, no execution requested, and exactly one `submit_registry_stress_plan` call.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "cc390d48997efe9706218546c7f6e9c92ffcdf6c9d9fc80c285f727c58c56666",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "cc390d48997efe9706218546c7f6e9c92ffcdf6c9d9fc80c285f727c58c56666",
+        "receipt_sha256": "79ee73daf860ec78e6610e84b119993b4e46abe813944e3e2fb7e81baa4541e6",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_public_english_response": "The proposal was submitted successfully and accepted with a valid contract (`raw_contract_valid: true`, no normalization applied — all source literals preserved verbatim).\n\n## Summary\n\n**Case:** `orca-b97m-d4-exact-compound` · ORCA 6.1 · task kind `freq` (accessor job kind `opt`)\n\n**Registry findings (read-only):**\n- **Functional `B97M-D4`** → `unknown_unverified` (rule `scientific_settings.unknown_unverified`). The functional inventory matched 0 of 1 entries, exposed zero candidates, canonical value null, loader/renderer not observed. No exact, request-bound receipt exists to discharge this setting, and no fuzzy substitute is selectable. The compound functional is preserved verbatim as `\"B97M-D4\"`.\n- **Basis `def2-SVP`** → `exact_registered` (canonical literal, capability `orca.basis.bse.def2svp`, loader accepted, renderer preserved).\n\n**Decision:** `readiness = blocked_unverified_setting`, blocked by `scientific_settings.unknown_unverified`. Settings preserve the exact source literals (`functional: \"B97M-D4\"`, `basis: \"def2-SVP\"`, `freq: true`); all other fields left null/empty since no compound, solvent, grid, or dispersion was requested.\n\n**Constraints honored:** no fuzzy candidate selected, no silent substitution, no native input / ChemSmart command authored, no project write, no execution requested, and exactly one `submit_registry_stress_plan` call.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.unknown_unverified"
+    ],
+    "case_id": "orca-b97m-d4-exact-compound",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "b97m-d4-def2svp-freq",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B97M-D4",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-b97m-d4-exact-compound:registry_v1:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "cc390d48997efe9706218546c7f6e9c92ffcdf6c9d9fc80c285f727c58c56666",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "cc390d48997efe9706218546c7f6e9c92ffcdf6c9d9fc80c285f727c58c56666",
+    "receipt_sha256": "79ee73daf860ec78e6610e84b119993b4e46abe813944e3e2fb7e81baa4541e6",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.",
+  "typed_proposal": {
+    "analysis_summary": "The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.unknown_unverified"
+    ],
+    "case_id": "orca-b97m-d4-exact-compound",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "b97m-d4-def2svp-freq",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B97M-D4",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

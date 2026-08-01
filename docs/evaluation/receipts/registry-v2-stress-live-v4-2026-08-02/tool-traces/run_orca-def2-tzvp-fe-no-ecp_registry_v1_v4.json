@@ -1,0 +1,433 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T230241Z-3faeea17\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: orca-def2-tzvp-fe-no-ecp\nProgram: orca\nEngine version: 6.1\nTask kind: freq\nProject/registry accessor job kind: opt\n\nPlan B3LYP/def2-TZVP for a Cl/Fe system and report whether the pinned BSE definition embeds an Fe ECP.\n\nHost-preregistered lookup targets:\n- basis: orca method.basis 'def2-TZVP' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_00_7CpwCfuGdddBKTI26Xd65925",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_01_Gla0lN4O5IYLnMoYt37u1453",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_02_2gofODayco7pOGpUBVxT8582",
+          "index": 2,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_03_mE8az4RtW8Z79Y4NiGoA8967",
+          "index": 3,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": \"def2-TZVP\", \"capability_id\": \"orca.basis.bse.def2tzvp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"lookup_id\": \"basis\", \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"def2tzvp\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"def2-TZVP\", \"resolution_sha256\": \"d3795b2ad936ad0c8d17a09822edd8288663b97b7993d95d411b42672fe2963a\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.basis\", \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_7CpwCfuGdddBKTI26Xd65925"
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": \"B3LYP\", \"capability_id\": \"orca.functional.b3lyp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"lookup_id\": \"expected.functional\", \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"b3lyp\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"B3LYP\", \"resolution_sha256\": \"2362545fd206267fa8f67308174b91d051134092248ab182b8e7f861700e0078\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.functional\", \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_01_Gla0lN4O5IYLnMoYt37u1453"
+    },
+    {
+      "content": "{\"inventory_count\": 864, \"lookup_id\": \"basis\", \"matched_count\": 24, \"ok\": true, \"program\": \"orca\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 5, \"rule_ids\": [], \"setting_path\": \"method.basis\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": true, \"values\": [\"def2-TZVP\", \"def2-tzvp(-f)\", \"def2-TZVP-RIFIT\", \"def2-TZVPD\", \"def2-TZVPD-RIFIT\"]}",
+      "role": "tool",
+      "tool_call_id": "call_02_2gofODayco7pOGpUBVxT8582"
+    },
+    {
+      "content": "{\"inventory_count\": 1, \"lookup_id\": \"expected.functional\", \"matched_count\": 1, \"ok\": true, \"program\": \"orca\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 1, \"rule_ids\": [], \"setting_path\": \"method.functional\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": false, \"values\": [\"B3LYP\"]}",
+      "role": "tool",
+      "tool_call_id": "call_03_mE8az4RtW8Z79Y4NiGoA8967"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Both preregistered lookups resolved. The evidence:\n\n- **basis** (orca `method.basis` `def2-TZVP` for opt): `exact_registered`, canonical `def2-TZVP`, capability `orca.basis.bse.def2tzvp`, loader `accepted`, renderer `preserved`; evidence ceiling is `loader_renderer_verification_only` with `scientific_adequacy_verified: false` and no engine/preview execution.\n- **expected.functional**: `exact_registered` `B3LYP` (capability `orca.functional.b3lyp`), same evidence ceiling.\n- **list views**: inventory bounded to basis-name strings only (`rule_ids` empty); no element, orbital, or ECP content is exposed for `Cl` or `Fe` by any tool in this arm.\n\nThe receipts discharge only their declared rule (`scientific_settings.exact_registered`); nothing in this arm evidences whether the pinned BSE `def2-TZVP` definition embeds an Fe ECP, so that finding must be reported as unavailable, and the plan is blocked on missing evidence.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"orca-def2-tzvp-fe-no-ecp\", \"program\": \"orca\", \"project_name\": \"orca-def2-tzvp-fe-no-ecp\", \"readiness\": \"blocked_missing_evidence\", \"blocking_rule_ids\": [], \"element_findings\": [], \"settings\": {\"functional\": \"B3LYP\", \"basis\": \"def2-TZVP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": null, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"analysis_summary\": \"Case orca-def2-tzvp-fe-no-ecp plans B3LYP/def2-TZVP (ORCA 6.1, freq task; registry accessor job kind opt) for a Cl/Fe system. resolve_scientific_setting_v1 for lookup 'basis' (orca method.basis 'def2-TZVP' for opt) returned status exact_registered with canonical_value 'def2-TZVP', capability_id orca.basis.bse.def2tzvp, matched_by canonical_literal, loader_observation accepted, renderer_observation preserved, and evidence ceiling maximum_claim loader_renderer_verification_only with scientific_adequacy_verified false, setting_combination_verified false, engine_executed false, safe_preview_executed false. resolve_scientific_setting_v1 for lookup 'expected.functional' returned status exact_registered with canonical_value 'B3LYP' and capability_id orca.functional.b3lyp under the same evidence ceiling. list_scientific_settings_v1 for 'basis' returned inventory_available (864 inventory entries, 24 matched, bounded truncated view, rule_ids empty) exposing basis-name literals only; list_scientific_settings_v1 for 'expected.functional' returned a single value 'B3LYP'. No tool in this arm exposes element-level coverage, orbital presence, ECP presence, or ECP electron counts for Fe or Cl, so whether the pinned BSE def2-TZVP definition embeds an Fe ECP cannot be reported from evidence and is called unavailable rather than assumed absent. The exact_registered receipts discharge only their declared applicability rule (scientific_settings.exact_registered) and cannot discharge any element/ECP rule. The plan is therefore blocked_missing_evidence; no native input authored, no command authored, no project written, no execution requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_QaQO5nWbuffBtY6Ubro32359",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.freq\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"f2fd5a177218c391ceb9420e8e6eb76cca25119c35d9d89aa846b9691dd820ff\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"bd6eeadd38162e43152b9b596a91154e0a8a30bc12a0a0cb3aeb3c3b1fad1af0\", \"receipt_sha256\": \"b1e024bcdec9f61fee02a1b325298680a92ac0ddf1c4631d000cd1c236ef1aae\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Case orca-def2-tzvp-fe-no-ecp plans B3LYP/def2-TZVP (ORCA 6.1, freq task; registry accessor job kind opt) for a Cl/Fe system. resolve_scientific_setting_v1 for lookup 'basis' (orca method.basis 'def2-TZVP' for opt) returned status exact_registered with canonical_value 'def2-TZVP', capability_id orca.basis.bse.def2tzvp, matched_by canonical_literal, loader_observation accepted, renderer_observation preserved, and evidence ceiling maximum_claim loader_renderer_verification_only with scientific_adequacy_verified false, setting_combination_verified false, engine_executed false, safe_preview_executed false. resolve_scientific_setting_v1 for lookup 'expected.functional' returned status exact_registered with canonical_value 'B3LYP' and capability_id orca.functional.b3lyp under the same evidence ceiling. list_scientific_settings_v1 for 'basis' returned inventory_available (864 inventory entries, 24 matched, bounded truncated view, rule_ids empty) exposing basis-name literals only; list_scientific_settings_v1 for 'expected.functional' returned a single value 'B3LYP'. No tool in this arm exposes element-level coverage, orbital presence, ECP presence, or ECP electron counts for Fe or Cl, so whether the pinned BSE def2-TZVP definition embeds an Fe ECP cannot be reported from evidence and is called unavailable rather than assumed absent. The exact_registered receipts discharge only their declared applicability rule (scientific_settings.exact_registered) and cannot discharge any element/ECP rule. The plan is therefore blocked_missing_evidence; no native input authored, no command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-def2-tzvp-fe-no-ecp\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-def2-tzvp-fe-no-ecp\", \"project_written\": false, \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"basis\": \"def2-TZVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Case orca-def2-tzvp-fe-no-ecp plans B3LYP/def2-TZVP (ORCA 6.1, freq task; registry accessor job kind opt) for a Cl/Fe system. resolve_scientific_setting_v1 for lookup 'basis' (orca method.basis 'def2-TZVP' for opt) returned status exact_registered with canonical_value 'def2-TZVP', capability_id orca.basis.bse.def2tzvp, matched_by canonical_literal, loader_observation accepted, renderer_observation preserved, and evidence ceiling maximum_claim loader_renderer_verification_only with scientific_adequacy_verified false, setting_combination_verified false, engine_executed false, safe_preview_executed false. resolve_scientific_setting_v1 for lookup 'expected.functional' returned status exact_registered with canonical_value 'B3LYP' and capability_id orca.functional.b3lyp under the same evidence ceiling. list_scientific_settings_v1 for 'basis' returned inventory_available (864 inventory entries, 24 matched, bounded truncated view, rule_ids empty) exposing basis-name literals only; list_scientific_settings_v1 for 'expected.functional' returned a single value 'B3LYP'. No tool in this arm exposes element-level coverage, orbital presence, ECP presence, or ECP electron counts for Fe or Cl, so whether the pinned BSE def2-TZVP definition embeds an Fe ECP cannot be reported from evidence and is called unavailable rather than assumed absent. The exact_registered receipts discharge only their declared applicability rule (scientific_settings.exact_registered) and cannot discharge any element/ECP rule. The plan is therefore blocked_missing_evidence; no native input authored, no command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-def2-tzvp-fe-no-ecp\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-def2-tzvp-fe-no-ecp\", \"project_written\": false, \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"basis\": \"def2-TZVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_QaQO5nWbuffBtY6Ubro32359"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Proposal submitted — exactly one `submit_registry_stress_plan` call, as required.\n\n**Outcome for case `orca-def2-tzvp-fe-no-ecp` (ORCA 6.1, freq; accessor job kind opt):**\n\n- **Basis** — `def2-TZVP` resolved `exact_registered` (capability `orca.basis.bse.def2tzvp`), loader `accepted` / renderer `preserved`; evidence ceiling is only `loader_renderer_verification_only` (scientific adequacy not verified, no engine/preview execution).\n- **Functional** — `B3LYP` resolved `exact_registered` (capability `orca.functional.b3lyp`), same evidence ceiling.\n- **Fe ECP report** — the pinned BSE `def2-TZVP` definition's element/ECP content is **not exposed by any read-only tool in this arm** (list views return basis-name literals only; no element findings, ECP presence, or ECP electron counts for Fe or Cl). It is therefore reported **unavailable**, not assumed absent — the exact-registered receipts discharge only their declared `scientific_settings.exact_registered` rule and cannot discharge an element/ECP rule.\n- **Readiness: `blocked_missing_evidence`** — no native input authored, no command authored, no project written, no execution requested.\n- Normalization receipt: raw contract valid; the case-bound normalizer filled `settings.freq = true` (consistent with the freq task kind); no conflicting settings.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:orca-def2-tzvp-fe-no-ecp:registry_v1:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_00_7CpwCfuGdddBKTI26Xd65925",
+      "request_id": "openai:call_00_7CpwCfuGdddBKTI26Xd65925",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "candidate_values": [],
+        "canonical_value": "def2-TZVP",
+        "capability_id": "orca.basis.bse.def2tzvp",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "accepted",
+        "loader_renderer_eligible": true,
+        "lookup_id": "basis",
+        "matched_by": "canonical_literal",
+        "normalized_requested_value": "def2tzvp",
+        "program": "orca",
+        "reason_rule_id": "scientific_settings.exact_registered",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "preserved",
+        "requested_value": "def2-TZVP",
+        "resolution_sha256": "d3795b2ad936ad0c8d17a09822edd8288663b97b7993d95d411b42672fe2963a",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.basis",
+        "status": "exact_registered"
+      },
+      "result_sha256": "4574d86ef1ac19a1bc1c9bd8ce5446114f6426cb278db5ab4f45257e8aafeb45",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_Gla0lN4O5IYLnMoYt37u1453",
+      "request_id": "openai:call_01_Gla0lN4O5IYLnMoYt37u1453",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "candidate_values": [],
+        "canonical_value": "B3LYP",
+        "capability_id": "orca.functional.b3lyp",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "accepted",
+        "loader_renderer_eligible": true,
+        "lookup_id": "expected.functional",
+        "matched_by": "canonical_literal",
+        "normalized_requested_value": "b3lyp",
+        "program": "orca",
+        "reason_rule_id": "scientific_settings.exact_registered",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "preserved",
+        "requested_value": "B3LYP",
+        "resolution_sha256": "2362545fd206267fa8f67308174b91d051134092248ab182b8e7f861700e0078",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.functional",
+        "status": "exact_registered"
+      },
+      "result_sha256": "784126a9dd93d758770d423ad9e634d8ec1a58ed4f18d15f6e4fa00b0f7dabfa",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_02_2gofODayco7pOGpUBVxT8582",
+      "request_id": "openai:call_02_2gofODayco7pOGpUBVxT8582",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 864,
+        "lookup_id": "basis",
+        "matched_count": 24,
+        "ok": true,
+        "program": "orca",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 5,
+        "rule_ids": [],
+        "setting_path": "method.basis",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": true,
+        "values": [
+          "def2-TZVP",
+          "def2-tzvp(-f)",
+          "def2-TZVP-RIFIT",
+          "def2-TZVPD",
+          "def2-TZVPD-RIFIT"
+        ]
+      },
+      "result_sha256": "236e28fd5c9266f64098136da535d118f911103d925f301417083d0804944198",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_03_mE8az4RtW8Z79Y4NiGoA8967",
+      "request_id": "openai:call_03_mE8az4RtW8Z79Y4NiGoA8967",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 1,
+        "lookup_id": "expected.functional",
+        "matched_count": 1,
+        "ok": true,
+        "program": "orca",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 1,
+        "rule_ids": [],
+        "setting_path": "method.functional",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": false,
+        "values": [
+          "B3LYP"
+        ]
+      },
+      "result_sha256": "c422049d2d2f07e8428e9961420c505b6f6a897b4a89375746f53a03bc4140fd",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_QaQO5nWbuffBtY6Ubro32359",
+      "request_id": "openai:call_00_QaQO5nWbuffBtY6Ubro32359",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.freq"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "f2fd5a177218c391ceb9420e8e6eb76cca25119c35d9d89aa846b9691dd820ff",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "bd6eeadd38162e43152b9b596a91154e0a8a30bc12a0a0cb3aeb3c3b1fad1af0",
+          "receipt_sha256": "b1e024bcdec9f61fee02a1b325298680a92ac0ddf1c4631d000cd1c236ef1aae",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Case orca-def2-tzvp-fe-no-ecp plans B3LYP/def2-TZVP (ORCA 6.1, freq task; registry accessor job kind opt) for a Cl/Fe system. resolve_scientific_setting_v1 for lookup 'basis' (orca method.basis 'def2-TZVP' for opt) returned status exact_registered with canonical_value 'def2-TZVP', capability_id orca.basis.bse.def2tzvp, matched_by canonical_literal, loader_observation accepted, renderer_observation preserved, and evidence ceiling maximum_claim loader_renderer_verification_only with scientific_adequacy_verified false, setting_combination_verified false, engine_executed false, safe_preview_executed false. resolve_scientific_setting_v1 for lookup 'expected.functional' returned status exact_registered with canonical_value 'B3LYP' and capability_id orca.functional.b3lyp under the same evidence ceiling. list_scientific_settings_v1 for 'basis' returned inventory_available (864 inventory entries, 24 matched, bounded truncated view, rule_ids empty) exposing basis-name literals only; list_scientific_settings_v1 for 'expected.functional' returned a single value 'B3LYP'. No tool in this arm exposes element-level coverage, orbital presence, ECP presence, or ECP electron counts for Fe or Cl, so whether the pinned BSE def2-TZVP definition embeds an Fe ECP cannot be reported from evidence and is called unavailable rather than assumed absent. The exact_registered receipts discharge only their declared applicability rule (scientific_settings.exact_registered) and cannot discharge any element/ECP rule. The plan is therefore blocked_missing_evidence; no native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-def2-tzvp-fe-no-ecp",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-def2-tzvp-fe-no-ecp",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "def2-TZVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Case orca-def2-tzvp-fe-no-ecp plans B3LYP/def2-TZVP (ORCA 6.1, freq task; registry accessor job kind opt) for a Cl/Fe system. resolve_scientific_setting_v1 for lookup 'basis' (orca method.basis 'def2-TZVP' for opt) returned status exact_registered with canonical_value 'def2-TZVP', capability_id orca.basis.bse.def2tzvp, matched_by canonical_literal, loader_observation accepted, renderer_observation preserved, and evidence ceiling maximum_claim loader_renderer_verification_only with scientific_adequacy_verified false, setting_combination_verified false, engine_executed false, safe_preview_executed false. resolve_scientific_setting_v1 for lookup 'expected.functional' returned status exact_registered with canonical_value 'B3LYP' and capability_id orca.functional.b3lyp under the same evidence ceiling. list_scientific_settings_v1 for 'basis' returned inventory_available (864 inventory entries, 24 matched, bounded truncated view, rule_ids empty) exposing basis-name literals only; list_scientific_settings_v1 for 'expected.functional' returned a single value 'B3LYP'. No tool in this arm exposes element-level coverage, orbital presence, ECP presence, or ECP electron counts for Fe or Cl, so whether the pinned BSE def2-TZVP definition embeds an Fe ECP cannot be reported from evidence and is called unavailable rather than assumed absent. The exact_registered receipts discharge only their declared applicability rule (scientific_settings.exact_registered) and cannot discharge any element/ECP rule. The plan is therefore blocked_missing_evidence; no native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-def2-tzvp-fe-no-ecp",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-def2-tzvp-fe-no-ecp",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "def2-TZVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "7675c925db2dd66d08ddf309c48748ab8f286f9f7f1973d22df9daf7df1375f1",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_00_7CpwCfuGdddBKTI26Xd65925",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_7CpwCfuGdddBKTI26Xd65925"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_Gla0lN4O5IYLnMoYt37u1453",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_Gla0lN4O5IYLnMoYt37u1453"
+    },
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_02_2gofODayco7pOGpUBVxT8582",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_02_2gofODayco7pOGpUBVxT8582"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_03_mE8az4RtW8Z79Y4NiGoA8967",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_03_mE8az4RtW8Z79Y4NiGoA8967"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Case orca-def2-tzvp-fe-no-ecp plans B3LYP/def2-TZVP (ORCA 6.1, freq task; registry accessor job kind opt) for a Cl/Fe system. resolve_scientific_setting_v1 for lookup 'basis' (orca method.basis 'def2-TZVP' for opt) returned status exact_registered with canonical_value 'def2-TZVP', capability_id orca.basis.bse.def2tzvp, matched_by canonical_literal, loader_observation accepted, renderer_observation preserved, and evidence ceiling maximum_claim loader_renderer_verification_only with scientific_adequacy_verified false, setting_combination_verified false, engine_executed false, safe_preview_executed false. resolve_scientific_setting_v1 for lookup 'expected.functional' returned status exact_registered with canonical_value 'B3LYP' and capability_id orca.functional.b3lyp under the same evidence ceiling. list_scientific_settings_v1 for 'basis' returned inventory_available (864 inventory entries, 24 matched, bounded truncated view, rule_ids empty) exposing basis-name literals only; list_scientific_settings_v1 for 'expected.functional' returned a single value 'B3LYP'. No tool in this arm exposes element-level coverage, orbital presence, ECP presence, or ECP electron counts for Fe or Cl, so whether the pinned BSE def2-TZVP definition embeds an Fe ECP cannot be reported from evidence and is called unavailable rather than assumed absent. The exact_registered receipts discharge only their declared applicability rule (scientific_settings.exact_registered) and cannot discharge any element/ECP rule. The plan is therefore blocked_missing_evidence; no native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-def2-tzvp-fe-no-ecp",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-def2-tzvp-fe-no-ecp",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "def2-TZVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "b275f7e82291dcb939eecb75aa3fdb70557cbc641e823788c592d61870e0aee3",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_QaQO5nWbuffBtY6Ubro32359",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_QaQO5nWbuffBtY6Ubro32359"
+    }
+  ]
+}

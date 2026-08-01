@@ -1,0 +1,228 @@
+{
+  "assistant_text": "The registry stress plan was submitted successfully — exactly one `submit_registry_stress_plan` call, as required.\n\n**Submission outcome (literal receipt):**\n\n- **case_id:** `xtb-gfnff-alpb-n-hexane` · program `xtb` · project_name `xtb-gfnff-alpb-n-hexane`\n- **readiness:** `blocked_validation_coverage`\n- **blocking_rule_ids:** `[\"scientific_settings.v2.validation_coverage_gap\"]`\n- **settings preserved:** `gfn_version: \"gfnff\"`, `solvent_model: \"alpb\"`, `solvent_id: \"n-hexane\"` (hyphenated literal kept); basis/dispersion/grid/ECP fields null or empty — no orbital basis invented.\n- **Normalization receipt:** `raw_contract_valid: true`, `conflicting_explicit_setting_fields: []`, `canonicalized_set_fields: []`; the case-bound normalizer deterministically filled `settings.optimization_level` → `\"normal\"` (recorded in `filled_explicit_setting_fields`) — I did not author that value myself.\n- **Guards:** `native_input_authored: false`, `command_authored: false`, `project_written: false`, `execution_requested: false` (all const false, unchanged).\n\n**Why blocked:** Of the three mandatory lookups, only `gfn` (`gfnff`) resolved `exact_registered` with `project_candidate_eligible: true`. Both `solvent-model` (`alpb`) and `solvent-id` (`n-hexane`) resolved to `blocked_validation_coverage` (`project_candidate_eligible: false`, reason `scientific_settings.v2.validation_coverage_gap`), each also carrying the applicability rule `scientific_settings.xtb.solvent_compatibility_required`. With two mandatory settings blocked, no project candidate is eligible, so the proposal is correctly blocked rather than promoted.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.optimization_level"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "31e53172a433fa4838b2b01df21f44ec05e2a595c72c6da810d090d234827900",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "14811ecf88b2d3c09ce1e076604bf02cd9d5c03425a428ddb87366e9c77d4fdb",
+        "receipt_sha256": "c1005d294283e9ad103ae745c908029d242270d311684f728793baa3153678d1",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": true,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_public_english_response": "The registry stress plan was submitted successfully — exactly one `submit_registry_stress_plan` call, as required.\n\n**Submission outcome (literal receipt):**\n\n- **case_id:** `xtb-gfnff-alpb-n-hexane` · program `xtb` · project_name `xtb-gfnff-alpb-n-hexane`\n- **readiness:** `blocked_validation_coverage`\n- **blocking_rule_ids:** `[\"scientific_settings.v2.validation_coverage_gap\"]`\n- **settings preserved:** `gfn_version: \"gfnff\"`, `solvent_model: \"alpb\"`, `solvent_id: \"n-hexane\"` (hyphenated literal kept); basis/dispersion/grid/ECP fields null or empty — no orbital basis invented.\n- **Normalization receipt:** `raw_contract_valid: true`, `conflicting_explicit_setting_fields: []`, `canonicalized_set_fields: []`; the case-bound normalizer deterministically filled `settings.optimization_level` → `\"normal\"` (recorded in `filled_explicit_setting_fields`) — I did not author that value myself.\n- **Guards:** `native_input_authored: false`, `command_authored: false`, `project_written: false`, `execution_requested: false` (all const false, unchanged).\n\n**Why blocked:** Of the three mandatory lookups, only `gfn` (`gfnff`) resolved `exact_registered` with `project_candidate_eligible: true`. Both `solvent-model` (`alpb`) and `solvent-id` (`n-hexane`) resolved to `blocked_validation_coverage` (`project_candidate_eligible: false`, reason `scientific_settings.v2.validation_coverage_gap`), each also carrying the applicability rule `scientific_settings.xtb.solvent_compatibility_required`. With two mandatory settings blocked, no project candidate is eligible, so the proposal is correctly blocked rather than promoted.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Resolved the three mandatory host-preregistered lookups for case xtb-gfnff-alpb-n-hexane (program xtb, engine 6.7.1, task opt). gfn -> method.gfn_version 'gfnff': status exact_registered, project_candidate_eligible true, no applicability rules, literal preserved. solvent-model -> solvent.model 'alpb': status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap), project_candidate_eligible false, applicability rule scientific_settings.xtb.solvent_compatibility_required present. solvent-id -> solvent.id 'n-hexane': status blocked_validation_coverage (same reason rule), project_candidate_eligible false, same applicability rule present; the hyphenated source literal 'n-hexane' is preserved and no substitute (e.g., 'nhexane') was selected. Because two of the three mandatory settings are blocked by validation coverage gaps, readiness is blocked_validation_coverage and no project candidate is formed. No orbital basis or ECP was invented: functional/basis/dispersion/integration_grid/heavy_elements_basis/light_elements_basis remain null or empty consistent with GFN-FF xTB having no orbital basis; optimization_level, freq, solv_freq, ecp_intent were not requested and remain null. No native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "xtb-gfnff-alpb-n-hexane",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-gfnff-alpb-n-hexane",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": null,
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": "gfnff",
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": "n-hexane",
+      "solvent_model": "alpb"
+    }
+  },
+  "run_id": "run:xtb-gfnff-alpb-n-hexane:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.optimization_level"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "31e53172a433fa4838b2b01df21f44ec05e2a595c72c6da810d090d234827900",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "14811ecf88b2d3c09ce1e076604bf02cd9d5c03425a428ddb87366e9c77d4fdb",
+    "receipt_sha256": "c1005d294283e9ad103ae745c908029d242270d311684f728793baa3153678d1",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Resolved the three mandatory host-preregistered lookups for case xtb-gfnff-alpb-n-hexane (program xtb, engine 6.7.1, task opt). gfn -> method.gfn_version 'gfnff': status exact_registered, project_candidate_eligible true, no applicability rules, literal preserved. solvent-model -> solvent.model 'alpb': status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap), project_candidate_eligible false, applicability rule scientific_settings.xtb.solvent_compatibility_required present. solvent-id -> solvent.id 'n-hexane': status blocked_validation_coverage (same reason rule), project_candidate_eligible false, same applicability rule present; the hyphenated source literal 'n-hexane' is preserved and no substitute (e.g., 'nhexane') was selected. Because two of the three mandatory settings are blocked by validation coverage gaps, readiness is blocked_validation_coverage and no project candidate is formed. No orbital basis or ECP was invented: functional/basis/dispersion/integration_grid/heavy_elements_basis/light_elements_basis remain null or empty consistent with GFN-FF xTB having no orbital basis; optimization_level, freq, solv_freq, ecp_intent were not requested and remain null. No native input authored, no command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Resolved the three mandatory host-preregistered lookups for case xtb-gfnff-alpb-n-hexane (program xtb, engine 6.7.1, task opt). gfn -> method.gfn_version 'gfnff': status exact_registered, project_candidate_eligible true, no applicability rules, literal preserved. solvent-model -> solvent.model 'alpb': status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap), project_candidate_eligible false, applicability rule scientific_settings.xtb.solvent_compatibility_required present. solvent-id -> solvent.id 'n-hexane': status blocked_validation_coverage (same reason rule), project_candidate_eligible false, same applicability rule present; the hyphenated source literal 'n-hexane' is preserved and no substitute (e.g., 'nhexane') was selected. Because two of the three mandatory settings are blocked by validation coverage gaps, readiness is blocked_validation_coverage and no project candidate is formed. No orbital basis or ECP was invented: functional/basis/dispersion/integration_grid/heavy_elements_basis/light_elements_basis remain null or empty consistent with GFN-FF xTB having no orbital basis; optimization_level, freq, solv_freq, ecp_intent were not requested and remain null. No native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "xtb-gfnff-alpb-n-hexane",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-gfnff-alpb-n-hexane",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": null,
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": "gfnff",
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": "normal",
+      "solv_freq": null,
+      "solvent_id": "n-hexane",
+      "solvent_model": "alpb"
+    }
+  }
+}

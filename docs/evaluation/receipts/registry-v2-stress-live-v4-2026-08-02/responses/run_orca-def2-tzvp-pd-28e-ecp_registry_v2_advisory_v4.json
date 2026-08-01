@@ -1,0 +1,73 @@
+{
+  "assistant_text": "Submission complete. Final proposal receipt (case `orca-def2-tzvp-pd-28e-ecp`, ORCA 6.1, freq task / opt accessor):\n\n**Outcome — `blocked_validation_coverage`**\n\n- **Functional `B3LYP`** → `exact_registered` (canonical `b3lyp`), project-candidate eligible, no applicability rules.\n- **Basis `def2-TZVP`** → resolves only to the canonical-literal entry, status **`blocked_validation_coverage`** (reason `scientific_settings.v2.validation_coverage_gap`). Evidence ceiling is loader/renderer verification only — no engine execution, no safe preview, no scientific-adequacy or setting-combination verification. Not project-candidate eligible.\n- **Blocking rules** (canonicalized set): `scientific_settings.basis.ecp_applicability_required`, `scientific_settings.basis.request_element_coverage_required`, `scientific_settings.v2.validation_coverage_gap`. Neither applicability rule is discharged — no exact, request-bound deterministic receipt for Cl/Pd coverage or ECP applicability was exposed by this arm.\n- **Pd ECP electron count**: The exact pinned BSE Pd ECP electron count was **not returned by any read-only tool in this arm** (resolve, list, and the knowledge advisory expose no per-element ECP data). It is therefore **not reported**; `ecp_electrons` is `null` for both Cl and Pd findings, and no value was fabricated (no \"28e\" assertion).\n- Knowledge advisory (`orca-explicit-native-basis-preservation`) confirms `def2-TZVP` is ORCA-native and BSE absence alone does not prove invalidity, but it is advisory-only and cannot override the deterministic blocker.\n- Source literals preserved: `functional=B3LYP`, `basis=def2-TZVP`; plan declares `ecp_intent=required` for `Pd`, `freq=true`. No project write, no native input, no command, no execution.\n\nThe submission normalization receipt is recorded (`raw_contract_valid: false` only due to blocking-rule set ordering, which the normalizer canonicalized).",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "Submission complete. Final proposal receipt (case `orca-def2-tzvp-pd-28e-ecp`, ORCA 6.1, freq task / opt accessor):\n\n**Outcome — `blocked_validation_coverage`**\n\n- **Functional `B3LYP`** → `exact_registered` (canonical `b3lyp`), project-candidate eligible, no applicability rules.\n- **Basis `def2-TZVP`** → resolves only to the canonical-literal entry, status **`blocked_validation_coverage`** (reason `scientific_settings.v2.validation_coverage_gap`). Evidence ceiling is loader/renderer verification only — no engine execution, no safe preview, no scientific-adequacy or setting-combination verification. Not project-candidate eligible.\n- **Blocking rules** (canonicalized set): `scientific_settings.basis.ecp_applicability_required`, `scientific_settings.basis.request_element_coverage_required`, `scientific_settings.v2.validation_coverage_gap`. Neither applicability rule is discharged — no exact, request-bound deterministic receipt for Cl/Pd coverage or ECP applicability was exposed by this arm.\n- **Pd ECP electron count**: The exact pinned BSE Pd ECP electron count was **not returned by any read-only tool in this arm** (resolve, list, and the knowledge advisory expose no per-element ECP data). It is therefore **not reported**; `ecp_electrons` is `null` for both Cl and Pd findings, and no value was fabricated (no \"28e\" assertion).\n- Knowledge advisory (`orca-explicit-native-basis-preservation`) confirms `def2-TZVP` is ORCA-native and BSE absence alone does not prove invalidity, but it is advisory-only and cannot override the deterministic blocker.\n- Source literals preserved: `functional=B3LYP`, `basis=def2-TZVP`; plan declares `ecp_intent=required` for `Pd`, `freq=true`. No project write, no native input, no command, no execution.\n\nThe submission normalization receipt is recorded (`raw_contract_valid: false` only due to blocking-rule set ordering, which the normalizer canonicalized).",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_typed_proposal": null,
+  "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_v2_advisory:v4",
+  "submission_normalization": null,
+  "tool_error_receipt": {
+    "outcome_errors": [
+      {
+        "error_type": "MalformedToolArgumentsJSON",
+        "name": "submit_registry_stress_plan",
+        "request_id": "openai:call_00_jXQDEgrwGdrWdB1mTi2p8212",
+        "request_raw_arguments_sha256": "a1eadb84edbaaed2d382fb16030a1b84277360be323e9c8352c9815f545add76",
+        "status": "error"
+      }
+    ],
+    "receipt_sha256": "f4b8e5b882a921e77f76e742c78e93dd3e09bbfcb9cc5774dae8806ad6559a32",
+    "request_errors": [
+      {
+        "error_type": "MalformedToolArgumentsJSON",
+        "name": "submit_registry_stress_plan",
+        "raw_arguments_sha256": "a1eadb84edbaaed2d382fb16030a1b84277360be323e9c8352c9815f545add76",
+        "request_id": "openai:call_00_jXQDEgrwGdrWdB1mTi2p8212"
+      }
+    ],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

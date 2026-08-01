@@ -1,0 +1,232 @@
+{
+  "assistant_text": "The proposal was submitted and accepted by the case-bound normalizer. Final outcome:\n\n**Proposal receipt** (`receipt_sha256: 88944a904c0d71d1d04100800e7b417a0936bb503b8c4d83b5c4912ebf5e3fcc`)\n- **Case:** `orca-aug-mcc-pv8z-materialization-gap` · program `orca` · task kind `opt`\n- **Readiness: `blocked_validation_coverage`** — driven by the basis entry's registry status and reason rule `scientific_settings.v2.validation_coverage_gap`\n- **Blocking rules:** `scientific_settings.basis.bse_materialization_required`, `scientific_settings.basis.request_element_coverage_required`, `scientific_settings.v2.validation_coverage_gap`\n\n**Settings preserved verbatim:** functional `B3LYP` (exact_registered, eligible), basis `aug-mcc-pV8Z` (canonical literal match, loader accepted, renderer preserved, opt-compatible — but blocked on validation coverage). All other slots null/empty; no elements supplied so `element_findings` is empty. The normalizer canonicalized `settings.freq` from null to `false` (the only filled explicit field); no conflicts.\n\n**Key reasoning:** the basis name is discoverable via `bse-catalog-0.11`, but per case scope BSE name discovery is not native/compiler readiness — the registry status itself is `blocked_validation_coverage` with a loader/renderer-only evidence ceiling (no engine execution, safe preview, scientific-adequacy, or combination verification). Fuzzy candidates (aug-mcc-pV5Z/6Z/7Z/QZ) were rejected; no substitution was made. No native input, no command, no project write, no execution — fully read-only.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "fcd16d7666011fdbfdda8ebafbb36cfe5c4b662078d38d144ceb777927c3f770",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "def00c562b03e6c802b3ab2ede44148262d9374a7c8ef28957bba44210958f6a",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "bc621e994abeeb453a1a8d9ec746899d185c3fcda1c8adb9645058311fb26a4f",
+        "receipt_sha256": "88944a904c0d71d1d04100800e7b417a0936bb503b8c4d83b5c4912ebf5e3fcc",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": true,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "The proposal was submitted and accepted by the case-bound normalizer. Final outcome:\n\n**Proposal receipt** (`receipt_sha256: 88944a904c0d71d1d04100800e7b417a0936bb503b8c4d83b5c4912ebf5e3fcc`)\n- **Case:** `orca-aug-mcc-pv8z-materialization-gap` · program `orca` · task kind `opt`\n- **Readiness: `blocked_validation_coverage`** — driven by the basis entry's registry status and reason rule `scientific_settings.v2.validation_coverage_gap`\n- **Blocking rules:** `scientific_settings.basis.bse_materialization_required`, `scientific_settings.basis.request_element_coverage_required`, `scientific_settings.v2.validation_coverage_gap`\n\n**Settings preserved verbatim:** functional `B3LYP` (exact_registered, eligible), basis `aug-mcc-pV8Z` (canonical literal match, loader accepted, renderer preserved, opt-compatible — but blocked on validation coverage). All other slots null/empty; no elements supplied so `element_findings` is empty. The normalizer canonicalized `settings.freq` from null to `false` (the only filled explicit field); no conflicts.\n\n**Key reasoning:** the basis name is discoverable via `bse-catalog-0.11`, but per case scope BSE name discovery is not native/compiler readiness — the registry status itself is `blocked_validation_coverage` with a loader/renderer-only evidence ceiling (no engine execution, safe preview, scientific-adequacy, or combination verification). Fuzzy candidates (aug-mcc-pV5Z/6Z/7Z/QZ) were rejected; no substitution was made. No native input, no command, no project write, no execution — fully read-only.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Requested ORCA B3LYP/aug-mcc-pV8Z optimization (task kind opt). Functional B3LYP resolved as exact_registered: canonical literal match, loader accepted, renderer preserved, opt job-scope compatible, project_candidate_eligible true, no applicability rules. Basis aug-mcc-pV8Z resolved by canonical literal match (100%, normalized 'augmccpv8z'), loader accepted, renderer preserved, opt job-scope compatible, but the V2 registry entry is status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap) with project_candidate_eligible false. Evidence ceiling is loader_renderer_verification_only: no engine execution, no safe preview, no scientific adequacy verification, no setting-combination verification. The basis entry's source list includes bse-catalog-0.11, but BSE name discovery is not treated as native/compiler readiness and does not discharge materialization; applicability rules scientific_settings.basis.bse_materialization_required and scientific_settings.basis.request_element_coverage_required are present and not discharged. No elements were supplied in the request, so element coverage findings are empty and element coverage cannot be verified. Fuzzy candidates (aug-mcc-pV5Z, aug-mcc-pV6Z, aug-mcc-pV7Z, aug-mcc-pVQZ) were rejected; no setting substitution. Source literals preserved verbatim: functional 'B3LYP', basis 'aug-mcc-pV8Z'. Overall readiness blocked_validation_coverage. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.bse_materialization_required",
+      "scientific_settings.basis.request_element_coverage_required",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-aug-mcc-pv8z-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "aug-mcc-pV8Z",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "fcd16d7666011fdbfdda8ebafbb36cfe5c4b662078d38d144ceb777927c3f770",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "def00c562b03e6c802b3ab2ede44148262d9374a7c8ef28957bba44210958f6a",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "bc621e994abeeb453a1a8d9ec746899d185c3fcda1c8adb9645058311fb26a4f",
+    "receipt_sha256": "88944a904c0d71d1d04100800e7b417a0936bb503b8c4d83b5c4912ebf5e3fcc",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Requested ORCA B3LYP/aug-mcc-pV8Z optimization (task kind opt). Functional B3LYP resolved as exact_registered: canonical literal match, loader accepted, renderer preserved, opt job-scope compatible, project_candidate_eligible true, no applicability rules. Basis aug-mcc-pV8Z resolved by canonical literal match (100%, normalized 'augmccpv8z'), loader accepted, renderer preserved, opt job-scope compatible, but the V2 registry entry is status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap) with project_candidate_eligible false. Evidence ceiling is loader_renderer_verification_only: no engine execution, no safe preview, no scientific adequacy verification, no setting-combination verification. The basis entry's source list includes bse-catalog-0.11, but BSE name discovery is not treated as native/compiler readiness and does not discharge materialization; applicability rules scientific_settings.basis.bse_materialization_required and scientific_settings.basis.request_element_coverage_required are present and not discharged. No elements were supplied in the request, so element coverage findings are empty and element coverage cannot be verified. Fuzzy candidates (aug-mcc-pV5Z, aug-mcc-pV6Z, aug-mcc-pV7Z, aug-mcc-pVQZ) were rejected; no setting substitution. Source literals preserved verbatim: functional 'B3LYP', basis 'aug-mcc-pV8Z'. Overall readiness blocked_validation_coverage. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Requested ORCA B3LYP/aug-mcc-pV8Z optimization (task kind opt). Functional B3LYP resolved as exact_registered: canonical literal match, loader accepted, renderer preserved, opt job-scope compatible, project_candidate_eligible true, no applicability rules. Basis aug-mcc-pV8Z resolved by canonical literal match (100%, normalized 'augmccpv8z'), loader accepted, renderer preserved, opt job-scope compatible, but the V2 registry entry is status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap) with project_candidate_eligible false. Evidence ceiling is loader_renderer_verification_only: no engine execution, no safe preview, no scientific adequacy verification, no setting-combination verification. The basis entry's source list includes bse-catalog-0.11, but BSE name discovery is not treated as native/compiler readiness and does not discharge materialization; applicability rules scientific_settings.basis.bse_materialization_required and scientific_settings.basis.request_element_coverage_required are present and not discharged. No elements were supplied in the request, so element coverage findings are empty and element coverage cannot be verified. Fuzzy candidates (aug-mcc-pV5Z, aug-mcc-pV6Z, aug-mcc-pV7Z, aug-mcc-pVQZ) were rejected; no setting substitution. Source literals preserved verbatim: functional 'B3LYP', basis 'aug-mcc-pV8Z'. Overall readiness blocked_validation_coverage. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.bse_materialization_required",
+      "scientific_settings.basis.request_element_coverage_required",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-aug-mcc-pv8z-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "aug-mcc-pV8Z",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": false,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

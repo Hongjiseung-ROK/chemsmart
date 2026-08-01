@@ -1,0 +1,630 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T232813Z-d1b30c37\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: orca-b3lyp-d3zero-unsupported\nProgram: orca\nEngine version: 6.1\nTask kind: freq\nProject/registry accessor job kind: opt\n\nAssess ORCA B3LYP-D3ZERO/def2-SVP. Do not reduce the compound string to plain B3LYP or claim it is compiler ready.\n\nHost-preregistered lookup targets:\n- No mandatory lookup; use deterministic project semantics.\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.basis\"}",
+            "name": "list_scientific_settings_v2"
+          },
+          "id": "call_00_HuLglmrFldHmZl3nTBmF5742",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "list_scientific_settings_v2"
+          },
+          "id": "call_01_cYS2s3K3qlG4OdyYVgfC2763",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.basis\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_02_ED5BcZPo9RTbgcJ4fgfp3343",
+          "index": 2,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_03_D937pVJnRvRbdDRZYvwP1362",
+          "index": 3,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_count\": 772, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"items\": [{\"applicability_rule_ids\": [\"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-SVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.orca.method_basis.9d4ad2a94a78c138096c\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-SVP\", \"project_candidate_eligible\": false, \"rank\": 1, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 10000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-SVPD\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.orca.method_basis.4b56af5387b70458af69\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-SVPD\", \"project_candidate_eligible\": false, \"rank\": 2, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8750, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-SV(P)\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.orca.method_basis.775f4b2b616296f603f6\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-SV(P)\", \"project_candidate_eligible\": false, \"rank\": 3, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 7777, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.registry_validator_integration_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"ma-def2-svp\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.orca.method_basis.c3aa9fe25ff21741f1b5\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"ma-def2-svp\", \"project_candidate_eligible\": false, \"rank\": 4, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 7777, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-QZVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.orca.method_basis.322b617a9968512a7a3d\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-QZVP\", \"project_candidate_eligible\": false, \"rank\": 5, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 7500, \"source_registered\": true}], \"job_kind\": \"opt\", \"limit\": 5, \"listing_sha256\": \"a439aacea83b031e5a554a914efe701efbf055d4b2b2ffd49868535ea685a5f8\", \"lookup_id\": \"expected.basis\", \"matched_count\": 24, \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_query\": \"def2svp\", \"program\": \"orca\", \"query\": \"def2-SVP\", \"reason_rule_ids\": [], \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_policy_binding\": {\"binding_sha256\": \"af469f22d487559314a7e7ea1124c0d2d67cb5c61c2b017681a401001d04914b\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"returned_count\": 5, \"schema_version\": \"chemsmart.scientific-settings-list.v2\", \"setting_path\": \"method.basis\", \"status\": \"ok\", \"token_policy\": \"bounded_view_only\", \"truncated\": true}",
+      "role": "tool",
+      "tool_call_id": "call_00_HuLglmrFldHmZl3nTBmF5742"
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_count\": 94, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"items\": [], \"job_kind\": \"opt\", \"limit\": 5, \"listing_sha256\": \"a5feb5d6b583c304dcfbaa9a075e28ac0200fe39cd95f307ef960d291c54eaa7\", \"lookup_id\": \"expected.functional\", \"matched_count\": 0, \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_query\": \"b3lypd3zero\", \"program\": \"orca\", \"query\": \"B3LYP-D3ZERO\", \"reason_rule_ids\": [], \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_policy_binding\": {\"binding_sha256\": \"4e65cfb47a2f7bdd7a62d5434c4a0a7b9f7948ffc3c851ff5b5079042077a304\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"returned_count\": 0, \"schema_version\": \"chemsmart.scientific-settings-list.v2\", \"setting_path\": \"method.functional\", \"status\": \"ok\", \"token_policy\": \"bounded_view_only\", \"truncated\": false}",
+      "role": "tool",
+      "tool_call_id": "call_01_cYS2s3K3qlG4OdyYVgfC2763"
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [\"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"candidates\": [], \"canonical_value\": \"def2-SVP\", \"deterministic_validator_enforced\": false, \"entry_evidence\": {\"entry_id\": \"setting.orca.method_basis.9d4ad2a94a78c138096c\", \"inventory_sha256\": \"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\", \"observation_note\": \"Observed allowed transform paper_project.basis_literal_normalization: input='def2-SVP' -> rendered=('def2svp',) -> loaded=('def2svp',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_sidecar_sha256\": null, \"source_ids\": [\"bse-catalog-0.11\", \"orca-job-settings-125f2878\", \"orca-project-loader-125f2878\", \"orca-reference-125f2878\", \"project-protocol-125f2878\"]}, \"entry_evidence_sha256\": \"3e635367bddab60a5a1bcc4aa6c0232f8cafd0ee559d3cccc8ee301e78c45bd6\", \"entry_id\": \"setting.orca.method_basis.9d4ad2a94a78c138096c\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"lookup_id\": \"expected.basis\", \"matched_by\": \"canonical_literal\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"def2svp\", \"program\": \"orca\", \"project_candidate_eligible\": false, \"reason_rule_id\": \"scientific_settings.v2.validation_coverage_gap\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"repair_policy_binding\": {\"binding_sha256\": \"4f4cd52072ffd909cb9c015abde4c0221a9c698a4989a5232bef3930886b9d7e\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"def2-SVP\", \"resolution_sha256\": \"c1d76c94f8420d64b5b79ef38c2556b2d60f2c35c387721a399d512a72fefd2c\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.basis\", \"source_registered\": true, \"status\": \"blocked_validation_coverage\"}",
+      "role": "tool",
+      "tool_call_id": "call_02_ED5BcZPo9RTbgcJ4fgfp3343"
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [], \"applicability_rules_present\": false, \"candidates\": [], \"canonical_value\": null, \"deterministic_validator_enforced\": false, \"entry_evidence\": null, \"entry_evidence_sha256\": null, \"entry_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": null, \"loader_accepted\": false, \"loader_observation\": \"not_observed\", \"lookup_id\": \"expected.functional\", \"matched_by\": \"none\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"b3lypd3zero\", \"program\": \"orca\", \"project_candidate_eligible\": false, \"reason_rule_id\": \"scientific_settings.v2.non_exhaustive_scope_unverified\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"not_observed\", \"renderer_preserved\": false, \"repair_policy_binding\": {\"binding_sha256\": \"f001b3cbd50026348d1f9591cae508d61cbfa45b5e7b337ac5c7173f4c049b65\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"B3LYP-D3ZERO\", \"resolution_sha256\": \"54b22b9ac84a9b384cb4bf14767c2f2b694ab2e9baa477675d514e6a58234b82\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.functional\", \"source_registered\": false, \"status\": \"unknown_unverified\"}",
+      "role": "tool",
+      "tool_call_id": "call_03_D937pVJnRvRbdDRZYvwP1362"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Evidence gathered. Both preregistered lookups resolved deterministically; here is what the read-only V2 arm shows for this case:\n\n- **Functional `B3LYP-D3ZERO` (expected.functional):** `matched_count: 0`; resolution status `unknown_unverified`, reason `scientific_settings.v2.non_exhaustive_scope_unverified`, `canonical_value: null`, `source_registered: false`, loader `not_observed`, renderer `not_observed`. The populated ORCA V2 functional inventory (94 entries) contains no entry for the literal, so the compound string is not registry-supported and cannot be reduced to plain B3LYP or treated as compiler-ready.\n- **Basis `def2-SVP` (expected.basis):** matched by canonical literal to `setting.orca.method_basis.9d4ad2a94a78c138096c` (loader accepted, renderer preserved, source registered), but resolution status is `blocked_validation_coverage`, reason `scientific_settings.v2.validation_coverage_gap`; `deterministic_validator_enforced: false`, evidence ceiling is loader/renderer verification only (no safe preview, no engine execution). The entry also declares `scientific_settings.basis.ecp_applicability_required` and `scientific_settings.basis.request_element_coverage_required`, which are undischarged with no element data in scope.\n\nNo project candidate is eligible; submitting the blocked proposal with source literals preserved.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"orca-b3lyp-d3zero-unsupported\", \"program\": \"orca\", \"project_name\": \"orca-b3lyp-d3zero-unsupported\", \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"functional\": \"B3LYP-D3ZERO\", \"basis\": \"def2-SVP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": null, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [\"scientific_settings.v2.non_exhaustive_scope_unverified\", \"scientific_settings.v2.validation_coverage_gap\"], \"element_findings\": [], \"analysis_summary\": \"Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_repJ2SIonAC6fNjnbOkS8233",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"332e797b1f6cd4e9711d37c236cfac199964c8121b54007a8ad7ebf0c4453b32\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.freq\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"e8e21a6c56cbbcf40c9b535eb14f3309fd2678dc010a8e7fa7e648c49686230e\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"78a67d56fbc15aa2c31e8674833b8d308fb692ca0c410bcefddef4d08297b20b\", \"receipt_sha256\": \"27393de3b43e472f0d6c5f5d80a16dbd61c134cc0cf60f7de72700e850895105\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [\"scientific_settings.v2.non_exhaustive_scope_unverified\", \"scientific_settings.v2.validation_coverage_gap\"], \"case_id\": \"orca-b3lyp-d3zero-unsupported\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-b3lyp-d3zero-unsupported\", \"project_written\": false, \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP-D3ZERO\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [\"scientific_settings.v2.non_exhaustive_scope_unverified\", \"scientific_settings.v2.validation_coverage_gap\"], \"case_id\": \"orca-b3lyp-d3zero-unsupported\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-b3lyp-d3zero-unsupported\", \"project_written\": false, \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": \"B3LYP-D3ZERO\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_repJ2SIonAC6fNjnbOkS8233"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Proposal submitted and accepted. Summary of the outcome:\n\n**Submission receipt** — `normalization_applied: true`, raw contract valid, no conflicting explicit setting fields. The case-bound normalizer filled the explicit task-derived slot `settings.freq = true` (task kind `freq`); all other fields preserved as submitted.\n\n**Final blocked proposal** (`case_id: orca-b3lyp-d3zero-unsupported`, program `orca`, project `orca-b3lyp-d3zero-unsupported`):\n- **Readiness:** `blocked_unsupported_setting`\n- **Settings (source literals preserved):** functional `B3LYP-D3ZERO`, basis `def2-SVP`, freq `true`; no dispersion/grid/solvent/ECP fields claimed.\n- **Blocking rules:** `scientific_settings.v2.non_exhaustive_scope_unverified` (functional) and `scientific_settings.v2.validation_coverage_gap` (basis)\n- No native input authored, no command authored, no project written, no execution requested.\n\n**Basis for the block, from read-only V2 evidence only:**\n1. **Functional `B3LYP-D3ZERO`** — `matched_count: 0`, resolution `unknown_unverified`; no canonical candidate, `source_registered: false`. The compound string is not registry-supported; it was not reduced to plain B3LYP and was not claimed compiler-ready.\n2. **Basis `def2-SVP`** — matched entry `setting.orca.method_basis.9d4ad2a94a78c138096c` is loader/renderer-verified only (`deterministic_validator_enforced: false`, evidence ceiling `loader_renderer_verification_only`), so it is `blocked_validation_coverage`; its declared applicability rules (`ecp_applicability_required`, `request_element_coverage_required`) remain undischarged with no element data in scope.\n\nNo project candidate is eligible, and no execution path was opened.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:orca-b3lyp-d3zero-unsupported:registry_v2:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_00_HuLglmrFldHmZl3nTBmF5742",
+      "request_id": "openai:call_00_HuLglmrFldHmZl3nTBmF5742",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_count": 772,
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "items": [
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-SVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.orca.method_basis.9d4ad2a94a78c138096c",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-SVP",
+            "project_candidate_eligible": false,
+            "rank": 1,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 10000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-SVPD",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.orca.method_basis.4b56af5387b70458af69",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-SVPD",
+            "project_candidate_eligible": false,
+            "rank": 2,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8750,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-SV(P)",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.orca.method_basis.775f4b2b616296f603f6",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-SV(P)",
+            "project_candidate_eligible": false,
+            "rank": 3,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 7777,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.registry_validator_integration_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "ma-def2-svp",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.orca.method_basis.c3aa9fe25ff21741f1b5",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "ma-def2-svp",
+            "project_candidate_eligible": false,
+            "rank": 4,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 7777,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-QZVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.orca.method_basis.322b617a9968512a7a3d",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-QZVP",
+            "project_candidate_eligible": false,
+            "rank": 5,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 7500,
+            "source_registered": true
+          }
+        ],
+        "job_kind": "opt",
+        "limit": 5,
+        "listing_sha256": "a439aacea83b031e5a554a914efe701efbf055d4b2b2ffd49868535ea685a5f8",
+        "lookup_id": "expected.basis",
+        "matched_count": 24,
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_query": "def2svp",
+        "program": "orca",
+        "query": "def2-SVP",
+        "reason_rule_ids": [],
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "repair_policy_binding": {
+          "binding_sha256": "af469f22d487559314a7e7ea1124c0d2d67cb5c61c2b017681a401001d04914b",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "returned_count": 5,
+        "schema_version": "chemsmart.scientific-settings-list.v2",
+        "setting_path": "method.basis",
+        "status": "ok",
+        "token_policy": "bounded_view_only",
+        "truncated": true
+      },
+      "result_sha256": "02b0e5f4f25f54b6c7bd4c5506864ac62a4aaa6da09df0c377b6c6add446cc3e",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_cYS2s3K3qlG4OdyYVgfC2763",
+      "request_id": "openai:call_01_cYS2s3K3qlG4OdyYVgfC2763",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_count": 94,
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "items": [],
+        "job_kind": "opt",
+        "limit": 5,
+        "listing_sha256": "a5feb5d6b583c304dcfbaa9a075e28ac0200fe39cd95f307ef960d291c54eaa7",
+        "lookup_id": "expected.functional",
+        "matched_count": 0,
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_query": "b3lypd3zero",
+        "program": "orca",
+        "query": "B3LYP-D3ZERO",
+        "reason_rule_ids": [],
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "repair_policy_binding": {
+          "binding_sha256": "4e65cfb47a2f7bdd7a62d5434c4a0a7b9f7948ffc3c851ff5b5079042077a304",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "returned_count": 0,
+        "schema_version": "chemsmart.scientific-settings-list.v2",
+        "setting_path": "method.functional",
+        "status": "ok",
+        "token_policy": "bounded_view_only",
+        "truncated": false
+      },
+      "result_sha256": "ee9ee857e43102c73070a59ae6276f92922ff8dcaaa67fed2eeba6e8dde1765e",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_02_ED5BcZPo9RTbgcJ4fgfp3343",
+      "request_id": "openai:call_02_ED5BcZPo9RTbgcJ4fgfp3343",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [
+          "scientific_settings.basis.ecp_applicability_required",
+          "scientific_settings.basis.request_element_coverage_required"
+        ],
+        "applicability_rules_present": true,
+        "candidates": [],
+        "canonical_value": "def2-SVP",
+        "deterministic_validator_enforced": false,
+        "entry_evidence": {
+          "entry_id": "setting.orca.method_basis.9d4ad2a94a78c138096c",
+          "inventory_sha256": "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe",
+          "observation_note": "Observed allowed transform paper_project.basis_literal_normalization: input='def2-SVP' -> rendered=('def2svp',) -> loaded=('def2svp',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.",
+          "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+          "repair_sidecar_sha256": null,
+          "source_ids": [
+            "bse-catalog-0.11",
+            "orca-job-settings-125f2878",
+            "orca-project-loader-125f2878",
+            "orca-reference-125f2878",
+            "project-protocol-125f2878"
+          ]
+        },
+        "entry_evidence_sha256": "3e635367bddab60a5a1bcc4aa6c0232f8cafd0ee559d3cccc8ee301e78c45bd6",
+        "entry_id": "setting.orca.method_basis.9d4ad2a94a78c138096c",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": true,
+        "loader_accepted": true,
+        "loader_observation": "accepted",
+        "lookup_id": "expected.basis",
+        "matched_by": "canonical_literal",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "def2svp",
+        "program": "orca",
+        "project_candidate_eligible": false,
+        "reason_rule_id": "scientific_settings.v2.validation_coverage_gap",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "preserved",
+        "renderer_preserved": true,
+        "repair_policy_binding": {
+          "binding_sha256": "4f4cd52072ffd909cb9c015abde4c0221a9c698a4989a5232bef3930886b9d7e",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "def2-SVP",
+        "resolution_sha256": "c1d76c94f8420d64b5b79ef38c2556b2d60f2c35c387721a399d512a72fefd2c",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.basis",
+        "source_registered": true,
+        "status": "blocked_validation_coverage"
+      },
+      "result_sha256": "20212a92abf4fc0e8c058ade29b8fea89bd4625a0dc29c940c1d31784846af4e",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_03_D937pVJnRvRbdDRZYvwP1362",
+      "request_id": "openai:call_03_D937pVJnRvRbdDRZYvwP1362",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [],
+        "applicability_rules_present": false,
+        "candidates": [],
+        "canonical_value": null,
+        "deterministic_validator_enforced": false,
+        "entry_evidence": null,
+        "entry_evidence_sha256": null,
+        "entry_id": null,
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": null,
+        "loader_accepted": false,
+        "loader_observation": "not_observed",
+        "lookup_id": "expected.functional",
+        "matched_by": "none",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "b3lypd3zero",
+        "program": "orca",
+        "project_candidate_eligible": false,
+        "reason_rule_id": "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "not_observed",
+        "renderer_preserved": false,
+        "repair_policy_binding": {
+          "binding_sha256": "f001b3cbd50026348d1f9591cae508d61cbfa45b5e7b337ac5c7173f4c049b65",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "B3LYP-D3ZERO",
+        "resolution_sha256": "54b22b9ac84a9b384cb4bf14767c2f2b694ab2e9baa477675d514e6a58234b82",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.functional",
+        "source_registered": false,
+        "status": "unknown_unverified"
+      },
+      "result_sha256": "1085ea831ad0a1329ddc749ac3a3a484494f207a3fd72520809bf401b1d2c874",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_repJ2SIonAC6fNjnbOkS8233",
+      "request_id": "openai:call_00_repJ2SIonAC6fNjnbOkS8233",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "332e797b1f6cd4e9711d37c236cfac199964c8121b54007a8ad7ebf0c4453b32",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.freq"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "e8e21a6c56cbbcf40c9b535eb14f3309fd2678dc010a8e7fa7e648c49686230e",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "78a67d56fbc15aa2c31e8674833b8d308fb692ca0c410bcefddef4d08297b20b",
+          "receipt_sha256": "27393de3b43e472f0d6c5f5d80a16dbd61c134cc0cf60f7de72700e850895105",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.non_exhaustive_scope_unverified",
+            "scientific_settings.v2.validation_coverage_gap"
+          ],
+          "case_id": "orca-b3lyp-d3zero-unsupported",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-b3lyp-d3zero-unsupported",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP-D3ZERO",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.non_exhaustive_scope_unverified",
+            "scientific_settings.v2.validation_coverage_gap"
+          ],
+          "case_id": "orca-b3lyp-d3zero-unsupported",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-b3lyp-d3zero-unsupported",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP-D3ZERO",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "1f92eebae74afada87273db8c38905b70d0654d0ec4a93d50a2686e888bd3ac9",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "expected.basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "22d1ffa07f62720acf8d1ed3c5c4942f9ab929f9911bef87ba19dd2002ebb71d",
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_00_HuLglmrFldHmZl3nTBmF5742",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_HuLglmrFldHmZl3nTBmF5742"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_cYS2s3K3qlG4OdyYVgfC2763",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_cYS2s3K3qlG4OdyYVgfC2763"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "22d1ffa07f62720acf8d1ed3c5c4942f9ab929f9911bef87ba19dd2002ebb71d",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_02_ED5BcZPo9RTbgcJ4fgfp3343",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_02_ED5BcZPo9RTbgcJ4fgfp3343"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_03_D937pVJnRvRbdDRZYvwP1362",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_03_D937pVJnRvRbdDRZYvwP1362"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.non_exhaustive_scope_unverified",
+            "scientific_settings.v2.validation_coverage_gap"
+          ],
+          "case_id": "orca-b3lyp-d3zero-unsupported",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-b3lyp-d3zero-unsupported",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP-D3ZERO",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "4ecff176fde123afb148730ded4a82857f6ebb4b9e7bcffe29bdc55daef17325",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_repJ2SIonAC6fNjnbOkS8233",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_repJ2SIonAC6fNjnbOkS8233"
+    }
+  ]
+}

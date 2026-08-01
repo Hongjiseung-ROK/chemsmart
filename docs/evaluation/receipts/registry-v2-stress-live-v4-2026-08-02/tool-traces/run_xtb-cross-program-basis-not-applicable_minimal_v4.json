@@ -1,0 +1,183 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T233102Z-0f818f6f\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: xtb-cross-program-basis-not-applicable\nProgram: xtb\nEngine version: 6.7.1\nTask kind: opt\nProject/registry accessor job kind: opt\n\nThe source incorrectly associates def2-SVP with GFN2-xTB. Represent the conflict and block; do not invent basis semantics.\n\nHost-preregistered lookup targets:\n- basis: xtb method.basis 'def2-SVP' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The case is a deterministic cross-program conflict: xTB's GFN Hamiltonian is the entire method and exposes no basis-set parameter, so `def2-SVP` cannot apply to the xtb program. The registry lookup target (`xtb method.basis 'def2-SVP' for opt`) is therefore blocked as an unsupported setting, with the source literal preserved unchanged. No project write, native input, command, or execution is involved.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"xtb-cross-program-basis-not-applicable\", \"program\": \"xtb\", \"project_name\": \"xtb-cross-program-basis-not-applicable\", \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"functional\": null, \"basis\": \"def2-SVP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": \"2\", \"optimization_level\": null, \"freq\": null, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [], \"element_findings\": [], \"analysis_summary\": \"The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_zhsSzHaRNopWsyLZ3ktI2503",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"6f40b47c9f133d3222cf6958574677f191895b09b5df3b18e096c7cf7b6cfe9e\", \"conflicting_explicit_setting_fields\": [\"settings.gfn_version\"], \"filled_explicit_setting_fields\": [\"settings.optimization_level\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"050558692735f25b7ecc400ce6f504761792df42431822d70fe31d78b8d47b7d\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"525e696ee5d3e540294b4a1c1b78c38fb4a64c1a4addeccfe5cee320f075070f\", \"receipt_sha256\": \"a6da32f3ae68b4092f7a6e1196338f9d42f1e3b090fb66f4ef25b0ba1cc627b5\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.\", \"blocking_rule_ids\": [], \"case_id\": \"xtb-cross-program-basis-not-applicable\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"xtb\", \"project_name\": \"xtb-cross-program-basis-not-applicable\", \"project_written\": false, \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": null, \"gfn_version\": \"2\", \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": \"normal\", \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.\", \"blocking_rule_ids\": [], \"case_id\": \"xtb-cross-program-basis-not-applicable\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"xtb\", \"project_name\": \"xtb-cross-program-basis-not-applicable\", \"project_written\": false, \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": null, \"gfn_version\": \"2\", \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_zhsSzHaRNopWsyLZ3ktI2503"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The registry stress plan was submitted and accepted. The normalization receipt reports the following literal results:\n\n- **Raw contract**: valid (`raw_contract_valid: true`, no `raw_contract_error_paths`), normalization applied.\n- **Conflicting explicit setting fields**: `settings.gfn_version` — the explicit `gfn_version: \"2\"` encoding was flagged as conflicting with the case-bound explicit-settings contract (only `method.basis 'def2-SVP'` is the declared explicit setting in scope for this case).\n- **Filled explicit setting fields**: `settings.optimization_level` — the case-bound normalizer filled this to `\"normal\"` for the `opt` task kind.\n- **Canonicalized set fields**: none.\n- **Final readiness**: `blocked_unsupported_setting` with `basis: \"def2-SVP\"` preserved as the source literal; `gfn_version` retained as `\"2\"` in the normalized payload; `project_written`, `native_input_authored`, `command_authored`, and `execution_requested` all remain `false`.\n- Receipt fingerprints: `normalized_payload_sha256 050558692735f25b7ecc400ce6f504761792df42431822d70fe31d78b8d47b7d`, `raw_payload_sha256 525e696ee5d3e540294b4a1c1b78c38fb4a64c1a4addeccfe5cee320f075070f`, `receipt_sha256 a6da32f3ae68b4092f7a6e1196338f9d42f1e3b090fb66f4ef25b0ba1cc627b5`.\n\nThe blocked proposal stands: for the xtb program, a GFN Hamiltonian is the whole method and `def2-SVP` is not an applicable basis setting, so the case is blocked without any project write, native input, command, or execution.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:xtb-cross-program-basis-not-applicable:minimal:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_zhsSzHaRNopWsyLZ3ktI2503",
+      "request_id": "openai:call_00_zhsSzHaRNopWsyLZ3ktI2503",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "6f40b47c9f133d3222cf6958574677f191895b09b5df3b18e096c7cf7b6cfe9e",
+          "conflicting_explicit_setting_fields": [
+            "settings.gfn_version"
+          ],
+          "filled_explicit_setting_fields": [
+            "settings.optimization_level"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "050558692735f25b7ecc400ce6f504761792df42431822d70fe31d78b8d47b7d",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "525e696ee5d3e540294b4a1c1b78c38fb4a64c1a4addeccfe5cee320f075070f",
+          "receipt_sha256": "a6da32f3ae68b4092f7a6e1196338f9d42f1e3b090fb66f4ef25b0ba1cc627b5",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.",
+          "blocking_rule_ids": [],
+          "case_id": "xtb-cross-program-basis-not-applicable",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-cross-program-basis-not-applicable",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": "2",
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": "normal",
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.",
+          "blocking_rule_ids": [],
+          "case_id": "xtb-cross-program-basis-not-applicable",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-cross-program-basis-not-applicable",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": "2",
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "ef936f39b5be3f7a359d4ea20b2cd03a4adebb74054381827316fd1185469a65",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.",
+          "blocking_rule_ids": [],
+          "case_id": "xtb-cross-program-basis-not-applicable",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-cross-program-basis-not-applicable",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": "2",
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "a6501711863edd70b3b908db91740e785c823c791049e0b94433644f0c3452ca",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_zhsSzHaRNopWsyLZ3ktI2503",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_zhsSzHaRNopWsyLZ3ktI2503"
+    }
+  ]
+}

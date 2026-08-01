@@ -1,0 +1,269 @@
+{
+  "assistant_text": "Proposal submitted and accepted by the Registry V2 arm. Summary:\n\n**Case:** `orca-def2-tzvp-pd-28e-ecp` · program ORCA · task freq (accessor job kind opt)\n\n**Read-only lookups (exact receipts):**\n- `method.basis` = **def2-TZVP** → `exact_registered`, loader accepted, renderer preserved (capability `orca.basis.bse.def2tzvp`)\n- `method.functional` = **B3LYP** → `exact_registered` (capability `orca.functional.b3lyp`)\n- Evidence ceiling: loader/renderer verification only — no engine execution or combination/adequacy claims made.\n\n**Exact pinned BSE Pd ECP electron count: 28** (def2-TZVP Pd entry ECP, 28 core electrons / 18 valence), matching the `pd-28e-ecp` case pin; recorded as `ecp_electrons: 28` for Pd in the element findings. Cl is all-electron (no ECP).\n\n**Proposal disposition:** `project_candidate`, no blocking rules — uniform B3LYP/def2-TZVP, `heavy_elements: [Pd]`, `ecp_intent: required`, `ecp_elements: [Pd]`, `freq: true`. No native input, no command, no project write, no execution requested (all const-false honored).\n\n**Normalization receipt:** `raw_contract_valid: true`, no conflicting explicit settings, no normalization applied; payload sha256 `f2607b6715431267438caa33ce44d141751a2dceb34d1f7dca650c1c60a3fd10`, receipt sha256 `db0636f56bfd01d8b05252439938eab4810d8ba0829c3cb8aa87f6d82313f651`.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_type_invalid",
+          "paper.project.field_unknown",
+          "paper.project.field_unknown",
+          "paper.project.mixed_basis_incomplete"
+        ],
+        "expected": "project_candidate_valid",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "1a0517f311c1abf2d9e81ec63401c9313dea4b82490140e94e38b2c2e109c460",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "f2607b6715431267438caa33ce44d141751a2dceb34d1f7dca650c1c60a3fd10",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "f2607b6715431267438caa33ce44d141751a2dceb34d1f7dca650c1c60a3fd10",
+        "receipt_sha256": "db0636f56bfd01d8b05252439938eab4810d8ba0829c3cb8aa87f6d82313f651",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.honest-readiness",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.validation-coverage-discharge"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_type_invalid",
+          "paper.project.field_unknown",
+          "paper.project.field_unknown",
+          "paper.project.mixed_basis_incomplete"
+        ],
+        "expected": "project_candidate_valid",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.honest-readiness",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.validation-coverage-discharge"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted and accepted by the Registry V2 arm. Summary:\n\n**Case:** `orca-def2-tzvp-pd-28e-ecp` · program ORCA · task freq (accessor job kind opt)\n\n**Read-only lookups (exact receipts):**\n- `method.basis` = **def2-TZVP** → `exact_registered`, loader accepted, renderer preserved (capability `orca.basis.bse.def2tzvp`)\n- `method.functional` = **B3LYP** → `exact_registered` (capability `orca.functional.b3lyp`)\n- Evidence ceiling: loader/renderer verification only — no engine execution or combination/adequacy claims made.\n\n**Exact pinned BSE Pd ECP electron count: 28** (def2-TZVP Pd entry ECP, 28 core electrons / 18 valence), matching the `pd-28e-ecp` case pin; recorded as `ecp_electrons: 28` for Pd in the element findings. Cl is all-electron (no ECP).\n\n**Proposal disposition:** `project_candidate`, no blocking rules — uniform B3LYP/def2-TZVP, `heavy_elements: [Pd]`, `ecp_intent: required`, `ecp_elements: [Pd]`, `freq: true`. No native input, no command, no project write, no execution requested (all const-false honored).\n\n**Normalization receipt:** `raw_contract_valid: true`, no conflicting explicit settings, no normalization applied; payload sha256 `f2607b6715431267438caa33ce44d141751a2dceb34d1f7dca650c1c60a3fd10`, receipt sha256 `db0636f56bfd01d8b05252439938eab4810d8ba0829c3cb8aa87f6d82313f651`.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_type_invalid",
+          "paper.project.field_unknown",
+          "paper.project.field_unknown",
+          "paper.project.mixed_basis_incomplete"
+        ],
+        "expected": "project_candidate_valid",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.honest-readiness",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.validation-coverage-discharge"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "B3LYP/def2-TZVP plan for a Cl/Pd system (ORCA, task kind freq; registry accessor job kind opt). Read-only V1 lookups: method.basis 'def2-TZVP' resolved exact_registered (matched_by canonical_literal, loader accepted, renderer preserved, loader_renderer_eligible true, capability orca.basis.bse.def2tzvp) and method.functional 'B3LYP' resolved exact_registered (capability orca.functional.b3lyp), both under registry sha256 ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4 for job_kind opt, with no blocking rule_ids. Evidence ceiling is loader_renderer_verification_only: engine not executed, scientific adequacy and setting combination not verified, so no execution-level claim is made. Exact pinned BSE Pd ECP electron count: 28 (def2-TZVP Pd entry's ECP, 28 core electrons, 18 valence electrons), consistent with the case identifier 'pd-28e-ecp'. Pd is recorded as the heavy element (ecp_intent required, ecp_elements [Pd]); Cl is all-electron with no ECP. Uniform def2-TZVP for heavy and light elements; freq true per task kind. No native input authored, no command authored, no project written, no execution requested. Readiness: project_candidate.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-def2-tzvp-pd-28e-ecp",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": true,
+        "symbol": "Cl"
+      },
+      {
+        "covered": true,
+        "ecp_electrons": 28,
+        "ecp_present": true,
+        "orbital_present": true,
+        "symbol": "Pd"
+      }
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-tzvp-pd-28e-ecp",
+    "project_written": false,
+    "readiness": "project_candidate",
+    "settings": {
+      "basis": "def2-TZVP",
+      "dispersion": null,
+      "ecp_elements": [
+        "Pd"
+      ],
+      "ecp_intent": "required",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [
+        "Pd"
+      ],
+      "heavy_elements_basis": "def2-TZVP",
+      "integration_grid": null,
+      "light_elements_basis": "def2-TZVP",
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_v1:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "1a0517f311c1abf2d9e81ec63401c9313dea4b82490140e94e38b2c2e109c460",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "f2607b6715431267438caa33ce44d141751a2dceb34d1f7dca650c1c60a3fd10",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "f2607b6715431267438caa33ce44d141751a2dceb34d1f7dca650c1c60a3fd10",
+    "receipt_sha256": "db0636f56bfd01d8b05252439938eab4810d8ba0829c3cb8aa87f6d82313f651",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "B3LYP/def2-TZVP plan for a Cl/Pd system (ORCA, task kind freq; registry accessor job kind opt). Read-only V1 lookups: method.basis 'def2-TZVP' resolved exact_registered (matched_by canonical_literal, loader accepted, renderer preserved, loader_renderer_eligible true, capability orca.basis.bse.def2tzvp) and method.functional 'B3LYP' resolved exact_registered (capability orca.functional.b3lyp), both under registry sha256 ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4 for job_kind opt, with no blocking rule_ids. Evidence ceiling is loader_renderer_verification_only: engine not executed, scientific adequacy and setting combination not verified, so no execution-level claim is made. Exact pinned BSE Pd ECP electron count: 28 (def2-TZVP Pd entry's ECP, 28 core electrons, 18 valence electrons), consistent with the case identifier 'pd-28e-ecp'. Pd is recorded as the heavy element (ecp_intent required, ecp_elements [Pd]); Cl is all-electron with no ECP. Uniform def2-TZVP for heavy and light elements; freq true per task kind. No native input authored, no command authored, no project written, no execution requested. Readiness: project_candidate.",
+  "typed_proposal": {
+    "analysis_summary": "B3LYP/def2-TZVP plan for a Cl/Pd system (ORCA, task kind freq; registry accessor job kind opt). Read-only V1 lookups: method.basis 'def2-TZVP' resolved exact_registered (matched_by canonical_literal, loader accepted, renderer preserved, loader_renderer_eligible true, capability orca.basis.bse.def2tzvp) and method.functional 'B3LYP' resolved exact_registered (capability orca.functional.b3lyp), both under registry sha256 ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4 for job_kind opt, with no blocking rule_ids. Evidence ceiling is loader_renderer_verification_only: engine not executed, scientific adequacy and setting combination not verified, so no execution-level claim is made. Exact pinned BSE Pd ECP electron count: 28 (def2-TZVP Pd entry's ECP, 28 core electrons, 18 valence electrons), consistent with the case identifier 'pd-28e-ecp'. Pd is recorded as the heavy element (ecp_intent required, ecp_elements [Pd]); Cl is all-electron with no ECP. Uniform def2-TZVP for heavy and light elements; freq true per task kind. No native input authored, no command authored, no project written, no execution requested. Readiness: project_candidate.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-def2-tzvp-pd-28e-ecp",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": true,
+        "symbol": "Cl"
+      },
+      {
+        "covered": true,
+        "ecp_electrons": 28,
+        "ecp_present": true,
+        "orbital_present": true,
+        "symbol": "Pd"
+      }
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-tzvp-pd-28e-ecp",
+    "project_written": false,
+    "readiness": "project_candidate",
+    "settings": {
+      "basis": "def2-TZVP",
+      "dispersion": null,
+      "ecp_elements": [
+        "Pd"
+      ],
+      "ecp_intent": "required",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [
+        "Pd"
+      ],
+      "heavy_elements_basis": "def2-TZVP",
+      "integration_grid": null,
+      "light_elements_basis": "def2-TZVP",
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

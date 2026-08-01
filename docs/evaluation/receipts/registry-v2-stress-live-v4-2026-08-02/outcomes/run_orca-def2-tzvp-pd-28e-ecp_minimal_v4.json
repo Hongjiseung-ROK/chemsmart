@@ -1,0 +1,154 @@
+{
+  "grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "normalization_receipt": null,
+  "outcome": {
+    "deterministic_grade": {
+      "details": {
+        "successful_submission_count": 0
+      },
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "oracle_passed": false,
+      "passed_oracle_ids": []
+    },
+    "engine_calls": 0,
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 2972,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 8192,
+    "passed_oracle_ids": [],
+    "private_reasoning_persisted": false,
+    "project_writes": 0,
+    "public_tool_trace_locator": "tool-traces/run_orca-def2-tzvp-pd-28e-ecp_minimal_v4.json",
+    "public_tool_trace_sha256": "3681fca910141da132a7407450d72ba481948bad7a4deca3ca0e20fff315061f",
+    "raw_public_english_response": "I'll analyze this case. The request is a read-only Registry V2 planning task for ORCA 6.1, freq task (opt accessor), B3LYP/def2-TZVP on a Cl/Pd system, with a mandatory BSE lookup target for `def2-TZVP` and a required report of the pinned BSE Pd ECP electron count.\n\nKey facts I can ground:\n- Pd (Z=46) is the heavy element here; in the def2 family the BSE Pd entry pairs def2-TZVP with the 28-electron def2 ECP (ECP28MDF), leaving",
+    "raw_public_english_response_sha256": "2117c46b633da1830be4e1d44a255856adc6c311c12e3475aeca36f41b556a19",
+    "receipt_sha256": "3baf9a82d1520276b1f4ac1c253858c7a223e584ee588271832fb46c10808ade",
+    "response_artifact_locator": "responses/run_orca-def2-tzvp-pd-28e-ecp_minimal_v4.json",
+    "run_id": "run:orca-def2-tzvp-pd-28e-ecp:minimal:v4",
+    "run_spec_sha256": "e6ac4960ff09a07bdf075d2cfc04034b05a3a2004e469e9b754918bcdb841793",
+    "runtime_event_log_locator": "runtime-events/run_orca-def2-tzvp-pd-28e-ecp_minimal_v4.jsonl",
+    "runtime_event_log_sha256": "b602d237d9158fa5b6a1a0248b20f5aadd57b84a7e80a72dba1b46f9124027dc",
+    "runtime_replay_state_sha256": "4245578f7b786292e09ffc05660e39d5d36b0f7b46b6aac240aa69c6acc3c6d9",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "blocked",
+    "sanitized_response_sha256": "2dc9cb9b79d82fefb4fc15dfd5089c92b12a1680f4fa81b5a700407f51ed901e",
+    "schema_version": "chemsmart.registry-stress-outcome.v1",
+    "secret_material_persisted": false,
+    "terminal_state": "failed",
+    "transport_attempts": 1,
+    "wall_time_ms": 81301
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-def2-tzvp-pd-28e-ecp:minimal:v4",
+      "hypothesis_sha256": "903331eee668bb348bdb1895dd503919ea74debe260bb5e50b3ce2c3778c20c0",
+      "input_tokens": 2972,
+      "latency_ms": 81252,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 8192,
+      "request_binding_sha256": "ebd750be222267982da8879528d1cbfa4e2487ee9fd210ceb78c8b52e8a56e38",
+      "request_binding_verified": true,
+      "request_sha256": "0f9deb3e0b15df732bd02a6d741b483dbb2a633ea78438e28efe97e7aadad1c8",
+      "status": "observed"
+    }
+  ],
+  "raw_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_semantic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "run_spec": {
+    "arm": "minimal",
+    "case_id": "orca-def2-tzvp-pd-28e-ecp",
+    "case_sha256": "1a0517f311c1abf2d9e81ec63401c9313dea4b82490140e94e38b2c2e109c460",
+    "changed_factor": "reference",
+    "comparator_arm": null,
+    "configuration_sha256": "4b809906a44fec8954df4f8c4d2b7b17c91635e2f123f616ef2e0da8f0c0c519",
+    "deterministic_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation",
+      "oracle.validation-coverage-discharge"
+    ],
+    "expected_outcome": "The typed proposal preserves explicit settings, uses the expected readiness, and passes every deterministic oracle.",
+    "hypothesis": "For orca-def2-tzvp-pd-28e-ecp, the minimal surface will preserve the exact scientific intent and select the deterministic readiness state.",
+    "hypothesis_id": "hypothesis.orca-def2-tzvp-pd-28e-ecp:minimal:v4",
+    "knowledge_advisory_exposed": false,
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "novelty_rationale": "Unique transport-recovery orca-def2-tzvp-pd-28e-ecp observation for the minimal surface after V3 isolated malformed tool JSON, metric conflation, and model-controlled lookup policy defects.",
+    "prompt_sha256": "d38b43cd0f09957877494d7baebd11fad8ff762d95b14cd915d882a1fa6e72e2",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "request_bound_validation_exposed": false,
+    "run_id": "run:orca-def2-tzvp-pd-28e-ecp:minimal:v4",
+    "run_spec_sha256": "e6ac4960ff09a07bdf075d2cfc04034b05a3a2004e469e9b754918bcdb841793",
+    "safety_plane": {
+      "chemistry_engine_execution_allowed": false,
+      "deterministic_oracles_active": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "project_writes_allowed": false,
+      "read_only_permission": true,
+      "runtime_v2_active": true,
+      "secret_persistence_allowed": false,
+      "v2_fallback_to_v1_allowed": false
+    },
+    "schema_version": "chemsmart.registry-stress-run.v1",
+    "source_binding_sha256": "123252baf1e4e9d188a81ef099460be56f84fc32d228ffd17041d8395337ca4f",
+    "tool_schema_sha256": "dd09d4e099a4ff2a262fed1de6d4ca2ff6265ab6df635d91adbacfb44ec36229"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  }
+}

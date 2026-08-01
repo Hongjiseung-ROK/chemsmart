@@ -1,0 +1,562 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T230054Z-54fa2df6\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: gaussian-fuzzy-def2-typo\nProgram: gaussian\nEngine version: 16.C01\nTask kind: freq\nProject/registry accessor job kind: opt\n\nThe source says def2-TZVXP. Search conservatively, preserve the reported spelling, and do not select a fuzzy candidate.\n\nHost-preregistered lookup targets:\n- basis: gaussian method.basis 'def2-TZVXP' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "list_scientific_settings_v2"
+          },
+          "id": "call_00_yra6D7XysxGtEm5Ujkcr4576",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_01_vFOd6NQAXevZ7rmiRhS73666",
+          "index": 1,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_count\": 642, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"items\": [{\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.d3a76ab40220bac1932e\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVP\", \"project_candidate_eligible\": false, \"rank\": 1, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8888, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVPP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.fde5cd800151752a75f1\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVPP\", \"project_candidate_eligible\": false, \"rank\": 2, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8888, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-mTZVPP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.f7f473283727d66d3049\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-mTZVPP\", \"project_candidate_eligible\": false, \"rank\": 3, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVPPD\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.d6c63553719b713885c5\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVPPD\", \"project_candidate_eligible\": false, \"rank\": 4, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-mTZVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.c68b94ab2cebaeeb44c7\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-mTZVP\", \"project_candidate_eligible\": false, \"rank\": 5, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 7777, \"source_registered\": true}], \"job_kind\": \"opt\", \"limit\": 5, \"listing_sha256\": \"2f804e2bcccc56cb4fb43117398604d41f0d2c9b994bf91bd876e85f2a991f67\", \"lookup_id\": \"basis\", \"matched_count\": 17, \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_query\": \"def2tzvxp\", \"program\": \"gaussian\", \"query\": \"def2-TZVXP\", \"reason_rule_ids\": [], \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_policy_binding\": {\"binding_sha256\": \"69814e2d1451f57c3ef8d7d433257d5aa9a3a369ca84edce39ecf8ee0eab930e\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"returned_count\": 5, \"schema_version\": \"chemsmart.scientific-settings-list.v2\", \"setting_path\": \"method.basis\", \"status\": \"ok\", \"token_policy\": \"bounded_view_only\", \"truncated\": true}",
+      "role": "tool",
+      "tool_call_id": "call_00_yra6D7XysxGtEm5Ujkcr4576"
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [], \"applicability_rules_present\": false, \"candidates\": [{\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.d3a76ab40220bac1932e\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVP\", \"project_candidate_eligible_after_selection\": false, \"rank\": 1, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8888, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVPP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.fde5cd800151752a75f1\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVPP\", \"project_candidate_eligible_after_selection\": false, \"rank\": 2, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8888, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-mTZVPP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.f7f473283727d66d3049\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-mTZVPP\", \"project_candidate_eligible_after_selection\": false, \"rank\": 3, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVPPD\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.d6c63553719b713885c5\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVPPD\", \"project_candidate_eligible_after_selection\": false, \"rank\": 4, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-mTZVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.c68b94ab2cebaeeb44c7\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-mTZVP\", \"project_candidate_eligible_after_selection\": false, \"rank\": 5, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 7777, \"source_registered\": true}], \"canonical_value\": null, \"deterministic_validator_enforced\": false, \"entry_evidence\": null, \"entry_evidence_sha256\": null, \"entry_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": null, \"loader_accepted\": false, \"loader_observation\": \"not_observed\", \"lookup_id\": \"basis\", \"matched_by\": \"fuzzy_candidate\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"def2tzvxp\", \"program\": \"gaussian\", \"project_candidate_eligible\": false, \"reason_rule_id\": \"scientific_settings.v2.candidate_requires_selection\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"not_observed\", \"renderer_preserved\": false, \"repair_policy_binding\": {\"binding_sha256\": \"bfeb9c5a7fe02b0f838c043e9bd50547d987c4c8d9200af92cbafe7836a91df1\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"def2-TZVXP\", \"resolution_sha256\": \"7dc1af75bf27e88cac9669c79a1462b59a20aca6434e2171c04947aeedf588a9\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.basis\", \"source_registered\": false, \"status\": \"candidate_only\"}",
+      "role": "tool",
+      "tool_call_id": "call_01_vFOd6NQAXevZ7rmiRhS73666"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Both read-only lookups for the mandatory basis target are complete, and they are consistent:\n\n**Deterministic resolution (`resolve_scientific_setting_v2`, basis = `def2-TZVXP`, gaussian, opt scope):**\n- `status: candidate_only`, `matched_by: fuzzy_candidate`, reason rule `scientific_settings.v2.candidate_requires_selection`\n- No exact entry: `canonical_value: null`, `entry_id: null`, `loader_accepted: false` (not_observed), `renderer_preserved: false` (not_observed), `source_registered: false`\n- Closest fuzzy candidates (`def2-TZVP`, `def2-TZVPP`, `def2-mTZVPP`, `def2-TZVPPD`, `def2-mTZVP`) all at similarity < 10000 bps, `project_candidate_eligible_after_selection: false`\n\n**Listing (`list_scientific_settings_v2`):** 17 fuzzy matches total, none with `matched_literal` equal to the requested `def2-TZVXP`; all listed entries are near-miss spellings.\n\nConclusion: no exact, request-bound deterministic receipt exists for `def2-TZVXP`. Per the conservative-search instruction I will not select any fuzzy candidate, and I will preserve the reported source spelling in the blocked proposal.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"gaussian-fuzzy-def2-typo\", \"program\": \"gaussian\", \"project_name\": \"gaussian-fuzzy-def2-typo\", \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"functional\": null, \"basis\": \"def2-TZVXP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": true, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [\"scientific_settings.v2.candidate_requires_selection\"], \"element_findings\": [], \"analysis_summary\": \"Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_ccST7qUHM1TJlo2ziDU53761",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.functional\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"9363fde3396e69898a35cf06903a13ed7fa13d52e8c00318bd8bb0e545e731d0\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"77b337d827ec28eb3281b31364f34df70e1c221d6b88f1067b2728baec526c5a\", \"receipt_sha256\": \"1903afcf41b056e7c12cd7aab3e8e5f0cfc502e9413bbfe6ffab9a4e627df3a6\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.\", \"blocking_rule_ids\": [\"scientific_settings.v2.candidate_requires_selection\"], \"case_id\": \"gaussian-fuzzy-def2-typo\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-fuzzy-def2-typo\", \"project_written\": false, \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"basis\": \"def2-TZVXP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.\", \"blocking_rule_ids\": [\"scientific_settings.v2.candidate_requires_selection\"], \"case_id\": \"gaussian-fuzzy-def2-typo\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-fuzzy-def2-typo\", \"project_written\": false, \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"basis\": \"def2-TZVXP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": null, \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_ccST7qUHM1TJlo2ziDU53761"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The stress plan was submitted and accepted. Summary of the outcome:\n\n**Submission receipt**\n- Normalization applied by the case-bound normalizer (`case-bound-explicit-settings-and-set-order` v1.0.0); `raw_contract_valid: true`, no contract errors, no conflicting explicit setting fields.\n- The normalizer filled `settings.functional` with the case-bound default **B3LYP** (recorded under `filled_explicit_setting_fields`); all other fields passed through unchanged.\n- Receipt SHA-256: `1903afcf41b056e7c12cd7aab3e8e5f0cfc502e9413bbfe6ffab9a4e627df3a6`; normalized payload SHA-256: `9363fde3396e69898a35cf06903a13ed7fa13d52e8c00318bd8bb0e545e731d0`.\n\n**Final proposal state**\n- Case: `gaussian-fuzzy-def2-typo` · program: gaussian · project: `gaussian-fuzzy-def2-typo`\n- Readiness: **blocked_unverified_setting**, blocking rule `scientific_settings.v2.candidate_requires_selection`\n- Basis literal preserved exactly as reported: **`def2-TZVXP`** (no fuzzy candidate selected, no substitution)\n- `native_input_authored`, `command_authored`, `project_written`, `execution_requested` — all false; no elements were provided, so no element findings.\n\nThe proposal is blocked deterministically: the V2 registry holds no exact entry for `def2-TZVXP` (only fuzzy near-misses such as `def2-TZVP`/`def2-TZVPP`), and per the conservative-search instruction no fuzzy candidate was chosen. The source spelling was preserved in the blocked proposal.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:gaussian-fuzzy-def2-typo:registry_v2:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_00_yra6D7XysxGtEm5Ujkcr4576",
+      "request_id": "openai:call_00_yra6D7XysxGtEm5Ujkcr4576",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_count": 642,
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "items": [
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.d3a76ab40220bac1932e",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVP",
+            "project_candidate_eligible": false,
+            "rank": 1,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8888,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVPP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.fde5cd800151752a75f1",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVPP",
+            "project_candidate_eligible": false,
+            "rank": 2,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8888,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-mTZVPP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.f7f473283727d66d3049",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-mTZVPP",
+            "project_candidate_eligible": false,
+            "rank": 3,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVPPD",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.d6c63553719b713885c5",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVPPD",
+            "project_candidate_eligible": false,
+            "rank": 4,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-mTZVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.c68b94ab2cebaeeb44c7",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-mTZVP",
+            "project_candidate_eligible": false,
+            "rank": 5,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 7777,
+            "source_registered": true
+          }
+        ],
+        "job_kind": "opt",
+        "limit": 5,
+        "listing_sha256": "2f804e2bcccc56cb4fb43117398604d41f0d2c9b994bf91bd876e85f2a991f67",
+        "lookup_id": "basis",
+        "matched_count": 17,
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_query": "def2tzvxp",
+        "program": "gaussian",
+        "query": "def2-TZVXP",
+        "reason_rule_ids": [],
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "repair_policy_binding": {
+          "binding_sha256": "69814e2d1451f57c3ef8d7d433257d5aa9a3a369ca84edce39ecf8ee0eab930e",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "returned_count": 5,
+        "schema_version": "chemsmart.scientific-settings-list.v2",
+        "setting_path": "method.basis",
+        "status": "ok",
+        "token_policy": "bounded_view_only",
+        "truncated": true
+      },
+      "result_sha256": "de6c059da938a7f09c59868bfcd7e0cd0d866b834cb8dbd51406015db23bfeeb",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_01_vFOd6NQAXevZ7rmiRhS73666",
+      "request_id": "openai:call_01_vFOd6NQAXevZ7rmiRhS73666",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [],
+        "applicability_rules_present": false,
+        "candidates": [
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.d3a76ab40220bac1932e",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVP",
+            "project_candidate_eligible_after_selection": false,
+            "rank": 1,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8888,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVPP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.fde5cd800151752a75f1",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVPP",
+            "project_candidate_eligible_after_selection": false,
+            "rank": 2,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8888,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-mTZVPP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.f7f473283727d66d3049",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-mTZVPP",
+            "project_candidate_eligible_after_selection": false,
+            "rank": 3,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVPPD",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.d6c63553719b713885c5",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVPPD",
+            "project_candidate_eligible_after_selection": false,
+            "rank": 4,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-mTZVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.c68b94ab2cebaeeb44c7",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-mTZVP",
+            "project_candidate_eligible_after_selection": false,
+            "rank": 5,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 7777,
+            "source_registered": true
+          }
+        ],
+        "canonical_value": null,
+        "deterministic_validator_enforced": false,
+        "entry_evidence": null,
+        "entry_evidence_sha256": null,
+        "entry_id": null,
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": null,
+        "loader_accepted": false,
+        "loader_observation": "not_observed",
+        "lookup_id": "basis",
+        "matched_by": "fuzzy_candidate",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "def2tzvxp",
+        "program": "gaussian",
+        "project_candidate_eligible": false,
+        "reason_rule_id": "scientific_settings.v2.candidate_requires_selection",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "not_observed",
+        "renderer_preserved": false,
+        "repair_policy_binding": {
+          "binding_sha256": "bfeb9c5a7fe02b0f838c043e9bd50547d987c4c8d9200af92cbafe7836a91df1",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "def2-TZVXP",
+        "resolution_sha256": "7dc1af75bf27e88cac9669c79a1462b59a20aca6434e2171c04947aeedf588a9",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.basis",
+        "source_registered": false,
+        "status": "candidate_only"
+      },
+      "result_sha256": "fdd968d6c42c698e651f14ca2f8c06e764f2ab821600385eaa3f93e9b237e214",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_ccST7qUHM1TJlo2ziDU53761",
+      "request_id": "openai:call_00_ccST7qUHM1TJlo2ziDU53761",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.functional"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "9363fde3396e69898a35cf06903a13ed7fa13d52e8c00318bd8bb0e545e731d0",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "77b337d827ec28eb3281b31364f34df70e1c221d6b88f1067b2728baec526c5a",
+          "receipt_sha256": "1903afcf41b056e7c12cd7aab3e8e5f0cfc502e9413bbfe6ffab9a4e627df3a6",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.candidate_requires_selection"
+          ],
+          "case_id": "gaussian-fuzzy-def2-typo",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-fuzzy-def2-typo",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-TZVXP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.candidate_requires_selection"
+          ],
+          "case_id": "gaussian-fuzzy-def2-typo",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-fuzzy-def2-typo",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-TZVXP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": null,
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "c483075ef7a1044468c55f1112664c97affde4b2c1bc0f0f91c7f2f1c1f7d6a7",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_00_yra6D7XysxGtEm5Ujkcr4576",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_yra6D7XysxGtEm5Ujkcr4576"
+    },
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_01_vFOd6NQAXevZ7rmiRhS73666",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_vFOd6NQAXevZ7rmiRhS73666"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.candidate_requires_selection"
+          ],
+          "case_id": "gaussian-fuzzy-def2-typo",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-fuzzy-def2-typo",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-TZVXP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": null,
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "4e5a95cc2ecf9f8a40b82b7d938ef42a38c521fd0d0958aec5256d2bc097cadd",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_ccST7qUHM1TJlo2ziDU53761",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_ccST7qUHM1TJlo2ziDU53761"
+    }
+  ]
+}

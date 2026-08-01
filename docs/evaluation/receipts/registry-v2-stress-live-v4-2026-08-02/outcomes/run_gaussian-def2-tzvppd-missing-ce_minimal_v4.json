@@ -1,0 +1,152 @@
+{
+  "grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "normalization_receipt": null,
+  "outcome": {
+    "deterministic_grade": {
+      "details": {
+        "successful_submission_count": 0
+      },
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "oracle_passed": false,
+      "passed_oracle_ids": []
+    },
+    "engine_calls": 0,
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 2966,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 8192,
+    "passed_oracle_ids": [],
+    "private_reasoning_persisted": false,
+    "project_writes": 0,
+    "public_tool_trace_locator": "tool-traces/run_gaussian-def2-tzvppd-missing-ce_minimal_v4.json",
+    "public_tool_trace_sha256": "e81ea532f8309a99019685873e1079ea4bb633744a952854a15fe79a1297ced7",
+    "raw_public_english_response": "",
+    "raw_public_english_response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "receipt_sha256": "cd7c51409a28cd3a091b196e22f09023ca7b8cdcdba608888cba3f0d8f5950b3",
+    "response_artifact_locator": "responses/run_gaussian-def2-tzvppd-missing-ce_minimal_v4.json",
+    "run_id": "run:gaussian-def2-tzvppd-missing-ce:minimal:v4",
+    "run_spec_sha256": "1d29ac64e5184bd71974a945cdbf3da4fc84e46dbcca4c4bfb6c63747d542c09",
+    "runtime_event_log_locator": "runtime-events/run_gaussian-def2-tzvppd-missing-ce_minimal_v4.jsonl",
+    "runtime_event_log_sha256": "86fa485c8cded7470023ea104ad19c7c4db7f44e723323e0efcd7bd66f1ae974",
+    "runtime_replay_state_sha256": "9b575bc1766da334e21258816805511b1ba4dc3793c1b044d3ccd9de72d8fbf7",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "blocked",
+    "sanitized_response_sha256": "10bcd456d626eccf1d1f4b2c7e05d8cfe23ad62a0368a22171a359057f94871b",
+    "schema_version": "chemsmart.registry-stress-outcome.v1",
+    "secret_material_persisted": false,
+    "terminal_state": "failed",
+    "transport_attempts": 1,
+    "wall_time_ms": 84909
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.gaussian-def2-tzvppd-missing-ce:minimal:v4",
+      "hypothesis_sha256": "822cffb4f253011591c43562d7805e0a796b503b5b5547f63b9151b424395fe2",
+      "input_tokens": 2966,
+      "latency_ms": 84858,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 8192,
+      "request_binding_sha256": "178da9538f43c655b36119e78386d7b7268183369cdc692d2a43f5aa60c33c8f",
+      "request_binding_verified": true,
+      "request_sha256": "7705189484ff50d2071047b990baab392caad30589166e5b10fbe606eedda3a7",
+      "status": "observed"
+    }
+  ],
+  "raw_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_semantic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "run_spec": {
+    "arm": "minimal",
+    "case_id": "gaussian-def2-tzvppd-missing-ce",
+    "case_sha256": "6cc93af1f39faa27baaa85274e91e7768d0a754fd00eeebba9db3781c0229e9e",
+    "changed_factor": "reference",
+    "comparator_arm": null,
+    "configuration_sha256": "4b809906a44fec8954df4f8c4d2b7b17c91635e2f123f616ef2e0da8f0c0c519",
+    "deterministic_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ],
+    "expected_outcome": "The typed proposal preserves explicit settings, uses the expected readiness, and passes every deterministic oracle.",
+    "hypothesis": "For gaussian-def2-tzvppd-missing-ce, the minimal surface will preserve the exact scientific intent and select the deterministic readiness state.",
+    "hypothesis_id": "hypothesis.gaussian-def2-tzvppd-missing-ce:minimal:v4",
+    "knowledge_advisory_exposed": false,
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "novelty_rationale": "Unique transport-recovery gaussian-def2-tzvppd-missing-ce observation for the minimal surface after V3 isolated malformed tool JSON, metric conflation, and model-controlled lookup policy defects.",
+    "prompt_sha256": "f1002fc56643e7d919fb520050fb24a7dc378e6df9e4f82895d97161a81334a0",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "request_bound_validation_exposed": false,
+    "run_id": "run:gaussian-def2-tzvppd-missing-ce:minimal:v4",
+    "run_spec_sha256": "1d29ac64e5184bd71974a945cdbf3da4fc84e46dbcca4c4bfb6c63747d542c09",
+    "safety_plane": {
+      "chemistry_engine_execution_allowed": false,
+      "deterministic_oracles_active": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "project_writes_allowed": false,
+      "read_only_permission": true,
+      "runtime_v2_active": true,
+      "secret_persistence_allowed": false,
+      "v2_fallback_to_v1_allowed": false
+    },
+    "schema_version": "chemsmart.registry-stress-run.v1",
+    "source_binding_sha256": "123252baf1e4e9d188a81ef099460be56f84fc32d228ffd17041d8395337ca4f",
+    "tool_schema_sha256": "dd09d4e099a4ff2a262fed1de6d4ca2ff6265ab6df635d91adbacfb44ec36229"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  }
+}

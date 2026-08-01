@@ -1,0 +1,435 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T232055Z-37a2bc5f\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: orca-b97m-d4-exact-compound\nProgram: orca\nEngine version: 6.1\nTask kind: freq\nProject/registry accessor job kind: opt\n\nPlan an ORCA B97M-D4/def2-SVP frequency project. Preserve B97M-D4 as one exact checked compound functional.\n\nHost-preregistered lookup targets:\n- functional: orca method.functional 'B97M-D4' for opt\n- basis: orca method.basis 'def2-SVP' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "I'll start by examining the case-scoped registry views for both mandatory lookup targets.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"functional\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_00_e9tGmsDIx4XEuRZxE5yP8118",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_01_Gt5WDPwgmO7NdAiexkEh1851",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"functional\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_02_80OZe8XVAreV39A0Q2YA4710",
+          "index": 2,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_03_dcjKW7M7TdnX3zcjlOEe4784",
+          "index": 3,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"inventory_count\": 1, \"lookup_id\": \"functional\", \"matched_count\": 0, \"ok\": true, \"program\": \"orca\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 0, \"rule_ids\": [], \"setting_path\": \"method.functional\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": false, \"values\": []}",
+      "role": "tool",
+      "tool_call_id": "call_00_e9tGmsDIx4XEuRZxE5yP8118"
+    },
+    {
+      "content": "{\"inventory_count\": 864, \"lookup_id\": \"basis\", \"matched_count\": 17, \"ok\": true, \"program\": \"orca\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 5, \"rule_ids\": [], \"setting_path\": \"method.basis\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": true, \"values\": [\"def2-SV(P)\", \"def2-SV(P)-JKFIT\", \"def2-SV(P)-RIFIT\", \"def2-SVP\", \"def2-SVP-RIFIT\"]}",
+      "role": "tool",
+      "tool_call_id": "call_01_Gt5WDPwgmO7NdAiexkEh1851"
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": null, \"capability_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"not_observed\", \"loader_renderer_eligible\": false, \"lookup_id\": \"functional\", \"matched_by\": \"none\", \"normalized_requested_value\": \"b97md4\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.unknown_unverified\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"not_observed\", \"requested_value\": \"B97M-D4\", \"resolution_sha256\": \"6ecb58b15c0c20dcdccbcec2e9dabe571d33a09dbc5744d779dd8f62291ac00e\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.functional\", \"status\": \"unknown_unverified\"}",
+      "role": "tool",
+      "tool_call_id": "call_02_80OZe8XVAreV39A0Q2YA4710"
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": \"def2-SVP\", \"capability_id\": \"orca.basis.bse.def2svp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"lookup_id\": \"basis\", \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"def2svp\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"def2-SVP\", \"resolution_sha256\": \"5f04d21dad1ef9c1e72204eaa6bf314f75a2b96700f7ce3301149c7edb34f352\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.basis\", \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_03_dcjKW7M7TdnX3zcjlOEe4784"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The registry evidence is now clear for both mandatory targets:\n\n- **Functional `B97M-D4`** (orca `method.functional`, opt): resolved to `unknown_unverified` (reason rule `scientific_settings.unknown_unverified`). Inventory matched 0 of 1 entries, zero candidates, canonical value null, loader/renderer `not_observed`, not loader-renderer eligible. There is no fuzzy candidate to select and no exact receipt to discharge it — the source literal must be preserved as-is.\n- **Basis `def2-SVP`** (orca `method.basis`, opt): resolved to `exact_registered` by canonical literal match (canonical `def2-SVP`, capability `orca.basis.bse.def2svp`, loader accepted, renderer preserved).\n\nSince the compound functional is unverified and unsupplied by the registry, the frequency project is blocked — no substitution, no native input, command, project write, or execution. Submitting the single typed proposal:",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"orca-b97m-d4-exact-compound\", \"program\": \"orca\", \"project_name\": \"b97m-d4-def2svp-freq\", \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"functional\": \"B97M-D4\", \"basis\": \"def2-SVP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": true, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [\"scientific_settings.unknown_unverified\"], \"element_findings\": [], \"analysis_summary\": \"The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_N4CGzMt9l2ggG48BfKPk7224",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [], \"normalization_applied\": false, \"normalized_payload_sha256\": \"cc390d48997efe9706218546c7f6e9c92ffcdf6c9d9fc80c285f727c58c56666\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"cc390d48997efe9706218546c7f6e9c92ffcdf6c9d9fc80c285f727c58c56666\", \"receipt_sha256\": \"79ee73daf860ec78e6610e84b119993b4e46abe813944e3e2fb7e81baa4541e6\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.\", \"blocking_rule_ids\": [\"scientific_settings.unknown_unverified\"], \"case_id\": \"orca-b97m-d4-exact-compound\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"b97m-d4-def2svp-freq\", \"project_written\": false, \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B97M-D4\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.\", \"blocking_rule_ids\": [\"scientific_settings.unknown_unverified\"], \"case_id\": \"orca-b97m-d4-exact-compound\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"b97m-d4-def2svp-freq\", \"project_written\": false, \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B97M-D4\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_N4CGzMt9l2ggG48BfKPk7224"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The proposal was submitted successfully and accepted with a valid contract (`raw_contract_valid: true`, no normalization applied — all source literals preserved verbatim).\n\n## Summary\n\n**Case:** `orca-b97m-d4-exact-compound` · ORCA 6.1 · task kind `freq` (accessor job kind `opt`)\n\n**Registry findings (read-only):**\n- **Functional `B97M-D4`** → `unknown_unverified` (rule `scientific_settings.unknown_unverified`). The functional inventory matched 0 of 1 entries, exposed zero candidates, canonical value null, loader/renderer not observed. No exact, request-bound receipt exists to discharge this setting, and no fuzzy substitute is selectable. The compound functional is preserved verbatim as `\"B97M-D4\"`.\n- **Basis `def2-SVP`** → `exact_registered` (canonical literal, capability `orca.basis.bse.def2svp`, loader accepted, renderer preserved).\n\n**Decision:** `readiness = blocked_unverified_setting`, blocked by `scientific_settings.unknown_unverified`. Settings preserve the exact source literals (`functional: \"B97M-D4\"`, `basis: \"def2-SVP\"`, `freq: true`); all other fields left null/empty since no compound, solvent, grid, or dispersion was requested.\n\n**Constraints honored:** no fuzzy candidate selected, no silent substitution, no native input / ChemSmart command authored, no project write, no execution requested, and exactly one `submit_registry_stress_plan` call.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:orca-b97m-d4-exact-compound:registry_v1:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_00_e9tGmsDIx4XEuRZxE5yP8118",
+      "request_id": "openai:call_00_e9tGmsDIx4XEuRZxE5yP8118",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 1,
+        "lookup_id": "functional",
+        "matched_count": 0,
+        "ok": true,
+        "program": "orca",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 0,
+        "rule_ids": [],
+        "setting_path": "method.functional",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": false,
+        "values": []
+      },
+      "result_sha256": "5ce821950656f991478c052ee609fa53adb3aeab18c37950e8688651baf66d88",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_01_Gt5WDPwgmO7NdAiexkEh1851",
+      "request_id": "openai:call_01_Gt5WDPwgmO7NdAiexkEh1851",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 864,
+        "lookup_id": "basis",
+        "matched_count": 17,
+        "ok": true,
+        "program": "orca",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 5,
+        "rule_ids": [],
+        "setting_path": "method.basis",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": true,
+        "values": [
+          "def2-SV(P)",
+          "def2-SV(P)-JKFIT",
+          "def2-SV(P)-RIFIT",
+          "def2-SVP",
+          "def2-SVP-RIFIT"
+        ]
+      },
+      "result_sha256": "f0e4de077950b088f79260a2cd7dcde06216a10314902f23ccc895cf2d7c78f5",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_02_80OZe8XVAreV39A0Q2YA4710",
+      "request_id": "openai:call_02_80OZe8XVAreV39A0Q2YA4710",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "candidate_values": [],
+        "canonical_value": null,
+        "capability_id": null,
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "not_observed",
+        "loader_renderer_eligible": false,
+        "lookup_id": "functional",
+        "matched_by": "none",
+        "normalized_requested_value": "b97md4",
+        "program": "orca",
+        "reason_rule_id": "scientific_settings.unknown_unverified",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "not_observed",
+        "requested_value": "B97M-D4",
+        "resolution_sha256": "6ecb58b15c0c20dcdccbcec2e9dabe571d33a09dbc5744d779dd8f62291ac00e",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.functional",
+        "status": "unknown_unverified"
+      },
+      "result_sha256": "19802c80116aeff9273ee34b9df15bf5c1ae1306382d3f4404847989c7d4dee7",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_03_dcjKW7M7TdnX3zcjlOEe4784",
+      "request_id": "openai:call_03_dcjKW7M7TdnX3zcjlOEe4784",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "candidate_values": [],
+        "canonical_value": "def2-SVP",
+        "capability_id": "orca.basis.bse.def2svp",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "accepted",
+        "loader_renderer_eligible": true,
+        "lookup_id": "basis",
+        "matched_by": "canonical_literal",
+        "normalized_requested_value": "def2svp",
+        "program": "orca",
+        "reason_rule_id": "scientific_settings.exact_registered",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "preserved",
+        "requested_value": "def2-SVP",
+        "resolution_sha256": "5f04d21dad1ef9c1e72204eaa6bf314f75a2b96700f7ce3301149c7edb34f352",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.basis",
+        "status": "exact_registered"
+      },
+      "result_sha256": "17cc7a85978a63c9bf5d486081fa4ae99bfe4b9f4ffc9c519620d51c6b2263d2",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_N4CGzMt9l2ggG48BfKPk7224",
+      "request_id": "openai:call_00_N4CGzMt9l2ggG48BfKPk7224",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [],
+          "normalization_applied": false,
+          "normalized_payload_sha256": "cc390d48997efe9706218546c7f6e9c92ffcdf6c9d9fc80c285f727c58c56666",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "cc390d48997efe9706218546c7f6e9c92ffcdf6c9d9fc80c285f727c58c56666",
+          "receipt_sha256": "79ee73daf860ec78e6610e84b119993b4e46abe813944e3e2fb7e81baa4541e6",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.unknown_unverified"
+          ],
+          "case_id": "orca-b97m-d4-exact-compound",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "b97m-d4-def2svp-freq",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B97M-D4",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.unknown_unverified"
+          ],
+          "case_id": "orca-b97m-d4-exact-compound",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "b97m-d4-def2svp-freq",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B97M-D4",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "9712a3ca571fa311e82d6dbb00f01c195f8fe5cdeeae12548c46d45778aa40b8",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8cfca17f1ce43a1a2203c01837f874cf957ccdf360571acb3678ff83b586ff47",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_00_e9tGmsDIx4XEuRZxE5yP8118",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_e9tGmsDIx4XEuRZxE5yP8118"
+    },
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_01_Gt5WDPwgmO7NdAiexkEh1851",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_Gt5WDPwgmO7NdAiexkEh1851"
+    },
+    {
+      "arguments": {
+        "lookup_id": "functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8cfca17f1ce43a1a2203c01837f874cf957ccdf360571acb3678ff83b586ff47",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_02_80OZe8XVAreV39A0Q2YA4710",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_02_80OZe8XVAreV39A0Q2YA4710"
+    },
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_03_dcjKW7M7TdnX3zcjlOEe4784",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_03_dcjKW7M7TdnX3zcjlOEe4784"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "The mandatory functional target 'B97M-D4' (ORCA method.functional, preregistered for job kind opt) resolved to status 'unknown_unverified' with reason rule 'scientific_settings.unknown_unverified': inventory matched 0 of 1 entries, zero candidate values, canonical value null, loader/renderer observations 'not_observed', and loader_renderer_eligible false. The exact checked compound functional is therefore not registry-registered, cannot be discharged by any receipt, and must not be substituted or split; it is preserved verbatim as the source literal 'B97M-D4' in the blocked settings. The mandatory basis target 'def2-SVP' (ORCA method.basis, preregistered for job kind opt) resolved to 'exact_registered' via canonical literal match (canonical 'def2-SVP', capability orca.basis.bse.def2svp, loader accepted, renderer preserved) and is preserved verbatim. Because the compound functional is unverified, the ORCA 6.1 freq project (accessor job kind opt) is blocked as a whole; no fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.unknown_unverified"
+          ],
+          "case_id": "orca-b97m-d4-exact-compound",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "b97m-d4-def2svp-freq",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B97M-D4",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "627590e34baa7e1bd0a939b3d85596a1ba2678bd289504d9dc27ad2e3c089cec",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_N4CGzMt9l2ggG48BfKPk7224",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_N4CGzMt9l2ggG48BfKPk7224"
+    }
+  ]
+}

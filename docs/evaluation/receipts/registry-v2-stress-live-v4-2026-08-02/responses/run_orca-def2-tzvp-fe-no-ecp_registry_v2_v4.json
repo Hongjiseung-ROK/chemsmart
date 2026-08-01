@@ -1,0 +1,259 @@
+{
+  "assistant_text": "Submission complete. Summary of the Registry V2 stress experiment outcome:\n\n**Planned settings (ORCA, opt accessor / freq task):**\n- Functional: **B3LYP** — `exact_registered`, loader accepted, renderer preserved.\n- Basis: **def2-TZVP** — canonical literal matched (`def2-TZVP` → `def2tzvp`), loader accepted, renderer preserved, but registry status is **`blocked_validation_coverage`** (`scientific_settings.v2.validation_coverage_gap`; project-candidate ineligible; evidence ceiling `loader_renderer_verification_only`; deterministic validator not enforced).\n\n**Fe ECP question — answer:** The pinned BSE definition (bse-catalog-0.11, via entry `setting.orca.method_basis.a6d92a427e69b3a7c59a`) is registered, but this arm exposes **no element-level ECP/coverage receipt for Fe (or Cl)**. Whether the BSE def2-TZVP embeds an Fe ECP therefore **cannot be confirmed from available evidence**, so `scientific_settings.basis.ecp_applicability_required` and `scientific_settings.basis.request_element_coverage_required` remain undischarged. Element findings for Cl and Fe record `covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null` to reflect absent evidence — not confirmed absence.\n\n**Final proposal (as normalized):**\n- readiness: `blocked_validation_coverage`\n- blocking_rule_ids: `scientific_settings.basis.ecp_applicability_required`, `scientific_settings.basis.request_element_coverage_required`, `scientific_settings.v2.validation_coverage_gap` (set-order canonicalized)\n- settings: B3LYP / def2-TZVP, heavy_elements `[Fe]`, `freq` filled to `true` by the case-bound normalizer\n- No project written, no native input, no command, no execution (receipt `e253696e85f931923ce0ed212cc43bacb62f3441e804a11b60fa08f2f4eff3d2`).\n\nThe proposal is blocked pending validation coverage that would actually verify the def2-TZVP definition for Cl/Fe (including the Fe ECP question) — none of the blocked statuses were rewritten.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.ecp_applicability_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_type_invalid"
+        ],
+        "expected": "project_candidate_valid",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [
+          "blocking_rule_ids"
+        ],
+        "case_sha256": "0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "89a397d1f410d052ca649ae0c0bb921382c7d69217d5ea9d234c27903b9782a0",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [
+          "blocking_rule_ids"
+        ],
+        "raw_contract_valid": false,
+        "raw_payload_sha256": "571a708f2fb3afd779a4d21a66e3ca9aefd8810ee3fea02eab5699b0d4554774",
+        "receipt_sha256": "e253696e85f931923ce0ed212cc43bacb62f3441e804a11b60fa08f2f4eff3d2",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.validation-coverage-discharge"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "validation_error_class": "ValidationError"
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-valid"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "Submission complete. Summary of the Registry V2 stress experiment outcome:\n\n**Planned settings (ORCA, opt accessor / freq task):**\n- Functional: **B3LYP** — `exact_registered`, loader accepted, renderer preserved.\n- Basis: **def2-TZVP** — canonical literal matched (`def2-TZVP` → `def2tzvp`), loader accepted, renderer preserved, but registry status is **`blocked_validation_coverage`** (`scientific_settings.v2.validation_coverage_gap`; project-candidate ineligible; evidence ceiling `loader_renderer_verification_only`; deterministic validator not enforced).\n\n**Fe ECP question — answer:** The pinned BSE definition (bse-catalog-0.11, via entry `setting.orca.method_basis.a6d92a427e69b3a7c59a`) is registered, but this arm exposes **no element-level ECP/coverage receipt for Fe (or Cl)**. Whether the BSE def2-TZVP embeds an Fe ECP therefore **cannot be confirmed from available evidence**, so `scientific_settings.basis.ecp_applicability_required` and `scientific_settings.basis.request_element_coverage_required` remain undischarged. Element findings for Cl and Fe record `covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null` to reflect absent evidence — not confirmed absence.\n\n**Final proposal (as normalized):**\n- readiness: `blocked_validation_coverage`\n- blocking_rule_ids: `scientific_settings.basis.ecp_applicability_required`, `scientific_settings.basis.request_element_coverage_required`, `scientific_settings.v2.validation_coverage_gap` (set-order canonicalized)\n- settings: B3LYP / def2-TZVP, heavy_elements `[Fe]`, `freq` filled to `true` by the case-bound normalizer\n- No project written, no native input, no command, no execution (receipt `e253696e85f931923ce0ed212cc43bacb62f3441e804a11b60fa08f2f4eff3d2`).\n\nThe proposal is blocked pending validation coverage that would actually verify the def2-TZVP definition for Cl/Fe (including the Fe ECP question) — none of the blocked statuses were rewritten.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.ecp_applicability_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_type_invalid",
+          "paper.project.frequency_missing"
+        ],
+        "expected": "project_candidate_valid",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.validation-coverage-discharge"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Planned B3LYP/def2-TZVP for the Cl/Fe system (program orca, engine 6.1, task kind freq, accessor job kind opt). Lookup 'expected.functional' for 'B3LYP' resolved exact_registered (entry setting.orca.method_functional.d34018d588c050ffd3c5; loader accepted, renderer preserved, project_candidate_eligible true). Lookup 'basis' for 'def2-TZVP' resolved with status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible false; evidence ceiling loader_renderer_verification_only; deterministic validator not enforced; source_registered true with pinned source bse-catalog-0.11 via entry setting.orca.method_basis.a6d92a427e69b3a7c59a). Applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required are present on the basis entry but are not discharged by any exposed receipt. Regarding the requested report on whether the pinned BSE definition embeds an Fe ECP: this arm exposes no element-level basis/ECP receipt for Fe (or Cl); the Fe ECP status therefore cannot be confirmed from available evidence, and the ecp_applicability_required rule cannot be discharged. Element findings for Cl and Fe record covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null to reflect absence of exposed evidence, not confirmed absence of coverage or ECP. Proposal readiness is blocked_validation_coverage; no project write, no native input, no command, and no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.validation_coverage_gap",
+      "scientific_settings.basis.ecp_applicability_required",
+      "scientific_settings.basis.request_element_coverage_required"
+    ],
+    "case_id": "orca-def2-tzvp-fe-no-ecp",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": false,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": false,
+        "symbol": "Cl"
+      },
+      {
+        "covered": false,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": false,
+        "symbol": "Fe"
+      }
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-tzvp-fe-no-ecp",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "def2-TZVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [
+        "Fe"
+      ],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-def2-tzvp-fe-no-ecp:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [
+      "blocking_rule_ids"
+    ],
+    "case_sha256": "0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "89a397d1f410d052ca649ae0c0bb921382c7d69217d5ea9d234c27903b9782a0",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [
+      "blocking_rule_ids"
+    ],
+    "raw_contract_valid": false,
+    "raw_payload_sha256": "571a708f2fb3afd779a4d21a66e3ca9aefd8810ee3fea02eab5699b0d4554774",
+    "receipt_sha256": "e253696e85f931923ce0ed212cc43bacb62f3441e804a11b60fa08f2f4eff3d2",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Planned B3LYP/def2-TZVP for the Cl/Fe system (program orca, engine 6.1, task kind freq, accessor job kind opt). Lookup 'expected.functional' for 'B3LYP' resolved exact_registered (entry setting.orca.method_functional.d34018d588c050ffd3c5; loader accepted, renderer preserved, project_candidate_eligible true). Lookup 'basis' for 'def2-TZVP' resolved with status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible false; evidence ceiling loader_renderer_verification_only; deterministic validator not enforced; source_registered true with pinned source bse-catalog-0.11 via entry setting.orca.method_basis.a6d92a427e69b3a7c59a). Applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required are present on the basis entry but are not discharged by any exposed receipt. Regarding the requested report on whether the pinned BSE definition embeds an Fe ECP: this arm exposes no element-level basis/ECP receipt for Fe (or Cl); the Fe ECP status therefore cannot be confirmed from available evidence, and the ecp_applicability_required rule cannot be discharged. Element findings for Cl and Fe record covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null to reflect absence of exposed evidence, not confirmed absence of coverage or ECP. Proposal readiness is blocked_validation_coverage; no project write, no native input, no command, and no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Planned B3LYP/def2-TZVP for the Cl/Fe system (program orca, engine 6.1, task kind freq, accessor job kind opt). Lookup 'expected.functional' for 'B3LYP' resolved exact_registered (entry setting.orca.method_functional.d34018d588c050ffd3c5; loader accepted, renderer preserved, project_candidate_eligible true). Lookup 'basis' for 'def2-TZVP' resolved with status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible false; evidence ceiling loader_renderer_verification_only; deterministic validator not enforced; source_registered true with pinned source bse-catalog-0.11 via entry setting.orca.method_basis.a6d92a427e69b3a7c59a). Applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required are present on the basis entry but are not discharged by any exposed receipt. Regarding the requested report on whether the pinned BSE definition embeds an Fe ECP: this arm exposes no element-level basis/ECP receipt for Fe (or Cl); the Fe ECP status therefore cannot be confirmed from available evidence, and the ecp_applicability_required rule cannot be discharged. Element findings for Cl and Fe record covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null to reflect absence of exposed evidence, not confirmed absence of coverage or ECP. Proposal readiness is blocked_validation_coverage; no project write, no native input, no command, and no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.ecp_applicability_required",
+      "scientific_settings.basis.request_element_coverage_required",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "orca-def2-tzvp-fe-no-ecp",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": false,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": false,
+        "symbol": "Cl"
+      },
+      {
+        "covered": false,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": false,
+        "symbol": "Fe"
+      }
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-tzvp-fe-no-ecp",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "def2-TZVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [
+        "Fe"
+      ],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

@@ -1,0 +1,196 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T231443Z-8069e4d4\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: orca-def2-ecp-orbital-missing\nProgram: orca\nEngine version: 6.1\nTask kind: sp\nProject/registry accessor job kind: sp\n\nAssess def2-ECP as the only reported Pd basis. Reject an ECP-only definition that has no orbital functions.\n\nHost-preregistered lookup targets:\n- basis: orca method.basis 'def2-ECP' for sp\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "I'll assess this case under the read-only Registry V2 stress protocol: def2-ECP reported as the *only* Pd basis for an ORCA 6.1 sp job, with no lookup tool exposed in this arm beyond the deterministic finding that the target `basis: orca method.basis 'def2-ECP' for sp` covers Pd but supplies only an effective core potential (ECP present, orbital functions absent). An ECP-only definition cannot serve as the sole Pd basis, so the case is deterministically blocked as an invalid specification.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"orca-def2-ecp-orbital-missing\", \"program\": \"orca\", \"project_name\": \"orca-def2-ecp-orbital-missing\", \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"basis\": \"def2-ECP\", \"heavy_elements\": [\"Pd\"], \"ecp_intent\": \"required\", \"ecp_elements\": [\"Pd\"]}, \"element_findings\": [{\"symbol\": \"Pd\", \"covered\": true, \"orbital_present\": false, \"ecp_present\": true, \"ecp_electrons\": 28}], \"blocking_rule_ids\": [], \"analysis_summary\": \"Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_WeA8OhYdv7lmqGAAXxj51984",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"e5b5619f32032ae977150326d4f930ae00700ff8a521c2b138f6f987d2a33a20\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.freq\", \"settings.functional\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"c8c19c0e2dba9f62fd115ac579e91baf37270eaac9a421bc93e607708b4340c6\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"37258067115acfc081b13cc6aa45533cf6d75d6427eb839a9582d4ef0e817b09\", \"receipt_sha256\": \"41e931edb879a9f116cd7ffd248e76e3c9e66fb1edb562dd14c6f32ec61ab018\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-def2-ecp-orbital-missing\", \"command_authored\": false, \"element_findings\": [{\"covered\": true, \"ecp_electrons\": 28, \"ecp_present\": true, \"orbital_present\": false, \"symbol\": \"Pd\"}], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-def2-ecp-orbital-missing\", \"project_written\": false, \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"basis\": \"def2-ECP\", \"dispersion\": null, \"ecp_elements\": [\"Pd\"], \"ecp_intent\": \"required\", \"freq\": false, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [\"Pd\"], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-def2-ecp-orbital-missing\", \"command_authored\": false, \"element_findings\": [{\"covered\": true, \"ecp_electrons\": 28, \"ecp_present\": true, \"orbital_present\": false, \"symbol\": \"Pd\"}], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-def2-ecp-orbital-missing\", \"project_written\": false, \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"basis\": \"def2-ECP\", \"ecp_elements\": [\"Pd\"], \"ecp_intent\": \"required\", \"heavy_elements\": [\"Pd\"]}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_WeA8OhYdv7lmqGAAXxj51984"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Proposal submitted for case `orca-def2-ecp-orbital-missing` — one `submit_registry_stress_plan` call, read-only throughout (no project write, native input, command, or execution).\n\nOutcome per the returned receipt:\n\n- **Readiness:** `blocked_invalid_specification` — def2-ECP as the *only* reported Pd basis is rejected.\n- **Element finding (Pd):** covered = true, `orbital_present` = false, `ecp_present` = true, ecp electrons = 28. The `def2-ECP` entry covers Pd but supplies only the effective core potential, with no orbital/valence functions; it cannot define a valid ORCA sp basis for Pd alone.\n- **Settings:** source literal `basis: def2-ECP` preserved, with `heavy_elements: [\"Pd\"]`, `ecp_intent: required`, `ecp_elements: [\"Pd\"]`.\n- **Normalization:** the case-bound normalizer (`case-bound-explicit-settings-and-set-order` v1.0.0) applied and canonically filled `settings.functional = B3LYP` and `settings.freq = false`; no conflicting explicit fields, raw contract valid (`raw_contract_valid: true`), and no blocking rule IDs were asserted.\n- **Guards:** `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all false.\n\nReceipt hash: `41e931edb879a9f116cd7ffd248e76e3c9e66fb1edb562dd14c6f32ec61ab018`.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:orca-def2-ecp-orbital-missing:minimal:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_WeA8OhYdv7lmqGAAXxj51984",
+      "request_id": "openai:call_00_WeA8OhYdv7lmqGAAXxj51984",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "e5b5619f32032ae977150326d4f930ae00700ff8a521c2b138f6f987d2a33a20",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.freq",
+            "settings.functional"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "c8c19c0e2dba9f62fd115ac579e91baf37270eaac9a421bc93e607708b4340c6",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "37258067115acfc081b13cc6aa45533cf6d75d6427eb839a9582d4ef0e817b09",
+          "receipt_sha256": "41e931edb879a9f116cd7ffd248e76e3c9e66fb1edb562dd14c6f32ec61ab018",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-def2-ecp-orbital-missing",
+          "command_authored": false,
+          "element_findings": [
+            {
+              "covered": true,
+              "ecp_electrons": 28,
+              "ecp_present": true,
+              "orbital_present": false,
+              "symbol": "Pd"
+            }
+          ],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-def2-ecp-orbital-missing",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-ECP",
+            "dispersion": null,
+            "ecp_elements": [
+              "Pd"
+            ],
+            "ecp_intent": "required",
+            "freq": false,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [
+              "Pd"
+            ],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-def2-ecp-orbital-missing",
+          "command_authored": false,
+          "element_findings": [
+            {
+              "covered": true,
+              "ecp_electrons": 28,
+              "ecp_present": true,
+              "orbital_present": false,
+              "symbol": "Pd"
+            }
+          ],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-def2-ecp-orbital-missing",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-ECP",
+            "ecp_elements": [
+              "Pd"
+            ],
+            "ecp_intent": "required",
+            "heavy_elements": [
+              "Pd"
+            ]
+          }
+        }
+      },
+      "result_sha256": "2786fe88520408806790633c8d72ba3da0a7295c2d1683b2f85e2dad9253b01f",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-def2-ecp-orbital-missing",
+          "command_authored": false,
+          "element_findings": [
+            {
+              "covered": true,
+              "ecp_electrons": 28,
+              "ecp_present": true,
+              "orbital_present": false,
+              "symbol": "Pd"
+            }
+          ],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-def2-ecp-orbital-missing",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-ECP",
+            "ecp_elements": [
+              "Pd"
+            ],
+            "ecp_intent": "required",
+            "heavy_elements": [
+              "Pd"
+            ]
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "619e5dbebff79d2d5e3fe7e2b692858db7e838f21a3c59cd24b1707c3e6d71b8",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_WeA8OhYdv7lmqGAAXxj51984",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_WeA8OhYdv7lmqGAAXxj51984"
+    }
+  ]
+}

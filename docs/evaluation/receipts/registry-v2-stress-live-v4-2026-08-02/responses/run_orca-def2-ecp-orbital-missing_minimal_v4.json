@@ -1,0 +1,229 @@
+{
+  "assistant_text": "Proposal submitted for case `orca-def2-ecp-orbital-missing` — one `submit_registry_stress_plan` call, read-only throughout (no project write, native input, command, or execution).\n\nOutcome per the returned receipt:\n\n- **Readiness:** `blocked_invalid_specification` — def2-ECP as the *only* reported Pd basis is rejected.\n- **Element finding (Pd):** covered = true, `orbital_present` = false, `ecp_present` = true, ecp electrons = 28. The `def2-ECP` entry covers Pd but supplies only the effective core potential, with no orbital/valence functions; it cannot define a valid ORCA sp basis for Pd alone.\n- **Settings:** source literal `basis: def2-ECP` preserved, with `heavy_elements: [\"Pd\"]`, `ecp_intent: required`, `ecp_elements: [\"Pd\"]`.\n- **Normalization:** the case-bound normalizer (`case-bound-explicit-settings-and-set-order` v1.0.0) applied and canonically filled `settings.functional = B3LYP` and `settings.freq = false`; no conflicting explicit fields, raw contract valid (`raw_contract_valid: true`), and no blocking rule IDs were asserted.\n- **Guards:** `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all false.\n\nReceipt hash: `41e931edb879a9f116cd7ffd248e76e3c9e66fb1edb562dd14c6f32ec61ab018`.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "e5b5619f32032ae977150326d4f930ae00700ff8a521c2b138f6f987d2a33a20",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq",
+          "settings.functional"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "c8c19c0e2dba9f62fd115ac579e91baf37270eaac9a421bc93e607708b4340c6",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "37258067115acfc081b13cc6aa45533cf6d75d6427eb839a9582d4ef0e817b09",
+        "receipt_sha256": "41e931edb879a9f116cd7ffd248e76e3c9e66fb1edb562dd14c6f32ec61ab018",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted for case `orca-def2-ecp-orbital-missing` — one `submit_registry_stress_plan` call, read-only throughout (no project write, native input, command, or execution).\n\nOutcome per the returned receipt:\n\n- **Readiness:** `blocked_invalid_specification` — def2-ECP as the *only* reported Pd basis is rejected.\n- **Element finding (Pd):** covered = true, `orbital_present` = false, `ecp_present` = true, ecp electrons = 28. The `def2-ECP` entry covers Pd but supplies only the effective core potential, with no orbital/valence functions; it cannot define a valid ORCA sp basis for Pd alone.\n- **Settings:** source literal `basis: def2-ECP` preserved, with `heavy_elements: [\"Pd\"]`, `ecp_intent: required`, `ecp_elements: [\"Pd\"]`.\n- **Normalization:** the case-bound normalizer (`case-bound-explicit-settings-and-set-order` v1.0.0) applied and canonically filled `settings.functional = B3LYP` and `settings.freq = false`; no conflicting explicit fields, raw contract valid (`raw_contract_valid: true`), and no blocking rule IDs were asserted.\n- **Guards:** `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all false.\n\nReceipt hash: `41e931edb879a9f116cd7ffd248e76e3c9e66fb1edb562dd14c6f32ec61ab018`.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-def2-ecp-orbital-missing",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": 28,
+        "ecp_present": true,
+        "orbital_present": false,
+        "symbol": "Pd"
+      }
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-ecp-orbital-missing",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-ECP",
+      "ecp_elements": [
+        "Pd"
+      ],
+      "ecp_intent": "required",
+      "heavy_elements": [
+        "Pd"
+      ]
+    }
+  },
+  "run_id": "run:orca-def2-ecp-orbital-missing:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "e5b5619f32032ae977150326d4f930ae00700ff8a521c2b138f6f987d2a33a20",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq",
+      "settings.functional"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "c8c19c0e2dba9f62fd115ac579e91baf37270eaac9a421bc93e607708b4340c6",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "37258067115acfc081b13cc6aa45533cf6d75d6427eb839a9582d4ef0e817b09",
+    "receipt_sha256": "41e931edb879a9f116cd7ffd248e76e3c9e66fb1edb562dd14c6f32ec61ab018",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Requested ORCA 6.1 sp with method.basis 'def2-ECP' reported as the only basis for Pd. The host lookup target 'basis: orca method.basis def2-ECP for sp' covers Pd (a def2-ECP entry exists for Pd), but that entry provides only the effective core potential (28 core electrons for the 4d series) and contains no orbital/valence basis functions: element finding for Pd is covered=true, orbital_present=false, ecp_present=true. An ECP-only definition cannot act as the sole Pd basis for an sp calculation because Pd would have no orbital functions in which to expand the wavefunction. The setting literal 'def2-ECP' is preserved as reported; the proposal is rejected as blocked_invalid_specification (ECP-only basis without orbital functions). No project written, no native input or ChemSmart command authored, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-def2-ecp-orbital-missing",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": 28,
+        "ecp_present": true,
+        "orbital_present": false,
+        "symbol": "Pd"
+      }
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-ecp-orbital-missing",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-ECP",
+      "dispersion": null,
+      "ecp_elements": [
+        "Pd"
+      ],
+      "ecp_intent": "required",
+      "freq": false,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [
+        "Pd"
+      ],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

@@ -1,0 +1,553 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T231854Z-aa1bb6e7\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: xtb-gfnff-alpb-n-hexane\nProgram: xtb\nEngine version: 6.7.1\nTask kind: opt\nProject/registry accessor job kind: opt\n\nPlan a GFN-FF xTB optimization with ALPB n-hexane. Preserve the hyphenated solvent identity and do not invent an orbital basis.\n\nHost-preregistered lookup targets:\n- gfn: xtb method.gfn_version 'gfnff' for opt\n- solvent-model: xtb solvent.model 'alpb' for opt\n- solvent-id: xtb solvent.id 'n-hexane' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"gfn\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_00_s8DqNCF01CaY18gPmW0l7925",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"solvent-model\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_01_XH7p4wJocfPhdrRofSlU5539",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"solvent-id\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_02_mvXbGuEj3FzRuKVXcll36390",
+          "index": 2,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"gfn\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_03_fSLs1FoGJKbGJiiHMe4Q9813",
+          "index": 3,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"solvent-model\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_04_Ykj8OSMXPt8mQrGkjd5j3302",
+          "index": 4,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"solvent-id\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_05_HY7b3Q9yvVPJKIck1J5C8780",
+          "index": 5,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"candidate_values\": [\"gfn2\"], \"canonical_value\": null, \"capability_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"not_observed\", \"loader_renderer_eligible\": false, \"lookup_id\": \"gfn\", \"matched_by\": \"fuzzy_candidate\", \"normalized_requested_value\": \"gfnff\", \"program\": \"xtb\", \"reason_rule_id\": \"scientific_settings.candidate_requires_selection\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"not_observed\", \"requested_value\": \"gfnff\", \"resolution_sha256\": \"95395a51a822520727e225b0df73df8ec57d23cf9d179e7550dd4c66f58066f4\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.gfn_version\", \"status\": \"candidate_only\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_s8DqNCF01CaY18gPmW0l7925"
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": null, \"capability_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"not_observed\", \"loader_renderer_eligible\": false, \"lookup_id\": \"solvent-model\", \"matched_by\": \"none\", \"normalized_requested_value\": \"alpb\", \"program\": \"xtb\", \"reason_rule_id\": \"scientific_settings.unknown_unverified\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"not_observed\", \"requested_value\": \"alpb\", \"resolution_sha256\": \"581ee07a886b8c2003d0ed36f8acffcef56494d3dccd2a49d455efdf13fcd584\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"solvent.model\", \"status\": \"unknown_unverified\"}",
+      "role": "tool",
+      "tool_call_id": "call_01_XH7p4wJocfPhdrRofSlU5539"
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": null, \"capability_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"not_observed\", \"loader_renderer_eligible\": false, \"lookup_id\": \"solvent-id\", \"matched_by\": \"none\", \"normalized_requested_value\": \"nhexane\", \"program\": \"xtb\", \"reason_rule_id\": \"scientific_settings.unknown_unverified\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"not_observed\", \"requested_value\": \"n-hexane\", \"resolution_sha256\": \"0fa9cca22edb08be11d3115c1b152007d607ca2aa9f1dc778fa47f1a268e3cb2\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"solvent.id\", \"status\": \"unknown_unverified\"}",
+      "role": "tool",
+      "tool_call_id": "call_02_mvXbGuEj3FzRuKVXcll36390"
+    },
+    {
+      "content": "{\"inventory_count\": 1, \"lookup_id\": \"gfn\", \"matched_count\": 0, \"ok\": true, \"program\": \"xtb\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 0, \"rule_ids\": [], \"setting_path\": \"method.gfn_version\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": false, \"values\": []}",
+      "role": "tool",
+      "tool_call_id": "call_03_fSLs1FoGJKbGJiiHMe4Q9813"
+    },
+    {
+      "content": "{\"inventory_count\": 0, \"lookup_id\": \"solvent-model\", \"matched_count\": 0, \"ok\": false, \"program\": \"xtb\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 0, \"rule_ids\": [], \"setting_path\": \"solvent.model\", \"status\": \"coverage_gap\", \"token_policy\": \"bounded_view_only\", \"truncated\": false, \"values\": []}",
+      "role": "tool",
+      "tool_call_id": "call_04_Ykj8OSMXPt8mQrGkjd5j3302"
+    },
+    {
+      "content": "{\"inventory_count\": 0, \"lookup_id\": \"solvent-id\", \"matched_count\": 0, \"ok\": false, \"program\": \"xtb\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 0, \"rule_ids\": [], \"setting_path\": \"solvent.id\", \"status\": \"coverage_gap\", \"token_policy\": \"bounded_view_only\", \"truncated\": false, \"values\": []}",
+      "role": "tool",
+      "tool_call_id": "call_05_HY7b3Q9yvVPJKIck1J5C8780"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "All three mandatory lookups resolved, and every one is blocked:\n\n- **gfn (`method.gfn_version` = 'gfnff')**: `candidate_only` — matched only as a fuzzy candidate against `gfn2`; canonical value null; reason `scientific_settings.candidate_requires_selection`. Selecting the fuzzy `gfn2` substitute is forbidden.\n- **solvent-model (`solvent.model` = 'alpb')**: `unknown_unverified`, no candidates, inventory coverage gap.\n- **solvent-id (`solvent.id` = 'n-hexane')**: `unknown_unverified`, no candidates, inventory coverage gap.\n\nNo verified canonical value exists for any mandatory target, so the proposal is blocked and the source literals are preserved as-is.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"xtb-gfnff-alpb-n-hexane\", \"program\": \"xtb\", \"project_name\": \"xtb-gfnff-alpb-n-hexane\", \"readiness\": \"blocked_unverified_setting\", \"blocking_rule_ids\": [\"scientific_settings.candidate_requires_selection\", \"scientific_settings.unknown_unverified\"], \"settings\": {\"functional\": null, \"basis\": null, \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": \"alpb\", \"solvent_id\": \"n-hexane\", \"gfn_version\": \"gfnff\", \"optimization_level\": null, \"freq\": null, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"element_findings\": [], \"analysis_summary\": \"Read-only Registry V2 resolution for xtb opt case xtb-gfnff-alpb-n-hexane. All three mandatory host-preregistered lookups were resolved against frozen V1. (1) gfn (method.gfn_version, requested 'gfnff'): status candidate_only; the only candidate is the fuzzy match 'gfn2' with canonical_value null and reason scientific_settings.candidate_requires_selection. The requested GFN-FF value is not verified, and the fuzzy 'gfn2' substitute must not be selected. (2) solvent-model (solvent.model, requested 'alpb'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. (3) solvent-id (solvent.id, requested 'n-hexane'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. No exact deterministic receipt exists for any mandatory target, so no declared applicability rule is discharged and the case is blocked_unverified_setting. The proposal preserves the requested source literals verbatim (gfn_version 'gfnff', solvent_model 'alpb', solvent_id 'n-hexane' with the hyphenated identity intact). No orbital basis, functional, dispersion, grid, optimization level, frequency, or ECP settings were invented (null/empty); xTB GFN-FF carries no functional/basis, and none was asserted. No fuzzy candidate was selected, no native input or ChemSmart command was authored, no project was written, and no execution was requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_hoGnoZzXutZ0kHs15rVC1102",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.optimization_level\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"7f12a8a8ea08a5273d457fdcd3ddb7e7e5ce28802c857af96b3a67c5e4d5a450\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"279e3717af22013b382367196845f0be89fdeaf5cf9531d340a228dbc0d993cf\", \"receipt_sha256\": \"1de2170d498ae8c1a48f3f7d1742f99b6ef5da6464c178f2a349c58fa288d3ad\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Read-only Registry V2 resolution for xtb opt case xtb-gfnff-alpb-n-hexane. All three mandatory host-preregistered lookups were resolved against frozen V1. (1) gfn (method.gfn_version, requested 'gfnff'): status candidate_only; the only candidate is the fuzzy match 'gfn2' with canonical_value null and reason scientific_settings.candidate_requires_selection. The requested GFN-FF value is not verified, and the fuzzy 'gfn2' substitute must not be selected. (2) solvent-model (solvent.model, requested 'alpb'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. (3) solvent-id (solvent.id, requested 'n-hexane'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. No exact deterministic receipt exists for any mandatory target, so no declared applicability rule is discharged and the case is blocked_unverified_setting. The proposal preserves the requested source literals verbatim (gfn_version 'gfnff', solvent_model 'alpb', solvent_id 'n-hexane' with the hyphenated identity intact). No orbital basis, functional, dispersion, grid, optimization level, frequency, or ECP settings were invented (null/empty); xTB GFN-FF carries no functional/basis, and none was asserted. No fuzzy candidate was selected, no native input or ChemSmart command was authored, no project was written, and no execution was requested.\", \"blocking_rule_ids\": [\"scientific_settings.candidate_requires_selection\", \"scientific_settings.unknown_unverified\"], \"case_id\": \"xtb-gfnff-alpb-n-hexane\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"xtb\", \"project_name\": \"xtb-gfnff-alpb-n-hexane\", \"project_written\": false, \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"basis\": null, \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": null, \"gfn_version\": \"gfnff\", \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": \"normal\", \"solv_freq\": null, \"solvent_id\": \"n-hexane\", \"solvent_model\": \"alpb\"}}, \"raw_proposal\": {\"analysis_summary\": \"Read-only Registry V2 resolution for xtb opt case xtb-gfnff-alpb-n-hexane. All three mandatory host-preregistered lookups were resolved against frozen V1. (1) gfn (method.gfn_version, requested 'gfnff'): status candidate_only; the only candidate is the fuzzy match 'gfn2' with canonical_value null and reason scientific_settings.candidate_requires_selection. The requested GFN-FF value is not verified, and the fuzzy 'gfn2' substitute must not be selected. (2) solvent-model (solvent.model, requested 'alpb'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. (3) solvent-id (solvent.id, requested 'n-hexane'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. No exact deterministic receipt exists for any mandatory target, so no declared applicability rule is discharged and the case is blocked_unverified_setting. The proposal preserves the requested source literals verbatim (gfn_version 'gfnff', solvent_model 'alpb', solvent_id 'n-hexane' with the hyphenated identity intact). No orbital basis, functional, dispersion, grid, optimization level, frequency, or ECP settings were invented (null/empty); xTB GFN-FF carries no functional/basis, and none was asserted. No fuzzy candidate was selected, no native input or ChemSmart command was authored, no project was written, and no execution was requested.\", \"blocking_rule_ids\": [\"scientific_settings.candidate_requires_selection\", \"scientific_settings.unknown_unverified\"], \"case_id\": \"xtb-gfnff-alpb-n-hexane\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"xtb\", \"project_name\": \"xtb-gfnff-alpb-n-hexane\", \"project_written\": false, \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"basis\": null, \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": null, \"gfn_version\": \"gfnff\", \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": \"n-hexane\", \"solvent_model\": \"alpb\"}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_hoGnoZzXutZ0kHs15rVC1102"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Submission complete. Summary of the Registry V2 stress run for case **xtb-gfnff-alpb-n-hexane**:\n\n**Lookup evidence (read-only, frozen V1):**\n- `method.gfn_version` = `gfnff` → `candidate_only`; only a fuzzy `gfn2` candidate, no canonical value (`scientific_settings.candidate_requires_selection`)\n- `solvent.model` = `alpb` → `unknown_unverified`, no candidates, coverage gap\n- `solvent.id` = `n-hexane` → `unknown_unverified`, no candidates, coverage gap\n\n**Submitted proposal (accepted, `raw_contract_valid: true`):**\n- Readiness: `blocked_unverified_setting`\n- Blocking rules: `scientific_settings.candidate_requires_selection`, `scientific_settings.unknown_unverified`\n- Settings preserved verbatim: `gfn_version: \"gfnff\"`, `solvent_model: \"alpb\"`, `solvent_id: \"n-hexane\"` (hyphenated identity intact); no basis/functional/grid/dispersion/ECP/freq values invented\n- No fuzzy candidate selected; no native input, command, project write, or execution (all flags false)\n\n**Normalizer note (deterministic, case-bound):** the submission normalizer filled `settings.optimization_level` from null to `\"normal\"` for the opt task kind (`filled_explicit_setting_fields: [\"settings.optimization_level\"]`); no other fields were canonicalized or conflicted.\n\nBottom line: the case is blocked because none of the three mandatory settings has a verified canonical value in the frozen registry, so no applicability rule is discharged.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:xtb-gfnff-alpb-n-hexane:registry_v1:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_00_s8DqNCF01CaY18gPmW0l7925",
+      "request_id": "openai:call_00_s8DqNCF01CaY18gPmW0l7925",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "candidate_values": [
+          "gfn2"
+        ],
+        "canonical_value": null,
+        "capability_id": null,
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "not_observed",
+        "loader_renderer_eligible": false,
+        "lookup_id": "gfn",
+        "matched_by": "fuzzy_candidate",
+        "normalized_requested_value": "gfnff",
+        "program": "xtb",
+        "reason_rule_id": "scientific_settings.candidate_requires_selection",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "not_observed",
+        "requested_value": "gfnff",
+        "resolution_sha256": "95395a51a822520727e225b0df73df8ec57d23cf9d179e7550dd4c66f58066f4",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.gfn_version",
+        "status": "candidate_only"
+      },
+      "result_sha256": "2eeaba6ddd0d2c30b0fa021353bfbfe9d969168824b9b3acb1792fa93f62dbcb",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_XH7p4wJocfPhdrRofSlU5539",
+      "request_id": "openai:call_01_XH7p4wJocfPhdrRofSlU5539",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "candidate_values": [],
+        "canonical_value": null,
+        "capability_id": null,
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "not_observed",
+        "loader_renderer_eligible": false,
+        "lookup_id": "solvent-model",
+        "matched_by": "none",
+        "normalized_requested_value": "alpb",
+        "program": "xtb",
+        "reason_rule_id": "scientific_settings.unknown_unverified",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "not_observed",
+        "requested_value": "alpb",
+        "resolution_sha256": "581ee07a886b8c2003d0ed36f8acffcef56494d3dccd2a49d455efdf13fcd584",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "solvent.model",
+        "status": "unknown_unverified"
+      },
+      "result_sha256": "e5ad2f6ebdae5cf653e8091646ace8a11f990842853af59bc824022a4347c5cb",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_02_mvXbGuEj3FzRuKVXcll36390",
+      "request_id": "openai:call_02_mvXbGuEj3FzRuKVXcll36390",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "candidate_values": [],
+        "canonical_value": null,
+        "capability_id": null,
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "not_observed",
+        "loader_renderer_eligible": false,
+        "lookup_id": "solvent-id",
+        "matched_by": "none",
+        "normalized_requested_value": "nhexane",
+        "program": "xtb",
+        "reason_rule_id": "scientific_settings.unknown_unverified",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "not_observed",
+        "requested_value": "n-hexane",
+        "resolution_sha256": "0fa9cca22edb08be11d3115c1b152007d607ca2aa9f1dc778fa47f1a268e3cb2",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "solvent.id",
+        "status": "unknown_unverified"
+      },
+      "result_sha256": "9a65d2a2b118d8758084e4c3cd9fa613a04ff1d3a90d65322839d7c8ea155649",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_03_fSLs1FoGJKbGJiiHMe4Q9813",
+      "request_id": "openai:call_03_fSLs1FoGJKbGJiiHMe4Q9813",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 1,
+        "lookup_id": "gfn",
+        "matched_count": 0,
+        "ok": true,
+        "program": "xtb",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 0,
+        "rule_ids": [],
+        "setting_path": "method.gfn_version",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": false,
+        "values": []
+      },
+      "result_sha256": "8f16ba0b4a9052082081888445e4b4810ef14985eb5687dc4a1ce379e7bce7ad",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_04_Ykj8OSMXPt8mQrGkjd5j3302",
+      "request_id": "openai:call_04_Ykj8OSMXPt8mQrGkjd5j3302",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 0,
+        "lookup_id": "solvent-model",
+        "matched_count": 0,
+        "ok": false,
+        "program": "xtb",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 0,
+        "rule_ids": [],
+        "setting_path": "solvent.model",
+        "status": "coverage_gap",
+        "token_policy": "bounded_view_only",
+        "truncated": false,
+        "values": []
+      },
+      "result_sha256": "33f4f6c043ad481121ee491675e29bd2a04f3f39a99730447f30945d7889dc4f",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_05_HY7b3Q9yvVPJKIck1J5C8780",
+      "request_id": "openai:call_05_HY7b3Q9yvVPJKIck1J5C8780",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 0,
+        "lookup_id": "solvent-id",
+        "matched_count": 0,
+        "ok": false,
+        "program": "xtb",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 0,
+        "rule_ids": [],
+        "setting_path": "solvent.id",
+        "status": "coverage_gap",
+        "token_policy": "bounded_view_only",
+        "truncated": false,
+        "values": []
+      },
+      "result_sha256": "2771d8b664f90a9bc201f07c23ca1166497d96a5a0dc125a372259ddf7a29113",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_hoGnoZzXutZ0kHs15rVC1102",
+      "request_id": "openai:call_00_hoGnoZzXutZ0kHs15rVC1102",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.optimization_level"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "7f12a8a8ea08a5273d457fdcd3ddb7e7e5ce28802c857af96b3a67c5e4d5a450",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "279e3717af22013b382367196845f0be89fdeaf5cf9531d340a228dbc0d993cf",
+          "receipt_sha256": "1de2170d498ae8c1a48f3f7d1742f99b6ef5da6464c178f2a349c58fa288d3ad",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Read-only Registry V2 resolution for xtb opt case xtb-gfnff-alpb-n-hexane. All three mandatory host-preregistered lookups were resolved against frozen V1. (1) gfn (method.gfn_version, requested 'gfnff'): status candidate_only; the only candidate is the fuzzy match 'gfn2' with canonical_value null and reason scientific_settings.candidate_requires_selection. The requested GFN-FF value is not verified, and the fuzzy 'gfn2' substitute must not be selected. (2) solvent-model (solvent.model, requested 'alpb'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. (3) solvent-id (solvent.id, requested 'n-hexane'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. No exact deterministic receipt exists for any mandatory target, so no declared applicability rule is discharged and the case is blocked_unverified_setting. The proposal preserves the requested source literals verbatim (gfn_version 'gfnff', solvent_model 'alpb', solvent_id 'n-hexane' with the hyphenated identity intact). No orbital basis, functional, dispersion, grid, optimization level, frequency, or ECP settings were invented (null/empty); xTB GFN-FF carries no functional/basis, and none was asserted. No fuzzy candidate was selected, no native input or ChemSmart command was authored, no project was written, and no execution was requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.candidate_requires_selection",
+            "scientific_settings.unknown_unverified"
+          ],
+          "case_id": "xtb-gfnff-alpb-n-hexane",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-gfnff-alpb-n-hexane",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": null,
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": "gfnff",
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": "normal",
+            "solv_freq": null,
+            "solvent_id": "n-hexane",
+            "solvent_model": "alpb"
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Read-only Registry V2 resolution for xtb opt case xtb-gfnff-alpb-n-hexane. All three mandatory host-preregistered lookups were resolved against frozen V1. (1) gfn (method.gfn_version, requested 'gfnff'): status candidate_only; the only candidate is the fuzzy match 'gfn2' with canonical_value null and reason scientific_settings.candidate_requires_selection. The requested GFN-FF value is not verified, and the fuzzy 'gfn2' substitute must not be selected. (2) solvent-model (solvent.model, requested 'alpb'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. (3) solvent-id (solvent.id, requested 'n-hexane'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. No exact deterministic receipt exists for any mandatory target, so no declared applicability rule is discharged and the case is blocked_unverified_setting. The proposal preserves the requested source literals verbatim (gfn_version 'gfnff', solvent_model 'alpb', solvent_id 'n-hexane' with the hyphenated identity intact). No orbital basis, functional, dispersion, grid, optimization level, frequency, or ECP settings were invented (null/empty); xTB GFN-FF carries no functional/basis, and none was asserted. No fuzzy candidate was selected, no native input or ChemSmart command was authored, no project was written, and no execution was requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.candidate_requires_selection",
+            "scientific_settings.unknown_unverified"
+          ],
+          "case_id": "xtb-gfnff-alpb-n-hexane",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-gfnff-alpb-n-hexane",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": null,
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": "gfnff",
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": "n-hexane",
+            "solvent_model": "alpb"
+          }
+        }
+      },
+      "result_sha256": "7caed579e2459fe53ab05f81615a0cc57f84c8ed683e6647f8ee871e600977f9",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "gfn"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "6c24c2f5be9caa075cdce9f2762397931cadbabe917e94c2021b8439e39be743",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_00_s8DqNCF01CaY18gPmW0l7925",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_s8DqNCF01CaY18gPmW0l7925"
+    },
+    {
+      "arguments": {
+        "lookup_id": "solvent-model"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "26e7920ce5d757dca0eb82cd579ee57fc876bd53ce8722681209ec7715f7f4ff",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_XH7p4wJocfPhdrRofSlU5539",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_XH7p4wJocfPhdrRofSlU5539"
+    },
+    {
+      "arguments": {
+        "lookup_id": "solvent-id"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "a0943506b69b561ff11059e9e9ddbc3e511ab6440382a64d383c3e47df3500fa",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_02_mvXbGuEj3FzRuKVXcll36390",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_02_mvXbGuEj3FzRuKVXcll36390"
+    },
+    {
+      "arguments": {
+        "lookup_id": "gfn"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "6c24c2f5be9caa075cdce9f2762397931cadbabe917e94c2021b8439e39be743",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_03_fSLs1FoGJKbGJiiHMe4Q9813",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_03_fSLs1FoGJKbGJiiHMe4Q9813"
+    },
+    {
+      "arguments": {
+        "lookup_id": "solvent-model"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "26e7920ce5d757dca0eb82cd579ee57fc876bd53ce8722681209ec7715f7f4ff",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_04_Ykj8OSMXPt8mQrGkjd5j3302",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_04_Ykj8OSMXPt8mQrGkjd5j3302"
+    },
+    {
+      "arguments": {
+        "lookup_id": "solvent-id"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "a0943506b69b561ff11059e9e9ddbc3e511ab6440382a64d383c3e47df3500fa",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_05_HY7b3Q9yvVPJKIck1J5C8780",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_05_HY7b3Q9yvVPJKIck1J5C8780"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Read-only Registry V2 resolution for xtb opt case xtb-gfnff-alpb-n-hexane. All three mandatory host-preregistered lookups were resolved against frozen V1. (1) gfn (method.gfn_version, requested 'gfnff'): status candidate_only; the only candidate is the fuzzy match 'gfn2' with canonical_value null and reason scientific_settings.candidate_requires_selection. The requested GFN-FF value is not verified, and the fuzzy 'gfn2' substitute must not be selected. (2) solvent-model (solvent.model, requested 'alpb'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. (3) solvent-id (solvent.id, requested 'n-hexane'): status unknown_unverified, no candidates, inventory coverage gap, reason scientific_settings.unknown_unverified. No exact deterministic receipt exists for any mandatory target, so no declared applicability rule is discharged and the case is blocked_unverified_setting. The proposal preserves the requested source literals verbatim (gfn_version 'gfnff', solvent_model 'alpb', solvent_id 'n-hexane' with the hyphenated identity intact). No orbital basis, functional, dispersion, grid, optimization level, frequency, or ECP settings were invented (null/empty); xTB GFN-FF carries no functional/basis, and none was asserted. No fuzzy candidate was selected, no native input or ChemSmart command was authored, no project was written, and no execution was requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.candidate_requires_selection",
+            "scientific_settings.unknown_unverified"
+          ],
+          "case_id": "xtb-gfnff-alpb-n-hexane",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-gfnff-alpb-n-hexane",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": null,
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": "gfnff",
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": "n-hexane",
+            "solvent_model": "alpb"
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3075a14e595c5e49f248da7917476738d858166f4c57c26259ef3be4932821cf",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_hoGnoZzXutZ0kHs15rVC1102",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_hoGnoZzXutZ0kHs15rVC1102"
+    }
+  ]
+}

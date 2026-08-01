@@ -1,0 +1,229 @@
+{
+  "assistant_text": "Submission accepted. The registry stress plan was registered with a valid contract and no normalization applied.\n\n**Receipt summary (literal):**\n- `case_sha256`: `67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff`\n- `normalizer_id`: `case-bound-explicit-settings-and-set-order` v1.0.0 — `normalization_applied: false`, no conflicting explicit settings, no canonicalized fields\n- `raw_contract_valid: true`; raw and normalized payloads identical\n\n**Proposal as registered:**\n- Program: `gaussian` (engine 16.C01), opt/freq accessor\n- Settings preserved with source literals: `functional: B3LYP`, `basis: def2-SVP`, `dispersion: D4` (not dropped or substituted); `freq: true`, ECP `not_applicable`\n- Readiness: `blocked_unsupported_setting`\n- Blocking rule: `gaussian16-c01-d4-unsupported`\n- No native input authored, no command authored, no project written, no execution requested\n\nRationale held: Gaussian 16.C01 has no native separate-D4 empirical dispersion (native options are D2/GD3/GD3BJ), and since the case forbids silently dropping D4, the proposal stays blocked with the D4 literal intact.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "gaussian16-c01-d4-unsupported"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.field_unknown"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "8e4318c1d8c297f561cbac4a88348b26cbc29c1eb48691a9876dae0a3c5340ed",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "8e4318c1d8c297f561cbac4a88348b26cbc29c1eb48691a9876dae0a3c5340ed",
+        "receipt_sha256": "1739dc271425bb6cd81d82ed732040952292c62ab3013e20b8b0478b99714f24",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "gaussian16-c01-d4-unsupported"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.field_unknown"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "Submission accepted. The registry stress plan was registered with a valid contract and no normalization applied.\n\n**Receipt summary (literal):**\n- `case_sha256`: `67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff`\n- `normalizer_id`: `case-bound-explicit-settings-and-set-order` v1.0.0 — `normalization_applied: false`, no conflicting explicit settings, no canonicalized fields\n- `raw_contract_valid: true`; raw and normalized payloads identical\n\n**Proposal as registered:**\n- Program: `gaussian` (engine 16.C01), opt/freq accessor\n- Settings preserved with source literals: `functional: B3LYP`, `basis: def2-SVP`, `dispersion: D4` (not dropped or substituted); `freq: true`, ECP `not_applicable`\n- Readiness: `blocked_unsupported_setting`\n- Blocking rule: `gaussian16-c01-d4-unsupported`\n- No native input authored, no command authored, no project written, no execution requested\n\nRationale held: Gaussian 16.C01 has no native separate-D4 empirical dispersion (native options are D2/GD3/GD3BJ), and since the case forbids silently dropping D4, the proposal stays blocked with the D4 literal intact.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "gaussian16-c01-d4-unsupported"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.field_unknown"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.",
+    "blocking_rule_ids": [
+      "gaussian16-c01-d4-unsupported"
+    ],
+    "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-explicit-d4-unsupported",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D4",
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-b3lyp-explicit-d4-unsupported:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "8e4318c1d8c297f561cbac4a88348b26cbc29c1eb48691a9876dae0a3c5340ed",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "8e4318c1d8c297f561cbac4a88348b26cbc29c1eb48691a9876dae0a3c5340ed",
+    "receipt_sha256": "1739dc271425bb6cd81d82ed732040952292c62ab3013e20b8b0478b99714f24",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.",
+  "typed_proposal": {
+    "analysis_summary": "Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.",
+    "blocking_rule_ids": [
+      "gaussian16-c01-d4-unsupported"
+    ],
+    "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-explicit-d4-unsupported",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D4",
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

@@ -1,0 +1,301 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T232936Z-aa52e9d2\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: gaussian-raw-route-functional-invalid\nProgram: gaussian\nEngine version: 16.C01\nTask kind: freq\nProject/registry accessor job kind: opt\n\nAssess the reported functional text `B3LYP nosymm` with def2-SVP. Reject native route content in a typed functional.\n\nHost-preregistered lookup targets:\n- No mandatory lookup; use deterministic project semantics.\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "I'll first inspect the case-scoped read-only V1 setting views to ground the expected settings before assessing the proposal.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_00_UKQsZDJBeQfgit37dTJe1730",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.basis\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_01_aNu0PkctqJ9b5n3DIKVd2773",
+          "index": 1,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"inventory_count\": 1, \"lookup_id\": \"expected.functional\", \"matched_count\": 0, \"ok\": true, \"program\": \"gaussian\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 0, \"rule_ids\": [], \"setting_path\": \"method.functional\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": false, \"values\": []}",
+      "role": "tool",
+      "tool_call_id": "call_00_UKQsZDJBeQfgit37dTJe1730"
+    },
+    {
+      "content": "{\"inventory_count\": 748, \"lookup_id\": \"expected.basis\", \"matched_count\": 7, \"ok\": true, \"program\": \"gaussian\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 5, \"rule_ids\": [], \"setting_path\": \"method.basis\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": true, \"values\": [\"def2-SV(P)\", \"def2-SV(P)-JKFIT\", \"def2-SV(P)-RIFIT\", \"def2-SVP\", \"def2-SVP-RIFIT\"]}",
+      "role": "tool",
+      "tool_call_id": "call_01_aNu0PkctqJ9b5n3DIKVd2773"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The bounded view is advisory only: no functional match exists (`matched_count: 0`, no rule IDs), and the basis inventory is available with `def2-SVP` listed. The functional literal `B3LYP nosymm` embeds the route keyword `nosymm` — native route content in a typed functional field — which is an invalid specification under deterministic project semantics. Submitting the blocked proposal with source literals preserved.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"gaussian-raw-route-functional-invalid\", \"program\": \"gaussian\", \"project_name\": \"gaussian-raw-route-functional-invalid\", \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"functional\": \"B3LYP nosymm\", \"basis\": \"def2-SVP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": null, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [], \"element_findings\": [], \"analysis_summary\": \"The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_YhV5fqMyA2XJV5hIwEfW2435",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.freq\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"6b9464300c9b500f8f7840438779cbc6a89ab6f94aa3c99e6e4fb2ae4d057791\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"0ccee99d1878f82cc84d147c657bb7f7bd23689ccb4c539c586fb60da4c5fc1f\", \"receipt_sha256\": \"f5f38a43e82f002fef405d37f633e504ee9b6cb1fcc5a207471a5f30f6e1ccb3\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.\", \"blocking_rule_ids\": [], \"case_id\": \"gaussian-raw-route-functional-invalid\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-raw-route-functional-invalid\", \"project_written\": false, \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP nosymm\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.\", \"blocking_rule_ids\": [], \"case_id\": \"gaussian-raw-route-functional-invalid\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-raw-route-functional-invalid\", \"project_written\": false, \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": \"B3LYP nosymm\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_YhV5fqMyA2XJV5hIwEfW2435"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The read-only Registry V2 stress assessment for case `gaussian-raw-route-functional-invalid` is complete and the plan was accepted.\n\n**Evidence consulted (read-only):**\n- `expected.functional` V1 view: inventory available, but **0 matched values and no rule IDs** — no frozen functional receipt discharges this case; assessment falls to deterministic project semantics.\n- `expected.basis` V1 view: inventory available with `def2-SVP` listed (along with `def2-SV(P)` etc.) — advisory only; a discoverable name is not automatically native/compiler-ready.\n\n**Assessment:**\n- The typed functional `B3LYP nosymm` embeds the native route keyword `nosymm` (a symmetry route flag) inside the functional field. Route content is not part of a functional specification, so the literal is an **invalid specification** → readiness `blocked_invalid_specification`.\n- Source literals preserved: functional `B3LYP nosymm`, basis `def2-SVP`.\n- No elements were specified in the request, so no element/ECP findings were asserted.\n- No native input, command, project write, or execution: all four guarded fields are `false`.\n\n**Submission receipt (case-bound normalization, V1.0.0):**\n- Raw contract valid; no conflicting explicit settings; the normalizer deterministically filled `settings.freq = true` to match the `freq` task kind.\n- Receipt SHA-256: `f5f38a43e82f002fef405d37f633e504ee9b6cb1fcc5a207471a5f30f6e1ccb3`\n\nThe proposal stands blocked on the malformed functional; no execution or project writes were performed.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:gaussian-raw-route-functional-invalid:registry_v1:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_00_UKQsZDJBeQfgit37dTJe1730",
+      "request_id": "openai:call_00_UKQsZDJBeQfgit37dTJe1730",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 1,
+        "lookup_id": "expected.functional",
+        "matched_count": 0,
+        "ok": true,
+        "program": "gaussian",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 0,
+        "rule_ids": [],
+        "setting_path": "method.functional",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": false,
+        "values": []
+      },
+      "result_sha256": "8b95be01927c21181d2c74b333852196dae5b23487df0d75c01f03fa6fbe0764",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_01_aNu0PkctqJ9b5n3DIKVd2773",
+      "request_id": "openai:call_01_aNu0PkctqJ9b5n3DIKVd2773",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "inventory_count": 748,
+        "lookup_id": "expected.basis",
+        "matched_count": 7,
+        "ok": true,
+        "program": "gaussian",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 5,
+        "rule_ids": [],
+        "setting_path": "method.basis",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": true,
+        "values": [
+          "def2-SV(P)",
+          "def2-SV(P)-JKFIT",
+          "def2-SV(P)-RIFIT",
+          "def2-SVP",
+          "def2-SVP-RIFIT"
+        ]
+      },
+      "result_sha256": "225cc2ce82f42b3e7366b51e20154351a7f05cdea7d6c1d458e66f82e3bc91e7",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_YhV5fqMyA2XJV5hIwEfW2435",
+      "request_id": "openai:call_00_YhV5fqMyA2XJV5hIwEfW2435",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.freq"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "6b9464300c9b500f8f7840438779cbc6a89ab6f94aa3c99e6e4fb2ae4d057791",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "0ccee99d1878f82cc84d147c657bb7f7bd23689ccb4c539c586fb60da4c5fc1f",
+          "receipt_sha256": "f5f38a43e82f002fef405d37f633e504ee9b6cb1fcc5a207471a5f30f6e1ccb3",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.",
+          "blocking_rule_ids": [],
+          "case_id": "gaussian-raw-route-functional-invalid",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-raw-route-functional-invalid",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP nosymm",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.",
+          "blocking_rule_ids": [],
+          "case_id": "gaussian-raw-route-functional-invalid",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-raw-route-functional-invalid",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP nosymm",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "a5a0336a3ba0010a36cbc02f63965876a5b9d5b3a7d61adf2666a7ded1f9e94e",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_00_UKQsZDJBeQfgit37dTJe1730",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_UKQsZDJBeQfgit37dTJe1730"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "22d1ffa07f62720acf8d1ed3c5c4942f9ab929f9911bef87ba19dd2002ebb71d",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_01_aNu0PkctqJ9b5n3DIKVd2773",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_aNu0PkctqJ9b5n3DIKVd2773"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.",
+          "blocking_rule_ids": [],
+          "case_id": "gaussian-raw-route-functional-invalid",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-raw-route-functional-invalid",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP nosymm",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "5e7325240b96e6ee624c4bd0c5cb25d2a533896850e0824ea74e8c38ca4297fe",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_YhV5fqMyA2XJV5hIwEfW2435",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_YhV5fqMyA2XJV5hIwEfW2435"
+    }
+  ]
+}

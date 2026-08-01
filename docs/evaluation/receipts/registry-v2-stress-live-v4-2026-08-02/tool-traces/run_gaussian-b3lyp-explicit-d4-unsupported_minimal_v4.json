@@ -1,0 +1,185 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T232258Z-4faf67a2\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: gaussian-b3lyp-explicit-d4-unsupported\nProgram: gaussian\nEngine version: 16.C01\nTask kind: freq\nProject/registry accessor job kind: opt\n\nAssess Gaussian B3LYP with a separate D4 correction and def2-SVP. Do not silently drop D4.\n\nHost-preregistered lookup targets:\n- No mandatory lookup; use deterministic project semantics.\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "This case is fully assessable with deterministic project semantics: Gaussian 16 (engine 16.C01) natively supports empirical dispersion via `empiricaldispersion=` for D2/GD3/GD3BJ, but a separate Grimme **D4** correction is not a native Gaussian setting. Since the request explicitly says \"do not silently drop D4\", the D4 literal must be preserved and the combined settings flagged as unsupported rather than filtered out.\n\nSubmitting the single, typed, non-executing proposal:",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"gaussian-b3lyp-explicit-d4-unsupported\", \"program\": \"gaussian\", \"project_name\": \"gaussian-b3lyp-explicit-d4-unsupported\", \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"functional\": \"B3LYP\", \"basis\": \"def2-SVP\", \"dispersion\": \"D4\", \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": true, \"solv_freq\": null, \"ecp_intent\": \"not_applicable\", \"ecp_elements\": []}, \"element_findings\": [], \"blocking_rule_ids\": [\"gaussian16-c01-d4-unsupported\"], \"analysis_summary\": \"Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_oPLlorQZQ1prhe0ep0gv2702",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [], \"normalization_applied\": false, \"normalized_payload_sha256\": \"8e4318c1d8c297f561cbac4a88348b26cbc29c1eb48691a9876dae0a3c5340ed\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"8e4318c1d8c297f561cbac4a88348b26cbc29c1eb48691a9876dae0a3c5340ed\", \"receipt_sha256\": \"1739dc271425bb6cd81d82ed732040952292c62ab3013e20b8b0478b99714f24\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.\", \"blocking_rule_ids\": [\"gaussian16-c01-d4-unsupported\"], \"case_id\": \"gaussian-b3lyp-explicit-d4-unsupported\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-b3lyp-explicit-d4-unsupported\", \"project_written\": false, \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": \"D4\", \"ecp_elements\": [], \"ecp_intent\": \"not_applicable\", \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.\", \"blocking_rule_ids\": [\"gaussian16-c01-d4-unsupported\"], \"case_id\": \"gaussian-b3lyp-explicit-d4-unsupported\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-b3lyp-explicit-d4-unsupported\", \"project_written\": false, \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": \"D4\", \"ecp_elements\": [], \"ecp_intent\": \"not_applicable\", \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_oPLlorQZQ1prhe0ep0gv2702"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Submission accepted. The registry stress plan was registered with a valid contract and no normalization applied.\n\n**Receipt summary (literal):**\n- `case_sha256`: `67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff`\n- `normalizer_id`: `case-bound-explicit-settings-and-set-order` v1.0.0 — `normalization_applied: false`, no conflicting explicit settings, no canonicalized fields\n- `raw_contract_valid: true`; raw and normalized payloads identical\n\n**Proposal as registered:**\n- Program: `gaussian` (engine 16.C01), opt/freq accessor\n- Settings preserved with source literals: `functional: B3LYP`, `basis: def2-SVP`, `dispersion: D4` (not dropped or substituted); `freq: true`, ECP `not_applicable`\n- Readiness: `blocked_unsupported_setting`\n- Blocking rule: `gaussian16-c01-d4-unsupported`\n- No native input authored, no command authored, no project written, no execution requested\n\nRationale held: Gaussian 16.C01 has no native separate-D4 empirical dispersion (native options are D2/GD3/GD3BJ), and since the case forbids silently dropping D4, the proposal stays blocked with the D4 literal intact.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:gaussian-b3lyp-explicit-d4-unsupported:minimal:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_oPLlorQZQ1prhe0ep0gv2702",
+      "request_id": "openai:call_00_oPLlorQZQ1prhe0ep0gv2702",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [],
+          "normalization_applied": false,
+          "normalized_payload_sha256": "8e4318c1d8c297f561cbac4a88348b26cbc29c1eb48691a9876dae0a3c5340ed",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "8e4318c1d8c297f561cbac4a88348b26cbc29c1eb48691a9876dae0a3c5340ed",
+          "receipt_sha256": "1739dc271425bb6cd81d82ed732040952292c62ab3013e20b8b0478b99714f24",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.",
+          "blocking_rule_ids": [
+            "gaussian16-c01-d4-unsupported"
+          ],
+          "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-b3lyp-explicit-d4-unsupported",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": "D4",
+            "ecp_elements": [],
+            "ecp_intent": "not_applicable",
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.",
+          "blocking_rule_ids": [
+            "gaussian16-c01-d4-unsupported"
+          ],
+          "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-b3lyp-explicit-d4-unsupported",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": "D4",
+            "ecp_elements": [],
+            "ecp_intent": "not_applicable",
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "11a4d7a6bbeb5c92b8b5107d9e3da12568cbf8af6725870f21ec598f5997763f",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Requested Gaussian (engine 16.C01) opt/freq assessment with B3LYP, def2-SVP, and a separate D4 dispersion correction. B3LYP and def2-SVP are valid native inputs for Gaussian 16, and no heavy elements are specified (ECP not applicable). However, a separate D4 correction (Grimme dftd4) is not a native Gaussian 16.C01 setting; native empirical dispersion in this engine covers D2/GD3/GD3BJ only, and D4 would require an unsupported external-program coupling. Per the explicit instruction 'do not silently drop D4', the source literal D4 is preserved in the dispersion slot rather than filtered or substituted. The combined settings therefore cannot be executed as specified, and the proposal is blocked as an unsupported setting. No native input, command, project write, or execution was authored or requested.",
+          "blocking_rule_ids": [
+            "gaussian16-c01-d4-unsupported"
+          ],
+          "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-b3lyp-explicit-d4-unsupported",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": "D4",
+            "ecp_elements": [],
+            "ecp_intent": "not_applicable",
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "d54f35bf6455a7e5cb862a5939598fd62f0e39d5d7df123c60936483af803ff6",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_oPLlorQZQ1prhe0ep0gv2702",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_oPLlorQZQ1prhe0ep0gv2702"
+    }
+  ]
+}

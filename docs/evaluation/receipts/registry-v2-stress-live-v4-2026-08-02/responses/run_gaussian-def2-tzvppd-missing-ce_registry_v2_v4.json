@@ -1,0 +1,66 @@
+{
+  "assistant_text": "Proposal submitted successfully. Final disposition:\n\n**Case `gaussian-def2-tzvppd-missing-ce` — READINESS: `blocked_validation_coverage`**\n\n- **Functional B3LYP** resolved `exact_registered` (project-candidate eligible) — not the blocker.\n- **Basis def2-TZVPPD** (pinned entry `setting.gaussian.method_basis.d6c63553719b713885c5`) resolved `blocked_validation_coverage` with an empty candidate set: evidence ceiling is only loader/renderer verification (no safe preview, no engine execution, no BSE materialization), and the rules `bse_materialization_required`, `ecp_applicability_required`, and `request_element_coverage_required` are present but undischarged by any deterministic receipt.\n- **Element coverage:** no evidence for Pd or Ce is exposed by the pinned definition — both findings recorded `covered=false`, `orbital_present=false`, `ecp_present=false`, `ecp_electrons=null`. The definition therefore lacks verifiable coverage for both elements (consistent with the case signal that Ce is missing), so the B3LYP/def2-TZVPPD assessment is blocked.\n- Source literals (`B3LYP`, `def2-TZVPPD`) preserved; no native input, command, project write, or execution requested. The case-bound normalizer filled `settings.freq=true` from the freq task kind; no conflicting explicit fields.\n\nNothing further was written or executed — this was a read-only Registry V2 assessment.",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "Proposal submitted successfully. Final disposition:\n\n**Case `gaussian-def2-tzvppd-missing-ce` — READINESS: `blocked_validation_coverage`**\n\n- **Functional B3LYP** resolved `exact_registered` (project-candidate eligible) — not the blocker.\n- **Basis def2-TZVPPD** (pinned entry `setting.gaussian.method_basis.d6c63553719b713885c5`) resolved `blocked_validation_coverage` with an empty candidate set: evidence ceiling is only loader/renderer verification (no safe preview, no engine execution, no BSE materialization), and the rules `bse_materialization_required`, `ecp_applicability_required`, and `request_element_coverage_required` are present but undischarged by any deterministic receipt.\n- **Element coverage:** no evidence for Pd or Ce is exposed by the pinned definition — both findings recorded `covered=false`, `orbital_present=false`, `ecp_present=false`, `ecp_electrons=null`. The definition therefore lacks verifiable coverage for both elements (consistent with the case signal that Ce is missing), so the B3LYP/def2-TZVPPD assessment is blocked.\n- Source literals (`B3LYP`, `def2-TZVPPD`) preserved; no native input, command, project write, or execution requested. The case-bound normalizer filled `settings.freq=true` from the freq task kind; no conflicting explicit fields.\n\nNothing further was written or executed — this was a read-only Registry V2 assessment.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_typed_proposal": null,
+  "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_v2:v4",
+  "submission_normalization": null,
+  "tool_error_receipt": {
+    "outcome_errors": [
+      {
+        "error_type": "ValidationError",
+        "name": "submit_registry_stress_plan",
+        "request_id": "openai:call_00_CBeYWE34AcYEK9vJ28vu0927",
+        "request_raw_arguments_sha256": null,
+        "status": "error"
+      }
+    ],
+    "receipt_sha256": "a0ca97a8874d205388fbbf0a7e355ab6031e2e47e431f1b5e3c42bc5b872006b",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

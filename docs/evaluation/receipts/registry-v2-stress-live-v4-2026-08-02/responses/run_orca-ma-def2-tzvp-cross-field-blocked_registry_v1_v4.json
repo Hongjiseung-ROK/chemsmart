@@ -1,0 +1,210 @@
+{
+  "assistant_text": "Proposal submitted successfully. Summary of the case disposition:\n\n**Case:** `orca-ma-def2-tzvp-cross-field-blocked` — neutral-singlet ORCA (v6.1) frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly.\n\n**Evidence gathered (read-only):**\n- `method.basis` = `ma-def2-TZVP` → status `exact_registered` (job_kind=opt), loader accepted, renderer preserved; evidence ceiling `loader_renderer_verification_only` (engine not executed, safe preview not executed, scientific adequacy not verified, combination not verified).\n- `method.dispersion` = `D3BJ` → identical resolution and evidence ceiling (opt-scoped).\n- Inventories confirm B3LYP (functional), ma-def2-TZVP (basis), D3BJ (dispersion) in registry; no rule IDs exposed by the views.\n\n**Readiness:** `blocked_validation_coverage` — the deterministic receipts are opt-scoped and discharge only their declared opt applicability rule (`scientific_settings.exact_registered`); they cannot cover the requested **freq** task kind or any engine-adequacy rule. The cross-field opt→freq gap is the blocker. Registry status preserved verbatim; no fuzzy candidate, no substitution, no native input/command, no project write, no execution.\n\n**Proposal record:** normalization receipt valid (`raw_contract_valid: true`), no normalization applied, all non-execution flags false, source literals (functional=B3LYP, basis=ma-def2-TZVP, dispersion=D3BJ, freq=true) preserved.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "19851144a8a225c3c8f2b9ed419f15d92e185a3d01326f1c04f150417b30ec01",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "7c78886593ce2b15ec899c6df9713a3ce39726c9099af18288050605da215660",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "7c78886593ce2b15ec899c6df9713a3ce39726c9099af18288050605da215660",
+        "receipt_sha256": "3c09dc3d20f922e6b43a2e9b40815c6dcd710b5bffc499b1a2548d40bff81519",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": true,
+    "raw_semantic_oracle_passed": true,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted successfully. Summary of the case disposition:\n\n**Case:** `orca-ma-def2-tzvp-cross-field-blocked` — neutral-singlet ORCA (v6.1) frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly.\n\n**Evidence gathered (read-only):**\n- `method.basis` = `ma-def2-TZVP` → status `exact_registered` (job_kind=opt), loader accepted, renderer preserved; evidence ceiling `loader_renderer_verification_only` (engine not executed, safe preview not executed, scientific adequacy not verified, combination not verified).\n- `method.dispersion` = `D3BJ` → identical resolution and evidence ceiling (opt-scoped).\n- Inventories confirm B3LYP (functional), ma-def2-TZVP (basis), D3BJ (dispersion) in registry; no rule IDs exposed by the views.\n\n**Readiness:** `blocked_validation_coverage` — the deterministic receipts are opt-scoped and discharge only their declared opt applicability rule (`scientific_settings.exact_registered`); they cannot cover the requested **freq** task kind or any engine-adequacy rule. The cross-field opt→freq gap is the blocker. Registry status preserved verbatim; no fuzzy candidate, no substitution, no native input/command, no project write, no execution.\n\n**Proposal record:** normalization receipt valid (`raw_contract_valid: true`), no normalization applied, all non-execution flags false, source literals (functional=B3LYP, basis=ma-def2-TZVP, dispersion=D3BJ, freq=true) preserved.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Case requests a neutral-singlet ORCA (v6.1) frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly. Mandatory lookups: method.basis 'ma-def2-TZVP' and method.dispersion 'D3BJ' both resolve status exact_registered (reason_rule_id scientific_settings.exact_registered) for job_kind=opt, matched by canonical literal, loader accepted, renderer preserved, loader_renderer_eligible true. Evidence ceiling for both receipts is loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false, maximum_claim loader_renderer_verification_only. These opt-scoped deterministic receipts discharge only their declared opt applicability rule and cannot discharge any other rule, in particular no freq-applicability or engine-adequacy rule. The requested task kind is freq while all exposed registry evidence is scoped to the opt job kind, so validation coverage for the freq task is absent; this cross-field (opt to freq) gap is the deterministic blocker. Registry status is preserved verbatim and not rewritten. No fuzzy candidate selected, no setting substituted, no native input authored, no ChemSmart command authored, no project written, no execution requested. The proposal preserves the source literals functional=B3LYP, basis=ma-def2-TZVP, dispersion=D3BJ, freq=true; readiness declared blocked_validation_coverage.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-ma-def2-tzvp-cross-field-blocked",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "ma-def2-TZVP",
+      "dispersion": "D3BJ",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "19851144a8a225c3c8f2b9ed419f15d92e185a3d01326f1c04f150417b30ec01",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "7c78886593ce2b15ec899c6df9713a3ce39726c9099af18288050605da215660",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "7c78886593ce2b15ec899c6df9713a3ce39726c9099af18288050605da215660",
+    "receipt_sha256": "3c09dc3d20f922e6b43a2e9b40815c6dcd710b5bffc499b1a2548d40bff81519",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Case requests a neutral-singlet ORCA (v6.1) frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly. Mandatory lookups: method.basis 'ma-def2-TZVP' and method.dispersion 'D3BJ' both resolve status exact_registered (reason_rule_id scientific_settings.exact_registered) for job_kind=opt, matched by canonical literal, loader accepted, renderer preserved, loader_renderer_eligible true. Evidence ceiling for both receipts is loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false, maximum_claim loader_renderer_verification_only. These opt-scoped deterministic receipts discharge only their declared opt applicability rule and cannot discharge any other rule, in particular no freq-applicability or engine-adequacy rule. The requested task kind is freq while all exposed registry evidence is scoped to the opt job kind, so validation coverage for the freq task is absent; this cross-field (opt to freq) gap is the deterministic blocker. Registry status is preserved verbatim and not rewritten. No fuzzy candidate selected, no setting substituted, no native input authored, no ChemSmart command authored, no project written, no execution requested. The proposal preserves the source literals functional=B3LYP, basis=ma-def2-TZVP, dispersion=D3BJ, freq=true; readiness declared blocked_validation_coverage.",
+  "typed_proposal": {
+    "analysis_summary": "Case requests a neutral-singlet ORCA (v6.1) frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly. Mandatory lookups: method.basis 'ma-def2-TZVP' and method.dispersion 'D3BJ' both resolve status exact_registered (reason_rule_id scientific_settings.exact_registered) for job_kind=opt, matched by canonical literal, loader accepted, renderer preserved, loader_renderer_eligible true. Evidence ceiling for both receipts is loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false, maximum_claim loader_renderer_verification_only. These opt-scoped deterministic receipts discharge only their declared opt applicability rule and cannot discharge any other rule, in particular no freq-applicability or engine-adequacy rule. The requested task kind is freq while all exposed registry evidence is scoped to the opt job kind, so validation coverage for the freq task is absent; this cross-field (opt to freq) gap is the deterministic blocker. Registry status is preserved verbatim and not rewritten. No fuzzy candidate selected, no setting substituted, no native input authored, no ChemSmart command authored, no project written, no execution requested. The proposal preserves the source literals functional=B3LYP, basis=ma-def2-TZVP, dispersion=D3BJ, freq=true; readiness declared blocked_validation_coverage.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-ma-def2-tzvp-cross-field-blocked",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "ma-def2-TZVP",
+      "dispersion": "D3BJ",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

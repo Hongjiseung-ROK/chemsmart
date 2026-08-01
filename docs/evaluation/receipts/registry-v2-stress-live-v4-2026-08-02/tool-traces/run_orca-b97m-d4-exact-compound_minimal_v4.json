@@ -1,0 +1,179 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T232014Z-c1841403\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: orca-b97m-d4-exact-compound\nProgram: orca\nEngine version: 6.1\nTask kind: freq\nProject/registry accessor job kind: opt\n\nPlan an ORCA B97M-D4/def2-SVP frequency project. Preserve B97M-D4 as one exact checked compound functional.\n\nHost-preregistered lookup targets:\n- functional: orca method.functional 'B97M-D4' for opt\n- basis: orca method.basis 'def2-SVP' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"orca-b97m-d4-exact-compound\", \"program\": \"orca\", \"project_name\": \"orca-b97m-d4-exact-compound\", \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"functional\": \"B97M-D4\", \"basis\": \"def2-SVP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": true, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [], \"element_findings\": [], \"analysis_summary\": \"Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_GXrI1PAqczQFRORq3b623730",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [], \"normalization_applied\": false, \"normalized_payload_sha256\": \"432e4b4a55748498077b3eea546f82f0a78f1186056290fb4b52262c7c54910a\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"432e4b4a55748498077b3eea546f82f0a78f1186056290fb4b52262c7c54910a\", \"receipt_sha256\": \"47d0fdc603e985f00e06a31ae5ee3a00126de91aea578a5ed9e7a2f38a7c51bb\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-b97m-d4-exact-compound\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-b97m-d4-exact-compound\", \"project_written\": false, \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B97M-D4\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-b97m-d4-exact-compound\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-b97m-d4-exact-compound\", \"project_written\": false, \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B97M-D4\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_GXrI1PAqczQFRORq3b623730"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Proposal submitted and accepted. Summary of the outcome:\n\n**Submission receipt** (case `orca-b97m-d4-exact-compound`):\n- `raw_contract_valid`: true, `normalization_applied`: false — the payload passed the contract unchanged, with no conflicting or canonicalized setting fields.\n- `normalized_payload_sha256`: `432e4b4a…54910a`; `case_sha256`: `17a83c1b…f34`; receipt `47d0fdc6…7c51bb`.\n\n**Proposal content**:\n- Program: `orca`; project: `orca-b97m-d4-exact-compound`; readiness: `blocked_missing_evidence`.\n- Settings preserved as request-bound source literals: `functional: \"B97M-D4\"` (kept as one exact compound functional; dispersion left unset to avoid decomposing/substituting), `basis: \"def2-SVP\"`, `freq: true`. All other slots null/empty.\n- No native input authored, no command authored, no project written, no execution requested (`false` consts honored).\n\n**Why blocked, not candidate**: this arm exposed no read-only registry lookup/receipt tool, so neither host-preregistered applicability rule (orca `method.functional 'B97M-D4'` and orca `method.basis 'def2-SVP'` for opt) could be discharged by an exact, request-bound deterministic receipt. Per experiment rules, advisory knowledge-pack output cannot substitute for that evidence, so the case is `blocked_missing_evidence` rather than `project_candidate`.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:orca-b97m-d4-exact-compound:minimal:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_GXrI1PAqczQFRORq3b623730",
+      "request_id": "openai:call_00_GXrI1PAqczQFRORq3b623730",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [],
+          "normalization_applied": false,
+          "normalized_payload_sha256": "432e4b4a55748498077b3eea546f82f0a78f1186056290fb4b52262c7c54910a",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "432e4b4a55748498077b3eea546f82f0a78f1186056290fb4b52262c7c54910a",
+          "receipt_sha256": "47d0fdc603e985f00e06a31ae5ee3a00126de91aea578a5ed9e7a2f38a7c51bb",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-b97m-d4-exact-compound",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-b97m-d4-exact-compound",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B97M-D4",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-b97m-d4-exact-compound",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-b97m-d4-exact-compound",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B97M-D4",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "477bd4e02ac93adcec6ff0fa150212846fb49cc8362fc694016d4b97d264c000",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-b97m-d4-exact-compound",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-b97m-d4-exact-compound",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B97M-D4",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "074bb04adc1c1f706b02c65e434bcc67722164f97d7f6779c938b14f8ab6a961",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_GXrI1PAqczQFRORq3b623730",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_GXrI1PAqczQFRORq3b623730"
+    }
+  ]
+}

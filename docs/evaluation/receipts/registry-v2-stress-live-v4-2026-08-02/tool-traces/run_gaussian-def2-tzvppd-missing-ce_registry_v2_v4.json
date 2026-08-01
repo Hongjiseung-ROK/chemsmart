@@ -1,0 +1,871 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T231307Z-59f334d1\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: gaussian-def2-tzvppd-missing-ce\nProgram: gaussian\nEngine version: 16.C01\nTask kind: freq\nProject/registry accessor job kind: opt\n\nAssess B3LYP/def2-TZVPPD for Pd and Ce. Block if the pinned basis definition lacks either element.\n\nHost-preregistered lookup targets:\n- basis: gaussian method.basis 'def2-TZVPPD' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_00_AaZ9HM5RPyGGlmnQf3rT0601",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "list_scientific_settings_v2"
+          },
+          "id": "call_01_NmCEDLk1XAkd1RUOjLwc1971",
+          "index": 1,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"candidates\": [], \"canonical_value\": \"def2-TZVPPD\", \"deterministic_validator_enforced\": false, \"entry_evidence\": {\"entry_id\": \"setting.gaussian.method_basis.d6c63553719b713885c5\", \"inventory_sha256\": \"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\", \"observation_note\": \"Observed allowed transform paper_project.basis_literal_normalization: input='def2-TZVPPD' -> rendered=('def2tzvppd',) -> loaded=('def2tzvppd',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_sidecar_sha256\": null, \"source_ids\": [\"bse-catalog-0.11\", \"gaussian-job-settings-125f2878\", \"gaussian-project-loader-125f2878\", \"project-protocol-125f2878\"]}, \"entry_evidence_sha256\": \"8b20f66f855f9ac18bf7ee6174e68ea43eaf41c40e96212e207149e060a48227\", \"entry_id\": \"setting.gaussian.method_basis.d6c63553719b713885c5\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"lookup_id\": \"basis\", \"matched_by\": \"canonical_literal\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"def2tzvppd\", \"program\": \"gaussian\", \"project_candidate_eligible\": false, \"reason_rule_id\": \"scientific_settings.v2.validation_coverage_gap\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"repair_policy_binding\": {\"binding_sha256\": \"30bf90ff52eb6080f36051687015291ad8b83c690396163fe4cc9e86ff422ada\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"def2-TZVPPD\", \"resolution_sha256\": \"b3b6fcddd5a7e92cb9b4b58af9e1ac5307c2657807728c6d88ea2b028c5822ab\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.basis\", \"source_registered\": true, \"status\": \"blocked_validation_coverage\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_AaZ9HM5RPyGGlmnQf3rT0601"
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_count\": 642, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"items\": [{\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVPPD\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.d6c63553719b713885c5\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVPPD\", \"project_candidate_eligible\": false, \"rank\": 1, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 10000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-QZVPPD\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.585b445dee0f32cb35f9\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-QZVPPD\", \"project_candidate_eligible\": false, \"rank\": 2, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 9000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVPD\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.d9f2743de9da36d77520\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVPD\", \"project_candidate_eligible\": false, \"rank\": 3, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 9000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVPP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.fde5cd800151752a75f1\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVPP\", \"project_candidate_eligible\": false, \"rank\": 4, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 9000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-mTZVPP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.f7f473283727d66d3049\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-mTZVPP\", \"project_candidate_eligible\": false, \"rank\": 5, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8000, \"source_registered\": true}], \"job_kind\": \"opt\", \"limit\": 5, \"listing_sha256\": \"a758ca7a519c082596f92836b3850f141dd73c8fc9b6904bf6f4db29a3d21546\", \"lookup_id\": \"basis\", \"matched_count\": 16, \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_query\": \"def2tzvppd\", \"program\": \"gaussian\", \"query\": \"def2-TZVPPD\", \"reason_rule_ids\": [], \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_policy_binding\": {\"binding_sha256\": \"3af6cb04b337fe715671717bf66371248e5a0851529b21a373b17bc9157e6583\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"returned_count\": 5, \"schema_version\": \"chemsmart.scientific-settings-list.v2\", \"setting_path\": \"method.basis\", \"status\": \"ok\", \"token_policy\": \"bounded_view_only\", \"truncated\": true}",
+      "role": "tool",
+      "tool_call_id": "call_01_NmCEDLk1XAkd1RUOjLwc1971"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The basis resolution is back: the pinned `def2-TZVPPD` entry resolved with status `blocked_validation_coverage`, no candidates, and no element-coverage evidence. Since B3LYP is an explicit setting literal in this request, let me also check the functional lookup target before finalizing.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_00_DBZkSI7o7P78hDN0Xu8B8246",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "list_scientific_settings_v2"
+          },
+          "id": "call_01_FSfwqLFIpOIco6StjkVq1780",
+          "index": 1,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [], \"applicability_rules_present\": false, \"candidates\": [], \"canonical_value\": \"B3LYP\", \"deterministic_validator_enforced\": false, \"entry_evidence\": {\"entry_id\": \"setting.gaussian.method_functional.carryforward_b3lyp\", \"inventory_sha256\": null, \"observation_note\": \"Current paper renderer and Gaussian project loader preserved B3LYP as b3lyp for opt. The predecessor wildcard job scope is not reasserted; no safe preview or engine execution occurred.\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\", \"source_ids\": [\"gaussian-job-settings-125f2878\", \"gaussian-project-loader-125f2878\", \"gaussian-reference-125f2878\", \"project-protocol-125f2878\"]}, \"entry_evidence_sha256\": \"9e02eecb1ef8aa8592bd50294eebcace7fb08a4c00e4aff2c5b082f6b9a7e8a8\", \"entry_id\": \"setting.gaussian.method_functional.carryforward_b3lyp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"lookup_id\": \"expected.functional\", \"matched_by\": \"canonical_literal\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"b3lyp\", \"program\": \"gaussian\", \"project_candidate_eligible\": true, \"reason_rule_id\": \"scientific_settings.v2.exact_registered\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"repair_policy_binding\": {\"binding_sha256\": \"44a36d208f9c19d7be67299734caceb107097ec61f728797f5ee92b21fd4b0bf\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"B3LYP\", \"resolution_sha256\": \"e0e418ce121a7966100e4deccbe1a4f0c61c7e52afce0932df549f9b10c42501\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.functional\", \"source_registered\": true, \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_DBZkSI7o7P78hDN0Xu8B8246"
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_count\": 12, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"items\": [{\"applicability_rule_ids\": [], \"applicability_rules_present\": false, \"canonical_value\": \"B3LYP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_functional.carryforward_b3lyp\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"b3-lyp\", \"project_candidate_eligible\": true, \"rank\": 1, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 10000, \"source_registered\": true}, {\"applicability_rule_ids\": [], \"applicability_rules_present\": false, \"canonical_value\": \"lyp\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_functional.33d92d9856a7aedc04af\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"lyp\", \"project_candidate_eligible\": true, \"rank\": 2, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 6000, \"source_registered\": true}], \"job_kind\": \"opt\", \"limit\": 5, \"listing_sha256\": \"5021cfcb982d57f580a9ce99efda094a16cca8f470c13736834051883f767b5e\", \"lookup_id\": \"expected.functional\", \"matched_count\": 2, \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_query\": \"b3lyp\", \"program\": \"gaussian\", \"query\": \"B3LYP\", \"reason_rule_ids\": [], \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_policy_binding\": {\"binding_sha256\": \"1793478665d16231348b4958ea908866dd8d523a173b879f0043bb050f8df15a\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"returned_count\": 2, \"schema_version\": \"chemsmart.scientific-settings-list.v2\", \"setting_path\": \"method.functional\", \"status\": \"ok\", \"token_policy\": \"bounded_view_only\", \"truncated\": false}",
+      "role": "tool",
+      "tool_call_id": "call_01_FSfwqLFIpOIco6StjkVq1780"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Both lookup targets are resolved. Summary of evidence:\n\n**Basis `def2-TZVPPD` (pinned, opt job kind):**\n- Status `blocked_validation_coverage` (reason `scientific_settings.v2.validation_coverage_gap`), `project_candidate_eligible: false`, empty candidates.\n- Applicability rules present but not discharged: `bse_materialization_required`, `ecp_applicability_required`, `request_element_coverage_required`.\n- Evidence ceiling is only `loader_renderer_verification_only` — no safe preview, no engine execution, no BSE materialization, no element-coverage receipt for Pd or Ce exposed by this arm.\n\n**Functional `B3LYP`:** resolved `exact_registered` (entry `setting.gaussian.method_functional.carryforward_b3lyp`), `project_candidate_eligible: true`.\n\nThe pinned basis definition exposes no orbital/ECP materialization and no coverage evidence for either Pd or Ce, so the definition lacks verifiable coverage for both elements (case signals Ce missing). The B3LYP functional is fine, but the basis blocks the proposal. Submitting the blocked proposal now.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"gaussian-def2-tzvppd-missing-ce\", \"program\": \"gaussian\", \"project_name\": \"gaussian-def2-tzvppd-missing-ce\", \"readiness\": \"blocked_validation_coverage\", \"settings\": {\"functional\": \"B3LYP\", \"basis\": \"def2-TZVPPD\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [\"Pd\", \"Ce\"], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": null, \"solv_freq\": null, \"ecp_intent\": \"required\", \"ecp_elements\": [\"Pd\", \"Ce\"]}, \"blocking_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\", \"scientific_settings.v2.validation_coverage_gap\"], \"element_findings\": [{\"symbol\": \"Pd\", \"covered\": false, \"orbital_present\": false, \"ecp_present\": false, \"ecp_electrons\": null}, {\"symbol\": \"Ce\", \"covered\": false, \"orbital_present\": false, \"ecp_present\": false, \"ecp_electrons\": null}], \"analysis_summary\": \"Read-only Registry V2 assessment of B3LYP/def2-TZVPPD (Gaussian 16.C01, opt accessor job kind) for Pd and Ce. Functional B3LYP resolved as exact_registered (setting.gaussian.method_functional.carryforward_b3lyp; project_candidate_eligible=true; loader/renderer preserved 'b3lyp'). The pinned basis def2-TZVPPD resolved as blocked_validation_coverage (setting.gaussian.method_basis.d6c63553719b713885c5; reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible=false; candidates empty). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, scientific adequacy unverified, and no BSE materialization occurred. Applicability rules bse_materialization_required, ecp_applicability_required, and request_element_coverage_required are present for the basis entry and none is discharged by any exact deterministic receipt from this arm. No element-coverage, orbital, or ECP evidence for Pd or Ce is exposed, so the pinned basis definition lacks verifiable coverage for both elements (case signals Ce missing); BSE-discoverable naming does not make it native/compiler-ready. Blocked: readiness blocked_validation_coverage; element findings Pd and Ce covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. No native input authored, no command authored, no project written, no execution requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_CBeYWE34AcYEK9vJ28vu0927",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"error\": {\"message\": \"1 validation error for RegistryStressProposalV1\\nsettings\\n  Value error, ECP elements must be unique and sorted [type=value_error, input_value={'functional': 'B3LYP', '...elements': ['Pd', 'Ce']}, input_type=dict]\\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\", \"tool\": \"submit_registry_stress_plan\", \"type\": \"ValidationError\"}, \"ok\": false}",
+      "role": "tool",
+      "tool_call_id": "call_00_CBeYWE34AcYEK9vJ28vu0927"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Validation requires sorted element lists. Resubmitting with `Ce, Pd` ordering for both `heavy_elements` and `ecp_elements`.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"analysis_summary\": \"Read-only Registry V2 assessment of B3LYP/def2-TZVPPD (Gaussian 16.C01, opt accessor job kind) for Pd and Ce. Functional B3LYP resolved as exact_registered (setting.gaussian.method_functional.carryforward_b3lyp; project_candidate_eligible=true; loader/renderer preserved 'b3lyp'). The pinned basis def2-TZVPPD resolved as blocked_validation_coverage (setting.gaussian.method_basis.d6c63553719b713885c5; reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible=false; candidates empty). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, scientific adequacy unverified, and no BSE materialization occurred. Applicability rules bse_materialization_required, ecp_applicability_required, and request_element_coverage_required are present for the basis entry and none is discharged by any exact deterministic receipt from this arm. No element-coverage, orbital, or ECP evidence for Pd or Ce is exposed, so the pinned basis definition lacks verifiable coverage for both elements (case signals Ce missing); BSE-discoverable naming does not make it native/compiler-ready. Blocked: readiness blocked_validation_coverage; element findings Pd and Ce covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. No native input authored, no command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\", \"scientific_settings.v2.validation_coverage_gap\"], \"case_id\": \"gaussian-def2-tzvppd-missing-ce\", \"command_authored\": false, \"element_findings\": [{\"covered\": false, \"ecp_electrons\": null, \"ecp_present\": false, \"orbital_present\": false, \"symbol\": \"Pd\"}, {\"covered\": false, \"ecp_electrons\": null, \"ecp_present\": false, \"orbital_present\": false, \"symbol\": \"Ce\"}], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-def2-tzvppd-missing-ce\", \"project_written\": false, \"readiness\": \"blocked_validation_coverage\", \"settings\": {\"basis\": \"def2-TZVPPD\", \"dispersion\": null, \"ecp_elements\": [\"Ce\", \"Pd\"], \"ecp_intent\": \"required\", \"freq\": null, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [\"Ce\", \"Pd\"], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_LSXjM2ouT7lFa7wQU7Fa6521",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"6cc93af1f39faa27baaa85274e91e7768d0a754fd00eeebba9db3781c0229e9e\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.freq\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"914fa388f64e51fe807d6cb6aa0a2520f8812b2e128c6775d0e27030c26a4a6d\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"cf9f38fc59e96fc23e7ba3cdf7e7b66cbbf64c14f95c23bb4a589875c3a09e0c\", \"receipt_sha256\": \"f16869c30576a43c541a1231a14f139a741199d46073a643ff482d43767d4238\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Read-only Registry V2 assessment of B3LYP/def2-TZVPPD (Gaussian 16.C01, opt accessor job kind) for Pd and Ce. Functional B3LYP resolved as exact_registered (setting.gaussian.method_functional.carryforward_b3lyp; project_candidate_eligible=true; loader/renderer preserved 'b3lyp'). The pinned basis def2-TZVPPD resolved as blocked_validation_coverage (setting.gaussian.method_basis.d6c63553719b713885c5; reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible=false; candidates empty). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, scientific adequacy unverified, and no BSE materialization occurred. Applicability rules bse_materialization_required, ecp_applicability_required, and request_element_coverage_required are present for the basis entry and none is discharged by any exact deterministic receipt from this arm. No element-coverage, orbital, or ECP evidence for Pd or Ce is exposed, so the pinned basis definition lacks verifiable coverage for both elements (case signals Ce missing); BSE-discoverable naming does not make it native/compiler-ready. Blocked: readiness blocked_validation_coverage; element findings Pd and Ce covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. No native input authored, no command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\", \"scientific_settings.v2.validation_coverage_gap\"], \"case_id\": \"gaussian-def2-tzvppd-missing-ce\", \"command_authored\": false, \"element_findings\": [{\"covered\": false, \"ecp_electrons\": null, \"ecp_present\": false, \"orbital_present\": false, \"symbol\": \"Pd\"}, {\"covered\": false, \"ecp_electrons\": null, \"ecp_present\": false, \"orbital_present\": false, \"symbol\": \"Ce\"}], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-def2-tzvppd-missing-ce\", \"project_written\": false, \"readiness\": \"blocked_validation_coverage\", \"settings\": {\"basis\": \"def2-TZVPPD\", \"dispersion\": null, \"ecp_elements\": [\"Ce\", \"Pd\"], \"ecp_intent\": \"required\", \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [\"Ce\", \"Pd\"], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Read-only Registry V2 assessment of B3LYP/def2-TZVPPD (Gaussian 16.C01, opt accessor job kind) for Pd and Ce. Functional B3LYP resolved as exact_registered (setting.gaussian.method_functional.carryforward_b3lyp; project_candidate_eligible=true; loader/renderer preserved 'b3lyp'). The pinned basis def2-TZVPPD resolved as blocked_validation_coverage (setting.gaussian.method_basis.d6c63553719b713885c5; reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible=false; candidates empty). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, scientific adequacy unverified, and no BSE materialization occurred. Applicability rules bse_materialization_required, ecp_applicability_required, and request_element_coverage_required are present for the basis entry and none is discharged by any exact deterministic receipt from this arm. No element-coverage, orbital, or ECP evidence for Pd or Ce is exposed, so the pinned basis definition lacks verifiable coverage for both elements (case signals Ce missing); BSE-discoverable naming does not make it native/compiler-ready. Blocked: readiness blocked_validation_coverage; element findings Pd and Ce covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. No native input authored, no command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\", \"scientific_settings.v2.validation_coverage_gap\"], \"case_id\": \"gaussian-def2-tzvppd-missing-ce\", \"command_authored\": false, \"element_findings\": [{\"covered\": false, \"ecp_electrons\": null, \"ecp_present\": false, \"orbital_present\": false, \"symbol\": \"Pd\"}, {\"covered\": false, \"ecp_electrons\": null, \"ecp_present\": false, \"orbital_present\": false, \"symbol\": \"Ce\"}], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-def2-tzvppd-missing-ce\", \"project_written\": false, \"readiness\": \"blocked_validation_coverage\", \"settings\": {\"basis\": \"def2-TZVPPD\", \"dispersion\": null, \"ecp_elements\": [\"Ce\", \"Pd\"], \"ecp_intent\": \"required\", \"freq\": null, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [\"Ce\", \"Pd\"], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_LSXjM2ouT7lFa7wQU7Fa6521"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Proposal submitted successfully. Final disposition:\n\n**Case `gaussian-def2-tzvppd-missing-ce` — READINESS: `blocked_validation_coverage`**\n\n- **Functional B3LYP** resolved `exact_registered` (project-candidate eligible) — not the blocker.\n- **Basis def2-TZVPPD** (pinned entry `setting.gaussian.method_basis.d6c63553719b713885c5`) resolved `blocked_validation_coverage` with an empty candidate set: evidence ceiling is only loader/renderer verification (no safe preview, no engine execution, no BSE materialization), and the rules `bse_materialization_required`, `ecp_applicability_required`, and `request_element_coverage_required` are present but undischarged by any deterministic receipt.\n- **Element coverage:** no evidence for Pd or Ce is exposed by the pinned definition — both findings recorded `covered=false`, `orbital_present=false`, `ecp_present=false`, `ecp_electrons=null`. The definition therefore lacks verifiable coverage for both elements (consistent with the case signal that Ce is missing), so the B3LYP/def2-TZVPPD assessment is blocked.\n- Source literals (`B3LYP`, `def2-TZVPPD`) preserved; no native input, command, project write, or execution requested. The case-bound normalizer filled `settings.freq=true` from the freq task kind; no conflicting explicit fields.\n\nNothing further was written or executed — this was a read-only Registry V2 assessment.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_v2:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_00_AaZ9HM5RPyGGlmnQf3rT0601",
+      "request_id": "openai:call_00_AaZ9HM5RPyGGlmnQf3rT0601",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [
+          "scientific_settings.basis.bse_materialization_required",
+          "scientific_settings.basis.ecp_applicability_required",
+          "scientific_settings.basis.request_element_coverage_required"
+        ],
+        "applicability_rules_present": true,
+        "candidates": [],
+        "canonical_value": "def2-TZVPPD",
+        "deterministic_validator_enforced": false,
+        "entry_evidence": {
+          "entry_id": "setting.gaussian.method_basis.d6c63553719b713885c5",
+          "inventory_sha256": "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe",
+          "observation_note": "Observed allowed transform paper_project.basis_literal_normalization: input='def2-TZVPPD' -> rendered=('def2tzvppd',) -> loaded=('def2tzvppd',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.",
+          "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+          "repair_sidecar_sha256": null,
+          "source_ids": [
+            "bse-catalog-0.11",
+            "gaussian-job-settings-125f2878",
+            "gaussian-project-loader-125f2878",
+            "project-protocol-125f2878"
+          ]
+        },
+        "entry_evidence_sha256": "8b20f66f855f9ac18bf7ee6174e68ea43eaf41c40e96212e207149e060a48227",
+        "entry_id": "setting.gaussian.method_basis.d6c63553719b713885c5",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": true,
+        "loader_accepted": true,
+        "loader_observation": "accepted",
+        "lookup_id": "basis",
+        "matched_by": "canonical_literal",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "def2tzvppd",
+        "program": "gaussian",
+        "project_candidate_eligible": false,
+        "reason_rule_id": "scientific_settings.v2.validation_coverage_gap",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "preserved",
+        "renderer_preserved": true,
+        "repair_policy_binding": {
+          "binding_sha256": "30bf90ff52eb6080f36051687015291ad8b83c690396163fe4cc9e86ff422ada",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "def2-TZVPPD",
+        "resolution_sha256": "b3b6fcddd5a7e92cb9b4b58af9e1ac5307c2657807728c6d88ea2b028c5822ab",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.basis",
+        "source_registered": true,
+        "status": "blocked_validation_coverage"
+      },
+      "result_sha256": "c1c74375fa5ce07d0f4d4176dd4a9b6605e7e882f1d5ba13d9037cc48614c85a",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_NmCEDLk1XAkd1RUOjLwc1971",
+      "request_id": "openai:call_01_NmCEDLk1XAkd1RUOjLwc1971",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_count": 642,
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "items": [
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVPPD",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.d6c63553719b713885c5",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVPPD",
+            "project_candidate_eligible": false,
+            "rank": 1,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 10000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-QZVPPD",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.585b445dee0f32cb35f9",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-QZVPPD",
+            "project_candidate_eligible": false,
+            "rank": 2,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 9000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVPD",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.d9f2743de9da36d77520",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVPD",
+            "project_candidate_eligible": false,
+            "rank": 3,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 9000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVPP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.fde5cd800151752a75f1",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVPP",
+            "project_candidate_eligible": false,
+            "rank": 4,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 9000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-mTZVPP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.f7f473283727d66d3049",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-mTZVPP",
+            "project_candidate_eligible": false,
+            "rank": 5,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8000,
+            "source_registered": true
+          }
+        ],
+        "job_kind": "opt",
+        "limit": 5,
+        "listing_sha256": "a758ca7a519c082596f92836b3850f141dd73c8fc9b6904bf6f4db29a3d21546",
+        "lookup_id": "basis",
+        "matched_count": 16,
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_query": "def2tzvppd",
+        "program": "gaussian",
+        "query": "def2-TZVPPD",
+        "reason_rule_ids": [],
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "repair_policy_binding": {
+          "binding_sha256": "3af6cb04b337fe715671717bf66371248e5a0851529b21a373b17bc9157e6583",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "returned_count": 5,
+        "schema_version": "chemsmart.scientific-settings-list.v2",
+        "setting_path": "method.basis",
+        "status": "ok",
+        "token_policy": "bounded_view_only",
+        "truncated": true
+      },
+      "result_sha256": "d6903c085e2c20009bb804d434ebdee36bde5e4ad34c46f0767cecb5e54fd511",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_00_DBZkSI7o7P78hDN0Xu8B8246",
+      "request_id": "openai:call_00_DBZkSI7o7P78hDN0Xu8B8246",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [],
+        "applicability_rules_present": false,
+        "candidates": [],
+        "canonical_value": "B3LYP",
+        "deterministic_validator_enforced": false,
+        "entry_evidence": {
+          "entry_id": "setting.gaussian.method_functional.carryforward_b3lyp",
+          "inventory_sha256": null,
+          "observation_note": "Current paper renderer and Gaussian project loader preserved B3LYP as b3lyp for opt. The predecessor wildcard job scope is not reasserted; no safe preview or engine execution occurred.",
+          "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+          "repair_sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7",
+          "source_ids": [
+            "gaussian-job-settings-125f2878",
+            "gaussian-project-loader-125f2878",
+            "gaussian-reference-125f2878",
+            "project-protocol-125f2878"
+          ]
+        },
+        "entry_evidence_sha256": "9e02eecb1ef8aa8592bd50294eebcace7fb08a4c00e4aff2c5b082f6b9a7e8a8",
+        "entry_id": "setting.gaussian.method_functional.carryforward_b3lyp",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": true,
+        "loader_accepted": true,
+        "loader_observation": "accepted",
+        "lookup_id": "expected.functional",
+        "matched_by": "canonical_literal",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "b3lyp",
+        "program": "gaussian",
+        "project_candidate_eligible": true,
+        "reason_rule_id": "scientific_settings.v2.exact_registered",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "preserved",
+        "renderer_preserved": true,
+        "repair_policy_binding": {
+          "binding_sha256": "44a36d208f9c19d7be67299734caceb107097ec61f728797f5ee92b21fd4b0bf",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "B3LYP",
+        "resolution_sha256": "e0e418ce121a7966100e4deccbe1a4f0c61c7e52afce0932df549f9b10c42501",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.functional",
+        "source_registered": true,
+        "status": "exact_registered"
+      },
+      "result_sha256": "776ba79fe6841db4ddd02e437fcad8295f0637bfc8a26c78ba12f0d2f4b5ee62",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_FSfwqLFIpOIco6StjkVq1780",
+      "request_id": "openai:call_01_FSfwqLFIpOIco6StjkVq1780",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_count": 12,
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "items": [
+          {
+            "applicability_rule_ids": [],
+            "applicability_rules_present": false,
+            "canonical_value": "B3LYP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_functional.carryforward_b3lyp",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "b3-lyp",
+            "project_candidate_eligible": true,
+            "rank": 1,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 10000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [],
+            "applicability_rules_present": false,
+            "canonical_value": "lyp",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_functional.33d92d9856a7aedc04af",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "lyp",
+            "project_candidate_eligible": true,
+            "rank": 2,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 6000,
+            "source_registered": true
+          }
+        ],
+        "job_kind": "opt",
+        "limit": 5,
+        "listing_sha256": "5021cfcb982d57f580a9ce99efda094a16cca8f470c13736834051883f767b5e",
+        "lookup_id": "expected.functional",
+        "matched_count": 2,
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_query": "b3lyp",
+        "program": "gaussian",
+        "query": "B3LYP",
+        "reason_rule_ids": [],
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "repair_policy_binding": {
+          "binding_sha256": "1793478665d16231348b4958ea908866dd8d523a173b879f0043bb050f8df15a",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "returned_count": 2,
+        "schema_version": "chemsmart.scientific-settings-list.v2",
+        "setting_path": "method.functional",
+        "status": "ok",
+        "token_policy": "bounded_view_only",
+        "truncated": false
+      },
+      "result_sha256": "20bbca5a4aba8a73dd464e64c68ff07a212d857d935a067c6b3e422a00de82c8",
+      "status": "ok"
+    },
+    {
+      "error_message": "1 validation error for RegistryStressProposalV1 settings Value error, ECP elements must be unique and sorted [type=value_error, input_value={'functional': 'B3LYP', '...elements': ['Pd', 'Ce']}, input_type=dict] For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+      "error_type": "ValidationError",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_CBeYWE34AcYEK9vJ28vu0927",
+      "request_id": "openai:call_00_CBeYWE34AcYEK9vJ28vu0927",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "error": {
+          "message": "1 validation error for RegistryStressProposalV1\nsettings\n  Value error, ECP elements must be unique and sorted [type=value_error, input_value={'functional': 'B3LYP', '...elements': ['Pd', 'Ce']}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+          "tool": "submit_registry_stress_plan",
+          "type": "ValidationError"
+        },
+        "ok": false
+      },
+      "result_sha256": "b3bc87a1ed01c3d8c1496dd2a0568fdffadfff0116f518f95ec89eb6d6c40d9d",
+      "status": "error"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_LSXjM2ouT7lFa7wQU7Fa6521",
+      "request_id": "openai:call_00_LSXjM2ouT7lFa7wQU7Fa6521",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "6cc93af1f39faa27baaa85274e91e7768d0a754fd00eeebba9db3781c0229e9e",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.freq"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "914fa388f64e51fe807d6cb6aa0a2520f8812b2e128c6775d0e27030c26a4a6d",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "cf9f38fc59e96fc23e7ba3cdf7e7b66cbbf64c14f95c23bb4a589875c3a09e0c",
+          "receipt_sha256": "f16869c30576a43c541a1231a14f139a741199d46073a643ff482d43767d4238",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Read-only Registry V2 assessment of B3LYP/def2-TZVPPD (Gaussian 16.C01, opt accessor job kind) for Pd and Ce. Functional B3LYP resolved as exact_registered (setting.gaussian.method_functional.carryforward_b3lyp; project_candidate_eligible=true; loader/renderer preserved 'b3lyp'). The pinned basis def2-TZVPPD resolved as blocked_validation_coverage (setting.gaussian.method_basis.d6c63553719b713885c5; reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible=false; candidates empty). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, scientific adequacy unverified, and no BSE materialization occurred. Applicability rules bse_materialization_required, ecp_applicability_required, and request_element_coverage_required are present for the basis entry and none is discharged by any exact deterministic receipt from this arm. No element-coverage, orbital, or ECP evidence for Pd or Ce is exposed, so the pinned basis definition lacks verifiable coverage for both elements (case signals Ce missing); BSE-discoverable naming does not make it native/compiler-ready. Blocked: readiness blocked_validation_coverage; element findings Pd and Ce covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. No native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.basis.bse_materialization_required",
+            "scientific_settings.basis.ecp_applicability_required",
+            "scientific_settings.basis.request_element_coverage_required",
+            "scientific_settings.v2.validation_coverage_gap"
+          ],
+          "case_id": "gaussian-def2-tzvppd-missing-ce",
+          "command_authored": false,
+          "element_findings": [
+            {
+              "covered": false,
+              "ecp_electrons": null,
+              "ecp_present": false,
+              "orbital_present": false,
+              "symbol": "Pd"
+            },
+            {
+              "covered": false,
+              "ecp_electrons": null,
+              "ecp_present": false,
+              "orbital_present": false,
+              "symbol": "Ce"
+            }
+          ],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-def2-tzvppd-missing-ce",
+          "project_written": false,
+          "readiness": "blocked_validation_coverage",
+          "settings": {
+            "basis": "def2-TZVPPD",
+            "dispersion": null,
+            "ecp_elements": [
+              "Ce",
+              "Pd"
+            ],
+            "ecp_intent": "required",
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [
+              "Ce",
+              "Pd"
+            ],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Read-only Registry V2 assessment of B3LYP/def2-TZVPPD (Gaussian 16.C01, opt accessor job kind) for Pd and Ce. Functional B3LYP resolved as exact_registered (setting.gaussian.method_functional.carryforward_b3lyp; project_candidate_eligible=true; loader/renderer preserved 'b3lyp'). The pinned basis def2-TZVPPD resolved as blocked_validation_coverage (setting.gaussian.method_basis.d6c63553719b713885c5; reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible=false; candidates empty). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, scientific adequacy unverified, and no BSE materialization occurred. Applicability rules bse_materialization_required, ecp_applicability_required, and request_element_coverage_required are present for the basis entry and none is discharged by any exact deterministic receipt from this arm. No element-coverage, orbital, or ECP evidence for Pd or Ce is exposed, so the pinned basis definition lacks verifiable coverage for both elements (case signals Ce missing); BSE-discoverable naming does not make it native/compiler-ready. Blocked: readiness blocked_validation_coverage; element findings Pd and Ce covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. No native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.basis.bse_materialization_required",
+            "scientific_settings.basis.ecp_applicability_required",
+            "scientific_settings.basis.request_element_coverage_required",
+            "scientific_settings.v2.validation_coverage_gap"
+          ],
+          "case_id": "gaussian-def2-tzvppd-missing-ce",
+          "command_authored": false,
+          "element_findings": [
+            {
+              "covered": false,
+              "ecp_electrons": null,
+              "ecp_present": false,
+              "orbital_present": false,
+              "symbol": "Pd"
+            },
+            {
+              "covered": false,
+              "ecp_electrons": null,
+              "ecp_present": false,
+              "orbital_present": false,
+              "symbol": "Ce"
+            }
+          ],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-def2-tzvppd-missing-ce",
+          "project_written": false,
+          "readiness": "blocked_validation_coverage",
+          "settings": {
+            "basis": "def2-TZVPPD",
+            "dispersion": null,
+            "ecp_elements": [
+              "Ce",
+              "Pd"
+            ],
+            "ecp_intent": "required",
+            "freq": null,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [
+              "Ce",
+              "Pd"
+            ],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "a54625b998f3a60c2bc243371d92c8cb4d8c51274619472c8e174e2c5ab38d98",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_00_AaZ9HM5RPyGGlmnQf3rT0601",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_AaZ9HM5RPyGGlmnQf3rT0601"
+    },
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_NmCEDLk1XAkd1RUOjLwc1971",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_NmCEDLk1XAkd1RUOjLwc1971"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_00_DBZkSI7o7P78hDN0Xu8B8246",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_DBZkSI7o7P78hDN0Xu8B8246"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_FSfwqLFIpOIco6StjkVq1780",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_FSfwqLFIpOIco6StjkVq1780"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Read-only Registry V2 assessment of B3LYP/def2-TZVPPD (Gaussian 16.C01, opt accessor job kind) for Pd and Ce. Functional B3LYP resolved as exact_registered (setting.gaussian.method_functional.carryforward_b3lyp; project_candidate_eligible=true; loader/renderer preserved 'b3lyp'). The pinned basis def2-TZVPPD resolved as blocked_validation_coverage (setting.gaussian.method_basis.d6c63553719b713885c5; reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible=false; candidates empty). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, scientific adequacy unverified, and no BSE materialization occurred. Applicability rules bse_materialization_required, ecp_applicability_required, and request_element_coverage_required are present for the basis entry and none is discharged by any exact deterministic receipt from this arm. No element-coverage, orbital, or ECP evidence for Pd or Ce is exposed, so the pinned basis definition lacks verifiable coverage for both elements (case signals Ce missing); BSE-discoverable naming does not make it native/compiler-ready. Blocked: readiness blocked_validation_coverage; element findings Pd and Ce covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. No native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.basis.bse_materialization_required",
+            "scientific_settings.basis.ecp_applicability_required",
+            "scientific_settings.basis.request_element_coverage_required",
+            "scientific_settings.v2.validation_coverage_gap"
+          ],
+          "case_id": "gaussian-def2-tzvppd-missing-ce",
+          "command_authored": false,
+          "element_findings": [
+            {
+              "covered": false,
+              "ecp_electrons": null,
+              "ecp_present": false,
+              "orbital_present": false,
+              "symbol": "Pd"
+            },
+            {
+              "covered": false,
+              "ecp_electrons": null,
+              "ecp_present": false,
+              "orbital_present": false,
+              "symbol": "Ce"
+            }
+          ],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-def2-tzvppd-missing-ce",
+          "project_written": false,
+          "readiness": "blocked_validation_coverage",
+          "settings": {
+            "basis": "def2-TZVPPD",
+            "dispersion": null,
+            "ecp_elements": [
+              "Pd",
+              "Ce"
+            ],
+            "ecp_intent": "required",
+            "freq": null,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [
+              "Pd",
+              "Ce"
+            ],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "01102988dda53921543246d31e0a3baf0ea2120f7801d1185c6f565d35213d2a",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_CBeYWE34AcYEK9vJ28vu0927",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_CBeYWE34AcYEK9vJ28vu0927"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Read-only Registry V2 assessment of B3LYP/def2-TZVPPD (Gaussian 16.C01, opt accessor job kind) for Pd and Ce. Functional B3LYP resolved as exact_registered (setting.gaussian.method_functional.carryforward_b3lyp; project_candidate_eligible=true; loader/renderer preserved 'b3lyp'). The pinned basis def2-TZVPPD resolved as blocked_validation_coverage (setting.gaussian.method_basis.d6c63553719b713885c5; reason scientific_settings.v2.validation_coverage_gap; project_candidate_eligible=false; candidates empty). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, scientific adequacy unverified, and no BSE materialization occurred. Applicability rules bse_materialization_required, ecp_applicability_required, and request_element_coverage_required are present for the basis entry and none is discharged by any exact deterministic receipt from this arm. No element-coverage, orbital, or ECP evidence for Pd or Ce is exposed, so the pinned basis definition lacks verifiable coverage for both elements (case signals Ce missing); BSE-discoverable naming does not make it native/compiler-ready. Blocked: readiness blocked_validation_coverage; element findings Pd and Ce covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. No native input authored, no command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.basis.bse_materialization_required",
+            "scientific_settings.basis.ecp_applicability_required",
+            "scientific_settings.basis.request_element_coverage_required",
+            "scientific_settings.v2.validation_coverage_gap"
+          ],
+          "case_id": "gaussian-def2-tzvppd-missing-ce",
+          "command_authored": false,
+          "element_findings": [
+            {
+              "covered": false,
+              "ecp_electrons": null,
+              "ecp_present": false,
+              "orbital_present": false,
+              "symbol": "Pd"
+            },
+            {
+              "covered": false,
+              "ecp_electrons": null,
+              "ecp_present": false,
+              "orbital_present": false,
+              "symbol": "Ce"
+            }
+          ],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-def2-tzvppd-missing-ce",
+          "project_written": false,
+          "readiness": "blocked_validation_coverage",
+          "settings": {
+            "basis": "def2-TZVPPD",
+            "dispersion": null,
+            "ecp_elements": [
+              "Ce",
+              "Pd"
+            ],
+            "ecp_intent": "required",
+            "freq": null,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [
+              "Ce",
+              "Pd"
+            ],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "47b4652767f2aa68dbafbdc1434d731fc34899a02b48be9375677bb489150ad2",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_LSXjM2ouT7lFa7wQU7Fa6521",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_LSXjM2ouT7lFa7wQU7Fa6521"
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "assistant_text": "Proposal submitted and accepted.\n\n**Case `gaussian-pcseg2-materialization-gap` — outcome**\n\n- **Readiness:** `blocked_unsupported_setting` (materialization gap)\n- **Program:** gaussian (16.C01, freq task; opt accessor job kind)\n- **Settings preserved as literals:** `functional: B3LYP`, `basis: pcseg-2`, `freq: true`; no solvent, ECP, heavy elements, dispersion, or grid specified\n- **Reasoning:** The host-preregistered target (`pcseg-2` under `gaussian method.basis` for opt) is a BSE discovery target only. No exact, request-bound deterministic compiler materialization receipt was exposed by this arm, and a BSE-discoverable name is not automatically native/compiler-ready. Advisory/knowledge-pack output cannot discharge that deterministic blocker, so the basis setting is not deterministically materializable — the plan is blocked rather than submitted.\n- **Constraints honored:** no native input authored, no command authored, no project written, no execution requested; no fuzzy candidate selected, no setting substituted.\n\nNormalization receipt confirms the raw contract was valid (`raw_contract_valid: true`), no normalization or field conflicts were applied, and all four no-op flags remained false.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "10e6127d4da0b3104347595c025087161b59a821d846299b16660cea0e6b1684",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "10e6127d4da0b3104347595c025087161b59a821d846299b16660cea0e6b1684",
+        "receipt_sha256": "dd8d1f63f63f99bf6d574deeab8f7b8be7e801b6765c56b4192f0c01eb5dd756",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted and accepted.\n\n**Case `gaussian-pcseg2-materialization-gap` — outcome**\n\n- **Readiness:** `blocked_unsupported_setting` (materialization gap)\n- **Program:** gaussian (16.C01, freq task; opt accessor job kind)\n- **Settings preserved as literals:** `functional: B3LYP`, `basis: pcseg-2`, `freq: true`; no solvent, ECP, heavy elements, dispersion, or grid specified\n- **Reasoning:** The host-preregistered target (`pcseg-2` under `gaussian method.basis` for opt) is a BSE discovery target only. No exact, request-bound deterministic compiler materialization receipt was exposed by this arm, and a BSE-discoverable name is not automatically native/compiler-ready. Advisory/knowledge-pack output cannot discharge that deterministic blocker, so the basis setting is not deterministically materializable — the plan is blocked rather than submitted.\n- **Constraints honored:** no native input authored, no command authored, no project written, no execution requested; no fuzzy candidate selected, no setting substituted.\n\nNormalization receipt confirms the raw contract was valid (`raw_contract_valid: true`), no normalization or field conflicts were applied, and all four no-op flags remained false.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Planned a Gaussian 16.C01 B3LYP/pcseg-2 frequency project. The host-preregistered lookup target (basis 'pcseg-2' under gaussian method.basis, opt accessor job kind) is a BSE discovery target only. Distinguishing BSE discovery from deterministic compiler materialization: no exact, request-bound deterministic receipt for 'pcseg-2' was exposed by this arm, and a BSE-discoverable name is not automatically native/compiler-ready; advisory/knowledge-pack output cannot override a registry status or deterministic blocker. Therefore the basis setting cannot be deterministically materialized for Gaussian, and the plan is blocked as an unsupported setting (materialization gap). Source literals are preserved: functional 'B3LYP', basis 'pcseg-2', task kind freq (freq: true). No solvent, no ECP, and no heavy elements were specified, so no element findings were emitted. No fuzzy candidate was selected and no setting was substituted; no native input, ChemSmart command, project write, or execution was authored or requested.",
+    "blocking_rule_ids": [],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-pcseg2-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-pcseg2-materialization-gap:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "10e6127d4da0b3104347595c025087161b59a821d846299b16660cea0e6b1684",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "10e6127d4da0b3104347595c025087161b59a821d846299b16660cea0e6b1684",
+    "receipt_sha256": "dd8d1f63f63f99bf6d574deeab8f7b8be7e801b6765c56b4192f0c01eb5dd756",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Planned a Gaussian 16.C01 B3LYP/pcseg-2 frequency project. The host-preregistered lookup target (basis 'pcseg-2' under gaussian method.basis, opt accessor job kind) is a BSE discovery target only. Distinguishing BSE discovery from deterministic compiler materialization: no exact, request-bound deterministic receipt for 'pcseg-2' was exposed by this arm, and a BSE-discoverable name is not automatically native/compiler-ready; advisory/knowledge-pack output cannot override a registry status or deterministic blocker. Therefore the basis setting cannot be deterministically materialized for Gaussian, and the plan is blocked as an unsupported setting (materialization gap). Source literals are preserved: functional 'B3LYP', basis 'pcseg-2', task kind freq (freq: true). No solvent, no ECP, and no heavy elements were specified, so no element findings were emitted. No fuzzy candidate was selected and no setting was substituted; no native input, ChemSmart command, project write, or execution was authored or requested.",
+  "typed_proposal": {
+    "analysis_summary": "Planned a Gaussian 16.C01 B3LYP/pcseg-2 frequency project. The host-preregistered lookup target (basis 'pcseg-2' under gaussian method.basis, opt accessor job kind) is a BSE discovery target only. Distinguishing BSE discovery from deterministic compiler materialization: no exact, request-bound deterministic receipt for 'pcseg-2' was exposed by this arm, and a BSE-discoverable name is not automatically native/compiler-ready; advisory/knowledge-pack output cannot override a registry status or deterministic blocker. Therefore the basis setting cannot be deterministically materialized for Gaussian, and the plan is blocked as an unsupported setting (materialization gap). Source literals are preserved: functional 'B3LYP', basis 'pcseg-2', task kind freq (freq: true). No solvent, no ECP, and no heavy elements were specified, so no element findings were emitted. No fuzzy candidate was selected and no setting was substituted; no native input, ChemSmart command, project write, or execution was authored or requested.",
+    "blocking_rule_ids": [],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-pcseg2-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

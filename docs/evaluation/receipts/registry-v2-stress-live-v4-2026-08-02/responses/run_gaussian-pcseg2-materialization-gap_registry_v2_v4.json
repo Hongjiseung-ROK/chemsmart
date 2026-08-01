@@ -1,0 +1,224 @@
+{
+  "assistant_text": "Submission complete. The proposal was accepted with a valid contract receipt (no normalization applied, no conflicting explicit fields).\n\n## Summary — case `gaussian-pcseg2-materialization-gap`\n\n**Outcome: `blocked_validation_coverage`** — the planned Gaussian B3LYP/pcseg-2 frequency project (task kind `freq`, accessor job kind `opt`) cannot proceed as a project candidate.\n\n**Why the basis blocks the plan:**\n- The mandatory `basis` lookup resolved **exactly** to `pcseg-2` by canonical literal (10000 bp; no fuzzy candidate needed, no substitution of `pcSseg-2`/`pcseg-0/1/3`).\n- **BSE discovery is present** (`bse-catalog-0.11` among source_ids) and the loader/renderer accepted and preserved the literal — but that is only `loader_renderer_verification_only`.\n- **Deterministic compiler materialization is absent**: `engine_executed=false`, `safe_preview_executed=false`, `deterministic_validator_enforced=false`, `scientific_adequacy_verified=false`. The `scientific_settings.basis.bse_materialization_required` rule is therefore **not discharged** — a BSE-discoverable name is not native/compiler-ready.\n- `scientific_settings.basis.request_element_coverage_required` is also **not discharged**: this arm exposes no per-element coverage evidence and no molecule/element list was provided, so `element_findings` was left empty (no elements fabricated).\n- The raw registry status was preserved verbatim: `blocked_validation_coverage` (`scientific_settings.v2.validation_coverage_gap`), `project_candidate_eligible=false`.\n\n**Other findings:**\n- B3LYP (explicit literal) is present in the `expected.functional` view and is candidate-eligible with no applicability rules, but its evidence ceiling is also loader-renderer-only — advisory only, and it cannot override the deterministic basis blocker.\n- `freq=true` encodes the requested frequency task kind; no other literals were requested or invented.\n- Nothing was authored, written, or executed: `native_input_authored=false`, `command_authored=false`, `project_written=false`, `execution_requested=false`.\n\nReceipt: `704150f21948ad7941a7b140bf1acc48ef963e8f40e40659a7923e487b63de9d` (case sha `af98c08b…`).",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "72dccbddbcad2efb3908d5fa7689d98d030cd17f3c05bc748f8b767eb4ccb815",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "72dccbddbcad2efb3908d5fa7689d98d030cd17f3c05bc748f8b767eb4ccb815",
+        "receipt_sha256": "704150f21948ad7941a7b140bf1acc48ef963e8f40e40659a7923e487b63de9d",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": true,
+    "raw_semantic_oracle_passed": true,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_public_english_response": "Submission complete. The proposal was accepted with a valid contract receipt (no normalization applied, no conflicting explicit fields).\n\n## Summary — case `gaussian-pcseg2-materialization-gap`\n\n**Outcome: `blocked_validation_coverage`** — the planned Gaussian B3LYP/pcseg-2 frequency project (task kind `freq`, accessor job kind `opt`) cannot proceed as a project candidate.\n\n**Why the basis blocks the plan:**\n- The mandatory `basis` lookup resolved **exactly** to `pcseg-2` by canonical literal (10000 bp; no fuzzy candidate needed, no substitution of `pcSseg-2`/`pcseg-0/1/3`).\n- **BSE discovery is present** (`bse-catalog-0.11` among source_ids) and the loader/renderer accepted and preserved the literal — but that is only `loader_renderer_verification_only`.\n- **Deterministic compiler materialization is absent**: `engine_executed=false`, `safe_preview_executed=false`, `deterministic_validator_enforced=false`, `scientific_adequacy_verified=false`. The `scientific_settings.basis.bse_materialization_required` rule is therefore **not discharged** — a BSE-discoverable name is not native/compiler-ready.\n- `scientific_settings.basis.request_element_coverage_required` is also **not discharged**: this arm exposes no per-element coverage evidence and no molecule/element list was provided, so `element_findings` was left empty (no elements fabricated).\n- The raw registry status was preserved verbatim: `blocked_validation_coverage` (`scientific_settings.v2.validation_coverage_gap`), `project_candidate_eligible=false`.\n\n**Other findings:**\n- B3LYP (explicit literal) is present in the `expected.functional` view and is candidate-eligible with no applicability rules, but its evidence ceiling is also loader-renderer-only — advisory only, and it cannot override the deterministic basis blocker.\n- `freq=true` encodes the requested frequency task kind; no other literals were requested or invented.\n- Nothing was authored, written, or executed: `native_input_authored=false`, `command_authored=false`, `project_written=false`, `execution_requested=false`.\n\nReceipt: `704150f21948ad7941a7b140bf1acc48ef963e8f40e40659a7923e487b63de9d` (case sha `af98c08b…`).",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Planned Gaussian B3LYP/pcseg-2 frequency project (task kind freq; registry accessor job kind opt). Mandatory basis lookup 'basis' resolved by canonical literal to pcseg-2 (entry setting.gaussian.method_basis.0ac4f1e4cd4a23900a62; matched_by canonical_literal; loader_accepted true; renderer_preserved true; jobs ('opt',)). BSE discovery is evidenced via source_ids bse-catalog-0.11, gaussian-job-settings-125f2878, gaussian-project-loader-125f2878, project-protocol-125f2878, but NO deterministic compiler materialization receipt is exposed by this arm: evidence_ceiling = loader_renderer_verification_only, engine_executed=false, safe_preview_executed=false, deterministic_validator_enforced=false, scientific_adequacy_verified=false, setting_combination_verified=false. Therefore applicability rule scientific_settings.basis.bse_materialization_required is not discharged; a BSE-discoverable name is not automatically native/compiler-ready. Applicability rule scientific_settings.basis.request_element_coverage_required is likewise not discharged: this arm exposes no per-element coverage evidence and no molecule/element list was provided, so element_findings is empty (no elements fabricated). Raw registry status preserved verbatim: blocked_validation_coverage (reason rule scientific_settings.v2.validation_coverage_gap), project_candidate_eligible=false. Functional B3LYP is an explicit request literal and appears in the expected.functional view (entry setting.gaussian.method_functional.carryforward_b3lyp; matched literal 'b3-lyp'; project_candidate_eligible=true; no applicability rules), but its evidence ceiling is also loader-renderer-only; advisory only and cannot override the deterministic basis blocker. No fuzzy candidate was selected (canonical pcseg-2 match at 10000 bp; pcSseg-2/pcseg-0/pcseg-1/pcseg-3 not chosen; no silent substitution). freq=true encodes the explicitly requested frequency task kind; no other setting literals were requested and none were invented. Proposal is blocked: no native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.bse_materialization_required",
+      "scientific_settings.basis.request_element_coverage_required",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-pcseg2-freq",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "72dccbddbcad2efb3908d5fa7689d98d030cd17f3c05bc748f8b767eb4ccb815",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "72dccbddbcad2efb3908d5fa7689d98d030cd17f3c05bc748f8b767eb4ccb815",
+    "receipt_sha256": "704150f21948ad7941a7b140bf1acc48ef963e8f40e40659a7923e487b63de9d",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Planned Gaussian B3LYP/pcseg-2 frequency project (task kind freq; registry accessor job kind opt). Mandatory basis lookup 'basis' resolved by canonical literal to pcseg-2 (entry setting.gaussian.method_basis.0ac4f1e4cd4a23900a62; matched_by canonical_literal; loader_accepted true; renderer_preserved true; jobs ('opt',)). BSE discovery is evidenced via source_ids bse-catalog-0.11, gaussian-job-settings-125f2878, gaussian-project-loader-125f2878, project-protocol-125f2878, but NO deterministic compiler materialization receipt is exposed by this arm: evidence_ceiling = loader_renderer_verification_only, engine_executed=false, safe_preview_executed=false, deterministic_validator_enforced=false, scientific_adequacy_verified=false, setting_combination_verified=false. Therefore applicability rule scientific_settings.basis.bse_materialization_required is not discharged; a BSE-discoverable name is not automatically native/compiler-ready. Applicability rule scientific_settings.basis.request_element_coverage_required is likewise not discharged: this arm exposes no per-element coverage evidence and no molecule/element list was provided, so element_findings is empty (no elements fabricated). Raw registry status preserved verbatim: blocked_validation_coverage (reason rule scientific_settings.v2.validation_coverage_gap), project_candidate_eligible=false. Functional B3LYP is an explicit request literal and appears in the expected.functional view (entry setting.gaussian.method_functional.carryforward_b3lyp; matched literal 'b3-lyp'; project_candidate_eligible=true; no applicability rules), but its evidence ceiling is also loader-renderer-only; advisory only and cannot override the deterministic basis blocker. No fuzzy candidate was selected (canonical pcseg-2 match at 10000 bp; pcSseg-2/pcseg-0/pcseg-1/pcseg-3 not chosen; no silent substitution). freq=true encodes the explicitly requested frequency task kind; no other setting literals were requested and none were invented. Proposal is blocked: no native input authored, no command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Planned Gaussian B3LYP/pcseg-2 frequency project (task kind freq; registry accessor job kind opt). Mandatory basis lookup 'basis' resolved by canonical literal to pcseg-2 (entry setting.gaussian.method_basis.0ac4f1e4cd4a23900a62; matched_by canonical_literal; loader_accepted true; renderer_preserved true; jobs ('opt',)). BSE discovery is evidenced via source_ids bse-catalog-0.11, gaussian-job-settings-125f2878, gaussian-project-loader-125f2878, project-protocol-125f2878, but NO deterministic compiler materialization receipt is exposed by this arm: evidence_ceiling = loader_renderer_verification_only, engine_executed=false, safe_preview_executed=false, deterministic_validator_enforced=false, scientific_adequacy_verified=false, setting_combination_verified=false. Therefore applicability rule scientific_settings.basis.bse_materialization_required is not discharged; a BSE-discoverable name is not automatically native/compiler-ready. Applicability rule scientific_settings.basis.request_element_coverage_required is likewise not discharged: this arm exposes no per-element coverage evidence and no molecule/element list was provided, so element_findings is empty (no elements fabricated). Raw registry status preserved verbatim: blocked_validation_coverage (reason rule scientific_settings.v2.validation_coverage_gap), project_candidate_eligible=false. Functional B3LYP is an explicit request literal and appears in the expected.functional view (entry setting.gaussian.method_functional.carryforward_b3lyp; matched literal 'b3-lyp'; project_candidate_eligible=true; no applicability rules), but its evidence ceiling is also loader-renderer-only; advisory only and cannot override the deterministic basis blocker. No fuzzy candidate was selected (canonical pcseg-2 match at 10000 bp; pcSseg-2/pcseg-0/pcseg-1/pcseg-3 not chosen; no silent substitution). freq=true encodes the explicitly requested frequency task kind; no other setting literals were requested and none were invented. Proposal is blocked: no native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.bse_materialization_required",
+      "scientific_settings.basis.request_element_coverage_required",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-pcseg2-freq",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

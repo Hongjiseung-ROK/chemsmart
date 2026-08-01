@@ -1,0 +1,212 @@
+{
+  "assistant_text": "Proposal submitted and accepted. Summary of the outcome:\n\n**Final proposal (case `orca-ma-def2-tzvp-cross-field-blocked`)**\n- **Readiness**: `blocked_validation_coverage`\n- **Program**: orca · **Project**: `orca-ma-def2-tzvp-cross-field`\n- **Settings preserved verbatim**: functional `B3LYP`, basis `ma-def2-TZVP`, dispersion `D3BJ`, `freq: true` (frequency task)\n- **Blocking rules** (canonicalized set order): `scientific_settings.basis.registry_validator_integration_required`, `scientific_settings.dispersion.functional_conflict_guard`, `scientific_settings.v2.validation_coverage_gap`\n- **Flags**: `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`\n\n**Why blocked**: Both host-preregistered lookups — basis `ma-def2-TZVP` (entry `…cacd75214ff3402d48ea`) and dispersion `D3BJ` (entry `…e73ac4973a18172cac80`) — resolved to raw registry status `blocked_validation_coverage` with `project_candidate_eligible: false`. The evidence ceiling is `loader_renderer_verification_only`: no engine execution, no safe preview, and scientific adequacy/setting combination unverified, so the declared applicability rules could not be discharged. The `b3lyp` functional entry is project-eligible in the advisory view, but advisory output cannot override the deterministic blockers on the mandatory settings.\n\nThe submission was normalized (set-order canonicalization of `blocking_rule_ids`); no conflicting or filled explicit setting fields, no source literal altered. No project, input, command, or execution was authored or requested.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.registry_validator_integration_required",
+        "scientific_settings.dispersion.functional_conflict_guard",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [
+          "blocking_rule_ids"
+        ],
+        "case_sha256": "19851144a8a225c3c8f2b9ed419f15d92e185a3d01326f1c04f150417b30ec01",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "29795bbc272f8455f274bf6c32cc56312d212c3d76a8c77331b819f50947deba",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [
+          "blocking_rule_ids"
+        ],
+        "raw_contract_valid": false,
+        "raw_payload_sha256": "fd5ad0bde5fdb21bada7f10db38519d757c0a927dcf7f3a69d241c924b38b1e7",
+        "receipt_sha256": "6a75f9073d05f5b81a5d69752e367332b4e1f3e309ffb6a30ae5d98133bbc0d8",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": true,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": true
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "validation_error_class": "ValidationError"
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-valid"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "Proposal submitted and accepted. Summary of the outcome:\n\n**Final proposal (case `orca-ma-def2-tzvp-cross-field-blocked`)**\n- **Readiness**: `blocked_validation_coverage`\n- **Program**: orca · **Project**: `orca-ma-def2-tzvp-cross-field`\n- **Settings preserved verbatim**: functional `B3LYP`, basis `ma-def2-TZVP`, dispersion `D3BJ`, `freq: true` (frequency task)\n- **Blocking rules** (canonicalized set order): `scientific_settings.basis.registry_validator_integration_required`, `scientific_settings.dispersion.functional_conflict_guard`, `scientific_settings.v2.validation_coverage_gap`\n- **Flags**: `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`\n\n**Why blocked**: Both host-preregistered lookups — basis `ma-def2-TZVP` (entry `…cacd75214ff3402d48ea`) and dispersion `D3BJ` (entry `…e73ac4973a18172cac80`) — resolved to raw registry status `blocked_validation_coverage` with `project_candidate_eligible: false`. The evidence ceiling is `loader_renderer_verification_only`: no engine execution, no safe preview, and scientific adequacy/setting combination unverified, so the declared applicability rules could not be discharged. The `b3lyp` functional entry is project-eligible in the advisory view, but advisory output cannot override the deterministic blockers on the mandatory settings.\n\nThe submission was normalized (set-order canonicalization of `blocking_rule_ids`); no conflicting or filled explicit setting fields, no source literal altered. No project, input, command, or execution was authored or requested.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.registry_validator_integration_required",
+        "scientific_settings.dispersion.functional_conflict_guard",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Planned a neutral-singlet ORCA frequency project (task kind freq; registry accessor job kind opt) preserving B3LYP-D3BJ/ma-def2-TZVP exactly. The two host-preregistered mandatory lookups both resolved to raw registry status blocked_validation_coverage (reason rule scientific_settings.v2.validation_coverage_gap) with project_candidate_eligible=false: basis 'ma-def2-TZVP' (entry setting.orca.method_basis.cacd75214ff3402d48ea, canonical 'ma-def2-tzvp', loader_accepted=true, renderer_preserved=true) and dispersion 'D3BJ' (entry setting.orca.method_dispersion.e73ac4973a18172cac80, canonical 'D3BJ', loader_accepted=true, renderer_preserved=true). Both entries carry applicability rules (scientific_settings.basis.registry_validator_integration_required; scientific_settings.dispersion.functional_conflict_guard) that are present but not discharged because deterministic_validator_enforced=false and the evidence ceiling is loader_renderer_verification_only (engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false). The advisory expected.functional view ranks 'b3lyp' first with project_candidate_eligible=true, but knowledge-pack output is advisory and cannot override the registry blockers. No fuzzy candidate was selected, no setting substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals were preserved in the proposal (functional='B3LYP', basis='ma-def2-TZVP', dispersion='D3BJ'); freq=true reflects the stated frequency task. Readiness: blocked_validation_coverage.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.validation_coverage_gap",
+      "scientific_settings.basis.registry_validator_integration_required",
+      "scientific_settings.dispersion.functional_conflict_guard"
+    ],
+    "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-ma-def2-tzvp-cross-field",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "ma-def2-TZVP",
+      "dispersion": "D3BJ",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [
+      "blocking_rule_ids"
+    ],
+    "case_sha256": "19851144a8a225c3c8f2b9ed419f15d92e185a3d01326f1c04f150417b30ec01",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "29795bbc272f8455f274bf6c32cc56312d212c3d76a8c77331b819f50947deba",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [
+      "blocking_rule_ids"
+    ],
+    "raw_contract_valid": false,
+    "raw_payload_sha256": "fd5ad0bde5fdb21bada7f10db38519d757c0a927dcf7f3a69d241c924b38b1e7",
+    "receipt_sha256": "6a75f9073d05f5b81a5d69752e367332b4e1f3e309ffb6a30ae5d98133bbc0d8",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Planned a neutral-singlet ORCA frequency project (task kind freq; registry accessor job kind opt) preserving B3LYP-D3BJ/ma-def2-TZVP exactly. The two host-preregistered mandatory lookups both resolved to raw registry status blocked_validation_coverage (reason rule scientific_settings.v2.validation_coverage_gap) with project_candidate_eligible=false: basis 'ma-def2-TZVP' (entry setting.orca.method_basis.cacd75214ff3402d48ea, canonical 'ma-def2-tzvp', loader_accepted=true, renderer_preserved=true) and dispersion 'D3BJ' (entry setting.orca.method_dispersion.e73ac4973a18172cac80, canonical 'D3BJ', loader_accepted=true, renderer_preserved=true). Both entries carry applicability rules (scientific_settings.basis.registry_validator_integration_required; scientific_settings.dispersion.functional_conflict_guard) that are present but not discharged because deterministic_validator_enforced=false and the evidence ceiling is loader_renderer_verification_only (engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false). The advisory expected.functional view ranks 'b3lyp' first with project_candidate_eligible=true, but knowledge-pack output is advisory and cannot override the registry blockers. No fuzzy candidate was selected, no setting substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals were preserved in the proposal (functional='B3LYP', basis='ma-def2-TZVP', dispersion='D3BJ'); freq=true reflects the stated frequency task. Readiness: blocked_validation_coverage.",
+  "typed_proposal": {
+    "analysis_summary": "Planned a neutral-singlet ORCA frequency project (task kind freq; registry accessor job kind opt) preserving B3LYP-D3BJ/ma-def2-TZVP exactly. The two host-preregistered mandatory lookups both resolved to raw registry status blocked_validation_coverage (reason rule scientific_settings.v2.validation_coverage_gap) with project_candidate_eligible=false: basis 'ma-def2-TZVP' (entry setting.orca.method_basis.cacd75214ff3402d48ea, canonical 'ma-def2-tzvp', loader_accepted=true, renderer_preserved=true) and dispersion 'D3BJ' (entry setting.orca.method_dispersion.e73ac4973a18172cac80, canonical 'D3BJ', loader_accepted=true, renderer_preserved=true). Both entries carry applicability rules (scientific_settings.basis.registry_validator_integration_required; scientific_settings.dispersion.functional_conflict_guard) that are present but not discharged because deterministic_validator_enforced=false and the evidence ceiling is loader_renderer_verification_only (engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false). The advisory expected.functional view ranks 'b3lyp' first with project_candidate_eligible=true, but knowledge-pack output is advisory and cannot override the registry blockers. No fuzzy candidate was selected, no setting substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals were preserved in the proposal (functional='B3LYP', basis='ma-def2-TZVP', dispersion='D3BJ'); freq=true reflects the stated frequency task. Readiness: blocked_validation_coverage.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.registry_validator_integration_required",
+      "scientific_settings.dispersion.functional_conflict_guard",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-ma-def2-tzvp-cross-field",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "ma-def2-TZVP",
+      "dispersion": "D3BJ",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

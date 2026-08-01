@@ -1,0 +1,357 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T233248Z-287fd29f\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: xtb-cross-program-basis-not-applicable\nProgram: xtb\nEngine version: 6.7.1\nTask kind: opt\nProject/registry accessor job kind: opt\n\nThe source incorrectly associates def2-SVP with GFN2-xTB. Represent the conflict and block; do not invent basis semantics.\n\nHost-preregistered lookup targets:\n- basis: xtb method.basis 'def2-SVP' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "I'll inspect the Registry V2 evidence for the preregistered basis target before making any proposal.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_00_cWLemdW1LjimMSAwXH780275",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "list_scientific_settings_v2"
+          },
+          "id": "call_01_qhiJwLMD9VMho6a7cu9f2943",
+          "index": 1,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [], \"applicability_rules_present\": false, \"candidates\": [], \"canonical_value\": null, \"deterministic_validator_enforced\": false, \"entry_evidence\": null, \"entry_evidence_sha256\": null, \"entry_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": null, \"loader_accepted\": false, \"loader_observation\": \"not_observed\", \"lookup_id\": \"basis\", \"matched_by\": \"not_applicable\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"def2svp\", \"program\": \"xtb\", \"project_candidate_eligible\": false, \"reason_rule_id\": \"scientific_settings.v2.xtb_basis_not_applicable\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"not_observed\", \"renderer_preserved\": false, \"repair_policy_binding\": {\"binding_sha256\": \"e24f741e41e98ebd93a9b874018bf8b3da2d634202dfd1310d12f4a894a7e4c6\", \"scope_completeness\": \"exhaustive_typed_domain\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"def2-SVP\", \"resolution_sha256\": \"a601b0d1d2d5b8a776141f0f5aa62ee6af2ba8ac91714a15baccc26f5765f50e\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.basis\", \"source_registered\": false, \"status\": \"not_applicable\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_cWLemdW1LjimMSAwXH780275"
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_count\": 0, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"items\": [], \"job_kind\": \"opt\", \"limit\": 5, \"listing_sha256\": \"3eaed8cc90abd09c81e01837e4c61c33ee8689f22d7088f1973241eb41ff36db\", \"lookup_id\": \"basis\", \"matched_count\": 0, \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_query\": \"def2svp\", \"program\": \"xtb\", \"query\": \"def2-SVP\", \"reason_rule_ids\": [\"scientific_settings.v2.xtb_basis_not_applicable\"], \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_policy_binding\": {\"binding_sha256\": \"5725eaaa662c6a92c8d60dd81e9b9ebebd44496ebcf64788ccb4db2857cb456d\", \"scope_completeness\": \"exhaustive_typed_domain\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"returned_count\": 0, \"schema_version\": \"chemsmart.scientific-settings-list.v2\", \"setting_path\": \"method.basis\", \"status\": \"not_applicable\", \"token_policy\": \"bounded_view_only\", \"truncated\": false}",
+      "role": "tool",
+      "tool_call_id": "call_01_qhiJwLMD9VMho6a7cu9f2943"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The Registry V2 evidence is deterministic and complete:\n\n- `resolve_scientific_setting_v2(\"basis\")` for xtb/opt returns **status `not_applicable`**, reason rule `scientific_settings.v2.xtb_basis_not_applicable`, `matched_by: not_applicable`, no candidates, no canonical value, no entry evidence, `loader_accepted: false`, `project_candidate_eligible: false`.\n- `list_scientific_settings_v2(\"basis\")` confirms `matched_count: 0` under the same rule ID.\n- Evidence ceiling is `loader_renderer_verification_only` with no engine execution — no scientific-adequacy claim is supportable.\n\nThe def2-SVP basis literal is preserved verbatim; the proposal is blocked as an unsupported setting.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"xtb-cross-program-basis-not-applicable\", \"program\": \"xtb\", \"project_name\": \"xtb-cross-program-basis-not-applicable\", \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"functional\": null, \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": null, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [\"scientific_settings.v2.xtb_basis_not_applicable\"], \"element_findings\": [], \"analysis_summary\": \"Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_kwTyBKP2Loyx0psmDSLn6890",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"6f40b47c9f133d3222cf6958574677f191895b09b5df3b18e096c7cf7b6cfe9e\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.gfn_version\", \"settings.optimization_level\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"b1d8c0660571d0b963911daad38fc698214061aac4d51f721268ace91def5a1a\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"1a3dc443e29a2cc57101b0aec7dd61d2475020e867e4720ae4b75e344b984455\", \"receipt_sha256\": \"31ed56c08593f1d3cee9bfd840946ae26102d5d6b17460e9e5e22446b2749c82\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.\", \"blocking_rule_ids\": [\"scientific_settings.v2.xtb_basis_not_applicable\"], \"case_id\": \"xtb-cross-program-basis-not-applicable\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"xtb\", \"project_name\": \"xtb-cross-program-basis-not-applicable\", \"project_written\": false, \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": null, \"gfn_version\": \"gfn2\", \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": \"normal\", \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.\", \"blocking_rule_ids\": [\"scientific_settings.v2.xtb_basis_not_applicable\"], \"case_id\": \"xtb-cross-program-basis-not-applicable\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"xtb\", \"project_name\": \"xtb-cross-program-basis-not-applicable\", \"project_written\": false, \"readiness\": \"blocked_unsupported_setting\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": null, \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_kwTyBKP2Loyx0psmDSLn6890"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Submission complete. One proposal was submitted for case `xtb-cross-program-basis-not-applicable` and accepted with a normalization receipt.\n\n**Outcome:**\n- **Readiness:** `blocked_unsupported_setting`\n- **Blocking rule:** `scientific_settings.v2.xtb_basis_not_applicable` — the V2 registry deterministically resolves `method.basis='def2-SVP'` for xtb/opt as `not_applicable`, with no candidates, no canonical value, no entry evidence (`loader_accepted=false`, `project_candidate_eligible=false`), and the list view confirms `matched_count=0`.\n- **Settings:** source literal `basis='def2-SVP'` preserved verbatim; no substitution, no invented basis semantics.\n- **Normalization:** the case-bound normalizer filled defaults `gfn_version='gfn2'` and `optimization_level='normal'` (xtb opt context); no conflicting explicit setting fields, raw contract valid.\n- **Safety flags:** `native_input_authored=false`, `command_authored=false`, `project_written=false`, `execution_requested=false`.\n\nThe cross-program def2-SVP association is represented as a blocked, unsupported setting; no project, command, or execution artifacts were created.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:xtb-cross-program-basis-not-applicable:registry_v2:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_00_cWLemdW1LjimMSAwXH780275",
+      "request_id": "openai:call_00_cWLemdW1LjimMSAwXH780275",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [],
+        "applicability_rules_present": false,
+        "candidates": [],
+        "canonical_value": null,
+        "deterministic_validator_enforced": false,
+        "entry_evidence": null,
+        "entry_evidence_sha256": null,
+        "entry_id": null,
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": null,
+        "loader_accepted": false,
+        "loader_observation": "not_observed",
+        "lookup_id": "basis",
+        "matched_by": "not_applicable",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "def2svp",
+        "program": "xtb",
+        "project_candidate_eligible": false,
+        "reason_rule_id": "scientific_settings.v2.xtb_basis_not_applicable",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "not_observed",
+        "renderer_preserved": false,
+        "repair_policy_binding": {
+          "binding_sha256": "e24f741e41e98ebd93a9b874018bf8b3da2d634202dfd1310d12f4a894a7e4c6",
+          "scope_completeness": "exhaustive_typed_domain",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "def2-SVP",
+        "resolution_sha256": "a601b0d1d2d5b8a776141f0f5aa62ee6af2ba8ac91714a15baccc26f5765f50e",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.basis",
+        "source_registered": false,
+        "status": "not_applicable"
+      },
+      "result_sha256": "e74135ba044b372b78f7b5df2a7db7c5a38ee57adb6ae58239945d7f2836de1d",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_qhiJwLMD9VMho6a7cu9f2943",
+      "request_id": "openai:call_01_qhiJwLMD9VMho6a7cu9f2943",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_count": 0,
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "items": [],
+        "job_kind": "opt",
+        "limit": 5,
+        "listing_sha256": "3eaed8cc90abd09c81e01837e4c61c33ee8689f22d7088f1973241eb41ff36db",
+        "lookup_id": "basis",
+        "matched_count": 0,
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_query": "def2svp",
+        "program": "xtb",
+        "query": "def2-SVP",
+        "reason_rule_ids": [
+          "scientific_settings.v2.xtb_basis_not_applicable"
+        ],
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "repair_policy_binding": {
+          "binding_sha256": "5725eaaa662c6a92c8d60dd81e9b9ebebd44496ebcf64788ccb4db2857cb456d",
+          "scope_completeness": "exhaustive_typed_domain",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "returned_count": 0,
+        "schema_version": "chemsmart.scientific-settings-list.v2",
+        "setting_path": "method.basis",
+        "status": "not_applicable",
+        "token_policy": "bounded_view_only",
+        "truncated": false
+      },
+      "result_sha256": "8bcd280c7c98b2eb5611e45686c1047e712221570520c8b8716e7c1d86a5a796",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_kwTyBKP2Loyx0psmDSLn6890",
+      "request_id": "openai:call_00_kwTyBKP2Loyx0psmDSLn6890",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "6f40b47c9f133d3222cf6958574677f191895b09b5df3b18e096c7cf7b6cfe9e",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.gfn_version",
+            "settings.optimization_level"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "b1d8c0660571d0b963911daad38fc698214061aac4d51f721268ace91def5a1a",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "1a3dc443e29a2cc57101b0aec7dd61d2475020e867e4720ae4b75e344b984455",
+          "receipt_sha256": "31ed56c08593f1d3cee9bfd840946ae26102d5d6b17460e9e5e22446b2749c82",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.xtb_basis_not_applicable"
+          ],
+          "case_id": "xtb-cross-program-basis-not-applicable",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-cross-program-basis-not-applicable",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": "gfn2",
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": "normal",
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.xtb_basis_not_applicable"
+          ],
+          "case_id": "xtb-cross-program-basis-not-applicable",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-cross-program-basis-not-applicable",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "0ce83de4dd4e1cc04d06c7f8e60ab2768e3be79d9771b8448d709c12ead61758",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_00_cWLemdW1LjimMSAwXH780275",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_cWLemdW1LjimMSAwXH780275"
+    },
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_qhiJwLMD9VMho6a7cu9f2943",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_qhiJwLMD9VMho6a7cu9f2943"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.xtb_basis_not_applicable"
+          ],
+          "case_id": "xtb-cross-program-basis-not-applicable",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "xtb",
+          "project_name": "xtb-cross-program-basis-not-applicable",
+          "project_written": false,
+          "readiness": "blocked_unsupported_setting",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": null,
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "ef3dc5e9ec44b9b30ac80a60a39f2ff4615682264701787302b62dc493da4081",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_kwTyBKP2Loyx0psmDSLn6890",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_kwTyBKP2Loyx0psmDSLn6890"
+    }
+  ]
+}

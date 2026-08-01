@@ -1,0 +1,220 @@
+{
+  "assistant_text": "Submitted. The Registry V2 proposal for **orca-b3lyp-d3zero-unsupported** was accepted with a valid normalization receipt (raw contract valid, no normalization applied, case SHA-256 `332e797b…`).\n\nAssessment summary:\n- **Compound:** B3LYP-D3ZERO/def2-SVP for ORCA 6.1, freq task with opt accessor — decomposed deterministically into `functional=B3LYP`, `dispersion=D3ZERO`, `basis=def2-SVP` (all source literals preserved; no substitution, no reduction to plain B3LYP).\n- **Readiness:** `blocked_unsupported_setting` — D3ZERO is not a supported/compiler-ready dispersion setting in ORCA 6.1, and no request-bound receipt was exposed in this arm to discharge any applicability rule.\n- **Safety flags:** all false — no native input authored, no command authored, no project written, no execution requested.\n\nOne note from the receipt: the normalizer flagged `settings.functional` as a conflicting explicit setting field, but since no normalization was applied (`canonicalized_set_fields` empty), the submitted literal `B3LYP` stands as-is.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "332e797b1f6cd4e9711d37c236cfac199964c8121b54007a8ad7ebf0c4453b32",
+        "conflicting_explicit_setting_fields": [
+          "settings.functional"
+        ],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "b86b514d0f014ff0d07723045527fe191ab15cd8b29dbecdde72cdcf94f46189",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "b86b514d0f014ff0d07723045527fe191ab15cd8b29dbecdde72cdcf94f46189",
+        "receipt_sha256": "159958f80c2f403e630297a57d52bd19577c595991af460fd774d9c61c6deedd",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 1,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_public_english_response": "Submitted. The Registry V2 proposal for **orca-b3lyp-d3zero-unsupported** was accepted with a valid normalization receipt (raw contract valid, no normalization applied, case SHA-256 `332e797b…`).\n\nAssessment summary:\n- **Compound:** B3LYP-D3ZERO/def2-SVP for ORCA 6.1, freq task with opt accessor — decomposed deterministically into `functional=B3LYP`, `dispersion=D3ZERO`, `basis=def2-SVP` (all source literals preserved; no substitution, no reduction to plain B3LYP).\n- **Readiness:** `blocked_unsupported_setting` — D3ZERO is not a supported/compiler-ready dispersion setting in ORCA 6.1, and no request-bound receipt was exposed in this arm to discharge any applicability rule.\n- **Safety flags:** all false — no native input authored, no command authored, no project written, no execution requested.\n\nOne note from the receipt: the normalizer flagged `settings.functional` as a conflicting explicit setting field, but since no normalization was applied (`canonicalized_set_fields` empty), the submitted literal `B3LYP` stands as-is.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Case: ORCA 6.1, freq task (registry accessor job kind: opt), compound B3LYP-D3ZERO/def2-SVP. Deterministic decomposition of the compound string yields functional=B3LYP, dispersion=D3ZERO, basis=def2-SVP. B3LYP and def2-SVP are native ORCA settings, but the D3ZERO dispersion literal is not a supported/compiler-ready setting for ORCA 6.1 per the case's declared unsupported status; the compound must not be reduced to plain B3LYP, and no substitute dispersion setting (e.g., D3BJ) may be silently selected. A BSE-discoverable name would not make D3ZERO native in any case. No molecule was specified, so no element findings or ECP determinations apply. No request-bound deterministic receipt was exposed by this arm, so no applicability rule can be discharged; the case remains blocked as an unsupported setting. No native input or command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-b3lyp-d3zero-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b3lyp-d3zero-unsupported",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D3ZERO",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-b3lyp-d3zero-unsupported:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "332e797b1f6cd4e9711d37c236cfac199964c8121b54007a8ad7ebf0c4453b32",
+    "conflicting_explicit_setting_fields": [
+      "settings.functional"
+    ],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "b86b514d0f014ff0d07723045527fe191ab15cd8b29dbecdde72cdcf94f46189",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "b86b514d0f014ff0d07723045527fe191ab15cd8b29dbecdde72cdcf94f46189",
+    "receipt_sha256": "159958f80c2f403e630297a57d52bd19577c595991af460fd774d9c61c6deedd",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Case: ORCA 6.1, freq task (registry accessor job kind: opt), compound B3LYP-D3ZERO/def2-SVP. Deterministic decomposition of the compound string yields functional=B3LYP, dispersion=D3ZERO, basis=def2-SVP. B3LYP and def2-SVP are native ORCA settings, but the D3ZERO dispersion literal is not a supported/compiler-ready setting for ORCA 6.1 per the case's declared unsupported status; the compound must not be reduced to plain B3LYP, and no substitute dispersion setting (e.g., D3BJ) may be silently selected. A BSE-discoverable name would not make D3ZERO native in any case. No molecule was specified, so no element findings or ECP determinations apply. No request-bound deterministic receipt was exposed by this arm, so no applicability rule can be discharged; the case remains blocked as an unsupported setting. No native input or command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Case: ORCA 6.1, freq task (registry accessor job kind: opt), compound B3LYP-D3ZERO/def2-SVP. Deterministic decomposition of the compound string yields functional=B3LYP, dispersion=D3ZERO, basis=def2-SVP. B3LYP and def2-SVP are native ORCA settings, but the D3ZERO dispersion literal is not a supported/compiler-ready setting for ORCA 6.1 per the case's declared unsupported status; the compound must not be reduced to plain B3LYP, and no substitute dispersion setting (e.g., D3BJ) may be silently selected. A BSE-discoverable name would not make D3ZERO native in any case. No molecule was specified, so no element findings or ECP determinations apply. No request-bound deterministic receipt was exposed by this arm, so no applicability rule can be discharged; the case remains blocked as an unsupported setting. No native input or command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-b3lyp-d3zero-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b3lyp-d3zero-unsupported",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D3ZERO",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

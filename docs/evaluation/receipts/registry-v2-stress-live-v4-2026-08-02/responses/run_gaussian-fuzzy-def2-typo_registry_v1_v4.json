@@ -1,0 +1,207 @@
+{
+  "assistant_text": "Submission recorded. Summary of the Registry V2 stress outcome for case `gaussian-fuzzy-def2-typo`:\n\n**Resolution evidence (read-only):**\n- **basis `def2-TZVXP`** → `candidate_only`: not registered exactly (`canonical_value: null`, inventory `matched_count: 0`); matched only by fuzzy candidates (`def2-mTZVP`, `def2-TZVP`, `def2-TZVPD`, `def2-TZVPP`, `def2-TZVPPD`) under rule `scientific_settings.candidate_requires_selection`. Loader/renderer both `not_observed`, `loader_renderer_eligible: false` — no exact deterministic receipt exists for this spelling.\n- **expected.functional B3LYP** → `exact_registered` (canonical literal, loader `accepted`, renderer `preserved`).\n\n**Proposal filed:**\n- Readiness: `blocked_invalid_specification`\n- Blocking rule: `scientific_settings.candidate_requires_selection`\n- Settings preserved: `basis: \"def2-TZVXP\"` (reported spelling kept), `functional: \"B3LYP\"`, `freq: true` (task kind freq)\n- No fuzzy candidate selected; no element findings (no exact basis entry to assess coverage)\n- All non-executing constraints honored: no native input authored, no command authored, no project write, no execution request\n\nNormalization receipt confirms the raw contract was valid with no conflicting or canonicalized explicit fields (`normalization_applied: false`). The typo'd basis spelling blocks registration; correcting it (e.g., to a real def2 variant) would be required before this becomes a project candidate.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.candidate_requires_selection"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "b799d8180e3eca39501f9bba17b2781da7143e724bb98402576c2d71055506a4",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "fb4a536715db45283354f6df2b4ab3ad39f2500122321acf90057866740ec55b",
+        "receipt_sha256": "33a7ea2b991a4f1c919a47e139188844ea28b06cba22383903c53bbcf7755bfb",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.candidate_requires_selection"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_public_english_response": "Submission recorded. Summary of the Registry V2 stress outcome for case `gaussian-fuzzy-def2-typo`:\n\n**Resolution evidence (read-only):**\n- **basis `def2-TZVXP`** → `candidate_only`: not registered exactly (`canonical_value: null`, inventory `matched_count: 0`); matched only by fuzzy candidates (`def2-mTZVP`, `def2-TZVP`, `def2-TZVPD`, `def2-TZVPP`, `def2-TZVPPD`) under rule `scientific_settings.candidate_requires_selection`. Loader/renderer both `not_observed`, `loader_renderer_eligible: false` — no exact deterministic receipt exists for this spelling.\n- **expected.functional B3LYP** → `exact_registered` (canonical literal, loader `accepted`, renderer `preserved`).\n\n**Proposal filed:**\n- Readiness: `blocked_invalid_specification`\n- Blocking rule: `scientific_settings.candidate_requires_selection`\n- Settings preserved: `basis: \"def2-TZVXP\"` (reported spelling kept), `functional: \"B3LYP\"`, `freq: true` (task kind freq)\n- No fuzzy candidate selected; no element findings (no exact basis entry to assess coverage)\n- All non-executing constraints honored: no native input authored, no command authored, no project write, no execution request\n\nNormalization receipt confirms the raw contract was valid with no conflicting or canonicalized explicit fields (`normalization_applied: false`). The typo'd basis spelling blocks registration; correcting it (e.g., to a real def2 variant) would be required before this becomes a project candidate.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.candidate_requires_selection"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Basis lookup for the reported spelling 'def2-TZVXP' (gaussian method.basis, job kind opt) returned status candidate_only: the exact spelling is not registered (inventory matched_count 0, canonical_value null), matched only by fuzzy candidates [def2-mTZVP, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD] under rule scientific_settings.candidate_requires_selection; loader_observation and renderer_observation are not_observed and loader_renderer_eligible is false, so no exact deterministic receipt discharges the applicability rule. Per case rules, the reported spelling is preserved and no fuzzy candidate is selected, making the basis specification invalid/blocked; the case may require correcting the typo before the basis can be registered. Expected functional B3LYP resolved exact_registered via canonical literal with loader accepted and renderer preserved and is carried in settings; task kind freq is reflected as freq=true. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.candidate_requires_selection"
+    ],
+    "case_id": "gaussian-fuzzy-def2-typo",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-fuzzy-def2-typo",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-TZVXP",
+      "ecp_elements": [],
+      "freq": true,
+      "functional": "B3LYP",
+      "heavy_elements": []
+    }
+  },
+  "run_id": "run:gaussian-fuzzy-def2-typo:registry_v1:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "b799d8180e3eca39501f9bba17b2781da7143e724bb98402576c2d71055506a4",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "fb4a536715db45283354f6df2b4ab3ad39f2500122321acf90057866740ec55b",
+    "receipt_sha256": "33a7ea2b991a4f1c919a47e139188844ea28b06cba22383903c53bbcf7755bfb",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Basis lookup for the reported spelling 'def2-TZVXP' (gaussian method.basis, job kind opt) returned status candidate_only: the exact spelling is not registered (inventory matched_count 0, canonical_value null), matched only by fuzzy candidates [def2-mTZVP, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD] under rule scientific_settings.candidate_requires_selection; loader_observation and renderer_observation are not_observed and loader_renderer_eligible is false, so no exact deterministic receipt discharges the applicability rule. Per case rules, the reported spelling is preserved and no fuzzy candidate is selected, making the basis specification invalid/blocked; the case may require correcting the typo before the basis can be registered. Expected functional B3LYP resolved exact_registered via canonical literal with loader accepted and renderer preserved and is carried in settings; task kind freq is reflected as freq=true. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Basis lookup for the reported spelling 'def2-TZVXP' (gaussian method.basis, job kind opt) returned status candidate_only: the exact spelling is not registered (inventory matched_count 0, canonical_value null), matched only by fuzzy candidates [def2-mTZVP, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD] under rule scientific_settings.candidate_requires_selection; loader_observation and renderer_observation are not_observed and loader_renderer_eligible is false, so no exact deterministic receipt discharges the applicability rule. Per case rules, the reported spelling is preserved and no fuzzy candidate is selected, making the basis specification invalid/blocked; the case may require correcting the typo before the basis can be registered. Expected functional B3LYP resolved exact_registered via canonical literal with loader accepted and renderer preserved and is carried in settings; task kind freq is reflected as freq=true. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.candidate_requires_selection"
+    ],
+    "case_id": "gaussian-fuzzy-def2-typo",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-fuzzy-def2-typo",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-TZVXP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

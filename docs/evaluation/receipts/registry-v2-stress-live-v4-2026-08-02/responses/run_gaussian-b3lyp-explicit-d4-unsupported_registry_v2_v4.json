@@ -1,0 +1,239 @@
+{
+  "assistant_text": "Submitted exactly one registry-stress proposal for case `gaussian-b3lyp-explicit-d4-unsupported`. Outcome:\n\n**Readiness: `blocked_unverified_setting`** (not a project candidate), with blocking rules:\n- `scientific_settings.v2.non_exhaustive_scope_unverified` — D4 dispersion has **no match** in the populated V2 dispersion inventory for Gaussian (`matched_count: 0`; resolve status `unknown_unverified`, `source_registered: false`, loader/renderer `not_observed`).\n- `scientific_settings.v2.validation_coverage_gap` — def2-SVP is source-registered and loader/renderer-accepted but `project_candidate_eligible: false` (deterministic validator not enforced; BSE-materialized name is not native/compiler-ready; its entry applicability rules remain undischarged).\n\n**Settings preserved with source literals (nothing silently dropped):** functional `B3LYP`, basis `def2-SVP`, dispersion `D4`. The normalizer filled `freq: true` per the case-bound explicit task kind (freq); all other fields stayed null/empty. No element findings were reported since no elements were specified, so element-coverage and ECP applicability could not be discharged.\n\n**Non-execution guarantees honored:** `native_input_authored: false`, `command_authored: false`, `project_written: false`, `execution_requested: false`. All evidence came from the read-only V2 arm (loader/renderer-verification ceiling only), and no registry status was rewritten.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "205b09f3b9b2a73037ebb2f77e83fd07445c8004ab612763a8fa7c741c2fda56",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "130c7bd3a781be464fc20f8c9e0b0f637ec1b23ce2dd1a59b87a189fbfa176d3",
+        "receipt_sha256": "b64ce97591ca6eb55ce6d64b2ec41719781a26561892a6204937cc66b11d72d8",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.frequency_missing"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_public_english_response": "Submitted exactly one registry-stress proposal for case `gaussian-b3lyp-explicit-d4-unsupported`. Outcome:\n\n**Readiness: `blocked_unverified_setting`** (not a project candidate), with blocking rules:\n- `scientific_settings.v2.non_exhaustive_scope_unverified` — D4 dispersion has **no match** in the populated V2 dispersion inventory for Gaussian (`matched_count: 0`; resolve status `unknown_unverified`, `source_registered: false`, loader/renderer `not_observed`).\n- `scientific_settings.v2.validation_coverage_gap` — def2-SVP is source-registered and loader/renderer-accepted but `project_candidate_eligible: false` (deterministic validator not enforced; BSE-materialized name is not native/compiler-ready; its entry applicability rules remain undischarged).\n\n**Settings preserved with source literals (nothing silently dropped):** functional `B3LYP`, basis `def2-SVP`, dispersion `D4`. The normalizer filled `freq: true` per the case-bound explicit task kind (freq); all other fields stayed null/empty. No element findings were reported since no elements were specified, so element-coverage and ECP applicability could not be discharged.\n\n**Non-execution guarantees honored:** `native_input_authored: false`, `command_authored: false`, `project_written: false`, `execution_requested: false`. All evidence came from the read-only V2 arm (loader/renderer-verification ceiling only), and no registry status was rewritten.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.frequency_missing"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Request literals: B3LYP functional, D4 dispersion, def2-SVP basis (Gaussian 16.C01, freq task, opt accessor job kind). Deterministic V2 resolutions: B3LYP -> exact_registered, project_candidate_eligible=true (scientific_settings.v2.exact_registered). D4 -> no match in the populated V2 dispersion inventory (matched_count=0); resolve status unknown_unverified, matched_by none, loader/renderer not_observed, source_registered=false, reason scientific_settings.v2.non_exhaustive_scope_unverified; D4 is therefore not verifiable in this arm. Per the instruction not to silently drop D4, the literal 'D4' is preserved in the settings and the case is blocked as blocked_unverified_setting. def2-SVP -> source_registered=true with loader/renderer acceptance, but status blocked_validation_coverage, project_candidate_eligible=false, reason scientific_settings.v2.validation_coverage_gap (deterministic validator not enforced; evidence ceiling loader_renderer_verification_only; a BSE-discoverable name is not automatically native/compiler-ready), and its entry applicability rules (scientific_settings.basis.bse_materialization_required, scientific_settings.basis.ecp_applicability_required, scientific_settings.basis.request_element_coverage_required) remain undischarged, which is a secondary blocker. No elements were specified, so element coverage and ECP applicability cannot be discharged. No native input authored, no command authored, no project write, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.non_exhaustive_scope_unverified",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "b3lyp-d4-def2svp",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D4",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-b3lyp-explicit-d4-unsupported:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "205b09f3b9b2a73037ebb2f77e83fd07445c8004ab612763a8fa7c741c2fda56",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "130c7bd3a781be464fc20f8c9e0b0f637ec1b23ce2dd1a59b87a189fbfa176d3",
+    "receipt_sha256": "b64ce97591ca6eb55ce6d64b2ec41719781a26561892a6204937cc66b11d72d8",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Request literals: B3LYP functional, D4 dispersion, def2-SVP basis (Gaussian 16.C01, freq task, opt accessor job kind). Deterministic V2 resolutions: B3LYP -> exact_registered, project_candidate_eligible=true (scientific_settings.v2.exact_registered). D4 -> no match in the populated V2 dispersion inventory (matched_count=0); resolve status unknown_unverified, matched_by none, loader/renderer not_observed, source_registered=false, reason scientific_settings.v2.non_exhaustive_scope_unverified; D4 is therefore not verifiable in this arm. Per the instruction not to silently drop D4, the literal 'D4' is preserved in the settings and the case is blocked as blocked_unverified_setting. def2-SVP -> source_registered=true with loader/renderer acceptance, but status blocked_validation_coverage, project_candidate_eligible=false, reason scientific_settings.v2.validation_coverage_gap (deterministic validator not enforced; evidence ceiling loader_renderer_verification_only; a BSE-discoverable name is not automatically native/compiler-ready), and its entry applicability rules (scientific_settings.basis.bse_materialization_required, scientific_settings.basis.ecp_applicability_required, scientific_settings.basis.request_element_coverage_required) remain undischarged, which is a secondary blocker. No elements were specified, so element coverage and ECP applicability cannot be discharged. No native input authored, no command authored, no project write, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Request literals: B3LYP functional, D4 dispersion, def2-SVP basis (Gaussian 16.C01, freq task, opt accessor job kind). Deterministic V2 resolutions: B3LYP -> exact_registered, project_candidate_eligible=true (scientific_settings.v2.exact_registered). D4 -> no match in the populated V2 dispersion inventory (matched_count=0); resolve status unknown_unverified, matched_by none, loader/renderer not_observed, source_registered=false, reason scientific_settings.v2.non_exhaustive_scope_unverified; D4 is therefore not verifiable in this arm. Per the instruction not to silently drop D4, the literal 'D4' is preserved in the settings and the case is blocked as blocked_unverified_setting. def2-SVP -> source_registered=true with loader/renderer acceptance, but status blocked_validation_coverage, project_candidate_eligible=false, reason scientific_settings.v2.validation_coverage_gap (deterministic validator not enforced; evidence ceiling loader_renderer_verification_only; a BSE-discoverable name is not automatically native/compiler-ready), and its entry applicability rules (scientific_settings.basis.bse_materialization_required, scientific_settings.basis.ecp_applicability_required, scientific_settings.basis.request_element_coverage_required) remain undischarged, which is a secondary blocker. No elements were specified, so element coverage and ECP applicability cannot be discharged. No native input authored, no command authored, no project write, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.non_exhaustive_scope_unverified",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "b3lyp-d4-def2svp",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D4",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

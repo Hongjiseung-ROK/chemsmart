@@ -1,0 +1,216 @@
+{
+  "assistant_text": "Proposal submitted and accepted. Summary of the outcome:\n\n**Case `orca-def2-tzvp-fe-no-ecp` — readiness: `blocked_missing_evidence`**\n\n- **Plan target:** B3LYP / def2-TZVP (ORCA 6.1, task kind `freq`, registry job kind `opt`) for a Cl/Fe system.\n- **Lookup target:** ORCA `method.basis 'def2-TZVP'` for opt — the only host-preregistered target in scope.\n- **Blocker:** This arm exposed no read-only registry/BSE lookup tool and returned no deterministic receipt, so the pinned BSE definition could not be retrieved. Therefore the question of whether that definition embeds an Fe ECP cannot be answered with tool evidence, and no element-level coverage/ECP findings could be established. Per the arm's rules, knowledge alone cannot substitute for a registry status or deterministic receipt, so no finding was fabricated.\n- **Settings preserved as source literals:** `functional: B3LYP`, `basis: def2-TZVP`, `freq: true` (reflecting the freq task). All other settings were left unset as unverified.\n- **No side effects:** no native input, no ChemSmart command, no project write, no execution request (`native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`).\n\n**Normalization receipt (literal):**\n- Raw contract valid; `raw_contract_error_paths: []`; no conflicting explicit setting fields.\n- `normalization_applied: false`; `canonicalized_set_fields: []`; `filled_explicit_setting_fields: []`.\n- `case_sha256: 0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f`\n- `normalized_payload_sha256` / `raw_payload_sha256`: `33f97f51651a62a354f76fa2a604bcf28279a0f0b49d1881dc0e3213572305e2`\n- `receipt_sha256: 12826f32dabaa7e24b6acae4113996cd5fbb1b237ff4ad06a5a52451acc89561`\n\nThe proposal was recorded unchanged (raw payload equals normalized payload). If a BSE-definition lookup tool becomes available in a later arm, the Fe-ECP question can be re-evaluated with evidence.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "33f97f51651a62a354f76fa2a604bcf28279a0f0b49d1881dc0e3213572305e2",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "33f97f51651a62a354f76fa2a604bcf28279a0f0b49d1881dc0e3213572305e2",
+        "receipt_sha256": "12826f32dabaa7e24b6acae4113996cd5fbb1b237ff4ad06a5a52451acc89561",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation",
+      "oracle.validation-coverage-discharge"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation",
+      "oracle.validation-coverage-discharge"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted and accepted. Summary of the outcome:\n\n**Case `orca-def2-tzvp-fe-no-ecp` — readiness: `blocked_missing_evidence`**\n\n- **Plan target:** B3LYP / def2-TZVP (ORCA 6.1, task kind `freq`, registry job kind `opt`) for a Cl/Fe system.\n- **Lookup target:** ORCA `method.basis 'def2-TZVP'` for opt — the only host-preregistered target in scope.\n- **Blocker:** This arm exposed no read-only registry/BSE lookup tool and returned no deterministic receipt, so the pinned BSE definition could not be retrieved. Therefore the question of whether that definition embeds an Fe ECP cannot be answered with tool evidence, and no element-level coverage/ECP findings could be established. Per the arm's rules, knowledge alone cannot substitute for a registry status or deterministic receipt, so no finding was fabricated.\n- **Settings preserved as source literals:** `functional: B3LYP`, `basis: def2-TZVP`, `freq: true` (reflecting the freq task). All other settings were left unset as unverified.\n- **No side effects:** no native input, no ChemSmart command, no project write, no execution request (`native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`).\n\n**Normalization receipt (literal):**\n- Raw contract valid; `raw_contract_error_paths: []`; no conflicting explicit setting fields.\n- `normalization_applied: false`; `canonicalized_set_fields: []`; `filled_explicit_setting_fields: []`.\n- `case_sha256: 0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f`\n- `normalized_payload_sha256` / `raw_payload_sha256`: `33f97f51651a62a354f76fa2a604bcf28279a0f0b49d1881dc0e3213572305e2`\n- `receipt_sha256: 12826f32dabaa7e24b6acae4113996cd5fbb1b237ff4ad06a5a52451acc89561`\n\nThe proposal was recorded unchanged (raw payload equals normalized payload). If a BSE-definition lookup tool becomes available in a later arm, the Fe-ECP question can be re-evaluated with evidence.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation",
+      "oracle.validation-coverage-discharge"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "The requested plan is B3LYP/def2-TZVP (ORCA 6.1, task kind freq, registry job kind opt) for a Cl/Fe system. The host-preregistered lookup target is the ORCA method.basis 'def2-TZVP' definition for opt. This arm exposes no read-only registry/BSE lookup tool and returned no deterministic receipt, so the pinned BSE definition could not be retrieved; consequently I cannot report with evidence whether that definition embeds an Fe ECP, and no element-level coverage/ECP findings can be established. Readiness is therefore blocked_missing_evidence. Source literals are preserved (functional B3LYP, basis def2-TZVP, freq true reflecting the freq task); all other settings are unverified and left unset. No native input, command, project write, or execution was performed or requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-def2-tzvp-fe-no-ecp",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-tzvp-fe-no-ecp",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "def2-TZVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-def2-tzvp-fe-no-ecp:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "33f97f51651a62a354f76fa2a604bcf28279a0f0b49d1881dc0e3213572305e2",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "33f97f51651a62a354f76fa2a604bcf28279a0f0b49d1881dc0e3213572305e2",
+    "receipt_sha256": "12826f32dabaa7e24b6acae4113996cd5fbb1b237ff4ad06a5a52451acc89561",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "The requested plan is B3LYP/def2-TZVP (ORCA 6.1, task kind freq, registry job kind opt) for a Cl/Fe system. The host-preregistered lookup target is the ORCA method.basis 'def2-TZVP' definition for opt. This arm exposes no read-only registry/BSE lookup tool and returned no deterministic receipt, so the pinned BSE definition could not be retrieved; consequently I cannot report with evidence whether that definition embeds an Fe ECP, and no element-level coverage/ECP findings can be established. Readiness is therefore blocked_missing_evidence. Source literals are preserved (functional B3LYP, basis def2-TZVP, freq true reflecting the freq task); all other settings are unverified and left unset. No native input, command, project write, or execution was performed or requested.",
+  "typed_proposal": {
+    "analysis_summary": "The requested plan is B3LYP/def2-TZVP (ORCA 6.1, task kind freq, registry job kind opt) for a Cl/Fe system. The host-preregistered lookup target is the ORCA method.basis 'def2-TZVP' definition for opt. This arm exposes no read-only registry/BSE lookup tool and returned no deterministic receipt, so the pinned BSE definition could not be retrieved; consequently I cannot report with evidence whether that definition embeds an Fe ECP, and no element-level coverage/ECP findings can be established. Readiness is therefore blocked_missing_evidence. Source literals are preserved (functional B3LYP, basis def2-TZVP, freq true reflecting the freq task); all other settings are unverified and left unset. No native input, command, project write, or execution was performed or requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-def2-tzvp-fe-no-ecp",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-tzvp-fe-no-ecp",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "def2-TZVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

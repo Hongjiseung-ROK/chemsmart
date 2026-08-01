@@ -1,0 +1,213 @@
+{
+  "assistant_text": "Proposal submitted and accepted. Summary of the outcome:\n\n**Submission receipt** (case `orca-b97m-d4-exact-compound`):\n- `raw_contract_valid`: true, `normalization_applied`: false — the payload passed the contract unchanged, with no conflicting or canonicalized setting fields.\n- `normalized_payload_sha256`: `432e4b4a…54910a`; `case_sha256`: `17a83c1b…f34`; receipt `47d0fdc6…7c51bb`.\n\n**Proposal content**:\n- Program: `orca`; project: `orca-b97m-d4-exact-compound`; readiness: `blocked_missing_evidence`.\n- Settings preserved as request-bound source literals: `functional: \"B97M-D4\"` (kept as one exact compound functional; dispersion left unset to avoid decomposing/substituting), `basis: \"def2-SVP\"`, `freq: true`. All other slots null/empty.\n- No native input authored, no command authored, no project written, no execution requested (`false` consts honored).\n\n**Why blocked, not candidate**: this arm exposed no read-only registry lookup/receipt tool, so neither host-preregistered applicability rule (orca `method.functional 'B97M-D4'` and orca `method.basis 'def2-SVP'` for opt) could be discharged by an exact, request-bound deterministic receipt. Per experiment rules, advisory knowledge-pack output cannot substitute for that evidence, so the case is `blocked_missing_evidence` rather than `project_candidate`.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "432e4b4a55748498077b3eea546f82f0a78f1186056290fb4b52262c7c54910a",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "432e4b4a55748498077b3eea546f82f0a78f1186056290fb4b52262c7c54910a",
+        "receipt_sha256": "47d0fdc603e985f00e06a31ae5ee3a00126de91aea578a5ed9e7a2f38a7c51bb",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted and accepted. Summary of the outcome:\n\n**Submission receipt** (case `orca-b97m-d4-exact-compound`):\n- `raw_contract_valid`: true, `normalization_applied`: false — the payload passed the contract unchanged, with no conflicting or canonicalized setting fields.\n- `normalized_payload_sha256`: `432e4b4a…54910a`; `case_sha256`: `17a83c1b…f34`; receipt `47d0fdc6…7c51bb`.\n\n**Proposal content**:\n- Program: `orca`; project: `orca-b97m-d4-exact-compound`; readiness: `blocked_missing_evidence`.\n- Settings preserved as request-bound source literals: `functional: \"B97M-D4\"` (kept as one exact compound functional; dispersion left unset to avoid decomposing/substituting), `basis: \"def2-SVP\"`, `freq: true`. All other slots null/empty.\n- No native input authored, no command authored, no project written, no execution requested (`false` consts honored).\n\n**Why blocked, not candidate**: this arm exposed no read-only registry lookup/receipt tool, so neither host-preregistered applicability rule (orca `method.functional 'B97M-D4'` and orca `method.basis 'def2-SVP'` for opt) could be discharged by an exact, request-bound deterministic receipt. Per experiment rules, advisory knowledge-pack output cannot substitute for that evidence, so the case is `blocked_missing_evidence` rather than `project_candidate`.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-b97m-d4-exact-compound",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b97m-d4-exact-compound",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B97M-D4",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-b97m-d4-exact-compound:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "432e4b4a55748498077b3eea546f82f0a78f1186056290fb4b52262c7c54910a",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "432e4b4a55748498077b3eea546f82f0a78f1186056290fb4b52262c7c54910a",
+    "receipt_sha256": "47d0fdc603e985f00e06a31ae5ee3a00126de91aea578a5ed9e7a2f38a7c51bb",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Case orca-b97m-d4-exact-compound plans an ORCA 6.1 frequency project (registry accessor job kind opt) with host-preregistered lookup targets functional='B97M-D4' and basis='def2-SVP' for opt. This experiment arm exposes no read-only registry lookup/receipt tool, so no exact, request-bound deterministic receipt can be obtained to discharge either declared applicability rule (functional and basis). Per experiment rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory and cannot override a registry status or a deterministic blocker; therefore the proposal is blocked on missing evidence rather than classified project_candidate. Settings preserve source literals verbatim: functional 'B97M-D4' is kept as one exact compound functional (not decomposed into B97M + D4, so the dispersion slot is left unset to avoid silently substituting a setting), basis 'def2-SVP' is preserved, and freq=true reflects the frequency task. No compound structure was supplied in the request, so heavy elements, ECP intent, element findings, and any per-element coverage data are empty/unknown and were not invented. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-b97m-d4-exact-compound",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b97m-d4-exact-compound",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B97M-D4",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

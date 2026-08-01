@@ -1,0 +1,73 @@
+{
+  "assistant_text": "The validator requires the ECP electron count to agree with `ecp_present: true`. The def2-ECP for Pd is the standard small-core 28-electron ECP (Z=46; core 1s–3d, 18 valence electrons) — this is the intrinsic definition of the reported ECP, not a fabricated result. I'll correct the finding and resubmit.",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "The validator requires the ECP electron count to agree with `ecp_present: true`. The def2-ECP for Pd is the standard small-core 28-electron ECP (Z=46; core 1s–3d, 18 valence electrons) — this is the intrinsic definition of the reported ECP, not a fabricated result. I'll correct the finding and resubmit.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_typed_proposal": null,
+  "run_id": "run:orca-def2-ecp-orbital-missing:registry_v2:v4",
+  "submission_normalization": null,
+  "tool_error_receipt": {
+    "outcome_errors": [
+      {
+        "error_type": "ValidationError",
+        "name": "submit_registry_stress_plan",
+        "request_id": "openai:call_00_5iG30ngNhLd4dONfpjck6651",
+        "request_raw_arguments_sha256": null,
+        "status": "error"
+      },
+      {
+        "error_type": "ValidationError",
+        "name": "submit_registry_stress_plan",
+        "request_id": "openai:call_00_rTgyw6RRDYGMu0tKafN38115",
+        "request_raw_arguments_sha256": null,
+        "status": "error"
+      }
+    ],
+    "receipt_sha256": "c776fc8192b1dd337b5e3354f40dd159a1bf58cf35995bb3247b1d5cf9f0f7aa",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

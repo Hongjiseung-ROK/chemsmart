@@ -1,0 +1,229 @@
+{
+  "assistant_text": "The proposal was submitted and accepted with a valid normalization receipt (no conflicting explicit settings, no normalization applied).\n\n**Assessment summary for case `gaussian-b3lyp-explicit-d4-unsupported`:**\n\n| Setting | Requested | Registry status | Outcome |\n|---|---|---|---|\n| Functional | B3LYP | `exact_registered` (`gaussian.functional.b3lyp`) | Accepted, preserved |\n| Basis | def2-SVP | `exact_registered` (`gaussian.basis.bse.def2svp`) | Accepted, preserved |\n| Dispersion | D4 | `unknown_unverified` (`scientific_settings.unknown_unverified`); dispersion inventory is a `coverage_gap` (0 entries) for gaussian | **Blocker** |\n\n**Readiness:** `blocked_unverified_setting`, with `scientific_settings.unknown_unverified` recorded as the blocking rule.\n\nKey points:\n- The explicit `D4` literal was **preserved, not silently dropped or substituted** (e.g., not rewritten to D3), per the request constraint.\n- Gaussian 16.C01 has no native separate D4 correction, and the registry exposes no exact match for the D4 dispersion literal — the deterministic blocker is the unverified D4 setting.\n- Evidence ceiling is `loader_renderer_verification_only`; no engine execution, no scientific-adequacy verification was claimed.\n- No native input, no ChemSmart command, no project write, and no execution were authored or requested.\n\nSubmission receipt: `72c90e19b3ef79cd78cf37f98d5498e7b879f9c86f4b858ca0320c449f0812ed`.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.field_unknown"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "f4d5139f09462ac31285909798af9a5c02368ba9ead733cafbef12794089ac3c",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "f4d5139f09462ac31285909798af9a5c02368ba9ead733cafbef12794089ac3c",
+        "receipt_sha256": "72c90e19b3ef79cd78cf37f98d5498e7b879f9c86f4b858ca0320c449f0812ed",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.field_unknown"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "The proposal was submitted and accepted with a valid normalization receipt (no conflicting explicit settings, no normalization applied).\n\n**Assessment summary for case `gaussian-b3lyp-explicit-d4-unsupported`:**\n\n| Setting | Requested | Registry status | Outcome |\n|---|---|---|---|\n| Functional | B3LYP | `exact_registered` (`gaussian.functional.b3lyp`) | Accepted, preserved |\n| Basis | def2-SVP | `exact_registered` (`gaussian.basis.bse.def2svp`) | Accepted, preserved |\n| Dispersion | D4 | `unknown_unverified` (`scientific_settings.unknown_unverified`); dispersion inventory is a `coverage_gap` (0 entries) for gaussian | **Blocker** |\n\n**Readiness:** `blocked_unverified_setting`, with `scientific_settings.unknown_unverified` recorded as the blocking rule.\n\nKey points:\n- The explicit `D4` literal was **preserved, not silently dropped or substituted** (e.g., not rewritten to D3), per the request constraint.\n- Gaussian 16.C01 has no native separate D4 correction, and the registry exposes no exact match for the D4 dispersion literal — the deterministic blocker is the unverified D4 setting.\n- Evidence ceiling is `loader_renderer_verification_only`; no engine execution, no scientific-adequacy verification was claimed.\n- No native input, no ChemSmart command, no project write, and no execution were authored or requested.\n\nSubmission receipt: `72c90e19b3ef79cd78cf37f98d5498e7b879f9c86f4b858ca0320c449f0812ed`.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.field_unknown"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Requested Gaussian freq assessment with B3LYP, def2-SVP, and an explicit separate D4 correction. Deterministic registry resolution: functional B3LYP is exact_registered (gaussian.functional.b3lyp) and basis def2-SVP is exact_registered (gaussian.basis.bse.def2svp); both loader-accepted and renderer-preserved. Dispersion D4 resolves as unknown_unverified (reason rule scientific_settings.unknown_unverified) with no canonical value, no capability, and a coverage_gap dispersion inventory (0 entries) for gaussian. Gaussian 16.C01 provides no native separate D4 dispersion correction, and the registry exposes no exact match for the D4 literal, so the explicit D4 setting is the deterministic blocker; per instruction the source literal D4 is preserved and not silently dropped or substituted with D3. The evidence ceiling is loader_renderer_verification_only (engine not executed, scientific adequacy not verified). Readiness is blocked_unverified_setting with blocking rule scientific_settings.unknown_unverified. No native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.unknown_unverified"
+    ],
+    "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-d4-def2svp-freq",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D4",
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-b3lyp-explicit-d4-unsupported:registry_v1:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "67cd2add06ac461e25a4812c9935b584f23a7bc413fdd7617897d84e9f3e3bff",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "f4d5139f09462ac31285909798af9a5c02368ba9ead733cafbef12794089ac3c",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "f4d5139f09462ac31285909798af9a5c02368ba9ead733cafbef12794089ac3c",
+    "receipt_sha256": "72c90e19b3ef79cd78cf37f98d5498e7b879f9c86f4b858ca0320c449f0812ed",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Requested Gaussian freq assessment with B3LYP, def2-SVP, and an explicit separate D4 correction. Deterministic registry resolution: functional B3LYP is exact_registered (gaussian.functional.b3lyp) and basis def2-SVP is exact_registered (gaussian.basis.bse.def2svp); both loader-accepted and renderer-preserved. Dispersion D4 resolves as unknown_unverified (reason rule scientific_settings.unknown_unverified) with no canonical value, no capability, and a coverage_gap dispersion inventory (0 entries) for gaussian. Gaussian 16.C01 provides no native separate D4 dispersion correction, and the registry exposes no exact match for the D4 literal, so the explicit D4 setting is the deterministic blocker; per instruction the source literal D4 is preserved and not silently dropped or substituted with D3. The evidence ceiling is loader_renderer_verification_only (engine not executed, scientific adequacy not verified). Readiness is blocked_unverified_setting with blocking rule scientific_settings.unknown_unverified. No native input authored, no command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Requested Gaussian freq assessment with B3LYP, def2-SVP, and an explicit separate D4 correction. Deterministic registry resolution: functional B3LYP is exact_registered (gaussian.functional.b3lyp) and basis def2-SVP is exact_registered (gaussian.basis.bse.def2svp); both loader-accepted and renderer-preserved. Dispersion D4 resolves as unknown_unverified (reason rule scientific_settings.unknown_unverified) with no canonical value, no capability, and a coverage_gap dispersion inventory (0 entries) for gaussian. Gaussian 16.C01 provides no native separate D4 dispersion correction, and the registry exposes no exact match for the D4 literal, so the explicit D4 setting is the deterministic blocker; per instruction the source literal D4 is preserved and not silently dropped or substituted with D3. The evidence ceiling is loader_renderer_verification_only (engine not executed, scientific adequacy not verified). Readiness is blocked_unverified_setting with blocking rule scientific_settings.unknown_unverified. No native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.unknown_unverified"
+    ],
+    "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-d4-def2svp-freq",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D4",
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

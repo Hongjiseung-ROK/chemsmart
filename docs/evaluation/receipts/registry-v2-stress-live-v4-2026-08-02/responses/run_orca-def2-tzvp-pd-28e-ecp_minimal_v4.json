@@ -1,0 +1,58 @@
+{
+  "assistant_text": "I'll analyze this case. The request is a read-only Registry V2 planning task for ORCA 6.1, freq task (opt accessor), B3LYP/def2-TZVP on a Cl/Pd system, with a mandatory BSE lookup target for `def2-TZVP` and a required report of the pinned BSE Pd ECP electron count.\n\nKey facts I can ground:\n- Pd (Z=46) is the heavy element here; in the def2 family the BSE Pd entry pairs def2-TZVP with the 28-electron def2 ECP (ECP28MDF), leaving",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "I'll analyze this case. The request is a read-only Registry V2 planning task for ORCA 6.1, freq task (opt accessor), B3LYP/def2-TZVP on a Cl/Pd system, with a mandatory BSE lookup target for `def2-TZVP` and a required report of the pinned BSE Pd ECP electron count.\n\nKey facts I can ground:\n- Pd (Z=46) is the heavy element here; in the def2 family the BSE Pd entry pairs def2-TZVP with the 28-electron def2 ECP (ECP28MDF), leaving",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_typed_proposal": null,
+  "run_id": "run:orca-def2-tzvp-pd-28e-ecp:minimal:v4",
+  "submission_normalization": null,
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

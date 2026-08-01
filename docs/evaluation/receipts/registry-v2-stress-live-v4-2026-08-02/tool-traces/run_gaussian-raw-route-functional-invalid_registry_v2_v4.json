@@ -1,0 +1,649 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T233010Z-f7f6b58b\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: gaussian-raw-route-functional-invalid\nProgram: gaussian\nEngine version: 16.C01\nTask kind: freq\nProject/registry accessor job kind: opt\n\nAssess the reported functional text `B3LYP nosymm` with def2-SVP. Reject native route content in a typed functional.\n\nHost-preregistered lookup targets:\n- No mandatory lookup; use deterministic project semantics.\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "list_scientific_settings_v2"
+          },
+          "id": "call_00_wlb3KwTYHeOpNQ6YwTNO8620",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.basis\"}",
+            "name": "list_scientific_settings_v2"
+          },
+          "id": "call_01_n8OiPEoITBOaGvfkoqSt0097",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_02_ATFFygS6BEyPO03PvPNo9893",
+          "index": 2,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.basis\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_03_foym7KsMYW3IZqSy2YTS3262",
+          "index": 3,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_count\": 12, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"items\": [], \"job_kind\": \"opt\", \"limit\": 5, \"listing_sha256\": \"a73321b0d880944a39102db4c8742051fb2fe2ee6ae18f158043a1bf4f4bf663\", \"lookup_id\": \"expected.functional\", \"matched_count\": 0, \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_query\": \"b3lypnosymm\", \"program\": \"gaussian\", \"query\": \"B3LYP nosymm\", \"reason_rule_ids\": [], \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_policy_binding\": {\"binding_sha256\": \"5fb7e491ac76e87431798118d2030d8c702bb92ec2abecc89d533f774e8f67b7\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"returned_count\": 0, \"schema_version\": \"chemsmart.scientific-settings-list.v2\", \"setting_path\": \"method.functional\", \"status\": \"ok\", \"token_policy\": \"bounded_view_only\", \"truncated\": false}",
+      "role": "tool",
+      "tool_call_id": "call_00_wlb3KwTYHeOpNQ6YwTNO8620"
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_count\": 642, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"items\": [{\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-SVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.f553bf2d0978b469326d\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-SVP\", \"project_candidate_eligible\": false, \"rank\": 1, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 10000, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-SVPD\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.ebed17baf6f6ac4fc5db\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-SVPD\", \"project_candidate_eligible\": false, \"rank\": 2, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 8750, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-SV(P)\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.3501716ebed55b11a11a\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-SV(P)\", \"project_candidate_eligible\": false, \"rank\": 3, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 7777, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-QZVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.3b3254a8924a69cddebd\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-QZVP\", \"project_candidate_eligible\": false, \"rank\": 4, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 7500, \"source_registered\": true}, {\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"canonical_value\": \"def2-TZVP\", \"deterministic_validator_enforced\": false, \"entry_id\": \"setting.gaussian.method_basis.d3a76ab40220bac1932e\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"matched_literal\": \"def2-TZVP\", \"project_candidate_eligible\": false, \"rank\": 5, \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"similarity_basis_points\": 7500, \"source_registered\": true}], \"job_kind\": \"opt\", \"limit\": 5, \"listing_sha256\": \"3126000ec9a1520eedac20cef6a4df4118b9b584a0f857aa1c7ead09f57b342b\", \"lookup_id\": \"expected.basis\", \"matched_count\": 16, \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_query\": \"def2svp\", \"program\": \"gaussian\", \"query\": \"def2-SVP\", \"reason_rule_ids\": [], \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_policy_binding\": {\"binding_sha256\": \"dc3c8adc323d7a8a9fb3f70a0a3f465e4dc608bffa3b9cd2c92cc9955581e245\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"returned_count\": 5, \"schema_version\": \"chemsmart.scientific-settings-list.v2\", \"setting_path\": \"method.basis\", \"status\": \"ok\", \"token_policy\": \"bounded_view_only\", \"truncated\": true}",
+      "role": "tool",
+      "tool_call_id": "call_01_n8OiPEoITBOaGvfkoqSt0097"
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [], \"applicability_rules_present\": false, \"candidates\": [], \"canonical_value\": null, \"deterministic_validator_enforced\": false, \"entry_evidence\": null, \"entry_evidence_sha256\": null, \"entry_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": null, \"loader_accepted\": false, \"loader_observation\": \"not_observed\", \"lookup_id\": \"expected.functional\", \"matched_by\": \"none\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"b3lypnosymm\", \"program\": \"gaussian\", \"project_candidate_eligible\": false, \"reason_rule_id\": \"scientific_settings.v2.non_exhaustive_scope_unverified\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"not_observed\", \"renderer_preserved\": false, \"repair_policy_binding\": {\"binding_sha256\": \"68dfa97a7f4d10175506e22017a866ee22e3fed7ab27629ed7956bef1a69a67a\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"B3LYP nosymm\", \"resolution_sha256\": \"45063caea8ac6924bba10346d5c550de17bbe500ab16b619a65fc4f6d7fa2c63\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.functional\", \"source_registered\": false, \"status\": \"unknown_unverified\"}",
+      "role": "tool",
+      "tool_call_id": "call_02_ATFFygS6BEyPO03PvPNo9893"
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"candidates\": [], \"canonical_value\": \"def2-SVP\", \"deterministic_validator_enforced\": false, \"entry_evidence\": {\"entry_id\": \"setting.gaussian.method_basis.f553bf2d0978b469326d\", \"inventory_sha256\": \"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\", \"observation_note\": \"Observed allowed transform paper_project.basis_literal_normalization: input='def2-SVP' -> rendered=('def2svp',) -> loaded=('def2svp',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_sidecar_sha256\": null, \"source_ids\": [\"bse-catalog-0.11\", \"gaussian-job-settings-125f2878\", \"gaussian-project-loader-125f2878\", \"project-protocol-125f2878\"]}, \"entry_evidence_sha256\": \"423f99b31cca3cb7a66110f5e4ad2658b09a0c6d9b96391ac1b550657d8dc029\", \"entry_id\": \"setting.gaussian.method_basis.f553bf2d0978b469326d\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"lookup_id\": \"expected.basis\", \"matched_by\": \"canonical_literal\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"def2svp\", \"program\": \"gaussian\", \"project_candidate_eligible\": false, \"reason_rule_id\": \"scientific_settings.v2.validation_coverage_gap\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"repair_policy_binding\": {\"binding_sha256\": \"34222529e665e0ca03a9b23634f6a09920a4735946ae6446303ea7d854b2b10d\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"def2-SVP\", \"resolution_sha256\": \"e7d2cc3756db58d0f9baf6a0afdbe2f8da7fc101eb27971a673e86caa78e2b6f\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.basis\", \"source_registered\": true, \"status\": \"blocked_validation_coverage\"}",
+      "role": "tool",
+      "tool_call_id": "call_03_foym7KsMYW3IZqSy2YTS3262"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Evidence gathered from the V2 inventories:\n\n- **Functional** (`B3LYP nosymm`, normalized `b3lypnosymm`): the `expected.functional` lookup matched **0** entries; resolution returned `status: unknown_unverified`, `matched_by: none`, loader/renderer `not_observed`, `source_registered: false`, `project_candidate_eligible: false` (`reason_rule_id: scientific_settings.v2.non_exhaustive_scope_unverified`). No deterministic receipt exists. The literal also embeds the Gaussian native route keyword `nosymm` inside the typed `method.functional` slot — native route content in a typed functional, which is an invalid specification.\n- **Basis** (`def2-SVP`): matched a registered entry by canonical literal (`setting.gaussian.method_basis.f553bf2d0978b469326d`, loader accepted, renderer preserved), but resolves to `blocked_validation_coverage` (`reason_rule_id: scientific_settings.v2.validation_coverage_gap`); deterministic validator not enforced, no safe preview/engine execution, no element coverage in scope, and the entry's applicability rules (`bse_materialization_required`, `ecp_applicability_required`, `request_element_coverage_required`) remain undischarged.\n\nNeither receipt discharges any rule; the case is blocked. Submitting the final proposal:",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"gaussian-raw-route-functional-invalid\", \"program\": \"gaussian\", \"project_name\": \"gaussian-raw-route-functional-invalid\", \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"functional\": \"B3LYP nosymm\", \"basis\": \"def2-SVP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": null, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [\"scientific_settings.v2.non_exhaustive_scope_unverified\", \"scientific_settings.v2.validation_coverage_gap\", \"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"element_findings\": [], \"analysis_summary\": \"The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_txE1mpCs7CAsEJfLDDz24786",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [\"blocking_rule_ids\"], \"case_sha256\": \"d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.freq\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"ae58c295de35bf34f28905c64d47b20949d4ac04536b99526442c59980d66166\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [\"blocking_rule_ids\"], \"raw_contract_valid\": false, \"raw_payload_sha256\": \"12017a1b65026ed2050cd57cbd5eda095d0598f7d536e0281dc751102b029a72\", \"receipt_sha256\": \"ac3f30745eff731934477d83ef7886df38c7faf5954c1f50cebd31291ff875a7\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [\"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\", \"scientific_settings.v2.non_exhaustive_scope_unverified\", \"scientific_settings.v2.validation_coverage_gap\"], \"case_id\": \"gaussian-raw-route-functional-invalid\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-raw-route-functional-invalid\", \"project_written\": false, \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP nosymm\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.\", \"blocking_rule_ids\": [\"scientific_settings.v2.non_exhaustive_scope_unverified\", \"scientific_settings.v2.validation_coverage_gap\", \"scientific_settings.basis.bse_materialization_required\", \"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"case_id\": \"gaussian-raw-route-functional-invalid\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-raw-route-functional-invalid\", \"project_written\": false, \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": \"B3LYP nosymm\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_txE1mpCs7CAsEJfLDDz24786"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Proposal submitted successfully. Summary of the outcome:\n\n**Case `gaussian-raw-route-functional-invalid` — readiness: `blocked_invalid_specification`**\n\n- **Functional `B3LYP nosymm`** — rejected. The literal embeds the Gaussian native route keyword `nosymm` inside the typed `method.functional` slot (native route content in a typed functional). The `expected.functional` V2 lookup matched nothing: `unknown_unverified`, `matched_by: none`, loader/renderer not observed, not source-registered, not project-candidate-eligible. No deterministic receipt exists, so no rule is discharged and no fuzzy candidate was substituted.\n- **Basis `def2-SVP`** — matched a registered entry by canonical literal, but the resolution is `blocked_validation_coverage` (deterministic validator not enforced, no safe preview/engine execution, no element coverage in scope); its applicability rules (`bse_materialization_required`, `ecp_applicability_required`, `request_element_coverage_required`) remain undischarged.\n- **Submission receipt**: normalization applied (`case-bound-explicit-settings-and-set-order`, v1.0.0); `blocking_rule_ids` canonicalized as a set, and `settings.freq` filled to `true` per the case-bound freq task kind. No conflicting explicit setting fields; `raw_contract_valid: false` only at the pre-normalization `blocking_rule_ids` ordering path, resolved by the normalizer.\n- All guardrails held: `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`; source literals preserved; case SHA-256 `d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa`.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:gaussian-raw-route-functional-invalid:registry_v2:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_00_wlb3KwTYHeOpNQ6YwTNO8620",
+      "request_id": "openai:call_00_wlb3KwTYHeOpNQ6YwTNO8620",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_count": 12,
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "items": [],
+        "job_kind": "opt",
+        "limit": 5,
+        "listing_sha256": "a73321b0d880944a39102db4c8742051fb2fe2ee6ae18f158043a1bf4f4bf663",
+        "lookup_id": "expected.functional",
+        "matched_count": 0,
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_query": "b3lypnosymm",
+        "program": "gaussian",
+        "query": "B3LYP nosymm",
+        "reason_rule_ids": [],
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "repair_policy_binding": {
+          "binding_sha256": "5fb7e491ac76e87431798118d2030d8c702bb92ec2abecc89d533f774e8f67b7",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "returned_count": 0,
+        "schema_version": "chemsmart.scientific-settings-list.v2",
+        "setting_path": "method.functional",
+        "status": "ok",
+        "token_policy": "bounded_view_only",
+        "truncated": false
+      },
+      "result_sha256": "eb17b6b8ec6d30c124d2e27815bb601e594f63bcd8b8ad0893fca0c61706d2cb",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_n8OiPEoITBOaGvfkoqSt0097",
+      "request_id": "openai:call_01_n8OiPEoITBOaGvfkoqSt0097",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_count": 642,
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "items": [
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-SVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.f553bf2d0978b469326d",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-SVP",
+            "project_candidate_eligible": false,
+            "rank": 1,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 10000,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-SVPD",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.ebed17baf6f6ac4fc5db",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-SVPD",
+            "project_candidate_eligible": false,
+            "rank": 2,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 8750,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-SV(P)",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.3501716ebed55b11a11a",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-SV(P)",
+            "project_candidate_eligible": false,
+            "rank": 3,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 7777,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-QZVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.3b3254a8924a69cddebd",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-QZVP",
+            "project_candidate_eligible": false,
+            "rank": 4,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 7500,
+            "source_registered": true
+          },
+          {
+            "applicability_rule_ids": [
+              "scientific_settings.basis.bse_materialization_required",
+              "scientific_settings.basis.ecp_applicability_required",
+              "scientific_settings.basis.request_element_coverage_required"
+            ],
+            "applicability_rules_present": true,
+            "canonical_value": "def2-TZVP",
+            "deterministic_validator_enforced": false,
+            "entry_id": "setting.gaussian.method_basis.d3a76ab40220bac1932e",
+            "job_scope_compatible": true,
+            "loader_accepted": true,
+            "loader_observation": "accepted",
+            "matched_literal": "def2-TZVP",
+            "project_candidate_eligible": false,
+            "rank": 5,
+            "renderer_observation": "preserved",
+            "renderer_preserved": true,
+            "similarity_basis_points": 7500,
+            "source_registered": true
+          }
+        ],
+        "job_kind": "opt",
+        "limit": 5,
+        "listing_sha256": "3126000ec9a1520eedac20cef6a4df4118b9b584a0f857aa1c7ead09f57b342b",
+        "lookup_id": "expected.basis",
+        "matched_count": 16,
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_query": "def2svp",
+        "program": "gaussian",
+        "query": "def2-SVP",
+        "reason_rule_ids": [],
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "repair_policy_binding": {
+          "binding_sha256": "dc3c8adc323d7a8a9fb3f70a0a3f465e4dc608bffa3b9cd2c92cc9955581e245",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "returned_count": 5,
+        "schema_version": "chemsmart.scientific-settings-list.v2",
+        "setting_path": "method.basis",
+        "status": "ok",
+        "token_policy": "bounded_view_only",
+        "truncated": true
+      },
+      "result_sha256": "3b72d8507bf2c7346a6b661f5e1d93ddacd91ac9715e849d9378d8e479027d06",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_02_ATFFygS6BEyPO03PvPNo9893",
+      "request_id": "openai:call_02_ATFFygS6BEyPO03PvPNo9893",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [],
+        "applicability_rules_present": false,
+        "candidates": [],
+        "canonical_value": null,
+        "deterministic_validator_enforced": false,
+        "entry_evidence": null,
+        "entry_evidence_sha256": null,
+        "entry_id": null,
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": null,
+        "loader_accepted": false,
+        "loader_observation": "not_observed",
+        "lookup_id": "expected.functional",
+        "matched_by": "none",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "b3lypnosymm",
+        "program": "gaussian",
+        "project_candidate_eligible": false,
+        "reason_rule_id": "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "not_observed",
+        "renderer_preserved": false,
+        "repair_policy_binding": {
+          "binding_sha256": "68dfa97a7f4d10175506e22017a866ee22e3fed7ab27629ed7956bef1a69a67a",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "B3LYP nosymm",
+        "resolution_sha256": "45063caea8ac6924bba10346d5c550de17bbe500ab16b619a65fc4f6d7fa2c63",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.functional",
+        "source_registered": false,
+        "status": "unknown_unverified"
+      },
+      "result_sha256": "c76f77a882103a5e33c444b903cbf914ea1ff7c091a1e78cc7a24f10802d9bba",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_03_foym7KsMYW3IZqSy2YTS3262",
+      "request_id": "openai:call_03_foym7KsMYW3IZqSy2YTS3262",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [
+          "scientific_settings.basis.bse_materialization_required",
+          "scientific_settings.basis.ecp_applicability_required",
+          "scientific_settings.basis.request_element_coverage_required"
+        ],
+        "applicability_rules_present": true,
+        "candidates": [],
+        "canonical_value": "def2-SVP",
+        "deterministic_validator_enforced": false,
+        "entry_evidence": {
+          "entry_id": "setting.gaussian.method_basis.f553bf2d0978b469326d",
+          "inventory_sha256": "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe",
+          "observation_note": "Observed allowed transform paper_project.basis_literal_normalization: input='def2-SVP' -> rendered=('def2svp',) -> loaded=('def2svp',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.",
+          "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+          "repair_sidecar_sha256": null,
+          "source_ids": [
+            "bse-catalog-0.11",
+            "gaussian-job-settings-125f2878",
+            "gaussian-project-loader-125f2878",
+            "project-protocol-125f2878"
+          ]
+        },
+        "entry_evidence_sha256": "423f99b31cca3cb7a66110f5e4ad2658b09a0c6d9b96391ac1b550657d8dc029",
+        "entry_id": "setting.gaussian.method_basis.f553bf2d0978b469326d",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": true,
+        "loader_accepted": true,
+        "loader_observation": "accepted",
+        "lookup_id": "expected.basis",
+        "matched_by": "canonical_literal",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "def2svp",
+        "program": "gaussian",
+        "project_candidate_eligible": false,
+        "reason_rule_id": "scientific_settings.v2.validation_coverage_gap",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "preserved",
+        "renderer_preserved": true,
+        "repair_policy_binding": {
+          "binding_sha256": "34222529e665e0ca03a9b23634f6a09920a4735946ae6446303ea7d854b2b10d",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "def2-SVP",
+        "resolution_sha256": "e7d2cc3756db58d0f9baf6a0afdbe2f8da7fc101eb27971a673e86caa78e2b6f",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.basis",
+        "source_registered": true,
+        "status": "blocked_validation_coverage"
+      },
+      "result_sha256": "7fca0a40650e8af9621de28ef833d76fd255837063020eeeb5fbf65c6b9b310d",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_txE1mpCs7CAsEJfLDDz24786",
+      "request_id": "openai:call_00_txE1mpCs7CAsEJfLDDz24786",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [
+            "blocking_rule_ids"
+          ],
+          "case_sha256": "d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.freq"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "ae58c295de35bf34f28905c64d47b20949d4ac04536b99526442c59980d66166",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [
+            "blocking_rule_ids"
+          ],
+          "raw_contract_valid": false,
+          "raw_payload_sha256": "12017a1b65026ed2050cd57cbd5eda095d0598f7d536e0281dc751102b029a72",
+          "receipt_sha256": "ac3f30745eff731934477d83ef7886df38c7faf5954c1f50cebd31291ff875a7",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.basis.bse_materialization_required",
+            "scientific_settings.basis.ecp_applicability_required",
+            "scientific_settings.basis.request_element_coverage_required",
+            "scientific_settings.v2.non_exhaustive_scope_unverified",
+            "scientific_settings.v2.validation_coverage_gap"
+          ],
+          "case_id": "gaussian-raw-route-functional-invalid",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-raw-route-functional-invalid",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP nosymm",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.non_exhaustive_scope_unverified",
+            "scientific_settings.v2.validation_coverage_gap",
+            "scientific_settings.basis.bse_materialization_required",
+            "scientific_settings.basis.ecp_applicability_required",
+            "scientific_settings.basis.request_element_coverage_required"
+          ],
+          "case_id": "gaussian-raw-route-functional-invalid",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-raw-route-functional-invalid",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP nosymm",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "e32cc8c98e4a83f453f6616483b4fcd1e4a8e67cd1f3f46a871112f502376d25",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_00_wlb3KwTYHeOpNQ6YwTNO8620",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_wlb3KwTYHeOpNQ6YwTNO8620"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "22d1ffa07f62720acf8d1ed3c5c4942f9ab929f9911bef87ba19dd2002ebb71d",
+      "name": "list_scientific_settings_v2",
+      "provider_call_id": "call_01_n8OiPEoITBOaGvfkoqSt0097",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_n8OiPEoITBOaGvfkoqSt0097"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_02_ATFFygS6BEyPO03PvPNo9893",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_02_ATFFygS6BEyPO03PvPNo9893"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "22d1ffa07f62720acf8d1ed3c5c4942f9ab929f9911bef87ba19dd2002ebb71d",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_03_foym7KsMYW3IZqSy2YTS3262",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_03_foym7KsMYW3IZqSy2YTS3262"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.",
+          "blocking_rule_ids": [
+            "scientific_settings.v2.non_exhaustive_scope_unverified",
+            "scientific_settings.v2.validation_coverage_gap",
+            "scientific_settings.basis.bse_materialization_required",
+            "scientific_settings.basis.ecp_applicability_required",
+            "scientific_settings.basis.request_element_coverage_required"
+          ],
+          "case_id": "gaussian-raw-route-functional-invalid",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-raw-route-functional-invalid",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP nosymm",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "28f4128a4198ce03b575b583ede938773d7059e556020a11b70eb329da8d4849",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_txE1mpCs7CAsEJfLDDz24786",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_txE1mpCs7CAsEJfLDDz24786"
+    }
+  ]
+}

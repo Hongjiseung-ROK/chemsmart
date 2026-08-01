@@ -1,0 +1,223 @@
+{
+  "assistant_text": "The read-only Registry V2 stress assessment for case `gaussian-raw-route-functional-invalid` is complete and the plan was accepted.\n\n**Evidence consulted (read-only):**\n- `expected.functional` V1 view: inventory available, but **0 matched values and no rule IDs** — no frozen functional receipt discharges this case; assessment falls to deterministic project semantics.\n- `expected.basis` V1 view: inventory available with `def2-SVP` listed (along with `def2-SV(P)` etc.) — advisory only; a discoverable name is not automatically native/compiler-ready.\n\n**Assessment:**\n- The typed functional `B3LYP nosymm` embeds the native route keyword `nosymm` (a symmetry route flag) inside the functional field. Route content is not part of a functional specification, so the literal is an **invalid specification** → readiness `blocked_invalid_specification`.\n- Source literals preserved: functional `B3LYP nosymm`, basis `def2-SVP`.\n- No elements were specified in the request, so no element/ECP findings were asserted.\n- No native input, command, project write, or execution: all four guarded fields are `false`.\n\n**Submission receipt (case-bound normalization, V1.0.0):**\n- Raw contract valid; no conflicting explicit settings; the normalizer deterministically filled `settings.freq = true` to match the `freq` task kind.\n- Receipt SHA-256: `f5f38a43e82f002fef405d37f633e504ee9b6cb1fcc5a207471a5f30f6e1ccb3`\n\nThe proposal stands blocked on the malformed functional; no execution or project writes were performed.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.functional_not_atomic"
+        ],
+        "expected": "blocked_invalid_specification",
+        "observed": "blocked_invalid_specification",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "6b9464300c9b500f8f7840438779cbc6a89ab6f94aa3c99e6e4fb2ae4d057791",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "0ccee99d1878f82cc84d147c657bb7f7bd23689ccb4c539c586fb60da4c5fc1f",
+        "receipt_sha256": "f5f38a43e82f002fef405d37f633e504ee9b6cb1fcc5a207471a5f30f6e1ccb3",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": true,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.frequency_missing",
+          "paper.project.functional_not_atomic"
+        ],
+        "expected": "blocked_invalid_specification",
+        "observed": "blocked_invalid_specification",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_public_english_response": "The read-only Registry V2 stress assessment for case `gaussian-raw-route-functional-invalid` is complete and the plan was accepted.\n\n**Evidence consulted (read-only):**\n- `expected.functional` V1 view: inventory available, but **0 matched values and no rule IDs** — no frozen functional receipt discharges this case; assessment falls to deterministic project semantics.\n- `expected.basis` V1 view: inventory available with `def2-SVP` listed (along with `def2-SV(P)` etc.) — advisory only; a discoverable name is not automatically native/compiler-ready.\n\n**Assessment:**\n- The typed functional `B3LYP nosymm` embeds the native route keyword `nosymm` (a symmetry route flag) inside the functional field. Route content is not part of a functional specification, so the literal is an **invalid specification** → readiness `blocked_invalid_specification`.\n- Source literals preserved: functional `B3LYP nosymm`, basis `def2-SVP`.\n- No elements were specified in the request, so no element/ECP findings were asserted.\n- No native input, command, project write, or execution: all four guarded fields are `false`.\n\n**Submission receipt (case-bound normalization, V1.0.0):**\n- Raw contract valid; no conflicting explicit settings; the normalizer deterministically filled `settings.freq = true` to match the `freq` task kind.\n- Receipt SHA-256: `f5f38a43e82f002fef405d37f633e504ee9b6cb1fcc5a207471a5f30f6e1ccb3`\n\nThe proposal stands blocked on the malformed functional; no execution or project writes were performed.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.frequency_missing",
+          "paper.project.functional_not_atomic"
+        ],
+        "expected": "blocked_invalid_specification",
+        "observed": "blocked_invalid_specification",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.",
+    "blocking_rule_ids": [],
+    "case_id": "gaussian-raw-route-functional-invalid",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-raw-route-functional-invalid",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP nosymm",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-raw-route-functional-invalid:registry_v1:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "6b9464300c9b500f8f7840438779cbc6a89ab6f94aa3c99e6e4fb2ae4d057791",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "0ccee99d1878f82cc84d147c657bb7f7bd23689ccb4c539c586fb60da4c5fc1f",
+    "receipt_sha256": "f5f38a43e82f002fef405d37f633e504ee9b6cb1fcc5a207471a5f30f6e1ccb3",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.",
+  "typed_proposal": {
+    "analysis_summary": "The typed functional literal 'B3LYP nosymm' embeds the native route keyword 'nosymm' inside the functional field. Route content (e.g., symmetry flags) is not part of a functional specification, so per deterministic project semantics the functional must be a pure exchange-correlation name; 'B3LYP' alone would be valid, but the raw route string is an invalid specification. Read-only V1 view confirms no frozen functional receipt discharges this case (matched_count 0, no rule ids), so no deterministic receipt applies; the basis 'def2-SVP' appears in the bounded basis inventory and is BSE-discoverable, but a discoverable name is not automatically native/compiler-ready and the proposal is blocked on the malformed functional regardless. The request specified no explicit elements, so no element/ECP findings are asserted. Source literals preserved; native_input_authored, command_authored, project_written, and execution_requested are all false.",
+    "blocking_rule_ids": [],
+    "case_id": "gaussian-raw-route-functional-invalid",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-raw-route-functional-invalid",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP nosymm",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

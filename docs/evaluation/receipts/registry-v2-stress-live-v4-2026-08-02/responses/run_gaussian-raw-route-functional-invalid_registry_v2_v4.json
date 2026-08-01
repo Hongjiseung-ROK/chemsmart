@@ -1,0 +1,230 @@
+{
+  "assistant_text": "Proposal submitted successfully. Summary of the outcome:\n\n**Case `gaussian-raw-route-functional-invalid` — readiness: `blocked_invalid_specification`**\n\n- **Functional `B3LYP nosymm`** — rejected. The literal embeds the Gaussian native route keyword `nosymm` inside the typed `method.functional` slot (native route content in a typed functional). The `expected.functional` V2 lookup matched nothing: `unknown_unverified`, `matched_by: none`, loader/renderer not observed, not source-registered, not project-candidate-eligible. No deterministic receipt exists, so no rule is discharged and no fuzzy candidate was substituted.\n- **Basis `def2-SVP`** — matched a registered entry by canonical literal, but the resolution is `blocked_validation_coverage` (deterministic validator not enforced, no safe preview/engine execution, no element coverage in scope); its applicability rules (`bse_materialization_required`, `ecp_applicability_required`, `request_element_coverage_required`) remain undischarged.\n- **Submission receipt**: normalization applied (`case-bound-explicit-settings-and-set-order`, v1.0.0); `blocking_rule_ids` canonicalized as a set, and `settings.freq` filled to `true` per the case-bound freq task kind. No conflicting explicit setting fields; `raw_contract_valid: false` only at the pre-normalization `blocking_rule_ids` ordering path, resolved by the normalizer.\n- All guardrails held: `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`; source literals preserved; case SHA-256 `d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa`.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.ecp_applicability_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.functional_not_atomic"
+        ],
+        "expected": "blocked_invalid_specification",
+        "observed": "blocked_invalid_specification",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [
+          "blocking_rule_ids"
+        ],
+        "case_sha256": "d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "ae58c295de35bf34f28905c64d47b20949d4ac04536b99526442c59980d66166",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [
+          "blocking_rule_ids"
+        ],
+        "raw_contract_valid": false,
+        "raw_payload_sha256": "12017a1b65026ed2050cd57cbd5eda095d0598f7d536e0281dc751102b029a72",
+        "receipt_sha256": "ac3f30745eff731934477d83ef7886df38c7faf5954c1f50cebd31291ff875a7",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": true,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "validation_error_class": "ValidationError"
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-valid"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "Proposal submitted successfully. Summary of the outcome:\n\n**Case `gaussian-raw-route-functional-invalid` — readiness: `blocked_invalid_specification`**\n\n- **Functional `B3LYP nosymm`** — rejected. The literal embeds the Gaussian native route keyword `nosymm` inside the typed `method.functional` slot (native route content in a typed functional). The `expected.functional` V2 lookup matched nothing: `unknown_unverified`, `matched_by: none`, loader/renderer not observed, not source-registered, not project-candidate-eligible. No deterministic receipt exists, so no rule is discharged and no fuzzy candidate was substituted.\n- **Basis `def2-SVP`** — matched a registered entry by canonical literal, but the resolution is `blocked_validation_coverage` (deterministic validator not enforced, no safe preview/engine execution, no element coverage in scope); its applicability rules (`bse_materialization_required`, `ecp_applicability_required`, `request_element_coverage_required`) remain undischarged.\n- **Submission receipt**: normalization applied (`case-bound-explicit-settings-and-set-order`, v1.0.0); `blocking_rule_ids` canonicalized as a set, and `settings.freq` filled to `true` per the case-bound freq task kind. No conflicting explicit setting fields; `raw_contract_valid: false` only at the pre-normalization `blocking_rule_ids` ordering path, resolved by the normalizer.\n- All guardrails held: `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`; source literals preserved; case SHA-256 `d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa`.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.ecp_applicability_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.frequency_missing",
+          "paper.project.functional_not_atomic"
+        ],
+        "expected": "blocked_invalid_specification",
+        "observed": "blocked_invalid_specification",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.non_exhaustive_scope_unverified",
+      "scientific_settings.v2.validation_coverage_gap",
+      "scientific_settings.basis.bse_materialization_required",
+      "scientific_settings.basis.ecp_applicability_required",
+      "scientific_settings.basis.request_element_coverage_required"
+    ],
+    "case_id": "gaussian-raw-route-functional-invalid",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-raw-route-functional-invalid",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP nosymm",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-raw-route-functional-invalid:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [
+      "blocking_rule_ids"
+    ],
+    "case_sha256": "d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "ae58c295de35bf34f28905c64d47b20949d4ac04536b99526442c59980d66166",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [
+      "blocking_rule_ids"
+    ],
+    "raw_contract_valid": false,
+    "raw_payload_sha256": "12017a1b65026ed2050cd57cbd5eda095d0598f7d536e0281dc751102b029a72",
+    "receipt_sha256": "ac3f30745eff731934477d83ef7886df38c7faf5954c1f50cebd31291ff875a7",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "The typed functional 'B3LYP nosymm' is rejected: it embeds the Gaussian native route keyword 'nosymm' inside the method.functional slot (native route content in a typed functional), an invalid specification. Registry lookup expected.functional (normalized 'b3lypnosymm') matched nothing: status unknown_unverified, matched_by none, loader/renderer not observed, source_registered false, project_candidate_eligible false (reason scientific_settings.v2.non_exhaustive_scope_unverified). No deterministic receipt exists for the functional, so it cannot discharge any rule, and no fuzzy candidate was substituted. Basis 'def2-SVP' matched a registered entry by canonical literal (setting.gaussian.method_basis.f553bf2d0978b469326d, loader accepted, renderer preserved) but resolves to blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap): deterministic validator not enforced, no safe preview or engine execution, no element coverage requested, and applicability rules bse_materialization_required, ecp_applicability_required, request_element_coverage_required remain undischarged. Overall readiness blocked_invalid_specification; no project candidate. Source literals preserved; no native input or command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.bse_materialization_required",
+      "scientific_settings.basis.ecp_applicability_required",
+      "scientific_settings.basis.request_element_coverage_required",
+      "scientific_settings.v2.non_exhaustive_scope_unverified",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "gaussian-raw-route-functional-invalid",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-raw-route-functional-invalid",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP nosymm",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

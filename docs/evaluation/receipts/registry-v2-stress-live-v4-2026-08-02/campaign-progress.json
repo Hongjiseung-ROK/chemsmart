@@ -1,0 +1,324 @@
+{
+  "campaign_plan_sha256": "23353fa15348bcbdeee5dde1a4f92d6ddd72efb7744bee5e901e3b59878a6b87",
+  "campaign_wall_time_limit_seconds": 14400.0,
+  "campaign_wall_time_ms": 2580921,
+  "completed_run_ids": [
+    "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v4",
+    "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v4",
+    "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v4",
+    "run:gaussian-pcseg2-materialization-gap:minimal:v4",
+    "run:gaussian-pcseg2-materialization-gap:registry_v1:v4",
+    "run:gaussian-pcseg2-materialization-gap:registry_v2:v4",
+    "run:orca-aug-mcc-pv8z-materialization-gap:minimal:v4",
+    "run:orca-aug-mcc-pv8z-materialization-gap:registry_v1:v4",
+    "run:orca-aug-mcc-pv8z-materialization-gap:registry_v2:v4",
+    "run:gaussian-fuzzy-def2-typo:minimal:v4",
+    "run:gaussian-fuzzy-def2-typo:registry_v1:v4",
+    "run:gaussian-fuzzy-def2-typo:registry_v2:v4",
+    "run:orca-def2-tzvp-fe-no-ecp:minimal:v4",
+    "run:orca-def2-tzvp-fe-no-ecp:registry_v1:v4",
+    "run:orca-def2-tzvp-fe-no-ecp:registry_v2:v4",
+    "run:orca-def2-tzvp-pd-28e-ecp:minimal:v4",
+    "run:orca-def2-tzvp-pd-28e-ecp:registry_v1:v4",
+    "run:orca-def2-tzvp-pd-28e-ecp:registry_v2:v4",
+    "run:orca-def2-tzvp-pd-28e-ecp:registry_v2_advisory:v4",
+    "run:gaussian-def2-tzvppd-missing-ce:minimal:v4",
+    "run:gaussian-def2-tzvppd-missing-ce:registry_v1:v4",
+    "run:gaussian-def2-tzvppd-missing-ce:registry_v2:v4",
+    "run:orca-def2-ecp-orbital-missing:minimal:v4",
+    "run:orca-def2-ecp-orbital-missing:registry_v1:v4",
+    "run:orca-def2-ecp-orbital-missing:registry_v2:v4",
+    "run:xtb-gfnff-alpb-n-hexane:minimal:v4",
+    "run:xtb-gfnff-alpb-n-hexane:registry_v1:v4",
+    "run:xtb-gfnff-alpb-n-hexane:registry_v2:v4",
+    "run:orca-b97m-d4-exact-compound:minimal:v4",
+    "run:orca-b97m-d4-exact-compound:registry_v1:v4",
+    "run:orca-b97m-d4-exact-compound:registry_v2:v4",
+    "run:orca-b97m-d4-exact-compound:registry_v2_advisory:v4",
+    "run:gaussian-b3lyp-explicit-d4-unsupported:minimal:v4",
+    "run:gaussian-b3lyp-explicit-d4-unsupported:registry_v1:v4",
+    "run:gaussian-b3lyp-explicit-d4-unsupported:registry_v2:v4",
+    "run:orca-b3lyp-d3zero-unsupported:minimal:v4",
+    "run:orca-b3lyp-d3zero-unsupported:registry_v1:v4",
+    "run:orca-b3lyp-d3zero-unsupported:registry_v2:v4",
+    "run:gaussian-raw-route-functional-invalid:minimal:v4",
+    "run:gaussian-raw-route-functional-invalid:registry_v1:v4",
+    "run:gaussian-raw-route-functional-invalid:registry_v2:v4",
+    "run:xtb-cross-program-basis-not-applicable:minimal:v4",
+    "run:xtb-cross-program-basis-not-applicable:registry_v1:v4",
+    "run:xtb-cross-program-basis-not-applicable:registry_v2:v4"
+  ],
+  "error_class": null,
+  "last_started_hypothesis_id": "hypothesis.xtb-cross-program-basis-not-applicable:registry_v2:v4",
+  "outcome_artifacts": [
+    {
+      "artifact_sha256": "da187de931839a08034fe8be79e4599402efcadd091fcb6e9d8b2090a2950a6b",
+      "locator": "outcomes/run_orca-ma-def2-tzvp-cross-field-blocked_minimal_v4.json",
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v4"
+    },
+    {
+      "artifact_sha256": "c344562dce22533bd946d1c3045505f9cb1191dc75d625b962c61b44a9ea9191",
+      "locator": "outcomes/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v1_v4.json",
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "abac45f05e2d77be2181670660f04ba2b80f9fd01044a1b433480e301397030a",
+      "locator": "outcomes/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v2_v4.json",
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "97d7068bf5aa6fb911f0ae3f05e2142fe07cac31aa8e26edcbab1db1a9ad33fe",
+      "locator": "outcomes/run_gaussian-pcseg2-materialization-gap_minimal_v4.json",
+      "run_id": "run:gaussian-pcseg2-materialization-gap:minimal:v4"
+    },
+    {
+      "artifact_sha256": "980346f58344dc4925ae0579d567a1195765f2186f622594c94fd7ca998d1842",
+      "locator": "outcomes/run_gaussian-pcseg2-materialization-gap_registry_v1_v4.json",
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "fe1d343fc510e7f3e237e8756d43edb4d3590a011777ec6547e43cbcb23e3604",
+      "locator": "outcomes/run_gaussian-pcseg2-materialization-gap_registry_v2_v4.json",
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "f8ed7ecd011349d91fd2ab2e715319e98481cca45bf621dcd66037e90b47077e",
+      "locator": "outcomes/run_orca-aug-mcc-pv8z-materialization-gap_minimal_v4.json",
+      "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:minimal:v4"
+    },
+    {
+      "artifact_sha256": "656aa65315208778873676075d60e206bcbb20a8084c82c1cc9931e0df6ac3d9",
+      "locator": "outcomes/run_orca-aug-mcc-pv8z-materialization-gap_registry_v1_v4.json",
+      "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "4ee28f155eefb17e251ae1611358ef6c0afe5f0a285212eab10bff0d6d2d2300",
+      "locator": "outcomes/run_orca-aug-mcc-pv8z-materialization-gap_registry_v2_v4.json",
+      "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "d75d84e1ffeda6c7adcb2d0a21a76f7b5418835ededb3302a2e5f1e8065ce0c5",
+      "locator": "outcomes/run_gaussian-fuzzy-def2-typo_minimal_v4.json",
+      "run_id": "run:gaussian-fuzzy-def2-typo:minimal:v4"
+    },
+    {
+      "artifact_sha256": "b807b570faf0631a07660887f36bf5dc261a2d6f6b1a7379f83731136ed6f256",
+      "locator": "outcomes/run_gaussian-fuzzy-def2-typo_registry_v1_v4.json",
+      "run_id": "run:gaussian-fuzzy-def2-typo:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "1f732f8613d6e65ce9ec2def5d74e395fe616bd1072d60cc93c2c2fbbac8c666",
+      "locator": "outcomes/run_gaussian-fuzzy-def2-typo_registry_v2_v4.json",
+      "run_id": "run:gaussian-fuzzy-def2-typo:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "0cd5e6cdc768a2be6b274b31ac3020d4a63351db09ec545038a6f85675a6696d",
+      "locator": "outcomes/run_orca-def2-tzvp-fe-no-ecp_minimal_v4.json",
+      "run_id": "run:orca-def2-tzvp-fe-no-ecp:minimal:v4"
+    },
+    {
+      "artifact_sha256": "53a6a6a3332ff00f480cffb090cd7d1ec2f561ae0ebae19c7c721dabe06283b2",
+      "locator": "outcomes/run_orca-def2-tzvp-fe-no-ecp_registry_v1_v4.json",
+      "run_id": "run:orca-def2-tzvp-fe-no-ecp:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "c6a8016f54f7563895f0c4282143b3418ac2650929ac8d6f88c44b086cccdf54",
+      "locator": "outcomes/run_orca-def2-tzvp-fe-no-ecp_registry_v2_v4.json",
+      "run_id": "run:orca-def2-tzvp-fe-no-ecp:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "79262d7708a1ee6a467376803548b2a55cea8aed3bfef0032c60a81dda26d922",
+      "locator": "outcomes/run_orca-def2-tzvp-pd-28e-ecp_minimal_v4.json",
+      "run_id": "run:orca-def2-tzvp-pd-28e-ecp:minimal:v4"
+    },
+    {
+      "artifact_sha256": "d0fdd93e77f6dad1d45cdb65061070c9bbff278e213ac3c4c0d2c68323299a1b",
+      "locator": "outcomes/run_orca-def2-tzvp-pd-28e-ecp_registry_v1_v4.json",
+      "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "ee4d647f8eb94cdc89654a3274788aa4ae30dc7b7852d558183e5c06301c32c8",
+      "locator": "outcomes/run_orca-def2-tzvp-pd-28e-ecp_registry_v2_v4.json",
+      "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "464bcd8e4d8c95a5d2ea19cd93de9d1d13f5693efe895bc0a4dcddb5ce6f7e87",
+      "locator": "outcomes/run_orca-def2-tzvp-pd-28e-ecp_registry_v2_advisory_v4.json",
+      "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_v2_advisory:v4"
+    },
+    {
+      "artifact_sha256": "235d83a83ee68997e3b8ed441cde20e340b86619b9f7b41d38752df083cd80f6",
+      "locator": "outcomes/run_gaussian-def2-tzvppd-missing-ce_minimal_v4.json",
+      "run_id": "run:gaussian-def2-tzvppd-missing-ce:minimal:v4"
+    },
+    {
+      "artifact_sha256": "18eb80ee4f22ba7ced8c0e3a96acaa0922319c34255d6aae598fe1deb169860d",
+      "locator": "outcomes/run_gaussian-def2-tzvppd-missing-ce_registry_v1_v4.json",
+      "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "0de3df7f4e6dfd6481ce55366eb574d4e835b47c34480cf0f018da48d91e631f",
+      "locator": "outcomes/run_gaussian-def2-tzvppd-missing-ce_registry_v2_v4.json",
+      "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "6ff52579502694fe83a9a1e8fd61db7d167409a67d35e97860b052222a531191",
+      "locator": "outcomes/run_orca-def2-ecp-orbital-missing_minimal_v4.json",
+      "run_id": "run:orca-def2-ecp-orbital-missing:minimal:v4"
+    },
+    {
+      "artifact_sha256": "97b39fcbe49b024042935089e83cc52ddeabe6975fac8c89f8699ebf457aac18",
+      "locator": "outcomes/run_orca-def2-ecp-orbital-missing_registry_v1_v4.json",
+      "run_id": "run:orca-def2-ecp-orbital-missing:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "6dab45d467dff0e0d3a3455839456e4ea2e462b93e17e4043e4676d9efb2c827",
+      "locator": "outcomes/run_orca-def2-ecp-orbital-missing_registry_v2_v4.json",
+      "run_id": "run:orca-def2-ecp-orbital-missing:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "677aae1aab35fa8649b2ae074a4ab5993ff13acf9c563db66d83c903d869b8c9",
+      "locator": "outcomes/run_xtb-gfnff-alpb-n-hexane_minimal_v4.json",
+      "run_id": "run:xtb-gfnff-alpb-n-hexane:minimal:v4"
+    },
+    {
+      "artifact_sha256": "13dc488e33a49b5e019a371d3f193977112135b2f69eebebda1a15da11127bab",
+      "locator": "outcomes/run_xtb-gfnff-alpb-n-hexane_registry_v1_v4.json",
+      "run_id": "run:xtb-gfnff-alpb-n-hexane:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "ddd07409074054d62d493927df838d518b8c8b9d7e6b5f3616f035d224eb6c6b",
+      "locator": "outcomes/run_xtb-gfnff-alpb-n-hexane_registry_v2_v4.json",
+      "run_id": "run:xtb-gfnff-alpb-n-hexane:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "ddcdcabe99e302fe1061f9013c0c3cde803f8e3824d92d24b80e7eed8a32ba61",
+      "locator": "outcomes/run_orca-b97m-d4-exact-compound_minimal_v4.json",
+      "run_id": "run:orca-b97m-d4-exact-compound:minimal:v4"
+    },
+    {
+      "artifact_sha256": "e55ae3ab52d99f48b53d12270c888f9f1dd11a1701abb3846bb5bb8d9061d562",
+      "locator": "outcomes/run_orca-b97m-d4-exact-compound_registry_v1_v4.json",
+      "run_id": "run:orca-b97m-d4-exact-compound:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "b0b1138752ef4962904981600fc4b8258ae09bb18249ad1406956ae112f1ab0a",
+      "locator": "outcomes/run_orca-b97m-d4-exact-compound_registry_v2_v4.json",
+      "run_id": "run:orca-b97m-d4-exact-compound:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "aaaae66c13ac1c80a33bf3e2a2ec49e81d8316f6e43a0993534ef7190693bf03",
+      "locator": "outcomes/run_orca-b97m-d4-exact-compound_registry_v2_advisory_v4.json",
+      "run_id": "run:orca-b97m-d4-exact-compound:registry_v2_advisory:v4"
+    },
+    {
+      "artifact_sha256": "f1bee1810ece9b16bcd363595c8a5b4e7c27ee0a3e63d936f4ac146b2c6a912f",
+      "locator": "outcomes/run_gaussian-b3lyp-explicit-d4-unsupported_minimal_v4.json",
+      "run_id": "run:gaussian-b3lyp-explicit-d4-unsupported:minimal:v4"
+    },
+    {
+      "artifact_sha256": "f661b18ca946637d48202429e6326826aad6eeb3122720e7d2cd3e33df7e3d10",
+      "locator": "outcomes/run_gaussian-b3lyp-explicit-d4-unsupported_registry_v1_v4.json",
+      "run_id": "run:gaussian-b3lyp-explicit-d4-unsupported:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "2560c311ef2f7daf49f5239138df8cc1e99e3a430ac6fcadf47e9147ce55273e",
+      "locator": "outcomes/run_gaussian-b3lyp-explicit-d4-unsupported_registry_v2_v4.json",
+      "run_id": "run:gaussian-b3lyp-explicit-d4-unsupported:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "e28579e5b6519b46a986d8caf9093d7a21cb6545c478dd8daed388514bf174cc",
+      "locator": "outcomes/run_orca-b3lyp-d3zero-unsupported_minimal_v4.json",
+      "run_id": "run:orca-b3lyp-d3zero-unsupported:minimal:v4"
+    },
+    {
+      "artifact_sha256": "ad1a430dc3cda3a6d310aa7fbd8002b8862663a926b888613f76e6d466d7d602",
+      "locator": "outcomes/run_orca-b3lyp-d3zero-unsupported_registry_v1_v4.json",
+      "run_id": "run:orca-b3lyp-d3zero-unsupported:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "b3da06343c12e10d81e42bd98c51b46bccba870ee8f3e0bc5f8f1c90523e890c",
+      "locator": "outcomes/run_orca-b3lyp-d3zero-unsupported_registry_v2_v4.json",
+      "run_id": "run:orca-b3lyp-d3zero-unsupported:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "359b189d18b040c7c75b7e4301579e5f2353e04ef3b93537301fe1777ac6075b",
+      "locator": "outcomes/run_gaussian-raw-route-functional-invalid_minimal_v4.json",
+      "run_id": "run:gaussian-raw-route-functional-invalid:minimal:v4"
+    },
+    {
+      "artifact_sha256": "df9c12cb7252fd3a2bbaf37d19ec015a1f8bc06d1aa63c38aa3842ccf03e304c",
+      "locator": "outcomes/run_gaussian-raw-route-functional-invalid_registry_v1_v4.json",
+      "run_id": "run:gaussian-raw-route-functional-invalid:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "8cb3815fe8643bb74d252b85dfb4721e4550a2c22a512cbf63cc681a639e2230",
+      "locator": "outcomes/run_gaussian-raw-route-functional-invalid_registry_v2_v4.json",
+      "run_id": "run:gaussian-raw-route-functional-invalid:registry_v2:v4"
+    },
+    {
+      "artifact_sha256": "2b39a76396c470a5ad83d830c8a72784623396148259371c51e8ba6710646211",
+      "locator": "outcomes/run_xtb-cross-program-basis-not-applicable_minimal_v4.json",
+      "run_id": "run:xtb-cross-program-basis-not-applicable:minimal:v4"
+    },
+    {
+      "artifact_sha256": "81e9489be87e47c3984b7b8dc064cc60cee1154a2539f1f23fdb8ec899fcbed7",
+      "locator": "outcomes/run_xtb-cross-program-basis-not-applicable_registry_v1_v4.json",
+      "run_id": "run:xtb-cross-program-basis-not-applicable:registry_v1:v4"
+    },
+    {
+      "artifact_sha256": "4ebbbed053101ec000039d39ee491dff4d07714d1d93225f8ef95a9da517484a",
+      "locator": "outcomes/run_xtb-cross-program-basis-not-applicable_registry_v2_v4.json",
+      "run_id": "run:xtb-cross-program-basis-not-applicable:registry_v2:v4"
+    }
+  ],
+  "outcome_receipt_sha256s": [
+    "56e15fb693653084b1075c36886c556f7e1de9ba32b9d99a7c43a39cc039fce7",
+    "54ef9e177479af20fe8587e0e197443b8d855da59c1dfd4c008e952295c5967b",
+    "c9d2e4fab8761117ce6c387ae1b4a8ca7676aca76b7c6343821859e14fd5f490",
+    "5ee52ca2c413287f7a306077a4dd7cf74f45f23baf06822718f8cbf16e96deb7",
+    "429d5566534c8f61d3a20f235efd03dec344d967bf9233341cecaea54895578a",
+    "0c4c13c120d6cf9d6d3130841d274d27da45086655c9a3efb6186ffaed8bf821",
+    "0dc27358e6744177fcb0d1753a9556192646fd787586134994e26a70604cf508",
+    "f1a33d172969d2cbae4d06382aa5bce9e79d26a77021cb9dca82a1f4b0d88bd7",
+    "eee7c5e2178367a14bc1a93d6841a929ecf65acae008109d08b51c610e4feb8a",
+    "17903a5d780e994fb1b6ba93c14ff2551d3f237a627bb15c84421b4878ca8d2b",
+    "7bad9d140786bbbef9736f6e8c0d696f762de9607bc2ed08e0202c47bb849e36",
+    "3e3e2be78131736e7b66265729f5e279cb555683603c8858d2c669f3f3a40303",
+    "54d8f06f7e142151df51c7f2876bd47171d4b848c04354c948f89ac0cc03f1c2",
+    "7dec2d9bfe0af1f8f837a6dee588a305994437349fafa225afe9b816fe0d1d51",
+    "de814075a508bbc231acf4c9c896a9e5bf331cc3e5caa0cf10e9325078aa0ec2",
+    "3baf9a82d1520276b1f4ac1c253858c7a223e584ee588271832fb46c10808ade",
+    "0f0e3c00fc777ba85dc2d11f4b5b0cb12dd3f26ebaf2124e61db9e45414e36ba",
+    "a2f6f5d4c78d7334037501ecf7c2fa5cd1fecf7464329cf3658a78315748a852",
+    "21ee8318503a82c05a2a2ad113c2c8d752ddb3a2d7597d4cd01defa84d430096",
+    "cd7c51409a28cd3a091b196e22f09023ca7b8cdcdba608888cba3f0d8f5950b3",
+    "a7abaf3f82aefc980d73266f1318b416032ed912bd56cde7e1b4c70d42ef5402",
+    "90f6eb7a1563db8ba51ced5fb9432ab066d2a2d23fdb09a296cd1416938f86d3",
+    "f9abc3c9ef7aac0145deed07ede8aed3d614695f07f49c75da46d13dfcf2494a",
+    "5607dd0cbadb1db1a70308528aa4474c8f8c936a28c11c2d3d912eb8d239fdcb",
+    "54d4fd57349feb97aa2c7b8d3e4a2979df2a0ea3c8b28310d5d6bf68e260082d",
+    "80cb3817ca6f041996efb53d71932bc7ff950f6df7221802627a3724ad2593c0",
+    "7416af1ce4a46dbde7a9478bcdd4748cabf95bbd20cd56b2b85cac0518a9814c",
+    "59622d71210689f3a2ecaa961494e5fd3505ef8116238add5823177c26d31546",
+    "b4d25c71b1be0bb8d45aaaa701ef21116883173e7de7fb18f57e885a00d1ceb9",
+    "82858d72a32fd85fee87c4a3eafa6631628ddd567434b5ddfaa4bd2670c94f12",
+    "f73c166d24e7bd3455987469f7e5f40726e2e291d9b91db96d39a19885e40145",
+    "873f498f8c4d71703903bf3cbf02a71cffdc5d95f3314a50424239d2d818a2c9",
+    "8b161475fc24bf674b7d1325ea1dc2870def865ca518c72207958443947c650d",
+    "01156004d44573c9a24c8019e51d212eec3326cdc37f0a88f2e47f8c8a8b963a",
+    "425bb2bf0441cf9c62f30946064932bdc7b0453e9f47812344805d31825e8fab",
+    "abaf042124477fe237738542dcb01a9fcd240b96ccce409fff0ac52c5df0393e",
+    "76351c970acac982676149bf58015c87e275a420bd48ce2495c35cb9242da4d8",
+    "9d6fdd0b78bdc0756151177140a0a29435a859f4fc024e2bdf8c01a2d0ef12e9",
+    "c289266157f1185e16311dc3de84081bf28850d4b9ce8fbfa1901a4d162fadac",
+    "4ab72954ae44707ee760dd2a777f5e50314fe70a7181461c4bc950e5facbc24f",
+    "b83cf6bada346b0ccdde27de4e81c22edda4b346d896bbde945efaaf2a7fa10a",
+    "c785d124b61f03d395ad21bfc76a34147f04f4ab813303a8de785070b71b1f2d",
+    "1d4d0b413f89da84d5c88f9600573a8980ef63a8f8b8e2f0f718862e2c93d4b7",
+    "b8c2dec07cdaf31b6b764e88e2886b8e0bd471c2c57c01173117898c45c6b33c"
+  ],
+  "schema_version": "chemsmart.registry-stress-campaign-progress.v1",
+  "status": "completed",
+  "termination_reason": "hypothesis_matrix_exhausted"
+}

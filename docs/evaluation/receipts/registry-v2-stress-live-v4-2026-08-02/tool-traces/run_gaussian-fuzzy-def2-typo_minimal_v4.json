@@ -1,0 +1,181 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T225914Z-5d8b0ca8\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: gaussian-fuzzy-def2-typo\nProgram: gaussian\nEngine version: 16.C01\nTask kind: freq\nProject/registry accessor job kind: opt\n\nThe source says def2-TZVXP. Search conservatively, preserve the reported spelling, and do not select a fuzzy candidate.\n\nHost-preregistered lookup targets:\n- basis: gaussian method.basis 'def2-TZVXP' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"gaussian-fuzzy-def2-typo\", \"program\": \"gaussian\", \"project_name\": \"freq-def2-TZVXP-typo\", \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"functional\": null, \"basis\": \"def2-TZVXP\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": true, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [], \"element_findings\": [], \"analysis_summary\": \"The source basis literal 'def2-TZVXP' was searched conservatively against the gaussian method.basis registry target under the opt accessor (case task kind: freq). No exact registry match exists for the reported spelling; the closest known basis is def2-TZVPP, which is only a fuzzy candidate and was therefore not selected per experiment rules. The reported spelling cannot be verified as a supported, registry-backed Gaussian basis, so the proposal is blocked (blocked_unverified_setting) with the source literal preserved exactly. No silent substitution, fuzzy-candidate selection, native input authorship, ChemSmart command authorship, project write, or execution was performed.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_lNurW6cmw2c3v1D9xCig9443",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.functional\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"373ab3873ae9fd782d9645734e0ae48596e855b683e98b045421cce07700d57c\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"757da5ec08da186f1790f41ab294c083dd51eb1387b5b459a184eb655382e2f5\", \"receipt_sha256\": \"1afe4179ea5702ae6545941b5a825aa5cef01c162a39fff713a534580b5d9ddb\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"The source basis literal 'def2-TZVXP' was searched conservatively against the gaussian method.basis registry target under the opt accessor (case task kind: freq). No exact registry match exists for the reported spelling; the closest known basis is def2-TZVPP, which is only a fuzzy candidate and was therefore not selected per experiment rules. The reported spelling cannot be verified as a supported, registry-backed Gaussian basis, so the proposal is blocked (blocked_unverified_setting) with the source literal preserved exactly. No silent substitution, fuzzy-candidate selection, native input authorship, ChemSmart command authorship, project write, or execution was performed.\", \"blocking_rule_ids\": [], \"case_id\": \"gaussian-fuzzy-def2-typo\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"freq-def2-TZVXP-typo\", \"project_written\": false, \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"basis\": \"def2-TZVXP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"The source basis literal 'def2-TZVXP' was searched conservatively against the gaussian method.basis registry target under the opt accessor (case task kind: freq). No exact registry match exists for the reported spelling; the closest known basis is def2-TZVPP, which is only a fuzzy candidate and was therefore not selected per experiment rules. The reported spelling cannot be verified as a supported, registry-backed Gaussian basis, so the proposal is blocked (blocked_unverified_setting) with the source literal preserved exactly. No silent substitution, fuzzy-candidate selection, native input authorship, ChemSmart command authorship, project write, or execution was performed.\", \"blocking_rule_ids\": [], \"case_id\": \"gaussian-fuzzy-def2-typo\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"freq-def2-TZVXP-typo\", \"project_written\": false, \"readiness\": \"blocked_unverified_setting\", \"settings\": {\"basis\": \"def2-TZVXP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": null, \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_lNurW6cmw2c3v1D9xCig9443"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Proposal submitted — exactly one `submit_registry_stress_plan` call, as required.\n\n**Submission summary**\n\n- **Case ID:** `gaussian-fuzzy-def2-typo` · program `gaussian` · task kind `freq` (opt accessor)\n- **Readiness:** `blocked_unverified_setting`\n- **Basis setting preserved verbatim:** `def2-TZVXP`\n- **Why blocked:** Conservative lookup of the exact spelling `def2-TZVXP` finds no exact registry match; the nearest known basis, `def2-TZVPP`, is only a fuzzy candidate and was not selected. The reported literal is therefore unverifiable as a registry-backed Gaussian basis, and no deterministic receipt can discharge the applicability rule.\n- **No actions taken:** native input not authored, command not authored, project not written, execution not requested (all `false`).\n- **Raw contract:** valid; no conflicting explicit setting fields; no canonicalized set fields.\n\n**Normalization receipt (literal):**\n- `normalization_applied: true`\n- `filled_explicit_setting_fields: [\"settings.functional\"]` — the arm's normalizer populated `functional` with `B3LYP`; this was not authored by me (my raw proposal had `functional: null`).\n- `conflicting_explicit_setting_fields: []`, `canonicalized_set_fields: []`\n- Receipt SHA-256: `1afe4179ea5702ae6545941b5a825aa5cef01c162a39fff713a534580b5d9ddb`; case SHA-256: `3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa`\n\nThe blocked proposal stands as submitted, with the source literal `def2-TZVXP` preserved and no fuzzy substitution.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:gaussian-fuzzy-def2-typo:minimal:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_lNurW6cmw2c3v1D9xCig9443",
+      "request_id": "openai:call_00_lNurW6cmw2c3v1D9xCig9443",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.functional"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "373ab3873ae9fd782d9645734e0ae48596e855b683e98b045421cce07700d57c",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "757da5ec08da186f1790f41ab294c083dd51eb1387b5b459a184eb655382e2f5",
+          "receipt_sha256": "1afe4179ea5702ae6545941b5a825aa5cef01c162a39fff713a534580b5d9ddb",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "The source basis literal 'def2-TZVXP' was searched conservatively against the gaussian method.basis registry target under the opt accessor (case task kind: freq). No exact registry match exists for the reported spelling; the closest known basis is def2-TZVPP, which is only a fuzzy candidate and was therefore not selected per experiment rules. The reported spelling cannot be verified as a supported, registry-backed Gaussian basis, so the proposal is blocked (blocked_unverified_setting) with the source literal preserved exactly. No silent substitution, fuzzy-candidate selection, native input authorship, ChemSmart command authorship, project write, or execution was performed.",
+          "blocking_rule_ids": [],
+          "case_id": "gaussian-fuzzy-def2-typo",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "freq-def2-TZVXP-typo",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-TZVXP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "The source basis literal 'def2-TZVXP' was searched conservatively against the gaussian method.basis registry target under the opt accessor (case task kind: freq). No exact registry match exists for the reported spelling; the closest known basis is def2-TZVPP, which is only a fuzzy candidate and was therefore not selected per experiment rules. The reported spelling cannot be verified as a supported, registry-backed Gaussian basis, so the proposal is blocked (blocked_unverified_setting) with the source literal preserved exactly. No silent substitution, fuzzy-candidate selection, native input authorship, ChemSmart command authorship, project write, or execution was performed.",
+          "blocking_rule_ids": [],
+          "case_id": "gaussian-fuzzy-def2-typo",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "freq-def2-TZVXP-typo",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-TZVXP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": null,
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "38243fd133a0dfa7e51e51550884dc2c9d1813b8e63e83574a0c95529137c9c9",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "The source basis literal 'def2-TZVXP' was searched conservatively against the gaussian method.basis registry target under the opt accessor (case task kind: freq). No exact registry match exists for the reported spelling; the closest known basis is def2-TZVPP, which is only a fuzzy candidate and was therefore not selected per experiment rules. The reported spelling cannot be verified as a supported, registry-backed Gaussian basis, so the proposal is blocked (blocked_unverified_setting) with the source literal preserved exactly. No silent substitution, fuzzy-candidate selection, native input authorship, ChemSmart command authorship, project write, or execution was performed.",
+          "blocking_rule_ids": [],
+          "case_id": "gaussian-fuzzy-def2-typo",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "freq-def2-TZVXP-typo",
+          "project_written": false,
+          "readiness": "blocked_unverified_setting",
+          "settings": {
+            "basis": "def2-TZVXP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": null,
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "35d336cec4bcc519a6138109811d431c6d4387956b35c8d09a36f2799889990f",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_lNurW6cmw2c3v1D9xCig9443",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_lNurW6cmw2c3v1D9xCig9443"
+    }
+  ]
+}

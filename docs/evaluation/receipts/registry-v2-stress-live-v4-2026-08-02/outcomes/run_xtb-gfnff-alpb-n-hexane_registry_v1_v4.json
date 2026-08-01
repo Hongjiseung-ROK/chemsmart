@@ -1,0 +1,344 @@
+{
+  "grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.candidate_requires_selection",
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.optimization_level"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "7f12a8a8ea08a5273d457fdcd3ddb7e7e5ce28802c857af96b3a67c5e4d5a450",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "279e3717af22013b382367196845f0be89fdeaf5cf9531d340a228dbc0d993cf",
+        "receipt_sha256": "1de2170d498ae8c1a48f3f7d1742f99b6ef5da6464c178f2a349c58fa288d3ad",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "normalization_receipt": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.optimization_level"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "7f12a8a8ea08a5273d457fdcd3ddb7e7e5ce28802c857af96b3a67c5e4d5a450",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "279e3717af22013b382367196845f0be89fdeaf5cf9531d340a228dbc0d993cf",
+    "receipt_sha256": "1de2170d498ae8c1a48f3f7d1742f99b6ef5da6464c178f2a349c58fa288d3ad",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "outcome": {
+    "deterministic_grade": {
+      "details": {
+        "blocking_rule_id_metric": "retired_hidden_implementation_label",
+        "blocking_rule_ids": [
+          "scientific_settings.candidate_requires_selection",
+          "scientific_settings.unknown_unverified"
+        ],
+        "render": {
+          "blocking_rule_ids": [],
+          "expected": "project_candidate_valid",
+          "observed": "project_candidate_valid",
+          "passed": true
+        },
+        "rule_discharge": {
+          "mode": "none",
+          "passed": false,
+          "reason": "request_bound_validation_overlay_not_implemented",
+          "receipt_sha256s": []
+        },
+        "submission_normalization": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.optimization_level"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "7f12a8a8ea08a5273d457fdcd3ddb7e7e5ce28802c857af96b3a67c5e4d5a450",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "279e3717af22013b382367196845f0be89fdeaf5cf9531d340a228dbc0d993cf",
+          "receipt_sha256": "1de2170d498ae8c1a48f3f7d1742f99b6ef5da6464c178f2a349c58fa288d3ad",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        }
+      },
+      "failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ],
+      "oracle_passed": false,
+      "passed_oracle_ids": [
+        "oracle.bse-vs-compiler-readiness",
+        "oracle.case-identity",
+        "oracle.command-prohibited",
+        "oracle.execution-prohibited",
+        "oracle.native-input-prohibited",
+        "oracle.program-identity",
+        "oracle.project-render",
+        "oracle.setting-preservation"
+      ]
+    },
+    "engine_calls": 0,
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 19032,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 4703,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "private_reasoning_persisted": false,
+    "project_writes": 0,
+    "public_tool_trace_locator": "tool-traces/run_xtb-gfnff-alpb-n-hexane_registry_v1_v4.json",
+    "public_tool_trace_sha256": "d3e389266f5e4c948f75edb510dbcd11cafb8cf1585033388567c513b65e3f2c",
+    "raw_public_english_response": "Submission complete. Summary of the Registry V2 stress run for case **xtb-gfnff-alpb-n-hexane**:\n\n**Lookup evidence (read-only, frozen V1):**\n- `method.gfn_version` = `gfnff` → `candidate_only`; only a fuzzy `gfn2` candidate, no canonical value (`scientific_settings.candidate_requires_selection`)\n- `solvent.model` = `alpb` → `unknown_unverified`, no candidates, coverage gap\n- `solvent.id` = `n-hexane` → `unknown_unverified`, no candidates, coverage gap\n\n**Submitted proposal (accepted, `raw_contract_valid: true`):**\n- Readiness: `blocked_unverified_setting`\n- Blocking rules: `scientific_settings.candidate_requires_selection`, `scientific_settings.unknown_unverified`\n- Settings preserved verbatim: `gfn_version: \"gfnff\"`, `solvent_model: \"alpb\"`, `solvent_id: \"n-hexane\"` (hyphenated identity intact); no basis/functional/grid/dispersion/ECP/freq values invented\n- No fuzzy candidate selected; no native input, command, project write, or execution (all flags false)\n\n**Normalizer note (deterministic, case-bound):** the submission normalizer filled `settings.optimization_level` from null to `\"normal\"` for the opt task kind (`filled_explicit_setting_fields: [\"settings.optimization_level\"]`); no other fields were canonicalized or conflicted.\n\nBottom line: the case is blocked because none of the three mandatory settings has a verified canonical value in the frozen registry, so no applicability rule is discharged.",
+    "raw_public_english_response_sha256": "206b9881e965659183c4233b5a12479cc837f2ed558c44969e2918b1cef564b7",
+    "receipt_sha256": "7416af1ce4a46dbde7a9478bcdd4748cabf95bbd20cd56b2b85cac0518a9814c",
+    "response_artifact_locator": "responses/run_xtb-gfnff-alpb-n-hexane_registry_v1_v4.json",
+    "run_id": "run:xtb-gfnff-alpb-n-hexane:registry_v1:v4",
+    "run_spec_sha256": "3c5b4c8c6d7139dc26672e05f1493de709c99ede7f1c9b214e7c10cba8c282b1",
+    "runtime_event_log_locator": "runtime-events/run_xtb-gfnff-alpb-n-hexane_registry_v1_v4.jsonl",
+    "runtime_event_log_sha256": "e2f16ac1b4ac95da606eb744dc76084a82f2ca06149e429fbda0ec88fa76f7ec",
+    "runtime_replay_state_sha256": "efa00cf84cf028e8cfcdbcfa7369e9fb6fab050e83465e689981f36b6395280b",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "blocked",
+    "sanitized_response_sha256": "d9400ada941d8f26f98ea70df94135e461f794bcd1028ba1ba8bd87d1d3b3dc3",
+    "schema_version": "chemsmart.registry-stress-outcome.v1",
+    "secret_material_persisted": false,
+    "terminal_state": "failed",
+    "transport_attempts": 3,
+    "wall_time_ms": 39522
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.xtb-gfnff-alpb-n-hexane:registry_v1:v4",
+      "hypothesis_sha256": "4d16e025223cbe3b2dadbf3b2f9da5919293b59a87f054cc2ce6295873274662",
+      "input_tokens": 3211,
+      "latency_ms": 7116,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 944,
+      "request_binding_sha256": "01b3d1f9acb1ca17e1a2e86d405a1271053ec2015576ce0dbf6ce95f14903a51",
+      "request_binding_verified": true,
+      "request_sha256": "6d4e73c1964614531b1cfb07b3ee2671a5bbc427a9ce3722eda14e82e1902396",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 2,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.xtb-gfnff-alpb-n-hexane:registry_v1:v4",
+      "hypothesis_sha256": "4d16e025223cbe3b2dadbf3b2f9da5919293b59a87f054cc2ce6295873274662",
+      "input_tokens": 5602,
+      "latency_ms": 26366,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 3156,
+      "request_binding_sha256": "01b3d1f9acb1ca17e1a2e86d405a1271053ec2015576ce0dbf6ce95f14903a51",
+      "request_binding_verified": true,
+      "request_sha256": "cfccc0a45977860c5b7737d82017d8a94b8b76b81bc4ef479265e51be7825e6d",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 3,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.xtb-gfnff-alpb-n-hexane:registry_v1:v4",
+      "hypothesis_sha256": "4d16e025223cbe3b2dadbf3b2f9da5919293b59a87f054cc2ce6295873274662",
+      "input_tokens": 10219,
+      "latency_ms": 5912,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 603,
+      "request_binding_sha256": "01b3d1f9acb1ca17e1a2e86d405a1271053ec2015576ce0dbf6ce95f14903a51",
+      "request_binding_verified": true,
+      "request_sha256": "84a653833b291f677ca1a75478175ffe91fd00016c120b1d2fac374bd24562e7",
+      "status": "observed"
+    }
+  ],
+  "raw_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.candidate_requires_selection",
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_semantic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.candidate_requires_selection",
+        "scientific_settings.unknown_unverified"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "run_spec": {
+    "arm": "registry_v1",
+    "case_id": "xtb-gfnff-alpb-n-hexane",
+    "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+    "changed_factor": "v1_registry_surface",
+    "comparator_arm": "minimal",
+    "configuration_sha256": "122a7b6636ffd3d7b625aa765398bd66236537b505f6f22b33ff5abb73ede963",
+    "deterministic_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "expected_outcome": "The typed proposal preserves explicit settings, uses the expected readiness, and passes every deterministic oracle.",
+    "hypothesis": "For xtb-gfnff-alpb-n-hexane, the registry_v1 surface will preserve the exact scientific intent and select the deterministic readiness state.",
+    "hypothesis_id": "hypothesis.xtb-gfnff-alpb-n-hexane:registry_v1:v4",
+    "knowledge_advisory_exposed": false,
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "novelty_rationale": "Unique transport-recovery xtb-gfnff-alpb-n-hexane observation for the registry_v1 surface after V3 isolated malformed tool JSON, metric conflation, and model-controlled lookup policy defects.",
+    "prompt_sha256": "1042d10c43ebaeb5ff445e862e2ef3e4465b5525d888d2cce8c4b4819ad944ae",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "request_bound_validation_exposed": false,
+    "run_id": "run:xtb-gfnff-alpb-n-hexane:registry_v1:v4",
+    "run_spec_sha256": "3c5b4c8c6d7139dc26672e05f1493de709c99ede7f1c9b214e7c10cba8c282b1",
+    "safety_plane": {
+      "chemistry_engine_execution_allowed": false,
+      "deterministic_oracles_active": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "project_writes_allowed": false,
+      "read_only_permission": true,
+      "runtime_v2_active": true,
+      "secret_persistence_allowed": false,
+      "v2_fallback_to_v1_allowed": false
+    },
+    "schema_version": "chemsmart.registry-stress-run.v1",
+    "source_binding_sha256": "123252baf1e4e9d188a81ef099460be56f84fc32d228ffd17041d8395337ca4f",
+    "tool_schema_sha256": "2835e3e66774cb650d18a481618c91bfb4fbdc06183f9774e727bb9667844d11"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  }
+}

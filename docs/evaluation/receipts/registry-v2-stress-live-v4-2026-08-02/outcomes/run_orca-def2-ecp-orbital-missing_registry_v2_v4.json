@@ -1,0 +1,196 @@
+{
+  "grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": false,
+    "set_order_dependency": false
+  },
+  "normalization_receipt": null,
+  "outcome": {
+    "deterministic_grade": {
+      "details": {
+        "successful_submission_count": 2
+      },
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "oracle_passed": false,
+      "passed_oracle_ids": []
+    },
+    "engine_calls": 0,
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 28603,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 10290,
+    "passed_oracle_ids": [],
+    "private_reasoning_persisted": false,
+    "project_writes": 0,
+    "public_tool_trace_locator": "tool-traces/run_orca-def2-ecp-orbital-missing_registry_v2_v4.json",
+    "public_tool_trace_sha256": "37645677555689de3e0a897428eb38186d69314b58ad631e39a6ec1374af1c57",
+    "raw_public_english_response": "The validator requires the ECP electron count to agree with `ecp_present: true`. The def2-ECP for Pd is the standard small-core 28-electron ECP (Z=46; core 1s–3d, 18 valence electrons) — this is the intrinsic definition of the reported ECP, not a fabricated result. I'll correct the finding and resubmit.",
+    "raw_public_english_response_sha256": "540bdc102cbb74930f4d8a98e9537c66a06ff936c94a109f05f09cd9d9e27307",
+    "receipt_sha256": "54d4fd57349feb97aa2c7b8d3e4a2979df2a0ea3c8b28310d5d6bf68e260082d",
+    "response_artifact_locator": "responses/run_orca-def2-ecp-orbital-missing_registry_v2_v4.json",
+    "run_id": "run:orca-def2-ecp-orbital-missing:registry_v2:v4",
+    "run_spec_sha256": "1d0ab2f61a2368daefa6088feb48cec596979b71c00c3e5d23f53e16e007b37b",
+    "runtime_event_log_locator": "runtime-events/run_orca-def2-ecp-orbital-missing_registry_v2_v4.jsonl",
+    "runtime_event_log_sha256": "c70e41b55bdd29a89f9a55aadc7a955d25a766ae4b2b7e312a2708069839e009",
+    "runtime_replay_state_sha256": "07c024b5dbd987a2a16428dbd56c49660b517373640f63a065d24fe5bb515f50",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "blocked",
+    "sanitized_response_sha256": "cb26925abb293d8a0fcfd5700bbeac03329bafa6df8910f4f0eca0fe2080b3fe",
+    "schema_version": "chemsmart.registry-stress-outcome.v1",
+    "secret_material_persisted": false,
+    "terminal_state": "failed",
+    "transport_attempts": 3,
+    "wall_time_ms": 85812
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-def2-ecp-orbital-missing:registry_v2:v4",
+      "hypothesis_sha256": "dc699b2f177d751203fd0c265464d1f9a1fee05e4bdbd4df0a77005a71cf9776",
+      "input_tokens": 3164,
+      "latency_ms": 3806,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 432,
+      "request_binding_sha256": "97d3aa0fbed00c11aea6eab15fda25ff6339dcaa2cfdb3f82195f979ec4296f6",
+      "request_binding_verified": true,
+      "request_sha256": "96b173aeb6bc4568ae1487d5b7d2f76d376ae70bfa3cbbcfaf94e6e4d4977868",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 2,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-def2-ecp-orbital-missing:registry_v2:v4",
+      "hypothesis_sha256": "dc699b2f177d751203fd0c265464d1f9a1fee05e4bdbd4df0a77005a71cf9776",
+      "input_tokens": 8677,
+      "latency_ms": 66555,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 7961,
+      "request_binding_sha256": "97d3aa0fbed00c11aea6eab15fda25ff6339dcaa2cfdb3f82195f979ec4296f6",
+      "request_binding_verified": true,
+      "request_sha256": "e67c1c72c3a575b411da7237468e38bcc8f2e3197dd560886f5c185323540934",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 3,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-def2-ecp-orbital-missing:registry_v2:v4",
+      "hypothesis_sha256": "dc699b2f177d751203fd0c265464d1f9a1fee05e4bdbd4df0a77005a71cf9776",
+      "input_tokens": 16762,
+      "latency_ms": 15010,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 1897,
+      "request_binding_sha256": "97d3aa0fbed00c11aea6eab15fda25ff6339dcaa2cfdb3f82195f979ec4296f6",
+      "request_binding_verified": true,
+      "request_sha256": "3ac9e629629dee9172a0238b15a2f81bebce3f1dfbe90316666725db23b55327",
+      "status": "observed"
+    }
+  ],
+  "raw_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_semantic_grade": {
+    "details": {
+      "successful_submission_count": 2
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "run_spec": {
+    "arm": "registry_v2",
+    "case_id": "orca-def2-ecp-orbital-missing",
+    "case_sha256": "e5b5619f32032ae977150326d4f930ae00700ff8a521c2b138f6f987d2a33a20",
+    "changed_factor": "v2_registry_surface",
+    "comparator_arm": "registry_v1",
+    "configuration_sha256": "39fde22a5dedaf05d71283ea57a772fd1d14ff26f3be1c1092cb2614f1dd650e",
+    "deterministic_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ],
+    "expected_outcome": "The typed proposal preserves explicit settings, uses the expected readiness, and passes every deterministic oracle.",
+    "hypothesis": "For orca-def2-ecp-orbital-missing, the registry_v2 surface will preserve the exact scientific intent and select the deterministic readiness state.",
+    "hypothesis_id": "hypothesis.orca-def2-ecp-orbital-missing:registry_v2:v4",
+    "knowledge_advisory_exposed": false,
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "novelty_rationale": "Unique transport-recovery orca-def2-ecp-orbital-missing observation for the registry_v2 surface after V3 isolated malformed tool JSON, metric conflation, and model-controlled lookup policy defects.",
+    "prompt_sha256": "8ecfeb43837c97da761a7fa606bbe87d975073ba4e90fc2f69579407fb3a8b93",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "request_bound_validation_exposed": false,
+    "run_id": "run:orca-def2-ecp-orbital-missing:registry_v2:v4",
+    "run_spec_sha256": "1d0ab2f61a2368daefa6088feb48cec596979b71c00c3e5d23f53e16e007b37b",
+    "safety_plane": {
+      "chemistry_engine_execution_allowed": false,
+      "deterministic_oracles_active": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "project_writes_allowed": false,
+      "read_only_permission": true,
+      "runtime_v2_active": true,
+      "secret_persistence_allowed": false,
+      "v2_fallback_to_v1_allowed": false
+    },
+    "schema_version": "chemsmart.registry-stress-run.v1",
+    "source_binding_sha256": "123252baf1e4e9d188a81ef099460be56f84fc32d228ffd17041d8395337ca4f",
+    "tool_schema_sha256": "6f5d724c1b2ab82ea2177a66097276c0a3e094005c58bde3619b9892a9cf0861"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [
+      {
+        "error_type": "ValidationError",
+        "name": "submit_registry_stress_plan",
+        "request_id": "openai:call_00_5iG30ngNhLd4dONfpjck6651",
+        "request_raw_arguments_sha256": null,
+        "status": "error"
+      },
+      {
+        "error_type": "ValidationError",
+        "name": "submit_registry_stress_plan",
+        "request_id": "openai:call_00_rTgyw6RRDYGMu0tKafN38115",
+        "request_raw_arguments_sha256": null,
+        "status": "error"
+      }
+    ],
+    "receipt_sha256": "c776fc8192b1dd337b5e3354f40dd159a1bf58cf35995bb3247b1d5cf9f0f7aa",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  }
+}

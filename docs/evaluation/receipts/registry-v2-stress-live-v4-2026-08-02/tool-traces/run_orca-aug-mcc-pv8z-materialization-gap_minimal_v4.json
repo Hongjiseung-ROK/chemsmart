@@ -1,0 +1,181 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T225613Z-4e5786e9\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: orca-aug-mcc-pv8z-materialization-gap\nProgram: orca\nEngine version: 6.1\nTask kind: opt\nProject/registry accessor job kind: opt\n\nPlan an ORCA B3LYP/aug-mcc-pV8Z optimization without treating BSE name discovery as native/compiler readiness.\n\nHost-preregistered lookup targets:\n- basis: orca method.basis 'aug-mcc-pV8Z' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "This is a read-only Registry V2 stress case. The request is an ORCA 6.1 B3LYP/aug-mcc-pV8Z optimization (task kind `opt`). The basis `aug-mcc-pV8Z` is the host-preregistered in-scope `method.basis` target; `B3LYP` and the `opt` task are explicit request literals.\n\nNo read-only lookup/receipt tool is exposed in this arm, so no exact, request-bound deterministic receipt can discharge the basis applicability rule. BSE name discovery is not native/compiler readiness, and nothing in evidence confirms `aug-mcc-pV8Z` is materializable natively in ORCA 6.1. The proposal is therefore blocked (missing evidence), with source literals preserved and no writes, native input, command, or execution.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"orca-aug-mcc-pv8z-materialization-gap\", \"program\": \"orca\", \"project_name\": \"orca-aug-mcc-pv8z-materialization-gap\", \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"functional\": \"B3LYP\", \"basis\": \"aug-mcc-pV8Z\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": \"opt\", \"freq\": null, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"blocking_rule_ids\": [], \"element_findings\": [], \"analysis_summary\": \"Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_a3rNYYgiy3RbKANfRkbV3172",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"fcd16d7666011fdbfdda8ebafbb36cfe5c4b662078d38d144ceb777927c3f770\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [\"settings.freq\"], \"normalization_applied\": true, \"normalized_payload_sha256\": \"a45d2dc375dcdb7c81f7a4e139ba132effcad88c882d68618ec7fc5e8b47cb96\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"224918e16afb8f7462ff27c0419c9f599ae8d81f592f3d16523eb7a777b69305\", \"receipt_sha256\": \"59cd27571a2c60bf4b646df4674745cb20744bd14fb8faaf909d86126b8d3acd\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-aug-mcc-pv8z-materialization-gap\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-aug-mcc-pv8z-materialization-gap\", \"project_written\": false, \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"basis\": \"aug-mcc-pV8Z\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": false, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": \"opt\", \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-aug-mcc-pv8z-materialization-gap\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-aug-mcc-pv8z-materialization-gap\", \"project_written\": false, \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"basis\": \"aug-mcc-pV8Z\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": null, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": \"opt\", \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_a3rNYYgiy3RbKANfRkbV3172"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The proposal was accepted with a valid normalization receipt.\n\n**Submission summary — `orca-aug-mcc-pv8z-materialization-gap`**\n\n- **Program / task:** orca, opt (engine 6.1 assumed from case)\n- **Settings preserved (source literals):** functional `B3LYP`, basis `aug-mcc-pV8Z` (the host-preregistered `method.basis` lookup target), optimization level `opt`; all other settings null/empty\n- **Readiness:** `blocked_missing_evidence` — BSE name discovery does not establish native/compiler readiness, and no exact, request-bound deterministic receipt was exposed in this arm to discharge the basis applicability rule\n- **Element findings:** none (no evidence of coverage; nothing fabricated)\n- **No writes:** `project_written: false`, `native_input_authored: false`, `command_authored: false`, `execution_requested: false`\n\n**Normalization receipt highlights:**\n- Raw contract valid, no conflicting explicit fields, no canonicalized set fields\n- Normalizer filled `settings.freq: false` deterministically (case-bound explicit-settings normalizer); no other field was altered\n- Receipt SHA-256: `59cd27571a2c60bf4b646df4674745cb20744bd14fb8faaf909d86126b8d3acd`\n\nThe case stands blocked pending evidence that `aug-mcc-pV8Z` is actually materializable (native basis entry or compiler-ready equivalent) for ORCA 6.1 — discovery alone is insufficient.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:minimal:v4",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_a3rNYYgiy3RbKANfRkbV3172",
+      "request_id": "openai:call_00_a3rNYYgiy3RbKANfRkbV3172",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "fcd16d7666011fdbfdda8ebafbb36cfe5c4b662078d38d144ceb777927c3f770",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [
+            "settings.freq"
+          ],
+          "normalization_applied": true,
+          "normalized_payload_sha256": "a45d2dc375dcdb7c81f7a4e139ba132effcad88c882d68618ec7fc5e8b47cb96",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "224918e16afb8f7462ff27c0419c9f599ae8d81f592f3d16523eb7a777b69305",
+          "receipt_sha256": "59cd27571a2c60bf4b646df4674745cb20744bd14fb8faaf909d86126b8d3acd",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-aug-mcc-pv8z-materialization-gap",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "aug-mcc-pV8Z",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": false,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": "opt",
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-aug-mcc-pv8z-materialization-gap",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "aug-mcc-pV8Z",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": "opt",
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "990601463b454cde8e3146d79a056e8221addf9d09063c0749acf9c5bae66320",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-aug-mcc-pv8z-materialization-gap",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "aug-mcc-pV8Z",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": null,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": "opt",
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "36706123c633e898177e3e1200f85a7c7b32956b3198352f94ed279d25a7600f",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_a3rNYYgiy3RbKANfRkbV3172",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_a3rNYYgiy3RbKANfRkbV3172"
+    }
+  ]
+}

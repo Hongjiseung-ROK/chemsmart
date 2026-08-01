@@ -1,0 +1,238 @@
+{
+  "assistant_text": "Proposal submitted and accepted. Summary of the outcome:\n\n**Submission receipt** — `normalization_applied: true`, raw contract valid, no conflicting explicit setting fields. The case-bound normalizer filled the explicit task-derived slot `settings.freq = true` (task kind `freq`); all other fields preserved as submitted.\n\n**Final blocked proposal** (`case_id: orca-b3lyp-d3zero-unsupported`, program `orca`, project `orca-b3lyp-d3zero-unsupported`):\n- **Readiness:** `blocked_unsupported_setting`\n- **Settings (source literals preserved):** functional `B3LYP-D3ZERO`, basis `def2-SVP`, freq `true`; no dispersion/grid/solvent/ECP fields claimed.\n- **Blocking rules:** `scientific_settings.v2.non_exhaustive_scope_unverified` (functional) and `scientific_settings.v2.validation_coverage_gap` (basis)\n- No native input authored, no command authored, no project written, no execution requested.\n\n**Basis for the block, from read-only V2 evidence only:**\n1. **Functional `B3LYP-D3ZERO`** — `matched_count: 0`, resolution `unknown_unverified`; no canonical candidate, `source_registered: false`. The compound string is not registry-supported; it was not reduced to plain B3LYP and was not claimed compiler-ready.\n2. **Basis `def2-SVP`** — matched entry `setting.orca.method_basis.9d4ad2a94a78c138096c` is loader/renderer-verified only (`deterministic_validator_enforced: false`, evidence ceiling `loader_renderer_verification_only`), so it is `blocked_validation_coverage`; its declared applicability rules (`ecp_applicability_required`, `request_element_coverage_required`) remain undischarged with no element data in scope.\n\nNo project candidate is eligible, and no execution path was opened.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "332e797b1f6cd4e9711d37c236cfac199964c8121b54007a8ad7ebf0c4453b32",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "e8e21a6c56cbbcf40c9b535eb14f3309fd2678dc010a8e7fa7e648c49686230e",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "78a67d56fbc15aa2c31e8674833b8d308fb692ca0c410bcefddef4d08297b20b",
+        "receipt_sha256": "27393de3b43e472f0d6c5f5d80a16dbd61c134cc0cf60f7de72700e850895105",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": true,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.frequency_missing"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted and accepted. Summary of the outcome:\n\n**Submission receipt** — `normalization_applied: true`, raw contract valid, no conflicting explicit setting fields. The case-bound normalizer filled the explicit task-derived slot `settings.freq = true` (task kind `freq`); all other fields preserved as submitted.\n\n**Final blocked proposal** (`case_id: orca-b3lyp-d3zero-unsupported`, program `orca`, project `orca-b3lyp-d3zero-unsupported`):\n- **Readiness:** `blocked_unsupported_setting`\n- **Settings (source literals preserved):** functional `B3LYP-D3ZERO`, basis `def2-SVP`, freq `true`; no dispersion/grid/solvent/ECP fields claimed.\n- **Blocking rules:** `scientific_settings.v2.non_exhaustive_scope_unverified` (functional) and `scientific_settings.v2.validation_coverage_gap` (basis)\n- No native input authored, no command authored, no project written, no execution requested.\n\n**Basis for the block, from read-only V2 evidence only:**\n1. **Functional `B3LYP-D3ZERO`** — `matched_count: 0`, resolution `unknown_unverified`; no canonical candidate, `source_registered: false`. The compound string is not registry-supported; it was not reduced to plain B3LYP and was not claimed compiler-ready.\n2. **Basis `def2-SVP`** — matched entry `setting.orca.method_basis.9d4ad2a94a78c138096c` is loader/renderer-verified only (`deterministic_validator_enforced: false`, evidence ceiling `loader_renderer_verification_only`), so it is `blocked_validation_coverage`; its declared applicability rules (`ecp_applicability_required`, `request_element_coverage_required`) remain undischarged with no element data in scope.\n\nNo project candidate is eligible, and no execution path was opened.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.non_exhaustive_scope_unverified",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.dispersion_unsupported",
+          "paper.project.frequency_missing"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.non_exhaustive_scope_unverified",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "orca-b3lyp-d3zero-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b3lyp-d3zero-unsupported",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP-D3ZERO",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-b3lyp-d3zero-unsupported:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "332e797b1f6cd4e9711d37c236cfac199964c8121b54007a8ad7ebf0c4453b32",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "e8e21a6c56cbbcf40c9b535eb14f3309fd2678dc010a8e7fa7e648c49686230e",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "78a67d56fbc15aa2c31e8674833b8d308fb692ca0c410bcefddef4d08297b20b",
+    "receipt_sha256": "27393de3b43e472f0d6c5f5d80a16dbd61c134cc0cf60f7de72700e850895105",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Case orca-b3lyp-d3zero-unsupported (program orca, engine 6.1, task freq, registry accessor job kind opt) assesses the compound functional/basis pair B3LYP-D3ZERO/def2-SVP. Functional lookup expected.functional for 'B3LYP-D3ZERO': matched_count 0; resolve returned status 'unknown_unverified' with reason scientific_settings.v2.non_exhaustive_scope_unverified, canonical_value null, source_registered false, loader not_observed, renderer not_observed, project_candidate_eligible false. The populated ORCA V2 functional inventory (94 entries) has no entry for the literal 'B3LYP-D3ZERO' and no canonical candidate, so the compound functional string is unsupported by the registry; it must not be reduced to plain B3LYP nor claimed compiler-ready. Basis lookup expected.basis for 'def2-SVP': matched by canonical literal to entry setting.orca.method_basis.9d4ad2a94a78c138096c (canonical def2-SVP, loader accepted, renderer preserved, source registered), but resolve status is 'blocked_validation_coverage' with reason scientific_settings.v2.validation_coverage_gap; deterministic_validator_enforced false and evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution; scientific adequacy and setting combination not verified). The basis entry additionally declares applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, undischarged because no element data is in scope. No project candidate is eligible: the functional literal is unregistered/unsupported and the basis is blocked on validation coverage. Proposal is blocked; no native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.non_exhaustive_scope_unverified",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "orca-b3lyp-d3zero-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b3lyp-d3zero-unsupported",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP-D3ZERO",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "schema_version": "chemsmart.registry-stress-live-reconciliation.v3",
+  "reconciliation_id": "registry-v2-stress-live-v4-2026-08-02",
+  "reconciliation_sha256": "e32eb88155ddc96060a39298073a1078f651ecab1641598c0e066ab0f6114c73",
+  "digest_method": "sha256(canonical_json(document excluding reconciliation_sha256))",
+  "campaign": {
+    "campaign_id": "registry-v2-stress-development-v4",
+    "campaign_plan_sha256": "23353fa15348bcbdeee5dde1a4f92d6ddd72efb7744bee5e901e3b59878a6b87",
+    "campaign_receipt_sha256": "edadd44587cb0e4006a98fd6a12ae0631e55222d55209115d5306994ba4e3ba1",
+    "termination_reason": "hypothesis_matrix_exhausted",
+    "preregistered_run_count": 44,
+    "completed_run_count": 44,
+    "transport_attempt_count": 121,
+    "input_tokens": 881806,
+    "output_tokens": 278633,
+    "campaign_wall_time_ms": 2580922,
+    "observed_model": "deepseek-v4-flash",
+    "thinking_mode": "enabled"
+  },
+  "source_binding": {
+    "head_sha": "1674b70be3c5e8b5d4908ca4fbab1c960c1dc807",
+    "remote_tracking_sha": "1674b70be3c5e8b5d4908ca4fbab1c960c1dc807",
+    "binding_sha256": "123252baf1e4e9d188a81ef099460be56f84fc32d228ffd17041d8395337ca4f",
+    "source_tree_sha256": "ed823b38da9ed16a668ac414bbba4ec7fe0a56f05ab1b15582ddc1ee53d2e43f",
+    "clean": true,
+    "remote_exact": true
+  },
+  "scientific_settings_binding": {
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "base_v2_registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+    "predecessor_v1_registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+    "repair_sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7",
+    "base_v2_replay_mutated": false
+  },
+  "verification": {
+    "campaign_receipt_digest_valid": true,
+    "outcome_contracts_valid": 44,
+    "artifact_hashes_valid": 132,
+    "runtime_streams_replayed": 44,
+    "runtime_replay_failures": 0,
+    "secret_value_hits": 0,
+    "credential_shape_hits": 0,
+    "private_reasoning_hits": 0,
+    "absolute_workspace_path_event_count": 44,
+    "absolute_workspace_path_classification": "non-secret provenance data-minimization defect",
+    "engine_calls": 0,
+    "hpc_calls": 0,
+    "project_writes": 0,
+    "native_input_authoring": false
+  },
+  "aggregate_by_arm": {
+    "minimal": {
+      "runs": 14,
+      "raw_passes": 0,
+      "order_insensitive_semantic_passes": 0,
+      "accepted_passes": 2,
+      "normalizer_dependent_passes": 2,
+      "set_order_dependent_passes": 0,
+      "explicit_setting_binding_dependent_passes": 2,
+      "transport_attempts": 26,
+      "input_tokens": 147937,
+      "output_tokens": 79174,
+      "mean_wall_time_ms": 54555,
+      "tool_errors": 0
+    },
+    "registry_v1": {
+      "runs": 14,
+      "raw_passes": 1,
+      "order_insensitive_semantic_passes": 1,
+      "accepted_passes": 2,
+      "normalizer_dependent_passes": 1,
+      "set_order_dependent_passes": 0,
+      "explicit_setting_binding_dependent_passes": 1,
+      "transport_attempts": 42,
+      "input_tokens": 264322,
+      "output_tokens": 87173,
+      "mean_wall_time_ms": 57359,
+      "tool_errors": 0
+    },
+    "registry_v2": {
+      "runs": 14,
+      "raw_passes": 2,
+      "order_insensitive_semantic_passes": 3,
+      "accepted_passes": 9,
+      "normalizer_dependent_passes": 7,
+      "set_order_dependent_passes": 1,
+      "explicit_setting_binding_dependent_passes": 6,
+      "transport_attempts": 46,
+      "input_tokens": 390067,
+      "output_tokens": 98150,
+      "mean_wall_time_ms": 61903,
+      "tool_errors": 3
+    },
+    "registry_v2_advisory": {
+      "runs": 2,
+      "raw_passes": 0,
+      "order_insensitive_semantic_passes": 0,
+      "accepted_passes": 1,
+      "normalizer_dependent_passes": 1,
+      "set_order_dependent_passes": 0,
+      "explicit_setting_binding_dependent_passes": 1,
+      "transport_attempts": 7,
+      "input_tokens": 79480,
+      "output_tokens": 14136,
+      "mean_wall_time_ms": 61846,
+      "tool_errors": 1
+    }
+  },
+  "terminal_states": {
+    "blocked": 14,
+    "failed": 30,
+    "executed": 0,
+    "reproduced": 0
+  },
+  "provider_and_tool_errors": {
+    "MalformedToolArgumentsJSON": 1,
+    "ValidationError": 3,
+    "runs_with_errors": 3,
+    "tool_request_rejected_events": 1,
+    "malformed_tool_executions": 0,
+    "permission_consumptions_for_rejected_calls": 0
+  },
+  "confirmed_findings": [
+    {
+      "finding_id": "v4.case_bound_lookup_eliminated_scope_errors",
+      "evidence": "All V1/V2 resolve and list schemas exposed only lookup_id; no resolve/list tool outcome failed across 44 runs.",
+      "decision": "retain"
+    },
+    {
+      "finding_id": "v4.gaussian_b3lyp_false_incompatibility_repaired",
+      "evidence": "The Gaussian pcseg-2 V2 response observed B3LYP through the repaired sidecar and passed raw, semantic, and accepted grading.",
+      "decision": "retain_experimental"
+    },
+    {
+      "finding_id": "v4.malformed_submission_recovered_fail_closed",
+      "evidence": "One malformed submission produced a digest-bound TOOL_REQUEST_REJECTED event, zero tool execution, and a later well-formed proposal.",
+      "decision": "retain"
+    },
+    {
+      "finding_id": "v4.registry_v2_development_gain_is_normalizer_heavy",
+      "evidence": "V2 accepted 9/14 cases but only 2/14 raw and 3/14 order-insensitive semantic cases; 7 accepted cases depended on normalization.",
+      "decision": "revise_before_default"
+    },
+    {
+      "finding_id": "v4.request_bound_element_evidence_missing",
+      "evidence": "All element/ECP cases failed without a model-visible deterministic element receipt; responses encoded unknown facts as false or asserted an unsupported 28-electron value.",
+      "decision": "implement_validator_overlay_next"
+    },
+    {
+      "finding_id": "v4.registry_cannot_arbitrate_project_support",
+      "evidence": "Gaussian D4 was correctly unknown in a non-exhaustive registry but the model missed the deterministic project-renderer unsupported verdict.",
+      "decision": "bind_project_validator_receipt_next"
+    },
+    {
+      "finding_id": "v4.knowledge_advisory_not_default_worthy",
+      "evidence": "Advisory exposure was 1/2 accepted, unchanged from the corresponding V2 cases, while the B97M-D4 case regressed from raw pass to normalizer-dependent pass and the Pd case added a malformed call.",
+      "decision": "keep_opt_in"
+    }
+  ],
+  "posthoc_successful_submission_reconciliation": {
+    "reason": "The frozen exactly-one metric counts rejected submit attempts as submissions.",
+    "affected_runs": 3,
+    "runs_with_one_rejected_then_one_successful_submission": 2,
+    "runs_with_only_rejected_submissions": 1,
+    "accepted_passes_changed_by_success_only_regrade": 0,
+    "evidence_class": "posthoc_reconciliation_not_preregistered_metric"
+  },
+  "retired_or_prohibited_interpretations": [
+    "accepted_pass is model-only success",
+    "blocked runtime terminal is scientific success",
+    "BSE name discovery proves compiler materialization",
+    "absence from a non-exhaustive inventory proves incompatibility",
+    "advisory knowledge may fill missing paper or element facts",
+    "this development matrix establishes cross-paper generalization or SOTA"
+  ],
+  "next_experiment_contract": {
+    "priority_1": "Expose a request-bound BSE element and ECP receipt with evidence IDs and require each element fact to cite it.",
+    "priority_2": "Expose deterministic project-render and required-job semantic receipts as the readiness authority.",
+    "priority_3": "Separate rejected submission attempts from successful typed proposal count without retroactively changing V4.",
+    "priority_4": "Replace absolute cwd in future public event payloads with a repository identity while preserving private exact events.",
+    "paired_design": "V2 versus V2 plus deterministic validator receipts on the failed element and unsupported-setting cases.",
+    "safety_ceiling": "safe preview only; zero chemistry-engine and HPC execution"
+  }
+}

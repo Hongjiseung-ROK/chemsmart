@@ -1,0 +1,238 @@
+{
+  "assistant_text": "Submission complete. One proposal was submitted for case `xtb-cross-program-basis-not-applicable` and accepted with a normalization receipt.\n\n**Outcome:**\n- **Readiness:** `blocked_unsupported_setting`\n- **Blocking rule:** `scientific_settings.v2.xtb_basis_not_applicable` — the V2 registry deterministically resolves `method.basis='def2-SVP'` for xtb/opt as `not_applicable`, with no candidates, no canonical value, no entry evidence (`loader_accepted=false`, `project_candidate_eligible=false`), and the list view confirms `matched_count=0`.\n- **Settings:** source literal `basis='def2-SVP'` preserved verbatim; no substitution, no invented basis semantics.\n- **Normalization:** the case-bound normalizer filled defaults `gfn_version='gfn2'` and `optimization_level='normal'` (xtb opt context); no conflicting explicit setting fields, raw contract valid.\n- **Safety flags:** `native_input_authored=false`, `command_authored=false`, `project_written=false`, `execution_requested=false`.\n\nThe cross-program def2-SVP association is represented as a blocked, unsupported setting; no project, command, or execution artifacts were created.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.xtb_basis_not_applicable"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_not_applicable"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "6f40b47c9f133d3222cf6958574677f191895b09b5df3b18e096c7cf7b6cfe9e",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.gfn_version",
+          "settings.optimization_level"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "b1d8c0660571d0b963911daad38fc698214061aac4d51f721268ace91def5a1a",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "1a3dc443e29a2cc57101b0aec7dd61d2475020e867e4720ae4b75e344b984455",
+        "receipt_sha256": "31ed56c08593f1d3cee9bfd840946ae26102d5d6b17460e9e5e22446b2749c82",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.cross-program-field",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": true,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.xtb_basis_not_applicable"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_not_applicable",
+          "paper.project.gfn_missing"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.cross-program-field",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_public_english_response": "Submission complete. One proposal was submitted for case `xtb-cross-program-basis-not-applicable` and accepted with a normalization receipt.\n\n**Outcome:**\n- **Readiness:** `blocked_unsupported_setting`\n- **Blocking rule:** `scientific_settings.v2.xtb_basis_not_applicable` — the V2 registry deterministically resolves `method.basis='def2-SVP'` for xtb/opt as `not_applicable`, with no candidates, no canonical value, no entry evidence (`loader_accepted=false`, `project_candidate_eligible=false`), and the list view confirms `matched_count=0`.\n- **Settings:** source literal `basis='def2-SVP'` preserved verbatim; no substitution, no invented basis semantics.\n- **Normalization:** the case-bound normalizer filled defaults `gfn_version='gfn2'` and `optimization_level='normal'` (xtb opt context); no conflicting explicit setting fields, raw contract valid.\n- **Safety flags:** `native_input_authored=false`, `command_authored=false`, `project_written=false`, `execution_requested=false`.\n\nThe cross-program def2-SVP association is represented as a blocked, unsupported setting; no project, command, or execution artifacts were created.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.xtb_basis_not_applicable"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_not_applicable",
+          "paper.project.gfn_missing"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.cross-program-field",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.xtb_basis_not_applicable"
+    ],
+    "case_id": "xtb-cross-program-basis-not-applicable",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-cross-program-basis-not-applicable",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:xtb-cross-program-basis-not-applicable:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "6f40b47c9f133d3222cf6958574677f191895b09b5df3b18e096c7cf7b6cfe9e",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.gfn_version",
+      "settings.optimization_level"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "b1d8c0660571d0b963911daad38fc698214061aac4d51f721268ace91def5a1a",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "1a3dc443e29a2cc57101b0aec7dd61d2475020e867e4720ae4b75e344b984455",
+    "receipt_sha256": "31ed56c08593f1d3cee9bfd840946ae26102d5d6b17460e9e5e22446b2749c82",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.",
+  "typed_proposal": {
+    "analysis_summary": "Source assigns def2-SVP to GFN2-xTB for an xtb opt task, which is a cross-program basis association. The V2 registry resolution for method.basis='def2-SVP' (program xtb, job_kind opt) returns status 'not_applicable' under reason rule scientific_settings.v2.xtb_basis_not_applicable, with matched_by 'not_applicable', no candidates, no canonical value, and no entry evidence (loader_accepted=false, project_candidate_eligible=false). The list view confirms matched_count=0 under the same rule. Evidence ceiling is loader_renderer_verification_only with no engine execution, so no scientific-adequacy or setting-combination claim is made. The proposal is blocked as an unsupported setting; the source literal basis='def2-SVP' is preserved verbatim with no substitution, and no native input, command, project, or execution is authored or requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.xtb_basis_not_applicable"
+    ],
+    "case_id": "xtb-cross-program-basis-not-applicable",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-cross-program-basis-not-applicable",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": "gfn2",
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": "normal",
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

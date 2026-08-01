@@ -1,0 +1,225 @@
+{
+  "assistant_text": "The final typed proposal was submitted and accepted by the registry (`raw_contract_valid: true`, receipt `38fc77b0…`, case `17a83c1b…`). Summary of the plan:\n\n**Case `orca-b97m-d4-exact-compound`** — ORCA 6.1 frequency project (accessor job kind `opt`)\n\n| Setting | Requested literal | Resolution | Evidence ceiling |\n|---|---|---|---|\n| Functional `B97M-D4` | preserved verbatim | `exact_registered` (eligible, no applicability rules) | loader/renderer verification only — no safe preview, no engine execution, no scientific-adequacy/combination check |\n| Basis `def2-SVP` | preserved verbatim | `blocked_validation_coverage` (not eligible) | loader/renderer verification only |\n\n**Readiness: `blocked_validation_coverage`**, with blocking rules:\n- `scientific_settings.basis.ecp_applicability_required`\n- `scientific_settings.basis.request_element_coverage_required`\n\nThe basis carries these two applicability rules that cannot be discharged: no compound element literals are in case scope, and no exact, request-bound receipt for them exists in this arm. BSE catalog presence (`bse-catalog-0.11`) does not make `def2-SVP` native/compiler-ready, and the knowledge pack is advisory only. All other settings (`freq: true` reflecting the explicit freq task kind; no heavy/ECP elements, dispersion, solvent, grid, or optimization level) were set or left null exactly as requested; no project write, native input, command, or execution was authored or requested.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.ecp_applicability_required",
+        "scientific_settings.basis.request_element_coverage_required"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "95424183cbf7a1c73d46f3ef473b222d5bfda9a403e6a8b0630e134fb1c9e4b8",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "95424183cbf7a1c73d46f3ef473b222d5bfda9a403e6a8b0630e134fb1c9e4b8",
+        "receipt_sha256": "38fc77b09cf797652803fea5f81a207fae6ea096bcaff20dd172fa170c64f0e8",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": true,
+    "raw_semantic_oracle_passed": true,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.ecp_applicability_required",
+        "scientific_settings.basis.request_element_coverage_required"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_public_english_response": "The final typed proposal was submitted and accepted by the registry (`raw_contract_valid: true`, receipt `38fc77b0…`, case `17a83c1b…`). Summary of the plan:\n\n**Case `orca-b97m-d4-exact-compound`** — ORCA 6.1 frequency project (accessor job kind `opt`)\n\n| Setting | Requested literal | Resolution | Evidence ceiling |\n|---|---|---|---|\n| Functional `B97M-D4` | preserved verbatim | `exact_registered` (eligible, no applicability rules) | loader/renderer verification only — no safe preview, no engine execution, no scientific-adequacy/combination check |\n| Basis `def2-SVP` | preserved verbatim | `blocked_validation_coverage` (not eligible) | loader/renderer verification only |\n\n**Readiness: `blocked_validation_coverage`**, with blocking rules:\n- `scientific_settings.basis.ecp_applicability_required`\n- `scientific_settings.basis.request_element_coverage_required`\n\nThe basis carries these two applicability rules that cannot be discharged: no compound element literals are in case scope, and no exact, request-bound receipt for them exists in this arm. BSE catalog presence (`bse-catalog-0.11`) does not make `def2-SVP` native/compiler-ready, and the knowledge pack is advisory only. All other settings (`freq: true` reflecting the explicit freq task kind; no heavy/ECP elements, dispersion, solvent, grid, or optimization level) were set or left null exactly as requested; no project write, native input, command, or execution was authored or requested.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.ecp_applicability_required",
+        "scientific_settings.basis.request_element_coverage_required"
+      ],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Case orca-b97m-d4-exact-compound: ORCA 6.1 frequency project (registry accessor job kind opt). Mandatory functional lookup 'B97M-D4' resolved status exact_registered with project_candidate_eligible true, job_scope_compatible true, reason rule scientific_settings.v2.exact_registered; its evidence ceiling is loader_renderer_verification_only (no safe preview, no engine execution, no scientific adequacy or setting-combination verification). Mandatory basis lookup 'def2-SVP' resolved status blocked_validation_coverage with project_candidate_eligible false and reason rule scientific_settings.v2.validation_coverage_gap; the entry carries applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, which cannot be discharged because no compound element literals are in case scope and no exact receipt for these rules exists in this arm. BSE catalog presence (bse-catalog-0.11) does not make def2-SVP native or compiler-ready, and the knowledge-pack is advisory only. Source literals 'B97M-D4' and 'def2-SVP' are preserved verbatim in settings; freq true reflects the explicit task kind freq; no other settings were requested (heavy_elements, ecp_elements, dispersion, etc. left empty/null). Overall readiness is blocked_validation_coverage due to the mandatory basis validation coverage gap. No project write, native input, command, or execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.ecp_applicability_required",
+      "scientific_settings.basis.request_element_coverage_required"
+    ],
+    "case_id": "orca-b97m-d4-exact-compound",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b97m-d4-exact-compound",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B97M-D4",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-b97m-d4-exact-compound:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "17a83c1b12d2337805847c1b6684dbda6fcc15d9b2deb1a6dfa69ed0ccaa1f34",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "95424183cbf7a1c73d46f3ef473b222d5bfda9a403e6a8b0630e134fb1c9e4b8",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "95424183cbf7a1c73d46f3ef473b222d5bfda9a403e6a8b0630e134fb1c9e4b8",
+    "receipt_sha256": "38fc77b09cf797652803fea5f81a207fae6ea096bcaff20dd172fa170c64f0e8",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Case orca-b97m-d4-exact-compound: ORCA 6.1 frequency project (registry accessor job kind opt). Mandatory functional lookup 'B97M-D4' resolved status exact_registered with project_candidate_eligible true, job_scope_compatible true, reason rule scientific_settings.v2.exact_registered; its evidence ceiling is loader_renderer_verification_only (no safe preview, no engine execution, no scientific adequacy or setting-combination verification). Mandatory basis lookup 'def2-SVP' resolved status blocked_validation_coverage with project_candidate_eligible false and reason rule scientific_settings.v2.validation_coverage_gap; the entry carries applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, which cannot be discharged because no compound element literals are in case scope and no exact receipt for these rules exists in this arm. BSE catalog presence (bse-catalog-0.11) does not make def2-SVP native or compiler-ready, and the knowledge-pack is advisory only. Source literals 'B97M-D4' and 'def2-SVP' are preserved verbatim in settings; freq true reflects the explicit task kind freq; no other settings were requested (heavy_elements, ecp_elements, dispersion, etc. left empty/null). Overall readiness is blocked_validation_coverage due to the mandatory basis validation coverage gap. No project write, native input, command, or execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Case orca-b97m-d4-exact-compound: ORCA 6.1 frequency project (registry accessor job kind opt). Mandatory functional lookup 'B97M-D4' resolved status exact_registered with project_candidate_eligible true, job_scope_compatible true, reason rule scientific_settings.v2.exact_registered; its evidence ceiling is loader_renderer_verification_only (no safe preview, no engine execution, no scientific adequacy or setting-combination verification). Mandatory basis lookup 'def2-SVP' resolved status blocked_validation_coverage with project_candidate_eligible false and reason rule scientific_settings.v2.validation_coverage_gap; the entry carries applicability rules scientific_settings.basis.ecp_applicability_required and scientific_settings.basis.request_element_coverage_required, which cannot be discharged because no compound element literals are in case scope and no exact receipt for these rules exists in this arm. BSE catalog presence (bse-catalog-0.11) does not make def2-SVP native or compiler-ready, and the knowledge-pack is advisory only. Source literals 'B97M-D4' and 'def2-SVP' are preserved verbatim in settings; freq true reflects the explicit task kind freq; no other settings were requested (heavy_elements, ecp_elements, dispersion, etc. left empty/null). Overall readiness is blocked_validation_coverage due to the mandatory basis validation coverage gap. No project write, native input, command, or execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.ecp_applicability_required",
+      "scientific_settings.basis.request_element_coverage_required"
+    ],
+    "case_id": "orca-b97m-d4-exact-compound",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b97m-d4-exact-compound",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B97M-D4",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

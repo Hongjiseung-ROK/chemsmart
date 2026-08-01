@@ -1,0 +1,211 @@
+{
+  "assistant_text": "The proposal was accepted with a valid normalization receipt.\n\n**Submission summary — `orca-aug-mcc-pv8z-materialization-gap`**\n\n- **Program / task:** orca, opt (engine 6.1 assumed from case)\n- **Settings preserved (source literals):** functional `B3LYP`, basis `aug-mcc-pV8Z` (the host-preregistered `method.basis` lookup target), optimization level `opt`; all other settings null/empty\n- **Readiness:** `blocked_missing_evidence` — BSE name discovery does not establish native/compiler readiness, and no exact, request-bound deterministic receipt was exposed in this arm to discharge the basis applicability rule\n- **Element findings:** none (no evidence of coverage; nothing fabricated)\n- **No writes:** `project_written: false`, `native_input_authored: false`, `command_authored: false`, `execution_requested: false`\n\n**Normalization receipt highlights:**\n- Raw contract valid, no conflicting explicit fields, no canonicalized set fields\n- Normalizer filled `settings.freq: false` deterministically (case-bound explicit-settings normalizer); no other field was altered\n- Receipt SHA-256: `59cd27571a2c60bf4b646df4674745cb20744bd14fb8faaf909d86126b8d3acd`\n\nThe case stands blocked pending evidence that `aug-mcc-pV8Z` is actually materializable (native basis entry or compiler-ready equivalent) for ORCA 6.1 — discovery alone is insufficient.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "fcd16d7666011fdbfdda8ebafbb36cfe5c4b662078d38d144ceb777927c3f770",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "a45d2dc375dcdb7c81f7a4e139ba132effcad88c882d68618ec7fc5e8b47cb96",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "224918e16afb8f7462ff27c0419c9f599ae8d81f592f3d16523eb7a777b69305",
+        "receipt_sha256": "59cd27571a2c60bf4b646df4674745cb20744bd14fb8faaf909d86126b8d3acd",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "The proposal was accepted with a valid normalization receipt.\n\n**Submission summary — `orca-aug-mcc-pv8z-materialization-gap`**\n\n- **Program / task:** orca, opt (engine 6.1 assumed from case)\n- **Settings preserved (source literals):** functional `B3LYP`, basis `aug-mcc-pV8Z` (the host-preregistered `method.basis` lookup target), optimization level `opt`; all other settings null/empty\n- **Readiness:** `blocked_missing_evidence` — BSE name discovery does not establish native/compiler readiness, and no exact, request-bound deterministic receipt was exposed in this arm to discharge the basis applicability rule\n- **Element findings:** none (no evidence of coverage; nothing fabricated)\n- **No writes:** `project_written: false`, `native_input_authored: false`, `command_authored: false`, `execution_requested: false`\n\n**Normalization receipt highlights:**\n- Raw contract valid, no conflicting explicit fields, no canonicalized set fields\n- Normalizer filled `settings.freq: false` deterministically (case-bound explicit-settings normalizer); no other field was altered\n- Receipt SHA-256: `59cd27571a2c60bf4b646df4674745cb20744bd14fb8faaf909d86126b8d3acd`\n\nThe case stands blocked pending evidence that `aug-mcc-pV8Z` is actually materializable (native basis entry or compiler-ready equivalent) for ORCA 6.1 — discovery alone is insufficient.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-aug-mcc-pv8z-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "aug-mcc-pV8Z",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": "opt",
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "fcd16d7666011fdbfdda8ebafbb36cfe5c4b662078d38d144ceb777927c3f770",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "a45d2dc375dcdb7c81f7a4e139ba132effcad88c882d68618ec7fc5e8b47cb96",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "224918e16afb8f7462ff27c0419c9f599ae8d81f592f3d16523eb7a777b69305",
+    "receipt_sha256": "59cd27571a2c60bf4b646df4674745cb20744bd14fb8faaf909d86126b8d3acd",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.",
+  "typed_proposal": {
+    "analysis_summary": "Requested: ORCA 6.1 (program orca, task kind opt) B3LYP/aug-mcc-pV8Z optimization. In-scope source literals are preserved: functional 'B3LYP', basis 'aug-mcc-pV8Z' (the host-preregistered method.basis lookup target for opt), and optimization task 'opt'. The basis name is BSE-discoverable, but BSE name discovery is not treated as native/compiler readiness. In this read-only arm no exact, request-bound deterministic receipt was exposed that could discharge the basis applicability rule, and no tool evidence establishes that 'aug-mcc-pV8Z' is materializable natively or compiler-ready for ORCA 6.1 (e.g., a native basis library entry). This is the materialization gap: name discovery does not imply availability. Element coverage, ECP intent, and all other settings are unverifiable without evidence, so element_findings are empty. Readiness: blocked_missing_evidence. No project write, native input authorship, command authorship, or execution is proposed.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-aug-mcc-pv8z-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "aug-mcc-pV8Z",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": false,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": "opt",
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

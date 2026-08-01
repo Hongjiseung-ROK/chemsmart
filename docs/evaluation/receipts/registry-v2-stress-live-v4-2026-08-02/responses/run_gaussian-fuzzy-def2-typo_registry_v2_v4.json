@@ -1,0 +1,223 @@
+{
+  "assistant_text": "The stress plan was submitted and accepted. Summary of the outcome:\n\n**Submission receipt**\n- Normalization applied by the case-bound normalizer (`case-bound-explicit-settings-and-set-order` v1.0.0); `raw_contract_valid: true`, no contract errors, no conflicting explicit setting fields.\n- The normalizer filled `settings.functional` with the case-bound default **B3LYP** (recorded under `filled_explicit_setting_fields`); all other fields passed through unchanged.\n- Receipt SHA-256: `1903afcf41b056e7c12cd7aab3e8e5f0cfc502e9413bbfe6ffab9a4e627df3a6`; normalized payload SHA-256: `9363fde3396e69898a35cf06903a13ed7fa13d52e8c00318bd8bb0e545e731d0`.\n\n**Final proposal state**\n- Case: `gaussian-fuzzy-def2-typo` · program: gaussian · project: `gaussian-fuzzy-def2-typo`\n- Readiness: **blocked_unverified_setting**, blocking rule `scientific_settings.v2.candidate_requires_selection`\n- Basis literal preserved exactly as reported: **`def2-TZVXP`** (no fuzzy candidate selected, no substitution)\n- `native_input_authored`, `command_authored`, `project_written`, `execution_requested` — all false; no elements were provided, so no element findings.\n\nThe proposal is blocked deterministically: the V2 registry holds no exact entry for `def2-TZVXP` (only fuzzy near-misses such as `def2-TZVP`/`def2-TZVPP`), and per the conservative-search instruction no fuzzy candidate was chosen. The source spelling was preserved in the blocked proposal.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.candidate_requires_selection"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.functional"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "9363fde3396e69898a35cf06903a13ed7fa13d52e8c00318bd8bb0e545e731d0",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "77b337d827ec28eb3281b31364f34df70e1c221d6b88f1067b2728baec526c5a",
+        "receipt_sha256": "1903afcf41b056e7c12cd7aab3e8e5f0cfc502e9413bbfe6ffab9a4e627df3a6",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.fuzzy-no-substitution",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": true,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.candidate_requires_selection"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "The stress plan was submitted and accepted. Summary of the outcome:\n\n**Submission receipt**\n- Normalization applied by the case-bound normalizer (`case-bound-explicit-settings-and-set-order` v1.0.0); `raw_contract_valid: true`, no contract errors, no conflicting explicit setting fields.\n- The normalizer filled `settings.functional` with the case-bound default **B3LYP** (recorded under `filled_explicit_setting_fields`); all other fields passed through unchanged.\n- Receipt SHA-256: `1903afcf41b056e7c12cd7aab3e8e5f0cfc502e9413bbfe6ffab9a4e627df3a6`; normalized payload SHA-256: `9363fde3396e69898a35cf06903a13ed7fa13d52e8c00318bd8bb0e545e731d0`.\n\n**Final proposal state**\n- Case: `gaussian-fuzzy-def2-typo` · program: gaussian · project: `gaussian-fuzzy-def2-typo`\n- Readiness: **blocked_unverified_setting**, blocking rule `scientific_settings.v2.candidate_requires_selection`\n- Basis literal preserved exactly as reported: **`def2-TZVXP`** (no fuzzy candidate selected, no substitution)\n- `native_input_authored`, `command_authored`, `project_written`, `execution_requested` — all false; no elements were provided, so no element findings.\n\nThe proposal is blocked deterministically: the V2 registry holds no exact entry for `def2-TZVXP` (only fuzzy near-misses such as `def2-TZVP`/`def2-TZVPP`), and per the conservative-search instruction no fuzzy candidate was chosen. The source spelling was preserved in the blocked proposal.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.candidate_requires_selection"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.candidate_requires_selection"
+    ],
+    "case_id": "gaussian-fuzzy-def2-typo",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-fuzzy-def2-typo",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-TZVXP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": null,
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-fuzzy-def2-typo:registry_v2:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.functional"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "9363fde3396e69898a35cf06903a13ed7fa13d52e8c00318bd8bb0e545e731d0",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "77b337d827ec28eb3281b31364f34df70e1c221d6b88f1067b2728baec526c5a",
+    "receipt_sha256": "1903afcf41b056e7c12cd7aab3e8e5f0cfc502e9413bbfe6ffab9a4e627df3a6",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.",
+  "typed_proposal": {
+    "analysis_summary": "Registry V2 lookup for gaussian method.basis literal 'def2-TZVXP' (job scope opt) resolved deterministically to status candidate_only with matched_by fuzzy_candidate, reason rule scientific_settings.v2.candidate_requires_selection. No exact-matching registry entry exists: loader_accepted=false (loader_observation not_observed), renderer_preserved=false (renderer_observation not_observed), source_registered=false, canonical_value null, entry_id null. The listing shows 17 fuzzy matches, none with matched_literal 'def2-TZVXP'; the five nearest candidates (def2-TZVP, def2-TZVPP, def2-mTZVPP, def2-TZVPPD, def2-mTZVP) all carry similarity below 10000 basis points and are not exact matches, so none was selected per the conservative-search instruction. The reported source spelling 'def2-TZVXP' is preserved in the blocked proposal; no fuzzy candidate was substituted and no raw registry status was rewritten. No elements were provided in the request, so no element-coverage findings are recorded. Readiness is blocked_unverified_setting: the basis literal cannot be verified against the populated V2 inventory and the deterministic candidate_requires_selection blocker applies. No project was written, no native input or ChemSmart command was authored, and no execution was requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.candidate_requires_selection"
+    ],
+    "case_id": "gaussian-fuzzy-def2-typo",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-fuzzy-def2-typo",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-TZVXP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

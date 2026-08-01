@@ -1,0 +1,227 @@
+{
+  "assistant_text": "The registry stress plan was submitted and accepted. The normalization receipt reports the following literal results:\n\n- **Raw contract**: valid (`raw_contract_valid: true`, no `raw_contract_error_paths`), normalization applied.\n- **Conflicting explicit setting fields**: `settings.gfn_version` — the explicit `gfn_version: \"2\"` encoding was flagged as conflicting with the case-bound explicit-settings contract (only `method.basis 'def2-SVP'` is the declared explicit setting in scope for this case).\n- **Filled explicit setting fields**: `settings.optimization_level` — the case-bound normalizer filled this to `\"normal\"` for the `opt` task kind.\n- **Canonicalized set fields**: none.\n- **Final readiness**: `blocked_unsupported_setting` with `basis: \"def2-SVP\"` preserved as the source literal; `gfn_version` retained as `\"2\"` in the normalized payload; `project_written`, `native_input_authored`, `command_authored`, and `execution_requested` all remain `false`.\n- Receipt fingerprints: `normalized_payload_sha256 050558692735f25b7ecc400ce6f504761792df42431822d70fe31d78b8d47b7d`, `raw_payload_sha256 525e696ee5d3e540294b4a1c1b78c38fb4a64c1a4addeccfe5cee320f075070f`, `receipt_sha256 a6da32f3ae68b4092f7a6e1196338f9d42f1e3b090fb66f4ef25b0ba1cc627b5`.\n\nThe blocked proposal stands: for the xtb program, a GFN Hamiltonian is the whole method and `def2-SVP` is not an applicable basis setting, so the case is blocked without any project write, native input, command, or execution.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_not_applicable"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "6f40b47c9f133d3222cf6958574677f191895b09b5df3b18e096c7cf7b6cfe9e",
+        "conflicting_explicit_setting_fields": [
+          "settings.gfn_version"
+        ],
+        "filled_explicit_setting_fields": [
+          "settings.optimization_level"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "050558692735f25b7ecc400ce6f504761792df42431822d70fe31d78b8d47b7d",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "525e696ee5d3e540294b4a1c1b78c38fb4a64c1a4addeccfe5cee320f075070f",
+        "receipt_sha256": "a6da32f3ae68b4092f7a6e1196338f9d42f1e3b090fb66f4ef25b0ba1cc627b5",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.cross-program-field",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 1,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_not_applicable"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.cross-program-field",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_public_english_response": "The registry stress plan was submitted and accepted. The normalization receipt reports the following literal results:\n\n- **Raw contract**: valid (`raw_contract_valid: true`, no `raw_contract_error_paths`), normalization applied.\n- **Conflicting explicit setting fields**: `settings.gfn_version` — the explicit `gfn_version: \"2\"` encoding was flagged as conflicting with the case-bound explicit-settings contract (only `method.basis 'def2-SVP'` is the declared explicit setting in scope for this case).\n- **Filled explicit setting fields**: `settings.optimization_level` — the case-bound normalizer filled this to `\"normal\"` for the `opt` task kind.\n- **Canonicalized set fields**: none.\n- **Final readiness**: `blocked_unsupported_setting` with `basis: \"def2-SVP\"` preserved as the source literal; `gfn_version` retained as `\"2\"` in the normalized payload; `project_written`, `native_input_authored`, `command_authored`, and `execution_requested` all remain `false`.\n- Receipt fingerprints: `normalized_payload_sha256 050558692735f25b7ecc400ce6f504761792df42431822d70fe31d78b8d47b7d`, `raw_payload_sha256 525e696ee5d3e540294b4a1c1b78c38fb4a64c1a4addeccfe5cee320f075070f`, `receipt_sha256 a6da32f3ae68b4092f7a6e1196338f9d42f1e3b090fb66f4ef25b0ba1cc627b5`.\n\nThe blocked proposal stands: for the xtb program, a GFN Hamiltonian is the whole method and `def2-SVP` is not an applicable basis setting, so the case is blocked without any project write, native input, command, or execution.",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_not_applicable"
+        ],
+        "expected": "blocked_unsupported_setting",
+        "observed": "blocked_unsupported_setting",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.cross-program-field",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.",
+    "blocking_rule_ids": [],
+    "case_id": "xtb-cross-program-basis-not-applicable",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-cross-program-basis-not-applicable",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": "2",
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:xtb-cross-program-basis-not-applicable:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "6f40b47c9f133d3222cf6958574677f191895b09b5df3b18e096c7cf7b6cfe9e",
+    "conflicting_explicit_setting_fields": [
+      "settings.gfn_version"
+    ],
+    "filled_explicit_setting_fields": [
+      "settings.optimization_level"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "050558692735f25b7ecc400ce6f504761792df42431822d70fe31d78b8d47b7d",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "525e696ee5d3e540294b4a1c1b78c38fb4a64c1a4addeccfe5cee320f075070f",
+    "receipt_sha256": "a6da32f3ae68b4092f7a6e1196338f9d42f1e3b090fb66f4ef25b0ba1cc627b5",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.",
+  "typed_proposal": {
+    "analysis_summary": "The source specifies def2-SVP as the basis for a GFN2-xTB geometry optimization (xTB 6.7.1, task kind opt). This is a cross-program conflict: def2-SVP is a BSE-discoverable basis-set name used by quantum-chemistry programs with explicit basis parameters, but the xTB GFN Hamiltonian is the entire method and exposes no user-specified basis-set parameter. Hence method.basis 'def2-SVP' is not applicable to the xtb program; the setting is unsupported and the proposal is blocked (blocked_unsupported_setting) with the source literal preserved unchanged. The stated method GFN2-xTB is encoded natively as gfn_version '2'; no other settings were supplied. No native input, command, project write, or execution is proposed.",
+    "blocking_rule_ids": [],
+    "case_id": "xtb-cross-program-basis-not-applicable",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-cross-program-basis-not-applicable",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": "2",
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": "normal",
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

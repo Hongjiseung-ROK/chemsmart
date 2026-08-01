@@ -1,0 +1,219 @@
+{
+  "assistant_text": "Proposal submitted for case `xtb-gfnff-alpb-n-hexane`. Summary of what was recorded:\n\n**Proposal (as submitted)**\n- Program: `xtb`; project name: `xtb-gfnff-alpb-n-hexane`\n- Readiness: `blocked_missing_evidence`\n- Settings preserved verbatim: `gfn_version=\"gfnff\"`, `solvent_model=\"alpb\"`, `solvent_id=\"n-hexane\"` (hyphenated identity intact)\n- `basis` left null — no orbital basis invented for xTB GFN\n- No element findings, no invented blocking rule IDs, no native input / command / project write / execution (all `false`)\n- Rationale: this arm exposes no read-only registry lookup tool, so the mandatory targets (`gfn` `'gfnff'` for opt, `solvent-model` `'alpb'` for opt, `solvent-id` `'n-hexane'` for opt) could not be checked against Registry V2 and no request-bound deterministic receipt is available to discharge their applicability rules.\n\n**Normalization receipt (literal)**\n- `normalization_applied`: true; `raw_contract_valid`: true; `conflicting_explicit_setting_fields`: []\n- `filled_explicit_setting_fields`: `[\"settings.optimization_level\"]` — the case-bound normalizer filled `optimization_level` with the canonical default `\"normal\"` (task kind `opt`) in the normalized payload; my raw proposal had it null and I did not substitute a value myself.\n- Receipt hashes: `raw_payload_sha256` `5f53395d58cafd2b548bdd4cbf7015cdcd197b63cc3ad74cc90781b57cf40b10`, `normalized_payload_sha256` `9977ec7a0283291b4db9c00984a12f5c95d78c5891467afc21f51d16e1261b1b`, `case_sha256` `8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1`.\n\nThe proposal is complete; no further action was taken (read-only experiment).",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.optimization_level"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "9977ec7a0283291b4db9c00984a12f5c95d78c5891467afc21f51d16e1261b1b",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "5f53395d58cafd2b548bdd4cbf7015cdcd197b63cc3ad74cc90781b57cf40b10",
+        "receipt_sha256": "11c15b0b73dd2f6419b5e1e49b1079ae7cc873156f387bb4cdf027a31afd81f8",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "explicit_setting_binding_dependency": false,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false,
+    "raw_semantic_oracle_passed": false,
+    "raw_wire_contract_valid": true,
+    "set_order_dependency": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted for case `xtb-gfnff-alpb-n-hexane`. Summary of what was recorded:\n\n**Proposal (as submitted)**\n- Program: `xtb`; project name: `xtb-gfnff-alpb-n-hexane`\n- Readiness: `blocked_missing_evidence`\n- Settings preserved verbatim: `gfn_version=\"gfnff\"`, `solvent_model=\"alpb\"`, `solvent_id=\"n-hexane\"` (hyphenated identity intact)\n- `basis` left null — no orbital basis invented for xTB GFN\n- No element findings, no invented blocking rule IDs, no native input / command / project write / execution (all `false`)\n- Rationale: this arm exposes no read-only registry lookup tool, so the mandatory targets (`gfn` `'gfnff'` for opt, `solvent-model` `'alpb'` for opt, `solvent-id` `'n-hexane'` for opt) could not be checked against Registry V2 and no request-bound deterministic receipt is available to discharge their applicability rules.\n\n**Normalization receipt (literal)**\n- `normalization_applied`: true; `raw_contract_valid`: true; `conflicting_explicit_setting_fields`: []\n- `filled_explicit_setting_fields`: `[\"settings.optimization_level\"]` — the case-bound normalizer filled `optimization_level` with the canonical default `\"normal\"` (task kind `opt`) in the normalized payload; my raw proposal had it null and I did not substitute a value myself.\n- Receipt hashes: `raw_payload_sha256` `5f53395d58cafd2b548bdd4cbf7015cdcd197b63cc3ad74cc90781b57cf40b10`, `normalized_payload_sha256` `9977ec7a0283291b4db9c00984a12f5c95d78c5891467afc21f51d16e1261b1b`, `case_sha256` `8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1`.\n\nThe proposal is complete; no further action was taken (read-only experiment).",
+  "raw_semantic_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [],
+        "expected": "project_candidate_valid",
+        "observed": "project_candidate_valid",
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render"
+    ]
+  },
+  "raw_typed_proposal": {
+    "analysis_summary": "Planned a GFN-FF xTB optimization (task kind: opt) of n-hexane with ALPB implicit solvation. Settings preserve the request literals verbatim: gfn_version='gfnff', solvent_model='alpb', solvent_id='n-hexane' (hyphenated solvent identity kept intact). basis is left null because xTB GFN methods carry an internal minimal basis and no external orbital basis exists for xtb; no basis was invented. No other setting literals were present in the request, so functional, dispersion, integration_grid, optimization_level, freq, solv_freq, and ecp_intent were left unset rather than substituting values (GFN-FF intrinsically includes dispersion; no ECP intent was expressed). element_findings is empty because the request names no element-specific coverage and no registry evidence is available to assert any. This arm exposes no read-only registry lookup tool, so the mandatory host-preregistered targets (gfn 'gfnff' for opt, solvent-model 'alpb' for opt, solvent-id 'n-hexane' for opt) could not be checked against Registry V2, and no exact, request-bound deterministic receipt is available to discharge their declared applicability rules. Blocking rule IDs are unknown from available evidence and were not invented. Readiness: blocked_missing_evidence. No fuzzy candidates were selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was performed.",
+    "blocking_rule_ids": [],
+    "case_id": "xtb-gfnff-alpb-n-hexane",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-gfnff-alpb-n-hexane",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": null,
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": "gfnff",
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": "n-hexane",
+      "solvent_model": "alpb"
+    }
+  },
+  "run_id": "run:xtb-gfnff-alpb-n-hexane:minimal:v4",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "8c9f80175f98790a0c89986188a80f1fca3e3abc0ff4e896d21f5fb36c08d5b1",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.optimization_level"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "9977ec7a0283291b4db9c00984a12f5c95d78c5891467afc21f51d16e1261b1b",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "5f53395d58cafd2b548bdd4cbf7015cdcd197b63cc3ad74cc90781b57cf40b10",
+    "receipt_sha256": "11c15b0b73dd2f6419b5e1e49b1079ae7cc873156f387bb4cdf027a31afd81f8",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "typed_analysis_summary": "Planned a GFN-FF xTB optimization (task kind: opt) of n-hexane with ALPB implicit solvation. Settings preserve the request literals verbatim: gfn_version='gfnff', solvent_model='alpb', solvent_id='n-hexane' (hyphenated solvent identity kept intact). basis is left null because xTB GFN methods carry an internal minimal basis and no external orbital basis exists for xtb; no basis was invented. No other setting literals were present in the request, so functional, dispersion, integration_grid, optimization_level, freq, solv_freq, and ecp_intent were left unset rather than substituting values (GFN-FF intrinsically includes dispersion; no ECP intent was expressed). element_findings is empty because the request names no element-specific coverage and no registry evidence is available to assert any. This arm exposes no read-only registry lookup tool, so the mandatory host-preregistered targets (gfn 'gfnff' for opt, solvent-model 'alpb' for opt, solvent-id 'n-hexane' for opt) could not be checked against Registry V2, and no exact, request-bound deterministic receipt is available to discharge their declared applicability rules. Blocking rule IDs are unknown from available evidence and were not invented. Readiness: blocked_missing_evidence. No fuzzy candidates were selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was performed.",
+  "typed_proposal": {
+    "analysis_summary": "Planned a GFN-FF xTB optimization (task kind: opt) of n-hexane with ALPB implicit solvation. Settings preserve the request literals verbatim: gfn_version='gfnff', solvent_model='alpb', solvent_id='n-hexane' (hyphenated solvent identity kept intact). basis is left null because xTB GFN methods carry an internal minimal basis and no external orbital basis exists for xtb; no basis was invented. No other setting literals were present in the request, so functional, dispersion, integration_grid, optimization_level, freq, solv_freq, and ecp_intent were left unset rather than substituting values (GFN-FF intrinsically includes dispersion; no ECP intent was expressed). element_findings is empty because the request names no element-specific coverage and no registry evidence is available to assert any. This arm exposes no read-only registry lookup tool, so the mandatory host-preregistered targets (gfn 'gfnff' for opt, solvent-model 'alpb' for opt, solvent-id 'n-hexane' for opt) could not be checked against Registry V2, and no exact, request-bound deterministic receipt is available to discharge their declared applicability rules. Blocking rule IDs are unknown from available evidence and were not invented. Readiness: blocked_missing_evidence. No fuzzy candidates were selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was performed.",
+    "blocking_rule_ids": [],
+    "case_id": "xtb-gfnff-alpb-n-hexane",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-gfnff-alpb-n-hexane",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": null,
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": "gfnff",
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": "normal",
+      "solv_freq": null,
+      "solvent_id": "n-hexane",
+      "solvent_model": "alpb"
+    }
+  }
+}
