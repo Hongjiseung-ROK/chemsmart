@@ -332,6 +332,7 @@ def _validate_project_yaml_uncached(
             yaml_text=yaml_text,
             program=normalized_program,
             project_name=name,
+            required_job_kinds=required_job_kinds,
         )
     except Exception as exc:
         issues.append(
@@ -351,7 +352,14 @@ def _validate_project_yaml_uncached(
             required_job_kinds=required_job_kinds,
         )
 
-    issues.extend(_runtime_project_yaml_issues(summary, normalized_program))
+    issues.extend(
+        _runtime_project_yaml_issues(
+            summary,
+            normalized_program,
+            required_job_kinds,
+            parsed,
+        )
+    )
     if any(issue["severity"] == "reject" for issue in issues):
         return _validation_result(
             ok=False,
@@ -767,7 +775,9 @@ def _load_project_yaml_via_runtime(
     yaml_text: str,
     program: str,
     project_name: str,
+    required_job_kinds: tuple[str, ...] = (),
 ) -> dict[str, Any]:
+    project_document = yaml.safe_load(yaml_text) or {}
     with tempfile.TemporaryDirectory(prefix="chemsmart-project-yaml-") as tmp:
         path = Path(tmp) / f"{project_name}.yaml"
         path.write_text(_normalize_yaml_text(yaml_text), encoding="utf-8")
@@ -785,12 +795,38 @@ def _load_project_yaml_via_runtime(
             from chemsmart.settings.xtb import YamlXTBProjectSettings
 
             settings = YamlXTBProjectSettings.from_yaml(str(path))
-        return _settings_summary(settings)
+        return _settings_summary(
+            settings,
+            required_job_kinds,
+            program=program,
+            project_document=project_document,
+        )
 
 
-def _settings_summary(settings: Any) -> dict[str, Any]:
+_DEFAULT_RUNTIME_SUMMARY_JOB_KINDS = (
+    "opt",
+    "ts",
+    "sp",
+    "hess",
+    "td",
+    "qmmm",
+)
+
+
+def _settings_summary(
+    settings: Any,
+    required_job_kinds: tuple[str, ...] = (),
+    *,
+    program: str | None = None,
+    project_document: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     summary: dict[str, Any] = {}
-    for name in ("opt", "ts", "sp", "hess", "td", "qmmm"):
+    observed_job_kinds = tuple(
+        dict.fromkeys(
+            _DEFAULT_RUNTIME_SUMMARY_JOB_KINDS + required_job_kinds
+        )
+    )
+    for name in observed_job_kinds:
         method = getattr(settings, f"{name}_settings", None)
         if not callable(method):
             continue
@@ -818,8 +854,105 @@ def _settings_summary(settings: Any) -> dict[str, Any]:
             item_summary["additional_route_parameters"] = getattr(
                 item, "additional_route_parameters", None
             )
+        if name in required_job_kinds:
+            for field in _REQUIRED_JOB_SEMANTIC_FIELDS:
+                item_summary.setdefault(field, getattr(item, field, None))
+            item_summary["jobtype_observation"] = _jobtype_observation(
+                name,
+                item_summary,
+                program=program,
+                project_document=project_document,
+            )
         summary[name] = item_summary
     return summary
+
+
+_REQUIRED_JOB_SEMANTIC_FIELDS = (
+    "ab_initio",
+    "semiempirical",
+    "functional",
+    "gfn_version",
+    "basis",
+    "gen_genecp_file",
+    "heavy_elements",
+    "heavy_elements_basis",
+    "light_elements_basis",
+    "dispersion",
+    "solvent_model",
+    "solvent_id",
+    "custom_solvent",
+    "freq",
+    "numfreq",
+    "optimization_level",
+)
+
+
+def _jobtype_observation(
+    job_kind: str,
+    loaded: dict[str, Any],
+    *,
+    program: str | None,
+    project_document: dict[str, Any] | None,
+) -> dict[str, Any]:
+    source_block, origin = _project_source_for_job(
+        program,
+        project_document,
+        job_kind,
+    )
+    source = (
+        project_document.get(source_block)
+        if isinstance(project_document, dict) and source_block is not None
+        else None
+    )
+    source = source if isinstance(source, dict) else {}
+    return {
+        "kind": "loader_jobtype",
+        "observed": loaded.get("jobtype"),
+        "origin": origin,
+        "source_block": source_block,
+        "setting_origins": {
+            field: origin if field in source else "default"
+            for field in _REQUIRED_JOB_SEMANTIC_FIELDS
+        },
+    }
+
+
+def _project_source_for_job(
+    program: str | None,
+    project_document: dict[str, Any] | None,
+    job_kind: str,
+) -> tuple[str | None, str]:
+    """Describe where the loader obtained a required job's settings.
+
+    ``explicit`` is reserved for a job-specific top-level block. Shared
+    ``gas`` and ``solv`` phases are ``derived`` even though those blocks are
+    explicit YAML. In particular, ORCA NEB settings are derived from ``gas``;
+    the project format has no explicit ``neb`` block.
+    """
+
+    document = project_document if isinstance(project_document, dict) else {}
+    if program == "xtb":
+        if isinstance(document.get(job_kind), dict):
+            return job_kind, "explicit"
+        return None, "default"
+    if job_kind in {"td", "qmmm"}:
+        if isinstance(document.get(job_kind), dict):
+            return job_kind, "explicit"
+        if (
+            job_kind == "td"
+            and not isinstance(document.get("gas"), dict)
+            and isinstance(document.get("solv"), dict)
+        ):
+            return "solv", "derived"
+        return None, "default"
+    if isinstance(document.get("gas"), dict):
+        block = "solv" if job_kind == "sp" else "gas"
+        if isinstance(document.get(block), dict):
+            return block, "derived"
+        return None, "default"
+    if isinstance(document.get("solv"), dict):
+        return "solv", "derived"
+    return None, "default"
 
 
 def _validation_result(

@@ -561,6 +561,152 @@ def test_orca_canonical_uppercase_dispersion_is_preserved():
     assert parsed["gas"]["dispersion"] == "D3BJ"
 
 
+def test_orca_required_job_kinds_observe_each_loader_path():
+    rendered = render_project_yaml(
+        {
+            "program": "orca",
+            "method": {
+                "functional": "B3LYP",
+                "dispersion": "D3BJ",
+                "basis": "ma-def2-TZVP",
+                # A NEB stage and a stationary-point frequency stage require
+                # separate project settings. This test observes loader paths.
+                "freq": False,
+            },
+        },
+        project_name="orca_required_jobs",
+        program="orca",
+        profile="paper",
+        required_job_kinds=("opt", "neb", "ts", "sp"),
+    )
+
+    validation = rendered["validation"]
+    assert validation["verdict"] == "ok"
+    assert validation["required_job_kinds"] == ["neb", "opt", "sp", "ts"]
+    for job_kind in validation["required_job_kinds"]:
+        assert validation["runtime_summary"][job_kind]["jobtype"] == job_kind
+    neb = validation["runtime_summary"]["neb"]
+    assert neb["functional"] == "b3lyp"
+    assert neb["basis"] == "ma-def2-TZVP"
+    assert neb["dispersion"] == "D3BJ"
+    assert neb["freq"] is False
+    assert neb["jobtype_observation"] == {
+        "kind": "loader_jobtype",
+        "observed": "neb",
+        "origin": "derived",
+        "source_block": "gas",
+        "setting_origins": {
+            "ab_initio": "default",
+            "semiempirical": "default",
+            "functional": "derived",
+            "gfn_version": "default",
+            "basis": "derived",
+            "gen_genecp_file": "default",
+            "heavy_elements": "default",
+            "heavy_elements_basis": "default",
+            "light_elements_basis": "default",
+            "dispersion": "derived",
+            "solvent_model": "default",
+            "solvent_id": "default",
+            "custom_solvent": "default",
+            "freq": "derived",
+            "numfreq": "default",
+            "optimization_level": "default",
+        },
+    }
+
+
+def test_required_job_kinds_fail_closed_when_neb_observation_is_missing(
+    monkeypatch,
+):
+    import chemsmart.agent.project_yaml as project_yaml
+
+    project_yaml._VALIDATION_CACHE.clear()
+
+    real_loader = project_yaml._load_project_yaml_via_runtime
+
+    def loader_without_neb(**kwargs):
+        assert kwargs["required_job_kinds"] == ("neb", "opt", "sp", "ts")
+        summary = real_loader(**kwargs)
+        summary.pop("neb")
+        return summary
+
+    monkeypatch.setattr(
+        project_yaml,
+        "_load_project_yaml_via_runtime",
+        loader_without_neb,
+    )
+    validation = validate_project_yaml(
+        "gas:\n"
+        "  functional: b3lyp\n"
+        "  basis: def2svp\n"
+        "  freq: true\n"
+        "solv:\n"
+        "  functional: b3lyp\n"
+        "  basis: def2svp\n"
+        "  freq: false\n",
+        program="orca",
+        project_name="missing_neb_observation",
+        required_job_kinds=("opt", "neb", "ts", "sp"),
+    )
+
+    assert validation["verdict"] == "reject"
+    assert "neb" not in validation["runtime_summary"]
+    assert {
+        issue["rule_id"] for issue in validation["issues"]
+    } == {"yaml.runtime.required_jobtype_unobserved"}
+    project_yaml._VALIDATION_CACHE.clear()
+
+
+def test_required_job_kinds_fail_closed_on_method_or_basis_drift(monkeypatch):
+    import chemsmart.agent.project_yaml as project_yaml
+
+    project_yaml._VALIDATION_CACHE.clear()
+    real_loader = project_yaml._load_project_yaml_via_runtime
+
+    def loader_with_semantic_drift(**kwargs):
+        summary = real_loader(**kwargs)
+        summary["neb"]["functional"] = "pbe0"
+        summary["neb"]["basis"] = "def2-SVP"
+        return summary
+
+    monkeypatch.setattr(
+        project_yaml,
+        "_load_project_yaml_via_runtime",
+        loader_with_semantic_drift,
+    )
+    validation = validate_project_yaml(
+        "gas:\n"
+        "  functional: b3lyp\n"
+        "  dispersion: D3BJ\n"
+        "  basis: ma-def2-TZVP\n"
+        "  freq: false\n"
+        "solv:\n"
+        "  functional: b3lyp\n"
+        "  dispersion: D3BJ\n"
+        "  basis: ma-def2-TZVP\n"
+        "  freq: false\n",
+        program="orca",
+        project_name="required_job_semantic_drift",
+        required_job_kinds=("neb",),
+    )
+
+    assert validation["verdict"] == "reject"
+    mismatches = [
+        issue
+        for issue in validation["issues"]
+        if issue["rule_id"]
+        == "yaml.runtime.required_job_semantic_mismatch"
+    ]
+    assert len(mismatches) == 2
+    assert {"functional", "basis"} == {
+        field
+        for field in ("functional", "basis")
+        if any(field in issue["message"] for issue in mismatches)
+    }
+    project_yaml._VALIDATION_CACHE.clear()
+
+
 def test_xtb_project_yaml_uses_real_loader_and_keeps_state_in_command():
     protocol = extract_project_protocol(
         "Use GFN2-xTB with opt=vtight and ALPB(water) for conformer refinement.",

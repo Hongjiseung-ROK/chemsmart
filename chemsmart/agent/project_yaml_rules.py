@@ -201,12 +201,50 @@ def _xtb_static_issues(
 def runtime_project_yaml_issues(
     runtime_summary: dict[str, Any],
     program: str,
+    required_job_kinds: tuple[str, ...] = (),
+    project_document: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """Reject a runtime loader that changes an xTB job-family identity."""
+    """Reject missing jobtype observations and required-setting drift."""
+
+    issues: list[dict[str, Any]] = []
+    for requested_job in required_job_kinds:
+        loaded = runtime_summary.get(requested_job)
+        if not isinstance(loaded, dict):
+            issues.append(
+                issue(
+                    "yaml.runtime.required_jobtype_unobserved",
+                    "reject",
+                    (
+                        f"required {requested_job!r} jobtype was not "
+                        "observed through the project loader."
+                    ),
+                )
+            )
+            continue
+        effective_job = string_or_none(loaded.get("jobtype"))
+        if effective_job != requested_job:
+            issues.append(
+                issue(
+                    "yaml.runtime.required_jobtype_mismatch",
+                    "reject",
+                    (
+                        f"required {requested_job!r} settings loaded with "
+                        f"effective jobtype {effective_job!r}."
+                    ),
+                )
+            )
+            continue
+        issues.extend(
+            _required_job_semantic_issues(
+                loaded,
+                requested_job,
+                program,
+                project_document,
+            )
+        )
 
     if program != "xtb":
-        return []
-    issues: list[dict[str, Any]] = []
+        return issues
     for requested_job in ("sp", "opt", "hess"):
         loaded = runtime_summary.get(requested_job)
         effective_job = (
@@ -226,6 +264,128 @@ def runtime_project_yaml_issues(
                 )
             )
     return issues
+
+
+_REQUIRED_JOB_SEMANTIC_FIELDS = (
+    "ab_initio",
+    "semiempirical",
+    "functional",
+    "gfn_version",
+    "basis",
+    "gen_genecp_file",
+    "heavy_elements",
+    "heavy_elements_basis",
+    "light_elements_basis",
+    "dispersion",
+    "solvent_model",
+    "solvent_id",
+    "custom_solvent",
+    "freq",
+    "numfreq",
+    "optimization_level",
+)
+
+
+def _required_job_semantic_issues(
+    loaded: dict[str, Any],
+    requested_job: str,
+    program: str,
+    project_document: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    if not isinstance(project_document, dict):
+        return []
+    source_block, expected_origin = _project_source_for_job(
+        program,
+        project_document,
+        requested_job,
+    )
+    observation = loaded.get("jobtype_observation")
+    issues: list[dict[str, Any]] = []
+    if isinstance(observation, dict):
+        observed_source = observation.get("source_block")
+        observed_origin = observation.get("origin")
+        if (
+            observed_source != source_block
+            or observed_origin != expected_origin
+        ):
+            issues.append(
+                issue(
+                    "yaml.runtime.required_job_origin_mismatch",
+                    "reject",
+                    (
+                        f"required {requested_job!r} settings claim origin "
+                        f"{observed_origin!r} from {observed_source!r}; "
+                        f"expected {expected_origin!r} from {source_block!r}."
+                    ),
+                )
+            )
+    source = (
+        project_document.get(source_block)
+        if source_block is not None
+        else None
+    )
+    if not isinstance(source, dict):
+        return issues
+    for field in _REQUIRED_JOB_SEMANTIC_FIELDS:
+        if field not in source:
+            continue
+        expected = source[field]
+        observed = loaded.get(field)
+        if _semantic_value(expected, field) == _semantic_value(
+            observed, field
+        ):
+            continue
+        issues.append(
+            issue(
+                "yaml.runtime.required_job_semantic_mismatch",
+                "reject",
+                (
+                    f"required {requested_job!r} field {field!r} loaded "
+                    f"as {observed!r}, not YAML value {expected!r} from "
+                    f"{source_block!r}."
+                ),
+            )
+        )
+    return issues
+
+
+def _semantic_value(value: Any, field: str) -> Any:
+    if isinstance(value, str):
+        return value.strip().casefold()
+    if field == "heavy_elements" and isinstance(value, (list, tuple)):
+        return tuple(sorted(str(item).strip().casefold() for item in value))
+    if isinstance(value, (list, tuple)):
+        return tuple(_semantic_value(item, field) for item in value)
+    return value
+
+
+def _project_source_for_job(
+    program: str,
+    project_document: dict[str, Any],
+    job_kind: str,
+) -> tuple[str | None, str]:
+    if program == "xtb":
+        if isinstance(project_document.get(job_kind), dict):
+            return job_kind, "explicit"
+        return None, "default"
+    if job_kind in {"td", "qmmm"}:
+        if isinstance(project_document.get(job_kind), dict):
+            return job_kind, "explicit"
+        if (
+            job_kind == "td"
+            and not isinstance(project_document.get("gas"), dict)
+            and isinstance(project_document.get("solv"), dict)
+        ):
+            return "solv", "derived"
+        return None, "default"
+    if isinstance(project_document.get("gas"), dict):
+        block = "solv" if job_kind == "sp" else "gas"
+        if isinstance(project_document.get(block), dict):
+            return block, "derived"
+        return None, "default"
+    if isinstance(project_document.get("solv"), dict):
+        return "solv", "derived"
+    return None, "default"
 
 
 def protocol_alignment_issues(
