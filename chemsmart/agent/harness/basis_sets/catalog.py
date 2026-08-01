@@ -8,18 +8,38 @@ and reproducible offline.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
-from dataclasses import dataclass
+from copy import deepcopy
+from dataclasses import dataclass, replace
 from functools import lru_cache
+from importlib import metadata as importlib_metadata
 from importlib.resources import files
-from typing import Any, Literal
+from typing import Any, Iterable, Literal
 
 BasisProgram = Literal["gaussian", "orca"]
 BasisIntentVerdict = Literal["ok", "warn", "reject", "ask_user"]
 BasisRole = Literal["any", "orbital", "jfit", "jkfit", "rifit", "admmfit"]
+BasisElementInspectionStatus = Literal[
+    "all_elements_covered",
+    "basis_unresolved",
+    "element_coverage_missing",
+    "source_version_mismatch",
+    "bse_data_unavailable",
+    "catalog_unavailable",
+    "catalog_non_authoritative",
+    "ecp_definition_inconsistent",
+    "orbital_functions_missing",
+]
 
 _DATA_FILE = "bse_basis_catalog.json"
+_FROZEN_CATALOG_ARTIFACT_SHA256 = (
+    "ed4ef918fb80e8ad3c2396c237d2120c31892cfaa2a61fb61af52965dc723c0b"
+)
+_FROZEN_CATALOG_CONTENT_SHA256 = (
+    "a4c39327851ed653ec849c2109549cad4f0ee4e4207ea20143a368d25b2e2732"
+)
 _TOKEN_SPLIT_RE = re.compile(r"[^a-z0-9*+]+")
 _AMBIGUOUS_QUALITY_RE = re.compile(
     r"\b(good|reasonable|standard|large|small|better|best|accurate|cheap|"
@@ -103,11 +123,151 @@ class BasisIntentResult:
         }
 
 
+@dataclass(frozen=True)
+class BasisElementObservation:
+    """Element-resolved orbital/ECP facts from one pinned BSE definition."""
+
+    atomic_number: int
+    symbol: str
+    covered: bool
+    orbital_present: bool
+    electron_shell_count: int
+    ecp_present: bool
+    ecp_potential_count: int
+    ecp_electrons: int | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "atomic_number": self.atomic_number,
+            "symbol": self.symbol,
+            "covered": self.covered,
+            "orbital_present": self.orbital_present,
+            "electron_shell_count": self.electron_shell_count,
+            "ecp_present": self.ecp_present,
+            "ecp_potential_count": self.ecp_potential_count,
+            "ecp_electrons": self.ecp_electrons,
+        }
+
+
+@dataclass(frozen=True)
+class BasisElementInspectionResult:
+    """Typed, non-engine receipt for basis coverage and embedded BSE ECP data.
+
+    This result says only what the installed, version-matched BSE definition
+    contains for the requested elements.  It does not prove that a native
+    engine keyword is accepted, that a project combination is suitable, or
+    that safe preview or an engine execution succeeded.  Its SHA-256 values
+    are deterministic content identities for replay and accidental-mutation
+    detection; they are not signatures and do not authenticate a producer.
+    """
+
+    schema_version: Literal["chemsmart.basis-element-inspection.v1"]
+    verdict: Literal["ok", "reject"]
+    status: BasisElementInspectionStatus
+    input_text: str
+    program: BasisProgram
+    canonical_name: str | None
+    catalog_key: str | None
+    source_package: Literal["basis_set_exchange"]
+    source_version: str | None
+    catalog_source_version: str | None
+    source_version_matches_catalog: bool
+    catalog_artifact_sha256: str | None
+    catalog_content_sha256: str | None
+    catalog_authority: Literal[
+        "frozen_default",
+        "frozen_default_digest_mismatch",
+        "custom_non_authoritative",
+        "unavailable",
+    ]
+    catalog_authoritative: bool
+    requested_atomic_numbers: tuple[int, ...]
+    elements: tuple[BasisElementObservation, ...]
+    missing_atomic_numbers: tuple[int, ...]
+    rule_ids: tuple[str, ...]
+    definition_sha256: str | None
+    orbital_basis_usable: bool | None
+    ecp_definition_coherent: bool | None
+    error_class: str | None
+    receipt_sha256: str
+    evidence_scope: Literal["bse_element_definition_only"] = (
+        "bse_element_definition_only"
+    )
+    native_engine_verified: Literal[False] = False
+    safe_preview_executed: Literal[False] = False
+    engine_executed: Literal[False] = False
+    hash_semantics: Literal["content_identity_not_authentication"] = (
+        "content_identity_not_authentication"
+    )
+
+    def _receipt_content(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "verdict": self.verdict,
+            "status": self.status,
+            "input_text": self.input_text,
+            "program": self.program,
+            "canonical_name": self.canonical_name,
+            "catalog_key": self.catalog_key,
+            "source_package": self.source_package,
+            "source_version": self.source_version,
+            "catalog_source_version": self.catalog_source_version,
+            "source_version_matches_catalog": (
+                self.source_version_matches_catalog
+            ),
+            "catalog_artifact_sha256": self.catalog_artifact_sha256,
+            "catalog_content_sha256": self.catalog_content_sha256,
+            "catalog_authority": self.catalog_authority,
+            "catalog_authoritative": self.catalog_authoritative,
+            "requested_atomic_numbers": list(self.requested_atomic_numbers),
+            "elements": [item.to_dict() for item in self.elements],
+            "missing_atomic_numbers": list(self.missing_atomic_numbers),
+            "rule_ids": list(self.rule_ids),
+            "definition_sha256": self.definition_sha256,
+            "orbital_basis_usable": self.orbital_basis_usable,
+            "ecp_definition_coherent": self.ecp_definition_coherent,
+            "error_class": self.error_class,
+            "evidence_scope": self.evidence_scope,
+            "native_engine_verified": self.native_engine_verified,
+            "safe_preview_executed": self.safe_preview_executed,
+            "engine_executed": self.engine_executed,
+            "hash_semantics": self.hash_semantics,
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            **self._receipt_content(),
+            "receipt_sha256": self.receipt_sha256,
+        }
+
+    def receipt_sha256_is_valid(self) -> bool:
+        """Return whether the stored receipt digest matches current content."""
+
+        return self.receipt_sha256 == _canonical_content_sha256(
+            self._receipt_content()
+        )
+
+
 @lru_cache(maxsize=1)
-def load_basis_catalog() -> dict[str, Any]:
+def _load_basis_catalog_snapshot() -> tuple[dict[str, Any], str, str]:
     path = files(__package__).joinpath(_DATA_FILE)
-    with path.open(encoding="utf-8") as handle:
-        return json.load(handle)
+    with path.open("rb") as handle:
+        raw = handle.read()
+    catalog = json.loads(raw.decode("utf-8"))
+    artifact_sha256 = hashlib.sha256(raw).hexdigest()
+    content_sha256 = _canonical_content_sha256(catalog)
+    return catalog, artifact_sha256, content_sha256
+
+
+def load_basis_catalog() -> dict[str, Any]:
+    """Return an isolated copy of the frozen catalog snapshot.
+
+    The internal cache is never exposed, so a caller cannot mutate the catalog
+    used by later name resolutions or element inspections.
+    """
+
+    catalog, _, _ = _load_basis_catalog_snapshot()
+    return deepcopy(catalog)
 
 
 def resolve_basis_name(
@@ -164,6 +324,428 @@ def resolve_basis_name(
             "function_types": entry.get("function_types", []),
             "elements_count": len(entry.get("elements", [])),
         },
+    )
+
+
+def inspect_basis_elements(
+    name: str,
+    *,
+    program: BasisProgram,
+    elements: Iterable[int | str],
+    catalog: dict[str, Any] | None = None,
+) -> BasisElementInspectionResult:
+    """Inspect per-element orbital and ECP presence in pinned local BSE data.
+
+    ``resolve_basis_name`` remains the name/program gate.  This additive
+    inspector then binds that exact entry to a canonical set of atomic numbers
+    and reads BSE's structured data without rendering native input or invoking
+    a chemistry engine.
+    """
+
+    atomic_numbers = _normalize_basis_elements(elements)
+    selected_catalog: dict[str, Any] | None = None
+    catalog_artifact_sha256: str | None = None
+    catalog_content_sha256: str | None = None
+    catalog_source_version: str | None = None
+    catalog_authority: Literal[
+        "frozen_default",
+        "frozen_default_digest_mismatch",
+        "custom_non_authoritative",
+        "unavailable",
+    ] = "unavailable"
+    catalog_authoritative = False
+    source_version: str | None = None
+    source_version_matches_catalog = False
+
+    def finish(
+        *,
+        status: BasisElementInspectionStatus,
+        rule_ids: Iterable[str],
+        canonical_name: str | None = None,
+        catalog_key: str | None = None,
+        observations: tuple[BasisElementObservation, ...] = (),
+        missing_atomic_numbers: tuple[int, ...] = (),
+        definition_sha256: str | None = None,
+        orbital_basis_usable: bool | None = None,
+        ecp_definition_coherent: bool | None = None,
+        error_class: str | None = None,
+    ) -> BasisElementInspectionResult:
+        ordered_rules = tuple(dict.fromkeys(rule_ids))
+        return _build_basis_element_inspection_result(
+            schema_version="chemsmart.basis-element-inspection.v1",
+            verdict="reject" if ordered_rules else "ok",
+            status=status,
+            input_text=name,
+            program=program,
+            canonical_name=canonical_name,
+            catalog_key=catalog_key,
+            source_package="basis_set_exchange",
+            source_version=source_version,
+            catalog_source_version=catalog_source_version,
+            source_version_matches_catalog=source_version_matches_catalog,
+            catalog_artifact_sha256=catalog_artifact_sha256,
+            catalog_content_sha256=catalog_content_sha256,
+            catalog_authority=catalog_authority,
+            catalog_authoritative=catalog_authoritative,
+            requested_atomic_numbers=atomic_numbers,
+            elements=observations,
+            missing_atomic_numbers=missing_atomic_numbers,
+            rule_ids=ordered_rules,
+            definition_sha256=definition_sha256,
+            orbital_basis_usable=orbital_basis_usable,
+            ecp_definition_coherent=ecp_definition_coherent,
+            error_class=error_class,
+        )
+
+    catalog_rules: list[str] = []
+    try:
+        if catalog is None:
+            snapshot, artifact_digest, content_digest = (
+                _load_basis_catalog_snapshot()
+            )
+            selected_catalog = deepcopy(snapshot)
+            catalog_artifact_sha256 = artifact_digest
+            catalog_content_sha256 = content_digest
+            catalog_authoritative = bool(
+                artifact_digest == _FROZEN_CATALOG_ARTIFACT_SHA256
+                and content_digest == _FROZEN_CATALOG_CONTENT_SHA256
+            )
+            catalog_authority = (
+                "frozen_default"
+                if catalog_authoritative
+                else "frozen_default_digest_mismatch"
+            )
+            if not catalog_authoritative:
+                catalog_rules.append(
+                    "basis.element_inspection.catalog_digest_mismatch"
+                )
+        else:
+            catalog_authority = "custom_non_authoritative"
+            catalog_rules.append(
+                "basis.element_inspection.custom_catalog_non_authoritative"
+            )
+            _validate_basis_catalog_shape(catalog)
+            selected_catalog = deepcopy(catalog)
+            catalog_content_sha256 = _canonical_content_sha256(
+                selected_catalog
+            )
+        catalog_source_version = str(
+            selected_catalog["metadata"]["source_version"]
+        )
+    except Exception as exc:
+        return finish(
+            status="catalog_unavailable",
+            rule_ids=(
+                *catalog_rules,
+                "basis.element_inspection.catalog_unavailable",
+            ),
+            error_class=type(exc).__name__,
+        )
+
+    if not catalog_authoritative and catalog is None:
+        return finish(
+            status="catalog_unavailable",
+            rule_ids=catalog_rules,
+            error_class="CatalogDigestMismatch",
+        )
+
+    try:
+        source_version = importlib_metadata.version("basis_set_exchange")
+    except Exception as exc:
+        return finish(
+            status="bse_data_unavailable",
+            rule_ids=(
+                *catalog_rules,
+                "basis.element_inspection.bse_data_unavailable",
+            ),
+            error_class=type(exc).__name__,
+        )
+
+    source_version_matches_catalog = source_version == catalog_source_version
+    if not source_version_matches_catalog:
+        return finish(
+            status="source_version_mismatch",
+            rule_ids=(
+                *catalog_rules,
+                "basis.element_inspection.source_version_mismatch",
+            ),
+            error_class="SourceVersionMismatch",
+        )
+
+    try:
+        import basis_set_exchange as bse
+    except Exception as exc:
+        return finish(
+            status="bse_data_unavailable",
+            rule_ids=(
+                *catalog_rules,
+                "basis.element_inspection.bse_data_unavailable",
+            ),
+            error_class=type(exc).__name__,
+        )
+
+    assert selected_catalog is not None
+    try:
+        resolution = resolve_basis_name(
+            name,
+            program=program,
+            catalog=selected_catalog,
+        )
+    except Exception as exc:
+        return finish(
+            status="catalog_unavailable",
+            rule_ids=(
+                *catalog_rules,
+                "basis.element_inspection.catalog_unavailable",
+            ),
+            error_class=type(exc).__name__,
+        )
+    if resolution.verdict != "ok" or resolution.catalog_key is None:
+        return finish(
+            status="basis_unresolved",
+            rule_ids=(
+                *catalog_rules,
+                "basis.element_inspection.basis_unresolved",
+            ),
+            canonical_name=resolution.canonical_name,
+            catalog_key=resolution.catalog_key,
+            observations=tuple(
+                _missing_element_observation(z) for z in atomic_numbers
+            ),
+            missing_atomic_numbers=atomic_numbers,
+        )
+
+    try:
+        entry = selected_catalog["basis_sets"][resolution.catalog_key]
+        declared = {int(z) for z in entry.get("elements", ())}
+    except Exception as exc:
+        return finish(
+            status="catalog_unavailable",
+            rule_ids=(
+                *catalog_rules,
+                "basis.element_inspection.catalog_unavailable",
+            ),
+            canonical_name=resolution.canonical_name,
+            catalog_key=resolution.catalog_key,
+            error_class=type(exc).__name__,
+        )
+
+    covered = tuple(z for z in atomic_numbers if z in declared)
+    missing_atomic_numbers = tuple(z for z in atomic_numbers if z not in declared)
+    observations_by_z: dict[int, BasisElementObservation] = {}
+    used_element_data: dict[str, Any] = {}
+    ecp_inconsistent = False
+    try:
+        if covered:
+            data = bse.get_basis(
+                resolution.canonical_name,
+                elements=list(covered),
+                fmt=None,
+                header=False,
+            )
+            if not isinstance(data, dict):
+                raise InvalidBSEPayloadError("BSE result is not a mapping")
+            bse_elements = data.get("elements")
+            if not isinstance(bse_elements, dict):
+                raise InvalidBSEPayloadError(
+                    "BSE elements payload is not a mapping"
+                )
+            for atomic_number in covered:
+                element = bse_elements.get(str(atomic_number))
+                if not isinstance(element, dict):
+                    raise InvalidBSEPayloadError(
+                        "BSE element payload is not a mapping"
+                    )
+                electron_shells = element.get("electron_shells") or ()
+                ecp_potentials = element.get("ecp_potentials") or ()
+                if not isinstance(electron_shells, (list, tuple)) or not isinstance(
+                    ecp_potentials, (list, tuple)
+                ):
+                    raise InvalidBSEPayloadError(
+                        "BSE shell or ECP payload is not a sequence"
+                    )
+                raw_ecp_electrons = element.get("ecp_electrons")
+                ecp_electrons = (
+                    int(raw_ecp_electrons)
+                    if raw_ecp_electrons is not None
+                    else None
+                )
+                ecp_present = bool(ecp_potentials)
+                positive_ecp_electrons = bool(
+                    ecp_electrons is not None and ecp_electrons > 0
+                )
+                if ecp_present != positive_ecp_electrons:
+                    ecp_inconsistent = True
+                used_element_data[str(atomic_number)] = element
+                observations_by_z[atomic_number] = BasisElementObservation(
+                    atomic_number=atomic_number,
+                    symbol=_element_symbol(atomic_number),
+                    covered=True,
+                    orbital_present=bool(electron_shells),
+                    electron_shell_count=len(electron_shells),
+                    ecp_present=ecp_present,
+                    ecp_potential_count=len(ecp_potentials),
+                    ecp_electrons=ecp_electrons,
+                )
+    except Exception as exc:
+        return finish(
+            status="bse_data_unavailable",
+            rule_ids=(
+                *catalog_rules,
+                "basis.element_inspection.bse_data_unavailable",
+            ),
+            canonical_name=resolution.canonical_name,
+            catalog_key=resolution.catalog_key,
+            error_class=type(exc).__name__,
+        )
+
+    observations = tuple(
+        observations_by_z.get(
+            atomic_number,
+            _missing_element_observation(atomic_number),
+        )
+        for atomic_number in atomic_numbers
+    )
+    definition_sha256 = (
+        _canonical_content_sha256(
+            {
+                "schema_version": "chemsmart.bse-element-definition-digest.v1",
+                "source_package": "basis_set_exchange",
+                "source_version": source_version,
+                "canonical_name": resolution.canonical_name,
+                "elements": used_element_data,
+            }
+        )
+        if used_element_data
+        else None
+    )
+    orbital_basis_usable = bool(
+        not missing_atomic_numbers
+        and observations
+        and all(item.orbital_present for item in observations)
+    )
+    rule_ids = list(catalog_rules)
+    if missing_atomic_numbers:
+        rule_ids.append("basis.element_inspection.element_coverage_missing")
+    if ecp_inconsistent:
+        rule_ids.append("basis.element_inspection.ecp_definition_inconsistent")
+    if not missing_atomic_numbers and not orbital_basis_usable:
+        rule_ids.append("basis.element_inspection.orbital_functions_missing")
+
+    if missing_atomic_numbers:
+        status: BasisElementInspectionStatus = "element_coverage_missing"
+    elif ecp_inconsistent:
+        status = "ecp_definition_inconsistent"
+    elif not orbital_basis_usable:
+        status = "orbital_functions_missing"
+    elif catalog_rules:
+        status = "catalog_non_authoritative"
+    else:
+        status = "all_elements_covered"
+    return finish(
+        status=status,
+        rule_ids=rule_ids,
+        canonical_name=resolution.canonical_name,
+        catalog_key=resolution.catalog_key,
+        observations=observations,
+        missing_atomic_numbers=missing_atomic_numbers,
+        definition_sha256=definition_sha256,
+        orbital_basis_usable=orbital_basis_usable,
+        ecp_definition_coherent=not ecp_inconsistent,
+    )
+
+
+def _build_basis_element_inspection_result(
+    **values: Any,
+) -> BasisElementInspectionResult:
+    provisional = BasisElementInspectionResult(
+        **values,
+        receipt_sha256="",
+    )
+    return replace(
+        provisional,
+        receipt_sha256=_canonical_content_sha256(
+            provisional._receipt_content()
+        ),
+    )
+
+
+def _canonical_content_sha256(value: Any) -> str:
+    canonical = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+class InvalidBSEPayloadError(ValueError):
+    """Raised when local BSE data does not match its structured contract."""
+
+
+def _validate_basis_catalog_shape(catalog: Any) -> None:
+    if not isinstance(catalog, dict):
+        raise ValueError("basis catalog must be a mapping")
+    metadata = catalog.get("metadata")
+    if not isinstance(metadata, dict) or not metadata.get("source_version"):
+        raise ValueError("basis catalog source version is missing")
+    for key in ("aliases", "basis_sets", "programs"):
+        if not isinstance(catalog.get(key), dict):
+            raise ValueError(f"basis catalog {key} mapping is missing")
+
+
+@lru_cache(maxsize=1)
+def _periodic_table() -> Any:
+    from chemsmart.utils.periodictable import PeriodicTable
+
+    return PeriodicTable()
+
+
+def _normalize_basis_elements(elements: Iterable[int | str]) -> tuple[int, ...]:
+    periodic_table = _periodic_table()
+    atomic_numbers: set[int] = set()
+    for element in elements:
+        if isinstance(element, bool):
+            raise ValueError("basis elements must be atomic numbers or symbols")
+        if isinstance(element, int):
+            atomic_number = element
+        elif isinstance(element, str):
+            symbol = element.strip()
+            if not symbol or not symbol.isalpha():
+                raise ValueError(f"invalid element symbol: {element!r}")
+            try:
+                normalized_symbol = periodic_table.to_element(symbol)
+                atomic_number = int(
+                    periodic_table.to_atomic_number(normalized_symbol)
+                )
+            except (IndexError, KeyError, ValueError) as exc:
+                raise ValueError(f"unknown element symbol: {element!r}") from exc
+        else:
+            raise ValueError("basis elements must be atomic numbers or symbols")
+        if not 1 <= atomic_number <= 118:
+            raise ValueError(f"atomic number is outside 1..118: {atomic_number}")
+        atomic_numbers.add(atomic_number)
+    if not atomic_numbers:
+        raise ValueError("at least one basis element is required")
+    return tuple(sorted(atomic_numbers))
+
+
+def _element_symbol(atomic_number: int) -> str:
+    return str(_periodic_table().to_symbol(atomic_number))
+
+
+def _missing_element_observation(atomic_number: int) -> BasisElementObservation:
+    return BasisElementObservation(
+        atomic_number=atomic_number,
+        symbol=_element_symbol(atomic_number),
+        covered=False,
+        orbital_present=False,
+        electron_shell_count=0,
+        ecp_present=False,
+        ecp_potential_count=0,
+        ecp_electrons=None,
     )
 
 
