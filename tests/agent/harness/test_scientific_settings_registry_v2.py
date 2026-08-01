@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from chemsmart.agent.harness.scientific_settings import (
+    SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
     ScientificSettingsInventoryArtifactError,
     ScientificSettingsInventoryDescriptorV2,
     ScientificSettingsInventoryV2,
@@ -187,6 +188,76 @@ def test_v2_inventory_rejects_ambiguous_or_unsafe_literals():
                 applicable_job_kinds=(),
             )
         )
+
+
+def test_populated_normalization_preserves_scientific_basis_punctuation(
+    tmp_path,
+):
+    distinct_bases = (
+        "6-31G",
+        "6-31+G",
+        "6-31G*",
+        "def2-SVP",
+        "def2-SV(P)",
+    )
+    entries = tuple(
+        _entry(
+            entry_id=f"entry.basis.{index}",
+            setting_path="method.basis",
+            canonical_value=value,
+        )
+        for index, value in enumerate(distinct_bases)
+    )
+    legacy_payload = _inventory_payload(entries)
+    with pytest.raises(ValidationError, match="ambiguous normalized literal"):
+        ScientificSettingsInventoryV2.model_validate(legacy_payload)
+
+    populated_payload = _inventory_payload(
+        entries,
+        normalization_version=(
+            SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION
+        ),
+    )
+    populated = ScientificSettingsInventoryV2.model_validate(populated_payload)
+    assert len(populated.entries) == len(distinct_bases)
+
+    registry, inventories = _loaded_lookup_context(
+        tmp_path,
+        entries=entries,
+        normalization_version=(
+            SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION
+        ),
+    )
+    resolutions = tuple(
+        resolve_scientific_setting_v2(
+            registry=registry,
+            loaded_inventories=inventories,
+            program="gaussian",
+            setting_path="method.basis",
+            value=value,
+            job_kind="opt",
+        )
+        for value in distinct_bases
+    )
+    assert {item.entry_id for item in resolutions} == {
+        f"entry.basis.{index}" for index in range(len(distinct_bases))
+    }
+    assert all(
+        item.normalization_version
+        == SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION
+        for item in resolutions
+    )
+    assert len({item.normalized_requested_value for item in resolutions}) == (
+        len(distinct_bases)
+    )
+
+    tampered = resolutions[1].model_dump(mode="json")
+    tampered["normalized_requested_value"] = "631g"
+    tampered["resolution_sha256"] = scientific_setting_resolution_v2_sha256(
+        tampered
+    )
+    with pytest.raises(ValidationError, match="not canonical"):
+        SettingResolutionV2.model_validate(tampered)
 
 
 def test_v2_known_but_unenforced_rules_remain_representable():
@@ -612,12 +683,14 @@ def _entry(
 
 def _inventory_payload(
     entries: tuple[dict[str, object], ...],
+    *,
+    normalization_version: str = "chemsmart.scientific-setting-literal.v1",
 ) -> dict[str, object]:
     body: dict[str, object] = {
         "schema_version": "chemsmart.scientific-settings-inventory.v2",
         "inventory_id": "inventory.test",
         "inventory_version": "2.0.0",
-        "normalization_version": "chemsmart.scientific-setting-literal.v1",
+        "normalization_version": normalization_version,
         "sources": (
             {
                 "source_id": "source.one",
@@ -644,6 +717,7 @@ def _descriptor_payload(
     artifact_sha256: str = "2" * 64,
     entry_count: int = 1,
     scopes: tuple[dict[str, object], ...] | None = None,
+    normalization_version: str = "chemsmart.scientific-setting-literal.v1",
 ) -> dict[str, object]:
     return {
         "schema_version": (
@@ -652,7 +726,7 @@ def _descriptor_payload(
         "inventory_schema_version": (
             "chemsmart.scientific-settings-inventory.v2"
         ),
-        "normalization_version": "chemsmart.scientific-setting-literal.v1",
+        "normalization_version": normalization_version,
         "inventory_id": "inventory.test",
         "inventory_version": "2.0.0",
         "inventory_sha256": inventory_sha256,
@@ -674,9 +748,13 @@ def _loaded_lookup_context(
     tmp_path,
     *,
     entries: tuple[dict[str, object], ...],
+    normalization_version: str = "chemsmart.scientific-setting-literal.v1",
 ):
     ordered_entries = tuple(sorted(entries, key=lambda item: item["entry_id"]))
-    inventory_payload = _inventory_payload(ordered_entries)
+    inventory_payload = _inventory_payload(
+        ordered_entries,
+        normalization_version=normalization_version,
+    )
     artifact_bytes = json.dumps(
         inventory_payload,
         sort_keys=True,
@@ -703,6 +781,7 @@ def _loaded_lookup_context(
             artifact_sha256=hashlib.sha256(artifact_bytes).hexdigest(),
             entry_count=len(ordered_entries),
             scopes=scopes,
+            normalization_version=normalization_version,
         )
     )
     registry_body = load_scientific_settings_registry_v2().model_dump(mode="json")

@@ -11,13 +11,14 @@ from chemsmart.agent.harness.scientific_settings.contracts import (
     LoaderObservation,
     RendererObservation,
     ScientificProgram,
-    normalize_setting_literal,
 )
 from chemsmart.agent.harness.scientific_settings.contracts_v2 import (
     ScientificSettingsInventoryScopeV2,
     ScientificSettingsInventoryV2,
     ScientificSettingsRegistryV2,
     SettingInventoryEntryV2,
+    normalize_setting_literal_for_version,
+    normalize_setting_literal_v2,
 )
 from chemsmart.agent.harness.scientific_settings.lookup_contracts_v2 import (
     ScientificSettingsListItemV2,
@@ -44,6 +45,7 @@ class _LookupContext:
     inventories: tuple[ScientificSettingsInventoryV2, ...]
     entries: tuple[SettingInventoryEntryV2, ...]
     inventory_sha256s: tuple[str, ...]
+    normalization_version: str
 
 
 def resolve_scientific_setting_v2(
@@ -68,7 +70,10 @@ def resolve_scientific_setting_v2(
     selected_program = _program(program)
     selected_path = _setting_path(setting_path)
     requested_value = _literal(value)
-    normalized_value = normalize_setting_literal(requested_value)
+    normalized_value = normalize_setting_literal_for_version(
+        requested_value,
+        context.normalization_version,
+    )
     selected_job = _job_kind(job_kind)
     bounded_candidate_limit = max(1, min(int(candidate_limit or 5), 10))
 
@@ -99,7 +104,11 @@ def resolve_scientific_setting_v2(
         if entry.program is selected_program
         and entry.setting_path == selected_path
     )
-    exact = _exact_entry(scoped_entries, normalized_value)
+    exact = _exact_entry(
+        scoped_entries,
+        normalized_value,
+        context.normalization_version,
+    )
     if exact is not None:
         matched_by = (
             SettingMatchKindV2.CANONICAL_LITERAL
@@ -168,6 +177,7 @@ def resolve_scientific_setting_v2(
             )
         ),
         normalized_value,
+        context.normalization_version,
     )
     if elsewhere is not None:
         return _build_resolution(
@@ -193,6 +203,7 @@ def resolve_scientific_setting_v2(
             normalized_value=normalized_value,
             job_kind=selected_job,
             limit=bounded_candidate_limit,
+            normalization_version=context.normalization_version,
         )
         if allow_fuzzy_candidates
         else ()
@@ -248,7 +259,10 @@ def list_scientific_settings_v2(
     selected_path = _setting_path(setting_path)
     selected_job = _job_kind(job_kind)
     selected_query = _query(query)
-    normalized_query = normalize_setting_literal(selected_query)
+    normalized_query = normalize_setting_literal_for_version(
+        selected_query,
+        context.normalization_version,
+    )
     bounded_limit = max(1, min(int(limit or 20), 50))
 
     if (
@@ -282,7 +296,12 @@ def list_scientific_settings_v2(
         ranked = tuple(
             item
             for item in (
-                _ranked_entry(entry, normalized_query) for entry in scoped_entries
+                _ranked_entry(
+                    entry,
+                    normalized_query,
+                    context.normalization_version,
+                )
+                for entry in scoped_entries
             )
             if item[0] >= _FUZZY_MINIMUM_BASIS_POINTS
         )
@@ -401,7 +420,15 @@ def _validated_lookup_context(
             ),
         )
     )
-    _validate_global_entry_namespace(entries)
+    normalization_versions = {
+        inventory.normalization_version for inventory in inventories
+    }
+    if len(normalization_versions) != 1:
+        raise ValueError(
+            "V2 lookup requires one normalization profile per registry"
+        )
+    normalization_version = next(iter(normalization_versions))
+    _validate_global_entry_namespace(entries, normalization_version)
     ordered_inventories = tuple(
         sorted(inventories, key=lambda item: item.inventory_sha256)
     )
@@ -412,11 +439,13 @@ def _validated_lookup_context(
         inventory_sha256s=tuple(
             item.inventory_sha256 for item in ordered_inventories
         ),
+        normalization_version=normalization_version,
     )
 
 
 def _validate_global_entry_namespace(
     entries: tuple[SettingInventoryEntryV2, ...],
+    normalization_version: str,
 ) -> None:
     entry_ids: set[str] = set()
     literal_owner: dict[tuple[ScientificProgram, str, str], str] = {}
@@ -428,7 +457,10 @@ def _validate_global_entry_namespace(
             key = (
                 entry.program,
                 entry.setting_path,
-                normalize_setting_literal(literal),
+                normalize_setting_literal_for_version(
+                    literal,
+                    normalization_version,
+                ),
             )
             owner = literal_owner.get(key)
             if owner not in {None, entry.entry_id}:
@@ -472,6 +504,7 @@ def _build_resolution(
         "schema_version": "chemsmart.scientific-setting-resolution.v2",
         "registry_sha256": context.registry.registry_sha256,
         "inventory_sha256s": context.inventory_sha256s,
+        "normalization_version": context.normalization_version,
         "program": program,
         "setting_path": setting_path,
         "requested_value": requested_value,
@@ -515,6 +548,7 @@ def _build_listing(
         "schema_version": "chemsmart.scientific-settings-list.v2",
         "registry_sha256": context.registry.registry_sha256,
         "inventory_sha256s": context.inventory_sha256s,
+        "normalization_version": context.normalization_version,
         "program": program,
         "setting_path": setting_path,
         "query": query,
@@ -575,11 +609,13 @@ def _fuzzy_candidates(
     normalized_value: str,
     job_kind: str,
     limit: int,
+    normalization_version: str,
 ) -> tuple[SettingCandidateV2, ...]:
     ranked = tuple(
         item
         for item in (
-            _ranked_entry(entry, normalized_value) for entry in entries
+            _ranked_entry(entry, normalized_value, normalization_version)
+            for entry in entries
         )
         if item[0] >= _FUZZY_MINIMUM_BASIS_POINTS
         and item[0] < 10000
@@ -687,12 +723,16 @@ def _list_item(
 def _ranked_entry(
     entry: SettingInventoryEntryV2,
     normalized_query: str,
+    normalization_version: str,
 ) -> tuple[int, SettingInventoryEntryV2, str]:
     scored_literals = tuple(
         (
             _similarity_basis_points(
                 normalized_query,
-                normalize_setting_literal(literal),
+                normalize_setting_literal_for_version(
+                    literal,
+                    normalization_version,
+                ),
             ),
             literal,
         )
@@ -731,10 +771,14 @@ def _similarity_basis_points(left: str, right: str) -> int:
 def _exact_entry(
     entries: tuple[SettingInventoryEntryV2, ...],
     normalized_value: str,
+    normalization_version: str,
 ) -> SettingInventoryEntryV2 | None:
     for entry in entries:
         if normalized_value in {
-            normalize_setting_literal(literal)
+            normalize_setting_literal_for_version(
+                literal,
+                normalization_version,
+            )
             for literal in (entry.canonical_value, *entry.aliases)
         }:
             return entry
@@ -792,7 +836,7 @@ def _literal(value: str) -> str:
         not selected
         or len(selected) > 300
         or _SAFE_TEXT.fullmatch(selected) is None
-        or not normalize_setting_literal(selected)
+        or not normalize_setting_literal_v2(selected)
     ):
         raise ValueError("setting value is invalid")
     return selected

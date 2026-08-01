@@ -17,6 +17,12 @@ from chemsmart.agent.harness.scientific_settings.contracts import (
     ScientificProgram,
     normalize_setting_literal,
 )
+from chemsmart.agent.harness.scientific_settings.contracts_v2 import (
+    SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
+    SCIENTIFIC_SETTING_NORMALIZATION_VERSION,
+    normalize_setting_literal_for_version,
+    normalize_setting_literal_v2,
+)
 
 
 SETTING_RESOLUTION_V2_SCHEMA_VERSION = (
@@ -91,7 +97,9 @@ class SettingCandidateV2(_LookupContractV2):
     def _safe_literals(cls, value: str) -> str:
         if not _SAFE_TEXT.fullmatch(value):
             raise ValueError("candidate literal contains control characters")
-        if not normalize_setting_literal(value):
+        if not (
+            normalize_setting_literal(value) or normalize_setting_literal_v2(value)
+        ):
             raise ValueError("candidate literal must normalize to a value")
         return value
 
@@ -137,6 +145,10 @@ class SettingResolutionV2(_LookupContractV2):
     resolution_sha256: str = Field(pattern=_SHA256)
     registry_sha256: str = Field(pattern=_SHA256)
     inventory_sha256s: tuple[str, ...] = Field(min_length=1)
+    normalization_version: Literal[
+        SCIENTIFIC_SETTING_NORMALIZATION_VERSION,
+        SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
+    ]
     program: ScientificProgram
     setting_path: str = Field(pattern=_SETTING_PATH)
     requested_value: str = Field(min_length=1, max_length=300)
@@ -181,7 +193,10 @@ class SettingResolutionV2(_LookupContractV2):
     def _safe_resolution_literals(cls, value: str | None) -> str | None:
         if value is not None and (
             not _SAFE_TEXT.fullmatch(value)
-            or not normalize_setting_literal(value)
+            or not (
+                normalize_setting_literal(value)
+                or normalize_setting_literal_v2(value)
+            )
         ):
             raise ValueError("resolution literal is invalid")
         return value
@@ -211,9 +226,11 @@ class SettingResolutionV2(_LookupContractV2):
 
     @model_validator(mode="after")
     def _resolution_is_consistent(self) -> "SettingResolutionV2":
-        if self.normalized_requested_value != normalize_setting_literal(
-            self.requested_value
-        ):
+        expected_normalization = normalize_setting_literal_for_version(
+            self.requested_value,
+            self.normalization_version,
+        )
+        if self.normalized_requested_value != expected_normalization:
             raise ValueError("normalized requested value is not canonical")
         _validate_observations(
             source_registered=self.source_registered,
@@ -338,7 +355,10 @@ class ScientificSettingsListItemV2(_LookupContractV2):
     def _safe_item_literals(cls, value: str | None) -> str | None:
         if value is not None and (
             not _SAFE_TEXT.fullmatch(value)
-            or not normalize_setting_literal(value)
+            or not (
+                normalize_setting_literal(value)
+                or normalize_setting_literal_v2(value)
+            )
         ):
             raise ValueError("list-item literal is invalid")
         return value
@@ -389,6 +409,10 @@ class ScientificSettingsListV2(_LookupContractV2):
     listing_sha256: str = Field(pattern=_SHA256)
     registry_sha256: str = Field(pattern=_SHA256)
     inventory_sha256s: tuple[str, ...] = Field(min_length=1)
+    normalization_version: Literal[
+        SCIENTIFIC_SETTING_NORMALIZATION_VERSION,
+        SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
+    ]
     program: ScientificProgram
     setting_path: str = Field(pattern=_SETTING_PATH)
     query: str = Field(max_length=300)
@@ -443,7 +467,11 @@ class ScientificSettingsListV2(_LookupContractV2):
 
     @model_validator(mode="after")
     def _listing_is_consistent(self) -> "ScientificSettingsListV2":
-        if self.normalized_query != normalize_setting_literal(self.query):
+        expected_normalization = normalize_setting_literal_for_version(
+            self.query,
+            self.normalization_version,
+        )
+        if self.normalized_query != expected_normalization:
             raise ValueError("normalized list query is not canonical")
         if self.returned_count != len(self.items):
             raise ValueError("returned_count does not match list items")

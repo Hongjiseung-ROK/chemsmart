@@ -30,6 +30,7 @@ from chemsmart.agent.harness.scientific_settings.registry import (
     validate_scientific_settings_source_snapshot,
 )
 from chemsmart.agent.harness.scientific_settings.contracts_v2 import (
+    SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
     SCIENTIFIC_SETTING_NORMALIZATION_VERSION,
     SCIENTIFIC_SETTINGS_INVENTORY_DESCRIPTOR_V2_SCHEMA_VERSION,
     SCIENTIFIC_SETTINGS_INVENTORY_V2_SCHEMA_VERSION,
@@ -43,6 +44,8 @@ from chemsmart.agent.harness.scientific_settings.contracts_v2 import (
     SettingEvidenceSourceKindV2,
     SettingEvidenceSourceV2,
     SettingInventoryEntryV2,
+    normalize_setting_literal_for_version,
+    normalize_setting_literal_v2,
     scientific_settings_inventory_v2_sha256,
     scientific_settings_registry_v2_sha256,
 )
@@ -77,6 +80,7 @@ __all__ = [
     "LoaderObservation",
     "RendererObservation",
     "SCIENTIFIC_SETTING_NORMALIZATION_VERSION",
+    "SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION",
     "SCIENTIFIC_SETTINGS_LIST_V2_SCHEMA_VERSION",
     "SCIENTIFIC_SETTINGS_INVENTORY_DESCRIPTOR_V2_SCHEMA_VERSION",
     "SCIENTIFIC_SETTINGS_INVENTORY_V2_SCHEMA_VERSION",
@@ -121,6 +125,8 @@ __all__ = [
     "list_scientific_settings",
     "list_scientific_settings_v2",
     "normalize_setting_literal",
+    "normalize_setting_literal_for_version",
+    "normalize_setting_literal_v2",
     "resolve_scientific_setting",
     "resolve_scientific_setting_v2",
     "scientific_setting_resolution_sha256",

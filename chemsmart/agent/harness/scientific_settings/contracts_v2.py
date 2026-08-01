@@ -41,6 +41,9 @@ SCIENTIFIC_SETTINGS_INVENTORY_DESCRIPTOR_V2_SCHEMA_VERSION = (
 SCIENTIFIC_SETTING_NORMALIZATION_VERSION = (
     "chemsmart.scientific-setting-literal.v1"
 )
+SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION = (
+    "chemsmart.scientific-setting-literal.v2"
+)
 
 _IDENTIFIER = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$"
 _SETTING_PATH = r"^[a-z][a-z0-9_.-]{0,191}$"
@@ -54,6 +57,7 @@ _SEMVER = (
 )
 _SAFE_TEXT = re.compile(r"^[^\x00-\x1f\x7f]+$")
 _NORMALIZE_RE = re.compile(r"[^a-z0-9]+")
+_POPULATED_NORMALIZE_RE = re.compile(r"[^a-z0-9+*(),/!]+")
 
 
 class _ContractV2(BaseModel):
@@ -149,7 +153,7 @@ class SettingInventoryEntryV2(_ContractV2):
                 raise ValueError("inventory aliases must not exceed 160 characters")
             if any(not _SAFE_TEXT.fullmatch(item) for item in value):
                 raise ValueError("inventory aliases contain control characters")
-            if any(not _normalize_setting_literal_v2(item) for item in value):
+            if any(not normalize_setting_literal_v2(item) for item in value):
                 raise ValueError("inventory aliases must normalize to a literal")
         elif info.field_name == "applicable_job_kinds":
             if any(re.fullmatch(_JOB_KIND, item) is None for item in value):
@@ -174,7 +178,7 @@ class SettingInventoryEntryV2(_ContractV2):
             raise ValueError("V2 inventory entries require loader acceptance")
         if self.renderer_observation is not RendererObservation.PRESERVED:
             raise ValueError("V2 inventory entries require renderer preservation")
-        if not _normalize_setting_literal_v2(self.canonical_value):
+        if not normalize_setting_literal_v2(self.canonical_value):
             raise ValueError("canonical value must normalize to a literal")
         if self.validator_enforced and not self.applicability_rule_ids:
             raise ValueError(
@@ -193,7 +197,8 @@ class ScientificSettingsInventoryV2(_ContractV2):
     inventory_version: str = Field(pattern=_SEMVER)
     inventory_sha256: str = Field(pattern=_SHA256)
     normalization_version: Literal[
-        SCIENTIFIC_SETTING_NORMALIZATION_VERSION
+        SCIENTIFIC_SETTING_NORMALIZATION_VERSION,
+        SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
     ] = SCIENTIFIC_SETTING_NORMALIZATION_VERSION
     sources: tuple[SettingEvidenceSourceV2, ...] = Field(min_length=1)
     entries: tuple[SettingInventoryEntryV2, ...] = Field(min_length=1)
@@ -236,7 +241,10 @@ class ScientificSettingsInventoryV2(_ContractV2):
                 key = (
                     entry.program,
                     entry.setting_path,
-                    _normalize_setting_literal_v2(literal),
+                    normalize_setting_literal_for_version(
+                        literal,
+                        self.normalization_version,
+                    ),
                 )
                 previous = semantic_keys.get(key)
                 if previous not in {None, entry.entry_id}:
@@ -269,7 +277,8 @@ class ScientificSettingsInventoryDescriptorV2(_ContractV2):
         SCIENTIFIC_SETTINGS_INVENTORY_V2_SCHEMA_VERSION
     ] = SCIENTIFIC_SETTINGS_INVENTORY_V2_SCHEMA_VERSION
     normalization_version: Literal[
-        SCIENTIFIC_SETTING_NORMALIZATION_VERSION
+        SCIENTIFIC_SETTING_NORMALIZATION_VERSION,
+        SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
     ] = SCIENTIFIC_SETTING_NORMALIZATION_VERSION
     inventory_id: str = Field(pattern=_IDENTIFIER)
     inventory_version: str = Field(pattern=_SEMVER)
@@ -377,9 +386,39 @@ def scientific_settings_registry_v2_sha256(
     return _identity_sha256_v2(value, "registry_sha256")
 
 
-def _normalize_setting_literal_v2(value: str) -> str:
-    text = str(value or "").strip().casefold().replace("ζ", "zeta")
-    return _NORMALIZE_RE.sub("", text)
+def normalize_setting_literal_for_version(value: str, version: str) -> str:
+    """Normalize one literal with the profile bound by its inventory.
+
+    The frozen V1 profile removes all punctuation.  That is unsafe for a
+    populated basis inventory because ``6-31G``, ``6-31+G``, and ``6-31G*``
+    would become the same key.  The populated profile keeps punctuation that
+    carries established basis/method semantics while still folding cosmetic
+    whitespace, hyphens, and underscores.
+    """
+
+    if version == SCIENTIFIC_SETTING_NORMALIZATION_VERSION:
+        text = str(value or "").strip().casefold().replace("ζ", "zeta")
+        return _NORMALIZE_RE.sub("", text)
+    if version != SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION:
+        raise ValueError(f"unknown scientific-setting normalization: {version}")
+    text = (
+        str(value or "")
+        .strip()
+        .casefold()
+        .replace("ζ", "zeta")
+        .replace("ω", "omega")
+    )
+    text = re.sub(r"[-_\s]+", "", text)
+    return _POPULATED_NORMALIZE_RE.sub("", text)
+
+
+def normalize_setting_literal_v2(value: str) -> str:
+    """Normalize with the punctuation-safe populated inventory profile."""
+
+    return normalize_setting_literal_for_version(
+        value,
+        SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
+    )
 
 
 def _identity_sha256_v2(
@@ -417,6 +456,7 @@ def _jsonable_v2(value: object) -> object:
 
 __all__ = [
     "SCIENTIFIC_SETTING_NORMALIZATION_VERSION",
+    "SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION",
     "SCIENTIFIC_SETTINGS_INVENTORY_DESCRIPTOR_V2_SCHEMA_VERSION",
     "SCIENTIFIC_SETTINGS_INVENTORY_V2_SCHEMA_VERSION",
     "SCIENTIFIC_SETTINGS_REGISTRY_REF_V2_SCHEMA_VERSION",
@@ -429,6 +469,8 @@ __all__ = [
     "SettingEvidenceSourceKindV2",
     "SettingEvidenceSourceV2",
     "SettingInventoryEntryV2",
+    "normalize_setting_literal_for_version",
+    "normalize_setting_literal_v2",
     "scientific_settings_inventory_v2_sha256",
     "scientific_settings_registry_v2_sha256",
 ]
