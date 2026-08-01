@@ -69,6 +69,69 @@ def test_openai_provider_chat_returns_dict_and_forwards_tools(monkeypatch):
     )
 
 
+def test_official_deepseek_tool_call_disables_thinking(monkeypatch):
+    """Only the official DeepSeek endpoint receives its tool-call override."""
+    response = MagicMock()
+    response.model_dump.return_value = {"id": "chatcmpl_test"}
+    completions = MagicMock()
+    completions.create.return_value = response
+    client = MagicMock()
+    client.chat.completions = completions
+    openai_module = MagicMock()
+    openai_module.OpenAI.return_value = client
+    monkeypatch.setitem(sys.modules, "openai", openai_module)
+
+    provider = OpenAIProvider(
+        "test-key",
+        model="deepseek-v4-pro",
+        base_url="https://api.deepseek.com/v1",
+        provider_name="deepseek",
+    )
+    provider.chat(
+        [{"role": "user", "content": "Prepare a command."}],
+        tools=[{"type": "function", "function": {"name": "demo"}}],
+    )
+
+    completions.create.assert_called_once_with(
+        model="deepseek-v4-pro",
+        messages=[{"role": "user", "content": "Prepare a command."}],
+        tools=[{"type": "function", "function": {"name": "demo"}}],
+        timeout=30,
+        extra_body={"thinking": {"type": "disabled"}},
+    )
+
+
+def test_deepseek_named_gateway_keeps_its_native_tool_contract(monkeypatch):
+    """A provider label alone must not modify a custom gateway request."""
+    response = MagicMock()
+    response.model_dump.return_value = {"id": "chatcmpl_test"}
+    completions = MagicMock()
+    completions.create.return_value = response
+    client = MagicMock()
+    client.chat.completions = completions
+    openai_module = MagicMock()
+    openai_module.OpenAI.return_value = client
+    monkeypatch.setitem(sys.modules, "openai", openai_module)
+
+    provider = OpenAIProvider(
+        "test-key",
+        model="deepseek-v4-pro",
+        base_url="https://gateway.example/v1",
+        provider_name="deepseek",
+    )
+    provider.chat(
+        [{"role": "user", "content": "Prepare a command."}],
+        tools=[{"type": "function", "function": {"name": "demo"}}],
+    )
+
+    completions.create.assert_called_once_with(
+        model="deepseek-v4-pro",
+        messages=[{"role": "user", "content": "Prepare a command."}],
+        tools=[{"type": "function", "function": {"name": "demo"}}],
+        timeout=30,
+    )
+
+
 def test_openai_provider_ping_returns_resolved_model(monkeypatch):
     """OpenAIProvider.ping returns model metadata from the response."""
     response = MagicMock()
@@ -122,4 +185,32 @@ def test_openai_provider_ping_uses_max_tokens_for_legacy_models(monkeypatch):
         messages=[{"role": "user", "content": "ping"}],
         max_tokens=5,
         timeout=30,
+    )
+
+
+def test_official_deepseek_doctor_ping_disables_thinking(monkeypatch):
+    response = MagicMock()
+    response.model = "deepseek-v4-pro"
+    completions = MagicMock()
+    completions.create.return_value = response
+    client = MagicMock()
+    client.chat.completions = completions
+    openai_module = MagicMock()
+    openai_module.OpenAI.return_value = client
+    monkeypatch.setitem(sys.modules, "openai", openai_module)
+
+    provider = OpenAIProvider(
+        "test-key",
+        model="deepseek-v4-pro",
+        base_url="https://api.deepseek.com",
+        provider_name="deepseek",
+    )
+    provider.ping()
+
+    completions.create.assert_called_once_with(
+        model="deepseek-v4-pro",
+        messages=[{"role": "user", "content": "ping"}],
+        max_tokens=5,
+        timeout=30,
+        extra_body={"thinking": {"type": "disabled"}},
     )

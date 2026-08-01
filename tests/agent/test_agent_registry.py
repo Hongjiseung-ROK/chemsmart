@@ -175,6 +175,8 @@ def test_registry_default_registration_sets_read_tool_metadata():
             "read_project_yaml",
             "update_project_yaml",
             "search_basis_sets",
+            "inspect_command_schema",
+            "inspect_command_workflow",
             "synthesize_command",
             "repair_command",
             "execute_chemsmart_command",
@@ -213,6 +215,8 @@ def test_registry_default_registration_sets_read_tool_metadata():
     assert project_tools["update_project_yaml"].metadata.read_only is False
     assert project_tools["synthesize_command"].metadata.read_only is True
     assert project_tools["repair_command"].metadata.read_only is True
+    assert project_tools["inspect_command_schema"].metadata.read_only is True
+    assert project_tools["inspect_command_workflow"].metadata.read_only is True
     assert (
         project_tools["execute_chemsmart_command"].metadata.read_only is False
     )
@@ -266,6 +270,8 @@ def test_registry_default_registration_sets_read_tool_metadata():
             "read_project_yaml",
             "update_project_yaml",
             "search_basis_sets",
+            "inspect_command_schema",
+            "inspect_command_workflow",
             "synthesize_command",
             "repair_command",
             "execute_chemsmart_command",
@@ -400,6 +406,8 @@ def test_default_registry_honors_tool_groups_env(monkeypatch):
     registry = ToolRegistry.default()
 
     assert {tool.name for tool in registry.list_tools()} == {
+        "inspect_command_schema",
+        "inspect_command_workflow",
         "synthesize_command",
         "repair_command",
     }

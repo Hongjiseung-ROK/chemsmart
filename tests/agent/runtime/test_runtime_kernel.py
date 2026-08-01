@@ -23,7 +23,10 @@ from chemsmart.agent.runtime.event_store import (
     RuntimeEventStore,
 )
 from chemsmart.agent.runtime.events import EventKind
-from chemsmart.agent.runtime.lifecycle import ToolExposureViolation
+from chemsmart.agent.runtime.lifecycle import (
+    RuntimeCommandRepairViolation,
+    ToolExposureViolation,
+)
 from chemsmart.agent.runtime.orchestrator import (
     RuntimeController,
     provider_role,
@@ -31,7 +34,13 @@ from chemsmart.agent.runtime.orchestrator import (
 )
 from chemsmart.agent.runtime.reducer import reduce_events
 from chemsmart.agent.runtime.repair_policy import RepairAction, decide_repair
-from chemsmart.agent.runtime.tool_catalog import ToolCatalog
+from chemsmart.agent.runtime.tool_catalog import (
+    LEGACY_FRONTIER_HIDDEN_TOOL_NAMES,
+    PhaseToolProfile,
+    ToolCatalog,
+    ToolSelection,
+)
+from chemsmart.agent.registry import ToolRegistry
 
 
 @dataclass(frozen=True)
@@ -56,6 +65,8 @@ class _Registry:
             "read_project_yaml",
             "update_project_yaml",
             "search_basis_sets",
+            "inspect_command_schema",
+            "inspect_command_workflow",
             "synthesize_command",
             "repair_command",
             "execute_chemsmart_command",
@@ -229,8 +240,191 @@ def test_phase_catalog_limits_controller_and_local_tool_surfaces():
     assert "write_project_yaml" not in controller.direct
     assert "read_project_yaml" in controller.direct
     assert "critic_project_yaml" in controller.deferred
-    assert specialist.direct == ("synthesize_command", "repair_command")
+    assert specialist.direct == (
+        "inspect_command_schema",
+        "inspect_command_workflow",
+        "synthesize_command",
+        "repair_command",
+    )
     assert "build_job" in controller.hidden
+
+
+def test_active_runtime_hides_legacy_jobs_from_custom_tool_profile(tmp_path):
+    profile = PhaseToolProfile(
+        {
+            TaskPhase.SYNTHESIS: (
+                "synthesize_command",
+                "build_job",
+                "dry_run_input",
+            )
+        },
+        specialist_tools=("build_job",),
+    )
+    controller = RuntimeController(
+        session_dir=tmp_path,
+        session_id="s1",
+        registry=_Registry(),
+        mode=RuntimeV2Mode.ACTIVE,
+        tool_profile=profile,
+    )
+
+    controller.start_turn(
+        request="Prepare a Gaussian optimization.",
+        turn_index=1,
+        provider_name="openai",
+        cwd=str(tmp_path),
+    )
+
+    assert controller.selection is not None
+    assert controller.selection.direct == ("synthesize_command",)
+    assert {"build_job", "dry_run_input"} <= set(
+        controller.selection.hidden
+    )
+    assert {"build_job", "dry_run_input"} <= (
+        LEGACY_FRONTIER_HIDDEN_TOOL_NAMES
+    )
+
+
+def test_active_runtime_hides_raw_executor_even_in_execution_phase(tmp_path):
+    profile = PhaseToolProfile(
+        {
+            TaskPhase.EXECUTION: (
+                "synthesize_command",
+                "execute_chemsmart_command",
+            )
+        }
+    )
+    controller = RuntimeController(
+        session_dir=tmp_path,
+        session_id="s1",
+        registry=_Registry(),
+        mode=RuntimeV2Mode.ACTIVE,
+        tool_profile=profile,
+    )
+
+    controller.start_turn(
+        request="Run an xTB calculation.",
+        turn_index=1,
+        provider_name="openai",
+        cwd=str(tmp_path),
+    )
+
+    assert controller.selection is not None
+    assert controller.selection.direct == ("synthesize_command",)
+    assert "execute_chemsmart_command" in controller.selection.hidden
+    assert "execute_chemsmart_command" in LEGACY_FRONTIER_HIDDEN_TOOL_NAMES
+
+
+def test_active_typed_command_profile_requires_a_green_preview_receipt(tmp_path):
+    registry = ToolRegistry.default(groups=["synthesis"])
+    controller = RuntimeController(
+        session_dir=tmp_path,
+        session_id="s1",
+        registry=registry,
+        mode=RuntimeV2Mode.ACTIVE,
+    )
+    controller.selection = ToolSelection(
+        phase=TaskPhase.SYNTHESIS,
+        provider_role=ProviderRole.CONTROLLER,
+        direct=("synthesize_command",),
+        deferred=(),
+        hidden=(),
+    )
+    controller.state = controller.state.model_copy(
+        update={"phase": TaskPhase.SYNTHESIS, "completed_tool_receipts": []}
+    )
+
+    assert controller.completion_rule_ids() == (
+        "runtime.command.preview_required",
+    )
+
+    controller.state = controller.state.model_copy(
+        update={
+            "completed_tool_receipts": [
+                {
+                    "tool": "synthesize_command",
+                    "verdict": "",
+                    "typed_command_status": "previewed",
+                    "typed_receipt_status": "previewed",
+                }
+            ]
+        }
+    )
+
+    assert controller.completion_rule_ids() == ()
+
+
+def test_rejected_typed_repair_invalidates_prior_preview_for_this_turn(tmp_path):
+    registry = ToolRegistry.default(groups=["synthesis"])
+    controller = RuntimeController(
+        session_dir=tmp_path,
+        session_id="s1",
+        registry=registry,
+        mode=RuntimeV2Mode.ACTIVE,
+    )
+    controller.start_turn(
+        request="Optimize water with xTB.",
+        turn_index=1,
+        provider_name="openai",
+        cwd=str(tmp_path),
+    )
+    controller.selection = ToolSelection(
+        phase=TaskPhase.SYNTHESIS,
+        provider_role=ProviderRole.CONTROLLER,
+        direct=("synthesize_command", "repair_command"),
+        deferred=(),
+        hidden=(),
+    )
+    controller.state = controller.state.model_copy(
+        update={"phase": TaskPhase.SYNTHESIS, "completed_tool_receipts": []}
+    )
+    lifecycle = controller.lifecycle()
+    task_digest = "a" * 64
+    receipt_digest = "b" * 64
+    lifecycle.after_tool(
+        request_id="synth",
+        tool_name="synthesize_command",
+        result={
+            "status": "previewed",
+            "task_spec_sha256": task_digest,
+            "receipt": {
+                "status": "previewed",
+                "receipt_sha256": receipt_digest,
+            },
+        },
+    )
+    repair_args = {
+        "prior_task_spec_sha256": task_digest,
+        "prior_receipt_sha256": receipt_digest,
+        "repair_attempt": 1,
+        "counterexample": {"rule_id": "cmd.test.counterexample"},
+    }
+    lifecycle.before_tool(
+        request_id="repair-1",
+        tool_name="repair_command",
+        arguments=repair_args,
+    )
+    lifecycle.after_tool(
+        request_id="repair-1",
+        tool_name="repair_command",
+        result={
+            "ok": False,
+            "status": "blocked",
+            "counterexamples": [
+                {"rule_id": "cmd.repair.scientific_binding_changed"}
+            ],
+        },
+    )
+
+    assert controller.completion_rule_ids() == (
+        "runtime.command.preview_not_green",
+    )
+    with pytest.raises(RuntimeCommandRepairViolation, match="prior_repair_blocked"):
+        lifecycle.before_tool(
+            request_id="repair-2",
+            tool_name="repair_command",
+            arguments=repair_args,
+        )
 
 
 def test_router_preserves_local_specialist_and_write_boundary():

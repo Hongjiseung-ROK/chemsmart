@@ -5,6 +5,11 @@ import json
 from pydantic import Field, create_model
 
 from chemsmart.agent.core import AgentSession
+from chemsmart.agent.permissions import (
+    ApprovalDecision,
+    PermissionMode,
+    PermissionPolicy,
+)
 from chemsmart.agent.registry import ToolInputModel, ToolRegistry, ToolSpec
 from chemsmart.agent.tool_protocol import RuntimeToolMetadata
 
@@ -234,6 +239,53 @@ def test_active_runtime_blocks_provider_call_to_hidden_tool(tmp_path):
     result = session.run_loop("Prepare a Gaussian optimization for water.")
 
     assert called == []
+    assert result["tool_outcomes"][0].status == "error"
+    assert result["tool_outcomes"][0].error_type == "ToolExposureViolation"
+
+
+def test_active_runtime_rejects_legacy_runner_before_approval(tmp_path):
+    approver_calls = []
+    runner_calls = []
+    provider = FakeProvider(
+        [
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call("call-1", "run_local", {"job": "job_1"})
+                )
+            },
+            {"__raw_response__": openai_final_response("Call rejected.")},
+        ]
+    )
+    registry = _registry(
+        _tool(
+            "synthesize_command",
+            lambda request: {},
+            fields={"request": (str, Field(...))},
+            read_only=True,
+        ),
+        _tool(
+            "run_local",
+            lambda job: runner_calls.append(job) or {"ok": True},
+            fields={"job": (str, Field(...))},
+            read_only=False,
+        ),
+    )
+    session = AgentSession(
+        provider=provider,
+        registry=registry,
+        session_root=tmp_path / "sessions",
+        runtime_v2="active",
+    )
+
+    result = session.run_loop(
+        "Run the prepared calculation.",
+        policy=PermissionPolicy(mode=PermissionMode.PERMISSION),
+        approver=lambda request: approver_calls.append(request)
+        or ApprovalDecision.ALLOW_ONCE,
+    )
+
+    assert approver_calls == []
+    assert runner_calls == []
     assert result["tool_outcomes"][0].status == "error"
     assert result["tool_outcomes"][0].error_type == "ToolExposureViolation"
 
