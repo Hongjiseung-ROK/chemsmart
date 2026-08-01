@@ -1,0 +1,18 @@
+{
+  "assistant_text": "I'll resolve the host-preregistered lookup targets against frozen V1, plus the functional that the project must preserve, all for job kind `opt`.",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "I'll resolve the host-preregistered lookup targets against frozen V1, plus the functional that the project must preserve, all for job kind `opt`.",
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v1",
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

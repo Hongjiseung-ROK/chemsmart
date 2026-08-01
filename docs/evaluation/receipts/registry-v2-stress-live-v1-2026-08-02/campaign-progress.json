@@ -1,0 +1,30 @@
+{
+  "campaign_plan_sha256": "e103ed54c3e1e8e0191c69587e28f152b6e3ad78de317179ccc66929562fd8f7",
+  "campaign_wall_time_limit_seconds": 14400.0,
+  "campaign_wall_time_ms": 80114,
+  "completed_run_ids": [
+    "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v1",
+    "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v1"
+  ],
+  "error_class": "JSONDecodeError",
+  "last_started_hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v1",
+  "outcome_artifacts": [
+    {
+      "artifact_sha256": "1ab41d9effbfa2dbe258e40871a0b05c06b4e52c87cb18bb149c864bbeba3ab2",
+      "locator": "outcomes/run_orca-ma-def2-tzvp-cross-field-blocked_minimal_v1.json",
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v1"
+    },
+    {
+      "artifact_sha256": "4dd861cc1644826b884929476f6ff39ca8c327b12443941cbeb193fb301f263e",
+      "locator": "outcomes/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v1_v1.json",
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v1"
+    }
+  ],
+  "outcome_receipt_sha256s": [
+    "91f9a4f232ec9c600e28c23969dc8a4eca7ea1f947f33cad9f40efb692d6b017",
+    "adefb4005efab181bd951cb075a26cd4d34ee7cfa1d2dfbc1e8fc7ca66b67dad"
+  ],
+  "schema_version": "chemsmart.registry-stress-campaign-progress.v1",
+  "status": "terminated_error",
+  "termination_reason": "safety_or_transport_error"
+}

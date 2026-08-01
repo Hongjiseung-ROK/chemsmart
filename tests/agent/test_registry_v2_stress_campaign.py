@@ -238,6 +238,26 @@ def test_v2_tool_schema_is_typed_and_never_exposes_v1(tmp_path):
     assert "resolve_scientific_setting_v1" not in by_name
 
 
+def test_explicit_settings_are_case_scoped_lookup_values():
+    case = _case("orca-ma-def2-tzvp-cross-field-blocked")
+
+    stress._validate_lookup_scope(
+        case,
+        "orca",
+        "method.functional",
+        "opt",
+        "B3LYP",
+    )
+    with pytest.raises(ValueError, match="outside the case scope"):
+        stress._validate_lookup_scope(
+            case,
+            "orca",
+            "method.functional",
+            "opt",
+            "PBE0",
+        )
+
+
 def test_advisory_tool_exists_only_in_preregistered_advisory_arm(tmp_path):
     bundle = _tiny_bundle(tmp_path)
     eligible = _case("orca-def2-tzvp-pd-28e-ecp")

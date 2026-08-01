@@ -1,0 +1,18 @@
+{
+  "assistant_text": "",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "",
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v1",
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

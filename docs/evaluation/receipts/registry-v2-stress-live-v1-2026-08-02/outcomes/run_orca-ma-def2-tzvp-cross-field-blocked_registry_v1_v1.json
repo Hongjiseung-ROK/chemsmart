@@ -1,0 +1,114 @@
+{
+  "grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "outcome": {
+    "deterministic_grade": {
+      "details": {
+        "successful_submission_count": 0
+      },
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "oracle_passed": false,
+      "passed_oracle_ids": []
+    },
+    "engine_calls": 0,
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 3292,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 684,
+    "passed_oracle_ids": [],
+    "private_reasoning_persisted": false,
+    "project_writes": 0,
+    "public_tool_trace_locator": "tool-traces/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v1_v1.json",
+    "public_tool_trace_sha256": "7db524cec051e2dbe90b29e5402c1a8e3f00029f957a0f93d708afe63ad8f82a",
+    "raw_public_english_response": "I'll resolve the host-preregistered lookup targets against frozen V1, plus the functional that the project must preserve, all for job kind `opt`.",
+    "raw_public_english_response_sha256": "4e0d6d6ac3d67d6b10a3b5bbc03a98a8ed3fd2c10b9be0f46e42cf448734278a",
+    "receipt_sha256": "adefb4005efab181bd951cb075a26cd4d34ee7cfa1d2dfbc1e8fc7ca66b67dad",
+    "response_artifact_locator": "responses/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v1_v1.json",
+    "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v1",
+    "run_spec_sha256": "bbda187c66f94a49584749b0c094a5240a7ede6ef955980b7566f589e7dc33d4",
+    "runtime_event_log_locator": "runtime-events/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v1_v1.jsonl",
+    "runtime_event_log_sha256": "0f2d5e81a7026f20403d17f794ba9550f334c63f2224f35dfc7bf6edaee5684c",
+    "runtime_replay_state_sha256": "1d0ad090d06d2cebeeb8dd7496edb0ccc7a01be5b22484f43ae9f766f9a0931c",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "blocked",
+    "sanitized_response_sha256": "1c6ff5b73b39c36323feb93f975bcace05a4aad178775c835ce8301099e0aacb",
+    "schema_version": "chemsmart.registry-stress-outcome.v1",
+    "secret_material_persisted": false,
+    "terminal_state": "failed",
+    "transport_attempts": 1,
+    "wall_time_ms": 4615
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v1",
+      "hypothesis_sha256": "b1dd3268bd10ed3a23df9bc5736420dd7ffe3cca833dbd2d9759378d3767f5f1",
+      "input_tokens": 3292,
+      "latency_ms": 4563,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 684,
+      "request_binding_sha256": "63634101887487ba1715ec62b81d083a12145c0a63e45a3446816e57388b711f",
+      "request_binding_verified": true,
+      "request_sha256": "e34b9a584a2b1fb44940739e29abe22937b0fcf95b6c16d2b32743211d4cdc00",
+      "status": "observed"
+    }
+  ],
+  "run_spec": {
+    "arm": "registry_v1",
+    "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+    "case_sha256": "19851144a8a225c3c8f2b9ed419f15d92e185a3d01326f1c04f150417b30ec01",
+    "changed_factor": "v1_registry_surface",
+    "comparator_arm": "minimal",
+    "configuration_sha256": "6124ea9679b3ef617542aec5884e02837da34962b51ad8b5507b02ee4b6487b8",
+    "deterministic_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "expected_outcome": "The typed proposal preserves explicit settings, uses the expected readiness, and passes every deterministic oracle.",
+    "hypothesis": "For orca-ma-def2-tzvp-cross-field-blocked, the registry_v1 surface will preserve the exact scientific intent and select the deterministic readiness state.",
+    "hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v1",
+    "knowledge_advisory_exposed": false,
+    "network_budget_sha256": "f248e6de15dd6a54261f403dd015a01b266b9c957c55056c5552fdac1a80b124",
+    "novelty_rationale": "Unique orca-ma-def2-tzvp-cross-field-blocked observation for the registry_v1 surface; no earlier Registry V2 transport exists.",
+    "prompt_sha256": "f6777a44caa0acc8aa0ae3f0393076c47f11b8b4f2dad90e2405ee1d2d38c874",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "request_bound_validation_exposed": false,
+    "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v1",
+    "run_spec_sha256": "bbda187c66f94a49584749b0c094a5240a7ede6ef955980b7566f589e7dc33d4",
+    "safety_plane": {
+      "chemistry_engine_execution_allowed": false,
+      "deterministic_oracles_active": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "project_writes_allowed": false,
+      "read_only_permission": true,
+      "runtime_v2_active": true,
+      "secret_persistence_allowed": false,
+      "v2_fallback_to_v1_allowed": false
+    },
+    "schema_version": "chemsmart.registry-stress-run.v1",
+    "source_binding_sha256": "e6ec34788e28a53ec9a15753a3982141351a91d8b0b146e9ef8defd18fada2e7",
+    "tool_schema_sha256": "5a3b8f0b876e7bd90656ee5d6e0bf815b8c6f52527c5a29ad842279995fa851a"
+  }
+}

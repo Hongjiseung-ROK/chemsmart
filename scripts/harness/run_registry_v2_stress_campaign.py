@@ -101,9 +101,12 @@ BASE_CHECKPOINT_SHA = "ca2879b6e4aca0f2131a0470b329d4de0d6279ac"
 REQUIRED_BRANCH = "codex/frontier-agent-live-pilot"
 REQUIRED_REMOTE = "fork"
 REQUIRED_REMOTE_URL = "https://github.com/Hongjiseung-ROK/chemsmart.git"
-CAMPAIGN_ID = "registry-v2-stress-development-v1"
+CAMPAIGN_ID = "registry-v2-stress-development-v2"
 MODEL = "deepseek-v4-flash"
-PROMPT_VERSION = "registry-v2-stress-prompt.v1"
+PROMPT_VERSION = "registry-v2-stress-prompt.v2"
+RUN_REVISION = "v2"
+MAX_OUTPUT_TOKENS = 8_192
+MAX_CONSECUTIVE_TOOL_ERRORS = 2
 _NATIVE_TEXT = re.compile(
     r"(?:^|\n)\s*(?:#(?:p|n|t)?\s|!\s|%[A-Za-z]|\*\s*xyz\b|\$[A-Za-z])",
     re.IGNORECASE,
@@ -189,6 +192,19 @@ _BASE_ORACLES = (
     "oracle.program-identity",
     "oracle.setting-preservation",
 )
+
+_SETTING_FIELD_PATHS = {
+    "functional": "method.functional",
+    "basis": "method.basis",
+    "dispersion": "method.dispersion",
+    "integration_grid": "method.integration_grid",
+    "heavy_elements_basis": "method.basis",
+    "light_elements_basis": "method.basis",
+    "solvent_model": "solvent.model",
+    "solvent_id": "solvent.id",
+    "gfn_version": "method.gfn_version",
+    "optimization_level": "optimization.level",
+}
 
 
 CASES: tuple[RegistryStressCaseV1, ...] = (
@@ -1049,15 +1065,17 @@ def prepare_campaign(
                 "knowledge_advisory_exposed": (
                     arm is RegistryStressArm.REGISTRY_V2_ADVISORY
                 ),
+                "max_output_tokens_per_request": MAX_OUTPUT_TOKENS,
+                "max_consecutive_tool_errors": MAX_CONSECUTIVE_TOOL_ERRORS,
                 "safety_plane": RegistryStressSafetyPlaneV1().model_dump(
                     mode="json"
                 ),
             }
             body = {
                 "schema_version": "chemsmart.registry-stress-run.v1",
-                "run_id": f"run:{case.case_id}:{arm.value}:v1",
+                "run_id": f"run:{case.case_id}:{arm.value}:{RUN_REVISION}",
                 "hypothesis_id": (
-                    f"{case.hypothesis_family_id}:{arm.value}:v1"
+                    f"{case.hypothesis_family_id}:{arm.value}:{RUN_REVISION}"
                 ),
                 "case_id": case.case_id,
                 "case_sha256": case.case_sha256,
@@ -1070,8 +1088,9 @@ def prepare_campaign(
                     "expected readiness, and passes every deterministic oracle."
                 ),
                 "novelty_rationale": (
-                    f"Unique {case.case_id} observation for the {arm.value} "
-                    "surface; no earlier Registry V2 transport exists."
+                    f"Unique repaired {case.case_id} observation for the "
+                    f"{arm.value} surface after the V1 live baseline exposed "
+                    "output-budget and explicit-setting lookup-scope defects."
                 ),
                 "deterministic_oracle_ids": case.deterministic_oracle_ids,
                 "source_binding_sha256": source_binding.binding_sha256,
@@ -1274,7 +1293,7 @@ Project/registry accessor job kind: {case.project_accessor_job_kind}
 Host-preregistered lookup targets:
 {lookup_lines}
 
-Use only the read-only tools offered in this arm. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English."""
+Use only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English."""
 
 
 def model_visible_tool_defs(registry: ToolRegistry) -> list[dict[str, Any]]:
@@ -1493,7 +1512,7 @@ def run_campaign(
     network_budget = build_adaptive_network_budget_v1(
         deepseek_initial_concurrency=1,
         max_context_tokens_per_request=32_000,
-        max_output_tokens_per_request=4_096,
+        max_output_tokens_per_request=MAX_OUTPUT_TOKENS,
         task_wall_time_seconds=14_400,
         max_transient_retries_per_hypothesis=2,
     )
@@ -1572,7 +1591,7 @@ def run_campaign(
     campaign_started = time.perf_counter()
     last_started_hypothesis_id: str | None = None
     provider_config = AdaptiveDeepSeekProviderConfig(
-        max_output_tokens=4_096,
+        max_output_tokens=MAX_OUTPUT_TOKENS,
         reasoning_effort="high",
     )
     campaign_wall_time_limit_seconds = network_budget.task_wall_time_seconds
@@ -1665,13 +1684,13 @@ def run_campaign(
                 budgets=ToolLoopBudgets(
                     max_model_steps_per_turn=None,
                     max_total_tool_calls_per_turn=16,
-                    max_consecutive_tool_errors=1,
+                    max_consecutive_tool_errors=MAX_CONSECUTIVE_TOOL_ERRORS,
                     max_same_signature_retries=1,
                     max_provider_errors_per_turn=1,
                     provider_timeout_s=180,
                     max_wall_time_s=360,
                     max_request_input_tokens=32_000,
-                    max_request_output_tokens=4_096,
+                    max_request_output_tokens=MAX_OUTPUT_TOKENS,
                     log_provider_turn_raw=False,
                 ),
                 log_raw_provider_turns=False,
@@ -1851,14 +1870,45 @@ def _validate_lookup_scope(
     program: str,
     setting_path: str,
     job_kind: str,
+    value: str | None = None,
 ) -> None:
+    allowed = _allowed_lookup_requests(case)
     in_scope = any(
-        (program, setting_path, job_kind)
-        == (item.program, item.setting_path, item.job_kind)
-        for item in case.lookup_expectations
+        program == allowed_program
+        and setting_path == allowed_path
+        and job_kind == allowed_job_kind
+        and (value is None or value == allowed_value)
+        for allowed_program, allowed_path, allowed_job_kind, allowed_value in allowed
     )
     if not in_scope:
         raise ValueError("lookup job kind is outside the case scope")
+
+
+def _allowed_lookup_requests(
+    case: RegistryStressCaseV1,
+) -> tuple[tuple[str, str, str, str], ...]:
+    allowed = {
+        (
+            item.program,
+            item.setting_path,
+            item.job_kind,
+            item.requested_value,
+        )
+        for item in case.lookup_expectations
+    }
+    settings = case.expected_settings.model_dump(mode="python")
+    for field, setting_path in _SETTING_FIELD_PATHS.items():
+        value = settings.get(field)
+        if isinstance(value, str) and value:
+            allowed.add(
+                (
+                    case.program,
+                    setting_path,
+                    case.project_accessor_job_kind,
+                    value,
+                )
+            )
+    return tuple(sorted(allowed))
 
 
 def _v1_resolve_tool(case: RegistryStressCaseV1):
@@ -1869,7 +1919,7 @@ def _v1_resolve_tool(case: RegistryStressCaseV1):
         job_kind: str,
         allow_fuzzy_candidates: bool = True,
     ) -> dict[str, Any]:
-        _validate_lookup_scope(case, program, setting_path, job_kind)
+        _validate_lookup_scope(case, program, setting_path, job_kind, value)
         return resolve_scientific_setting(
             program=program,
             setting_path=setting_path,
@@ -1922,7 +1972,7 @@ def _v2_resolve_tool(
         allow_fuzzy_candidates: bool = True,
         candidate_limit: int = 5,
     ) -> dict[str, Any]:
-        _validate_lookup_scope(case, program, setting_path, job_kind)
+        _validate_lookup_scope(case, program, setting_path, job_kind, value)
         resolution = resolve_scientific_setting_v2(
             registry=bundle.registry,
             loaded_inventories=bundle.inventories,
@@ -2447,7 +2497,7 @@ def main() -> int:
         network_budget = build_adaptive_network_budget_v1(
             deepseek_initial_concurrency=1,
             max_context_tokens_per_request=32_000,
-            max_output_tokens_per_request=4_096,
+            max_output_tokens_per_request=MAX_OUTPUT_TOKENS,
             task_wall_time_seconds=14_400,
             max_transient_retries_per_hypothesis=2,
         )

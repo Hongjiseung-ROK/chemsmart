@@ -1,0 +1,83 @@
+{
+  "schema_version": "chemsmart.registry-stress-live-reconciliation.v1",
+  "campaign_id": "registry-v2-stress-development-v1",
+  "campaign_plan_sha256": "e103ed54c3e1e8e0191c69587e28f152b6e3ad78de317179ccc66929562fd8f7",
+  "source_commit": "ff3a1c447d4f3e07db84760e79b302186ed942ed",
+  "source_binding_sha256": "e6ec34788e28a53ec9a15753a3982141351a91d8b0b146e9ef8defd18fada2e7",
+  "source_tree_sha256": "495f04117f5d1f3f3b7c1e7822921930d63ec46a2fe8a9682a730659ccd15f0a",
+  "registry_v2_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+  "termination": {
+    "campaign_status": "terminated_error",
+    "termination_reason": "safety_or_transport_error",
+    "error_class": "JSONDecodeError",
+    "last_started_hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v1",
+    "completed_run_count": 2,
+    "attempted_run_count_minimum": 3,
+    "planned_run_count": 44,
+    "decision": "retire_before_matrix_completion",
+    "decision_reason": "The first two completed runs and the third response-normalization failure exposed shared harness defects; continuing unchanged would not test new hypotheses."
+  },
+  "completed_runs": [
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v1",
+      "observed_model": "deepseek-v4-flash",
+      "transport_attempts": 1,
+      "input_tokens": 2966,
+      "output_tokens": 4096,
+      "wall_time_ms": 37889,
+      "runtime_terminal_state": "blocked",
+      "terminal_state": "failed",
+      "raw_public_english_response": "",
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "outcome_receipt_sha256": "91f9a4f232ec9c600e28c23969dc8a4eca7ea1f947f33cad9f40efb692d6b017",
+      "outcome_artifact_sha256": "1ab41d9effbfa2dbe258e40871a0b05c06b4e52c87cb18bb149c864bbeba3ab2"
+    },
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v1",
+      "observed_model": "deepseek-v4-flash",
+      "transport_attempts": 1,
+      "input_tokens": 3292,
+      "output_tokens": 684,
+      "wall_time_ms": 4615,
+      "runtime_terminal_state": "blocked",
+      "terminal_state": "failed",
+      "raw_public_english_response": "I'll resolve the host-preregistered lookup targets against frozen V1, plus the functional that the project must preserve, all for job kind `opt`.",
+      "tool_outcomes": [
+        "resolve_scientific_setting_v1:ok:method.basis:ma-def2-TZVP",
+        "resolve_scientific_setting_v1:ok:method.dispersion:D3BJ",
+        "resolve_scientific_setting_v1:error:method.functional:B3LYP"
+      ],
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "outcome_receipt_sha256": "adefb4005efab181bd951cb075a26cd4d34ee7cfa1d2dfbc1e8fc7ca66b67dad",
+      "outcome_artifact_sha256": "4dd861cc1644826b884929476f6ff39ca8c327b12443941cbeb193fb301f263e"
+    }
+  ],
+  "confirmed_facts": [
+    "The minimal arm consumed the configured 4096 output tokens and produced neither public English text nor a successful typed submission.",
+    "The V1 arm resolved the explicit basis and dispersion, then attempted the explicit B3LYP functional; the case-scope guard rejected that third lookup and the turn blocked after one consecutive tool error.",
+    "The third V2 run started and terminated with the recorded error class JSONDecodeError before producing an outcome receipt.",
+    "Both completed Runtime V2 streams replayed deterministically and are preserved with state and event digests.",
+    "No project write, native-input authoring, chemistry-engine call, or HPC call was exposed or recorded."
+  ],
+  "supported_interpretations": [
+    "A 4096-token output ceiling is insufficient for at least one thinking-enabled DeepSeek V4 Flash path in this harness.",
+    "Restricting lookups only to host-preregistered oracle targets is narrower than the model's legitimate need to inspect every explicit scientific setting.",
+    "The third JSONDecodeError is consistent with malformed or truncated provider output, but neither cause is established by the preserved campaign artifacts."
+  ],
+  "unknowns": [
+    "Whether 8192 output tokens are sufficient across all 14 cases.",
+    "Whether the repaired explicit-setting scope improves typed completion without increasing irrelevant lookups.",
+    "The third transport's exact token usage, public response bytes, exception message, and precise JSON parse target."
+  ],
+  "adopted_repairs_for_v2": [
+    "Increase the per-request output ceiling from 4096 to 8192 tokens.",
+    "Permit exact case-bound lookup of every explicit project setting literal, not only mandatory oracle targets.",
+    "Permit two consecutive tool errors so one recoverable tool mistake does not terminate the scientific turn.",
+    "Version the repaired campaign, prompt, run IDs, hypotheses, and configuration digest."
+  ],
+  "receipt_sha256": "2170db05d6af693f4a50d16ee1647987d4ac79f581764312a6707388ee247276"
+}
