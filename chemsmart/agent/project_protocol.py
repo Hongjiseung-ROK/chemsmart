@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 import yaml
 
@@ -20,6 +20,8 @@ from chemsmart.agent.project_yaml_values import (
     string_list,
     string_or_none,
 )
+from chemsmart.io.gaussian import GAUSSIAN_FUNCTIONALS
+from chemsmart.io.orca import ORCA_ALL_FUNCTIONALS
 
 _D3BJ_ALIASES = (
     "d3bj",
@@ -31,6 +33,104 @@ _D3BJ_ALIASES = (
 _CREST_MARKERS = ("crest", "mtd", "metadynamics", "gfn2", "xtb")
 ProjectProgram = Literal["gaussian", "orca", "xtb"]
 ProjectRenderProfile = Literal["legacy", "paper"]
+
+_TYPED_STRING_FIELDS = frozenset(
+    {
+        "functional",
+        "functional_route",
+        "basis",
+        "dispersion",
+        "integration_grid",
+        "heavy_elements_basis",
+        "light_elements_basis",
+        "solvent_model",
+        "solvent_id",
+        "gfn_version",
+        "optimization_level",
+    }
+)
+_TYPED_BOOLEAN_FIELDS = frozenset({"freq", "solv_freq"})
+_TYPED_LIST_FIELDS = frozenset({"heavy_elements"})
+_TYPED_METHOD_FIELDS = (
+    _TYPED_STRING_FIELDS | _TYPED_BOOLEAN_FIELDS | _TYPED_LIST_FIELDS
+)
+_PAPER_METHOD_FIELDS_BY_PROGRAM = {
+    "gaussian": _TYPED_METHOD_FIELDS
+    - {"gfn_version", "optimization_level"},
+    "orca": _TYPED_METHOD_FIELDS
+    - {"gfn_version", "optimization_level", "integration_grid"},
+    "xtb": frozenset(
+        {
+            "gfn_version",
+            "optimization_level",
+            "solvent_model",
+            "solvent_id",
+        }
+    ),
+}
+_PAPER_GAUSSIAN_TD_FIELDS = _TYPED_METHOD_FIELDS - {
+    "gfn_version",
+    "optimization_level",
+    "solvent_model",
+    "solvent_id",
+    "solv_freq",
+}
+_PRESERVED_D3_DISPERSIONS = frozenset({"d3", "d3bj"})
+_PROTOCOL_METADATA_FIELDS = frozenset(
+    {
+        "ambiguities",
+        "method_candidates",
+        "ok",
+        "program",
+        "project_name",
+        "protocol_notes",
+        "source_excerpt",
+        "status",
+        "td",
+        "unsupported_yaml_features",
+    }
+)
+_CHECKED_FUNCTIONALS = {
+    "gaussian": {
+        str(value).strip().casefold(): str(value).strip()
+        for value in GAUSSIAN_FUNCTIONALS
+    },
+    "orca": {
+        str(value).strip().casefold(): str(value).strip()
+        for value in ORCA_ALL_FUNCTIONALS
+    },
+}
+_ATOMIC_FUNCTIONAL_PATTERN = re.compile(r"[A-Za-z0-9._+\-\u03c9\u03a9]+")
+_UNSUPPORTED_EMBEDDED_DISPERSION = re.compile(
+    r"(?:^|[-_])g?(?:d2|d3zero|d4)(?:$|[-_])",
+    re.IGNORECASE,
+)
+_EMBEDDED_DISPERSION = re.compile(
+    r"(?:^|[-_])g?(?:d2|d3zero|d3bj|d3|d4)(?:$|[-_])",
+    re.IGNORECASE,
+)
+_SEMANTIC_INVALID_RULES = frozenset(
+    {
+        "paper.project.field_key_invalid",
+        "paper.project.field_type_invalid",
+        "paper.project.field_unknown",
+        "paper.project.functional_not_atomic",
+        "paper.project.functional_route_not_derived",
+        "paper.project.method_invalid",
+        "paper.project.semantic_loss",
+        "paper.project.td_invalid",
+    }
+)
+_SEMANTIC_UNSUPPORTED_RULES = frozenset(
+    {
+        "paper.project.dispersion_conflict",
+        "paper.project.dispersion_unsupported",
+        "paper.project.field_not_applicable",
+        "paper.project.integration_grid_unsupported",
+        "paper.project.td_not_applicable",
+        "paper.project.unsupported_protocol_feature",
+    }
+)
 
 
 def extract_project_protocol(
@@ -161,19 +261,18 @@ def render_project_document(
         project_name or str(protocol.get("project_name") or "project")
     )
     method = method_from_protocol(protocol)
-    blockers = paper_protocol_blockers(protocol, normalized_program)
-    if profile == "paper" and blockers:
-        return {
-            "project_name": name,
-            "program": normalized_program,
-            "yaml_text": None,
-            "status": "blocked_missing_evidence",
-            "blocking_issues": blockers,
-            "unsupported_yaml_features": protocol.get(
-                "unsupported_yaml_features",
-                [],
-            ),
-        }
+    blockers = (
+        paper_protocol_blockers(protocol, normalized_program)
+        if profile == "paper"
+        else ()
+    )
+    if blockers:
+        return _blocked_project_document(
+            name,
+            normalized_program,
+            protocol,
+            blockers,
+        )
     if normalized_program == "xtb":
         document = _render_xtb_document(method)
         return {
@@ -203,6 +302,31 @@ def render_project_document(
             normalized_program,
             profile=profile,
         )
+    if profile == "paper":
+        semantic_blockers = list(
+            paper_render_alignment_blockers(
+                method,
+                normalized_program,
+                gas_block,
+                field_prefix="method",
+            )
+        )
+        if isinstance(td_method, dict):
+            semantic_blockers.extend(
+                paper_render_alignment_blockers(
+                    td_method,
+                    normalized_program,
+                    document["td"],
+                    field_prefix="td",
+                )
+            )
+        if semantic_blockers:
+            return _blocked_project_document(
+                name,
+                normalized_program,
+                protocol,
+                tuple(semantic_blockers),
+            )
     return {
         "project_name": name,
         "program": normalized_program,
@@ -240,7 +364,7 @@ def render_method_block(
 ) -> dict[str, Any]:
     """Normalize one gas, solv, or TD method section."""
 
-    functional = _render_functional(method, program)
+    functional = _render_functional(method, program, profile=profile)
     basis = normalize_basis_if_known(string_or_none(method.get("basis")))
     if basis is None:
         if profile == "paper":
@@ -304,7 +428,16 @@ def _apply_gaussian_method(
 def _render_functional(
     method: dict[str, Any],
     program: str,
+    *,
+    profile: ProjectRenderProfile = "legacy",
 ) -> str | None:
+    if profile == "paper":
+        normalized_functional, normalized_dispersion = (
+            _paper_functional_intent(method, program)
+        )
+        if program == "orca":
+            return normalized_functional
+        return functional_route(normalized_functional, normalized_dispersion)
     functional = string_or_none(method.get("functional_route"))
     if functional is None:
         functional = string_or_none(method.get("functional"))
@@ -358,13 +491,16 @@ def _apply_orca_method(
     *,
     profile: ProjectRenderProfile = "legacy",
 ) -> None:
-    raw_functional = string_or_none(method.get("functional_route"))
-    if raw_functional is None:
-        raw_functional = string_or_none(method.get("functional"))
-    _, dispersion = normalize_functional_and_dispersion(
-        raw_functional,
-        string_or_none(method.get("dispersion")),
-    )
+    if profile == "paper":
+        _, dispersion = _paper_functional_intent(method, "orca")
+    else:
+        raw_functional = string_or_none(method.get("functional_route"))
+        if raw_functional is None:
+            raw_functional = string_or_none(method.get("functional"))
+        _, dispersion = normalize_functional_and_dispersion(
+            raw_functional,
+            string_or_none(method.get("dispersion")),
+        )
     if dispersion == "d3bj":
         block["dispersion"] = "D3BJ"
     elif dispersion == "d3":
@@ -387,6 +523,7 @@ def method_from_protocol(protocol: Any) -> dict[str, Any]:
         "basis",
         "dispersion",
         "freq",
+        "solv_freq",
         "functional",
         "functional_route",
         "heavy_elements",
@@ -405,10 +542,9 @@ def paper_protocol_blockers(
     protocol: dict[str, Any],
     program: str,
 ) -> tuple[dict[str, str], ...]:
-    """Return deterministic evidence gaps that forbid paper-mode rendering."""
+    """Return deterministic blockers that forbid paper-mode rendering."""
 
     normalized_program = normalize_program(program)
-    method = method_from_protocol(protocol)
     blockers: list[dict[str, str]] = []
 
     def add(rule_id: str, field: str, message: str) -> None:
@@ -416,97 +552,563 @@ def paper_protocol_blockers(
             {"rule_id": rule_id, "field": field, "message": message}
         )
 
+    raw_method = protocol.get("method")
+    if "method" in protocol:
+        if isinstance(raw_method, dict):
+            method = raw_method
+        else:
+            add(
+                "paper.project.method_invalid",
+                "method",
+                "paper project method must be a typed mapping",
+            )
+            method = {}
+    else:
+        method = {
+            key: value
+            for key, value in protocol.items()
+            if not isinstance(key, str)
+            or key not in _PROTOCOL_METADATA_FIELDS
+        }
+
+    _add_typed_mapping_blockers(add, method, "method")
+    allowed_method_fields = _PAPER_METHOD_FIELDS_BY_PROGRAM[
+        normalized_program
+    ]
+    _add_program_applicability_blockers(
+        add,
+        method,
+        "method",
+        normalized_program,
+        allowed_method_fields,
+    )
+
+    td_method = protocol.get("td")
+    if td_method is not None and normalized_program != "gaussian":
+        add(
+            "paper.project.td_not_applicable",
+            "td",
+            (
+                f"the {normalized_program} project compiler does not render "
+                "a td project block"
+            ),
+        )
+    elif td_method is not None and not isinstance(td_method, dict):
+        add(
+            "paper.project.td_invalid",
+            "td",
+            "the Gaussian td project block must be a typed mapping",
+        )
+    elif isinstance(td_method, dict):
+        _add_typed_mapping_blockers(add, td_method, "td")
+        _add_program_applicability_blockers(
+            add,
+            td_method,
+            "td",
+            "gaussian",
+            _PAPER_GAUSSIAN_TD_FIELDS,
+        )
+
+    if normalized_program in {"gaussian", "orca"}:
+        _add_atomic_functional_blockers(
+            add,
+            method,
+            "method",
+            normalized_program,
+        )
+        _add_functional_route_blocker(
+            add,
+            method,
+            "method",
+            normalized_program,
+        )
+        _add_dispersion_blockers(
+            add,
+            method,
+            "method",
+            normalized_program,
+        )
+        _add_quantum_method_evidence_blockers(add, method, "method")
+        _add_gaussian_grid_blocker(
+            add,
+            method,
+            "method",
+            enabled=normalized_program == "gaussian",
+        )
+    if normalized_program == "gaussian" and isinstance(td_method, dict):
+        _add_atomic_functional_blockers(add, td_method, "td", "gaussian")
+        _add_functional_route_blocker(add, td_method, "td", "gaussian")
+        _add_dispersion_blockers(add, td_method, "td", "gaussian")
+        _add_quantum_method_evidence_blockers(add, td_method, "td")
+        _add_gaussian_grid_blocker(
+            add,
+            td_method,
+            "td",
+            enabled=True,
+        )
+
     if normalized_program == "xtb":
-        if string_or_none(method.get("gfn_version")) is None:
+        if method.get("gfn_version") is None:
             add(
                 "paper.project.gfn_missing",
                 "method.gfn_version",
                 "paper-mode xTB rendering requires an evidenced GFN method",
             )
-    else:
-        if _render_functional(method, normalized_program) is None:
-            add(
-                "paper.project.functional_missing",
-                "method.functional",
-                "paper-mode rendering requires an evidenced functional",
-            )
-        basis = normalize_basis_if_known(string_or_none(method.get("basis")))
-        if basis is None:
-            add(
-                "paper.project.basis_missing",
-                "method.basis",
-                "paper-mode rendering requires an evidenced basis",
-            )
-        if not isinstance(method.get("freq"), bool):
-            add(
-                "paper.project.frequency_missing",
-                "method.freq",
-                "paper-mode rendering requires an evidenced frequency setting",
-            )
-        heavy_elements = string_list(method.get("heavy_elements"))
-        heavy_basis = normalize_basis_if_known(
-            string_or_none(method.get("heavy_elements_basis"))
-        )
-        light_basis = normalize_basis_if_known(
-            string_or_none(method.get("light_elements_basis"))
-        )
-        mixed_basis_reported = bool(
-            heavy_elements
-            or heavy_basis
-            or light_basis
-            or basis in {"gen", "genecp"}
-        )
-        if mixed_basis_reported and not (
-            heavy_elements and heavy_basis and light_basis
-        ):
-            add(
-                "paper.project.mixed_basis_incomplete",
-                "method.basis_assignments",
-                (
-                    "paper-mode mixed-basis rendering requires heavy elements, "
-                    "heavy basis, and light basis"
-                ),
-            )
 
-    solvent_model = string_or_none(method.get("solvent_model"))
-    solvent_id = string_or_none(method.get("solvent_id"))
-    if (solvent_model is None) != (solvent_id is None):
+    solvent_model = _paper_string(method, "solvent_model")
+    solvent_id = _paper_string(method, "solvent_id")
+    if (
+        _paper_field_type_is_valid(method, "solvent_model")
+        and _paper_field_type_is_valid(method, "solvent_id")
+        and (solvent_model is None) != (solvent_id is None)
+    ):
         add(
             "paper.project.solvent_pair_incomplete",
             "method.solvent",
             "paper-mode rendering requires both solvent model and solvent ID",
         )
-    for feature in sorted(
-        str(item) for item in protocol.get("unsupported_yaml_features") or ()
+
+    features = protocol.get("unsupported_yaml_features")
+    if features is not None and not (
+        isinstance(features, list)
+        and all(isinstance(item, str) for item in features)
     ):
         add(
-            "paper.project.unsupported_protocol_feature",
+            "paper.project.field_type_invalid",
             "unsupported_yaml_features",
-            f"paper protocol contains an uncompiled workflow step: {feature}",
+            "unsupported_yaml_features must be a list of strings",
         )
-    grid = string_or_none(method.get("integration_grid"))
-    if normalized_program == "gaussian" and grid is not None:
-        normalized_grid = re.sub(r"[^a-z0-9]+", "", grid.lower())
-        if normalized_grid not in {"ultrafine", "99590"}:
+    elif isinstance(features, list):
+        for feature in sorted(item for item in features if item.strip()):
             add(
-                "paper.project.integration_grid_unsupported",
-                "method.integration_grid",
-                f"paper Gaussian integration grid is unsupported: {grid!r}",
+                "paper.project.unsupported_protocol_feature",
+                "unsupported_yaml_features",
+                f"paper protocol contains an uncompiled workflow step: {feature}",
             )
-    for ambiguity in protocol.get("ambiguities") or ():
-        if not isinstance(ambiguity, dict):
-            continue
+
+    ambiguities = protocol.get("ambiguities")
+    if ambiguities is not None and not (
+        isinstance(ambiguities, list)
+        and all(isinstance(item, dict) for item in ambiguities)
+    ):
         add(
-            str(ambiguity.get("rule_id") or "paper.protocol.ambiguous"),
-            str(ambiguity.get("field") or "method"),
-            "paper protocol contains multiple unresolved method candidates",
+            "paper.project.field_type_invalid",
+            "ambiguities",
+            "ambiguities must be a list of mappings",
         )
+    elif isinstance(ambiguities, list):
+        for ambiguity in ambiguities:
+            add(
+                str(ambiguity.get("rule_id") or "paper.protocol.ambiguous"),
+                str(ambiguity.get("field") or "method"),
+                "paper protocol contains multiple unresolved method candidates",
+            )
     return tuple(
         sorted(
             blockers,
             key=lambda item: (item["rule_id"], item["field"], item["message"]),
         )
     )
+
+
+def _has_meaningful_typed_value(value: Any) -> bool:
+    """Return whether a typed field carries an intent that could be lost."""
+
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (dict, list, set, tuple)):
+        return bool(value)
+    return True
+
+
+def _add_typed_mapping_blockers(
+    add: Callable[[str, str, str], None],
+    mapping: dict[Any, Any],
+    field_prefix: str,
+) -> None:
+    string_fields: list[str] = []
+    for field in mapping:
+        if not isinstance(field, str):
+            add(
+                "paper.project.field_key_invalid",
+                field_prefix,
+                (
+                    f"{field_prefix} keys must be strings; observed "
+                    f"{type(field).__name__}"
+                ),
+            )
+            continue
+        string_fields.append(field)
+    for field in sorted(string_fields):
+        value = mapping[field]
+        if field not in _TYPED_METHOD_FIELDS:
+            if _has_meaningful_typed_value(value):
+                add(
+                    "paper.project.field_unknown",
+                    f"{field_prefix}.{field}",
+                    (
+                        f"{field_prefix}.{field} is outside the typed "
+                        "paper-project contract"
+                    ),
+                )
+            continue
+        message = _paper_field_type_error(field, value)
+        if message is not None:
+            add(
+                "paper.project.field_type_invalid",
+                f"{field_prefix}.{field}",
+                message,
+            )
+
+
+def _paper_field_type_error(field: str, value: Any) -> str | None:
+    if value is None:
+        return None
+    if field in _TYPED_STRING_FIELDS:
+        if isinstance(value, str) and value.strip():
+            return None
+        return f"{field} must be a non-empty string or null"
+    if field in _TYPED_BOOLEAN_FIELDS:
+        if type(value) is bool:
+            return None
+        return f"{field} must be a boolean or null"
+    if field in _TYPED_LIST_FIELDS:
+        if not isinstance(value, list):
+            return f"{field} must be a list of non-empty strings or null"
+        if not all(isinstance(item, str) and item.strip() for item in value):
+            return f"{field} must contain only non-empty strings"
+        if len(value) != len(set(value)):
+            return f"{field} must not contain duplicate values"
+    return None
+
+
+def _paper_field_type_is_valid(mapping: dict[Any, Any], field: str) -> bool:
+    return _paper_field_type_error(field, mapping.get(field)) is None
+
+
+def _paper_string(mapping: dict[Any, Any], field: str) -> str | None:
+    value = mapping.get(field)
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _paper_string_list(mapping: dict[Any, Any], field: str) -> list[str]:
+    value = mapping.get(field)
+    if not isinstance(value, list):
+        return []
+    if not all(isinstance(item, str) and item.strip() for item in value):
+        return []
+    return [item.strip() for item in value]
+
+
+def _add_program_applicability_blockers(
+    add: Callable[[str, str, str], None],
+    method: dict[Any, Any],
+    field_prefix: str,
+    program: str,
+    allowed_fields: frozenset[str],
+) -> None:
+    for field in sorted(_TYPED_METHOD_FIELDS - allowed_fields):
+        if (
+            field in method
+            and _paper_field_type_is_valid(method, field)
+            and _has_meaningful_typed_value(method[field])
+        ):
+            add(
+                "paper.project.field_not_applicable",
+                f"{field_prefix}.{field}",
+                (
+                    f"{field_prefix}.{field} is not represented by the "
+                    f"{program} project compiler"
+                ),
+            )
+
+
+def _checked_functional(program: str, functional: str) -> str | None:
+    return _CHECKED_FUNCTIONALS[program].get(functional.strip().casefold())
+
+
+def _paper_functional_intent(
+    method: dict[str, Any],
+    program: str,
+) -> tuple[str | None, str | None]:
+    functional = _paper_string(method, "functional")
+    dispersion = _normalize_explicit_dispersion(
+        _paper_string(method, "dispersion")
+    )
+    if functional is None:
+        return None, dispersion
+    checked = _checked_functional(program, functional)
+    if checked is not None:
+        return checked, dispersion
+    return normalize_functional_and_dispersion(functional, dispersion)
+
+
+def _add_atomic_functional_blockers(
+    add: Callable[[str, str, str], None],
+    method: dict[str, Any],
+    field_prefix: str,
+    program: str,
+) -> None:
+    functional = _paper_string(method, "functional")
+    if functional is None:
+        return
+    checked = _checked_functional(program, functional)
+    if checked is not None:
+        return
+    if _ATOMIC_FUNCTIONAL_PATTERN.fullmatch(functional) is None:
+        add(
+            "paper.project.functional_not_atomic",
+            f"{field_prefix}.functional",
+            (
+                "functional must be one atomic functional name; route "
+                "keywords and native syntax are forbidden"
+            ),
+        )
+        return
+    if _UNSUPPORTED_EMBEDDED_DISPERSION.search(functional):
+        add(
+            "paper.project.dispersion_unsupported",
+            f"{field_prefix}.functional",
+            (
+                f"embedded dispersion in {functional!r} is unsupported; "
+                "use typed D3/D3BJ or an exact checked-in compound functional"
+            ),
+        )
+
+
+def _add_dispersion_blockers(
+    add: Callable[[str, str, str], None],
+    method: dict[str, Any],
+    field_prefix: str,
+    program: str,
+) -> None:
+    dispersion = _paper_string(method, "dispersion")
+    normalized_dispersion = _normalize_explicit_dispersion(dispersion)
+    if (
+        normalized_dispersion is not None
+        and normalized_dispersion not in _PRESERVED_D3_DISPERSIONS
+    ):
+        add(
+            "paper.project.dispersion_unsupported",
+            f"{field_prefix}.dispersion",
+            (
+                f"{program} dispersion {dispersion!r} is not preserved by "
+                "the project compiler; supported values are D3 and D3BJ"
+            ),
+        )
+        return
+    functional = _paper_string(method, "functional")
+    if functional is None or normalized_dispersion is None:
+        return
+    checked = _checked_functional(program, functional)
+    if checked is not None and _EMBEDDED_DISPERSION.search(checked):
+        add(
+            "paper.project.dispersion_conflict",
+            f"{field_prefix}.dispersion",
+            "an exact compound functional cannot take a second dispersion",
+        )
+        return
+    if checked is None:
+        _, embedded = normalize_functional_and_dispersion(functional, None)
+        if embedded is not None and embedded != normalized_dispersion:
+            add(
+                "paper.project.dispersion_conflict",
+                f"{field_prefix}.dispersion",
+                "embedded and explicit dispersion values disagree",
+            )
+
+
+def _add_quantum_method_evidence_blockers(
+    add: Callable[[str, str, str], None],
+    method: dict[str, Any],
+    field_prefix: str,
+) -> None:
+    if method.get("functional") is None:
+        add(
+            "paper.project.functional_missing",
+            f"{field_prefix}.functional",
+            "paper-mode rendering requires an evidenced functional",
+        )
+    if method.get("basis") is None:
+        add(
+            "paper.project.basis_missing",
+            f"{field_prefix}.basis",
+            "paper-mode rendering requires an evidenced basis",
+        )
+    if method.get("freq") is None:
+        add(
+            "paper.project.frequency_missing",
+            f"{field_prefix}.freq",
+            "paper-mode rendering requires an evidenced frequency setting",
+        )
+
+    basis = normalize_basis_if_known(_paper_string(method, "basis"))
+    heavy_elements = _paper_string_list(method, "heavy_elements")
+    heavy_basis = normalize_basis_if_known(
+        _paper_string(method, "heavy_elements_basis")
+    )
+    light_basis = normalize_basis_if_known(
+        _paper_string(method, "light_elements_basis")
+    )
+    mixed_basis_reported = bool(
+        heavy_elements
+        or heavy_basis
+        or light_basis
+        or basis in {"gen", "genecp"}
+    )
+    if mixed_basis_reported and not (
+        heavy_elements and heavy_basis and light_basis
+    ):
+        add(
+            "paper.project.mixed_basis_incomplete",
+            f"{field_prefix}.basis_assignments",
+            (
+                "paper-mode mixed-basis rendering requires heavy elements, "
+                "heavy basis, and light basis"
+            ),
+        )
+
+
+def _add_gaussian_grid_blocker(
+    add: Callable[[str, str, str], None],
+    method: dict[str, Any],
+    field_prefix: str,
+    *,
+    enabled: bool,
+) -> None:
+    grid = _paper_string(method, "integration_grid")
+    if not enabled or grid is None:
+        return
+    normalized_grid = re.sub(r"[^a-z0-9]+", "", grid.lower())
+    if normalized_grid not in {"ultrafine", "99590"}:
+        add(
+            "paper.project.integration_grid_unsupported",
+            f"{field_prefix}.integration_grid",
+            f"paper Gaussian integration grid is unsupported: {grid!r}",
+        )
+
+
+def _add_functional_route_blocker(
+    add: Callable[[str, str, str], None],
+    method: dict[str, Any],
+    field_prefix: str,
+    program: str,
+) -> None:
+    """Allow a legacy route sidecar only when typed fields derive it exactly."""
+
+    declared_route = _paper_string(method, "functional_route")
+    if declared_route is None:
+        return
+    functional = _paper_string(method, "functional")
+    if functional is None:
+        add(
+            "paper.project.functional_route_not_derived",
+            f"{field_prefix}.functional_route",
+            "functional_route cannot replace the typed functional field",
+        )
+        return
+    normalized_functional, normalized_dispersion = _paper_functional_intent(
+        method,
+        program,
+    )
+    expected_route = functional_route(
+        normalized_functional,
+        normalized_dispersion,
+    )
+    normalized_declared = " ".join(declared_route.casefold().split())
+    normalized_expected = (
+        " ".join(expected_route.casefold().split())
+        if expected_route is not None
+        else None
+    )
+    if normalized_declared != normalized_expected:
+        add(
+            "paper.project.functional_route_not_derived",
+            f"{field_prefix}.functional_route",
+            (
+                "functional_route must exactly match the deterministic route "
+                "derived from functional and dispersion"
+            ),
+        )
+
+
+def paper_render_alignment_blockers(
+    method: dict[str, Any],
+    program: str,
+    rendered: dict[str, Any],
+    *,
+    field_prefix: str,
+) -> tuple[dict[str, str], ...]:
+    functional, dispersion = _paper_functional_intent(method, program)
+    expected_functional = (
+        functional
+        if program == "orca"
+        else functional_route(functional, dispersion)
+    )
+    issues: list[dict[str, str]] = []
+    if rendered.get("functional") != expected_functional:
+        issues.append(
+            {
+                "rule_id": "paper.project.semantic_loss",
+                "field": f"{field_prefix}.functional",
+                "message": (
+                    "rendered functional does not preserve the canonical "
+                    "typed functional intent"
+                ),
+            }
+        )
+    expected_orca_dispersion = (
+        "D3BJ"
+        if dispersion == "d3bj"
+        else "D3" if dispersion == "d3" else None
+    )
+    if (
+        program == "orca"
+        and rendered.get("dispersion") != expected_orca_dispersion
+    ):
+        issues.append(
+            {
+                "rule_id": "paper.project.semantic_loss",
+                "field": f"{field_prefix}.dispersion",
+                "message": (
+                    "rendered ORCA dispersion does not preserve the canonical "
+                    "typed dispersion intent"
+                ),
+            }
+        )
+    return tuple(issues)
+
+
+def paper_blocking_status(blockers: tuple[dict[str, str], ...]) -> str:
+    rule_ids = {item["rule_id"] for item in blockers}
+    if rule_ids.intersection(_SEMANTIC_INVALID_RULES):
+        return "blocked_invalid_specification"
+    if rule_ids.intersection(_SEMANTIC_UNSUPPORTED_RULES):
+        return "blocked_unsupported_setting"
+    return "blocked_missing_evidence"
+
+
+def _blocked_project_document(
+    project_name: str,
+    program: str,
+    protocol: dict[str, Any],
+    blockers: tuple[dict[str, str], ...],
+) -> dict[str, Any]:
+    return {
+        "project_name": project_name,
+        "program": program,
+        "yaml_text": None,
+        "status": paper_blocking_status(blockers),
+        "blocking_issues": blockers,
+        "unsupported_yaml_features": protocol.get(
+            "unsupported_yaml_features",
+            [],
+        ),
+    }
 
 
 def _extract_gfn_version(lowered: str) -> str | None:

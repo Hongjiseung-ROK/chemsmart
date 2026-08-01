@@ -13,6 +13,7 @@ from chemsmart.agent.project_yaml import (
     extract_project_protocol,
     read_project_yaml,
     render_project_yaml,
+    tool_input_json_schema,
     update_project_yaml,
     validate_project_yaml,
     write_project_yaml,
@@ -705,6 +706,549 @@ def test_paper_profile_blocks_missing_basis_and_frequency_evidence():
     assert legacy["yaml_text"] is not None
 
 
+def test_render_project_yaml_provider_schema_keeps_derived_route_compatibility():
+    schema = tool_input_json_schema("render_project_yaml")
+
+    assert schema is not None
+    protocol_properties = schema["properties"]["protocol"]["properties"]
+    method_properties = protocol_properties["method"]["properties"]
+    td_properties = protocol_properties["td"]["properties"]
+    assert method_properties["functional_route"]["deprecated"] is True
+    assert td_properties["functional_route"]["deprecated"] is True
+    assert method_properties["solv_freq"]["type"] == ["boolean", "null"]
+    assert "solv_freq" not in td_properties
+
+    protocol = extract_project_protocol(
+        "Gaussian B3LYP-D3BJ/def2-SVP with frequency analysis.",
+        program="gaussian",
+        profile="paper",
+    )
+    tool = ToolRegistry.default().get_tool("render_project_yaml")
+    assert tool is not None
+    validated = tool.validate_args(
+        {"protocol": protocol, "program": "gaussian", "profile": "paper"}
+    )
+    rendered = render_project_yaml(**validated)
+
+    assert rendered["validation"]["verdict"] == "ok"
+    assert yaml.safe_load(rendered["yaml_text"])["gas"]["functional"] == (
+        "b3lyp empiricaldispersion=gd3bj"
+    )
+
+
+def test_paper_profile_rejects_program_inapplicable_method_fields():
+    base_methods = {
+        "gaussian": {
+            "functional": "b3lyp",
+            "basis": "def2svp",
+            "freq": True,
+        },
+        "orca": {
+            "functional": "b3lyp",
+            "basis": "def2svp",
+            "freq": True,
+        },
+        "xtb": {"gfn_version": "gfn2"},
+    }
+    cases = (
+        ("gaussian", "gfn_version", "gfn2"),
+        ("gaussian", "optimization_level", "tight"),
+        ("orca", "integration_grid", "ultrafine"),
+        ("orca", "gfn_version", "gfn2"),
+        ("orca", "optimization_level", "tight"),
+        ("xtb", "functional", "b3lyp"),
+        ("xtb", "functional_route", "b3lyp"),
+        ("xtb", "basis", "def2svp"),
+        ("xtb", "dispersion", "d3bj"),
+        ("xtb", "freq", False),
+        ("xtb", "solv_freq", True),
+        ("xtb", "integration_grid", "ultrafine"),
+        ("xtb", "heavy_elements", ["Br"]),
+        ("xtb", "heavy_elements_basis", "def2svpd"),
+        ("xtb", "light_elements_basis", "def2svp"),
+    )
+
+    for program, field, value in cases:
+        method = dict(base_methods[program])
+        method[field] = value
+        blocked = render_project_yaml(
+            {"program": program, "method": method},
+            project_name=f"{program}_{field}",
+            program=program,
+            profile="paper",
+        )
+
+        assert blocked["ok"] is False, (program, field)
+        assert blocked["status"] == "blocked_unsupported_setting"
+        assert any(
+            issue["rule_id"] == "paper.project.field_not_applicable"
+            and issue["field"] == f"method.{field}"
+            for issue in blocked["blocking_issues"]
+        ), (program, field, blocked["blocking_issues"])
+
+
+def test_paper_profile_rejects_td_that_selected_program_cannot_render():
+    for program, method in (
+        (
+            "orca",
+            {"functional": "b3lyp", "basis": "def2svp", "freq": True},
+        ),
+        ("xtb", {"gfn_version": "gfn2"}),
+    ):
+        protocol = {
+            "program": program,
+            "method": method,
+            "td": {
+                "functional": "camb3lyp",
+                "basis": "def2svp",
+                "freq": True,
+            },
+        }
+        blocked = render_project_yaml(
+            protocol,
+            project_name=f"{program}_td",
+            program=program,
+            profile="paper",
+        )
+        legacy = render_project_yaml(
+            protocol,
+            project_name=f"{program}_td_legacy",
+            program=program,
+        )
+
+        assert any(
+            issue["rule_id"] == "paper.project.td_not_applicable"
+            and issue["field"] == "td"
+            for issue in blocked["blocking_issues"]
+        )
+        assert blocked["status"] == "blocked_unsupported_setting"
+        assert "td" not in yaml.safe_load(legacy["yaml_text"])
+
+
+def test_paper_profile_rejects_fields_ignored_inside_gaussian_td():
+    blocked = render_project_yaml(
+        {
+            "program": "gaussian",
+            "method": {
+                "functional": "b3lyp",
+                "basis": "def2svp",
+                "freq": True,
+            },
+            "td": {
+                "functional": "camb3lyp",
+                "basis": "def2svp",
+                "freq": True,
+                "solvent_model": "smd",
+                "solvent_id": "water",
+            },
+        },
+        project_name="gaussian_td_solvent",
+        program="gaussian",
+        profile="paper",
+    )
+
+    assert {
+        issue["field"]
+        for issue in blocked["blocking_issues"]
+        if issue["rule_id"] == "paper.project.field_not_applicable"
+    } == {"td.solvent_id", "td.solvent_model"}
+    assert blocked["status"] == "blocked_unsupported_setting"
+
+
+def test_paper_profile_rejects_dispersion_the_compiler_drops():
+    for program in ("gaussian", "orca"):
+        for dispersion in ("D2", "D3ZERO", "D4"):
+            protocol = {
+                "program": program,
+                "method": {
+                    "functional": "b3lyp",
+                    "dispersion": dispersion,
+                    "basis": "def2svp",
+                    "freq": True,
+                },
+            }
+            blocked = render_project_yaml(
+                protocol,
+                project_name=f"{program}_{dispersion.lower()}",
+                program=program,
+                profile="paper",
+            )
+            legacy = render_project_yaml(
+                protocol,
+                project_name=f"{program}_{dispersion.lower()}_legacy",
+                program=program,
+            )
+
+            assert any(
+                issue["rule_id"] == "paper.project.dispersion_unsupported"
+                and issue["field"] == "method.dispersion"
+                for issue in blocked["blocking_issues"]
+            )
+            assert blocked["status"] == "blocked_unsupported_setting"
+            assert "dispersion" not in yaml.safe_load(legacy["yaml_text"])[
+                "gas"
+            ]
+
+
+def test_paper_profile_rejects_unchecked_embedded_dispersion_without_loss():
+    for program in ("gaussian", "orca"):
+        for functional in ("B3LYP-D2", "B3LYP-D3ZERO", "B3LYP-D4"):
+            protocol = {
+                "program": program,
+                "method": {
+                    "functional": functional,
+                    "basis": "def2svp",
+                    "freq": True,
+                },
+            }
+            blocked = render_project_yaml(
+                protocol,
+                project_name=f"{program}_{functional.lower()}",
+                program=program,
+                profile="paper",
+            )
+            legacy = render_project_yaml(
+                protocol,
+                project_name=f"{program}_{functional.lower()}_legacy",
+                program=program,
+            )
+
+            assert blocked["status"] == "blocked_unsupported_setting"
+            assert blocked["yaml_text"] is None
+            assert any(
+                issue["rule_id"] == "paper.project.dispersion_unsupported"
+                and issue["field"] == "method.functional"
+                for issue in blocked["blocking_issues"]
+            )
+            assert yaml.safe_load(legacy["yaml_text"])["gas"][
+                "functional"
+            ] == "b3lyp"
+
+
+def test_paper_profile_preserves_functional_and_dispersion_alias_intent():
+    gaussian_cases = {
+        "M06-2X": "m062x",
+        "wB97X-D": "wb97xd",
+        "B3LYP-D3": "b3lyp empiricaldispersion=gd3",
+        "B3LYP-D3BJ": "b3lyp empiricaldispersion=gd3bj",
+    }
+    for functional, expected in gaussian_cases.items():
+        rendered = render_project_yaml(
+            {
+                "method": {
+                    "functional": functional,
+                    "basis": "def2svp",
+                    "freq": True,
+                }
+            },
+            project_name=f"gaussian_{functional.lower()}",
+            program="gaussian",
+            profile="paper",
+        )
+
+        assert rendered["validation"]["verdict"] == "ok"
+        assert yaml.safe_load(rendered["yaml_text"])["gas"][
+            "functional"
+        ] == expected
+
+    for functional, expected_dispersion in (
+        ("B3LYP-D3", "D3"),
+        ("B3LYP-D3BJ", "D3BJ"),
+    ):
+        rendered = render_project_yaml(
+            {
+                "method": {
+                    "functional": functional,
+                    "basis": "def2svp",
+                    "freq": True,
+                }
+            },
+            project_name=f"orca_{functional.lower()}",
+            program="orca",
+            profile="paper",
+        )
+        gas = yaml.safe_load(rendered["yaml_text"])["gas"]
+
+        assert rendered["validation"]["verdict"] == "ok"
+        assert gas["functional"] == "b3lyp"
+        assert gas["dispersion"] == expected_dispersion
+
+
+def test_paper_profile_preserves_checked_orca_compound_functional():
+    rendered = render_project_yaml(
+        {
+            "method": {
+                "functional": "B97M-D4",
+                "basis": "def2svp",
+                "freq": True,
+            }
+        },
+        project_name="orca_b97m_d4",
+        program="orca",
+        profile="paper",
+    )
+
+    assert rendered["validation"]["verdict"] == "ok"
+    gas = yaml.safe_load(rendered["yaml_text"])["gas"]
+    assert gas["functional"] == "b97m-d4"
+    assert "dispersion" not in gas
+
+
+def test_paper_profile_preserves_supported_dispersion_for_both_programs():
+    expected = {
+        ("gaussian", "D3"): ("functional", "b3lyp empiricaldispersion=gd3"),
+        ("gaussian", "D3BJ"): (
+            "functional",
+            "b3lyp empiricaldispersion=gd3bj",
+        ),
+        ("orca", "D3"): ("dispersion", "D3"),
+        ("orca", "D3BJ"): ("dispersion", "D3BJ"),
+    }
+
+    for (program, dispersion), (key, value) in expected.items():
+        rendered = render_project_yaml(
+            {
+                "program": program,
+                "method": {
+                    "functional": "b3lyp",
+                    "dispersion": dispersion,
+                    "basis": "def2svp",
+                    "freq": True,
+                },
+            },
+            project_name=f"{program}_{dispersion.lower()}_preserved",
+            program=program,
+            profile="paper",
+        )
+
+        assert rendered["validation"]["verdict"] == "ok"
+        assert yaml.safe_load(rendered["yaml_text"])["gas"][key] == value
+
+
+def test_paper_profile_rejects_unknown_method_and_td_fields():
+    unknown_method = render_project_yaml(
+        {
+            "program": "orca",
+            "method": {
+                "functional": "b3lyp",
+                "basis": "def2svp",
+                "freq": True,
+                "native_route": "VeryTightSCF",
+            },
+        },
+        project_name="unknown_method_field",
+        program="orca",
+        profile="paper",
+    )
+    unknown_td = render_project_yaml(
+        {
+            "program": "gaussian",
+            "method": {
+                "functional": "b3lyp",
+                "basis": "def2svp",
+                "freq": True,
+            },
+            "td": {
+                "functional": "camb3lyp",
+                "basis": "def2svp",
+                "freq": True,
+                "root_count": 10,
+            },
+        },
+        project_name="unknown_td_field",
+        program="gaussian",
+        profile="paper",
+    )
+
+    assert any(
+        issue["rule_id"] == "paper.project.field_unknown"
+        and issue["field"] == "method.native_route"
+        for issue in unknown_method["blocking_issues"]
+    )
+    assert any(
+        issue["rule_id"] == "paper.project.field_unknown"
+        and issue["field"] == "td.root_count"
+        for issue in unknown_td["blocking_issues"]
+    )
+    assert unknown_method["status"] == "blocked_invalid_specification"
+    assert unknown_td["status"] == "blocked_invalid_specification"
+
+
+def test_paper_profile_rejects_native_route_fragments_as_functionals():
+    for functional in (
+        "b3lyp nosymm",
+        "b3lyp/def2svp",
+        "b3lyp empiricaldispersion=gd3bj",
+    ):
+        blocked = render_project_yaml(
+            {
+                "method": {
+                    "functional": functional,
+                    "basis": "def2svp",
+                    "freq": True,
+                }
+            },
+            project_name="raw_functional",
+            program="gaussian",
+            profile="paper",
+        )
+
+        assert blocked["status"] == "blocked_invalid_specification"
+        assert any(
+            issue["rule_id"] == "paper.project.functional_not_atomic"
+            for issue in blocked["blocking_issues"]
+        )
+
+
+def test_paper_profile_rejects_wrong_types_without_legacy_regression():
+    cases = (
+        ("functional", True),
+        ("freq", 1),
+        ("solv_freq", "true"),
+        ("heavy_elements", "Br"),
+    )
+    for field, value in cases:
+        method = {
+            "functional": "b3lyp",
+            "basis": "def2svp",
+            "freq": True,
+            field: value,
+        }
+        blocked = render_project_yaml(
+            {"method": method},
+            project_name=f"wrong_type_{field}",
+            program="gaussian",
+            profile="paper",
+        )
+
+        assert blocked["status"] == "blocked_invalid_specification"
+        assert any(
+            issue["rule_id"] == "paper.project.field_type_invalid"
+            and issue["field"] == f"method.{field}"
+            for issue in blocked["blocking_issues"]
+        )
+
+    mixed_keys = {
+        "functional": "b3lyp",
+        "basis": "def2svp",
+        "freq": True,
+        7: "route",
+    }
+    blocked = render_project_yaml(
+        {"method": mixed_keys},
+        project_name="mixed_keys",
+        program="gaussian",
+        profile="paper",
+    )
+    legacy = render_project_yaml(
+        {"method": mixed_keys},
+        project_name="mixed_keys_legacy",
+        program="gaussian",
+    )
+
+    assert blocked["status"] == "blocked_invalid_specification"
+    assert any(
+        issue["rule_id"] == "paper.project.field_key_invalid"
+        for issue in blocked["blocking_issues"]
+    )
+    assert legacy["yaml_text"] is not None
+
+
+def test_paper_profile_returns_structured_blockers_for_incomplete_td():
+    blocked = render_project_yaml(
+        {
+            "method": {
+                "functional": "b3lyp",
+                "basis": "def2svp",
+                "freq": True,
+            },
+            "td": {},
+        },
+        project_name="incomplete_td",
+        program="gaussian",
+        profile="paper",
+    )
+
+    assert blocked["status"] == "blocked_missing_evidence"
+    assert {
+        (issue["rule_id"], issue["field"])
+        for issue in blocked["blocking_issues"]
+    } == {
+        ("paper.project.basis_missing", "td.basis"),
+        ("paper.project.frequency_missing", "td.freq"),
+        ("paper.project.functional_missing", "td.functional"),
+    }
+
+
+def test_paper_profile_renders_typed_solv_frequency_setting():
+    for program in ("gaussian", "orca"):
+        rendered = render_project_yaml(
+            {
+                "method": {
+                    "functional": "b3lyp",
+                    "basis": "def2svp",
+                    "freq": False,
+                    "solv_freq": True,
+                }
+            },
+            project_name=f"{program}_solv_freq",
+            program=program,
+            profile="paper",
+        )
+        document = yaml.safe_load(rendered["yaml_text"])
+
+        assert rendered["validation"]["verdict"] == "ok"
+        assert document["gas"]["freq"] is False
+        assert document["solv"]["freq"] is True
+
+
+def test_paper_functional_route_must_be_deterministically_derived():
+    matched = render_project_yaml(
+        {
+            "program": "gaussian",
+            "method": {
+                "functional": "B3LYP",
+                "dispersion": "D3BJ",
+                "functional_route": "b3lyp empiricaldispersion=gd3bj",
+                "basis": "def2svp",
+                "freq": True,
+            },
+        },
+        project_name="derived_route",
+        program="gaussian",
+        profile="paper",
+    )
+    mismatched_protocol = {
+        "program": "gaussian",
+        "method": {
+            "functional": "b3lyp",
+            "functional_route": "pbe0 nosymm",
+            "basis": "def2svp",
+            "freq": True,
+        },
+    }
+    blocked = render_project_yaml(
+        mismatched_protocol,
+        project_name="alternate_route",
+        program="gaussian",
+        profile="paper",
+    )
+    legacy = render_project_yaml(
+        mismatched_protocol,
+        project_name="alternate_route_legacy",
+        program="gaussian",
+    )
+
+    assert matched["validation"]["verdict"] == "ok"
+    assert any(
+        issue["rule_id"] == "paper.project.functional_route_not_derived"
+        and issue["field"] == "method.functional_route"
+        for issue in blocked["blocking_issues"]
+    )
+    assert blocked["status"] == "blocked_invalid_specification"
+    assert yaml.safe_load(legacy["yaml_text"])["gas"]["functional"] == "pbe0"
+
+
 def test_paper_profile_preserves_explicit_negative_frequency_setting():
     protocol = extract_project_protocol(
         (
@@ -777,7 +1321,7 @@ def test_paper_xtb_profile_distinguishes_method_from_crest_workflow():
         program="xtb",
         profile="paper",
     )
-    assert blocked["status"] == "blocked_missing_evidence"
+    assert blocked["status"] == "blocked_unsupported_setting"
     assert "paper.project.unsupported_protocol_feature" in {
         issue["rule_id"] for issue in blocked["blocking_issues"]
     }

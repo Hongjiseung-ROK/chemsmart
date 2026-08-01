@@ -62,10 +62,19 @@ def tool_input_json_schema(name: str) -> dict[str, Any] | None:
     nullable_string = {"type": ["string", "null"]}
     method_properties: dict[str, Any] = {
         "functional": nullable_string,
-        "functional_route": nullable_string,
+        "functional_route": {
+            "type": ["string", "null"],
+            "deprecated": True,
+            "description": (
+                "Deprecated derived-only sidecar. In paper profile it must "
+                "exactly match the route deterministically derived from "
+                "functional and dispersion."
+            ),
+        },
         "basis": nullable_string,
         "dispersion": nullable_string,
         "freq": {"type": ["boolean", "null"]},
+        "solv_freq": {"type": ["boolean", "null"]},
         "integration_grid": {
             "type": ["string", "null"],
             "description": (
@@ -84,6 +93,8 @@ def tool_input_json_schema(name: str) -> dict[str, Any] | None:
         "gfn_version": nullable_string,
         "optimization_level": nullable_string,
     }
+    td_properties = dict(method_properties)
+    td_properties.pop("solv_freq")
     protocol_schema = {
         "type": "object",
         "additionalProperties": False,
@@ -99,7 +110,7 @@ def tool_input_json_schema(name: str) -> dict[str, Any] | None:
             "td": {
                 "type": ["object", "null"],
                 "additionalProperties": False,
-                "properties": method_properties,
+                "properties": td_properties,
             },
             "source_excerpt": {"type": "string"},
             "protocol_notes": {
@@ -167,7 +178,7 @@ def render_project_yaml(
         blocking_issues = tuple(candidate.get("blocking_issues") or ())
         return {
             "ok": False,
-            "status": "blocked_missing_evidence",
+            "status": candidate.get("status", "blocked_missing_evidence"),
             "project_name": name,
             "program": normalized_program,
             "yaml_text": None,
