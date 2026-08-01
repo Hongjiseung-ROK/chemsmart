@@ -25,6 +25,10 @@ from chemsmart.agent.harness.scientific_settings.manifest_v2 import (
     FROZEN_MANIFEST_V2,
     FROZEN_V2_REGISTRY_SHA256,
 )
+from chemsmart.agent.harness.scientific_settings.manifest_populated_v2 import (
+    FROZEN_POPULATED_MANIFEST_V2,
+    FROZEN_POPULATED_V2_REGISTRY_SHA256,
+)
 from chemsmart.agent.harness.scientific_settings.registry import (
     load_scientific_settings_registry_v1,
 )
@@ -60,6 +64,51 @@ def load_scientific_settings_registry_v2() -> ScientificSettingsRegistryV2:
     body["registry_sha256"] = observed_sha256
     registry = ScientificSettingsRegistryV2.model_validate(body)
 
+    _validate_exact_v1_predecessor(registry)
+    return registry
+
+
+@lru_cache(maxsize=1)
+def load_populated_scientific_settings_registry_v2(
+) -> ScientificSettingsRegistryV2:
+    """Load the separate populated V2 snapshot explicitly.
+
+    This remains experimental and non-authoritative.  The empty skeleton and
+    the V1 default loader are untouched; callers opt in by naming this loader.
+    """
+
+    body = dict(FROZEN_POPULATED_MANIFEST_V2)
+    observed_sha256 = scientific_settings_registry_v2_sha256(body)
+    if observed_sha256 != FROZEN_POPULATED_V2_REGISTRY_SHA256:
+        raise ValueError(
+            "frozen populated V2 registry digest does not match its manifest"
+        )
+    body["registry_sha256"] = observed_sha256
+    registry = ScientificSettingsRegistryV2.model_validate(body)
+    _validate_exact_v1_predecessor(registry)
+    return registry
+
+
+def load_populated_scientific_settings_inventories_v2(
+    *,
+    repository_root: str | Path | None = None,
+) -> tuple[ScientificSettingsInventoryV2, ...]:
+    """Load every artifact bound by the explicit populated V2 snapshot."""
+
+    registry = load_populated_scientific_settings_registry_v2()
+    return tuple(
+        load_scientific_settings_inventory_v2(
+            registry=registry,
+            descriptor=descriptor,
+            repository_root=repository_root,
+        )
+        for descriptor in registry.inventories
+    )
+
+
+def _validate_exact_v1_predecessor(
+    registry: ScientificSettingsRegistryV2,
+) -> None:
     predecessor = registry.predecessor
     v1 = load_scientific_settings_registry_v1()
     expected_predecessor = (
@@ -76,7 +125,6 @@ def load_scientific_settings_registry_v2() -> ScientificSettingsRegistryV2:
     )
     if observed_predecessor != expected_predecessor:
         raise ValueError("V2 predecessor does not match the exact V1 snapshot")
-    return registry
 
 
 def load_scientific_settings_inventory_v2(
@@ -183,6 +231,10 @@ def load_scientific_settings_registry_by_sha256(
     if registry_sha256 == v2.registry_sha256:
         return v2
 
+    populated_v2 = load_populated_scientific_settings_registry_v2()
+    if registry_sha256 == populated_v2.registry_sha256:
+        return populated_v2
+
     raise ScientificSettingsRegistryDigestNotFoundError(
         f"unknown scientific-settings registry digest: {registry_sha256}"
     )
@@ -222,6 +274,8 @@ __all__ = [
     "ScientificSettingsRegistryDigestNotFoundError",
     "ScientificSettingsRegistrySnapshot",
     "load_scientific_settings_inventory_v2",
+    "load_populated_scientific_settings_inventories_v2",
+    "load_populated_scientific_settings_registry_v2",
     "load_scientific_settings_registry_by_sha256",
     "load_scientific_settings_registry_v2",
 ]

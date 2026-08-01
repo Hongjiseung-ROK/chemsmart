@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -22,6 +23,8 @@ from chemsmart.agent.harness.scientific_settings import (
     SettingResolutionV2,
     build_scientific_settings_validation_receipt,
     load_scientific_settings_inventory_v2,
+    load_populated_scientific_settings_inventories_v2,
+    load_populated_scientific_settings_registry_v2,
     list_scientific_settings_v2,
     load_scientific_settings_registry,
     load_scientific_settings_registry_by_sha256,
@@ -32,6 +35,22 @@ from chemsmart.agent.harness.scientific_settings import (
     scientific_setting_resolution_v2_sha256,
     scientific_settings_inventory_v2_sha256,
     scientific_settings_registry_v2_sha256,
+)
+from chemsmart.agent.harness.scientific_settings.generate_populated_v2 import (
+    INVENTORY_LOCATOR,
+    RECEIPT_LOCATOR,
+    SOURCE_CHECKPOINT,
+    _Candidate,
+    _deduplicate_candidates,
+    build_populated_scientific_settings_artifacts_v2,
+)
+from chemsmart.agent.harness.scientific_settings.manifest_populated_v2 import (
+    FROZEN_POPULATED_V2_GENERATION_RECEIPT,
+    FROZEN_POPULATED_V2_GENERATION_RECEIPT_ARTIFACT_SHA256,
+    FROZEN_POPULATED_V2_GENERATION_RECEIPT_SHA256,
+    FROZEN_POPULATED_V2_INVENTORY_ARTIFACT_SHA256,
+    FROZEN_POPULATED_V2_INVENTORY_SHA256,
+    FROZEN_POPULATED_V2_REGISTRY_SHA256,
 )
 
 
@@ -51,6 +70,14 @@ V1_OVERLAY_SHA256S = {
 }
 V2_REGISTRY_SHA256 = (
     "f7528e3f2cfbffcc72d2f677e9e146f80ab9e603207db6631789666b6af0db15"
+)
+POPULATED_V2_REGISTRY_SHA256 = FROZEN_POPULATED_V2_REGISTRY_SHA256
+POPULATED_V2_INVENTORY_SHA256 = FROZEN_POPULATED_V2_INVENTORY_SHA256
+POPULATED_V2_INVENTORY_ARTIFACT_SHA256 = (
+    FROZEN_POPULATED_V2_INVENTORY_ARTIFACT_SHA256
+)
+POPULATED_V2_GENERATION_RECEIPT_SHA256 = (
+    FROZEN_POPULATED_V2_GENERATION_RECEIPT_SHA256
 )
 
 
@@ -132,6 +159,33 @@ def test_digest_lookup_replays_v1_and_v2_without_implicit_migration():
     assert replayed_v1.registry_sha256 == V1_REGISTRY_SHA256
     assert type(replayed_v2) is ScientificSettingsRegistryV2
     assert replayed_v2.predecessor.registry_sha256 == V1_REGISTRY_SHA256
+
+
+def test_populated_v2_loading_is_explicit_and_digest_addressable():
+    default_registry = load_scientific_settings_registry()
+    skeleton = load_scientific_settings_registry_v2()
+    populated = load_populated_scientific_settings_registry_v2()
+    inventories = load_populated_scientific_settings_inventories_v2()
+
+    assert default_registry.registry_sha256 == V1_REGISTRY_SHA256
+    assert skeleton.registry_sha256 == V2_REGISTRY_SHA256
+    assert populated.registry_sha256 == POPULATED_V2_REGISTRY_SHA256
+    assert populated.source_revision == SOURCE_CHECKPOINT
+    assert populated.inventory_population_state == "populated"
+    assert populated.experimental is True
+    assert populated.default_runtime_authority is False
+    assert populated.predecessor.registry_sha256 == V1_REGISTRY_SHA256
+    assert len(populated.inventories) == 1
+    assert len(inventories) == 1
+    assert len(inventories[0].entries) == 1771
+    assert inventories[0].inventory_sha256 == POPULATED_V2_INVENTORY_SHA256
+    assert populated.inventories[0].artifact_sha256 == (
+        POPULATED_V2_INVENTORY_ARTIFACT_SHA256
+    )
+    replayed = load_scientific_settings_registry_by_sha256(
+        POPULATED_V2_REGISTRY_SHA256
+    )
+    assert replayed == populated
 
 
 def test_digest_lookup_rejects_invalid_and_unknown_digests():
@@ -258,6 +312,336 @@ def test_populated_normalization_preserves_scientific_basis_punctuation(
     )
     with pytest.raises(ValidationError, match="not canonical"):
         SettingResolutionV2.model_validate(tampered)
+
+
+def test_populated_candidate_deduplication_rejects_semantic_collisions():
+    base = _Candidate(
+        program="orca",
+        setting_path="method.functional",
+        canonical_value="M06-2X",
+        aliases=(),
+        applicable_job_kinds=("opt",),
+        applicability_rule_ids=(),
+        validator_enforced=False,
+        source_ids=("orca-reference-125f2878",),
+        category="functional",
+    )
+    incompatible = _Candidate(
+        program="orca",
+        setting_path="method.functional",
+        canonical_value="M062X",
+        aliases=(),
+        applicable_job_kinds=("sp",),
+        applicability_rule_ids=(),
+        validator_enforced=False,
+        source_ids=("orca-reference-125f2878",),
+        category="functional",
+    )
+
+    with pytest.raises(ValueError, match="incompatible candidate collision"):
+        _deduplicate_candidates((base, incompatible))
+
+
+def test_populated_inventory_is_reproducible_and_records_evidence_ceiling():
+    root = Path(__file__).resolve().parents[3]
+    generated = build_populated_scientific_settings_artifacts_v2(root)
+    inventory_path = root / INVENTORY_LOCATOR
+    receipt_path = root / RECEIPT_LOCATOR
+    receipt = dict(generated.receipt)
+
+    assert generated.inventory_bytes == inventory_path.read_bytes()
+    assert generated.receipt_bytes == receipt_path.read_bytes()
+    assert generated.inventory.inventory_sha256 == (
+        POPULATED_V2_INVENTORY_SHA256
+    )
+    assert generated.descriptor.artifact_sha256 == (
+        POPULATED_V2_INVENTORY_ARTIFACT_SHA256
+    )
+    assert generated.registry.registry_sha256 == POPULATED_V2_REGISTRY_SHA256
+    assert hashlib.sha256(generated.receipt_bytes).hexdigest() == (
+        FROZEN_POPULATED_V2_GENERATION_RECEIPT_ARTIFACT_SHA256
+    )
+    assert FROZEN_POPULATED_V2_GENERATION_RECEIPT == {
+        "locator": RECEIPT_LOCATOR,
+        "receipt_sha256": POPULATED_V2_GENERATION_RECEIPT_SHA256,
+        "artifact_sha256": (
+            FROZEN_POPULATED_V2_GENERATION_RECEIPT_ARTIFACT_SHA256
+        ),
+        "source_revision": SOURCE_CHECKPOINT,
+    }
+    assert receipt.pop("receipt_sha256") == (
+        POPULATED_V2_GENERATION_RECEIPT_SHA256
+    )
+    assert hashlib.sha256(
+        json.dumps(
+            receipt,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest() == POPULATED_V2_GENERATION_RECEIPT_SHA256
+
+    evidence = generated.receipt
+    expected_jobs = {
+        ("gaussian", "method.basis"): ("opt",),
+        ("gaussian", "method.dispersion"): ("opt",),
+        ("gaussian", "method.functional"): ("opt",),
+        ("gaussian", "method.integration_grid"): ("opt",),
+        ("gaussian", "solvent.id"): ("sp",),
+        ("gaussian", "solvent.model"): ("sp",),
+        ("orca", "method.basis"): ("opt",),
+        ("orca", "method.dispersion"): ("opt",),
+        ("orca", "method.functional"): ("opt",),
+        ("orca", "solvent.id"): ("sp",),
+        ("orca", "solvent.model"): ("sp",),
+        ("xtb", "method.gfn_version"): ("hess", "opt", "sp"),
+        ("xtb", "optimization.level"): ("opt",),
+        ("xtb", "solvent.id"): ("hess", "opt", "sp"),
+        ("xtb", "solvent.model"): ("hess", "opt", "sp"),
+    }
+    assert {
+        (entry.program.value, entry.setting_path): entry.applicable_job_kinds
+        for entry in generated.inventory.entries
+    } == expected_jobs
+    assert all(
+        "input=" in entry.observation_note
+        and " -> rendered=" in entry.observation_note
+        and " -> loaded=" in entry.observation_note
+        for entry in generated.inventory.entries
+    )
+    bse_backed_bases = tuple(
+        entry
+        for entry in generated.inventory.entries
+        if entry.setting_path == "method.basis"
+        and "bse-catalog-0.11" in entry.source_ids
+    )
+    assert len(bse_backed_bases) == 1284
+    assert all(
+        "scientific_settings.basis.request_element_coverage_required"
+        in entry.applicability_rule_ids
+        and entry.validator_enforced is False
+        for entry in bse_backed_bases
+    )
+    assert evidence["source_checkpoint"] == SOURCE_CHECKPOINT
+    probe = evidence["probe"]
+    assert probe["raw_candidate_count"] == 1773
+    assert probe["candidate_count_after_compatible_deduplication"] == 1771
+    assert probe["preserved_count"] == 1771
+    assert probe["excluded_probe_failure_count"] == 0
+    assert probe["profile"] == "paper"
+    assert probe["actual_project_loader_used"] is True
+    assert len(probe["observations"]) == 1771
+    gaussian_d3 = next(
+        item
+        for item in probe["observations"]
+        if item["program"] == "gaussian"
+        and item["setting_path"] == "method.dispersion"
+        and item["input_literal"] == "D3"
+    )
+    assert gaussian_d3["input_literal"] == "D3"
+    assert gaussian_d3["rendered_literals"] == (
+        "pbe empiricaldispersion=gd3",
+    )
+    assert gaussian_d3["loaded_literals"] == gaussian_d3["rendered_literals"]
+    assert gaussian_d3["observed_job_kinds"] == ("opt",)
+    assert gaussian_d3["allowed_transform_id"] == (
+        "paper_project.gaussian_dispersion_route_compilation"
+    )
+    assert gaussian_d3["rendered_loaded_equal"] is True
+
+    assert evidence["deduplication"]["raw_candidate_count"] == 1773
+    assert evidence["deduplication"]["unique_candidate_count"] == 1771
+    assert evidence["deduplication"]["merge_count"] == 2
+    assert {
+        item["normalized_key"]
+        for item in evidence["deduplication"]["merge_receipts"]
+    } == {"m062x", "wpbepp86"}
+
+    assert evidence["coverage"]["claim"] == (
+        "enumerated_typed_project_paths_only"
+    )
+    assert evidence["coverage"]["comprehensive_engine_inventory"] is False
+    assert all(
+        "*" not in item["observed_job_kinds"]
+        for item in evidence["coverage"]["enumerated_scopes"]
+    )
+    out_of_scope = {
+        item["collection"]: item["record_count"]
+        for item in evidence["coverage"][
+            "out_of_scope_reference_collections"
+        ]
+    }
+    assert out_of_scope == {
+        "GAUSSIAN_AB_INITIO": 10,
+        "GAUSSIAN_ADDITIONAL_OPT_OPTIONS": 17,
+        "GAUSSIAN_ADDITIONAL_ROUTE_PARAMETERS": 6,
+        "GAUSSIAN_BASES": 9,
+        "GAUSSIAN_SEMIEMPIRICAL": 8,
+        "ORCA_ALL_AB_INITIO": 6,
+        "ORCA_ALL_AUXILIARY_BASIS_SETS": 59,
+        "ORCA_ALL_DENSITY_OPTIONS": 3,
+        "ORCA_ALL_EXTRAPOLATION_BASIS_SETS": 364,
+        "ORCA_ALL_JOB_TYPES": 3,
+        "ORCA_ALL_SCF_ALGORITHMS": 3,
+        "ORCA_SCF_CONVERGENCE": 7,
+        "XTB_ALL_GROUPS": 24,
+        "XTB_ALL_JOB_TYPES": 6,
+        "XTB_ALL_OPT_ENGINES": 3,
+    }
+    assert evidence["inventory"]["project_candidate_eligible_count"] == 118
+    assert evidence["inventory"][
+        "blocked_validation_coverage_count"
+    ] == 1653
+    assert evidence["inventory"]["applicability_gap_counts"] == {
+        "scientific_settings.basis.bse_materialization_required": 1083,
+        "scientific_settings.basis.ecp_applicability_required": 140,
+        "scientific_settings.basis.registry_validator_integration_required": 130,
+        "scientific_settings.basis.request_element_coverage_required": 1284,
+        "scientific_settings.dispersion.functional_conflict_guard": 4,
+        "scientific_settings.solvent.pair_required": 203,
+        "scientific_settings.xtb.solvent_compatibility_required": 32,
+    }
+    assert evidence["bse_catalog"]["record_count"] == 748
+    assert evidence["bse_catalog"]["orbital_with_gto_count"] == 642
+    assert evidence["bse_catalog"]["non_orbital_role_count"] == 98
+    assert evidence["bse_catalog"]["ecp_only_count"] == 8
+    assert evidence["exclusion_counts"] == {
+        "ecp_only_no_orbitals": 16,
+        "non_orbital_basis_role": 196,
+        "scientifically_not_applicable": 1,
+        "typed_compiler_unsupported": 3,
+        "typed_path_not_applicable": 1,
+    }
+    assert evidence["execution_boundary"] == {
+        "chemistry_engine_calls": 0,
+        "native_inputs_generated": 0,
+        "network_calls": 0,
+        "provider_calls": 0,
+        "safe_previews": 0,
+        "scientific_adequacy_verified": False,
+    }
+
+    ecp_only = {
+        "CRENBL ECP",
+        "CRENBS ECP",
+        "def2-ECP",
+        "dhf-ECP",
+        "LANL2DZ ECP",
+        "SBKJC-ECP",
+        "Stuttgart RLC ECP",
+        "Stuttgart RSC 1997 ECP",
+    }
+    basis_values = {
+        entry.canonical_value
+        for entry in generated.inventory.entries
+        if entry.setting_path == "method.basis"
+    }
+    assert basis_values.isdisjoint(ecp_only)
+    assert {
+        item["canonical_value"]
+        for item in evidence["exclusions"]
+        if item["category"] == "ecp_only_no_orbitals"
+    } == ecp_only
+
+
+def test_populated_lookup_separates_membership_from_readiness():
+    registry = load_populated_scientific_settings_registry_v2()
+    inventories = load_populated_scientific_settings_inventories_v2()
+
+    gaussian_bases = tuple(
+        resolve_scientific_setting_v2(
+            registry=registry,
+            loaded_inventories=inventories,
+            program="gaussian",
+            setting_path="method.basis",
+            value=value,
+            job_kind="opt",
+        )
+        for value in ("6-31G", "6-31+G", "6-31G*")
+    )
+    assert len({item.entry_id for item in gaussian_bases}) == 3
+    assert all(
+        item.status is SettingResolutionStatusV2.BLOCKED_VALIDATION_COVERAGE
+        for item in gaussian_bases
+    )
+    assert all(
+        "scientific_settings.basis.bse_materialization_required"
+        in item.applicability_rule_ids
+        for item in gaussian_bases
+    )
+
+    native_orca = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="orca",
+        setting_path="method.basis",
+        value="cc-pVDZ",
+        job_kind="opt",
+    )
+    native_only_orca = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="orca",
+        setting_path="method.basis",
+        value="ma-def2-TZVP",
+        job_kind="opt",
+    )
+    xtb_solvent = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="xtb",
+        setting_path="solvent.model",
+        value="alpb",
+        job_kind="opt",
+    )
+    gaussian_d3 = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.dispersion",
+        value="D3",
+        job_kind="opt",
+    )
+    orca_solvent = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="orca",
+        setting_path="solvent.model",
+        value="CPCM",
+        job_kind="sp",
+    )
+    assert native_orca.status is (
+        SettingResolutionStatusV2.BLOCKED_VALIDATION_COVERAGE
+    )
+    assert native_orca.project_candidate_eligible is False
+    assert "scientific_settings.basis.request_element_coverage_required" in (
+        native_orca.applicability_rule_ids
+    )
+    assert native_only_orca.status is (
+        SettingResolutionStatusV2.BLOCKED_VALIDATION_COVERAGE
+    )
+    assert native_only_orca.applicability_rule_ids == (
+        "scientific_settings.basis.registry_validator_integration_required",
+    )
+    assert xtb_solvent.status is (
+        SettingResolutionStatusV2.BLOCKED_VALIDATION_COVERAGE
+    )
+    assert xtb_solvent.applicability_rule_ids == (
+        "scientific_settings.xtb.solvent_compatibility_required",
+    )
+    assert xtb_solvent.project_candidate_eligible is False
+    assert gaussian_d3.status is (
+        SettingResolutionStatusV2.BLOCKED_VALIDATION_COVERAGE
+    )
+    assert gaussian_d3.deterministic_validator_enforced is False
+    assert orca_solvent.status is (
+        SettingResolutionStatusV2.BLOCKED_VALIDATION_COVERAGE
+    )
+    assert orca_solvent.applicability_rule_ids == (
+        "scientific_settings.solvent.pair_required",
+    )
+    assert orca_solvent.deterministic_validator_enforced is False
 
 
 def test_v2_known_but_unenforced_rules_remain_representable():
