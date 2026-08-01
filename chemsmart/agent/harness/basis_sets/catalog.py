@@ -41,6 +41,7 @@ _FROZEN_CATALOG_CONTENT_SHA256 = (
     "a4c39327851ed653ec849c2109549cad4f0ee4e4207ea20143a368d25b2e2732"
 )
 _TOKEN_SPLIT_RE = re.compile(r"[^a-z0-9*+]+")
+_IDENTITY_SEPARATOR_RE = re.compile(r"[-_\s]+")
 _AMBIGUOUS_QUALITY_RE = re.compile(
     r"\b(good|reasonable|standard|large|small|better|best|accurate|cheap|"
     r"fast|diffuse|polarized|polarised|double[-\s]*zeta|triple[-\s]*zeta|"
@@ -248,6 +249,10 @@ class BasisElementInspectionResult:
         )
 
 
+class BasisCatalogIdentityCollisionError(ValueError):
+    """Raised when distinct BSE entries share one exact lookup identity."""
+
+
 @lru_cache(maxsize=1)
 def _load_basis_catalog_snapshot() -> tuple[dict[str, Any], str, str]:
     path = files(__package__).joinpath(_DATA_FILE)
@@ -278,10 +283,14 @@ def resolve_basis_name(
 ) -> BasisIntentResult:
     """Resolve an explicit basis-set name against a program-specific catalog."""
 
-    catalog = catalog or load_basis_catalog()
+    if catalog is None:
+        catalog, _, _ = _load_basis_catalog_snapshot()
+        identity_index = _default_basis_identity_index()
+    else:
+        identity_index = _build_basis_identity_index(catalog)
+    identity = normalize_basis_identity(name)
     normalized = normalize_basis_name(name)
-    aliases = catalog.get("aliases", {})
-    entry_key = aliases.get(normalized)
+    entry_key = identity_index.get(identity)
     if entry_key is None:
         return BasisIntentResult(
             verdict="reject",
@@ -289,7 +298,11 @@ def resolve_basis_name(
             program=program,
             message="basis set name is not in the BSE-backed chemsmart catalog",
             candidates=_near_matches(normalized, catalog),
-            evidence={"normalized": normalized},
+            evidence={
+                "identity": identity,
+                "normalized": normalized,
+                "identity_sources": ["bse_key", "display_name"],
+            },
         )
 
     entry = catalog["basis_sets"][entry_key]
@@ -303,6 +316,7 @@ def resolve_basis_name(
             catalog_key=entry_key,
             message=f"basis set exists in BSE but is not renderable for {program}",
             evidence={
+                "identity": identity,
                 "normalized": normalized,
                 "programs": sorted(programs),
                 "family": entry.get("family"),
@@ -318,6 +332,7 @@ def resolve_basis_name(
         catalog_key=entry_key,
         message="basis set name resolved to a BSE canonical entry",
         evidence={
+            "identity": identity,
             "normalized": normalized,
             "family": entry.get("family"),
             "role": entry.get("role"),
@@ -877,6 +892,63 @@ def normalize_basis_name(name: str) -> str:
     # BSE names are punctuation-sensitive in display form, but harness lookup
     # should tolerate user/model spelling variants such as def2 TZVP.
     return "".join(part for part in _TOKEN_SPLIT_RE.split(text) if part)
+
+
+def normalize_basis_identity(name: str) -> str:
+    """Return the punctuation-aware identity used only for exact resolution.
+
+    Hyphens, underscores, and whitespace are treated as spelling separators so
+    inputs such as ``def2 TZVP`` continue to resolve.  Scientifically meaningful
+    punctuation—including ``+``, ``*``, parentheses, and commas—is retained.
+    Broad search intentionally continues to use :func:`normalize_basis_name`.
+    """
+
+    text = str(name or "").strip().casefold().replace("ζ", "zeta")
+    return _IDENTITY_SEPARATOR_RE.sub("", text)
+
+
+@lru_cache(maxsize=1)
+def _default_basis_identity_index() -> dict[str, str]:
+    catalog, _, _ = _load_basis_catalog_snapshot()
+    return _build_basis_identity_index(catalog)
+
+
+def _build_basis_identity_index(catalog: dict[str, Any]) -> dict[str, str]:
+    """Index only per-entry BSE keys and display names, rejecting collisions."""
+
+    basis_sets = catalog.get("basis_sets")
+    if not isinstance(basis_sets, dict):
+        raise ValueError("basis catalog basis_sets mapping is missing")
+
+    identity_index: dict[str, str] = {}
+    identity_literals: dict[str, str] = {}
+    for entry_key in sorted(basis_sets):
+        entry = basis_sets[entry_key]
+        if not isinstance(entry_key, str) or not isinstance(entry, dict):
+            raise ValueError("basis catalog entries must be keyed mappings")
+        display_name = entry.get("display_name")
+        bse_key = entry.get("bse_key")
+        if not isinstance(display_name, str) or not display_name.strip():
+            raise ValueError("basis catalog display name is missing")
+        if not isinstance(bse_key, str) or not bse_key.strip():
+            raise ValueError("basis catalog BSE key is missing")
+        if bse_key != entry_key:
+            raise ValueError("basis catalog entry key differs from its BSE key")
+
+        for literal in (display_name, bse_key):
+            identity = normalize_basis_identity(literal)
+            if not identity:
+                raise ValueError("basis catalog exact identity is empty")
+            owner = identity_index.get(identity)
+            if owner is not None and owner != entry_key:
+                previous_literal = identity_literals[identity]
+                raise BasisCatalogIdentityCollisionError(
+                    "basis catalog exact identity collision for "
+                    f"{previous_literal!r} and {literal!r}"
+                )
+            identity_index[identity] = entry_key
+            identity_literals[identity] = literal
+    return identity_index
 
 
 def _basis_mentions(text: str, catalog: dict[str, Any]) -> list[str]:

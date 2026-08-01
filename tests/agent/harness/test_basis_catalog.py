@@ -6,11 +6,14 @@ from importlib import metadata
 from unittest.mock import patch
 
 import basis_set_exchange as bse
+import pytest
 
 from chemsmart.agent.harness.basis_sets import (
+    BasisCatalogIdentityCollisionError,
     check_basis_intent,
     inspect_basis_elements,
     load_basis_catalog,
+    normalize_basis_identity,
     resolve_basis_name,
     search_basis_sets,
 )
@@ -57,6 +60,57 @@ def test_resolve_basis_name_accepts_user_spelling_variants():
     assert result.canonical_name == "def2-TZVP"
     assert result.evidence
     assert result.evidence["family"] == "ahlrichs"
+
+
+@pytest.mark.parametrize(
+    ("literal", "expected_key", "expected_name"),
+    (
+        ("6-31G", "6-31g", "6-31G"),
+        ("6-31+G", "6-31+g", "6-31+G"),
+        ("6-31G*", "6-31g_st_", "6-31G*"),
+        ("def2-SVP", "def2-svp", "def2-SVP"),
+        ("def2-SV(P)", "def2-sv(p)", "def2-SV(P)"),
+    ),
+)
+def test_exact_resolution_preserves_scientific_punctuation(
+    literal: str,
+    expected_key: str,
+    expected_name: str,
+):
+    result = resolve_basis_name(literal, program="orca")
+
+    assert result.verdict == "ok"
+    assert result.catalog_key == expected_key
+    assert result.canonical_name == expected_name
+    assert result.evidence
+    assert result.evidence["identity"] == normalize_basis_identity(literal)
+
+
+def test_exact_resolution_ignores_unsafe_frozen_alias_collision():
+    catalog = load_basis_catalog()
+
+    assert catalog["aliases"]["def2svp"] == "def2-sv(p)"
+    result = resolve_basis_name("def2-SVP", program="orca", catalog=catalog)
+
+    assert result.verdict == "ok"
+    assert result.catalog_key == "def2-svp"
+    assert result.canonical_name == "def2-SVP"
+
+
+def test_exact_identity_retains_parentheses_commas_stars_and_pluses():
+    assert normalize_basis_identity("6-31+G*") == "631+g*"
+    assert normalize_basis_identity("6-311G(2d,2p)") == "6311g(2d,2p)"
+    assert normalize_basis_identity("6-311G(2d,2p)") != (
+        normalize_basis_identity("6-311G(2d2p)")
+    )
+
+
+def test_exact_resolution_fails_closed_on_trusted_identity_collision():
+    catalog = load_basis_catalog()
+    catalog["basis_sets"]["def2-svp"]["display_name"] = "def2-SV(P)"
+
+    with pytest.raises(BasisCatalogIdentityCollisionError):
+        resolve_basis_name("def2-SVP", program="orca", catalog=catalog)
 
 
 def test_check_basis_intent_distinguishes_concrete_from_qualitative():
@@ -226,7 +280,7 @@ def test_element_inspection_hashes_are_stable_and_detect_tampering():
     assert tampered.receipt_sha256_is_valid() is False
 
 
-def test_element_inspection_custom_catalog_is_bound_but_non_authoritative():
+def test_element_inspection_ignores_unsafe_custom_legacy_alias():
     custom = deepcopy(load_basis_catalog())
     custom["aliases"]["def2notreal"] = "def2-tzvp"
 
@@ -237,13 +291,34 @@ def test_element_inspection_custom_catalog_is_bound_but_non_authoritative():
         catalog=custom,
     )
 
-    assert result.canonical_name == "def2-TZVP"
+    assert result.canonical_name is None
     assert result.verdict == "reject"
-    assert result.status == "catalog_non_authoritative"
+    assert result.status == "basis_unresolved"
     assert result.catalog_authority == "custom_non_authoritative"
     assert result.catalog_authoritative is False
     assert result.catalog_artifact_sha256 is None
     assert result.catalog_content_sha256 is not None
+    assert result.rule_ids == (
+        "basis.element_inspection.custom_catalog_non_authoritative",
+        "basis.element_inspection.basis_unresolved",
+    )
+    assert result.orbital_basis_usable is None
+
+
+def test_element_inspection_custom_catalog_is_bound_but_non_authoritative():
+    custom = deepcopy(load_basis_catalog())
+
+    result = inspect_basis_elements(
+        "def2-SVP",
+        program="orca",
+        elements=("H",),
+        catalog=custom,
+    )
+
+    assert result.canonical_name == "def2-SVP"
+    assert result.catalog_key == "def2-svp"
+    assert result.verdict == "reject"
+    assert result.status == "catalog_non_authoritative"
     assert result.rule_ids == (
         "basis.element_inspection.custom_catalog_non_authoritative",
     )
