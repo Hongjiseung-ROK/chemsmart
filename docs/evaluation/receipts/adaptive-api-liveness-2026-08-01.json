@@ -1,0 +1,175 @@
+{
+  "attempt_counts_are_observational": true,
+  "campaign_policy_sha256": "01b13a2eade15b3aabfcfcbc2736e0d410ac4842d3f0186ee687a6535cf7e4d1",
+  "chemistry_engine_calls": 0,
+  "credential_availability": {
+    "deepseek": "available",
+    "elsevier": "available",
+    "serpapi": "available",
+    "tavily": "available"
+  },
+  "hpc_calls": 0,
+  "hypotheses": [
+    {
+      "expected_observation_sha256": "ea9ba760c2ba761c8ef855a4038cc8f202806b58eff1318e83f023676950adc8",
+      "hypothesis_id": "hypothesis:deepseek.model-catalog.v4-flash",
+      "hypothesis_sha256": "c6d53060db81e3e4f8e751b43d59ac648682bb8032031c4f954a90af14844d3f",
+      "input_state_sha256": "f8c8d9626f79c1d69822238cfc11ec33894d8717955c910c9edb2a69c0626f93",
+      "precondition_sha256s": [
+        "bd11f38af950fa9ff93be687d07937921b07007b10802452d33e9af7ff1413d0",
+        "ed13eb6d0fa6feabc61a2ef624ed9e70f61db8d682bd6fe99637c6b7839992b4"
+      ],
+      "prompt_sha256": "2ba54cf6a46687439b8a4c590184debc19b56a550b1a28ac5dc9dce7b922d37f",
+      "provider": "deepseek",
+      "purpose": "harness_validation"
+    },
+    {
+      "expected_observation_sha256": "3214639960397b70e4ce62b27481afbb873300b7955ded36305dad932ee92734",
+      "hypothesis_id": "hypothesis:elsevier.el-agente-q.full-text",
+      "hypothesis_sha256": "caa8b737d712c06e5c1ee96fe9f3fefab2ec640e558f9c09e736b283a4e1e249",
+      "input_state_sha256": "f8c8d9626f79c1d69822238cfc11ec33894d8717955c910c9edb2a69c0626f93",
+      "precondition_sha256s": [
+        "78b3bd0e9e859fd2e1f8cadae8abadf93814c0eb907162f7a9426f381a743af9",
+        "bd11f38af950fa9ff93be687d07937921b07007b10802452d33e9af7ff1413d0"
+      ],
+      "prompt_sha256": "f7ff287b6c2ba89e8aa2aa7b4e881295b99b8a024825ba7625f1bab89524f693",
+      "provider": "elsevier",
+      "purpose": "article_full_text"
+    },
+    {
+      "expected_observation_sha256": "449276f52d40d5e4a256ae0db4e172812df7b438fa18d121d465cd3b9fca77c1",
+      "hypothesis_id": "hypothesis:serpapi.prp10.exact-xyz-discovery",
+      "hypothesis_sha256": "8c473660fef03064b9f23ed93376e0ef403d5f725205d097c3f654ebf300e585",
+      "input_state_sha256": "f8c8d9626f79c1d69822238cfc11ec33894d8717955c910c9edb2a69c0626f93",
+      "precondition_sha256s": [
+        "bd11f38af950fa9ff93be687d07937921b07007b10802452d33e9af7ff1413d0",
+        "cac006aaee291561ca748b6efe99c9cd13f17364274d7207774fd75d0cee44c8"
+      ],
+      "prompt_sha256": "a8e0f7acaf2aabbb7d31cd0bafb6750e661245cb94b01a1a7a5a1cda8090a3bb",
+      "provider": "serpapi",
+      "purpose": "literature_discovery"
+    },
+    {
+      "expected_observation_sha256": "c6857161bbe9b11d6dc2e2422a44c4e071b295747ba7c7f21b00727e1add7819",
+      "hypothesis_id": "hypothesis:tavily.prp10.exact-xyz-discovery",
+      "hypothesis_sha256": "2906b6c9e2e9111085ca701e17872979ce0199b2ab519bb90371d6048b720314",
+      "input_state_sha256": "f8c8d9626f79c1d69822238cfc11ec33894d8717955c910c9edb2a69c0626f93",
+      "precondition_sha256s": [
+        "bd11f38af950fa9ff93be687d07937921b07007b10802452d33e9af7ff1413d0",
+        "c213bc17a250c71320c50affd3419edcaf2397a7b04e62656e5c05875d47f9d1"
+      ],
+      "prompt_sha256": "3f257e48b9ec129aa9a7c4cfca5f884c991ac4a2176862d5bc902bbe14dc9a03",
+      "provider": "tavily",
+      "purpose": "literature_discovery"
+    }
+  ],
+  "network_budget_sha256": "9d2fd02180b5ab3618488dba95d2babfd008d4186291881663e68f720bc9a3a3",
+  "provider_bypass_allowed": false,
+  "quota_source": "current_user_account",
+  "raw_model_response_persisted": false,
+  "receipt_sha256": "e68ea535b1158e4f30d6b7ce6006529f3e06acfebb579ab83d071e4a14a1326a",
+  "results": [
+    {
+      "attempts": [
+        {
+          "credential_status": "valid",
+          "http_status": 200,
+          "latency_ms": 206,
+          "ordinal": 1,
+          "response_bytes": 156,
+          "response_sha256": "4639cce8329d73d60082b99787c8ba9d8f1c0caf0b6d7d8266bd308ed05b68dc",
+          "timed_out": false
+        }
+      ],
+      "case_id": "deepseek.model-catalog.v4-flash",
+      "private_store_ref": null,
+      "provider": "deepseek",
+      "status": "observed",
+      "validation": {
+        "model_ids_sha256": "487df5b8f4a096e095dd4095596accd286d62a30f0eb2e8f2cc847b005b50121",
+        "observed_model_count": 2,
+        "rule_ids": [],
+        "target_model_present": true,
+        "valid": true
+      }
+    },
+    {
+      "attempts": [
+        {
+          "credential_status": "valid",
+          "http_status": 200,
+          "latency_ms": 1786,
+          "ordinal": 1,
+          "response_bytes": 234531,
+          "response_sha256": "c6db4e6e57a08e8975b4c6f9c4ef1c3a00cc9629bbbd3cac4415013843970f7b",
+          "timed_out": false
+        }
+      ],
+      "case_id": "elsevier.el-agente-q.full-text",
+      "private_store_ref": "private-store:elsevier.el-agente-q.full-text",
+      "provider": "elsevier",
+      "status": "observed",
+      "validation": {
+        "article_container_present": true,
+        "rule_ids": [],
+        "valid": true
+      }
+    },
+    {
+      "attempts": [
+        {
+          "credential_status": "valid",
+          "http_status": 200,
+          "latency_ms": 1434,
+          "ordinal": 1,
+          "response_bytes": 14502,
+          "response_sha256": "7a458fa9976674808235c4ca55c4907a946067c22fa5b14b99dfb91eeea7191d",
+          "timed_out": false
+        }
+      ],
+      "case_id": "serpapi.prp10.exact-xyz-discovery",
+      "private_store_ref": "private-store:serpapi.prp10.exact-xyz-discovery",
+      "provider": "serpapi",
+      "status": "observed",
+      "validation": {
+        "provider_error_field_present": false,
+        "result_count": 3,
+        "rule_ids": [],
+        "valid": true
+      }
+    },
+    {
+      "attempts": [
+        {
+          "credential_status": "valid",
+          "http_status": 200,
+          "latency_ms": 3884,
+          "ordinal": 1,
+          "response_bytes": 6912,
+          "response_sha256": "03ba084db17da647d404d2955dbb48eb3825caf3f7c061864ed165cd46b60210",
+          "timed_out": false
+        }
+      ],
+      "case_id": "tavily.prp10.exact-xyz-discovery",
+      "private_store_ref": "private-store:tavily.prp10.exact-xyz-discovery",
+      "provider": "tavily",
+      "status": "observed",
+      "validation": {
+        "provider_error_field_present": false,
+        "result_count": 3,
+        "rule_ids": [],
+        "valid": true
+      }
+    }
+  ],
+  "schema_version": "chemsmart.adaptive-api-liveness-receipt.v1",
+  "secret_material_persisted": false,
+  "termination_reason": "campaign.stop.all_unique_hypotheses_observed",
+  "top_up_allowed": false,
+  "totals": {
+    "latency_ms": 7310,
+    "transport_attempts": 4,
+    "wall_time_ms": 7324
+  },
+  "transport_attempt_limit": null
+}

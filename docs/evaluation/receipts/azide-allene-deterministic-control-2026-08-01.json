@@ -1,0 +1,99 @@
+{
+  "case_pass": true,
+  "fixture_boundary": {
+    "charge": 0,
+    "multiplicity": 1,
+    "source": "engineering_assumption_not_paper_evidence"
+  },
+  "observable_actions": {
+    "chemistry_engine_calls": 0,
+    "persistent_native_input_writes": 0,
+    "provider_requests": 0,
+    "scheduler_calls": 0,
+    "temporary_safe_preview_artifacts_generated": true
+  },
+  "paper": {
+    "article_text_sha256": "413144d542b000d4a1d779ac53b71b128a3d6d1e51ac582ba59fd7a1fab0979c",
+    "doi": "10.3390/molecules26040928",
+    "si_text_sha256": "ab9c6e926e3be7ea7b22b1b872ab5e5f7bd22e3aaa56e084a81f5f14c6c6442b",
+    "target": "1a+3a N1C1_N3C2 M08HX/pcseg-2"
+  },
+  "positive": {
+    "cli_grounded": true,
+    "command": "chemsmart run gaussian --charge 0 --filename ts-1a-3a-n1c1-n3c2.xyz --multiplicity 1 --project azide_allene_m08hx_pcseg2 ts",
+    "post_execution_validation_obligations": [
+      "exactly_one_imaginary_frequency",
+      "optimization_converged"
+    ],
+    "receipt_sha256": "82d9cc592806d00e41518bbe42c8aab031d0b51419e8b476dc773c11951ddb81",
+    "status": "previewed",
+    "task_spec_sha256": "c55abcadc309658e944003fbe22dc21bc875733d8c6c660e35b6285f0c2987b8"
+  },
+  "receipt_sha256": "12acc44625ccdba39f2f4c7bc189104d484768c6d8f90d3cb03f90184a918de0",
+  "schema_version": "chemsmart.azide-allene-deterministic-control.v1",
+  "single_factor_attack": {
+    "changed_field_count": 1,
+    "expected_rule_id": "cmd.artifact.hash_mismatch",
+    "mutated_field": "workflow.nodes[0].input_artifacts[0].sha256",
+    "rule_ids": [
+      "cmd.artifact.hash_mismatch",
+      "cmd.science.geometry.root_mismatch"
+    ],
+    "status": "blocked",
+    "tampered_value_sha256": "60e05bd1b195af2f94112fa7197a5c88289058840ce7c6df9693756bc6250f55"
+  },
+  "source_span_control": {
+    "method": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "freq": true,
+      "functional": "m08hx",
+      "functional_route": "m08hx",
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": "ultrafine",
+      "light_elements_basis": null,
+      "solvent_id": null,
+      "solvent_model": null
+    },
+    "model_authored_source_text_accepted": false,
+    "source_evidence": {
+      "aggregate_byte_count": 463,
+      "aggregate_excerpt_sha256": "1ba89c6e0a6b30a58ade1d22f44f144042cdb50deb4d0590b5107dc0b93b7fc1",
+      "aggregate_line_count": 5,
+      "aggregation_rule": "utf8_spans_lf_join_v1",
+      "document_sha256": "413144d542b000d4a1d779ac53b71b128a3d6d1e51ac582ba59fd7a1fab0979c",
+      "kind": "immutable_utf8_line_spans",
+      "locators": [
+        {
+          "byte_count": 120,
+          "end_line": 1026,
+          "kind": "line_range",
+          "line_count": 1,
+          "sha256": "ab1c5bb288fd9846c6b5395416fd70bd384c1ec75ab630f0d4de5ec4175bcb5a",
+          "start_line": 1026
+        },
+        {
+          "byte_count": 6,
+          "end_column": 32,
+          "end_line": 1028,
+          "kind": "line_column_range",
+          "line_count": 1,
+          "sha256": "b4c10a059c62ff6f68231c13a58f4a7b23dd04cae7b8ae2b596dcfad9012e3e0",
+          "start_column": 27,
+          "start_line": 1028
+        },
+        {
+          "byte_count": 336,
+          "end_line": 1035,
+          "kind": "line_range",
+          "line_count": 3,
+          "sha256": "afcb153f57bcc2909cb63e09e2789826407a1a79c1fe7af07a2efcb048994254",
+          "start_line": 1033
+        }
+      ],
+      "source_id": "paper-main-text"
+    },
+    "status": "extracted"
+  }
+}

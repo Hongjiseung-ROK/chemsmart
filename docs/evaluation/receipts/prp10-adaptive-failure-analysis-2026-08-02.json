@@ -1,0 +1,317 @@
+{
+  "interpretation": {
+    "confirmed_facts": [
+      "Historical public completed labels disagreed with blocked Runtime V2 terminals in four observations.",
+      "A static read-only allowlist denied five otherwise valid evidence tool requests.",
+      "Two official coordinate files diverged between Zenodo versions and were blocked."
+    ],
+    "known_unknowns": [
+      "Which divergent coordinate version matches the exact paper analysis.",
+      "Whether ten strict PRP-10 papers can be source-complete without relaxing eligibility."
+    ],
+    "retired_metrics": [
+      "Public completed as a success metric.",
+      "One exact source line per claim when equivalent evidence exists elsewhere.",
+      "Exactly one tool outcome as the only success metric; pass_at_1 and bounded repair are separate."
+    ],
+    "supported_interpretations": [
+      "Host-bound claim contracts remove avoidable model-controlled fields.",
+      "Targeted evidence windows can preserve this oracle result with substantially lower context use."
+    ],
+    "unverified_hypotheses": [
+      "The observed gains generalize beyond one paper and seeded evidence cases.",
+      "Three independent critics meet the preregistered recall and false-rejection gates."
+    ]
+  },
+  "observations": [
+    {
+      "case_id": "architecture_targeted",
+      "category": "provider_or_context",
+      "disposition": "repair",
+      "evidence_sha256": "bf1e25fb8d645aefc4a3f43943ebf1a2fad5aa01cc8bf715fd49436c88c43319",
+      "observation_id": "failure.claim-order-repair.1",
+      "recoverability": "bounded_repair",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "paper.claim.claim-ids-invalid",
+      "run_id": "elq-model-full",
+      "severity": "warning",
+      "stage": "provider"
+    },
+    {
+      "case_id": "pcp-ttm-coordinate-1",
+      "category": "artifact_or_provenance",
+      "disposition": "block",
+      "evidence_sha256": "be547e9df5312e9ac67282a316937b9f7ea3b313473f8afda33a55ab3b465d9d",
+      "observation_id": "failure.coordinate-version-conflict.1",
+      "recoverability": "user_evidence_required",
+      "recovered": false,
+      "repair_count": 0,
+      "rule_id": "coordinate.provenance.superseded_version_conflict",
+      "run_id": "pcp-ttm-coordinate-provenance",
+      "severity": "error",
+      "stage": "source"
+    },
+    {
+      "case_id": "pcp-ttm-coordinate-2",
+      "category": "artifact_or_provenance",
+      "disposition": "block",
+      "evidence_sha256": "cc325a47139bf146413e9c7ce9645b46f0fb6f47e0d6747033e133162c09a533",
+      "observation_id": "failure.coordinate-version-conflict.2",
+      "recoverability": "user_evidence_required",
+      "recovered": false,
+      "repair_count": 0,
+      "rule_id": "coordinate.provenance.superseded_version_conflict",
+      "run_id": "pcp-ttm-coordinate-provenance",
+      "severity": "error",
+      "stage": "source"
+    },
+    {
+      "case_id": "missing_state_negative",
+      "category": "false_terminal",
+      "disposition": "architectural_change",
+      "evidence_sha256": "27b05ad8eb069cc950c32ffc8172db47311ac66e0ee39cc48308d88a8aaaca4a",
+      "observation_id": "failure.false-terminal.1",
+      "recoverability": "capability_change_required",
+      "recovered": false,
+      "repair_count": 0,
+      "rule_id": "runtime.command.preview_required",
+      "run_id": "deepseek-v4-flash-refined-01",
+      "severity": "critical",
+      "stage": "terminal"
+    },
+    {
+      "case_id": "artifact_swap_negative",
+      "category": "false_terminal",
+      "disposition": "architectural_change",
+      "evidence_sha256": "c03d67ea2ed6cba8195bc8a95ac606cd46ef8906e75930796ee856d6c077333c",
+      "observation_id": "failure.false-terminal.2",
+      "recoverability": "capability_change_required",
+      "recovered": false,
+      "repair_count": 0,
+      "rule_id": "runtime.command.preview_not_green",
+      "run_id": "deepseek-v4-flash-refined-02",
+      "severity": "critical",
+      "stage": "terminal"
+    },
+    {
+      "case_id": "missing_state_negative",
+      "category": "false_terminal",
+      "disposition": "architectural_change",
+      "evidence_sha256": "7f189be189dd79a525ed28f527d0489904829fc847cdc83e0eaef90a2ca2210a",
+      "observation_id": "failure.false-terminal.3",
+      "recoverability": "capability_change_required",
+      "recovered": false,
+      "repair_count": 0,
+      "rule_id": "runtime.command.preview_required",
+      "run_id": "deepseek-v4-flash-refined-02",
+      "severity": "critical",
+      "stage": "terminal"
+    },
+    {
+      "case_id": "engineering_assumption_preview",
+      "category": "false_terminal",
+      "disposition": "architectural_change",
+      "evidence_sha256": "1543ae494c38ce85bd43d43d2a9713019b245cde86fd59e001e762f8b023a7cd",
+      "observation_id": "failure.false-terminal.4",
+      "recoverability": "capability_change_required",
+      "recovered": false,
+      "repair_count": 0,
+      "rule_id": "runtime.project.render_required",
+      "run_id": "deepseek-v4-flash-refined-03",
+      "severity": "critical",
+      "stage": "terminal"
+    },
+    {
+      "case_id": "architecture_full_context",
+      "category": "resource_or_repair_limit",
+      "disposition": "architectural_change",
+      "evidence_sha256": "bf1e25fb8d645aefc4a3f43943ebf1a2fad5aa01cc8bf715fd49436c88c43319",
+      "observation_id": "failure.full-context-overhead.1",
+      "recoverability": "capability_change_required",
+      "recovered": false,
+      "repair_count": 0,
+      "rule_id": "experiment.resource.full-context-overhead",
+      "run_id": "elq-host-bound",
+      "severity": "warning",
+      "stage": "provider"
+    },
+    {
+      "case_id": "architecture_targeted",
+      "category": "provider_or_context",
+      "disposition": "repair",
+      "evidence_sha256": "76f2a23ddacfb2bd20721a748af50c996f4da500957d0a482c0fd94b58875cdb",
+      "observation_id": "failure.read-only-permission.1",
+      "recoverability": "immediate",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "runtime.permission.read-only-tool-unregistered",
+      "run_id": "elq-permission-denied",
+      "severity": "error",
+      "stage": "provider"
+    },
+    {
+      "case_id": "failure_targeted",
+      "category": "provider_or_context",
+      "disposition": "repair",
+      "evidence_sha256": "aea1ba42e0591855a6d03dcc20957f59d9d75f11d84a206985d5c14d1a9b8a69",
+      "observation_id": "failure.read-only-permission.2",
+      "recoverability": "immediate",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "runtime.permission.read-only-tool-unregistered",
+      "run_id": "elq-permission-denied",
+      "severity": "error",
+      "stage": "provider"
+    },
+    {
+      "case_id": "native_input_contrast",
+      "category": "provider_or_context",
+      "disposition": "repair",
+      "evidence_sha256": "f8ac0ce0675af8f5b4835556329b63fc545f77c10d47173e1e68abe446d67c21",
+      "observation_id": "failure.read-only-permission.3",
+      "recoverability": "immediate",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "runtime.permission.read-only-tool-unregistered",
+      "run_id": "elq-permission-denied",
+      "severity": "error",
+      "stage": "provider"
+    },
+    {
+      "case_id": "architecture_full_context",
+      "category": "provider_or_context",
+      "disposition": "repair",
+      "evidence_sha256": "b6df8b4103dc8170fca280c0d500aef0c831618c08291fc9fad0745c4048d2c9",
+      "observation_id": "failure.read-only-permission.4",
+      "recoverability": "immediate",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "runtime.permission.read-only-tool-unregistered",
+      "run_id": "elq-permission-denied",
+      "severity": "error",
+      "stage": "provider"
+    },
+    {
+      "case_id": "data_availability",
+      "category": "provider_or_context",
+      "disposition": "repair",
+      "evidence_sha256": "64e54e48b3759402e8ba4c298c0881a28f7edf9e35233c9f2958abf42e94a343",
+      "observation_id": "failure.read-only-permission.5",
+      "recoverability": "immediate",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "runtime.permission.read-only-tool-unregistered",
+      "run_id": "elq-permission-denied",
+      "severity": "error",
+      "stage": "provider"
+    },
+    {
+      "case_id": "architecture_targeted",
+      "category": "critic_error",
+      "disposition": "repair",
+      "evidence_sha256": "bf1e25fb8d645aefc4a3f43943ebf1a2fad5aa01cc8bf715fd49436c88c43319",
+      "observation_id": "failure.retired-oracle.1",
+      "recoverability": "immediate",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "experiment.metric.exact-line-or-single-outcome-retired",
+      "run_id": "elq-model-full",
+      "severity": "warning",
+      "stage": "review"
+    },
+    {
+      "case_id": "native_input_contrast",
+      "category": "critic_error",
+      "disposition": "repair",
+      "evidence_sha256": "bf1e25fb8d645aefc4a3f43943ebf1a2fad5aa01cc8bf715fd49436c88c43319",
+      "observation_id": "failure.retired-oracle.2",
+      "recoverability": "immediate",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "experiment.metric.exact-line-or-single-outcome-retired",
+      "run_id": "elq-model-full",
+      "severity": "warning",
+      "stage": "review"
+    },
+    {
+      "case_id": "architecture_full_context",
+      "category": "critic_error",
+      "disposition": "repair",
+      "evidence_sha256": "bf1e25fb8d645aefc4a3f43943ebf1a2fad5aa01cc8bf715fd49436c88c43319",
+      "observation_id": "failure.retired-oracle.3",
+      "recoverability": "immediate",
+      "recovered": true,
+      "repair_count": 1,
+      "rule_id": "experiment.metric.exact-line-or-single-outcome-retired",
+      "run_id": "elq-model-full",
+      "severity": "warning",
+      "stage": "review"
+    }
+  ],
+  "receipt_sha256": "fd3fae198ef73a964cae5ccccc9e79b471404b14eb00fdc68f6b5be617198188",
+  "schema_version": "chemsmart.adaptive-failure-analysis.v1",
+  "source_receipts": {
+    "comparison": "bf1e25fb8d645aefc4a3f43943ebf1a2fad5aa01cc8bf715fd49436c88c43319",
+    "coordinates": "7d79221f735e39355b9656391a13b6b0441d3724e42020bea01663974ade6f55",
+    "permission_run": "ab119369a3b26a49ed4c882a185d2a5bbe9f08b274877f10a4b6a08aea102cd9",
+    "reconciliation": "24ac165d36c97ab010ad065e10d34e5f25b9ec6e6de1a0e3527ef6ee391436fd"
+  },
+  "summary": {
+    "aggregates": [
+      {
+        "affected_runs": 1,
+        "category": "artifact_or_provenance",
+        "critical_or_error": 2,
+        "next_disposition": "block",
+        "observations": 2,
+        "priority_score": 36,
+        "recovered": 0
+      },
+      {
+        "affected_runs": 1,
+        "category": "critic_error",
+        "critical_or_error": 0,
+        "next_disposition": "repair",
+        "observations": 3,
+        "priority_score": 6,
+        "recovered": 3
+      },
+      {
+        "affected_runs": 3,
+        "category": "false_terminal",
+        "critical_or_error": 4,
+        "next_disposition": "architectural_change",
+        "observations": 4,
+        "priority_score": 172,
+        "recovered": 0
+      },
+      {
+        "affected_runs": 2,
+        "category": "provider_or_context",
+        "critical_or_error": 5,
+        "next_disposition": "repair",
+        "observations": 6,
+        "priority_score": 29,
+        "recovered": 6
+      },
+      {
+        "affected_runs": 1,
+        "category": "resource_or_repair_limit",
+        "critical_or_error": 0,
+        "next_disposition": "architectural_change",
+        "observations": 1,
+        "priority_score": 13,
+        "recovered": 0
+      }
+    ],
+    "highest_value_categories": [
+      "false_terminal"
+    ],
+    "observation_set_sha256": "a59a2b4976469191d2becaf094ab66651a2f3379ea14f9f01558a416d30a1a2d",
+    "schema_version": "chemsmart.failure-summary.v1",
+    "summary_sha256": "fc2865caf5da7b03b13854ebf91721579e2078270b9438c97529277eda9b396a",
+    "taxonomy_sha256": "7cc64cbb36402a65b1f7c81c95ac71df01ea7ad663cb90d8ebde0f8768f25990",
+    "total_observations": 16
+  }
+}

@@ -1,0 +1,596 @@
+{
+  "campaigns": {
+    "host_bound": {
+      "cases": [
+        {
+          "bounded_repair_pass": true,
+          "case_id": "architecture_targeted",
+          "first_passing_tool_index": 1,
+          "input_tokens": 4984,
+          "latency_ms": 8180,
+          "output_tokens": 653,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.architecture.memory": [
+                  156
+                ],
+                "elq.architecture.specialist_hierarchy": [
+                  176,
+                  281,
+                  285
+                ],
+                "elq.architecture.validation_need": [
+                  327
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 5
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        },
+        {
+          "bounded_repair_pass": true,
+          "case_id": "failure_targeted",
+          "first_passing_tool_index": 1,
+          "input_tokens": 4582,
+          "latency_ms": 6174,
+          "output_tokens": 566,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.failure.invalid_orca_keywords": [
+                  224
+                ],
+                "elq.failure.message_passing_loss": [
+                  326
+                ],
+                "elq.failure.precondition_checks": [
+                  327
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 3
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        },
+        {
+          "bounded_repair_pass": true,
+          "case_id": "native_input_contrast",
+          "first_passing_tool_index": 1,
+          "input_tokens": 5654,
+          "latency_ms": 13908,
+          "output_tokens": 1359,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.native_input.generation": [
+                  182,
+                  188
+                ],
+                "elq.native_input.repair_loop": [
+                  190
+                ],
+                "elq.native_input.validation_limit": [
+                  224,
+                  327
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 6
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        },
+        {
+          "bounded_repair_pass": true,
+          "case_id": "architecture_full_context",
+          "first_passing_tool_index": 1,
+          "input_tokens": 142989,
+          "latency_ms": 28774,
+          "output_tokens": 3007,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.architecture.memory": [
+                  170,
+                  171,
+                  172,
+                  173
+                ],
+                "elq.architecture.specialist_hierarchy": [
+                  176,
+                  177,
+                  178,
+                  179,
+                  180
+                ],
+                "elq.architecture.validation_need": [
+                  327
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 17
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        },
+        {
+          "bounded_repair_pass": true,
+          "case_id": "data_availability",
+          "first_passing_tool_index": 1,
+          "input_tokens": 3842,
+          "latency_ms": 4388,
+          "output_tokens": 281,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.resource.replication_data": [
+                  448
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 1
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        }
+      ],
+      "receipt_path": "docs/evaluation/receipts/el-agente-q-adaptive-extraction-host-bound-2026-08-01.json",
+      "receipt_sha256": "53735a7c51248da1281ffc334ff6bed5459f44dc62a1e886852bd27a716176d2",
+      "safety": {
+        "chemistry_engine_calls": 0,
+        "hpc_calls": 0,
+        "native_input_authored": false,
+        "private_reasoning_persisted": false,
+        "raw_provider_turns_persisted": false,
+        "secret_material_persisted": false
+      },
+      "tool_contract": "host_bound",
+      "totals": {
+        "bounded_repair_pass": 5,
+        "cases": 5,
+        "input_tokens": 162051,
+        "latency_ms": 61424,
+        "output_tokens": 5866,
+        "pass_at_1": 5,
+        "reasoning_continuation_cases": 5,
+        "repairs_before_pass": 0,
+        "transport_attempts": 10
+      }
+    },
+    "model_full": {
+      "cases": [
+        {
+          "bounded_repair_pass": true,
+          "case_id": "architecture_targeted",
+          "first_passing_tool_index": 2,
+          "input_tokens": 10014,
+          "latency_ms": 25512,
+          "output_tokens": 2488,
+          "pass_at_1": false,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 1,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": false,
+              "claim_line_hits": {
+                "elq.architecture.memory": [],
+                "elq.architecture.specialist_hierarchy": [],
+                "elq.architecture.validation_need": []
+              },
+              "missing_claim_ids": [
+                "elq.architecture.memory",
+                "elq.architecture.specialist_hierarchy",
+                "elq.architecture.validation_need"
+              ],
+              "passed": false,
+              "rule_ids": [
+                "experiment.oracle.claim_evidence_missing",
+                "experiment.oracle.claim_id_mismatch"
+              ],
+              "selected_line_count": 0
+            },
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.architecture.memory": [
+                  156
+                ],
+                "elq.architecture.specialist_hierarchy": [
+                  281
+                ],
+                "elq.architecture.validation_need": [
+                  327
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 3
+            }
+          ],
+          "tool_request_count": 2,
+          "transport_attempts": 3
+        },
+        {
+          "bounded_repair_pass": true,
+          "case_id": "failure_targeted",
+          "first_passing_tool_index": 1,
+          "input_tokens": 5186,
+          "latency_ms": 7498,
+          "output_tokens": 740,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.failure.invalid_orca_keywords": [
+                  224
+                ],
+                "elq.failure.message_passing_loss": [
+                  326
+                ],
+                "elq.failure.precondition_checks": [
+                  327
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 3
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        },
+        {
+          "bounded_repair_pass": true,
+          "case_id": "native_input_contrast",
+          "first_passing_tool_index": 1,
+          "input_tokens": 5447,
+          "latency_ms": 8451,
+          "output_tokens": 787,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.native_input.generation": [
+                  188
+                ],
+                "elq.native_input.repair_loop": [
+                  190
+                ],
+                "elq.native_input.validation_limit": [
+                  224,
+                  327
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 4
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        },
+        {
+          "bounded_repair_pass": true,
+          "case_id": "architecture_full_context",
+          "first_passing_tool_index": 1,
+          "input_tokens": 142447,
+          "latency_ms": 18786,
+          "output_tokens": 1680,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.architecture.memory": [
+                  170,
+                  171,
+                  172,
+                  173
+                ],
+                "elq.architecture.specialist_hierarchy": [
+                  176,
+                  177,
+                  178,
+                  179,
+                  180
+                ],
+                "elq.architecture.validation_need": [
+                  326,
+                  327
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 18
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        },
+        {
+          "bounded_repair_pass": true,
+          "case_id": "data_availability",
+          "first_passing_tool_index": 1,
+          "input_tokens": 4440,
+          "latency_ms": 6018,
+          "output_tokens": 486,
+          "pass_at_1": true,
+          "reasoning_continuation_observed": true,
+          "repair_count_before_pass": 0,
+          "terminal_kind": "turn_completed",
+          "tool_grades": [
+            {
+              "claim_ids_match": true,
+              "claim_line_hits": {
+                "elq.resource.replication_data": [
+                  448
+                ]
+              },
+              "missing_claim_ids": [],
+              "passed": true,
+              "rule_ids": [],
+              "selected_line_count": 1
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 2
+        }
+      ],
+      "receipt_path": "docs/evaluation/receipts/el-agente-q-adaptive-extraction-permission-repair-2026-08-01.json",
+      "receipt_sha256": "d061d8f8f6d3684b1769f6abc01ab5b0d27c2c59f8ec9b4c4c91285a41ca2d1c",
+      "safety": {
+        "chemistry_engine_calls": 0,
+        "hpc_calls": 0,
+        "native_input_authored": false,
+        "private_reasoning_persisted": false,
+        "raw_provider_turns_persisted": false,
+        "secret_material_persisted": false
+      },
+      "tool_contract": "model_full",
+      "totals": {
+        "bounded_repair_pass": 5,
+        "cases": 5,
+        "input_tokens": 167534,
+        "latency_ms": 66265,
+        "output_tokens": 6181,
+        "pass_at_1": 4,
+        "reasoning_continuation_cases": 5,
+        "repairs_before_pass": 1,
+        "transport_attempts": 11
+      }
+    },
+    "permission_denied": {
+      "cases": [
+        {
+          "bounded_repair_pass": false,
+          "case_id": "architecture_targeted",
+          "first_passing_tool_index": null,
+          "input_tokens": 2207,
+          "latency_ms": 21616,
+          "output_tokens": 2023,
+          "pass_at_1": false,
+          "reasoning_continuation_observed": false,
+          "repair_count_before_pass": null,
+          "terminal_kind": "turn_blocked",
+          "tool_grades": [
+            {
+              "passed": false,
+              "rule_ids": [
+                "experiment.oracle.tool_outcome_not_ok"
+              ]
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 1
+        },
+        {
+          "bounded_repair_pass": false,
+          "case_id": "failure_targeted",
+          "first_passing_tool_index": null,
+          "input_tokens": 2098,
+          "latency_ms": 3877,
+          "output_tokens": 455,
+          "pass_at_1": false,
+          "reasoning_continuation_observed": false,
+          "repair_count_before_pass": null,
+          "terminal_kind": "turn_blocked",
+          "tool_grades": [
+            {
+              "passed": false,
+              "rule_ids": [
+                "experiment.oracle.tool_outcome_not_ok"
+              ]
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 1
+        },
+        {
+          "bounded_repair_pass": false,
+          "case_id": "native_input_contrast",
+          "first_passing_tool_index": null,
+          "input_tokens": 2163,
+          "latency_ms": 11856,
+          "output_tokens": 1280,
+          "pass_at_1": false,
+          "reasoning_continuation_observed": false,
+          "repair_count_before_pass": null,
+          "terminal_kind": "turn_blocked",
+          "tool_grades": [
+            {
+              "passed": false,
+              "rule_ids": [
+                "experiment.oracle.tool_outcome_not_ok"
+              ]
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 1
+        },
+        {
+          "bounded_repair_pass": false,
+          "case_id": "architecture_full_context",
+          "first_passing_tool_index": null,
+          "input_tokens": 70152,
+          "latency_ms": 29159,
+          "output_tokens": 2617,
+          "pass_at_1": false,
+          "reasoning_continuation_observed": false,
+          "repair_count_before_pass": null,
+          "terminal_kind": "turn_blocked",
+          "tool_grades": [
+            {
+              "passed": false,
+              "rule_ids": [
+                "experiment.oracle.tool_outcome_not_ok"
+              ]
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 1
+        },
+        {
+          "bounded_repair_pass": false,
+          "case_id": "data_availability",
+          "first_passing_tool_index": null,
+          "input_tokens": 1896,
+          "latency_ms": 3744,
+          "output_tokens": 407,
+          "pass_at_1": false,
+          "reasoning_continuation_observed": false,
+          "repair_count_before_pass": null,
+          "terminal_kind": "turn_blocked",
+          "tool_grades": [
+            {
+              "passed": false,
+              "rule_ids": [
+                "experiment.oracle.tool_outcome_not_ok"
+              ]
+            }
+          ],
+          "tool_request_count": 1,
+          "transport_attempts": 1
+        }
+      ],
+      "receipt_path": "docs/evaluation/receipts/el-agente-q-adaptive-extraction-2026-08-01.json",
+      "receipt_sha256": "ab119369a3b26a49ed4c882a185d2a5bbe9f08b274877f10a4b6a08aea102cd9",
+      "safety": {
+        "chemistry_engine_calls": 0,
+        "hpc_calls": 0,
+        "native_input_authored": false,
+        "private_reasoning_persisted": false,
+        "raw_provider_turns_persisted": false,
+        "secret_material_persisted": false
+      },
+      "tool_contract": "model_full",
+      "totals": {
+        "bounded_repair_pass": 0,
+        "cases": 5,
+        "input_tokens": 78516,
+        "latency_ms": 70252,
+        "output_tokens": 6782,
+        "pass_at_1": 0,
+        "reasoning_continuation_cases": 0,
+        "repairs_before_pass": 0,
+        "transport_attempts": 5
+      }
+    }
+  },
+  "contrasts": {
+    "host_bound_claim_contract": {
+      "bounded_repair_pass": 0,
+      "input_tokens": -5483,
+      "latency_ms": -4841,
+      "output_tokens": -315,
+      "pass_at_1": 1,
+      "repairs_before_pass": -1,
+      "transport_attempts": -1
+    },
+    "host_bound_full_vs_targeted_architecture": {
+      "input_token_delta": 138005,
+      "latency_ms_delta": 20594,
+      "same_oracle_result": true
+    },
+    "read_only_permission_registration": {
+      "bounded_repair_pass": 5,
+      "input_tokens": 89018,
+      "latency_ms": -3987,
+      "output_tokens": -601,
+      "pass_at_1": 4,
+      "repairs_before_pass": 1,
+      "transport_attempts": 6
+    }
+  },
+  "interpretation_limits": [
+    "Five extraction cases from one paper are engineering evidence, not a general scientific benchmark.",
+    "Provider sampling is not repeated; numerical deltas are descriptive, not inferential.",
+    "Line-set oracles verify evidence localization, not the truth of downstream scientific claims."
+  ],
+  "oracle": {
+    "kind": "claim-specific-acceptable-source-line-sets",
+    "oracle_sha256": "1b0a3af5e1113aecccc1f6bc224e5463bf0d62ae95458a445229f85ee3902103",
+    "pass_at_1_and_bounded_repair_are_separate": true
+  },
+  "receipt_sha256": "bf1e25fb8d645aefc4a3f43943ebf1a2fad5aa01cc8bf715fd49436c88c43319",
+  "schema_version": "chemsmart.el-agente-q-adaptive-comparison.v1"
+}

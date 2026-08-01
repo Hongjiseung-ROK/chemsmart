@@ -1,0 +1,807 @@
+{
+  "attempt_counts_are_observational": true,
+  "network_budget_sha256": "0e8cad3417794f53a0424738cb0e7ee226bacafd169bd53f889400280b995f3a",
+  "provider": {
+    "endpoint": "https://api.deepseek.com",
+    "requested_model": "deepseek-v4-flash",
+    "sdk_retries": 0,
+    "thinking_mode": "enabled"
+  },
+  "receipt_sha256": "53735a7c51248da1281ffc334ff6bed5459f44dc62a1e886852bd27a716176d2",
+  "results": [
+    {
+      "assistant_output_chars": 1170,
+      "assistant_output_sha256": "33e71b1c78e03f77c8c75ea95f995ff772a56211e37f05ba7a1023bf4d6915da",
+      "authoritative_terminal": {
+        "event_hash": "b4290303c538fa74600fdd35bc5750a531262938d28c9aef749caa989f4173fa",
+        "event_log_sha256": "58fd60b4e00f80b615dc68b9d0998457b86078634edf23245f13835bfc4b117b",
+        "kind": "turn_completed",
+        "rule_ids": []
+      },
+      "case_id": "architecture_targeted",
+      "hypothesis_id": "hypothesis:elq:architecture_targeted",
+      "oracle": {
+        "bounded_repair_pass": true,
+        "first_passing_tool_index": 1,
+        "pass_at_1": true,
+        "passed": true,
+        "repair_count_before_pass": 0,
+        "rule_ids": [],
+        "tool_grades": [
+          {
+            "claim_ids_match": true,
+            "claim_line_hits": {
+              "elq.architecture.memory": [
+                156
+              ],
+              "elq.architecture.specialist_hierarchy": [
+                176,
+                281,
+                285
+              ],
+              "elq.architecture.validation_need": [
+                327
+              ]
+            },
+            "missing_claim_ids": [],
+            "passed": true,
+            "rule_ids": [],
+            "selected_line_count": 5
+          }
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "completed",
+        "case_pass": true,
+        "expected_behavior": "matched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "extracted"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "extracted",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 2521,
+      "prompt_sha256": "94a2e86260b01ba071540534e80f45370294198127abbdc8def0cf0787445e9f",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": true,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 1960,
+            "latency_ms": 4693,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 390,
+            "request_sha256": "fffa4b6d8881686fca706c9ca36525ce9737bc4d3c967be07b4ecc529f2115cd",
+            "status": "observed"
+          },
+          {
+            "credential_status": "valid",
+            "input_tokens": 3024,
+            "latency_ms": 3487,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 263,
+            "request_sha256": "aa6becb7069896104e6215e1f8b3902d396c2ca8e57ad6370a4b4132c0001077",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "targeted",
+      "tool_contract": "host_bound",
+      "tool_outcomes": [
+        {
+          "name": "select_bound_evidence_spans",
+          "result": {
+            "claim_ids": [
+              "elq.architecture.memory",
+              "elq.architecture.specialist_hierarchy",
+              "elq.architecture.validation_need"
+            ],
+            "ok": true,
+            "purpose_sha256": "fe54e8bdb6b53881ad26daa223fbcb2df290108070b568e81692002dd6a01f3c",
+            "source_evidence": {
+              "aggregate_byte_count": 1758,
+              "aggregate_excerpt_sha256": "04de08523d0fbd13f960522a85067b3e870e9e93899fda7c94f5bb7398607c3b",
+              "aggregate_line_count": 5,
+              "aggregation_rule": "utf8_spans_lf_join_v1",
+              "document_sha256": "6d7c1a045d73783c5646e87d53587567f4018f5822d09cfdd926af96fa301f8a",
+              "kind": "immutable_utf8_line_spans",
+              "locators": [
+                {
+                  "byte_count": 907,
+                  "end_line": 156,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "534ed75bea4566892272fb8d0b1826f2353a2cdba01eb327f83b60e3d69801ba",
+                  "start_line": 156
+                },
+                {
+                  "byte_count": 209,
+                  "end_line": 176,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "24d027bd943135dd5f7bbcc8015f727dc841bfa551f272f33765a2aa38f3c039",
+                  "start_line": 176
+                },
+                {
+                  "byte_count": 209,
+                  "end_line": 281,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "3cbd7387e3d61918310aecfc9f3a5defb3ed8cd53e8457a80e7af361cfeaf808",
+                  "start_line": 281
+                },
+                {
+                  "byte_count": 236,
+                  "end_line": 285,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "a671bdf5338f57d9d194368979e6098db6a19e5bdef228fd4a112d6b4228d7ed",
+                  "start_line": 285
+                },
+                {
+                  "byte_count": 197,
+                  "end_line": 327,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "d194b3904971fddb1d0537e23981599f477ca3481325f11e90b465c4be2ac183",
+                  "start_line": 327
+                }
+              ],
+              "source_id": "elsevier:10.1016-j.matt.2025.102263:derived-sentence-view-v1"
+            },
+            "status": "extracted"
+          },
+          "result_sha256": "e5cb6007d221713b666bc7a2c05cb494fbc5267a9984b1c372f993780692bbb9",
+          "status": "ok"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "spans"
+          ],
+          "arguments_sha256": "ccf1bafb492b5559acc8fd607d56d53b230e44fb158e3a6f212eb4aabd8bcc07",
+          "name": "select_bound_evidence_spans"
+        }
+      ]
+    },
+    {
+      "assistant_output_chars": 824,
+      "assistant_output_sha256": "5955fccc491660329d50b152acbae67f580de7c3fa770f7d0333c8caeaa30613",
+      "authoritative_terminal": {
+        "event_hash": "73828f354173a94ad294d2573b59e65d143cae9e448f4b26f0139098c98ae88d",
+        "event_log_sha256": "80005fbbeb38f512f22f272e548fb58b11e0f06cfd781ad9cb883617741e1018",
+        "kind": "turn_completed",
+        "rule_ids": []
+      },
+      "case_id": "failure_targeted",
+      "hypothesis_id": "hypothesis:elq:failure_targeted",
+      "oracle": {
+        "bounded_repair_pass": true,
+        "first_passing_tool_index": 1,
+        "pass_at_1": true,
+        "passed": true,
+        "repair_count_before_pass": 0,
+        "rule_ids": [],
+        "tool_grades": [
+          {
+            "claim_ids_match": true,
+            "claim_line_hits": {
+              "elq.failure.invalid_orca_keywords": [
+                224
+              ],
+              "elq.failure.message_passing_loss": [
+                326
+              ],
+              "elq.failure.precondition_checks": [
+                327
+              ]
+            },
+            "missing_claim_ids": [],
+            "passed": true,
+            "rule_ids": [],
+            "selected_line_count": 3
+          }
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "completed",
+        "case_pass": true,
+        "expected_behavior": "matched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "extracted"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "extracted",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 1798,
+      "prompt_sha256": "4a4e124fd89e3a70278bc317050de293f3de2679a9c2386afab3de53aa612871",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": true,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 1846,
+            "latency_ms": 3268,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 373,
+            "request_sha256": "2607fe6148ad91e0580d07cd2446d17069ae2af49f058ff2c589657b71bb1c99",
+            "status": "observed"
+          },
+          {
+            "credential_status": "valid",
+            "input_tokens": 2736,
+            "latency_ms": 2906,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 193,
+            "request_sha256": "a6cca561d328ff395ebf88d8496958c2f6be5a42586e950adc2386a6009621ad",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "targeted",
+      "tool_contract": "host_bound",
+      "tool_outcomes": [
+        {
+          "name": "select_bound_evidence_spans",
+          "result": {
+            "claim_ids": [
+              "elq.failure.invalid_orca_keywords",
+              "elq.failure.message_passing_loss",
+              "elq.failure.precondition_checks"
+            ],
+            "ok": true,
+            "purpose_sha256": "e5880e7882228fb3dd7b909c4bc7f512e94ca6689a23fa921dad6271145311dc",
+            "source_evidence": {
+              "aggregate_byte_count": 682,
+              "aggregate_excerpt_sha256": "90429cb18268869b749e4c9f9b437c2bf704752200dbda67aed2b6f22bd1acb0",
+              "aggregate_line_count": 3,
+              "aggregation_rule": "utf8_spans_lf_join_v1",
+              "document_sha256": "6d7c1a045d73783c5646e87d53587567f4018f5822d09cfdd926af96fa301f8a",
+              "kind": "immutable_utf8_line_spans",
+              "locators": [
+                {
+                  "byte_count": 323,
+                  "end_line": 224,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "d61f20019d9447f810ab7bc1e5cb522bc5f88e2a266d2f434f95d23b043ccc10",
+                  "start_line": 224
+                },
+                {
+                  "byte_count": 162,
+                  "end_line": 326,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "181a555c7ea8eb462bf2f8ebb20276e776a78c9701997b260c26058aa8c50bbc",
+                  "start_line": 326
+                },
+                {
+                  "byte_count": 197,
+                  "end_line": 327,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "d194b3904971fddb1d0537e23981599f477ca3481325f11e90b465c4be2ac183",
+                  "start_line": 327
+                }
+              ],
+              "source_id": "elsevier:10.1016-j.matt.2025.102263:derived-sentence-view-v1"
+            },
+            "status": "extracted"
+          },
+          "result_sha256": "ae0be5b133c79532d061b2d1bf58adebfd9ef32b5d90172fa03b03768b819287",
+          "status": "ok"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "spans"
+          ],
+          "arguments_sha256": "6b512f7f60e6a0e09be3a703632683a0200f3c9c6ecfe0a5b114e4bd47230e40",
+          "name": "select_bound_evidence_spans"
+        }
+      ]
+    },
+    {
+      "assistant_output_chars": 1268,
+      "assistant_output_sha256": "dc7b1d46ddd44b6d0f39ac106aa3e2ab30be069087277a4110e5ab3d7f54e55d",
+      "authoritative_terminal": {
+        "event_hash": "0b033d05606b95ba8252d82952fd4750ca9eb5d20f6673c1d8a48220c1697724",
+        "event_log_sha256": "43215df1a2ff3c5ebb5c9cccdcb892fcc1aad23d7c7f8bcadc21b08efa2b9fb5",
+        "kind": "turn_completed",
+        "rule_ids": []
+      },
+      "case_id": "native_input_contrast",
+      "hypothesis_id": "hypothesis:elq:native_input_contrast",
+      "oracle": {
+        "bounded_repair_pass": true,
+        "first_passing_tool_index": 1,
+        "pass_at_1": true,
+        "passed": true,
+        "repair_count_before_pass": 0,
+        "rule_ids": [],
+        "tool_grades": [
+          {
+            "claim_ids_match": true,
+            "claim_line_hits": {
+              "elq.native_input.generation": [
+                182,
+                188
+              ],
+              "elq.native_input.repair_loop": [
+                190
+              ],
+              "elq.native_input.validation_limit": [
+                224,
+                327
+              ]
+            },
+            "missing_claim_ids": [],
+            "passed": true,
+            "rule_ids": [],
+            "selected_line_count": 6
+          }
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "completed",
+        "case_pass": true,
+        "expected_behavior": "matched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "extracted"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "extracted",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 2203,
+      "prompt_sha256": "0557338d13b99a5bfbf9fb89938f5c6414c00f353e6020d072eb78c587373fd0",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": true,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 1918,
+            "latency_ms": 9867,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 1069,
+            "request_sha256": "f198d84754318120d201ee095f7a5b8c2aa52faf68edbebe0009a0acba3c869b",
+            "status": "observed"
+          },
+          {
+            "credential_status": "valid",
+            "input_tokens": 3736,
+            "latency_ms": 4041,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 290,
+            "request_sha256": "a8542202ee40718b8a8b2c11fc955204c4abb3ff9339decf09d3b41f41892772",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "targeted",
+      "tool_contract": "host_bound",
+      "tool_outcomes": [
+        {
+          "name": "select_bound_evidence_spans",
+          "result": {
+            "claim_ids": [
+              "elq.native_input.generation",
+              "elq.native_input.repair_loop",
+              "elq.native_input.validation_limit"
+            ],
+            "ok": true,
+            "purpose_sha256": "855c185ea4a7e1093e6a1bdd1cebdd791bb25c28a227d244b5ca15c0ad62f330",
+            "source_evidence": {
+              "aggregate_byte_count": 1368,
+              "aggregate_excerpt_sha256": "1e061924b2857659c93975ed5e635b40ef680a34ca4f11c3dd81fd6cb284e9a4",
+              "aggregate_line_count": 6,
+              "aggregation_rule": "utf8_spans_lf_join_v1",
+              "document_sha256": "6d7c1a045d73783c5646e87d53587567f4018f5822d09cfdd926af96fa301f8a",
+              "kind": "immutable_utf8_line_spans",
+              "locators": [
+                {
+                  "byte_count": 209,
+                  "end_line": 176,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "24d027bd943135dd5f7bbcc8015f727dc841bfa551f272f33765a2aa38f3c039",
+                  "start_line": 176
+                },
+                {
+                  "byte_count": 243,
+                  "end_line": 182,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "bf66d579c16cb47ffa77fdb3d366b2a2c38a282721ecaf771ca039f86d57801d",
+                  "start_line": 182
+                },
+                {
+                  "byte_count": 224,
+                  "end_line": 188,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "cecef04228e1f321ed6c9aff49605bb1f6e79108b3ab6e8233a0da1cefa89698",
+                  "start_line": 188
+                },
+                {
+                  "byte_count": 172,
+                  "end_line": 190,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "31155d61d0caf570ce348a9fa31708c9881714720175d928ac48556ee73dd9ac",
+                  "start_line": 190
+                },
+                {
+                  "byte_count": 323,
+                  "end_line": 224,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "d61f20019d9447f810ab7bc1e5cb522bc5f88e2a266d2f434f95d23b043ccc10",
+                  "start_line": 224
+                },
+                {
+                  "byte_count": 197,
+                  "end_line": 327,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "d194b3904971fddb1d0537e23981599f477ca3481325f11e90b465c4be2ac183",
+                  "start_line": 327
+                }
+              ],
+              "source_id": "elsevier:10.1016-j.matt.2025.102263:derived-sentence-view-v1"
+            },
+            "status": "extracted"
+          },
+          "result_sha256": "9840deccd8a68c8df2632cb0415f65b9cbe7ab375020ba814bdcd2cb12678467",
+          "status": "ok"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "spans"
+          ],
+          "arguments_sha256": "6bc1682ebef1d5db1d8de5abbcac502101ddf2c2b2b3d3b8accef985f4f5d9bc",
+          "name": "select_bound_evidence_spans"
+        }
+      ]
+    },
+    {
+      "assistant_output_chars": 1894,
+      "assistant_output_sha256": "d5024e2caf4ab538f5d5535ca1ba30022332d3661a4f1a767861d69366884626",
+      "authoritative_terminal": {
+        "event_hash": "a86c46961d525ccfd8b61e50f71f2dd56cdd02037e780260d58e614840650c07",
+        "event_log_sha256": "2d7642287bb1b862c92f09f8dc6341297ff9f1be7f7ff59b8ef92509a5a3e07f",
+        "kind": "turn_completed",
+        "rule_ids": []
+      },
+      "case_id": "architecture_full_context",
+      "hypothesis_id": "hypothesis:elq:architecture_full_context",
+      "oracle": {
+        "bounded_repair_pass": true,
+        "first_passing_tool_index": 1,
+        "pass_at_1": true,
+        "passed": true,
+        "repair_count_before_pass": 0,
+        "rule_ids": [],
+        "tool_grades": [
+          {
+            "claim_ids_match": true,
+            "claim_line_hits": {
+              "elq.architecture.memory": [
+                170,
+                171,
+                172,
+                173
+              ],
+              "elq.architecture.specialist_hierarchy": [
+                176,
+                177,
+                178,
+                179,
+                180
+              ],
+              "elq.architecture.validation_need": [
+                327
+              ]
+            },
+            "missing_claim_ids": [],
+            "passed": true,
+            "rule_ids": [],
+            "selected_line_count": 17
+          }
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "completed",
+        "case_pass": true,
+        "expected_behavior": "matched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "extracted"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "extracted",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 225451,
+      "prompt_sha256": "23490a2654a1657f0395938f847929dab5fdbf6d4b02ec2ae10bb992504f9f21",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": true,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 69903,
+            "latency_ms": 23749,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 2581,
+            "request_sha256": "081f66ddec575ff5ad723bccdbb570329b198060996638b08d5a4ab462c494d0",
+            "status": "observed"
+          },
+          {
+            "credential_status": "valid",
+            "input_tokens": 73086,
+            "latency_ms": 5025,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 426,
+            "request_sha256": "69821ac427372cd7d03cf2c6441373b0d52356191160da8f0ea2bc92c04684a9",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "full",
+      "tool_contract": "host_bound",
+      "tool_outcomes": [
+        {
+          "name": "select_bound_evidence_spans",
+          "result": {
+            "claim_ids": [
+              "elq.architecture.memory",
+              "elq.architecture.specialist_hierarchy",
+              "elq.architecture.validation_need"
+            ],
+            "ok": true,
+            "purpose_sha256": "7b32fd3d29cd13dab2ce54a6123ad54771c9c3744b0b5a499e80a2d196de8dc3",
+            "source_evidence": {
+              "aggregate_byte_count": 3724,
+              "aggregate_excerpt_sha256": "60caf284941d48dcb34fd6f2cf48efefa543d074d141479cedc0df91455c1477",
+              "aggregate_line_count": 17,
+              "aggregation_rule": "utf8_spans_lf_join_v1",
+              "document_sha256": "6d7c1a045d73783c5646e87d53587567f4018f5822d09cfdd926af96fa301f8a",
+              "kind": "immutable_utf8_line_spans",
+              "locators": [
+                {
+                  "byte_count": 672,
+                  "end_line": 34,
+                  "kind": "line_range",
+                  "line_count": 4,
+                  "sha256": "d1e56b21e464c955f2448967770438e40c073ab0d15ddfe2819f39f48458ae2d",
+                  "start_line": 31
+                },
+                {
+                  "byte_count": 2602,
+                  "end_line": 180,
+                  "kind": "line_range",
+                  "line_count": 11,
+                  "sha256": "7121753eb350c8c880f02102ab1e45b7c3f2fe6b3cf9aab1411aeb2579b7b4cd",
+                  "start_line": 170
+                },
+                {
+                  "byte_count": 253,
+                  "end_line": 229,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "0ad3e3fbd35dc42e0b48ba5ba713e736c3448486377ad5db7c999df3426d4768",
+                  "start_line": 229
+                },
+                {
+                  "byte_count": 197,
+                  "end_line": 327,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "d194b3904971fddb1d0537e23981599f477ca3481325f11e90b465c4be2ac183",
+                  "start_line": 327
+                }
+              ],
+              "source_id": "elsevier:10.1016-j.matt.2025.102263:derived-sentence-view-v1"
+            },
+            "status": "extracted"
+          },
+          "result_sha256": "60a6687e4cc7daca18fc784f79a5820c30d68ab9fb899f3ba2a2357c121cf912",
+          "status": "ok"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "spans"
+          ],
+          "arguments_sha256": "75697cd97b527985c8733009d4a360ee61524605f10e8f8a255dda0e60cc4eab",
+          "name": "select_bound_evidence_spans"
+        }
+      ]
+    },
+    {
+      "assistant_output_chars": 340,
+      "assistant_output_sha256": "804618063e5d77619fe50f3a73897830b1a98c9ecf987306ce584f390753a38b",
+      "authoritative_terminal": {
+        "event_hash": "f1234422f3e31d85dbf9b92450bd406d363df7aeae2e25ed6e4d26cc47dabc9d",
+        "event_log_sha256": "72845a85b14122161831d853259314c1f8f5771462d06e5e163f702b99cd7ad0",
+        "kind": "turn_completed",
+        "rule_ids": []
+      },
+      "case_id": "data_availability",
+      "hypothesis_id": "hypothesis:elq:data_availability",
+      "oracle": {
+        "bounded_repair_pass": true,
+        "first_passing_tool_index": 1,
+        "pass_at_1": true,
+        "passed": true,
+        "repair_count_before_pass": 0,
+        "rule_ids": [],
+        "tool_grades": [
+          {
+            "claim_ids_match": true,
+            "claim_line_hits": {
+              "elq.resource.replication_data": [
+                448
+              ]
+            },
+            "missing_claim_ids": [],
+            "passed": true,
+            "rule_ids": [],
+            "selected_line_count": 1
+          }
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "completed",
+        "case_pass": true,
+        "expected_behavior": "matched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "extracted"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "extracted",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 896,
+      "prompt_sha256": "d937e1fe99dd13481f743ef212690b9118d1bc724b3884d76b9465c5cf153178",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": true,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 1669,
+            "latency_ms": 2285,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 169,
+            "request_sha256": "519af1c3d57a0687c0dcbaf9737955813ef5ad8ab623341831b9a8e8bddcd4c9",
+            "status": "observed"
+          },
+          {
+            "credential_status": "valid",
+            "input_tokens": 2173,
+            "latency_ms": 2103,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 112,
+            "request_sha256": "8dd59250c7652d715397f411127157b6498bbbe97ef9b7075bad352bfa10bf26",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "targeted",
+      "tool_contract": "host_bound",
+      "tool_outcomes": [
+        {
+          "name": "select_bound_evidence_spans",
+          "result": {
+            "claim_ids": [
+              "elq.resource.replication_data"
+            ],
+            "ok": true,
+            "purpose_sha256": "510bf68c05c99ed9b763aa823cda86587382e9480e0280fa3ac78e31516ede69",
+            "source_evidence": {
+              "aggregate_byte_count": 141,
+              "aggregate_excerpt_sha256": "3dbab0435c114e81e5e532ca07ca114aee804ab8860509422f13f2b312237a98",
+              "aggregate_line_count": 1,
+              "aggregation_rule": "utf8_spans_lf_join_v1",
+              "document_sha256": "6d7c1a045d73783c5646e87d53587567f4018f5822d09cfdd926af96fa301f8a",
+              "kind": "immutable_utf8_line_spans",
+              "locators": [
+                {
+                  "byte_count": 141,
+                  "end_line": 448,
+                  "kind": "line_range",
+                  "line_count": 1,
+                  "sha256": "3dbab0435c114e81e5e532ca07ca114aee804ab8860509422f13f2b312237a98",
+                  "start_line": 448
+                }
+              ],
+              "source_id": "elsevier:10.1016-j.matt.2025.102263:derived-sentence-view-v1"
+            },
+            "status": "extracted"
+          },
+          "result_sha256": "a94e092afc8c75cdd5646b40605b4d67907617fdbd448aae4052e7a0fae816b9",
+          "status": "ok"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "spans"
+          ],
+          "arguments_sha256": "6239f3ffcd7a0f0590490b0f5177b38ce5db07b4c41d2fba45ec1b9718702886",
+          "name": "select_bound_evidence_spans"
+        }
+      ]
+    }
+  ],
+  "safety": {
+    "chemistry_engine_calls": 0,
+    "hpc_calls": 0,
+    "native_input_authored": false,
+    "private_reasoning_persisted": false,
+    "raw_provider_turns_persisted": false,
+    "secret_material_persisted": false
+  },
+  "schema_version": "chemsmart.el-agente-q-adaptive-extraction.v1",
+  "source_derivation": {
+    "api_response_sha256": "c6db4e6e57a08e8975b4c6f9c4ef1c3a00cc9629bbbd3cac4415013843970f7b",
+    "derived_source_lines": 2872,
+    "derived_source_sha256": "6d7c1a045d73783c5646e87d53587567f4018f5822d09cfdd926af96fa301f8a",
+    "original_text_chars": 211447,
+    "original_text_sha256": "a283eeec15947b3165363be7fe20efa241705540ac1650e764d564b9eb692246",
+    "split_rule": "elsevier-originalText-sentence-lines-v1"
+  },
+  "termination_reason": "campaign.stop.all_unique_hypotheses_observed",
+  "tool_contract": "host_bound",
+  "totals": {
+    "cases": 5,
+    "input_tokens": 162051,
+    "latency_ms": 61424,
+    "oracle_passes": 5,
+    "output_tokens": 5866,
+    "transport_attempts": 10,
+    "wall_time_ms": 62011
+  },
+  "transport_attempt_limit": null
+}

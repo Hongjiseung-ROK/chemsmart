@@ -1,0 +1,1195 @@
+{
+  "assets": [
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 46,
+        "atom_order_sha256": "1a5a5c33f29c7155c2205d600db4253842bac43e849d4d9ac0af8a8bad688537",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            27
+          ],
+          [
+            "Cl",
+            8
+          ],
+          [
+            "H",
+            11
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:2ab18fba6bae4c981169f07c",
+        "identity_approval_sha256": "2ab18fba6bae4c981169f07c8271962b5fc9bb35ec3597fd2c9058592a29a1c1",
+        "imported_artifact_id": "geometry:pcp-ttm:6cf567d340197443480cf67a",
+        "imported_sha256": "6cf567d340197443480cf67ab1ba7fe856c62834e55e7bfa9f0319e95d43f693",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "d3029fdf79e30db5636a742039c658a9bb303aceb4f8763a408b5e451ddf3bf3",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:c18eb90581e2bd3a9b27e086",
+        "provenance_receipt_sha256": "c18eb90581e2bd3a9b27e086c3a987920c0d4a16ae861f25f20b88eaa7ef0f56",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:5dc238b096d92c22594ded1a",
+        "receipt_sha256": "5dc238b096d92c22594ded1ac1275af5244fcd745584185de1db02a39debbf36",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 3146,
+        "source_artifact_id": "source:zenodo:6cf567d340197443480cf67a",
+        "source_format": "xyz",
+        "source_sha256": "6cf567d340197443480cf67ab1ba7fe856c62834e55e7bfa9f0319e95d43f693",
+        "source_url": "https://zenodo.org/api/records/15679510/files/Phenylacetylene-TTM.xyz/content"
+      },
+      "filename": "Phenylacetylene-TTM.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:2ab18fba6bae4c981169f07c",
+        "approval_sha256": "2ab18fba6bae4c981169f07c8271962b5fc9bb35ec3597fd2c9058592a29a1c1",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "Phenylacetylene-TTM.xyz",
+          "official_sha256": "6cf567d340197443480cf67ab1ba7fe856c62834e55e7bfa9f0319e95d43f693",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/Phenylacetylene-TTM.xyz/content",
+        "filename": "Phenylacetylene-TTM.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/Phenylacetylene-TTM.xyz/content",
+        "private_store_ref": "private-store:17301951/Phenylacetylene-TTM.xyz",
+        "sha256": "6cf567d340197443480cf67ab1ba7fe856c62834e55e7bfa9f0319e95d43f693",
+        "size_bytes": 3146,
+        "zenodo_md5": "abc803f1e99d7cc9ef83ea6700855950"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "Phenylacetylene-TTM.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/Phenylacetylene-TTM.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "6cf567d340197443480cf67ab1ba7fe856c62834e55e7bfa9f0319e95d43f693",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/Phenylacetylene-TTM.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "6cf567d340197443480cf67ab1ba7fe856c62834e55e7bfa9f0319e95d43f693",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:c18eb90581e2bd3a9b27e086",
+        "provenance_receipt_sha256": "c18eb90581e2bd3a9b27e086c3a987920c0d4a16ae861f25f20b88eaa7ef0f56"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/Phenylacetylene-TTM.xyz/content",
+        "filename": "Phenylacetylene-TTM.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/Phenylacetylene-TTM.xyz/content",
+        "private_store_ref": "private-store:15679510/Phenylacetylene-TTM.xyz",
+        "sha256": "6cf567d340197443480cf67ab1ba7fe856c62834e55e7bfa9f0319e95d43f693",
+        "size_bytes": 3146,
+        "zenodo_md5": "abc803f1e99d7cc9ef83ea6700855950"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    },
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 100,
+        "atom_order_sha256": "514a31dd1031c89c262bc168dc1d67d411b21b739c04cfd72eea9706761e7090",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            58
+          ],
+          [
+            "Cl",
+            16
+          ],
+          [
+            "H",
+            26
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:170d6573ca45befff5487597",
+        "identity_approval_sha256": "170d6573ca45befff548759744095415337ed5b2b5009e338cd1cd135ef10e0e",
+        "imported_artifact_id": "geometry:pcp-ttm:8f2445694aa92d8a34ba9530",
+        "imported_sha256": "8f2445694aa92d8a34ba95306564d2903992af3fe45ffc59ca59ac0a889bf643",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "3666ff5634d974a5e5339b1e30b1eb37c4902e6e849758ca77b00c74dfa035f9",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:907e258d96ede264fcd87070",
+        "provenance_receipt_sha256": "907e258d96ede264fcd87070ce957a896ebcd5963883a57ff4cc1aeff20d3fe3",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:41ec79dedbcbd4b619c978d7",
+        "receipt_sha256": "41ec79dedbcbd4b619c978d784b0e432164f93833cf22e28b86c436e8b34b860",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 6833,
+        "source_artifact_id": "source:zenodo:8f2445694aa92d8a34ba9530",
+        "source_format": "xyz",
+        "source_sha256": "8f2445694aa92d8a34ba95306564d2903992af3fe45ffc59ca59ac0a889bf643",
+        "source_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_++_singlet.xyz/content"
+      },
+      "filename": "pseudo-o-PCP-TTM2_++_singlet.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:170d6573ca45befff5487597",
+        "approval_sha256": "170d6573ca45befff548759744095415337ed5b2b5009e338cd1cd135ef10e0e",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "pseudo-o-PCP-TTM2_++_singlet.xyz",
+          "official_sha256": "8f2445694aa92d8a34ba95306564d2903992af3fe45ffc59ca59ac0a889bf643",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_++_singlet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_++_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_++_singlet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-o-PCP-TTM2_++_singlet.xyz",
+        "sha256": "8f2445694aa92d8a34ba95306564d2903992af3fe45ffc59ca59ac0a889bf643",
+        "size_bytes": 6833,
+        "zenodo_md5": "90223f78991eea776aefcac64a7c5de9"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "pseudo-o-PCP-TTM2_++_singlet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_++_singlet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "8f2445694aa92d8a34ba95306564d2903992af3fe45ffc59ca59ac0a889bf643",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_++_singlet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "8f2445694aa92d8a34ba95306564d2903992af3fe45ffc59ca59ac0a889bf643",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:907e258d96ede264fcd87070",
+        "provenance_receipt_sha256": "907e258d96ede264fcd87070ce957a896ebcd5963883a57ff4cc1aeff20d3fe3"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_++_singlet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_++_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_++_singlet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-o-PCP-TTM2_++_singlet.xyz",
+        "sha256": "8f2445694aa92d8a34ba95306564d2903992af3fe45ffc59ca59ac0a889bf643",
+        "size_bytes": 6833,
+        "zenodo_md5": "90223f78991eea776aefcac64a7c5de9"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    },
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 100,
+        "atom_order_sha256": "514a31dd1031c89c262bc168dc1d67d411b21b739c04cfd72eea9706761e7090",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            58
+          ],
+          [
+            "Cl",
+            16
+          ],
+          [
+            "H",
+            26
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:17fee621cd4b292efc041c5f",
+        "identity_approval_sha256": "17fee621cd4b292efc041c5f2f73e829079d02a0a5c39ff7a804df74ad270f6c",
+        "imported_artifact_id": "geometry:pcp-ttm:62ee5d116fc100670b95014c",
+        "imported_sha256": "62ee5d116fc100670b95014ca10c853fbcdcd7065f884d79873090a3f593aaa4",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "20ccaaaf2943340ae5b0fef3252f3bee83d564beb96ccbf6102fcc0f6868077c",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:a9c1c4328b76bf9b79495b14",
+        "provenance_receipt_sha256": "a9c1c4328b76bf9b79495b14176b11de71676bc93a3caa585386ed2289a7057e",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:2e48adabd6f783bf95fc4ea1",
+        "receipt_sha256": "2e48adabd6f783bf95fc4ea1f6553acfc2c99f9a3d0acbb0586ca6deb7289120",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 6838,
+        "source_artifact_id": "source:zenodo:62ee5d116fc100670b95014c",
+        "source_format": "xyz",
+        "source_sha256": "62ee5d116fc100670b95014ca10c853fbcdcd7065f884d79873090a3f593aaa4",
+        "source_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_++_triplet.xyz/content"
+      },
+      "filename": "pseudo-o-PCP-TTM2_++_triplet.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:17fee621cd4b292efc041c5f",
+        "approval_sha256": "17fee621cd4b292efc041c5f2f73e829079d02a0a5c39ff7a804df74ad270f6c",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "pseudo-o-PCP-TTM2_++_triplet.xyz",
+          "official_sha256": "62ee5d116fc100670b95014ca10c853fbcdcd7065f884d79873090a3f593aaa4",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_++_triplet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_++_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_++_triplet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-o-PCP-TTM2_++_triplet.xyz",
+        "sha256": "62ee5d116fc100670b95014ca10c853fbcdcd7065f884d79873090a3f593aaa4",
+        "size_bytes": 6838,
+        "zenodo_md5": "decd9fc0f5453b1cd13f0c92a783aedf"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "pseudo-o-PCP-TTM2_++_triplet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_++_triplet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "62ee5d116fc100670b95014ca10c853fbcdcd7065f884d79873090a3f593aaa4",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_++_triplet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "62ee5d116fc100670b95014ca10c853fbcdcd7065f884d79873090a3f593aaa4",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:a9c1c4328b76bf9b79495b14",
+        "provenance_receipt_sha256": "a9c1c4328b76bf9b79495b14176b11de71676bc93a3caa585386ed2289a7057e"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_++_triplet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_++_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_++_triplet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-o-PCP-TTM2_++_triplet.xyz",
+        "sha256": "62ee5d116fc100670b95014ca10c853fbcdcd7065f884d79873090a3f593aaa4",
+        "size_bytes": 6838,
+        "zenodo_md5": "decd9fc0f5453b1cd13f0c92a783aedf"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    },
+    {
+      "blocker_rule_ids": [
+        "coordinate.provenance.superseded_version_conflict"
+      ],
+      "coordinate_import_receipt": null,
+      "filename": "pseudo-o-PCP-TTM2_+-_singlet.xyz",
+      "identity_approval": null,
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_+-_singlet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_+-_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_+-_singlet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-o-PCP-TTM2_+-_singlet.xyz",
+        "sha256": "cbbfb58f89e2e94d8d3b31e00bc518d86ef00c169e0a685c4bf0f8c84ff2dcd7",
+        "size_bytes": 6837,
+        "zenodo_md5": "2ba0ead883b7a792785ec108d310cb2f"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": false,
+          "filename": "pseudo-o-PCP-TTM2_+-_singlet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_+-_singlet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "cbbfb58f89e2e94d8d3b31e00bc518d86ef00c169e0a685c4bf0f8c84ff2dcd7",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_+-_singlet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "29531f8619271231df02d31507e354b472142d70028cd011a1dd2b141833bb00",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:be547e9df5312e9ac67282a3",
+        "provenance_receipt_sha256": "be547e9df5312e9ac67282a316937b9f7ea3b313473f8afda33a55ab3b465d9d"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_+-_singlet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_+-_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_+-_singlet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-o-PCP-TTM2_+-_singlet.xyz",
+        "sha256": "29531f8619271231df02d31507e354b472142d70028cd011a1dd2b141833bb00",
+        "size_bytes": 6840,
+        "zenodo_md5": "66bb6a8175f8ddc46c331575e89c7fe9"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "blocked_version_conflict",
+      "version_relation": "sha256_divergent"
+    },
+    {
+      "blocker_rule_ids": [
+        "coordinate.provenance.superseded_version_conflict"
+      ],
+      "coordinate_import_receipt": null,
+      "filename": "pseudo-o-PCP-TTM2_+-_triplet.xyz",
+      "identity_approval": null,
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_+-_triplet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_+-_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_+-_triplet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-o-PCP-TTM2_+-_triplet.xyz",
+        "sha256": "d4a39cb1edb0deb7c92d414ab5a17078a7450c000459e69f66c44ab061ff5912",
+        "size_bytes": 6837,
+        "zenodo_md5": "71aee20bcbab0b3f376d9ac1d54d1cbc"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": false,
+          "filename": "pseudo-o-PCP-TTM2_+-_triplet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_+-_triplet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "d4a39cb1edb0deb7c92d414ab5a17078a7450c000459e69f66c44ab061ff5912",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_+-_triplet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "1a054b2935de7af4f30c7a199289ddb65bfe12153ce42d26587012abaa3787ad",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:cc325a47139bf146413e9c7c",
+        "provenance_receipt_sha256": "cc325a47139bf146413e9c7ce9645b46f0fb6f47e0d6747033e133162c09a533"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_+-_triplet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_+-_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_+-_triplet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-o-PCP-TTM2_+-_triplet.xyz",
+        "sha256": "1a054b2935de7af4f30c7a199289ddb65bfe12153ce42d26587012abaa3787ad",
+        "size_bytes": 6840,
+        "zenodo_md5": "fbf2414a68ace8afa418ad0b935cfc10"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "blocked_version_conflict",
+      "version_relation": "sha256_divergent"
+    },
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 100,
+        "atom_order_sha256": "514a31dd1031c89c262bc168dc1d67d411b21b739c04cfd72eea9706761e7090",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            58
+          ],
+          [
+            "Cl",
+            16
+          ],
+          [
+            "H",
+            26
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:ff6591192c4d8aa6728f40bf",
+        "identity_approval_sha256": "ff6591192c4d8aa6728f40bf9c9ff908c13f703acff1c8fdb0b694635f0fccb8",
+        "imported_artifact_id": "geometry:pcp-ttm:aed79ec7241e12f3809a381e",
+        "imported_sha256": "aed79ec7241e12f3809a381ecc773de5c1bea058111f0c8466fbd210866c4d52",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "f3725fc605ffeef02f43545106b68847328c88f6afee06a9f0bee02fd8b0c776",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:3c33590419ecd0b0f1f384b5",
+        "provenance_receipt_sha256": "3c33590419ecd0b0f1f384b5c346b07634fcf3dadb7529f62faf3745e52dc917",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:8a617f8dc9197d14a1b8817f",
+        "receipt_sha256": "8a617f8dc9197d14a1b8817f86902498f14868aa29108a5401228ce6d8cacaa7",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 6807,
+        "source_artifact_id": "source:zenodo:aed79ec7241e12f3809a381e",
+        "source_format": "xyz",
+        "source_sha256": "aed79ec7241e12f3809a381ecc773de5c1bea058111f0c8466fbd210866c4d52",
+        "source_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_--_singlet.xyz/content"
+      },
+      "filename": "pseudo-o-PCP-TTM2_--_singlet.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:ff6591192c4d8aa6728f40bf",
+        "approval_sha256": "ff6591192c4d8aa6728f40bf9c9ff908c13f703acff1c8fdb0b694635f0fccb8",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "pseudo-o-PCP-TTM2_--_singlet.xyz",
+          "official_sha256": "aed79ec7241e12f3809a381ecc773de5c1bea058111f0c8466fbd210866c4d52",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_--_singlet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_--_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_--_singlet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-o-PCP-TTM2_--_singlet.xyz",
+        "sha256": "aed79ec7241e12f3809a381ecc773de5c1bea058111f0c8466fbd210866c4d52",
+        "size_bytes": 6807,
+        "zenodo_md5": "c596528e7fdf3b3a54043814e3ebc73a"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "pseudo-o-PCP-TTM2_--_singlet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_--_singlet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "aed79ec7241e12f3809a381ecc773de5c1bea058111f0c8466fbd210866c4d52",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_--_singlet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "aed79ec7241e12f3809a381ecc773de5c1bea058111f0c8466fbd210866c4d52",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:3c33590419ecd0b0f1f384b5",
+        "provenance_receipt_sha256": "3c33590419ecd0b0f1f384b5c346b07634fcf3dadb7529f62faf3745e52dc917"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_--_singlet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_--_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_--_singlet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-o-PCP-TTM2_--_singlet.xyz",
+        "sha256": "aed79ec7241e12f3809a381ecc773de5c1bea058111f0c8466fbd210866c4d52",
+        "size_bytes": 6807,
+        "zenodo_md5": "c596528e7fdf3b3a54043814e3ebc73a"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    },
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 100,
+        "atom_order_sha256": "514a31dd1031c89c262bc168dc1d67d411b21b739c04cfd72eea9706761e7090",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            58
+          ],
+          [
+            "Cl",
+            16
+          ],
+          [
+            "H",
+            26
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:825cebf65fa1147bb1d8dabb",
+        "identity_approval_sha256": "825cebf65fa1147bb1d8dabb7c7683063036d51980c2a05da94ff3ac8786432a",
+        "imported_artifact_id": "geometry:pcp-ttm:56d9b8c8bb9284938ebcab9c",
+        "imported_sha256": "56d9b8c8bb9284938ebcab9cf069272c2232da658e67b97b46f63cb6b11e6c3f",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "c36ca47133fba97bfd7d8475421399bb9e7fc7f10e259a7528d68ade71317e5c",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:d3527c0d7fd04e4bd2020f6d",
+        "provenance_receipt_sha256": "d3527c0d7fd04e4bd2020f6d77a3afce4fe742bba4b020539ab6a61e2065e61f",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:5a698b543e443b89f6fea5ea",
+        "receipt_sha256": "5a698b543e443b89f6fea5eab9c3bcd724a4f646d57542e9c5d95d76f3effce1",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 6808,
+        "source_artifact_id": "source:zenodo:56d9b8c8bb9284938ebcab9c",
+        "source_format": "xyz",
+        "source_sha256": "56d9b8c8bb9284938ebcab9cf069272c2232da658e67b97b46f63cb6b11e6c3f",
+        "source_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_--_triplet.xyz/content"
+      },
+      "filename": "pseudo-o-PCP-TTM2_--_triplet.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:825cebf65fa1147bb1d8dabb",
+        "approval_sha256": "825cebf65fa1147bb1d8dabb7c7683063036d51980c2a05da94ff3ac8786432a",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "pseudo-o-PCP-TTM2_--_triplet.xyz",
+          "official_sha256": "56d9b8c8bb9284938ebcab9cf069272c2232da658e67b97b46f63cb6b11e6c3f",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_--_triplet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_--_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_--_triplet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-o-PCP-TTM2_--_triplet.xyz",
+        "sha256": "56d9b8c8bb9284938ebcab9cf069272c2232da658e67b97b46f63cb6b11e6c3f",
+        "size_bytes": 6808,
+        "zenodo_md5": "f6132d1f13175de940505ae07ab67e58"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "pseudo-o-PCP-TTM2_--_triplet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-o-PCP-TTM2_--_triplet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "56d9b8c8bb9284938ebcab9cf069272c2232da658e67b97b46f63cb6b11e6c3f",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_--_triplet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "56d9b8c8bb9284938ebcab9cf069272c2232da658e67b97b46f63cb6b11e6c3f",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:d3527c0d7fd04e4bd2020f6d",
+        "provenance_receipt_sha256": "d3527c0d7fd04e4bd2020f6d77a3afce4fe742bba4b020539ab6a61e2065e61f"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_--_triplet.xyz/content",
+        "filename": "pseudo-o-PCP-TTM2_--_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-o-PCP-TTM2_--_triplet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-o-PCP-TTM2_--_triplet.xyz",
+        "sha256": "56d9b8c8bb9284938ebcab9cf069272c2232da658e67b97b46f63cb6b11e6c3f",
+        "size_bytes": 6808,
+        "zenodo_md5": "f6132d1f13175de940505ae07ab67e58"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    },
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 100,
+        "atom_order_sha256": "ab18c0f5b73e813353f0b64ffb7b827583f76b1b8478d9f681db3b5b2cecd8a7",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            58
+          ],
+          [
+            "Cl",
+            16
+          ],
+          [
+            "H",
+            26
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:d40cd7fed80c5c3436f04847",
+        "identity_approval_sha256": "d40cd7fed80c5c3436f04847a049a37b32feb7f301a24677fc0a4121b3752c5c",
+        "imported_artifact_id": "geometry:pcp-ttm:1c796a2a271a03fd458d72ac",
+        "imported_sha256": "1c796a2a271a03fd458d72ace256085e044e177c735eb489e7de62564923b83e",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "ea54c23c2053e94f86077dea8b50dea78bff8f04bc0f2d33a658ccd253cb6ed6",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:242bb92dff11e2e9306ce4a9",
+        "provenance_receipt_sha256": "242bb92dff11e2e9306ce4a96607c7474923b9bb60650d191af01aa57c581292",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:a51cd537fb7c94ad69efbd87",
+        "receipt_sha256": "a51cd537fb7c94ad69efbd870f4741410ee69fdbc24ac701f33a281cd041ba89",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 6829,
+        "source_artifact_id": "source:zenodo:1c796a2a271a03fd458d72ac",
+        "source_format": "xyz",
+        "source_sha256": "1c796a2a271a03fd458d72ace256085e044e177c735eb489e7de62564923b83e",
+        "source_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_+-_singlet.xyz/content"
+      },
+      "filename": "pseudo-p-PCP-TTM2_+-_singlet.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:d40cd7fed80c5c3436f04847",
+        "approval_sha256": "d40cd7fed80c5c3436f04847a049a37b32feb7f301a24677fc0a4121b3752c5c",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "pseudo-p-PCP-TTM2_+-_singlet.xyz",
+          "official_sha256": "1c796a2a271a03fd458d72ace256085e044e177c735eb489e7de62564923b83e",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_+-_singlet.xyz/content",
+        "filename": "pseudo-p-PCP-TTM2_+-_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_+-_singlet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-p-PCP-TTM2_+-_singlet.xyz",
+        "sha256": "1c796a2a271a03fd458d72ace256085e044e177c735eb489e7de62564923b83e",
+        "size_bytes": 6829,
+        "zenodo_md5": "bdd068ba85469aaabbaa44d04ef6d0da"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "pseudo-p-PCP-TTM2_+-_singlet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_+-_singlet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "1c796a2a271a03fd458d72ace256085e044e177c735eb489e7de62564923b83e",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_+-_singlet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "1c796a2a271a03fd458d72ace256085e044e177c735eb489e7de62564923b83e",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:242bb92dff11e2e9306ce4a9",
+        "provenance_receipt_sha256": "242bb92dff11e2e9306ce4a96607c7474923b9bb60650d191af01aa57c581292"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_+-_singlet.xyz/content",
+        "filename": "pseudo-p-PCP-TTM2_+-_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_+-_singlet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-p-PCP-TTM2_+-_singlet.xyz",
+        "sha256": "1c796a2a271a03fd458d72ace256085e044e177c735eb489e7de62564923b83e",
+        "size_bytes": 6829,
+        "zenodo_md5": "bdd068ba85469aaabbaa44d04ef6d0da"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    },
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 100,
+        "atom_order_sha256": "ab18c0f5b73e813353f0b64ffb7b827583f76b1b8478d9f681db3b5b2cecd8a7",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            58
+          ],
+          [
+            "Cl",
+            16
+          ],
+          [
+            "H",
+            26
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:9c290e9e6e0cc77ee73a3689",
+        "identity_approval_sha256": "9c290e9e6e0cc77ee73a36897781c69132d8db10bc69217c8ab347dac1bfaf1e",
+        "imported_artifact_id": "geometry:pcp-ttm:4008b3f29b43c449110f4a3a",
+        "imported_sha256": "4008b3f29b43c449110f4a3a1a4ebda1b29423526b62ebab962a7e6a986f1128",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "ea04dcc2608934415b05a8966c205eeef25117e21ea1162223bae375215569d9",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:2dabbe60016999e4df7d00f2",
+        "provenance_receipt_sha256": "2dabbe60016999e4df7d00f229f25ee7a53c14a7e887a06853d0cb5cadf6f714",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:39a51fa28e2cd3971c43879d",
+        "receipt_sha256": "39a51fa28e2cd3971c43879de3c52822ce903cb96a45f8d5195cc98f8d08fe61",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 6829,
+        "source_artifact_id": "source:zenodo:4008b3f29b43c449110f4a3a",
+        "source_format": "xyz",
+        "source_sha256": "4008b3f29b43c449110f4a3a1a4ebda1b29423526b62ebab962a7e6a986f1128",
+        "source_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_+-_triplet.xyz/content"
+      },
+      "filename": "pseudo-p-PCP-TTM2_+-_triplet.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:9c290e9e6e0cc77ee73a3689",
+        "approval_sha256": "9c290e9e6e0cc77ee73a36897781c69132d8db10bc69217c8ab347dac1bfaf1e",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "pseudo-p-PCP-TTM2_+-_triplet.xyz",
+          "official_sha256": "4008b3f29b43c449110f4a3a1a4ebda1b29423526b62ebab962a7e6a986f1128",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_+-_triplet.xyz/content",
+        "filename": "pseudo-p-PCP-TTM2_+-_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_+-_triplet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-p-PCP-TTM2_+-_triplet.xyz",
+        "sha256": "4008b3f29b43c449110f4a3a1a4ebda1b29423526b62ebab962a7e6a986f1128",
+        "size_bytes": 6829,
+        "zenodo_md5": "1e8537e966a0234a7316669443ad1cc6"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "pseudo-p-PCP-TTM2_+-_triplet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_+-_triplet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "4008b3f29b43c449110f4a3a1a4ebda1b29423526b62ebab962a7e6a986f1128",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_+-_triplet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "4008b3f29b43c449110f4a3a1a4ebda1b29423526b62ebab962a7e6a986f1128",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:2dabbe60016999e4df7d00f2",
+        "provenance_receipt_sha256": "2dabbe60016999e4df7d00f229f25ee7a53c14a7e887a06853d0cb5cadf6f714"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_+-_triplet.xyz/content",
+        "filename": "pseudo-p-PCP-TTM2_+-_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_+-_triplet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-p-PCP-TTM2_+-_triplet.xyz",
+        "sha256": "4008b3f29b43c449110f4a3a1a4ebda1b29423526b62ebab962a7e6a986f1128",
+        "size_bytes": 6829,
+        "zenodo_md5": "1e8537e966a0234a7316669443ad1cc6"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    },
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 100,
+        "atom_order_sha256": "ab18c0f5b73e813353f0b64ffb7b827583f76b1b8478d9f681db3b5b2cecd8a7",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            58
+          ],
+          [
+            "Cl",
+            16
+          ],
+          [
+            "H",
+            26
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:28897babadb74c55c4460d7f",
+        "identity_approval_sha256": "28897babadb74c55c4460d7f5f668cd2bac17725ab9b2c0ec194d5a08b94f806",
+        "imported_artifact_id": "geometry:pcp-ttm:94c47540bcd97db5e22d1756",
+        "imported_sha256": "94c47540bcd97db5e22d1756b93d55e690ab749d378ef35a69ec665c50d52b5f",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "e7c901986b35048b1a224c8a63bec7800f301665e4615ed74795da750f65fa69",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:958889119be48fe9b9e1fe42",
+        "provenance_receipt_sha256": "958889119be48fe9b9e1fe42ad287bf2a7894403e73826917914f67ed484b0da",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:87db7700bf982893fec9a7d5",
+        "receipt_sha256": "87db7700bf982893fec9a7d52f32df30f284df20332337426826ca13cadd8f8c",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 6829,
+        "source_artifact_id": "source:zenodo:94c47540bcd97db5e22d1756",
+        "source_format": "xyz",
+        "source_sha256": "94c47540bcd97db5e22d1756b93d55e690ab749d378ef35a69ec665c50d52b5f",
+        "source_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_--_singlet.xyz/content"
+      },
+      "filename": "pseudo-p-PCP-TTM2_--_singlet.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:28897babadb74c55c4460d7f",
+        "approval_sha256": "28897babadb74c55c4460d7f5f668cd2bac17725ab9b2c0ec194d5a08b94f806",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "pseudo-p-PCP-TTM2_--_singlet.xyz",
+          "official_sha256": "94c47540bcd97db5e22d1756b93d55e690ab749d378ef35a69ec665c50d52b5f",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_--_singlet.xyz/content",
+        "filename": "pseudo-p-PCP-TTM2_--_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_--_singlet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-p-PCP-TTM2_--_singlet.xyz",
+        "sha256": "94c47540bcd97db5e22d1756b93d55e690ab749d378ef35a69ec665c50d52b5f",
+        "size_bytes": 6829,
+        "zenodo_md5": "b123b9d6bd64ddbc1b93d54d4ff86a04"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "pseudo-p-PCP-TTM2_--_singlet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_--_singlet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "94c47540bcd97db5e22d1756b93d55e690ab749d378ef35a69ec665c50d52b5f",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_--_singlet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "94c47540bcd97db5e22d1756b93d55e690ab749d378ef35a69ec665c50d52b5f",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:958889119be48fe9b9e1fe42",
+        "provenance_receipt_sha256": "958889119be48fe9b9e1fe42ad287bf2a7894403e73826917914f67ed484b0da"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_--_singlet.xyz/content",
+        "filename": "pseudo-p-PCP-TTM2_--_singlet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_--_singlet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-p-PCP-TTM2_--_singlet.xyz",
+        "sha256": "94c47540bcd97db5e22d1756b93d55e690ab749d378ef35a69ec665c50d52b5f",
+        "size_bytes": 6829,
+        "zenodo_md5": "b123b9d6bd64ddbc1b93d54d4ff86a04"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    },
+    {
+      "blocker_rule_ids": [],
+      "coordinate_import_receipt": {
+        "archive_member": null,
+        "atom_count": 100,
+        "atom_order_sha256": "ab18c0f5b73e813353f0b64ffb7b827583f76b1b8478d9f681db3b5b2cecd8a7",
+        "coordinate_units": "angstrom",
+        "element_counts": [
+          [
+            "C",
+            58
+          ],
+          [
+            "Cl",
+            16
+          ],
+          [
+            "H",
+            26
+          ]
+        ],
+        "exact_byte_copy_verified": true,
+        "identity_approval_id": "approval:pcp-ttm:533877863c0675551e63d9d1",
+        "identity_approval_sha256": "533877863c0675551e63d9d156fbe6f22991e55ffae4a1fb8cf95316d7242a89",
+        "imported_artifact_id": "geometry:pcp-ttm:1b9eae8b46ccf405a13799e7",
+        "imported_sha256": "1b9eae8b46ccf405a13799e7512eab5191dcbfe3f6cb8f3cea63568d4d4a69e9",
+        "license_id": "cc-by-4.0",
+        "ordered_geometry_sha256": "a4a52a5d09e0936c0e2390c58bb7346fa654ae705cfd82a1efd5743d5e9cecb7",
+        "provenance_kind": "official_repository",
+        "provenance_receipt_id": "retrieval:pcp-ttm:0b0765e8b73d0a050760801b",
+        "provenance_receipt_sha256": "0b0765e8b73d0a050760801b595dcb918c5b9b645fa72e00bd92704cd6e0d0bb",
+        "prp10_eligible": true,
+        "receipt_id": "coordinate-import:5c94a8d240bf35cb9f2c65ec",
+        "receipt_sha256": "5c94a8d240bf35cb9f2c65ecd3135a5247403726020effb8a09d8b3b06a2e446",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-import-receipt.v1",
+        "size_bytes": 6829,
+        "source_artifact_id": "source:zenodo:1b9eae8b46ccf405a13799e7",
+        "source_format": "xyz",
+        "source_sha256": "1b9eae8b46ccf405a13799e7512eab5191dcbfe3f6cb8f3cea63568d4d4a69e9",
+        "source_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_--_triplet.xyz/content"
+      },
+      "filename": "pseudo-p-PCP-TTM2_--_triplet.xyz",
+      "identity_approval": {
+        "approval_id": "approval:pcp-ttm:533877863c0675551e63d9d1",
+        "approval_sha256": "533877863c0675551e63d9d156fbe6f22991e55ffae4a1fb8cf95316d7242a89",
+        "binding": {
+          "authority": "user-approved PRP-10 coordinate-source contract",
+          "coordinate_units": "angstrom",
+          "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+          "latest_record_id": 17301951,
+          "official_filename": "pseudo-p-PCP-TTM2_--_triplet.xyz",
+          "official_sha256": "1b9eae8b46ccf405a13799e7512eab5191dcbfe3f6cb8f3cea63568d4d4a69e9",
+          "paper_doi": "10.1039/D5TC02343B",
+          "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        }
+      },
+      "latest": {
+        "download_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_--_triplet.xyz/content",
+        "filename": "pseudo-p-PCP-TTM2_--_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_--_triplet.xyz/content",
+        "private_store_ref": "private-store:17301951/pseudo-p-PCP-TTM2_--_triplet.xyz",
+        "sha256": "1b9eae8b46ccf405a13799e7512eab5191dcbfe3f6cb8f3cea63568d4d4a69e9",
+        "size_bytes": 6829,
+        "zenodo_md5": "039f313e6f3b59c347356dc664ee2111"
+      },
+      "provenance": {
+        "binding": {
+          "exact_version_match": true,
+          "filename": "pseudo-p-PCP-TTM2_--_triplet.xyz",
+          "latest_download_url": "https://zenodo.org/api/records/17301951/files/pseudo-p-PCP-TTM2_--_triplet.xyz/content",
+          "latest_record_doi": "10.5281/zenodo.17301951",
+          "latest_record_id": 17301951,
+          "latest_sha256": "1b9eae8b46ccf405a13799e7512eab5191dcbfe3f6cb8f3cea63568d4d4a69e9",
+          "license_id": "cc-by-4.0",
+          "paper_doi": "10.1039/D5TC02343B",
+          "requested_download_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_--_triplet.xyz/content",
+          "requested_record_doi": "10.5281/zenodo.15679510",
+          "requested_record_id": 15679510,
+          "requested_sha256": "1b9eae8b46ccf405a13799e7512eab5191dcbfe3f6cb8f3cea63568d4d4a69e9",
+          "zenodo_concept_doi": "10.5281/zenodo.15679509"
+        },
+        "provenance_receipt_id": "retrieval:pcp-ttm:0b0765e8b73d0a050760801b",
+        "provenance_receipt_sha256": "0b0765e8b73d0a050760801b595dcb918c5b9b645fa72e00bd92704cd6e0d0bb"
+      },
+      "requested": {
+        "download_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_--_triplet.xyz/content",
+        "filename": "pseudo-p-PCP-TTM2_--_triplet.xyz",
+        "final_url": "https://zenodo.org/api/records/15679510/files/pseudo-p-PCP-TTM2_--_triplet.xyz/content",
+        "private_store_ref": "private-store:15679510/pseudo-p-PCP-TTM2_--_triplet.xyz",
+        "sha256": "1b9eae8b46ccf405a13799e7512eab5191dcbfe3f6cb8f3cea63568d4d4a69e9",
+        "size_bytes": 6829,
+        "zenodo_md5": "039f313e6f3b59c347356dc664ee2111"
+      },
+      "source_assessment": {
+        "acquisition_method": "exact_official_file",
+        "conversion_performed": false,
+        "coordinate_units": "angstrom",
+        "decision": "prp10_eligible",
+        "rule_ids": [
+          "coordinate.prp10.exact_official_xyz_angstrom"
+        ],
+        "schema_version": "chemsmart.coordinate-source-assessment.v1",
+        "source_format": "xyz"
+      },
+      "state": "validated_private_import",
+      "version_relation": "exact_byte_match"
+    }
+  ],
+  "campaign_slice_id": "prp10-pcp-ttm-coordinate-provenance-2026-08-02",
+  "coordinate_contract": {
+    "authority": "user-approved PRP-10 coordinate-source contract",
+    "conversion_performed": false,
+    "coordinate_generation_performed": false,
+    "coordinate_units": "angstrom",
+    "identity_boundary": "bind the literal official depositor filename to its exact bytes; do not infer chemical meaning for filename tokens",
+    "scope": "exact official single-frame XYZ artifacts may be imported after provenance and license verification"
+  },
+  "finished_at_utc": "2026-08-01T15:10:52.593938Z",
+  "latest_record": {
+    "access_right": "open",
+    "api_url": "https://zenodo.org/api/records/17301951",
+    "concept_doi": "10.5281/zenodo.15679509",
+    "created": "2025-10-09T07:57:12.522439+00:00",
+    "doi": "10.5281/zenodo.17301951",
+    "latest_api_url": "https://zenodo.org/api/records/17301951/versions/latest",
+    "license_id": "cc-by-4.0",
+    "metadata_response": {
+      "final_url": "https://zenodo.org/api/records/17301951",
+      "private_store_ref": "private-store:latest-record",
+      "request_url": "https://zenodo.org/api/records/15679510/versions/latest",
+      "sha256": "d0601513c5506245b001cf95a585b837cf30fd7fb19b9dac679d9c61bb09d03e",
+      "size_bytes": 9002
+    },
+    "publication_date": "2025-10-09",
+    "record_id": 17301951,
+    "record_url": "https://zenodo.org/records/17301951",
+    "status": "published",
+    "title": "XYZ files of geometry optimized structures of paracyclophane-based TTM (di)radicals and corresponding TD-DFT",
+    "updated": "2025-10-09T07:57:14.028863+00:00"
+  },
+  "paper": {
+    "binding_status": "publisher_locator_and_zenodo_concept_version_match",
+    "doi": "10.1039/D5TC02343B",
+    "publisher_data_record_doi": "10.5281/zenodo.17301951",
+    "publisher_url": "https://pubs.rsc.org/en/content/articlehtml/2026/tc/d5tc02343b"
+  },
+  "receipt_id": "prp10-coordinate-provenance:7d79221f735e39355b965639",
+  "receipt_sha256": "7d79221f735e39355b9656391a13b6b0441d3724e42020bea01663974ade6f55",
+  "requested_record": {
+    "access_right": "open",
+    "api_url": "https://zenodo.org/api/records/15679510",
+    "concept_doi": "10.5281/zenodo.15679509",
+    "created": "2025-06-17T05:09:34.764879+00:00",
+    "doi": "10.5281/zenodo.15679510",
+    "latest_api_url": "https://zenodo.org/api/records/15679510/versions/latest",
+    "license_id": "cc-by-4.0",
+    "metadata_response": {
+      "final_url": "https://zenodo.org/api/records/15679510",
+      "private_store_ref": "private-store:requested-record",
+      "request_url": "https://zenodo.org/api/records/15679510",
+      "sha256": "e60849a6f11432c3fe893918b7b1f7f48283f10e9ee4af500ad5ffa0ff864baa",
+      "size_bytes": 9003
+    },
+    "publication_date": "2025-06-17",
+    "record_id": 15679510,
+    "record_url": "https://zenodo.org/records/15679510",
+    "status": "published",
+    "title": "XYZ files of geometry optimized structures of paracyclophane-based TTM (di)radicals and corresponding TD-DFT",
+    "updated": "2025-06-17T05:09:35.260095+00:00"
+  },
+  "schema_version": "chemsmart.prp10-coordinate-provenance.v1",
+  "started_at_utc": "2026-08-01T15:10:40.091823Z",
+  "summary": {
+    "blocked_version_conflicts": 2,
+    "chemistry_engine_invocations": 0,
+    "coordinate_bytes_in_public_receipt": false,
+    "hpc_invocations": 0,
+    "native_inputs_generated": 0,
+    "paper_coordinate_state": "blocked_partial_version_conflict",
+    "private_paths_in_public_receipt": false,
+    "record_relation": "same_concept_doi_earlier_and_latest_versions",
+    "validated_private_imports": 9,
+    "xyz_assets_in_requested_record": 11
+  }
+}

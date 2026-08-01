@@ -1,0 +1,411 @@
+{
+  "attempt_counts_are_observational": true,
+  "network_budget_sha256": "0e8cad3417794f53a0424738cb0e7ee226bacafd169bd53f889400280b995f3a",
+  "provider": {
+    "endpoint": "https://api.deepseek.com",
+    "requested_model": "deepseek-v4-flash",
+    "sdk_retries": 0,
+    "thinking_mode": "enabled"
+  },
+  "receipt_sha256": "ab119369a3b26a49ed4c882a185d2a5bbe9f08b274877f10a4b6a08aea102cd9",
+  "results": [
+    {
+      "assistant_output_chars": 0,
+      "assistant_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "authoritative_terminal": {
+        "event_hash": "aac8ccd0075fa57b31b40d45a0a9401acefe484b7f72bffb1a986570c5e9467c",
+        "event_log_sha256": "76f2a23ddacfb2bd20721a748af50c996f4da500957d0a482c0fd94b58875cdb",
+        "kind": "turn_blocked",
+        "rule_ids": []
+      },
+      "case_id": "architecture_targeted",
+      "hypothesis_id": "hypothesis:elq:architecture_targeted",
+      "oracle": {
+        "passed": false,
+        "rule_ids": [
+          "experiment.oracle.single_successful_tool_outcome_required"
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "denied",
+        "case_pass": false,
+        "expected_behavior": "mismatched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "tool_error"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "tool_error",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 2771,
+      "prompt_sha256": "14445df3a61ee5115211d8a1e54699130f7c94f02481c33fca6cb4833de57ec1",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": false,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 2207,
+            "latency_ms": 21616,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 2023,
+            "request_sha256": "ac559ec601cecb33e65f3d185a2c13503f589622540ccb2c012760c4d7b62c49",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "targeted",
+      "tool_outcomes": [
+        {
+          "name": "select_evidence_spans",
+          "result": null,
+          "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "status": "denied"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "claim_ids",
+            "purpose",
+            "source_id",
+            "source_sha256",
+            "spans"
+          ],
+          "arguments_sha256": "913706b325355061ff5aab50847e0c59e3506cbbb3e30651204b41e4bc12b29a",
+          "name": "select_evidence_spans"
+        }
+      ]
+    },
+    {
+      "assistant_output_chars": 0,
+      "assistant_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "authoritative_terminal": {
+        "event_hash": "ae620c7b374508abb0e3f9d549295f41ff1f0e3e525fa1a3231293b8ff71abc3",
+        "event_log_sha256": "aea1ba42e0591855a6d03dcc20957f59d9d75f11d84a206985d5c14d1a9b8a69",
+        "kind": "turn_blocked",
+        "rule_ids": []
+      },
+      "case_id": "failure_targeted",
+      "hypothesis_id": "hypothesis:elq:failure_targeted",
+      "oracle": {
+        "passed": false,
+        "rule_ids": [
+          "experiment.oracle.single_successful_tool_outcome_required"
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "denied",
+        "case_pass": false,
+        "expected_behavior": "mismatched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "tool_error"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "tool_error",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 2055,
+      "prompt_sha256": "cce6c2086ddf6c5a233dcaca2a4d2290efaa8e61129eedf5a36fc15c5d61d569",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": false,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 2098,
+            "latency_ms": 3877,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 455,
+            "request_sha256": "a4d574343c15e3c2c1204adbaa0db7ee88828b2abd21c20cf3c926ec1c46c5ae",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "targeted",
+      "tool_outcomes": [
+        {
+          "name": "select_evidence_spans",
+          "result": null,
+          "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "status": "denied"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "claim_ids",
+            "purpose",
+            "source_id",
+            "source_sha256",
+            "spans"
+          ],
+          "arguments_sha256": "2f973653b6c8d7ef8946d1153801ebaa81446967e51a7d6015f079fb85db621c",
+          "name": "select_evidence_spans"
+        }
+      ]
+    },
+    {
+      "assistant_output_chars": 0,
+      "assistant_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "authoritative_terminal": {
+        "event_hash": "0d9d12cb39b88a440cff1522d038a77498b39829a395ab566d741c88dfb367fc",
+        "event_log_sha256": "f8ac0ce0675af8f5b4835556329b63fc545f77c10d47173e1e68abe446d67c21",
+        "kind": "turn_blocked",
+        "rule_ids": []
+      },
+      "case_id": "native_input_contrast",
+      "hypothesis_id": "hypothesis:elq:native_input_contrast",
+      "oracle": {
+        "passed": false,
+        "rule_ids": [
+          "experiment.oracle.single_successful_tool_outcome_required"
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "denied",
+        "case_pass": false,
+        "expected_behavior": "mismatched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "tool_error"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "tool_error",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 2442,
+      "prompt_sha256": "88e572108e6ec1fb36ee49cb0b9ca1b874fcd8ac84b37ccd886aa3696afd8271",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": false,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 2163,
+            "latency_ms": 11856,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 1280,
+            "request_sha256": "d36b2b9a935a1d2aab8a75d66e97a4d2fb39c09b5fc5fb785431b10ce9641ba3",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "targeted",
+      "tool_outcomes": [
+        {
+          "name": "select_evidence_spans",
+          "result": null,
+          "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "status": "denied"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "claim_ids",
+            "purpose",
+            "source_id",
+            "source_sha256",
+            "spans"
+          ],
+          "arguments_sha256": "e7311d3de8e2a9f1a7fac048463423981b155d75fab41ed0f844e8f26cf15b2f",
+          "name": "select_evidence_spans"
+        }
+      ]
+    },
+    {
+      "assistant_output_chars": 0,
+      "assistant_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "authoritative_terminal": {
+        "event_hash": "cec1fb83bc170b80e23f5cdbb37848061a5f795efc71fd3297312dd2bd78f040",
+        "event_log_sha256": "b6df8b4103dc8170fca280c0d500aef0c831618c08291fc9fad0745c4048d2c9",
+        "kind": "turn_blocked",
+        "rule_ids": []
+      },
+      "case_id": "architecture_full_context",
+      "hypothesis_id": "hypothesis:elq:architecture_full_context",
+      "oracle": {
+        "passed": false,
+        "rule_ids": [
+          "experiment.oracle.single_successful_tool_outcome_required"
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "denied",
+        "case_pass": false,
+        "expected_behavior": "mismatched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "tool_error"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "tool_error",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 225699,
+      "prompt_sha256": "4eece49393f36b369a10ffd5941ccc71bc76df37d07b2c41cbe49ffd5fbbd26f",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": false,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 70152,
+            "latency_ms": 29159,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 2617,
+            "request_sha256": "4de6903467bb7fa673dc344cd8e2d114c4c83175e4115dbb5d4ee8a6755ff855",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "full",
+      "tool_outcomes": [
+        {
+          "name": "select_evidence_spans",
+          "result": null,
+          "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "status": "denied"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "claim_ids",
+            "purpose",
+            "source_id",
+            "source_sha256",
+            "spans"
+          ],
+          "arguments_sha256": "018ff605b0c87dba2c9f61c17681c9c9248d6b8ceb290b2008f7f297e96e28b0",
+          "name": "select_evidence_spans"
+        }
+      ]
+    },
+    {
+      "assistant_output_chars": 0,
+      "assistant_output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "authoritative_terminal": {
+        "event_hash": "75ce1efd34542060fabe35914aea96a0e9cfa2d2ba8760b0da59c3168dddbe3a",
+        "event_log_sha256": "64e54e48b3759402e8ba4c298c0881a28f7edf9e35233c9f2958abf42e94a343",
+        "kind": "turn_blocked",
+        "rule_ids": []
+      },
+      "case_id": "data_availability",
+      "hypothesis_id": "hypothesis:elq:data_availability",
+      "oracle": {
+        "passed": false,
+        "rule_ids": [
+          "experiment.oracle.single_successful_tool_outcome_required"
+        ]
+      },
+      "outcome_classification": {
+        "agent_turn_outcome": "denied",
+        "case_pass": false,
+        "expected_behavior": "mismatched",
+        "expected_domain_outcomes": [
+          "extracted"
+        ],
+        "observed_tool_domain_outcomes": [
+          "tool_error"
+        ],
+        "scientific_readiness": "not_established",
+        "tool_domain_outcome": "tool_error",
+        "tool_outcome_count": 1,
+        "tool_request_count": 1
+      },
+      "prompt_chars": 1079,
+      "prompt_sha256": "68c8fbccf6e9903897d21c89510720df939ca0dd7839529770d45536faa1b320",
+      "provider": {
+        "observed_model": "deepseek-v4-flash",
+        "reasoning_continuation_observed": false,
+        "request_observations": [
+          {
+            "credential_status": "valid",
+            "input_tokens": 1896,
+            "latency_ms": 3744,
+            "observed_model": "deepseek-v4-flash",
+            "output_tokens": 407,
+            "request_sha256": "75095c5b80a902e7610b4dc52527eb141902c538c1677387f8b10c452f9cb052",
+            "status": "observed"
+          }
+        ],
+        "requested_model": "deepseek-v4-flash",
+        "thinking_mode": "enabled"
+      },
+      "source_view": "targeted",
+      "tool_outcomes": [
+        {
+          "name": "select_evidence_spans",
+          "result": null,
+          "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "status": "denied"
+        }
+      ],
+      "tool_requests": [
+        {
+          "argument_keys": [
+            "claim_ids",
+            "purpose",
+            "source_id",
+            "source_sha256",
+            "spans"
+          ],
+          "arguments_sha256": "5089dda252eddd5b8c999ac0af9ea40b9fc1b30f4ff64ce087a751bb59d67bfd",
+          "name": "select_evidence_spans"
+        }
+      ]
+    }
+  ],
+  "safety": {
+    "chemistry_engine_calls": 0,
+    "hpc_calls": 0,
+    "native_input_authored": false,
+    "private_reasoning_persisted": false,
+    "raw_provider_turns_persisted": false,
+    "secret_material_persisted": false
+  },
+  "schema_version": "chemsmart.el-agente-q-adaptive-extraction.v1",
+  "source_derivation": {
+    "api_response_sha256": "c6db4e6e57a08e8975b4c6f9c4ef1c3a00cc9629bbbd3cac4415013843970f7b",
+    "derived_source_lines": 2872,
+    "derived_source_sha256": "6d7c1a045d73783c5646e87d53587567f4018f5822d09cfdd926af96fa301f8a",
+    "original_text_chars": 211447,
+    "original_text_sha256": "a283eeec15947b3165363be7fe20efa241705540ac1650e764d564b9eb692246",
+    "split_rule": "elsevier-originalText-sentence-lines-v1"
+  },
+  "termination_reason": "campaign.stop.all_unique_hypotheses_observed",
+  "totals": {
+    "cases": 5,
+    "input_tokens": 78516,
+    "latency_ms": 70252,
+    "oracle_passes": 0,
+    "output_tokens": 6782,
+    "transport_attempts": 5,
+    "wall_time_ms": 70811
+  },
+  "transport_attempt_limit": null
+}

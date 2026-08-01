@@ -1,0 +1,26 @@
+{
+  "schema_version": "chemsmart.cleanup-deletion-ledger.v1",
+  "scope": "tracked duplicate documentation explicitly authorized by the PRP-10 plan",
+  "entries": [
+    {
+      "path": "docs/source/gaussian_submitqmmmjobs.rst",
+      "pre_deletion_sha256": "7f8929dafa5c39752063b00ebfb3243e31bde4a0ee79356ed0fadc2f5a951531",
+      "reason": "Legacy underscore-named duplicate is absent from docs/source/index.rst and contains stale command-path guidance.",
+      "replacement": "docs/source/gaussian-qmmm-jobs.rst",
+      "replacement_sha256": "9d89aead86017b8df98863b44b497208c661ecaaa86b751cb97d6e19fae69a8b",
+      "replacement_is_indexed": true,
+      "recoverable_through_git": true
+    },
+    {
+      "path": "docs/source/orca_submitqmmmjobs.rst",
+      "pre_deletion_sha256": "8424168d3e4b96b633fe9dc6327046dfa2b2fc21058b50f390e880dd19d0f5c9",
+      "reason": "Legacy underscore-named duplicate is absent from docs/source/index.rst and is superseded by the actively indexed multiscale guide.",
+      "replacement": "docs/source/orca-multiscale-calculations.rst",
+      "replacement_sha256": "bc22043496992cca4a049fa849df696d16b37a7016e5475d1535afcc8349ba5e",
+      "replacement_is_indexed": true,
+      "recoverable_through_git": true
+    }
+  ],
+  "unrelated_dirty_files_deleted": 0,
+  "reproducibility_evidence_deleted": 0
+}

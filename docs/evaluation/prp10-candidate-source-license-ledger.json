@@ -1,0 +1,901 @@
+{
+  "schema_version": "chemsmart.prp10-candidate-source-license-ledger.v1",
+  "checked_at": "2026-08-02T00:18:51+09:00",
+  "repository_binding": {
+    "branch": "codex/frontier-agent-live-pilot",
+    "commit": "887ab923d45e1a8a97f04441d3df843500e8f1df",
+    "working_tree_note": "The branch was dirty during this documentation-only audit. This ledger does not claim that uncommitted CLI or harness behavior is frozen."
+  },
+  "scope": {
+    "purpose": "Pre-registration candidate discovery for ten computational-chemistry domains. This is a source, license, coordinate, and CLI-gap ledger; it is not a reproduction or readiness receipt.",
+    "coordinate_contract": "PRP-10 accepts only an exact, official, single-frame XYZ in angstrom with source/member identity, exact-byte hash, atom order, and user-approved molecular identity. Archive members are acceptable when the official archive and member are pinned. Conversion, OCR, table transcription, SMILES-to-3D, and model-generated coordinates are not acceptable for campaign eligibility.",
+    "execution_ceiling": "source inspection and private coordinate-byte validation only; chemistry-engine and HPC invocations are prohibited",
+    "public_artifact_policy": "No copyrighted full text, SI bytes, coordinate bytes, native input, API credential, or private-store path is stored in this ledger.",
+    "decision_rule": "A candidate is campaign_eligible only after full text and SI, license, exact coordinates, critical method facts, ChemSmart project YAML, canonical command DAG, safe preview, and deterministic review all pass. A source-ready candidate is not automatically campaign-eligible."
+  },
+  "audit_method": {
+    "bibliography": {
+      "source": "Crossref REST works endpoint",
+      "checks": [
+        "DOI and title",
+        "article type",
+        "declared license URL",
+        "publisher full-text link when exposed",
+        "is-corrected-by and is-retracted-by relations"
+      ],
+      "result": "All ten DOI/title pairs resolved as journal articles; Crossref exposed no is-corrected-by or is-retracted-by relation for these records at checked_at. This is not a substitute for later publisher and retraction-database rechecking at harness freeze."
+    },
+    "datasets": {
+      "source": "Zenodo REST record endpoint or official project repository",
+      "checks": [
+        "record DOI and title",
+        "access status",
+        "declared license",
+        "file inventory",
+        "official MD5 when available"
+      ]
+    },
+    "coordinates": {
+      "method": "Private disposable audit of official bytes: first line atom count, exactly atom_count plus two lines, exactly one atom-count frame marker, and SHA-256. Existing public receipts are referenced when available.",
+      "limitations": "Structural syntax does not prove molecular identity, charge, multiplicity, electronic state, layer assignment, reaction-role assignment, or that every paper-essential geometry is present."
+    },
+    "cli": {
+      "method": "Source inspection of command families in the bound repository only.",
+      "limitations": "A named CLI family is not end-to-end coverage. No project loader, command compiler, semantic round-trip, generated-input parser, or safe-preview campaign was run for these candidates."
+    }
+  },
+  "status_vocabulary": {
+    "development_candidate_cli_review_pending": "Source and exact-coordinate evidence are promising, but paper-complete ChemSmart compilation has not passed.",
+    "blocked": "A potentially repairable, explicitly identified eligibility condition is missing or unresolved.",
+    "rejected_for_current_campaign": "The paper conflicts with the current one-system, exact-coordinate, or supported-essential-workflow selection rule; it may remain useful as a future stress test.",
+    "campaign_eligible": "All source, scientific, command, preview, and review gates passed. No candidate has this status in this ledger."
+  },
+  "summary": {
+    "required_domain_slots": 10,
+    "slots_with_candidate": 10,
+    "campaign_eligible": 0,
+    "development_candidate_cli_review_pending": 1,
+    "blocked": 6,
+    "rejected_for_current_campaign": 3,
+    "candidates_with_privately_syntax_audited_single_frame_xyz": 6,
+    "candidates_with_partial_coordinate_version_conflict": 1,
+    "candidates_with_essential_multi_frame_or_nonconforming_coordinate_sets": 2,
+    "candidates_with_article_system_xyz_unresolved": 1,
+    "chemistry_engine_invocations": 0,
+    "hpc_invocations": 0,
+    "safe_previews": 0,
+    "honest_conclusion": "The ten domain slots are populated for investigation, but the PRP-10 campaign is not pre-registration-ready. The urea/W18 paper is the strongest next development candidate; all other slots have an evidence, scope, coordinate, or essential-workflow blocker."
+  },
+  "candidates": [
+    {
+      "slot": 1,
+      "candidate_id": "prp10-organic-glycolamide-w18",
+      "domain": "organic reaction mechanism, transition states, reaction path, and kinetics",
+      "paper": {
+        "doi": "10.1051/0004-6361/202554330",
+        "title": "Formation of the glycine isomer glycolamide (NH2C(O)CH2OH) on the surfaces of interstellar ice grains: Insights from atomistic simulations",
+        "publisher_locator": "https://doi.org/10.1051/0004-6361/202554330",
+        "full_text_locator": "https://www.aanda.org/10.1051/0004-6361/202554330/pdf",
+        "full_text_state": "publisher_pdf_link_verified",
+        "article_license": "CC-BY-4.0",
+        "si_state": "official_depositor_archive_verified"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "record_id": 14850268,
+        "doi": "10.5281/zenodo.14850268",
+        "locator": "https://zenodo.org/records/14850268",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "file": {
+          "name": "support_material.zip",
+          "official_md5": "7bf7ae9b6dffb9987b98ae9a050b1bae",
+          "private_audit_sha256": "68d53046f44696bd694910f69e0bbc966239599058724d3602ed110d8d244268"
+        }
+      },
+      "coordinates": {
+        "state": "exact_official_single_frame_xyz_syntax_verified",
+        "observed_xyz_members": 49,
+        "single_frame_members": 49,
+        "malformed_members": 0,
+        "identity_approval_state": "not_bound"
+      },
+      "method_evidence": {
+        "observed": [
+          "W18 explicit water-ice cluster",
+          "BHLYP-D3(BJ)/ma-def2-TZVP calculations with ORCA",
+          "reactant, transition-state, product, and open-shell-singlet structures in the official archive",
+          "ZPE-corrected reaction-profile and kinetics analysis"
+        ],
+        "critical_unknowns": [
+          "An explicit IRC or equivalent reaction-path requirement was not verified from the inspected source bundle.",
+          "Per-structure charge, multiplicity, broken-symmetry setup, and role binding have not been encoded as typed evidence."
+        ]
+      },
+      "cli_coverage": {
+        "state": "partial_source_inspection_only",
+        "observed_command_families": [
+          "run/orca/opt",
+          "run/orca/ts",
+          "run/orca/irc",
+          "run/thermochemistry"
+        ],
+        "unverified": [
+          "paper-specific project YAML",
+          "open-shell and broken-symmetry semantics",
+          "artifact-bound TS-to-path DAG",
+          "safe preview and generated-input validation"
+        ]
+      },
+      "decision": {
+        "status": "blocked",
+        "rule_ids": [
+          "paper.protocol.required_reaction_path_unverified",
+          "paper.electronic_state.binding_missing",
+          "paper.cli.paper_complete_preview_missing"
+        ],
+        "next_action": "Extract an evidence-located reaction-path contract and per-species electronic states, then perform project/compiler/preview validation without editing native input."
+      }
+    },
+    {
+      "slot": 2,
+      "candidate_id": "prp10-transition-metal-cis-pd-cages",
+      "domain": "transition-metal and organometallic method, spin, and basis/ECP coverage",
+      "paper": {
+        "doi": "10.1002/chem.202403336",
+        "title": "A Combined Experimental and Computational Exploration of Heteroleptic cis-Pd2L2L'2 Coordination Cages through Geometric Complementarity",
+        "publisher_locator": "https://doi.org/10.1002/chem.202403336",
+        "full_text_locator": "https://chemistry-europe.onlinelibrary.wiley.com/doi/pdf/10.1002/chem.202403336",
+        "full_text_state": "publisher_pdf_link_and_license_verified",
+        "article_license": "CC-BY-4.0",
+        "si_state": "official_dataset_verified; publisher_supporting_information_not_frozen"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "record_id": 13923130,
+        "doi": "10.5281/zenodo.13923130",
+        "locator": "https://zenodo.org/records/13923130",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "file": {
+          "name": "tarzia_lewis_2024_revised.zip",
+          "official_md5": "1af9433f28e235cdd7e2ea6eff816a77",
+          "private_audit_sha256": "1496ebd467657fbb2886af374f00040185097c4abc24b3b468b78e4cde3be84b"
+        }
+      },
+      "coordinates": {
+        "state": "exact_official_single_frame_xyz_syntax_verified_with_quality_flags",
+        "observed_xyz_members": 47,
+        "single_frame_members": 47,
+        "malformed_members": 0,
+        "quality_warning": "The official archive includes filenames explicitly marked BROKEN; filename-level identity and quality disposition remain unresolved.",
+        "identity_approval_state": "not_bound"
+      },
+      "method_evidence": {
+        "observed": [
+          "GFN2-xTB with ALPB(DMSO)",
+          "Gaussian DFT calculations using multiple functionals for Pd coordination cages",
+          "A combinatorial family of homoleptic and heteroleptic Pd2L4-type cages"
+        ],
+        "critical_unknowns": [
+          "A single tightly defined molecular-system slice has not been preregistered.",
+          "Pd basis/ECP mapping and per-cage charge/state bindings have not been audited."
+        ]
+      },
+      "cli_coverage": {
+        "state": "partial_source_inspection_only",
+        "observed_command_families": [
+          "run/xtb/opt",
+          "run/gaussian/opt",
+          "run/gaussian/sp"
+        ],
+        "unverified": [
+          "stk-generated combinatorial structure construction",
+          "Pd basis/ECP semantic mapping",
+          "paper-complete command DAG",
+          "safe preview"
+        ]
+      },
+      "decision": {
+        "status": "rejected_for_current_campaign",
+        "rule_ids": [
+          "paper.scope.not_one_tightly_defined_system",
+          "paper.coordinate.quality_disposition_missing",
+          "paper.cli.paper_complete_preview_missing"
+        ],
+        "next_action": "Retain as a future transition-metal stress test; select a one-complex paper with pinned Pd basis/ECP and unambiguous official geometry for the current slot."
+      }
+    },
+    {
+      "slot": 3,
+      "candidate_id": "prp10-excited-state-oxazine-microenvironments",
+      "domain": "excited state, photochemistry, and spectroscopy",
+      "paper": {
+        "doi": "10.1002/jcc.27385",
+        "title": "The role of microenvironments on computed vibrationally-resolved emission spectra: The case of oxazines",
+        "publisher_locator": "https://doi.org/10.1002/jcc.27385",
+        "full_text_locator": "https://onlinelibrary.wiley.com/doi/pdf/10.1002/jcc.27385",
+        "full_text_state": "publisher_link_declared_but_byte_access_not_verified",
+        "article_license": "CC-BY-NC-ND-4.0",
+        "si_state": "official_dataset_verified; publisher_SI_not_independently_frozen"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "record_id": 10427823,
+        "doi": "10.5281/zenodo.10427823",
+        "locator": "https://zenodo.org/records/10427823",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "file": {
+          "name": "data.zip",
+          "official_md5": "1b7651eb62e60d85aa4932f1a352d83f",
+          "private_audit_sha256": "3dc263231d21a155e692212aa149bdaa3449cb0c1ae14637edb0b355f2eea961"
+        }
+      },
+      "coordinates": {
+        "state": "exact_official_single_frame_xyz_syntax_verified",
+        "observed_xyz_members": 92,
+        "single_frame_members": 92,
+        "malformed_members": 0,
+        "scope_warning": "The archive covers multiple dyes, conformers, continuum environments, and explicit clusters.",
+        "identity_approval_state": "not_bound"
+      },
+      "method_evidence": {
+        "observed": [
+          "ground- and excited-state geometries",
+          "vibrationally resolved emission spectra",
+          "continuum and explicit microenvironment models"
+        ],
+        "critical_unknowns": [
+          "Exact functional, basis, state-selection, vibronic, and solvent settings have not been evidence-localized in this ledger.",
+          "A single dye/system slice has not been fixed."
+        ]
+      },
+      "cli_coverage": {
+        "state": "essential_analysis_coverage_unverified",
+        "observed_command_families": [
+          "run/gaussian/opt",
+          "run/gaussian/sp with TD options"
+        ],
+        "unverified": [
+          "state-specific excited-state optimization semantics",
+          "vibronic spectrum generation and comparison",
+          "paper-complete analysis graph",
+          "safe preview"
+        ]
+      },
+      "decision": {
+        "status": "blocked",
+        "rule_ids": [
+          "paper.full_text.byte_access_unverified",
+          "paper.scope.single_system_not_frozen",
+          "paper.protocol.critical_settings_unextracted",
+          "paper.cli.essential_analysis_unverified"
+        ],
+        "next_action": "Acquire the licensed article/SI through an authorized channel, choose one dye system without tuning on outcomes, and run a TD/vibronic capability-gap audit."
+      }
+    },
+    {
+      "slot": 4,
+      "candidate_id": "prp10-conformer-macrocyclization",
+      "domain": "conformer, noncovalent interaction, and solvent ensemble",
+      "paper": {
+        "doi": "10.1126/science.aec8992",
+        "title": "Organocatalyst-controlled stereoselective head-to-tail macrocyclizations",
+        "publisher_locator": "https://doi.org/10.1126/science.aec8992",
+        "full_text_locator": "https://www.science.org/doi/pdf/10.1126/science.aec8992",
+        "full_text_state": "final_publisher_access_and_license_not_verified; author_preprint_available",
+        "article_license": "NOASSERTION for final article",
+        "preprint": {
+          "doi": "10.26434/chemrxiv-2025-m78z8",
+          "license": "CC-BY-4.0"
+        },
+        "si_state": "official_depositor_archives_verified"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "record_id": 18153659,
+        "doi": "10.5281/zenodo.18153659",
+        "locator": "https://zenodo.org/records/18153659",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "audited_file": {
+          "name": "12-Membered.zip",
+          "official_md5": "cbbf066288d31f9f000ab185376f4dc6",
+          "private_audit_sha256": "dc53fc87d8c742760ebbd3a3f53219bf1ab4e25dc5ce684713a8862c144f3af8"
+        },
+        "other_archives": [
+          "13-Membered.zip",
+          "14-Membered.zip",
+          "16-Membered.zip",
+          "18-Membered.zip",
+          "Acyclic Reference.zip",
+          "Alkyne_14-Membered.zip",
+          "Catechol_16-Membered.zip"
+        ]
+      },
+      "coordinates": {
+        "state": "essential_coordinate_set_nonconforming",
+        "audited_real_xyz_members": 6,
+        "single_frame_members": 3,
+        "multi_frame_members": 3,
+        "invalid_macos_metadata_members": 2,
+        "identity_approval_state": "not_bound"
+      },
+      "method_evidence": {
+        "observed": [
+          "CREST conformer sampling",
+          "CENSO reranking",
+          "ORCA B3LYP-D3/def2-TZVP with CPCM(chloroform)",
+          "298.15 K ensemble analysis"
+        ],
+        "critical_unknowns": [
+          "No exact single-frame-only representation of the essential conformer ensemble was identified.",
+          "The final paper covers a molecular series rather than one frozen system."
+        ]
+      },
+      "cli_coverage": {
+        "state": "essential_external_workflow_missing",
+        "observed_command_families": [
+          "run/xtb",
+          "run/orca/opt",
+          "run/orca/sp",
+          "run/thermochemistry/boltzmann"
+        ],
+        "unverified_or_absent": [
+          "CREST orchestration",
+          "CENSO orchestration",
+          "ensemble-member typed identity and deterministic merge",
+          "paper-complete safe preview"
+        ]
+      },
+      "decision": {
+        "status": "rejected_for_current_campaign",
+        "rule_ids": [
+          "paper.coordinate.essential_multiframe_disallowed",
+          "paper.scope.not_one_tightly_defined_system",
+          "paper.cli.essential_external_workflow_missing",
+          "paper.full_text.final_license_unverified"
+        ],
+        "next_action": "Retain as a future ensemble stress test after a typed conformer-set contract and approved CREST/CENSO adapter exist; do not split multi-frame coordinates to force current eligibility."
+      }
+    },
+    {
+      "slot": 5,
+      "candidate_id": "prp10-thermochemistry-ligand-receptor-gibbs",
+      "domain": "thermochemistry, free energy, and standard state",
+      "paper": {
+        "doi": "10.1039/D4CP01529K",
+        "title": "Chemical accuracy for ligand-receptor binding Gibbs energies through multi-level SQM/QM calculations",
+        "publisher_locator": "https://doi.org/10.1039/D4CP01529K",
+        "full_text_locator": "http://pubs.rsc.org/en/content/articlepdf/2024/CP/D4CP01529K",
+        "full_text_state": "open_publisher_and_PMC_sources_verified",
+        "article_license": "CC-BY-3.0",
+        "si_state": "publisher_SI_and_official_dataset_verified"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "record_id": 10657702,
+        "doi": "10.5281/zenodo.10657702",
+        "locator": "https://zenodo.org/records/10657702",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "file": {
+          "name": "Jameel_Stein.zip",
+          "official_md5": "e3f66bc810fec1b4dfc634753ec2db47",
+          "private_audit_sha256": "ddcceac69e7203165a3fc495fc4e03332f3b2df86cca8a2f5c2d8874d3001fa2"
+        }
+      },
+      "coordinates": {
+        "state": "essential_coordinate_set_nonconforming",
+        "observed_xyz_members": 161,
+        "single_frame_members": 51,
+        "multi_frame_members": 110,
+        "malformed_members": 0,
+        "identity_approval_state": "not_bound"
+      },
+      "method_evidence": {
+        "observed": [
+          "GFN2-based sampling and refinement",
+          "multi-level SQM/QM ensemble treatment",
+          "solvated ligand-receptor binding Gibbs energies"
+        ],
+        "critical_unknowns": [
+          "No one-host-one-ligand frozen slice has been selected.",
+          "The exact standard-state, entropy, and ensemble-reduction settings have not been represented as a typed claim graph."
+        ]
+      },
+      "cli_coverage": {
+        "state": "essential_external_workflow_missing",
+        "observed_command_families": [
+          "run/xtb",
+          "run/orca/opt",
+          "run/orca/sp",
+          "run/thermochemistry",
+          "run/thermochemistry/boltzmann"
+        ],
+        "unverified_or_absent": [
+          "CREST or equivalent ensemble orchestration",
+          "multi-level free-energy aggregation",
+          "standard-state evidence binding",
+          "paper-complete safe preview"
+        ]
+      },
+      "decision": {
+        "status": "rejected_for_current_campaign",
+        "rule_ids": [
+          "paper.coordinate.essential_multiframe_disallowed",
+          "paper.scope.not_one_tightly_defined_system",
+          "paper.cli.essential_external_workflow_missing"
+        ],
+        "next_action": "Select a single-system thermochemistry paper with exact single-frame geometries and an expressible Gaussian/ORCA/xTB plus thermochemistry DAG."
+      }
+    },
+    {
+      "slot": 6,
+      "candidate_id": "prp10-qmmm-acarbose-glucosidase",
+      "domain": "QM/MM and layered multiscale",
+      "paper": {
+        "doi": "10.1038/s41467-025-62855-y",
+        "title": "Molecular insights of acarbose metabolization catalyzed by acarbose-preferred glucosidase",
+        "publisher_locator": "https://doi.org/10.1038/s41467-025-62855-y",
+        "full_text_locator": "https://www.nature.com/articles/s41467-025-62855-y",
+        "full_text_state": "publisher_and_PMC_full_text_verified",
+        "article_license": "CC-BY-NC-ND-4.0",
+        "si_state": "official_dataset_verified"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "record_id": 15922738,
+        "doi": "10.5281/zenodo.15922738",
+        "locator": "https://zenodo.org/records/15922738",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "coordinate_files": [
+          "ES.xyz",
+          "IC1.xyz",
+          "TS1.xyz",
+          "TS2.xyz",
+          "EP1.xyz",
+          "EP1a.xyz",
+          "IC2.xyz",
+          "TS3.xyz",
+          "TS4.xyz",
+          "EP2.xyz"
+        ],
+        "other_essential_artifacts": [
+          "MDcoordinate.zip",
+          "GROMACS mdp files",
+          "NAMD/VMD Tcl and input files",
+          "QM region and string/eABF configuration files"
+        ]
+      },
+      "coordinates": {
+        "state": "exact_official_single_frame_xyz_syntax_verified",
+        "observed_xyz_files": 10,
+        "single_frame_files": 10,
+        "atom_counts": [
+          109,
+          130
+        ],
+        "malformed_files": 0,
+        "hashes": {
+          "ES.xyz": "f25af840cb7dea3f1366c2cc85814e4681a698d7883ef4d139ab57d47c1ece30",
+          "IC1.xyz": "8fcdf5905fd245774be1b83bd59ff1db9771f3f524e4df06dd94479bc42d5eba",
+          "TS1.xyz": "73503260e0029a8793c95a0d8daf42dee7a767eed4e5d2c0213faf040ceec55f",
+          "TS2.xyz": "8d9cf283228b60f3af6e3e6300b7cdb123615e0ec2e40b8590c5e7389f1fe2ac",
+          "EP1.xyz": "5c28847acbaf783e8ef4c6e711597fce25cad7974fc2af139f2fa4054c41fb2f",
+          "EP1a.xyz": "8f081d95c47c642d0613a258a3047f641b7c10dbda51b45f2e5660532936424e",
+          "IC2.xyz": "828af3c30038576587ca77ce4a1580b6fca7eec0b0504c1b96d7f88fde736a40",
+          "TS3.xyz": "9d66c2537272df44ce934dfa031e9c44f1bffe51831f5a4e6c2d9b356d9d7c6a",
+          "TS4.xyz": "b38ee2146af91ff46748c2cbd6fa19373e7a86b345467b58aca2587654acf444",
+          "EP2.xyz": "1f3d7a55492a63a95381633d559a21f7160ac5517022467b5525c10702d9e637"
+        },
+        "identity_approval_state": "not_bound",
+        "scientific_limit": "XYZ syntax does not carry protein topology, MM parameters, atom-region selection, link atoms, or force-field provenance."
+      },
+      "method_evidence": {
+        "observed": [
+          "ORCA 5.0.4",
+          "B3LYP-D3BJ/def2-SVP optimization and frequency calculations",
+          "B3LYP-D3BJ/def2-TZVP single-point calculations",
+          "classical MD and QM/MM path/free-energy components"
+        ],
+        "critical_unknowns": [
+          "Exact atom-region, link-atom, charge, multiplicity, force-field, and environment bindings are not yet expressed as ScientificTaskSpec evidence.",
+          "The complete NAMD/GROMACS/string/eABF path is outside the current Gaussian/ORCA/xTB-only campaign surface."
+        ]
+      },
+      "cli_coverage": {
+        "state": "orca_qmmm_leaf_present_but_essential_workflow_missing",
+        "observed_command_families": [
+          "run/orca/opt/qmmm",
+          "run/orca/ts/qmmm",
+          "run/orca/sp/qmmm",
+          "run/orca/scan/qmmm"
+        ],
+        "unverified_or_absent": [
+          "NAMD/GROMACS preparation and dynamics",
+          "string and eABF orchestration",
+          "force-field/topology provenance",
+          "paper-complete DAG and safe preview"
+        ]
+      },
+      "decision": {
+        "status": "blocked",
+        "rule_ids": [
+          "paper.qmmm.region_and_forcefield_binding_missing",
+          "paper.cli.essential_external_workflow_missing",
+          "paper.cli.paper_complete_preview_missing"
+        ],
+        "next_action": "Use as a QM/MM gap benchmark, not a PRP-10 baseline, until typed topology/region contracts and an approved external-workflow boundary exist."
+      }
+    },
+    {
+      "slot": 7,
+      "candidate_id": "prp10-open-shell-pcp-ttm",
+      "domain": "open-shell, spin-state, and excited-state spectroscopy",
+      "paper": {
+        "doi": "10.1039/D5TC02343B",
+        "title": "A novel [2.2]paracyclophane bridged tris(2,4,6-trichlorophenyl)methyl-diradical and its interaction with circularly polarized light",
+        "publisher_locator": "https://doi.org/10.1039/D5TC02343B",
+        "full_text_locator": "http://pubs.rsc.org/en/content/articlepdf/2026/TC/D5TC02343B",
+        "full_text_state": "open_publisher_article_declared",
+        "article_license": "CC-BY-3.0",
+        "si_state": "official_dataset_verified"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "concept_doi": "10.5281/zenodo.15679509",
+        "requested_record_id": 15679510,
+        "latest_record_id": 17301951,
+        "latest_record_doi": "10.5281/zenodo.17301951",
+        "locator": "https://zenodo.org/records/17301951",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "latest_file_inventory": {
+          "xyz_files": 12,
+          "tddft_text_files": 4
+        }
+      },
+      "coordinates": {
+        "state": "blocked_partial_version_conflict",
+        "public_receipt": "docs/evaluation/receipts/pcp-ttm-coordinate-provenance-2026-08-02.json",
+        "requested_record_xyz_assets": 11,
+        "validated_exact_byte_matches": 9,
+        "sha256_divergent_assets": [
+          "pseudo-o-PCP-TTM2_+-_singlet.xyz",
+          "pseudo-o-PCP-TTM2_+-_triplet.xyz"
+        ],
+        "scientific_limit": "The two divergent assets require a new source/version and molecular-identity decision; neither version may be selected silently."
+      },
+      "method_evidence": {
+        "observed": [
+          "unrestricted DFT geometry optimization",
+          "singlet and triplet structures",
+          "TD-DFT spectroscopy outputs"
+        ],
+        "critical_unknowns": [
+          "Broken-symmetry initialization and spin-contamination validation are not yet typed.",
+          "Exact geometry and TD-DFT method/basis settings require final evidence-localized extraction."
+        ]
+      },
+      "cli_coverage": {
+        "state": "partial_source_inspection_only",
+        "observed_command_families": [
+          "run/gaussian/opt",
+          "run/gaussian/sp with TD options",
+          "run/orca/opt",
+          "run/orca/sp"
+        ],
+        "unverified": [
+          "broken-symmetry intent",
+          "spin-contamination validator",
+          "TD spectroscopy semantic round-trip",
+          "safe preview"
+        ]
+      },
+      "decision": {
+        "status": "blocked",
+        "rule_ids": [
+          "coordinate.provenance.superseded_version_conflict",
+          "paper.open_shell.validator_missing",
+          "paper.cli.paper_complete_preview_missing"
+        ],
+        "next_action": "Resolve the two version-divergent coordinates through an explicit identity approval, then preregister open-shell and spectroscopy validators before model testing."
+      }
+    },
+    {
+      "slot": 8,
+      "candidate_id": "prp10-constrained-scan-torsiondrive",
+      "domain": "constrained scan and torsional exploration",
+      "paper": {
+        "doi": "10.1063/5.0009232",
+        "title": "Driving torsion scans with wavefront propagation",
+        "publisher_locator": "https://doi.org/10.1063/5.0009232",
+        "full_text_locator": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7320903/",
+        "full_text_state": "PMC_full_text_verified",
+        "article_license": "publisher-rights URL only; reusable-license status unresolved",
+        "preprint": {
+          "doi": "10.26434/chemrxiv.12044673.v1",
+          "license": "CC-BY-4.0"
+        },
+        "si_state": "preprint_supporting_information_available; final_article_system_binding_unresolved"
+      },
+      "source_bundle": {
+        "repository": "GitHub",
+        "code": {
+          "locator": "https://github.com/lpwgroup/torsiondrive",
+          "license_api_result": "NOASSERTION",
+          "default_branch": "master"
+        },
+        "examples": {
+          "locator": "https://github.com/lpwgroup/torsiondrive_examples",
+          "license_api_result": null,
+          "default_branch": "master"
+        }
+      },
+      "coordinates": {
+        "state": "article_system_exact_xyz_unresolved",
+        "reason": "Repository examples were not accepted as article-associated official coordinates without a paper-to-artifact locator and version pin.",
+        "identity_approval_state": "not_bound"
+      },
+      "method_evidence": {
+        "observed": [
+          "wavefront-propagation torsion scanning",
+          "geomeTRIC and QCArchive ecosystem integration",
+          "multiple quantum-chemistry engine backends"
+        ],
+        "critical_unknowns": [
+          "A single article system with exact official XYZ is not frozen.",
+          "Repository licenses are not asserted by the GitHub API and require direct LICENSE-file review."
+        ]
+      },
+      "cli_coverage": {
+        "state": "essential_orchestration_missing",
+        "observed_command_families": [
+          "run/gaussian/scan",
+          "run/gaussian/modred",
+          "run/orca/scan",
+          "run/orca/modred"
+        ],
+        "unverified_or_absent": [
+          "wavefront propagation",
+          "QCArchive task orchestration",
+          "geomeTRIC integration",
+          "article-system command DAG and safe preview"
+        ]
+      },
+      "decision": {
+        "status": "blocked",
+        "rule_ids": [
+          "paper.coordinate.exact_official_xyz_missing",
+          "paper.source.repository_license_unresolved",
+          "paper.cli.essential_orchestration_missing"
+        ],
+        "next_action": "Find a simpler constrained-scan paper whose official XYZ and scan definition map directly to existing Gaussian or ORCA scan semantics, or add wavefront support only through a reviewed typed milestone."
+      }
+    },
+    {
+      "slot": 9,
+      "candidate_id": "prp10-explicit-cluster-urea-w18",
+      "domain": "explicit molecular cluster and reaction mechanism",
+      "paper": {
+        "doi": "10.1016/j.icarus.2023.115848",
+        "title": "Synthesis of urea on the surface of interstellar water ice clusters. A quantum chemical study",
+        "publisher_locator": "https://doi.org/10.1016/j.icarus.2023.115848",
+        "full_text_locator": "https://api.elsevier.com/content/article/PII:S001910352300427X",
+        "full_text_state": "Crossref_open_article_license_and_Elsevier_text_mining_locator_verified; entitlement-dependent retrieval not frozen",
+        "article_license": "CC-BY-4.0",
+        "si_state": "official_depositor_archive_verified"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "record_id": 8285735,
+        "doi": "10.5281/zenodo.8285735",
+        "locator": "https://zenodo.org/records/8285735",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "file": {
+          "name": "Supporting_Material.zip",
+          "official_md5": "5281173814f215dda06db86789bed0d1",
+          "private_audit_sha256": "07e14f9fa7823cbdb845101f192a7b063b7047d7607f86f42d1174ee9d94180a"
+        }
+      },
+      "coordinates": {
+        "state": "exact_official_single_frame_xyz_syntax_verified",
+        "observed_xyz_members": 23,
+        "single_frame_members": 23,
+        "malformed_members": 0,
+        "contents": "gas-phase and W18 minima/transition-state structures across closed-shell, radical, radical-radical, and ion-pair paths",
+        "identity_approval_state": "not_bound"
+      },
+      "method_evidence": {
+        "observed": [
+          "ORCA",
+          "B3LYP-D3(BJ)/ma-def2-TZVP",
+          "explicit W18 water cluster",
+          "multiple charge and spin reaction channels"
+        ],
+        "critical_unknowns": [
+          "Per-structure charge, multiplicity, reaction role, and any broken-symmetry setup are not yet bound to source spans.",
+          "The full article retrieval entitlement and all analysis requirements must be frozen before campaign use."
+        ]
+      },
+      "cli_coverage": {
+        "state": "promising_but_unvalidated",
+        "observed_command_families": [
+          "run/orca/opt",
+          "run/orca/ts",
+          "run/orca/irc",
+          "run/orca/sp",
+          "run/thermochemistry"
+        ],
+        "unverified": [
+          "per-node electronic-state and artifact binding",
+          "project loader validation",
+          "command semantic round-trip",
+          "safe preview and independent generated-input inspection"
+        ]
+      },
+      "decision": {
+        "status": "development_candidate_cli_review_pending",
+        "rule_ids": [
+          "paper.identity.approval_missing",
+          "paper.electronic_state.binding_missing",
+          "paper.cli.paper_complete_preview_missing"
+        ],
+        "next_action": "Use this as the next bounded development slice: freeze licensed article/SI evidence, approve selected coordinate identities, bind charge/multiplicity, and compile one representative path through safe preview."
+      }
+    },
+    {
+      "slot": 10,
+      "candidate_id": "prp10-multilevel-msm-water-oniom",
+      "domain": "multilevel layered workflow",
+      "paper": {
+        "doi": "10.3390/ijms262210953",
+        "title": "Spectroscopic Probing of Solute-Solvent Interactions in Aqueous Methylsulphonylmethane (MSM) Solutions: An Integrated ATR-FTIR, Chemometric, and DFT Study",
+        "publisher_locator": "https://doi.org/10.3390/ijms262210953",
+        "full_text_locator": "https://www.mdpi.com/1422-0067/26/22/10953/pdf",
+        "full_text_state": "open_publisher_and_PMC_full_text_verified",
+        "article_license": "CC-BY-4.0",
+        "si_state": "official_dataset_and_logs_verified"
+      },
+      "source_bundle": {
+        "repository": "Zenodo",
+        "record_id": 17533626,
+        "doi": "10.5281/zenodo.17533626",
+        "locator": "https://zenodo.org/records/17533626",
+        "access": "open",
+        "license": "CC-BY-4.0",
+        "files": [
+          {
+            "name": "xyz.zip",
+            "official_md5": "ce7b63ec50896b8a63cf7baee7bcbed2",
+            "private_audit_sha256": "39f6f77690b2b27221ad969b0680a86644874ebc3bac6643b4fba4ee2beab9fc"
+          },
+          {
+            "name": "original_logs.zip"
+          },
+          {
+            "name": "gv5_corrected_logs.zip"
+          },
+          {
+            "name": "gv5_log_correction_script.sh"
+          }
+        ]
+      },
+      "coordinates": {
+        "state": "exact_official_single_frame_xyz_syntax_verified_with_archive_noise",
+        "real_xyz_members": 7,
+        "single_frame_members": 7,
+        "invalid_macos_metadata_members": 7,
+        "identity_approval_state": "not_bound",
+        "scientific_limit": "XYZ does not preserve ONIOM high/low-layer atom assignment."
+      },
+      "method_evidence": {
+        "observed": [
+          "Gaussian 16 C.02",
+          "ONIOM central MSM high layer with M06-2X/aug-cc-pVTZ",
+          "hydration shell and additional MSM low layer with M06-2X/cc-pVDZ",
+          "33 explicit water molecules",
+          "Freq=ModelModes"
+        ],
+        "critical_unknowns": [
+          "The exact atom-to-layer mapping is not carried by the XYZ and was not found as a validated typed artifact.",
+          "ModelModes frequency semantics have not been verified through the current command compiler."
+        ]
+      },
+      "cli_coverage": {
+        "state": "qmmm_leaf_present_but_layer_binding_missing",
+        "observed_command_families": [
+          "run/gaussian/opt/qmmm",
+          "run/gaussian/sp/qmmm",
+          "run/gaussian/modred/qmmm"
+        ],
+        "unverified_or_absent": [
+          "source-grounded ONIOM layer artifact",
+          "Freq=ModelModes semantic round-trip",
+          "paper-complete safe preview"
+        ]
+      },
+      "decision": {
+        "status": "blocked",
+        "rule_ids": [
+          "paper.qmmm.layer_assignment_missing",
+          "paper.frequency.model_modes_coverage_unverified",
+          "paper.cli.paper_complete_preview_missing"
+        ],
+        "next_action": "Locate an official layer-assignment artifact or evidence-localized atom mapping; do not infer layers from geometry, atom order, or chemical intuition."
+      }
+    }
+  ],
+  "alternates_considered": [
+    {
+      "candidate_id": "alternate-thermochemistry-goodvibes",
+      "paper_or_dataset_locator": "https://doi.org/10.5281/zenodo.3674160",
+      "license": "CC-BY-4.0",
+      "decision": "rejected_for_current_campaign",
+      "rule_ids": [
+        "paper.coordinate.exact_official_xyz_missing"
+      ],
+      "note": "The public dataset contains computational outputs and thermochemistry material but no exact official XYZ suitable for the current coordinate contract."
+    },
+    {
+      "candidate_id": "alternate-thermochemistry-broad-benchmark",
+      "paper_doi": "10.1021/acs.jpca.5c00615",
+      "dataset_locator": "https://zenodo.org/records/14733712",
+      "dataset_license": "CC-BY-4.0",
+      "decision": "rejected_for_current_campaign",
+      "rule_ids": [
+        "paper.scope.not_one_tightly_defined_system",
+        "paper.coordinate.exact_official_xyz_missing"
+      ],
+      "note": "The record is a broad thermochemistry benchmark with JSON/log artifacts rather than a one-system, exact-XYZ reproduction target."
+    }
+  ],
+  "global_blockers": [
+    {
+      "rule_id": "campaign.freeze.not_ready",
+      "severity": "critical",
+      "reason": "No candidate has passed source-complete scientific extraction, identity approval, project YAML, command compiler, safe preview, and three independent reviews."
+    },
+    {
+      "rule_id": "campaign.held_out.allocation.unset",
+      "severity": "critical",
+      "reason": "Development-versus-held-out allocation must not be frozen until ten actually eligible papers exist."
+    },
+    {
+      "rule_id": "campaign.domain_slots.need_replacement",
+      "severity": "high",
+      "reason": "Transition-metal, conformer/ensemble, thermochemistry, and constrained-scan slots currently require replacement or an explicitly approved future capability milestone."
+    }
+  ],
+  "recommended_next_order": [
+    {
+      "rank": 1,
+      "candidate_id": "prp10-explicit-cluster-urea-w18",
+      "purpose": "Bounded end-to-end development slice using existing ORCA command families and all-single-frame official coordinates."
+    },
+    {
+      "rank": 2,
+      "candidate_id": "prp10-organic-glycolamide-w18",
+      "purpose": "Reaction-path and open-shell evidence stress test after the missing IRC/path contract is resolved."
+    },
+    {
+      "rank": 3,
+      "candidate_id": "prp10-open-shell-pcp-ttm",
+      "purpose": "Open-shell and coordinate-version adversarial test after explicit version adjudication."
+    },
+    {
+      "rank": 4,
+      "candidate_id": "prp10-multilevel-msm-water-oniom",
+      "purpose": "Typed layer-assignment capability-gap study, not campaign execution."
+    },
+    {
+      "rank": 5,
+      "candidate_id": "prp10-qmmm-acarbose-glucosidase",
+      "purpose": "External-workflow boundary benchmark, not paper-complete ChemSmart reproduction."
+    }
+  ]
+}

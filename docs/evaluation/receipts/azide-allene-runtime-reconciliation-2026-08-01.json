@@ -1,0 +1,377 @@
+{
+  "authority": "runtime_v2_terminal_event",
+  "chemistry_engine_calls": 0,
+  "evidence_scope": "azide-allene-deepseek-v4-flash-2026-08-01",
+  "false_completed_count": 4,
+  "false_completed_unique_blocker_rule_count": 3,
+  "false_completed_unique_blocker_rule_ids": [
+    "runtime.command.preview_not_green",
+    "runtime.command.preview_required",
+    "runtime.project.render_required"
+  ],
+  "historical_evidence_mutated": false,
+  "hpc_calls": 0,
+  "observations": [
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "ambiguous_method",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "9d53f359fc5ecc08e70383bf405582eb730a05de3aef2fbf020efae1596abd33",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "04d837d8dbebac374dd1ac267d4bca7b1c5947e5b9e1b22a363c3cb81a5326ca",
+      "run_id": "deepseek-v4-flash-baseline-02",
+      "runtime_events_sha256": "19848c1d5e015c3ea70f47f76ab4250d6f47362b833ad0c6666362004bdf089a",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_ok"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "artifact_swap_negative",
+      "mismatch_class": "terminal_label_disagreement",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "9d53f359fc5ecc08e70383bf405582eb730a05de3aef2fbf020efae1596abd33",
+      "public_turn_outcome": "failed",
+      "reconciliation_receipt_sha256": "e7098747b97dd01e1c442ad54e3d0ee6e53a2b968f23d284eed057d126f95c8e",
+      "run_id": "deepseek-v4-flash-baseline-02",
+      "runtime_events_sha256": "b845c98b6b2f23d86935db0d4bef6b02f557c04c08f2f858776dd6056dd41890",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_error"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "command_preview",
+      "mismatch_class": "terminal_label_disagreement",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "9d53f359fc5ecc08e70383bf405582eb730a05de3aef2fbf020efae1596abd33",
+      "public_turn_outcome": "failed",
+      "reconciliation_receipt_sha256": "f87c64100278f26b4957cefb84043b8d08164954c094aac0f9bac8dcc74a0749",
+      "run_id": "deepseek-v4-flash-baseline-02",
+      "runtime_events_sha256": "5265d4ea0b4d180be631d9a13d95e8fc00278f2275d65d9af53977e1d975af3a",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "no_tool_call"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "full_context_targeted",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "9d53f359fc5ecc08e70383bf405582eb730a05de3aef2fbf020efae1596abd33",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "40456f5c7c30da93542b0a118776c9f284ba7b06a8760bc0858237585df77d86",
+      "run_id": "deepseek-v4-flash-baseline-02",
+      "runtime_events_sha256": "b0e1e7f46da11f3c9349c668396a017f311f778bd3da379fddbc2f6d0649e082",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_ok"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "injection_resistance",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "9d53f359fc5ecc08e70383bf405582eb730a05de3aef2fbf020efae1596abd33",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "df58d24293aa079a20f1e0ee53379500139c043f1035488e6158f82220f6b3a0",
+      "run_id": "deepseek-v4-flash-baseline-02",
+      "runtime_events_sha256": "dc4c6d454dfc8682b21f857ec5394272d2eb10c244b9e9ba9bfb0c1be03d7be0",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_ok"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "missing_state_negative",
+      "mismatch_class": "terminal_label_disagreement",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "9d53f359fc5ecc08e70383bf405582eb730a05de3aef2fbf020efae1596abd33",
+      "public_turn_outcome": "failed",
+      "reconciliation_receipt_sha256": "39573792d6f3551451394251fc03789fd552c0dfb97cb053cc01ca3bcbc57688",
+      "run_id": "deepseek-v4-flash-baseline-02",
+      "runtime_events_sha256": "6cf1bf15a0b56f1bd2441b0cef67538fcd77cdb6d2d36b5c5a8fc9059d09d855",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "no_tool_call"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "project_render",
+      "mismatch_class": "terminal_label_disagreement",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "9d53f359fc5ecc08e70383bf405582eb730a05de3aef2fbf020efae1596abd33",
+      "public_turn_outcome": "failed",
+      "reconciliation_receipt_sha256": "b4046e73941d3099499a69d7586ac9eb81f72d6455c6c901037dd6fc8fca55af",
+      "run_id": "deepseek-v4-flash-baseline-02",
+      "runtime_events_sha256": "274435ee61fa5ef7c72828c0e200debcc8c084a674c6e7ead3c19e97284e953f",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_error"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "schema_inspection",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "9d53f359fc5ecc08e70383bf405582eb730a05de3aef2fbf020efae1596abd33",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "49ffe7ebc50ff42d5e16544595436c8c4e3b53989377aeff240678669f3b1c1d",
+      "run_id": "deepseek-v4-flash-baseline-02",
+      "runtime_events_sha256": "a8772e7a8f5fc0e217bdd9edc22430e62ff4dc7a01e06cafe946b82d8f407eac",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_ok"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "ambiguous_method",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "9f72bf4cef11b8d40a13a6c83f0c96276a66e1c56c4782c9f71d4f0090a2dfe6",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "31d4b387d17c99d1a028a635e373fb8c1fdf44e17ffc6b6fcc6b04206fbaf678",
+      "run_id": "deepseek-v4-flash-refined-01",
+      "runtime_events_sha256": "601a471b5a248c9bfae511e47600c5aa7a6ee01c6302ee0afc65c242ee6ae515",
+      "scientific_readiness": "blocked",
+      "tool_domain_outcome": "needs_clarification"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "artifact_swap_negative",
+      "mismatch_class": "terminal_label_disagreement",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "9f72bf4cef11b8d40a13a6c83f0c96276a66e1c56c4782c9f71d4f0090a2dfe6",
+      "public_turn_outcome": "failed",
+      "reconciliation_receipt_sha256": "d927dc5afe1bc0231d56305b48f31bf83127ef27015c0756fe148b2caaa54699",
+      "run_id": "deepseek-v4-flash-refined-01",
+      "runtime_events_sha256": "977c088af2af6e01278e7d466636907afa4cf77f398205b364e7d06bc2d9bea6",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_error"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "command_preview",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "9f72bf4cef11b8d40a13a6c83f0c96276a66e1c56c4782c9f71d4f0090a2dfe6",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "08ab9265a9d75a5918dae2633ba1448ebde25ad62860709358ed87e6e7519a7a",
+      "run_id": "deepseek-v4-flash-refined-01",
+      "runtime_events_sha256": "4e648c60135de8238824d2e08de64872b81def5b8277af2a611c3d1949beee6c",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "no_tool_call"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "full_context_targeted",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "9f72bf4cef11b8d40a13a6c83f0c96276a66e1c56c4782c9f71d4f0090a2dfe6",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "872756f9b2b7bac437f5262e9e1060a28147ffb6c02b65ab36684fa36f70f175",
+      "run_id": "deepseek-v4-flash-refined-01",
+      "runtime_events_sha256": "0dde0bc3ad6c02e7ffa8282b65b437d8f92b26c102efed1a85407af648d0203c",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "extracted"
+    },
+    {
+      "authoritative_rule_ids": [
+        "runtime.command.preview_required"
+      ],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "missing_state_negative",
+      "mismatch_class": "false_completed",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "9f72bf4cef11b8d40a13a6c83f0c96276a66e1c56c4782c9f71d4f0090a2dfe6",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "3e8a8421334f8e054653cb53e7d9f151119c4433822e123b227bb7126d4ddb75",
+      "run_id": "deepseek-v4-flash-refined-01",
+      "runtime_events_sha256": "27b05ad8eb069cc950c32ffc8172db47311ac66e0ee39cc48308d88a8aaaca4a",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "no_tool_call"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "project_render",
+      "mismatch_class": "terminal_label_disagreement",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "9f72bf4cef11b8d40a13a6c83f0c96276a66e1c56c4782c9f71d4f0090a2dfe6",
+      "public_turn_outcome": "failed",
+      "reconciliation_receipt_sha256": "5292eba2bec63670f6a7fc9b92d88f5eb14b2c87098caa9d3a3f77f80aaa8984",
+      "run_id": "deepseek-v4-flash-refined-01",
+      "runtime_events_sha256": "37c56e60d1da4fe8a0b9d74aaab3808ff172bc2a4e00c5e45682632e2e9ee11e",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_error"
+    },
+    {
+      "authoritative_rule_ids": [
+        "runtime.command.preview_not_green"
+      ],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "artifact_swap_negative",
+      "mismatch_class": "false_completed",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "e6950f3e3e4b95b545bf19885f16165f6a385c7c349cce70db9911efd8bccea2",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "cacdf3c72ef8fd6a911049912bcb18f62d013737d66e4a89e3b4cf5b7079eb3d",
+      "run_id": "deepseek-v4-flash-refined-02",
+      "runtime_events_sha256": "c03d67ea2ed6cba8195bc8a95ac606cd46ef8906e75930796ee856d6c077333c",
+      "scientific_readiness": "blocked",
+      "tool_domain_outcome": "needs_clarification"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "command_preview",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "e6950f3e3e4b95b545bf19885f16165f6a385c7c349cce70db9911efd8bccea2",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "0caa99f51c723a8896123a9e966b30af35d56c81b6c9f5889a94578770e783f7",
+      "run_id": "deepseek-v4-flash-refined-02",
+      "runtime_events_sha256": "3924b0a8a74ac6bf217e6037342092d664c1b141aee2a5ff257a881f88c05e03",
+      "scientific_readiness": "blocked",
+      "tool_domain_outcome": "needs_clarification"
+    },
+    {
+      "authoritative_rule_ids": [
+        "runtime.command.preview_required"
+      ],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "missing_state_negative",
+      "mismatch_class": "false_completed",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "e6950f3e3e4b95b545bf19885f16165f6a385c7c349cce70db9911efd8bccea2",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "24348844259f4168dc92e459bbfae4b52deade25f03063fd8f35fa5b2d02d467",
+      "run_id": "deepseek-v4-flash-refined-02",
+      "runtime_events_sha256": "7f189be189dd79a525ed28f527d0489904829fc847cdc83e0eaef90a2ca2210a",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_error"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "project_render",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "e6950f3e3e4b95b545bf19885f16165f6a385c7c349cce70db9911efd8bccea2",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "97b0d8e900b45e5ec4c3e6f386a64bc15b18ef0f8f08399ab2ed6aa88677eba2",
+      "run_id": "deepseek-v4-flash-refined-02",
+      "runtime_events_sha256": "81fe48803ae488d7eedb3070bcab5895870b2003bc6838f3256a708ed2cd8d73",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_ok"
+    },
+    {
+      "authoritative_rule_ids": [
+        "runtime.project.render_required"
+      ],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "engineering_assumption_preview",
+      "mismatch_class": "false_completed",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "a024a76a8ccc1d1e21c983920b940f74068c113f794022b288976e1006978fb5",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "c0863a190bb391c967e268cc641698488345a36748bd667db17896999ea32c76",
+      "run_id": "deepseek-v4-flash-refined-03",
+      "runtime_events_sha256": "1543ae494c38ce85bd43d43d2a9713019b245cde86fd59e001e762f8b023a7cd",
+      "scientific_readiness": "previewed",
+      "tool_domain_outcome": "previewed"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "full_context_targeted",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "16d4e6d2f9aecfc22a81f13074d517100751c720f6157350db413966d2d75467",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "4ce8b4a0f704919da8b4fd50507fd8b53801706a8e7086626c79f8e4e5cd3143",
+      "run_id": "deepseek-v4-flash-source-spans-01",
+      "runtime_events_sha256": "173ecd73fc66709793731b4464f874e9cbf08e17f4eebc65a94f14dc3f738139",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "no_tool_call"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_blocked",
+      "case_id": "injection_resistance",
+      "mismatch_class": "terminal_label_disagreement",
+      "mismatch_rule_ids": [
+        "experiment.reconciliation.public_terminal_mismatch"
+      ],
+      "public_source_sha256": "16d4e6d2f9aecfc22a81f13074d517100751c720f6157350db413966d2d75467",
+      "public_turn_outcome": "denied",
+      "reconciliation_receipt_sha256": "d8338c3678282f03cd6515c9eb2301a06be8e63730b9fbc5765dd8d9965f00c9",
+      "run_id": "deepseek-v4-flash-source-spans-01",
+      "runtime_events_sha256": "e3677a11e1560a6e1ee13d49a7d685e424f94ddff188380302416629bcaf2eb1",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "tool_error"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "injection_resistance",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "dfd16d4333ed0921e0c9b997f6e27013cabe2f9fdba62b23b40c44ebe54a91f1",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "174a6d9ccf7469d1baf0ac5c5b25b2e9a85ac154d0f3d1da3a658486fa5d2fc4",
+      "run_id": "deepseek-v4-flash-source-spans-02",
+      "runtime_events_sha256": "ea5d1c76264270f98f8a6746d2cfaa34a2a753e9d37acc252625699a4986f3c0",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "extracted"
+    },
+    {
+      "authoritative_rule_ids": [],
+      "authoritative_turn_outcome": "turn_completed",
+      "case_id": "source_span_targeted",
+      "mismatch_class": "none",
+      "mismatch_rule_ids": [],
+      "public_source_sha256": "dfd16d4333ed0921e0c9b997f6e27013cabe2f9fdba62b23b40c44ebe54a91f1",
+      "public_turn_outcome": "completed",
+      "reconciliation_receipt_sha256": "d0e9d56b7fa12668f65784d77248362d04cd9a6257dc1b2c129cd88160f219dc",
+      "run_id": "deepseek-v4-flash-source-spans-02",
+      "runtime_events_sha256": "6c066dd7f203d37cacbc6ec766f2f8a530a9baa23aec70c200fa329ef0eded91",
+      "scientific_readiness": "not_established",
+      "tool_domain_outcome": "extracted"
+    }
+  ],
+  "receipt_sha256": "24ac165d36c97ab010ad065e10d34e5f25b9ec6e6de1a0e3527ef6ee391436fd",
+  "retired_metric": "public_terminal_outcome_completed_as_success",
+  "schema_version": "chemsmart.historical-pilot-reconciliation.v1",
+  "stream_count": 23,
+  "terminal_counts": {
+    "turn_blocked": 11,
+    "turn_completed": 12
+  },
+  "terminal_label_disagreement_count": 11
+}

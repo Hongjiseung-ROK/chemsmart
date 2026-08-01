@@ -1,0 +1,101 @@
+{
+  "schema_version": "chemsmart.provider-conformance.observation.v1",
+  "receipt_status": "stale_invalidated",
+  "current_admission": false,
+  "invalidated_on": "2026-08-01",
+  "invalidation_reasons": [
+    "The legacy receipt identifier is not the full SHA-256 content address required by the current contract.",
+    "The legacy observation did not record the current required public_history_sha256 field.",
+    "The recorded source snapshot predates the current working-tree implementation."
+  ],
+  "legacy_receipt_id": "deepseek-h0-941ba564fc2cfb82",
+  "profile": "H0",
+  "capabilities": {
+    "schema_version": "chemsmart.provider-capabilities.v1",
+    "provider_id": "deepseek",
+    "endpoint_class": "official",
+    "wire_protocol": "openai_chat",
+    "resolved_model": "deepseek-v4-flash",
+    "structured_tool_calls": true,
+    "structured_tool_calls_basis": "observed_probe",
+    "structured_output": false,
+    "structured_output_basis": "not_evaluated",
+    "tool_continuation": "public_history",
+    "tool_continuation_basis": "observed_probe",
+    "reasoning_continuation": "ephemeral_private_turn",
+    "reasoning_continuation_basis": "observed_probe",
+    "public_history_replay": true,
+    "public_history_replay_basis": "observed_probe",
+    "max_context_tokens": 131072,
+    "max_context_tokens_basis": "official_documentation",
+    "max_parallel_tool_calls": 1,
+    "max_parallel_tool_calls_basis": "harness_limit",
+    "supports_compaction": false,
+    "supports_compaction_basis": "not_evaluated",
+    "supports_checkpoint": false,
+    "supports_checkpoint_basis": "not_evaluated",
+    "supports_fork_resume": false,
+    "supports_fork_resume_basis": "not_evaluated"
+  },
+  "requested_model_id": "deepseek-v4-flash",
+  "observed_model_id": "deepseek-v4-flash",
+  "request_sha256": "f501aa5ee17e2662c12a6d2c9bb16b37cad14ce435e209834364d019e09e8bad",
+  "source_snapshot_sha256": "fea86f13e50f2faeca308606da16d2d3f3c19d057bd712c14665f5baf66f51e7",
+  "tool_schema_sha256": "9f27c25fe6956cda8a9b30eb6f5e855dbfb6efe0a321e8308cbd4d0920a1b3be",
+  "public_history_sha256": null,
+  "resource_budget_sha256": "f79c38a3063282af4628d75a2b42270a2a3cf2824e8605eac95ce84aff5f5674",
+  "observed_usage_sha256": "0dde0f0bc07fd056a2cad9c0432da3cbf8bc2e5b5552eeaf2b125ffb9f98e35e",
+  "probe_transcript_sha256": "276bae9d5fa2b07ffe349d1e762019073924700b400268c6a039da29898ce6e9",
+  "thinking_mode": "enabled",
+  "max_output_tokens": 512,
+  "request_budget": 2,
+  "model_step_budget": 2,
+  "tool_call_budget": 1,
+  "engine_call_budget": 0,
+  "hpc_call_budget": 0,
+  "requests_used": 2,
+  "model_steps": 2,
+  "tool_calls": 1,
+  "input_tokens": 3389,
+  "output_tokens": 121,
+  "wall_time_ms": 3587,
+  "registered_tool_names": [
+    "inspect_command_schema"
+  ],
+  "virtual_tool_names": [
+    "ask_user"
+  ],
+  "engine_calls": 0,
+  "hpc_calls": 0,
+  "credential_status": "valid",
+  "quota_sufficient_for_probe": true,
+  "checks": [
+    {
+      "check_id": "typed_tool_call_round_trip",
+      "status": "pass",
+      "required": true,
+      "rule_ids": [],
+      "public_summary": "One typed schema inspection completed across the tool continuation."
+    },
+    {
+      "check_id": "public_history_sanitized",
+      "status": "pass",
+      "required": true,
+      "rule_ids": [],
+      "public_summary": "No raw provider turn or private reasoning key was persisted."
+    },
+    {
+      "check_id": "deterministic_validator_gate",
+      "status": "pass",
+      "required": true,
+      "rule_ids": [],
+      "public_summary": "The tool receipt matched an independent live-schema observation."
+    }
+  ],
+  "observed_legacy_verdict": "compatible",
+  "verdict": "invalidated",
+  "raw_provider_turns_persisted": false,
+  "training_data_persisted": false,
+  "private_reasoning_persisted": false,
+  "secret_material_persisted": false
+}
