@@ -9,7 +9,10 @@ import pytest
 from pydantic import ValidationError
 
 from chemsmart.agent.harness.scientific_settings import (
+    CarryForwardProbeV2,
+    FROZEN_REPAIR_SIDECAR_V2_SHA256,
     SCIENTIFIC_SETTING_NORMALIZATION_POPULATED_VERSION,
+    ScopeCompletenessV2,
     ScientificSettingsInventoryArtifactError,
     ScientificSettingsInventoryDescriptorV2,
     ScientificSettingsInventoryV2,
@@ -17,24 +20,34 @@ from chemsmart.agent.harness.scientific_settings import (
     ScientificSettingsRegistryDigestNotFoundError,
     ScientificSettingsRegistryV1,
     ScientificSettingsRegistryV2,
+    ScientificSettingsRepairSidecarV2,
     SettingInventoryEntryV2,
     SettingMatchKindV2,
     SettingResolutionStatusV2,
     SettingResolutionV2,
     build_scientific_settings_validation_receipt,
+    build_gaussian_b3lyp_carry_forward_probe_v2,
     load_scientific_settings_inventory_v2,
     load_populated_scientific_settings_inventories_v2,
     load_populated_scientific_settings_registry_v2,
+    list_scientific_settings_repaired_v2,
     list_scientific_settings_v2,
     load_scientific_settings_registry,
     load_scientific_settings_registry_by_sha256,
     load_scientific_settings_registry_v1,
     load_scientific_settings_registry_v2,
+    load_scientific_settings_repair_sidecar_v2,
     resolve_scientific_setting,
     resolve_scientific_setting_v2,
+    resolve_scientific_setting_repaired_v2,
+    policy_bound_scientific_settings_list_v2_sha256,
     scientific_setting_resolution_v2_sha256,
     scientific_settings_inventory_v2_sha256,
     scientific_settings_registry_v2_sha256,
+)
+from chemsmart.agent.harness.scientific_settings.repair_contracts_v2 import (
+    carry_forward_probe_v2_sha256,
+    scientific_settings_repair_sidecar_v2_sha256,
 )
 from chemsmart.agent.harness.scientific_settings.generate_populated_v2 import (
     INVENTORY_LOCATOR,
@@ -186,6 +199,199 @@ def test_populated_v2_loading_is_explicit_and_digest_addressable():
         POPULATED_V2_REGISTRY_SHA256
     )
     assert replayed == populated
+
+
+def test_repair_sidecar_is_content_addressed_and_current_probe_matches(
+    tmp_path,
+):
+    sidecar = load_scientific_settings_repair_sidecar_v2()
+    current_probe = build_gaussian_b3lyp_carry_forward_probe_v2(
+        tmp_path / "gaussian-b3lyp-probe.yaml"
+    )
+
+    assert sidecar.sidecar_sha256 == FROZEN_REPAIR_SIDECAR_V2_SHA256
+    assert sidecar.sidecar_sha256 == (
+        scientific_settings_repair_sidecar_v2_sha256(sidecar)
+    )
+    assert current_probe == sidecar.carry_forward_probes[0]
+    assert current_probe.rendered_literals == ("b3lyp",)
+    assert current_probe.loaded_literals == ("b3lyp",)
+    assert current_probe.safe_preview_executed is False
+    assert current_probe.engine_executed is False
+
+
+def test_carry_forward_probe_rejects_renderer_loader_substitution():
+    sidecar = load_scientific_settings_repair_sidecar_v2()
+    payload = sidecar.carry_forward_probes[0].model_dump(mode="json")
+    payload["rendered_literals"] = ("pbe0",)
+    payload["loaded_literals"] = ("pbe0",)
+    payload["probe_sha256"] = carry_forward_probe_v2_sha256(payload)
+
+    with pytest.raises(ValidationError, match="silently substituted"):
+        CarryForwardProbeV2.model_validate(payload)
+
+
+def test_repair_sidecar_rejects_self_consistent_probe_entry_substitution():
+    sidecar = load_scientific_settings_repair_sidecar_v2()
+    probe_payload = sidecar.carry_forward_probes[0].model_dump(mode="json")
+    probe_payload.update(
+        {
+            "input_literal": "PBE0",
+            "rendered_literals": ("pbe0",),
+            "loaded_literals": ("pbe0",),
+            "carry_forward_canonical_value": "PBE0",
+            "normalized_semantic_literal": "pbe0",
+        }
+    )
+    probe_payload["probe_sha256"] = carry_forward_probe_v2_sha256(
+        probe_payload
+    )
+    substituted_probe = CarryForwardProbeV2.model_validate(probe_payload)
+    sidecar_payload = sidecar.model_dump(mode="json")
+    sidecar_payload["carry_forward_probes"] = (
+        substituted_probe.model_dump(mode="json"),
+    )
+    sidecar_payload["sidecar_sha256"] = (
+        scientific_settings_repair_sidecar_v2_sha256(sidecar_payload)
+    )
+
+    with pytest.raises(ValidationError, match="canonical value differs"):
+        ScientificSettingsRepairSidecarV2.model_validate(sidecar_payload)
+
+
+def test_repaired_list_and_resolve_share_entries_and_policy_binding():
+    registry = load_populated_scientific_settings_registry_v2()
+    inventories = load_populated_scientific_settings_inventories_v2()
+
+    listed = list_scientific_settings_repaired_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        job_kind="opt",
+        query="B3LYP",
+    )
+    resolved = resolve_scientific_setting_repaired_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="B3LYP",
+        job_kind="opt",
+    )
+
+    item = listed.listing.items[0]
+    assert listed.binding_sha256 == (
+        policy_bound_scientific_settings_list_v2_sha256(listed)
+    )
+    assert listed.sidecar_sha256 == resolved.sidecar_sha256
+    assert listed.scope_completeness is resolved.scope_completeness
+    assert listed.listing.registry_sha256 == (
+        resolved.resolution.registry_sha256
+    )
+    assert listed.listing.inventory_sha256s == (
+        resolved.resolution.inventory_sha256s
+    )
+    assert item.entry_id == resolved.resolution.entry_id
+    assert item.canonical_value == resolved.resolution.canonical_value == "B3LYP"
+    assert item.project_candidate_eligible is (
+        resolved.resolution.project_candidate_eligible
+    )
+    assert listed.listing.inventory_count == 12
+
+
+def test_repaired_policy_carries_gaussian_b3lyp_without_mutating_v2_replay():
+    registry = load_populated_scientific_settings_registry_v2()
+    inventories = load_populated_scientific_settings_inventories_v2()
+
+    replayed = load_scientific_settings_registry_by_sha256(
+        POPULATED_V2_REGISTRY_SHA256
+    )
+    old_resolution = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="B3LYP",
+        job_kind="opt",
+        allow_fuzzy_candidates=False,
+    )
+    repaired = resolve_scientific_setting_repaired_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="B3LYP",
+        job_kind="opt",
+        allow_fuzzy_candidates=False,
+    )
+
+    assert replayed == registry
+    assert replayed.registry_sha256 == POPULATED_V2_REGISTRY_SHA256
+    assert old_resolution.status is SettingResolutionStatusV2.INCOMPATIBLE
+    assert old_resolution.matched_by is SettingMatchKindV2.REGISTERED_ELSEWHERE
+    assert repaired.scope_completeness is (
+        ScopeCompletenessV2.ENUMERATED_NON_EXHAUSTIVE
+    )
+    assert repaired.resolution.status is (
+        SettingResolutionStatusV2.EXACT_REGISTERED
+    )
+    assert repaired.resolution.entry_id == (
+        "setting.gaussian.method_functional.carryforward_b3lyp"
+    )
+    assert repaired.resolution.project_candidate_eligible is True
+
+
+def test_repaired_policy_treats_non_exhaustive_absence_as_unverified():
+    registry = load_populated_scientific_settings_registry_v2()
+    inventories = load_populated_scientific_settings_inventories_v2()
+
+    resolution = resolve_scientific_setting_repaired_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="PBE0",
+        job_kind="opt",
+        allow_fuzzy_candidates=False,
+    )
+
+    assert resolution.scope_completeness is (
+        ScopeCompletenessV2.ENUMERATED_NON_EXHAUSTIVE
+    )
+    assert resolution.resolution.status is (
+        SettingResolutionStatusV2.UNKNOWN_UNVERIFIED
+    )
+    assert resolution.resolution.matched_by is SettingMatchKindV2.NONE
+    assert resolution.resolution.reason_rule_id == (
+        "scientific_settings.v2.non_exhaustive_scope_unverified"
+    )
+
+
+def test_repaired_policy_keeps_exhaustive_cross_program_incompatibility():
+    registry = load_populated_scientific_settings_registry_v2()
+    inventories = load_populated_scientific_settings_inventories_v2()
+
+    resolution = resolve_scientific_setting_repaired_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="xtb",
+        setting_path="method.gfn_version",
+        value="B3LYP",
+        job_kind="opt",
+        allow_fuzzy_candidates=False,
+    )
+
+    assert resolution.scope_completeness is (
+        ScopeCompletenessV2.EXHAUSTIVE_TYPED_DOMAIN
+    )
+    assert resolution.resolution.status is SettingResolutionStatusV2.INCOMPATIBLE
+    assert resolution.resolution.matched_by is (
+        SettingMatchKindV2.REGISTERED_ELSEWHERE
+    )
+    assert resolution.resolution.reason_rule_id == (
+        "scientific_settings.v2.program_or_path_incompatible"
+    )
 
 
 def test_digest_lookup_rejects_invalid_and_unknown_digests():

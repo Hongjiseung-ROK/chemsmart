@@ -58,6 +58,8 @@ def resolve_scientific_setting_v2(
     job_kind: str,
     allow_fuzzy_candidates: bool = True,
     candidate_limit: int = 5,
+    _additional_bound_entries: tuple[SettingInventoryEntryV2, ...] = (),
+    _registered_elsewhere_is_incompatible: bool = True,
 ) -> SettingResolutionV2:
     """Resolve a literal without substituting fuzzy candidates.
 
@@ -66,7 +68,10 @@ def resolve_scientific_setting_v2(
     and descriptor summary is checked again before lookup.
     """
 
-    context = _validated_lookup_context(registry, loaded_inventories)
+    context = _with_additional_bound_entries(
+        _validated_lookup_context(registry, loaded_inventories),
+        _additional_bound_entries,
+    )
     selected_program = _program(program)
     selected_path = _setting_path(setting_path)
     requested_value = _literal(value)
@@ -179,7 +184,7 @@ def resolve_scientific_setting_v2(
         normalized_value,
         context.normalization_version,
     )
-    if elsewhere is not None:
+    if elsewhere is not None and _registered_elsewhere_is_incompatible:
         return _build_resolution(
             context=context,
             program=selected_program,
@@ -238,7 +243,11 @@ def resolve_scientific_setting_v2(
         entry=None,
         candidates=(),
         job_scope_compatible=None,
-        reason_rule_id="scientific_settings.v2.unknown_unverified",
+        reason_rule_id=(
+            "scientific_settings.v2.unknown_unverified"
+            if _registered_elsewhere_is_incompatible
+            else "scientific_settings.v2.non_exhaustive_scope_unverified"
+        ),
     )
 
 
@@ -251,10 +260,14 @@ def list_scientific_settings_v2(
     job_kind: str,
     query: str = "",
     limit: int = 20,
+    _additional_bound_entries: tuple[SettingInventoryEntryV2, ...] = (),
 ) -> ScientificSettingsListV2:
     """Return a bounded deterministic view over explicit V2 inventories."""
 
-    context = _validated_lookup_context(registry, loaded_inventories)
+    context = _with_additional_bound_entries(
+        _validated_lookup_context(registry, loaded_inventories),
+        _additional_bound_entries,
+    )
     selected_program = _program(program)
     selected_path = _setting_path(setting_path)
     selected_job = _job_kind(job_kind)
@@ -440,6 +453,35 @@ def _validated_lookup_context(
             item.inventory_sha256 for item in ordered_inventories
         ),
         normalization_version=normalization_version,
+    )
+
+
+def _with_additional_bound_entries(
+    context: _LookupContext,
+    entries: tuple[SettingInventoryEntryV2, ...],
+) -> _LookupContext:
+    if not entries:
+        return context
+    combined_entries = tuple(
+        sorted(
+            (*context.entries, *entries),
+            key=lambda item: (
+                item.program.value,
+                item.setting_path,
+                item.entry_id,
+            ),
+        )
+    )
+    _validate_global_entry_namespace(
+        combined_entries,
+        context.normalization_version,
+    )
+    return _LookupContext(
+        registry=context.registry,
+        inventories=context.inventories,
+        entries=combined_entries,
+        inventory_sha256s=context.inventory_sha256s,
+        normalization_version=context.normalization_version,
     )
 
 
