@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 
 import pytest
 from pydantic import ValidationError
@@ -10,17 +11,24 @@ from chemsmart.agent.harness.scientific_settings import (
     ScientificSettingsInventoryArtifactError,
     ScientificSettingsInventoryDescriptorV2,
     ScientificSettingsInventoryV2,
+    ScientificSettingsListStatusV2,
     ScientificSettingsRegistryDigestNotFoundError,
     ScientificSettingsRegistryV1,
     ScientificSettingsRegistryV2,
     SettingInventoryEntryV2,
+    SettingMatchKindV2,
+    SettingResolutionStatusV2,
+    SettingResolutionV2,
     build_scientific_settings_validation_receipt,
     load_scientific_settings_inventory_v2,
+    list_scientific_settings_v2,
     load_scientific_settings_registry,
     load_scientific_settings_registry_by_sha256,
     load_scientific_settings_registry_v1,
     load_scientific_settings_registry_v2,
     resolve_scientific_setting,
+    resolve_scientific_setting_v2,
+    scientific_setting_resolution_v2_sha256,
     scientific_settings_inventory_v2_sha256,
     scientific_settings_registry_v2_sha256,
 )
@@ -275,10 +283,310 @@ def test_v2_exact_byte_inventory_loader_is_bound_and_fail_closed(tmp_path):
         )
 
 
+def test_v2_lookup_requires_explicit_populated_registry():
+    with pytest.raises(ValueError, match="explicitly populated"):
+        resolve_scientific_setting_v2(
+            registry=load_scientific_settings_registry_v2(),
+            loaded_inventories=(),
+            program="gaussian",
+            setting_path="method.functional",
+            value="B3LYP",
+            job_kind="opt",
+        )
+
+
+def test_v2_exact_and_validation_coverage_states_are_separate(tmp_path):
+    registry, inventories = _loaded_lookup_context(
+        tmp_path,
+        entries=(
+            _entry(
+                entry_id="entry.b3lyp",
+                canonical_value="B3LYP",
+                aliases=("B3-LYP",),
+                applicable_job_kinds=("opt",),
+            ),
+            _entry(
+                entry_id="entry.m062x",
+                canonical_value="M06-2X",
+                applicable_job_kinds=("opt",),
+                applicability_rule_ids=(
+                    "scientific_settings.functional.m062x_scope",
+                ),
+                validator_enforced=False,
+            ),
+            _entry(
+                entry_id="entry.pbe0",
+                canonical_value="PBE0",
+                applicable_job_kinds=("opt",),
+                applicability_rule_ids=(
+                    "scientific_settings.functional.pbe0_scope",
+                ),
+                validator_enforced=True,
+            ),
+        ),
+    )
+
+    exact = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="B3-LYP",
+        job_kind="opt",
+    )
+    blocked = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="M06-2X",
+        job_kind="opt",
+    )
+    enforced = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="PBE0",
+        job_kind="opt",
+    )
+
+    assert exact.status is SettingResolutionStatusV2.EXACT_REGISTERED
+    assert exact.matched_by is SettingMatchKindV2.REGISTERED_ALIAS
+    assert exact.source_registered is True
+    assert exact.loader_accepted is True
+    assert exact.renderer_preserved is True
+    assert exact.applicability_rules_present is False
+    assert exact.deterministic_validator_enforced is False
+    assert exact.project_candidate_eligible is True
+    assert exact.resolution_sha256 == scientific_setting_resolution_v2_sha256(
+        exact
+    )
+
+    assert blocked.status is (
+        SettingResolutionStatusV2.BLOCKED_VALIDATION_COVERAGE
+    )
+    assert blocked.reason_rule_id == (
+        "scientific_settings.v2.validation_coverage_gap"
+    )
+    assert blocked.source_registered is True
+    assert blocked.applicability_rules_present is True
+    assert blocked.deterministic_validator_enforced is False
+    assert blocked.project_candidate_eligible is False
+
+    assert enforced.status is SettingResolutionStatusV2.EXACT_REGISTERED
+    assert enforced.applicability_rules_present is True
+    assert enforced.deterministic_validator_enforced is True
+    assert enforced.project_candidate_eligible is True
+
+
+def test_v2_mismatch_unknown_and_xtb_basis_fail_closed(tmp_path):
+    registry, inventories = _loaded_lookup_context(
+        tmp_path,
+        entries=(
+            _entry(
+                entry_id="entry.gaussian.b3lyp",
+                canonical_value="B3LYP",
+                applicable_job_kinds=("opt",),
+            ),
+            _entry(
+                entry_id="entry.xtb.gfn2",
+                program="xtb",
+                setting_path="method.gfn_version",
+                canonical_value="GFN2-xTB",
+                applicable_job_kinds=("sp",),
+            ),
+        ),
+    )
+
+    job_mismatch = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="B3LYP",
+        job_kind="sp",
+    )
+    elsewhere = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="orca",
+        setting_path="method.functional",
+        value="B3LYP",
+        job_kind="opt",
+    )
+    unknown = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="definitely-unknown-92831",
+        job_kind="opt",
+        allow_fuzzy_candidates=False,
+    )
+    not_applicable = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="xtb",
+        setting_path="method.basis",
+        value="def2-SVP",
+        job_kind="sp",
+    )
+
+    assert job_mismatch.status is SettingResolutionStatusV2.INCOMPATIBLE
+    assert job_mismatch.matched_by is SettingMatchKindV2.JOB_SCOPE_MISMATCH
+    assert job_mismatch.job_scope_compatible is False
+    assert elsewhere.status is SettingResolutionStatusV2.INCOMPATIBLE
+    assert elsewhere.matched_by is SettingMatchKindV2.REGISTERED_ELSEWHERE
+    assert elsewhere.job_scope_compatible is None
+    assert unknown.status is SettingResolutionStatusV2.UNKNOWN_UNVERIFIED
+    assert unknown.source_registered is False
+    assert unknown.loader_accepted is False
+    assert unknown.project_candidate_eligible is False
+    assert not_applicable.status is SettingResolutionStatusV2.NOT_APPLICABLE
+    assert not_applicable.reason_rule_id == (
+        "scientific_settings.v2.xtb_basis_not_applicable"
+    )
+
+
+def test_v2_fuzzy_candidates_are_ranked_but_never_substituted(tmp_path):
+    registry, inventories = _loaded_lookup_context(
+        tmp_path,
+        entries=(
+            _entry(
+                entry_id="entry.b3lyp",
+                canonical_value="B3LYP",
+            ),
+            _entry(
+                entry_id="entry.b3pw91",
+                canonical_value="B3PW91",
+            ),
+        ),
+    )
+
+    first = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="B3LYPP",
+        job_kind="opt",
+    )
+    repeated = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="B3LYPP",
+        job_kind="opt",
+    )
+
+    assert first.status is SettingResolutionStatusV2.CANDIDATE_ONLY
+    assert first.entry_id is None
+    assert first.canonical_value is None
+    assert first.source_registered is False
+    assert first.project_candidate_eligible is False
+    assert first.candidates[0].canonical_value == "B3LYP"
+    assert first.candidates[0].source_registered is True
+    assert first.resolution_sha256 == repeated.resolution_sha256
+    assert first.candidates == repeated.candidates
+
+
+def test_v2_bounded_listing_preserves_eligibility_and_not_applicable(tmp_path):
+    registry, inventories = _loaded_lookup_context(
+        tmp_path,
+        entries=(
+            _entry(
+                entry_id="entry.b3lyp",
+                canonical_value="B3LYP",
+            ),
+            _entry(
+                entry_id="entry.m062x",
+                canonical_value="M06-2X",
+                applicability_rule_ids=(
+                    "scientific_settings.functional.m062x_scope",
+                ),
+                validator_enforced=False,
+            ),
+        ),
+    )
+
+    bounded = list_scientific_settings_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        job_kind="opt",
+        limit=1,
+    )
+    searched = list_scientific_settings_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        job_kind="opt",
+        query="M06-2Y",
+    )
+    searched_repeated = list_scientific_settings_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        job_kind="opt",
+        query="M06-2Y",
+    )
+    not_applicable = list_scientific_settings_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="xtb",
+        setting_path="method.basis",
+        job_kind="sp",
+    )
+
+    assert bounded.status is ScientificSettingsListStatusV2.OK
+    assert bounded.inventory_count == 2
+    assert bounded.returned_count == 1
+    assert bounded.truncated is True
+    assert bounded.items[0].canonical_value == "B3LYP"
+    assert searched.items[0].canonical_value == "M06-2X"
+    assert searched.items[0].applicability_rules_present is True
+    assert searched.items[0].deterministic_validator_enforced is False
+    assert searched.items[0].project_candidate_eligible is False
+    assert searched.listing_sha256 == searched_repeated.listing_sha256
+    assert not_applicable.status is (
+        ScientificSettingsListStatusV2.NOT_APPLICABLE
+    )
+    assert not_applicable.items == ()
+
+
+def test_v2_resolution_hash_rejects_observation_tampering(tmp_path):
+    registry, inventories = _loaded_lookup_context(
+        tmp_path,
+        entries=(
+            _entry(entry_id="entry.b3lyp", canonical_value="B3LYP"),
+        ),
+    )
+    resolution = resolve_scientific_setting_v2(
+        registry=registry,
+        loaded_inventories=inventories,
+        program="gaussian",
+        setting_path="method.functional",
+        value="B3LYP",
+        job_kind="opt",
+    )
+    payload = resolution.model_dump(mode="json")
+    payload["renderer_preserved"] = False
+
+    with pytest.raises(ValidationError):
+        SettingResolutionV2.model_validate(payload)
+
+
 def _entry(
     *,
     entry_id: str,
     canonical_value: str,
+    program: str = "gaussian",
+    setting_path: str = "method.functional",
     aliases: tuple[str, ...] = (),
     applicable_job_kinds: tuple[str, ...] = ("*",),
     applicability_rule_ids: tuple[str, ...] = (),
@@ -286,8 +594,8 @@ def _entry(
 ) -> dict[str, object]:
     return {
         "entry_id": entry_id,
-        "program": "gaussian",
-        "setting_path": "method.functional",
+        "program": program,
+        "setting_path": setting_path,
         "canonical_value": canonical_value,
         "aliases": aliases,
         "applicable_job_kinds": applicable_job_kinds,
@@ -334,6 +642,8 @@ def _descriptor_payload(
     *,
     inventory_sha256: str = "1" * 64,
     artifact_sha256: str = "2" * 64,
+    entry_count: int = 1,
+    scopes: tuple[dict[str, object], ...] | None = None,
 ) -> dict[str, object]:
     return {
         "schema_version": (
@@ -348,12 +658,64 @@ def _descriptor_payload(
         "inventory_sha256": inventory_sha256,
         "artifact_locator": "inventory.json",
         "artifact_sha256": artifact_sha256,
-        "entry_count": 1,
-        "scopes": (
+        "entry_count": entry_count,
+        "scopes": scopes
+        or (
             {
                 "program": "gaussian",
                 "setting_path": "method.functional",
-                "entry_count": 1,
+                "entry_count": entry_count,
             },
         ),
     }
+
+
+def _loaded_lookup_context(
+    tmp_path,
+    *,
+    entries: tuple[dict[str, object], ...],
+):
+    ordered_entries = tuple(sorted(entries, key=lambda item: item["entry_id"]))
+    inventory_payload = _inventory_payload(ordered_entries)
+    artifact_bytes = json.dumps(
+        inventory_payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    artifact_path = tmp_path / "inventory.json"
+    artifact_path.write_bytes(artifact_bytes)
+
+    counts = Counter(
+        (str(item["program"]), str(item["setting_path"]))
+        for item in ordered_entries
+    )
+    scopes = tuple(
+        {
+            "program": program,
+            "setting_path": setting_path,
+            "entry_count": count,
+        }
+        for (program, setting_path), count in sorted(counts.items())
+    )
+    descriptor = ScientificSettingsInventoryDescriptorV2.model_validate(
+        _descriptor_payload(
+            inventory_sha256=str(inventory_payload["inventory_sha256"]),
+            artifact_sha256=hashlib.sha256(artifact_bytes).hexdigest(),
+            entry_count=len(ordered_entries),
+            scopes=scopes,
+        )
+    )
+    registry_body = load_scientific_settings_registry_v2().model_dump(mode="json")
+    registry_body["registry_id"] = "chemsmart.scientific-settings.test-lookup"
+    registry_body["inventories"] = (descriptor.model_dump(mode="json"),)
+    registry_body["inventory_population_state"] = "populated"
+    registry_body["registry_sha256"] = scientific_settings_registry_v2_sha256(
+        registry_body
+    )
+    registry = ScientificSettingsRegistryV2.model_validate(registry_body)
+    loaded = load_scientific_settings_inventory_v2(
+        registry=registry,
+        descriptor=descriptor,
+        repository_root=tmp_path,
+    )
+    return registry, (loaded,)
