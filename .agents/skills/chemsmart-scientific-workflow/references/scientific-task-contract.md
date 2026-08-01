@@ -12,6 +12,12 @@ record:
   standard-state convention, and resource target;
 - expected artifacts, validation rules, uncertainties, and decision boundary.
 
+For a PRP-10 task, the geometry fields must point to a
+`CoordinateImportReceipt` for exact official single-frame XYZ bytes in
+angstrom, including source/archive member, source and imported hashes, atom
+order, identity approval, and access/license evidence. A missing receipt is a
+blocking condition, not permission to generate geometry.
+
 Derive a CommandWorkflowSpec from the task specification. It identifies the
 CLI-schema digest and immutable command nodes with a Click path, canonical
 parameter map, trusted project reference, ArtifactBinding IDs/hashes,

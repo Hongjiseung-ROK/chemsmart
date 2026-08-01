@@ -12,6 +12,12 @@ Keep a structured manifest with stable IDs and SHA-256 digests for:
 - program, executable, environment, and container/version information;
 - commands, working directory, timestamps, exit status, and approvals;
 - validation receipts, citation records, claim records, and review findings.
+- adaptive API hypothesis/case, comparator, changed factor, expected outcome,
+  deterministic oracle, source/prompt/tool/configuration hashes, observed
+  request/token/latency/cost/retry/error metrics, and terminal reason;
+- coordinate-import source/archive member, source/imported-byte hashes,
+  single-frame/angstrom observation, atom order, identity approval, and
+  access/license record.
 
 Use QCSchema-compatible calculation records and an RO-Crate-compatible bundle
 manifest where practical. Keep engine-native artifacts alongside structured
@@ -35,3 +41,9 @@ gate and the safe CLI preview are green. An archived artifact can be
 `validated` only when the named deterministic receipt is complete. A report
 must not imply engine execution, reproduction, or SOTA status from a command
 or input file alone.
+
+Keep licensed full text and exact generated preview bytes in a private evidence
+store. Public manifests may expose stable locators, classifications, byte sizes,
+and hashes, but never secrets, raw authorization headers, private paths, or
+licensed source content. The active PRP-10 campaign may support at most
+`previewed` for new calculation work.

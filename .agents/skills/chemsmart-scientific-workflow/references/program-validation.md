@@ -7,6 +7,9 @@ syntax. Do not universalize an engine default or a literature example.
 
 - Confirm atom count/order, element identities, geometry units, charge, and
   multiplicity before input construction.
+- For PRP-10, verify the exact official single-frame XYZ import receipt and its
+  source/imported-byte hashes before binding geometry. Never infer geometry
+  identity from a filename or reconstruct missing coordinates.
 - Confirm that method, basis/ECP, dispersion, solvent, and constraints are
   explicit or deliberately inherited from a versioned project artifact.
 - Confirm the requested task is compatible with the selected program and job
@@ -40,3 +43,7 @@ vibrational analysis. In the current ChemSmart model, frequency settings can
 be runtime/project-owned. For a TS-plus-frequency request, inspect the rendered
 input and expected artifacts to prove that the requested vibrational step is
 present before execution; require its receipt before a TS or barrier claim.
+
+For the active adaptive campaign, perform fake/test safe preview only. Keep
+convergence, stationary-point, spectroscopy, and thermochemistry obligations
+explicitly pending; no preview output satisfies a post-execution validator.

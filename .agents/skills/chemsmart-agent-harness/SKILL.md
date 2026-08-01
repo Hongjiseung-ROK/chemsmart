@@ -1,6 +1,6 @@
 ---
 name: chemsmart-agent-harness
-description: Design, audit, test, or document ChemSmart's provider-neutral command-compiled agent harness, including typed CommandWorkflowSpec proposals, CLI-schema grounding, deterministic compilation and safe preview, provider adapters, tool exposure, permissions, Runtime V2, event replay, task graphs, bounded subagents, and harness evaluations. Use when changing or assessing chemsmart/agent runtime, provider, loop, registry, permission, command synthesis, or agent-architecture behavior.
+description: Design, audit, test, or document ChemSmart's provider-neutral command-compiled agent harness, including adaptive API campaigns, PRP-10 paper-to-research-plan task graphs, typed CommandWorkflowSpec proposals, CLI-schema grounding, deterministic compilation and safe preview, provider adapters and private thinking continuation, tool exposure, permissions, Runtime V2, bounded specialist and critic agents, and ablation evaluation. Use when changing or assessing chemsmart/agent runtime, provider, loop, registry, permission, paper-to-workflow orchestration, command synthesis, or agent-architecture behavior.
 ---
 
 # ChemSmart Agent Harness
@@ -29,10 +29,33 @@ authority, safety, and evidence rules.
 6. Use subagents only when a task is independently verifiable or genuinely
    parallel. Give each worker immutable inputs, a limited tool set, a budget,
    an expected artifact, and a deterministic merge check.
-7. During implementation, use source inspection and deterministic receipts.
+7. For a full-paper task, split acquisition, extraction, scientific
+   reconstruction, command compilation, and independent review only through
+   typed packets. Require every worker output to label explicit, derived,
+   inferred, unknown, and conflicting facts with source locators.
+   Derived facts require content-addressed deterministic derivation receipts;
+   critical `not_applicable` facts require applicability receipts.
+   A critical inferred, unknown, or conflicting setting ends as
+   `blocked_missing_evidence`; do not contact authors or invent an unreported
+   sensitivity calculation to close the gap.
+8. During implementation, use source inspection and deterministic receipts.
    Run one focused runtime, permission, registry, or CLI-schema suite only
    after a material milestone; allow one evidence-driven rerun. Reserve broad
    suites and read-only lint for the declared integration freeze.
+9. For the active PRP-10 adaptive campaign, bind every request or retry to a
+   registered unique hypothesis/case ID, one changed factor, comparator,
+   expected outcome, deterministic oracle, source/prompt/tool/configuration
+   hashes, and novelty rationale. A retry keeps the case ID and records its
+   attempt ID, error class, and reason. Request count is observed, not a stopping cap. Stop only
+   when current quota is exhausted, no unique verifiable hypothesis remains, a
+   credential is revoked, or a safety red line is reached. Never top up,
+   duplicate calls to burn quota, or bypass a provider failure with another
+   credential.
+10. Bound adaptive network work by concurrency, per-request context/output
+    tokens, task wall time, allowed provider/endpoint/purpose, and a one-request
+    secret-redacted credential lease. Start DeepSeek concurrency at one and
+    increase from observed rate-limit evidence only, never above four. Permit
+    one concurrent request per literature provider.
 
 ## Command-compiled boundary
 
@@ -72,9 +95,27 @@ constraint.
   evaluation inputs only.
 - Do not persist hidden reasoning. Preserve provider continuation state only as
   opaque protocol state, never as evidence.
+- Permit provider thinking only when required reasoning is replayed inside the
+  uninterrupted in-memory tool loop and removed from every public or persisted
+  artifact. Restart from a public recap after pause/resume. Treat a
+  thinking-enabled receipt as evidence for that exact mode only; do not infer
+  thinking-disabled conformance or a performance benefit from thinking.
 - Do not let a planner, worker, or critic approve its own high-risk action.
 - Do not enable autonomous execution, dynamic delegation, or a new provider
   protocol without a frozen single-agent baseline and an explicit evaluation.
+- Keep H0, HC, HA, and HK as preregistered experiments over the same scientific
+  kernel. Require an observed ProviderConformanceReceipt before enabling a
+  provider/profile pair; choose the smallest safe non-inferior profile. A stale
+  or invalidated observation grants no admission.
+- Keep the ten PRP-10 experiment switches independently versioned: task
+  decomposition, specialist roles, evidence retrieval, domain packs,
+  structured documentation, independent critic, adversarial
+  cross-examination, bounded repair, command DAG, and deterministic feedback.
+  Never switch off permission, schema, artifact-hash, secret, native-input,
+  engine, or HPC safety controls.
+- Keep `two-frontier-s0-2026-08-01` and its 128/24 transport ceilings as frozen
+  historical v1 evidence. Do not apply those caps to the additive adaptive
+  campaign or rewrite its receipts.
 
 ## Use the references
 
@@ -87,8 +128,9 @@ constraint.
 ## Examples
 
 Use this skill for: “compile a typed ORCA command workflow through the live
-schema,” “add an approval-bound task-graph event,” “audit whether a provider
-adapter leaks reasoning state,” or “design a bounded subagent experiment.”
+schema,” “decompose a full paper into typed research-plan tasks,” “add an
+approval-bound task-graph event,” “audit whether a provider adapter leaks
+reasoning state,” or “design a bounded subagent experiment.”
 
 Do not use this skill to let a model hand-author a .com, .gjf, or .inp file,
 to select a quantum-chemistry method without scientific review, to validate a
