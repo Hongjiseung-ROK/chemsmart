@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-01T17:56:56Z",
+  "scope": "Pinned sources for a general computational-chemistry knowledge layer covering basis-set retrieval and provenance, ORCA 6.1 basis semantics, xTB 6.7.1 method semantics, and an upstream agent-skill architecture reference.",
+  "operating_limits": {
+    "native_input_authority": "None of these sources authorizes a model to write or patch Gaussian, ORCA, or xTB native input. ChemSmart project loaders, command compilation, safe preview, and deterministic validation remain authoritative.",
+    "active_basis_catalog": "The checked-in catalog generated with basis_set_exchange 0.11 is the active local harness authority. Upstream Basis Set Exchange 0.12 is a pinned research reference only and must not be used to claim active runtime coverage until a separately reviewed deterministic regeneration and validation milestone promotes it.",
+    "execution": "No chemistry engine, upstream skill, installer, or scheduler was executed during this source audit.",
+    "licensed_text": "No ORCA manual table, proprietary manual prose, or upstream skill prose is copied into ChemSmart. Only locators, identifiers, independently stated factual scope, and cryptographic/source metadata are recorded.",
+    "secrets": "No credential or secret is required or recorded.",
+    "scientific_readiness": "A source pin is provenance, not proof that a method, basis, solvent model, charge, multiplicity, or workflow is suitable for a particular molecular system."
+  },
+  "sources": [
+    {
+      "source_id": "bse-package-v0.12",
+      "source_class": "open_source_software_and_curated_data_package",
+      "title": "Basis Set Exchange: active local 0.11 snapshot and upstream 0.12 reference",
+      "role": "version_boundary_record",
+      "canonical_locator": "https://github.com/MolSSI-BSE/basis_set_exchange/releases/tag/v0.12",
+      "active_local_snapshot": {
+        "authority": "active_local_runtime_and_validator_catalog",
+        "package_requirement": "basis_set_exchange==0.11",
+        "package_version": "0.11",
+        "requirement_locator": "pyproject.toml",
+        "requirement_file_sha256": "880d2011954d32fb71a05bda675c483a13f84c369f51ba4bc901c3e2361f27ff",
+        "catalog_locator": "chemsmart/agent/harness/basis_sets/bse_basis_catalog.json",
+        "catalog_sha256": "ed4ef918fb80e8ad3c2396c237d2120c31892cfaa2a61fb61af52965dc723c0b",
+        "catalog_size_bytes": 676159,
+        "catalog_metadata": {
+          "schema_version": 1,
+          "source_package": "basis_set_exchange",
+          "source_version": "0.11",
+          "generated_at": "2026-08-01T17:49:19.936526+00:00",
+          "basis_set_count": 748,
+          "renderability_verification": "all_declared_elements",
+          "program_counts": {
+            "gaussian": 748,
+            "orca": 748
+          }
+        },
+        "design_locator": "chemsmart/agent/harness/basis_sets/DESIGN.md",
+        "design_sha256": "2655707d02a7049310d2e03e76b3edb93a4b02b1f8853843dad3c870584d741d",
+        "generator_locator": "chemsmart/agent/harness/basis_sets/build_bse_catalog.py",
+        "generator_sha256": "51b9aafc97768143a77e90a95870b17d4a2fd4ad17b919b9c89e42826d24b9f2"
+      },
+      "pin": {
+        "authority": "upstream_reference_only",
+        "active_runtime_version": false,
+        "version": "0.12",
+        "git_tag": "v0.12",
+        "git_commit": "9fe07596f87753343e0a5748d1722135b21b8623",
+        "git_tree": "ef32edff2469cbd45474097e7f0327ba0e49fbc7",
+        "released_at": "2026-02-19T17:00:46Z",
+        "pypi_wheel_sha256": "8d20ea9075fa100bff28f7562333c1fc75c9723215ba4d498e05e6fa8e1594a8",
+        "pypi_sdist_sha256": "bb26ef560cea0ac5631b66bfb46eb3accd5a2ac943738be5d7854c70cc8c2393"
+      },
+      "license": {
+        "spdx": "BSD-3-Clause",
+        "scope_caveat": "The root license covers the repository distribution. It does not replace basis-family and element-specific scholarly references or grant rights to the underlying publications.",
+        "evidence_locator": "https://raw.githubusercontent.com/MolSSI-BSE/basis_set_exchange/9fe07596f87753343e0a5748d1722135b21b8623/LICENSE",
+        "license_git_blob_sha1": "fd33457a8d405cf3f8b3ac3e31bae6e3328af3da",
+        "license_sha256": "14b5a1c21a9e0966e295b9e3d66c0cee9475ffe5931e74d063c3713e2ae9a496"
+      },
+      "reviewed_resources": [
+        {
+          "resource": "Active local BSE 0.11 catalog",
+          "locator": "chemsmart/agent/harness/basis_sets/bse_basis_catalog.json",
+          "sha256": "ed4ef918fb80e8ad3c2396c237d2120c31892cfaa2a61fb61af52965dc723c0b"
+        },
+        {
+          "resource": "Local catalog design contract",
+          "locator": "chemsmart/agent/harness/basis_sets/DESIGN.md",
+          "sha256": "2655707d02a7049310d2e03e76b3edb93a4b02b1f8853843dad3c870584d741d"
+        },
+        {
+          "resource": "Local catalog generator",
+          "locator": "chemsmart/agent/harness/basis_sets/build_bse_catalog.py",
+          "sha256": "51b9aafc97768143a77e90a95870b17d4a2fd4ad17b919b9c89e42826d24b9f2"
+        },
+        {
+          "resource": "Repository dependency declaration",
+          "locator": "pyproject.toml",
+          "sha256": "880d2011954d32fb71a05bda675c483a13f84c369f51ba4bc901c3e2361f27ff"
+        },
+        {
+          "resource": "README.md",
+          "locator": "https://raw.githubusercontent.com/MolSSI-BSE/basis_set_exchange/9fe07596f87753343e0a5748d1722135b21b8623/README.md",
+          "git_blob_sha1": "32e67727c619c30249e0cdb643ec2d2380739599",
+          "sha256": "430dbb5beacb3eec85cc6a04372b5fdb8ee9af527ad0e4ba3009dd6695c8148a"
+        },
+        {
+          "resource": "PyPI wheel",
+          "locator": "https://files.pythonhosted.org/packages/9a/64/6e8f5d1bd239ea91c0e8658b77183249cfe5106c97142711d168dbd04376/basis_set_exchange-0.12-py3-none-any.whl",
+          "sha256": "8d20ea9075fa100bff28f7562333c1fc75c9723215ba4d498e05e6fa8e1594a8"
+        },
+        {
+          "resource": "PyPI source distribution",
+          "locator": "https://files.pythonhosted.org/packages/b4/bf/3b16c289f127b22a21bf5ef6740ef911329d4ba63dd40416f4ce8db37773/basis_set_exchange-0.12.tar.gz",
+          "sha256": "bb26ef560cea0ac5631b66bfb46eb3accd5a2ac943738be5d7854c70cc8c2393"
+        }
+      ],
+      "decision": "retain_local_v0.11_as_active_authority_and_treat_upstream_v0.12_as_reference_only",
+      "access_limits": [
+        "Install or dependency changes require separate authority; this audit did not install the package.",
+        "Do not regenerate the active catalog or substitute upstream 0.12 metadata for active runtime coverage in this task.",
+        "Promoting 0.12 requires a separate dependency-change milestone with deterministic catalog regeneration, focused drift review, and validation.",
+        "Every selected basis must retain its exact BSE basis version, element set, output format, response or package-data hash, and basis-specific references."
+      ],
+      "evidence_ceiling": "The checked-in 0.11 snapshot supports claims only about the recorded local catalog and its declared Gaussian/ORCA renderability checks. The pinned 0.12 release supports upstream release identity and future migration analysis only. Neither establishes scientific suitability, engine support for a selected molecule, numerical equivalence after conversion, or calculation correctness.",
+      "citation_keys": ["BasisSetExchange_0_12", "Pritchard_2019", "Feller_1996", "Schuchardt_2007"]
+    },
+    {
+      "source_id": "bse-public-rest-api",
+      "source_class": "live_read_only_network_api",
+      "title": "Basis Set Exchange REST API",
+      "canonical_locator": "https://www.basissetexchange.org/api/",
+      "documentation_locator": "https://molssi-bse.github.io/basis_set_exchange/web_api.html",
+      "pin": {
+        "revision": null,
+        "status": "floating_service",
+        "metadata_probe_locator": "https://www.basissetexchange.org/api/metadata/",
+        "metadata_probe_retrieved_at": "2026-08-01T17:56:03Z",
+        "metadata_probe_sha256": "c669ec3bb362894183b07955a699dc711dc8bf59a3934e147a26caaff36ed83f"
+      },
+      "license": {
+        "spdx": "BSD-3-Clause",
+        "scope_caveat": "Official API documentation identifies the project code as BSD-3-Clause. Returned basis data remains provenance-bearing scientific data and must retain basis-specific references."
+      },
+      "reviewed_resources": [
+        {"resource": "REST API reference", "locator": "https://molssi-bse.github.io/basis_set_exchange/web_api.html"},
+        {"resource": "Read-only metadata endpoint", "locator": "https://www.basissetexchange.org/api/metadata/", "sha256_at_retrieval": "c669ec3bb362894183b07955a699dc711dc8bf59a3934e147a26caaff36ed83f"}
+      ],
+      "decision": "adopt_only_with_per_response_receipt_and_explicit_basis_version",
+      "access_limits": [
+        "The service is mutable and is not a reproducible pin by itself.",
+        "A production lookup must record endpoint, normalized query, explicit basis version, response hash, retrieval time, and returned references.",
+        "Network failure or drift must block the lookup or fall back to the pinned package; it must not be filled from model memory."
+      ],
+      "evidence_ceiling": "A receipted response can establish what the service returned at one time. It cannot establish permanence, scientific appropriateness, or identity with a local engine's internal basis implementation."
+    },
+    {
+      "source_id": "bse-current-resource-paper",
+      "source_class": "peer_reviewed_journal_article",
+      "title": "New Basis Set Exchange: An Open, Up-to-Date Resource for the Molecular Sciences Community",
+      "canonical_locator": "https://doi.org/10.1021/acs.jcim.9b00725",
+      "pin": {"doi": "10.1021/acs.jcim.9b00725"},
+      "license": {"spdx": "NOASSERTION", "access_caveat": "Crossref exposes ACS STM policy links, not a clear Creative Commons license."},
+      "reviewed_resources": [{"resource": "Crossref metadata record", "locator": "https://api.crossref.org/works/10.1021/acs.jcim.9b00725"}],
+      "decision": "cite_for_bse_architecture_and_curation_provenance",
+      "evidence_ceiling": "Supports claims about the BSE resource and curation design at publication time, not the correctness of every current basis record or suitability for a target calculation.",
+      "citation_keys": ["Pritchard_2019"]
+    },
+    {
+      "source_id": "bse-legacy-database-papers",
+      "source_class": "peer_reviewed_journal_article_bundle",
+      "title": "Legacy EMSL/PNNL Basis Set Exchange provenance papers",
+      "canonical_locator": "https://raw.githubusercontent.com/MolSSI-BSE/basis_set_exchange/9fe07596f87753343e0a5748d1722135b21b8623/README.md",
+      "pin": {
+        "dois": [
+          "10.1002/(SICI)1096-987X(199610)17:13<1571::AID-JCC9>3.0.CO;2-P",
+          "10.1021/ci600510j"
+        ]
+      },
+      "license": {"spdx": "NOASSERTION", "access_caveat": "Crossref reports a Wiley TDM license for the 1996 paper and no license field for the 2007 paper; neither is treated as open content."},
+      "reviewed_resources": [
+        {"resource": "Crossref record for Feller 1996", "locator": "https://api.crossref.org/works/10.1002%2F%28SICI%291096-987X%28199610%2917%3A13%3C1571%3A%3AAID-JCC9%3E3.0.CO%3B2-P"},
+        {"resource": "Crossref record for Schuchardt et al. 2007", "locator": "https://api.crossref.org/works/10.1021/ci600510j"}
+      ],
+      "decision": "cite_when_legacy_bse_provenance_is_material",
+      "evidence_ceiling": "Supports historical database provenance and motivation. It is not a current basis-definition oracle.",
+      "citation_keys": ["Feller_1996", "Schuchardt_2007"]
+    },
+    {
+      "source_id": "orca-6.1-basis-manual",
+      "source_class": "proprietary_vendor_documentation",
+      "title": "ORCA 6.1 Manual, Section 2.7: Basis Sets",
+      "canonical_locator": "https://www.faccts.de/docs/orca/6.1/manual/contents/essentialelements/basisset.html",
+      "pin": {
+        "product_version": "6.1",
+        "retrieved_at": "2026-08-01T17:56:33Z",
+        "resource_sha256": "204c3c97a31ca7318ff20e52e7088e6e433dac0ce22e2d451a6c648ba6ce14da",
+        "status": "mutable_vendor_page_with_retrieval_hash"
+      },
+      "license": {
+        "spdx": "NOASSERTION",
+        "access_model": "Publicly readable vendor documentation for proprietary ORCA software; no open-content license was identified.",
+        "reuse_limit": "Do not vendor, reproduce, or adapt manual tables, examples, or prose. Link to the page and independently encode only necessary factual constraints."
+      },
+      "reviewed_resources": [{"resource": "Section 2.7 Basis Sets", "locator": "https://www.faccts.de/docs/orca/6.1/manual/contents/essentialelements/basisset.html", "sha256_at_retrieval": "204c3c97a31ca7318ff20e52e7088e6e433dac0ce22e2d451a6c648ba6ce14da"}],
+      "decision": "reference_factual_orca_6.1_semantics_only",
+      "access_limits": [
+        "The page is mutable; each derived rule must carry version, section locator, retrieval time, and source hash.",
+        "Validation against a licensed ORCA 6.1 installation requires separate execution approval.",
+        "A public manual page is not permission to redistribute ORCA software or documentation."
+      ],
+      "evidence_ceiling": "Supports ORCA 6.1 keyword availability, documented element coverage, and documented default ECP associations. It does not prove scientific suitability, installed-version behavior, input acceptance, or calculation correctness.",
+      "citation_keys": ["FACCTs_ORCA_6_1_BasisSets", "Zheng_2011"]
+    },
+    {
+      "source_id": "minimally-augmented-karlsruhe-paper",
+      "source_class": "peer_reviewed_journal_article",
+      "title": "Minimally Augmented Karlsruhe Basis Sets",
+      "canonical_locator": "https://doi.org/10.1007/s00214-010-0846-z",
+      "pin": {"doi": "10.1007/s00214-010-0846-z", "online_date": "2010-12-01", "print_issue": "2011, volume 128, issue 3, pages 295-305"},
+      "license": {"spdx": "NOASSERTION", "access_caveat": "Crossref exposes a Springer TDM policy, not an open-content license."},
+      "reviewed_resources": [{"resource": "Crossref metadata record", "locator": "https://api.crossref.org/works/10.1007/s00214-010-0846-z"}],
+      "decision": "adopt_as_citable_scientific_basis_for_minimal_augmentation_rules",
+      "access_limits": [
+        "Encode only independently stated, testable rules with a rule ID and article locator.",
+        "Do not promote minimally augmented Karlsruhe sets to a universal default; task evidence and engine support remain required."
+      ],
+      "evidence_ceiling": "Supports the construction and evaluated scope reported by the authors. It does not establish superiority for every property, charge state, element, engine, or molecular system.",
+      "citation_keys": ["Zheng_2011"]
+    },
+    {
+      "source_id": "xtb-v6.7.1",
+      "source_class": "open_source_scientific_software_release",
+      "title": "xTB 6.7.1",
+      "canonical_locator": "https://github.com/grimme-lab/xtb/releases/tag/v6.7.1",
+      "pin": {
+        "version": "6.7.1",
+        "git_tag": "v6.7.1",
+        "git_commit": "26b28010e805f7d1aeeef39813feb473e69cc4be",
+        "released_at": "2024-07-23T20:37:54Z",
+        "source_archive_sha256": "79a2a2f50091b3b941e5139c1b38a53203d5d2e9ba496a7ad505d8c31ccd6013",
+        "linux_x86_64_archive_sha256": "62a8d18778286e815292ee53d76ce447daf460a4dea3782c0f25cbac7019b5df"
+      },
+      "license": {
+        "spdx": "LGPL-3.0-or-later",
+        "evidence_locator": "https://raw.githubusercontent.com/grimme-lab/xtb/26b28010e805f7d1aeeef39813feb473e69cc4be/COPYING.LESSER",
+        "license_git_blob_sha1": "0a041280bd00a9d068f503b8ee7ce35214bd24a1",
+        "license_sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"
+      },
+      "reviewed_resources": [
+        {"resource": "README.md", "locator": "https://raw.githubusercontent.com/grimme-lab/xtb/26b28010e805f7d1aeeef39813feb473e69cc4be/README.md", "git_blob_sha1": "d8f7260c198fd38c9e557e1203c993ec3575194c", "sha256": "c7f4893708e45416dd28137a70fe9595aff6ff09496f39c0ebb001c752174ae7"},
+        {"resource": "assets/references.bib", "locator": "https://raw.githubusercontent.com/grimme-lab/xtb/26b28010e805f7d1aeeef39813feb473e69cc4be/assets/references.bib", "git_blob_sha1": "f95917677e4ef8d7d90e3d728df689b3ff59c550", "sha256": "b4f31ced529d71e3648dc5bb5e413f0926c8e449238faf39bd0c18038a1a6e9e"},
+        {"resource": "Release source archive", "locator": "https://github.com/grimme-lab/xtb/releases/download/v6.7.1/xtb-6.7.1-source.tar.xz", "sha256": "79a2a2f50091b3b941e5139c1b38a53203d5d2e9ba496a7ad505d8c31ccd6013"}
+      ],
+      "decision": "adopt_pinned_semantic_and_version_reference_without_execution",
+      "access_limits": [
+        "No xTB package, executable, or dependency was installed or run.",
+        "ReadTheDocs latest is floating and is not treated as 6.7.1 evidence without a matching source pin.",
+        "The Windows release is labelled 6.7.1pre and cannot be treated as capability-equivalent to Linux 6.7.1."
+      ],
+      "evidence_ceiling": "Supports release identity, source-level interfaces, declared method names, and official citation mapping. It does not prove installation, command success, or scientific validity.",
+      "citation_keys": ["xTB_6_7_1", "Bannwarth_2020", "Grimme_2017", "Bannwarth_2019"]
+    },
+    {
+      "source_id": "xtb-method-review",
+      "source_class": "peer_reviewed_review_article",
+      "title": "Extended Tight-Binding Quantum Chemistry Methods",
+      "canonical_locator": "https://doi.org/10.1002/wcms.1493",
+      "pin": {"doi": "10.1002/wcms.1493", "online_date": "2020-08-09", "print_issue": "2021, volume 11, issue 2, article e1493"},
+      "license": {"spdx": "CC-BY-4.0", "evidence": "Crossref license field for the version of record"},
+      "reviewed_resources": [{"resource": "Crossref metadata record", "locator": "https://api.crossref.org/works/10.1002/wcms.1493"}],
+      "decision": "adopt_as_method_scope_and_citation_reference",
+      "evidence_ceiling": "Supports the reported scope and design of the GFN/xTB family. It does not validate an arbitrary molecule, state, solvent, property, or command.",
+      "citation_keys": ["Bannwarth_2020"]
+    },
+    {
+      "source_id": "gfn1-xtb-method-paper",
+      "source_class": "peer_reviewed_journal_article",
+      "title": "A Robust and Accurate Tight-Binding Quantum Chemical Method for Structures, Vibrational Frequencies, and Noncovalent Interactions of Large Molecular Systems Parametrized for All spd-Block Elements (Z = 1-86)",
+      "canonical_locator": "https://doi.org/10.1021/acs.jctc.7b00118",
+      "pin": {"doi": "10.1021/acs.jctc.7b00118"},
+      "license": {"spdx": "NOASSERTION", "access_caveat": "Crossref links ACS AuthorChoice terms; no Creative Commons license is inferred."},
+      "reviewed_resources": [{"resource": "Crossref metadata record", "locator": "https://api.crossref.org/works/10.1021/acs.jctc.7b00118"}],
+      "decision": "adopt_as_gfn1_method_provenance_and_scope_reference",
+      "evidence_ceiling": "Supports the reported GFN1-xTB parameterization and benchmark scope. It is not a universal accuracy guarantee or runtime receipt.",
+      "citation_keys": ["Grimme_2017"]
+    },
+    {
+      "source_id": "gfn2-xtb-method-paper",
+      "source_class": "peer_reviewed_journal_article",
+      "title": "GFN2-xTB—An Accurate and Broadly Parametrized Self-Consistent Tight-Binding Quantum Chemical Method with Multipole Electrostatics and Density-Dependent Dispersion Contributions",
+      "canonical_locator": "https://doi.org/10.1021/acs.jctc.8b01176",
+      "pin": {"doi": "10.1021/acs.jctc.8b01176"},
+      "license": {"spdx": "NOASSERTION", "access_caveat": "Crossref links ACS AuthorChoice terms; no Creative Commons license is inferred."},
+      "reviewed_resources": [{"resource": "Crossref metadata record", "locator": "https://api.crossref.org/works/10.1021/acs.jctc.8b01176"}],
+      "decision": "adopt_as_gfn2_method_provenance_and_scope_reference",
+      "evidence_ceiling": "Supports the reported GFN2-xTB model and benchmark scope. It does not justify a universal GFN2 default or accuracy claims outside that domain.",
+      "citation_keys": ["Bannwarth_2019"]
+    },
+    {
+      "source_id": "jinzhezenggroup-computational-chemistry-agent-skills",
+      "source_class": "open_source_agent_skill_collection",
+      "title": "Computational Chemistry Agent Skills",
+      "canonical_locator": "https://github.com/jinzhezenggroup/computational-chemistry-agent-skills/commit/93ea0c4c716ad116869fba2ade26cccfd5cd05fc",
+      "pin": {
+        "git_commit": "93ea0c4c716ad116869fba2ade26cccfd5cd05fc",
+        "git_tree": "1ba84e02c730e103980dcd4aebbeacd947c97413",
+        "commit_date": "2026-06-19T07:43:08Z"
+      },
+      "license": {
+        "declared": "LGPL-3.0",
+        "spdx_conservative_interpretation": "LGPL-3.0-only",
+        "per_file_caveat": "The reviewed xTB skill frontmatter separately declares LGPL-3.0-or-later. Preserve per-file notices if reuse is ever authorized.",
+        "evidence_locator": "https://raw.githubusercontent.com/jinzhezenggroup/computational-chemistry-agent-skills/93ea0c4c716ad116869fba2ade26cccfd5cd05fc/LICENSE",
+        "license_git_blob_sha1": "0a041280bd00a9d068f503b8ee7ce35214bd24a1",
+        "license_sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"
+      },
+      "reviewed_resources": [
+        {"resource": "README.md", "git_blob_sha1": "9578c31119c4ef81f02e40a281c526289acc7bd0", "sha256": "e509dc2bff11d055efea05c519e906cba3d529c428468254755f5a2f8d6acabb"},
+        {"resource": "LICENSE", "git_blob_sha1": "0a041280bd00a9d068f503b8ee7ce35214bd24a1", "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"},
+        {"resource": "quantum-chemistry/xtb/SKILL.md", "git_blob_sha1": "c976578e3bbefe4f727b276f0ef4e9ac60fd8b71", "sha256": "f81bfc65b6a28a607311ebae0ad9f118be2f459da0c0aa16cc9743528a010921"},
+        {"resource": "quantum-chemistry/xtb/references/commands-and-workflow.md", "git_blob_sha1": "dd1037c51c5057df69a9deda76a9f11ea775d59e", "sha256": "44dbd964d4be4757ba6a63731fbad28c0bf8d29bea48b19ccb30de438385aca8"},
+        {"resource": "quantum-chemistry/run-gauss/SKILL.md", "git_blob_sha1": "4c423c977475abb4f44fdb41c58d8e6d4b6d37f2", "sha256": "de777a316cb39f49cc77806d2fdf056528998801c18a6e00e17758aeba12c7f5"},
+        {"resource": "quantum-chemistry/gjf-flux/SKILL.md", "git_blob_sha1": "c1047a7eb2f23f394ba02e19bc100ccc35981a12", "sha256": "0ba129c88ac4e2bcf54f6e83b5e5752869354bb180c6cb24317b8ceedf023696"}
+      ],
+      "decision": "reference_only_reject_wholesale_adoption_or_execution",
+      "rejection_rationale": "Reviewed resources include direct Python execution, Gaussian native-input assembly, shell redirection, scratch deletion, and scheduler handoff patterns that bypass ChemSmart's typed compiler, artifact bindings, approvals, and evidence receipts.",
+      "access_limits": [
+        "Do not install, invoke, vendor, or import the collection wholesale.",
+        "Do not copy prompts, examples, scripts, or prose into differently licensed ChemSmart content.",
+        "Future reuse must satisfy LGPL obligations and separate safety review.",
+        "A single implementer who reads and rewrites the source must not call the result clean-room; use independent, fact-based reimplementation wording."
+      ],
+      "evidence_ceiling": "Supports architecture comparison and identifies candidate concepts and unsafe surfaces at the pinned revision. It does not establish scientific correctness, ChemSmart compatibility, permission safety, or benchmark performance.",
+      "citation_keys": ["JinzheZengGroup_Skills_93ea0c4", "Ding_2026"]
+    },
+    {
+      "source_id": "ding-openclaw-domain-skills-paper",
+      "source_class": "peer_reviewed_journal_article",
+      "title": "Automating Computational Chemistry Workflows via OpenClaw and Domain-Specific Skills",
+      "canonical_locator": "https://doi.org/10.1021/acs.jctc.6c00622",
+      "pin": {"doi": "10.1021/acs.jctc.6c00622", "journal_coordinates": "2026, volume 22, issue 12, pages 5919-5929"},
+      "license": {"spdx": "NOASSERTION", "access_caveat": "Crossref exposes ACS STM policy links, not a clear Creative Commons license. The article citation does not replace repository LGPL compliance."},
+      "reviewed_resources": [
+        {"resource": "Crossref metadata record", "locator": "https://api.crossref.org/works/10.1021/acs.jctc.6c00622"},
+        {"resource": "Pinned repository README citation", "locator": "https://raw.githubusercontent.com/jinzhezenggroup/computational-chemistry-agent-skills/93ea0c4c716ad116869fba2ade26cccfd5cd05fc/README.md", "sha256": "e509dc2bff11d055efea05c519e906cba3d529c428468254755f5a2f8d6acabb"}
+      ],
+      "decision": "cite_as_peer_reviewed_architecture_and_benchmark_context",
+      "evidence_ceiling": "Supports architecture and benchmark claims reported in the paper. It does not show ChemSmart reproduction, repository execution safety, or unseen-system scientific validity.",
+      "citation_keys": ["Ding_2026"]
+    }
+  ]
+}
