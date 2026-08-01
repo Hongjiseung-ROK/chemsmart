@@ -1,0 +1,896 @@
+{
+  "adaptive_api_policy": {
+    "attempt_counts_are_observational": true,
+    "current_user_quota_only": true,
+    "literature_concurrency": 1,
+    "max_transient_retries_per_hypothesis": 2,
+    "provider_bypass_allowed": false,
+    "task_wall_time_seconds": 900.0,
+    "termination_reason": "bounded_source_slice_complete",
+    "top_up_allowed": false,
+    "transport_attempt_limit": null
+  },
+  "article_full_text": {
+    "canonical_expected_pii": "S001910352300427X",
+    "canonical_observed_pii": "S001910352300427X",
+    "cc_by_4_0_verified": true,
+    "container_present": true,
+    "doi_match": true,
+    "full_text_present": true,
+    "license_url": "http://creativecommons.org/licenses/by/4.0/",
+    "observed_doi": "10.1016/j.icarus.2023.115848",
+    "observed_pii": "S0019-1035(23)00427-X",
+    "observed_title": "Synthesis of urea on the surface of interstellar water ice clusters. A quantum chemical study",
+    "open_access": true,
+    "original_text_characters": 82031,
+    "original_text_sha256": "26d148e528fc9d67b7b544c55ebbd3012c4a03c42b43df2ee40cf252e8dffd27",
+    "pii_match": true,
+    "private_store_ref": "private-store:article/elsevier-full-text.json",
+    "response_bytes": 114702,
+    "response_sha256": "f6d8dce53620d9c1f3910a7f7b6dcbb64054858a7718e01fc75aaad53ade562d",
+    "state": "validated",
+    "title_match": true,
+    "validation_rule_ids": []
+  },
+  "blocker_rule_ids": [
+    "paper.coordinate.units_binding_missing",
+    "paper.electronic_state.binding_missing",
+    "paper.identity.approval_missing"
+  ],
+  "campaign_slice_id": "prp10-explicit-cluster-urea-w18-source-2026-08-02",
+  "configuration": {
+    "archive_name": "Supporting_Material.zip",
+    "current_quota_only": true,
+    "expected_archive_md5": "5281173814f215dda06db86789bed0d1",
+    "expected_archive_sha256": "07e14f9fa7823cbdb845101f192a7b063b7047d7607f86f42d1174ee9d94180a",
+    "expected_license_id": "cc-by-4.0",
+    "max_archive_bytes": 134217728,
+    "max_archive_members": 512,
+    "max_elsevier_bytes": 67108864,
+    "max_member_bytes": 33554432,
+    "max_metadata_bytes": 4194304,
+    "max_total_uncompressed_bytes": 536870912,
+    "max_transient_retries_per_hypothesis": 2,
+    "paper_doi": "10.1016/j.icarus.2023.115848",
+    "paper_pii": "S001910352300427X",
+    "request_timeout_seconds": 90.0,
+    "task_wall_time_seconds": 900.0,
+    "top_up_allowed": false,
+    "transport_attempt_limit": null,
+    "zenodo_record_id": 8285735
+  },
+  "configuration_sha256": "8e2bd2b9a51d9b17622717c79455b66b2f849030fd0660ba4412672df512ecc2",
+  "credential": {
+    "credential_locator": "CHEMSMART_ELSEVIER_API_KEY",
+    "provider": "elsevier",
+    "source": "environment",
+    "status": "available"
+  },
+  "finished_at_utc": "2026-08-01T15:53:11.396258Z",
+  "hypotheses": [
+    {
+      "changed_factor": "retrieved source artifact",
+      "comparator": "candidate-ledger entitlement-dependent article state",
+      "configuration_sha256": "8e2bd2b9a51d9b17622717c79455b66b2f849030fd0660ba4412672df512ecc2",
+      "deterministic_oracle": "HTTP 2xx JSON; DOI, PII, title, originalText, and CC-BY-4.0 license match",
+      "expected_outcome": "official Elsevier DOI response contains matching full text and license metadata",
+      "hypothesis_id": "urea-w18.elsevier.full-text",
+      "nonduplicate_reason": "rechecks exact article bytes after a prior run failed before receipt",
+      "prior_reconciliation_sha256": "c483e4e25519fcf551ae158643041e5b36cc216a17817077769e54bab242bf5a",
+      "prompt_sha256": "19239ae998989848dcd0d7baff891416fba26a823d76c6c6a5263f6b5beeb721",
+      "source_sha256": "c8e33865281983a65ff82b6ee946d36c0aa2c14714f1b7d52fb85fddc46f2b69",
+      "tool_sha256": "86df932b460a1add88bb113f0bdcbfee2c5bad664dad4aa1a1561fe189ca3275"
+    },
+    {
+      "changed_factor": "retrieved source artifact",
+      "comparator": "candidate-ledger depositor archive assertion",
+      "configuration_sha256": "8e2bd2b9a51d9b17622717c79455b66b2f849030fd0660ba4412672df512ecc2",
+      "deterministic_oracle": "record ID, DOI, access, license, filename, and official MD5 exact match",
+      "expected_outcome": "official record identifies the pinned DOI, open access, CC-BY-4.0, and archive checksum",
+      "hypothesis_id": "urea-w18.zenodo.record-metadata",
+      "nonduplicate_reason": "rechecks exact metadata bytes after a prior run failed before receipt",
+      "prior_reconciliation_sha256": "c483e4e25519fcf551ae158643041e5b36cc216a17817077769e54bab242bf5a",
+      "prompt_sha256": "19239ae998989848dcd0d7baff891416fba26a823d76c6c6a5263f6b5beeb721",
+      "source_sha256": "aa544f9f719e0176746ab1ec0e3713fb4ea48b6bbc7fec0f5a38f7cb38448572",
+      "tool_sha256": "86df932b460a1add88bb113f0bdcbfee2c5bad664dad4aa1a1561fe189ca3275"
+    },
+    {
+      "changed_factor": "retrieved source artifact",
+      "comparator": "candidate-ledger private audit SHA-256",
+      "configuration_sha256": "8e2bd2b9a51d9b17622717c79455b66b2f849030fd0660ba4412672df512ecc2",
+      "deterministic_oracle": "size plus MD5 plus SHA-256 match; ZIP safety and each XYZ syntax are deterministic",
+      "expected_outcome": "official archive bytes match both Zenodo MD5 and the frozen private-audit SHA-256",
+      "hypothesis_id": "urea-w18.zenodo.supporting-archive",
+      "nonduplicate_reason": "retries the failed archive hypothesis with the Accept header used by the validated Zenodo transport",
+      "prior_reconciliation_sha256": "c483e4e25519fcf551ae158643041e5b36cc216a17817077769e54bab242bf5a",
+      "prompt_sha256": "19239ae998989848dcd0d7baff891416fba26a823d76c6c6a5263f6b5beeb721",
+      "source_sha256": "0ff076a4f061083aef5ca3a6c4d2d25aa3f06894e4439e77b0dd74e134befd26",
+      "tool_sha256": "86df932b460a1add88bb113f0bdcbfee2c5bad664dad4aa1a1561fe189ca3275"
+    }
+  ],
+  "network_attempts": [
+    {
+      "attempt_id": "urea-w18.elsevier.full-text:attempt:1",
+      "credential_status": "valid",
+      "error_class": "none",
+      "http_status": 200,
+      "latency_ms": 952,
+      "ordinal": 1,
+      "response_bytes": 114702,
+      "response_sha256": "f6d8dce53620d9c1f3910a7f7b6dcbb64054858a7718e01fc75aaad53ade562d",
+      "retry_reason": null
+    },
+    {
+      "attempt_id": "urea-w18.zenodo.record-metadata:attempt:1",
+      "error_class": "none",
+      "http_status": 200,
+      "latency_ms": 989,
+      "ordinal": 1,
+      "response_bytes": 4957,
+      "response_sha256": "21dfb05cea749ce19c690ebafcf8aece5782e8703271dbe3ee345606dee00dca",
+      "retry_reason": null
+    },
+    {
+      "attempt_id": "urea-w18.zenodo.supporting-archive:attempt:1",
+      "error_class": "none",
+      "http_status": 200,
+      "latency_ms": 604,
+      "ordinal": 1,
+      "response_bytes": 39845,
+      "response_sha256": "07e14f9fa7823cbdb845101f192a7b063b7047d7607f86f42d1174ee9d94180a",
+      "retry_reason": null
+    }
+  ],
+  "network_metrics": {
+    "latency_ms": 2545,
+    "model_api_attempts": 0,
+    "response_bytes": 159504,
+    "retry_attempts": 0,
+    "successful_attempts": 3,
+    "transport_attempts": 3
+  },
+  "paper": {
+    "doi": "10.1016/j.icarus.2023.115848",
+    "pii": "S001910352300427X",
+    "publisher_locator": "https://doi.org/10.1016/j.icarus.2023.115848",
+    "title": "Synthesis of urea on the surface of interstellar water ice clusters. A quantum chemical study"
+  },
+  "prior_failed_run_reconciliation": {
+    "defect_rule_id": "acquisition.failure_receipt.not_persisted",
+    "exact_transport_attempt_count": "unknown",
+    "failed_case_id": "urea-w18.zenodo.supporting-archive",
+    "known_private_artifacts": [
+      {
+        "artifact": "elsevier_full_text",
+        "sha256": "f6d8dce53620d9c1f3910a7f7b6dcbb64054858a7718e01fc75aaad53ade562d",
+        "size_bytes": 114702
+      },
+      {
+        "artifact": "zenodo_metadata",
+        "sha256": "8f1a34b2317363f8b7cefe63c1d1433b5852c6de349dfa228c61e260766e9866",
+        "size_bytes": 4957
+      }
+    ],
+    "latency_metrics": "unknown",
+    "observed_terminal_error_class": "other_http_error",
+    "private_failed_run_retained": true,
+    "reconciliation_sha256": "c483e4e25519fcf551ae158643041e5b36cc216a17817077769e54bab242bf5a",
+    "state": "failed_before_public_receipt"
+  },
+  "prp10_readiness": "blocked",
+  "public_receipt_contains_coordinate_rows": false,
+  "public_receipt_contains_private_paths": false,
+  "public_receipt_contains_secrets": false,
+  "public_receipt_contains_source_text": false,
+  "receipt_id": "prp10-source-acquisition:8d99babb3764223e14f45a36",
+  "receipt_sha256": "8d99babb3764223e14f45a36fa712a97dfcf48b45ce7e0283a87ece78ea670eb",
+  "schema_version": "chemsmart.prp10-source-acquisition.v1",
+  "scientific_boundary": {
+    "archive_member_roles": "not_inferred_from_filenames",
+    "charge": "unknown",
+    "chemistry_engine_invocations": 0,
+    "coordinate_import_receipts_created": 0,
+    "coordinate_units": "not_encoded_by_xyz_and_not_bound",
+    "hpc_invocations": 0,
+    "identity_approval": "not_bound",
+    "molecular_identity": "not_inferred",
+    "multiplicity": "unknown",
+    "native_inputs_generated": 0
+  },
+  "source_bundle_state": "acquired_identity_and_electronic_state_unbound",
+  "started_at_utc": "2026-08-01T15:49:28.434644Z",
+  "supporting_archive": {
+    "checksum_match": true,
+    "coordinate_conversion_performed": false,
+    "coordinate_generation_performed": false,
+    "coordinate_import_receipts_created": 0,
+    "identity_approval_state": "not_bound",
+    "member_inventory": [
+      {
+        "compressed_size_bytes": 0,
+        "crc32": "00000000",
+        "kind": "directory",
+        "member": "Supporting_Material/0.gas_phase/",
+        "size_bytes": 0
+      },
+      {
+        "compressed_size_bytes": 402,
+        "crc32": "281e4439",
+        "kind": "file",
+        "member": "Supporting_Material/0.gas_phase/P_nh2conh2_h2o.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/0.gas_phase/P_nh2conh2_h2o.xyz",
+        "sha256": "d8d1e40fc2084897a908b7a0c2f280eda43befc1a385e4146a7071c0d12b709d",
+        "size_bytes": 796,
+        "xyz": {
+          "atom_count": 11,
+          "atom_order_sha256": "be94b13e681d76b83a39167570356f938999fdf7e3a3705a4ef19efc81aa85b2",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 6,
+            "N": 2,
+            "O": 2
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "cb425b9fdada42f00f461e85b5026166b34b422777faf95998ee147cc2b02ad0",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 305,
+        "crc32": "5e015d70",
+        "kind": "file",
+        "member": "Supporting_Material/0.gas_phase/P_urea.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/0.gas_phase/P_urea.xyz",
+        "sha256": "17141bc035105cdf8a109944386e5a7f39f554cd8fd18c601f03de502b77f0a4",
+        "size_bytes": 584,
+        "xyz": {
+          "atom_count": 8,
+          "atom_order_sha256": "2e7f6318101507a802c03fdaa229f9ca0b16684b3d39061bfe5f5ad62d800a09",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 4,
+            "N": 2,
+            "O": 1
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "e9210dfd6f4f298200639729ce298a906012c4e4342c9b2a4c66081403c5f32c",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 309,
+        "crc32": "6cc56d74",
+        "kind": "file",
+        "member": "Supporting_Material/0.gas_phase/R_hnco_nh3.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/0.gas_phase/R_hnco_nh3.xyz",
+        "sha256": "6a5743602b96a25adf8e7ba1f7772c9e606f5c8c128cf943e68816b49d94f334",
+        "size_bytes": 587,
+        "xyz": {
+          "atom_count": 8,
+          "atom_order_sha256": "2e7f6318101507a802c03fdaa229f9ca0b16684b3d39061bfe5f5ad62d800a09",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 4,
+            "N": 2,
+            "O": 1
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "a42fe59858a6b57b6596e80075d455769f2bd77d664638771043bb09c8460ba4",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 399,
+        "crc32": "94516ef3",
+        "kind": "file",
+        "member": "Supporting_Material/0.gas_phase/R_hnco_nh3_h2o.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/0.gas_phase/R_hnco_nh3_h2o.xyz",
+        "sha256": "f0c1c7db9354613169bd139d9b333bf892c71729d6da37f2afad0c69ac759340",
+        "size_bytes": 793,
+        "xyz": {
+          "atom_count": 11,
+          "atom_order_sha256": "be94b13e681d76b83a39167570356f938999fdf7e3a3705a4ef19efc81aa85b2",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 6,
+            "N": 2,
+            "O": 2
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "273582d0cb54dc75e459256d46463d9c68b41fb7fe01e4d6bab0ef097c958183",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 301,
+        "crc32": "7e0805e0",
+        "kind": "file",
+        "member": "Supporting_Material/0.gas_phase/TS_hnco_nh3.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/0.gas_phase/TS_hnco_nh3.xyz",
+        "sha256": "585f941514e2d804dffc62f52d0c6c8d5b916e16b81cae9438546cde4e21f0c3",
+        "size_bytes": 582,
+        "xyz": {
+          "atom_count": 8,
+          "atom_order_sha256": "2e7f6318101507a802c03fdaa229f9ca0b16684b3d39061bfe5f5ad62d800a09",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 4,
+            "N": 2,
+            "O": 1
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "4cccb8826f1d4a677ee35b172ab57dff9913f25c622de30a4c81e4ae82727e3d",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 394,
+        "crc32": "e6c973ef",
+        "kind": "file",
+        "member": "Supporting_Material/0.gas_phase/TS_hnco_nh3_h2o.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/0.gas_phase/TS_hnco_nh3_h2o.xyz",
+        "sha256": "5dc6bccc46297d48be9277f977bc0eef6c88b725a40c9b7f0a08d67094727768",
+        "size_bytes": 788,
+        "xyz": {
+          "atom_count": 11,
+          "atom_order_sha256": "be94b13e681d76b83a39167570356f938999fdf7e3a3705a4ef19efc81aa85b2",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 6,
+            "N": 2,
+            "O": 2
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "e94c9d58229d0251cd9d5c2b15ae3b094df12b494da0442ec7d6a144877ee241",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 0,
+        "crc32": "00000000",
+        "kind": "directory",
+        "member": "Supporting_Material/closed-shell+closed-shell/",
+        "size_bytes": 0
+      },
+      {
+        "compressed_size_bytes": 1903,
+        "crc32": "66994f43",
+        "kind": "file",
+        "member": "Supporting_Material/closed-shell+closed-shell/P_nh2conh2.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/closed-shell+closed-shell/P_nh2conh2.xyz",
+        "sha256": "c771892b9e314d50f95ba0de9ca61a69826a3033872d149e41da9e69adb1fba0",
+        "size_bytes": 4288,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "4339357d69e4ed958a39dab9e6065351e21451489fc42773beabe56ba326a7df",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1901,
+        "crc32": "38d60d01",
+        "kind": "file",
+        "member": "Supporting_Material/closed-shell+closed-shell/R_nh3_hnco.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/closed-shell+closed-shell/R_nh3_hnco.xyz",
+        "sha256": "3aa921f7432a845089c8e41e9e90920502dbc9f73f8c57d5715963df26be68f0",
+        "size_bytes": 4288,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "ca66e53856c34edc1f9e6c5ab2d47d4503ee1f1f73064d7259574e88239dd796",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1890,
+        "crc32": "58deeb68",
+        "kind": "file",
+        "member": "Supporting_Material/closed-shell+closed-shell/TS_concerted.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/closed-shell+closed-shell/TS_concerted.xyz",
+        "sha256": "ccb141f52034687c4613ea4635bb46665a7b57fbacf6fd7e397c49ddf197a607",
+        "size_bytes": 4285,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "ab308ac729e8d9417b8b08af5b0c997111d793787742a60c407356e977fc6601",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 0,
+        "crc32": "00000000",
+        "kind": "directory",
+        "member": "Supporting_Material/ion-pair_1water/",
+        "size_bytes": 0
+      },
+      {
+        "compressed_size_bytes": 1914,
+        "crc32": "5f77a0a2",
+        "kind": "file",
+        "member": "Supporting_Material/ion-pair_1water/prod_salt1.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/ion-pair_1water/prod_salt1.xyz",
+        "sha256": "a2857fea8c9b8e38acb5ab75af8e70a97410c40650fcd9bd5190aa332532dfb5",
+        "size_bytes": 4294,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "392f76b15aa1aa509f379e8213a7ad297e680703b02ee83c02eb1c3190139902",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1905,
+        "crc32": "438cbeb1",
+        "kind": "file",
+        "member": "Supporting_Material/ion-pair_1water/reactant_neutral1.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/ion-pair_1water/reactant_neutral1.xyz",
+        "sha256": "aea45e300c3253f1567f5a36f78f2391d7a6c1c81f603df5048132697c1c83fa",
+        "size_bytes": 4287,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "e956481cc82a4489cbb545ba1ce3ff1bdd6563fc216741d673efe8315212a261",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1926,
+        "crc32": "7f81d30e",
+        "kind": "file",
+        "member": "Supporting_Material/ion-pair_1water/transition_state_salt1.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/ion-pair_1water/transition_state_salt1.xyz",
+        "sha256": "ddfd4a708aa8364f30ea131282de4d28d854323e32cbe8c339247dd289e40312",
+        "size_bytes": 4298,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "b55d18d1b025cabce0788e7db09b701c032a568f948ba89ca33ec6fda9f7a144",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 0,
+        "crc32": "00000000",
+        "kind": "directory",
+        "member": "Supporting_Material/ion-pair_2waters/",
+        "size_bytes": 0
+      },
+      {
+        "compressed_size_bytes": 1893,
+        "crc32": "688bbb43",
+        "kind": "file",
+        "member": "Supporting_Material/ion-pair_2waters/prod_salt2.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/ion-pair_2waters/prod_salt2.xyz",
+        "sha256": "760a781932223e9a758668b00e33858ed33994d39e09295bd8aff5f6c79e4daf",
+        "size_bytes": 4290,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "f4bee343e4622cb4f77406043a8740411bbebc990ab2614876d114cd2354115c",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1911,
+        "crc32": "d066dcaf",
+        "kind": "file",
+        "member": "Supporting_Material/ion-pair_2waters/reactant_neutral2.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/ion-pair_2waters/reactant_neutral2.xyz",
+        "sha256": "5beaf940e98174c62b57b7658a520b30d2bfc91034214333fce175ac2aab508c",
+        "size_bytes": 4288,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "651078550157ddbef383ec2b06f1a70e77bcd76640873c8c36f5056400b45e80",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1907,
+        "crc32": "1cf5493f",
+        "kind": "file",
+        "member": "Supporting_Material/ion-pair_2waters/transition_state_alt2.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/ion-pair_2waters/transition_state_alt2.xyz",
+        "sha256": "24e3e340bb4d668e4ff45f6eb9230859ee45de7453b2d53dcda775ff362d855d",
+        "size_bytes": 4287,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "27c11d8f65117bb288e57180d305a221cda7b311234d414ff27e10dc41d043ce",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 0,
+        "crc32": "00000000",
+        "kind": "directory",
+        "member": "Supporting_Material/radical+closed-shell/",
+        "size_bytes": 0
+      },
+      {
+        "compressed_size_bytes": 1876,
+        "crc32": "4063ad34",
+        "kind": "file",
+        "member": "Supporting_Material/radical+closed-shell/P_nhconh2.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/radical+closed-shell/P_nhconh2.xyz",
+        "sha256": "11466133ab8f7da0cb8329f029b3fe0c2eafa67d44ce729af170be9fecaa8caf",
+        "size_bytes": 4159,
+        "xyz": {
+          "atom_count": 61,
+          "atom_order_sha256": "ce5bd77f77c2d24de605577710d1a9531e1ff17e16236a86cbbbc282a079db00",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 39,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "4c9bd56349be11d34f9345df1bc71577029760bf4977339e3efa850f0539000a",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1873,
+        "crc32": "a8518512",
+        "kind": "file",
+        "member": "Supporting_Material/radical+closed-shell/R_hnco_nh2.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/radical+closed-shell/R_hnco_nh2.xyz",
+        "sha256": "2ea87691a2e7d77852ea2f116cc1c84109be5a638acf6fb5aab179f6fda8cb8b",
+        "size_bytes": 4161,
+        "xyz": {
+          "atom_count": 61,
+          "atom_order_sha256": "ce5bd77f77c2d24de605577710d1a9531e1ff17e16236a86cbbbc282a079db00",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 39,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "0c9ab0d487513f93f146bcf56735c7e0c0e1380180204b593adbb21077804f25",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1866,
+        "crc32": "7fe94ab6",
+        "kind": "file",
+        "member": "Supporting_Material/radical+closed-shell/TS_rad_neutral.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/radical+closed-shell/TS_rad_neutral.xyz",
+        "sha256": "5388408bd7e79a5aecd39e09cc69ea6910363942ffb4578ccc502d205c2115f9",
+        "size_bytes": 4164,
+        "xyz": {
+          "atom_count": 61,
+          "atom_order_sha256": "ce5bd77f77c2d24de605577710d1a9531e1ff17e16236a86cbbbc282a079db00",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 39,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "3a517e5b44019528a5dd40eeeb427260a99a69e298189b4acba82752e3eb3a9b",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 0,
+        "crc32": "00000000",
+        "kind": "directory",
+        "member": "Supporting_Material/radical-radical-to-reactant/",
+        "size_bytes": 0
+      },
+      {
+        "compressed_size_bytes": 1923,
+        "crc32": "1026685d",
+        "kind": "file",
+        "member": "Supporting_Material/radical-radical-to-reactant/P_singlet.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/radical-radical-to-reactant/P_singlet.xyz",
+        "sha256": "610392b152b9679e44ae2554730ac1fe32c4e53ffbf8d1515f2728dbc2be8509",
+        "size_bytes": 4298,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "bc7d2fe56c96fbf53a2cc334932941a8f7b4ffe0b341eb049744f970465bdb53",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1923,
+        "crc32": "7224cebe",
+        "kind": "file",
+        "member": "Supporting_Material/radical-radical-to-reactant/R_brokensym.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/radical-radical-to-reactant/R_brokensym.xyz",
+        "sha256": "d1c8078419e43dbcc8ef419cb1a8bd6467b5476977766db8f4c3b739f164df83",
+        "size_bytes": 4301,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "14b125cdfa3d361153c82aadded88e891603663a99985043c459749a14587d3d",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 0,
+        "crc32": "00000000",
+        "kind": "directory",
+        "member": "Supporting_Material/radical-radical-to-urea/",
+        "size_bytes": 0
+      },
+      {
+        "compressed_size_bytes": 1897,
+        "crc32": "c222dd3e",
+        "kind": "file",
+        "member": "Supporting_Material/radical-radical-to-urea/P_singlet.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/radical-radical-to-urea/P_singlet.xyz",
+        "sha256": "b9200be634379d5b172d332d2bd4fb381da869f585d817c86b8e08e0bdc64f83",
+        "size_bytes": 4222,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "c2c529abfa84df4ad64a9291ad3fbd8cf995a22f7bca4f494ad46285a4b8a5db",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1904,
+        "crc32": "7c152671",
+        "kind": "file",
+        "member": "Supporting_Material/radical-radical-to-urea/R_brokensymm.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/radical-radical-to-urea/R_brokensymm.xyz",
+        "sha256": "6098a6a376a19ff5f7a6a94c5a23f1cb44355ff4156babe3f820a794379e3af3",
+        "size_bytes": 4235,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "0d8aa337e278754bc9dbbf605f23bd75627f12f2ea722013f1ec119aaf32a94f",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      },
+      {
+        "compressed_size_bytes": 1897,
+        "crc32": "8a9dcd88",
+        "kind": "file",
+        "member": "Supporting_Material/radical-radical-to-urea/TS_brokensymm.xyz",
+        "private_store_ref": "private-store:zenodo/members/Supporting_Material/radical-radical-to-urea/TS_brokensymm.xyz",
+        "sha256": "9722f35c60561e4eef94fe6a99fe45a90a1da3ac0579f89cc7dc61006359aa18",
+        "size_bytes": 4221,
+        "xyz": {
+          "atom_count": 62,
+          "atom_order_sha256": "47c306568c35e3c6555803f987c61385566a1a3e78c3a9d0ad92fa9cc79c4641",
+          "charge_state": "unknown",
+          "coordinate_units_state": "not_encoded_by_xyz_and_not_bound",
+          "element_counts": {
+            "C": 1,
+            "H": 40,
+            "N": 2,
+            "O": 19
+          },
+          "identity_state": "not_bound",
+          "multiplicity_state": "unknown",
+          "ordered_geometry_sha256": "fce68572d9b8f1a98573e92673238c2c4f9ebe8822505ef0e223b1e326cd0d19",
+          "syntax_state": "exact_single_frame_xyz_valid"
+        }
+      }
+    ],
+    "name": "Supporting_Material.zip",
+    "observed_md5": "5281173814f215dda06db86789bed0d1",
+    "official_md5": "5281173814f215dda06db86789bed0d1",
+    "private_store_ref": "private-store:zenodo/Supporting_Material.zip",
+    "sha256": "07e14f9fa7823cbdb845101f192a7b063b7047d7607f86f42d1174ee9d94180a",
+    "size_bytes": 39845,
+    "state": "validated",
+    "summary": {
+      "directories": 7,
+      "invalid_xyz_members": 0,
+      "members": 30,
+      "regular_files": 23,
+      "valid_single_frame_xyz_members": 23,
+      "xyz_members": 23
+    }
+  },
+  "tool_sha256": "86df932b460a1add88bb113f0bdcbfee2c5bad664dad4aa1a1561fe189ca3275",
+  "validator_rerender": {
+    "canonical_expected_pii": "S001910352300427X",
+    "canonical_observed_pii": "S001910352300427X",
+    "changed_factor": "Elsevier PII punctuation canonicalization only",
+    "chemistry_engine_invocations": 0,
+    "deterministic_oracle": "remove non-alphanumeric characters and compare uppercase PII values",
+    "hpc_invocations": 0,
+    "model_api_attempts": 0,
+    "network_attempts": 0,
+    "observed_pii": "S0019-1035(23)00427-X",
+    "pii_match": true,
+    "rerender_sha256": "98f98e87aa44c88cdd68863dee61c6126e15cb95d112929d5c00e4851d3f5a1f",
+    "schema_version": "chemsmart.prp10-source-receipt-rerender.v1",
+    "source_receipt_id": "prp10-source-acquisition:8a98ee22c1028822475c23c8",
+    "source_receipt_sha256": "8a98ee22c1028822475c23c8cc6600b062fb1100eac5fed84a4e5792c02f5cb4",
+    "verified_private_artifact_sha256s": [
+      "07e14f9fa7823cbdb845101f192a7b063b7047d7607f86f42d1174ee9d94180a",
+      "21dfb05cea749ce19c690ebafcf8aece5782e8703271dbe3ee345606dee00dca",
+      "f6d8dce53620d9c1f3910a7f7b6dcbb64054858a7718e01fc75aaad53ade562d"
+    ]
+  },
+  "wall_time_ms": 2571,
+  "zenodo_record": {
+    "access_right": "open",
+    "concept_doi": "10.5281/zenodo.8285734",
+    "doi": "10.5281/zenodo.8285735",
+    "file_inventory": [
+      {
+        "checksum": "md5:5281173814f215dda06db86789bed0d1",
+        "download_url": "https://zenodo.org/api/records/8285735/files/Supporting_Material.zip/content",
+        "name": "Supporting_Material.zip",
+        "size_bytes": 39845
+      }
+    ],
+    "license_id": "cc-by-4.0",
+    "license_verified": true,
+    "metadata_bytes": 4957,
+    "metadata_sha256": "21dfb05cea749ce19c690ebafcf8aece5782e8703271dbe3ee345606dee00dca",
+    "private_store_ref": "private-store:zenodo/record-8285735.json",
+    "publication_date": "2023-09-01",
+    "record_id": 8285735,
+    "record_url": "https://zenodo.org/records/8285735",
+    "state": "validated",
+    "title": "Synthesis of urea on the surface of interstellar water ice clusters."
+  }
+}
