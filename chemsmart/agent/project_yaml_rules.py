@@ -5,6 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from chemsmart.agent.harness.basis_sets import resolve_basis_name
+from chemsmart.agent.harness.scientific_settings import (
+    SettingResolutionStatus,
+    resolve_scientific_setting,
+)
 from chemsmart.agent.project_protocol import render_method_block
 from chemsmart.agent.project_yaml_values import string_list, string_or_none
 from chemsmart.io.xtb import (
@@ -321,15 +325,43 @@ def _basis_catalog_issues(
         result = resolve_basis_name(value, program=program)
         if result.verdict == "ok":
             continue
+        # BSE is authoritative for exchange names and serialized basis data,
+        # but it is not a complete inventory of version-scoped native engine
+        # aliases.  A separately sourced, loader/renderer-verified overlay may
+        # admit an exact native basis spelling.  Fuzzy candidates and unknown
+        # values remain blocked.
+        native = (
+            resolve_scientific_setting(
+                program=program,
+                setting_path="method.basis",
+                value=value,
+            )
+            if key == "basis"
+            else None
+        )
+        native_exact = bool(
+            native is not None
+            and native.status is SettingResolutionStatus.EXACT_REGISTERED
+        )
+        if native_exact and native is not None and native.loader_renderer_eligible:
+            continue
+        if native_exact:
+            rule_id = "yaml.basis.native_capability_unverified"
+            message = (
+                f"{phase}.{key}={value!r}: exact native setting lacks "
+                "loader/renderer evidence"
+            )
+        elif result.canonical_name:
+            rule_id = "yaml.basis.program_unsupported"
+            message = f"{phase}.{key}={value!r}: {result.message}"
+        else:
+            rule_id = "yaml.basis.unrecognized"
+            message = f"{phase}.{key}={value!r}: {result.message}"
         issues.append(
             issue(
-                (
-                    "yaml.basis.program_unsupported"
-                    if result.canonical_name
-                    else "yaml.basis.unrecognized"
-                ),
+                rule_id,
                 "reject",
-                f"{phase}.{key}={value!r}: {result.message}",
+                message,
             )
         )
     return issues

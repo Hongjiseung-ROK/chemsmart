@@ -500,6 +500,44 @@ def test_plain_d3_dispersion_is_preserved_not_dropped():
     assert parsed["gas"]["dispersion"] == "D3BJ"
 
 
+def test_orca_native_ma_def2_tzvp_is_not_rejected_as_missing_from_bse():
+    rendered = render_project_yaml(
+        {
+            "program": "orca",
+            "method": {
+                "functional": "b3lyp",
+                "dispersion": "d3bj",
+                "basis": "ma-def2-TZVP",
+                "freq": True,
+            },
+        },
+        project_name="orca_native_basis",
+        program="orca",
+        profile="paper",
+    )
+
+    parsed = yaml.safe_load(rendered["yaml_text"])
+    assert rendered["validation"]["verdict"] == "ok"
+    assert parsed["gas"]["functional"] == "b3lyp"
+    assert parsed["gas"]["dispersion"] == "D3BJ"
+    assert parsed["gas"]["basis"] == "ma-def2-TZVP"
+
+    gaussian = render_project_yaml(
+        {
+            "program": "gaussian",
+            "method": {
+                "functional": "b3lyp",
+                "basis": "ma-def2-TZVP",
+                "freq": True,
+            },
+        },
+        project_name="gaussian_native_basis",
+        program="gaussian",
+        profile="paper",
+    )
+    assert gaussian["validation"]["verdict"] == "reject"
+
+
 def test_xtb_project_yaml_uses_real_loader_and_keeps_state_in_command():
     protocol = extract_project_protocol(
         "Use GFN2-xTB with opt=vtight and ALPB(water) for conformer refinement.",

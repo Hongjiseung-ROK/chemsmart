@@ -27,8 +27,17 @@ The catalog stores:
 - `programs.orca`: basis names renderable through BSE `orca`.
 
 As of the generated BSE 0.11 catalog, Gaussian and ORCA both expose 748
-renderable basis names. They remain split by program so future BSE/software
-drift can be handled without changing the harness interface.
+renderable basis names. Every element declared by each BSE entry is serialized
+through each target writer; checking one representative element is not enough.
+They remain split by program so future BSE/software drift can be handled
+without changing the harness interface.
+
+BSE is not a complete inventory of native engine aliases. The additive
+`ScientificSettingsRegistry` may admit an exact program/version-scoped native
+literal only when the current ChemSmart loader and renderer preserve it. For
+example, ORCA `ma-def2-TZVP` is native-overlay evidence, not a fabricated BSE
+entry. Gaussian, ORCA, and xTB evidence remain separate; xTB basis selection is
+`not_applicable`.
 
 ## Harness Verdicts
 
@@ -38,8 +47,10 @@ drift can be handled without changing the harness interface.
   this is a mixed-basis request.
 - `ask_user`: phrase is qualitative or family-level, not a concrete basis name.
   Examples: "good Karlsruhe triple-zeta basis", "large diffuse basis".
-- `reject`: no concrete BSE-backed basis name can be found, or the name exists
-  but is not renderable for the target program.
+- `reject`: this legacy BSE-only resolver cannot ground the value. Callers
+  making a readiness decision must next consult the exact native overlay.
+  Registry fuzzy candidates remain blocked, and an unresolved value becomes
+  `unknown_unverified` rather than evidence that the setting does not exist.
 
 ## Token-Efficient Search Tool
 
