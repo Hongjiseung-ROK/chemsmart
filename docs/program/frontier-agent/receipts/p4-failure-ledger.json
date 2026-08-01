@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "phase": "P4",
+  "recorded_at": "2026-07-31T19:08:12Z",
+  "records": [
+    {
+      "id": "P4-F1",
+      "failure": "P3 has no native or archived chemical-result trace with parsed value, unit, physical diagnostic, and stoichiometric result.",
+      "hypothesis": "A fixture terminal state can validate a guardrail without validating a completed calculation.",
+      "minimal_change": "Do not alter P3; retain P3-C2 and P3-C3 as unresolved and specify an independently recomputable result trace for a separately authorized later phase.",
+      "evidence": "P3 document, receipt, and public fault cases pinned by P4-CH-01.",
+      "result": "P3-C2 and P3-C3 remain unresolved; no engine or archived-result claim was created.",
+      "limitation": "P4 has no authority to run a chemistry engine or construct a new calculation artifact.",
+      "rollback_boundary": "Remove the stop only after a new frozen receipt binds an authorized result artifact, validator, unit, and independent recomputation."
+    },
+    {
+      "id": "P4-F2",
+      "failure": "The preregistered 2 x 2 x 2 study has no held-out paired repetitions, raw outcomes, or confidence intervals.",
+      "hypothesis": "A component-benefit or SOTA conclusion without the preregistered denominator and uncertainty analysis would be post hoc.",
+      "minimal_change": "Leave P5-C1 through P5-C3 unresolved; add no experimental result before the provider, held-out, and authorization gates are satisfied.",
+      "evidence": "P5 document/protocol and P3 receipt pinned by P4-ST-01.",
+      "result": "No component adoption, comparator, or SOTA claim is made.",
+      "limitation": "P4 validates review structure, not a live-model or chemistry experiment.",
+      "rollback_boundary": "Replace this record only with a new preregistered trial revision and complete raw paired receipt set."
+    },
+    {
+      "id": "P4-F3",
+      "failure": "Runtime V2 approval binding is exercised only as a contract/guardrail fixture; executor-side one-shot consumption and dispatch are unimplemented.",
+      "hypothesis": "Persisted approval state alone is insufficient to authorize a future action.",
+      "minimal_change": "Keep P2-C3 qualified and P3-C1 unresolved; reserve a deterministic executor-consumption test for a separately scoped implementation phase.",
+      "evidence": "P2 receipt, P3 Runtime sources, and P3 contract test pinned by P4-HA-01.",
+      "result": "No execution authority is inferred or granted.",
+      "limitation": "There is no executor or authorized action in P4.",
+      "rollback_boundary": "Do not remove the gate until an executor consumes a digest-bound approval at dispatch and its invalidation behavior is independently tested."
+    },
+    {
+      "id": "P4-F4",
+      "failure": "P1 confirms allowance for a configured noncanonical DeepSeek alias but not the canonical alias, configured tool surface, or a bounded completion; P3-G5 remains blocked.",
+      "hypothesis": "Account availability can be misread as operational harness capability.",
+      "minimal_change": "Do not modify configuration or send a completion; preserve P1-C2 as qualified and P3-C1 as unresolved.",
+      "evidence": "P1 API/failure receipts and P3 receipt pinned by P4-RT-01.",
+      "result": "Zero additional provider requests and zero model completions in P4.",
+      "limitation": "A provider capability receipt needs an explicit, separately bounded authorization path.",
+      "rollback_boundary": "Replace only after a redacted, fixed model/tool/prompt/budget receipt passes its declared capability gate."
+    },
+    {
+      "id": "P4-F5",
+      "failure": "Future suite aggregation could admit duplicate case identifiers and cause a per-case map to diverge from raw-list totals.",
+      "hypothesis": "Duplicate identifiers can corrupt a preregistered P5 denominator even when each raw grade is retained.",
+      "minimal_change": "Add a duplicate-case-ID rejection control before P5 scoring; do not reinterpret it as a defect in the frozen P3 result.",
+      "evidence": "P3 grader and receipt pinned by P4-HA-02.",
+      "result": "Prospective P5 metric-integrity condition recorded; P3 remains fixture-only.",
+      "limitation": "No P5 trial set exists to validate the control yet.",
+      "rollback_boundary": "Retire only if a future frozen scorer proves identifier uniqueness before every aggregation and the complete receipt set is revalidated."
+    },
+    {
+      "id": "P4-F6",
+      "failure": "The first P4 packet bound the mutable P5 phase-planning page, so a later P5 status update would make the historical P4 hash check fail.",
+      "hypothesis": "A phase review must retain a local immutable capture of any input whose live program page is expected to change later.",
+      "minimal_change": "Capture the P5 plan under reviews/p4-inputs, bind the P4 packet to that capture, update dependent role/join digests, and re-run the focused P4 integrity check once.",
+      "evidence": "P4 packet locator review and the planned P5 phase transition; no source artifact had yet changed when the risk was identified.",
+      "result": "The P4 packet now points to p4-inputs/p5-component-ablation-plan-v1.md and can remain immutable while P5 progresses.",
+      "limitation": "The capture preserves P4's planning input only; it is not a P5 execution receipt.",
+      "rollback_boundary": "Create a new packet revision rather than overwrite this capture if a future review needs a different P5 input state."
+    }
+  ]
+}

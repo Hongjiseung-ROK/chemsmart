@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "phase": "P4",
+  "receipt_id": "p4-archived-result-triage-v1",
+  "status": "closed_read_only_triage",
+  "scope": "Read-only classification of two committed parser-regression bundles; not output parsing, a chemistry result, independent recomputation, P3 evidence, P5 eligibility, provider execution, replication, training, paper, release, or SOTA evidence.",
+  "recorded_at": "2026-07-31T23:12:31Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P4-CHEMISTRY-FINDING",
+      "path": "docs/program/frontier-agent/reviews/p4-chemistry-findings-v1.json",
+      "sha256": "d12484abff0473c0fe70e33b494b91c35cc2a9b2447d7f1d42ba08a806c4fbfd"
+    },
+    {
+      "artifact_id": "P4-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p4-evidence-expert-review.json",
+      "sha256": "e6071301c3e7b0a4a994e6710c31f17dcafe79a17c76125af18215c378386d96"
+    },
+    {
+      "artifact_id": "P4-FAILURE-LEDGER",
+      "path": "docs/program/frontier-agent/receipts/p4-failure-ledger.json",
+      "sha256": "46dd1f9d5d0d997912e817adecff619af687b837461b1df8577f637e01f32575"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "docs/program/frontier-agent/p4-archived-result-triage-v1.md",
+      "sha256": "50b302bac45ff4bd64e58d64fee96ea2a17b1ba8c054a92ed0a25568de54e1ac"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p4_archived_result_triage.py",
+      "sha256": "fedac5cf956b344a831417c36af5cb5b1dac6112877bdccefe6a0d649ac8e352"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p4_archived_result_triage.py",
+      "sha256": "bd2c75307b9cee13baea32d135835093dd24bc1a0b572f1401d199471874ba51"
+    }
+  ],
+  "candidate_bundles": [
+    {
+      "bundle_id": "orca-water-parser-fixture",
+      "classification": "development_parser_fixture_not_frontier_result",
+      "admissible_for_frontier_chemistry_claim": false,
+      "artifacts": [
+        {"path": "tests/data/ORCATests/inputs/water_opt.inp", "sha256": "595ec2a5ea0a4adb674c89e456bcfc247a33ae6cc023280a0ac00853c4f8f263"},
+        {"path": "tests/data/ORCATests/outputs/water_opt.out", "sha256": "a1759ce453953927d50751400a90348d8821783990a1c630d59f119636887824"},
+        {"path": "tests/data/ORCATests/outputs/water_opt.xyz", "sha256": "be0cc16703bc1e3b7bba0acce8a3dd6125021af4b0ee4fcccd2c99c9311a8193"},
+        {"path": "tests/data/ORCATests/outputs/water_opt.engrad", "sha256": "6dd69a2332c1bc635a97f794b1c839945d5ccf4ed48f677e4dddc8177e6a0fc8"},
+        {"path": "tests/data/ORCATests/outputs/water_opt.hess", "sha256": "f9ac2891ccedf1f2be44e9c445179a2efa86ea90baa3310a49d5853dd471e7c8"}
+      ],
+      "missing_provenance": [
+        "frontier_task_identity",
+        "approval_record",
+        "execution_environment_receipt",
+        "independent_recomputation"
+      ]
+    },
+    {
+      "bundle_id": "xtb-water-parser-fixture",
+      "classification": "development_parser_fixture_not_frontier_result",
+      "admissible_for_frontier_chemistry_claim": false,
+      "artifacts": [
+        {"path": "tests/data/XTBTests/outputs/water_ohess/water_ohess.out", "sha256": "4d996eea21fd8b9a47bb330780d871d588ca946702cc3ac5ed92a757aa84f9c8"},
+        {"path": "tests/data/XTBTests/outputs/water_ohess/water.xyz", "sha256": "ea0cd3a80354562368e045d3bbf63c1a58b10ecc07ff07fc58d1f38fd9967929"},
+        {"path": "tests/data/XTBTests/outputs/water_ohess/xtbopt.xyz", "sha256": "804371731f0248837dbc8a97a1d88e37188f71d9e6a4aa6abb7300fda9f6fc47"},
+        {"path": "tests/data/XTBTests/outputs/water_ohess/water.engrad", "sha256": "a19a25e6e89ee14edc68cdc88a834e23d1a0e17c8741d751525c8c27c9941755"},
+        {"path": "tests/data/XTBTests/outputs/water_ohess/g98.out", "sha256": "cff3624573110bec719df047f2174735694d0004cab274b7eb4b33eabd5ef40d"}
+      ],
+      "missing_provenance": [
+        "frontier_task_identity",
+        "approval_record",
+        "execution_environment_receipt",
+        "independent_recomputation"
+      ]
+    }
+  ],
+  "authority_use": {
+    "archive_output_parses": 0,
+    "chemistry_engine_calls": 0,
+    "independent_recomputations": 0,
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "tool_dispatches": 0,
+    "scheduler_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P4A-G1-candidate-hash-inventory": "passed_read_only",
+    "P4A-G2-development-fixture-classification": "passed_read_only",
+    "P4A-G3-p3-result-non-admission": "passed_read_only",
+    "P4A-G4-independent-recomputation": "unresolved_not_authorized",
+    "P4-CH-01-P5-RG-05": "red_unchanged_no_frontier_result_trace"
+  },
+  "claims": {
+    "supported": [
+      "The two bounded water bundles are hash-pinned committed parser-regression development artifacts only."
+    ],
+    "qualified": [
+      "The inventory is sufficient to reject their admission as Frontier evidence, not to characterize their historical scientific provenance."
+    ],
+    "unresolved": [
+      "No task-bound, approved, independently recomputable Frontier chemical result exists."
+    ],
+    "rejected": [
+      "A committed parser-regression bundle establishes P3 chemistry, P5 eligibility, reliability, replication, or SOTA evidence."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P4A-F1",
+      "failure": "A native-looking test output could be misread as an authorized Frontier calculation.",
+      "hypothesis": "Test-fixture role and hashes alone cannot bind output to P3 task, approval, or execution provenance.",
+      "minimal_change": "Create negative triage only and do not parse or reclassify a candidate.",
+      "evidence": "Candidate paths/hashes plus P4-CH-01 trace requirements.",
+      "result": "Focused hash/non-admission validation classified both candidates as non-admissible development fixtures.",
+      "limitation": "The triage does not prove either bundle's historical origin or chemical validity.",
+      "rollback_boundary": "Replace only with a new receipt binding every required provenance field."
+    },
+    {
+      "id": "P4A-F2",
+      "failure": "A parser-exercised bundle lacks an independent recomputation receipt.",
+      "hypothesis": "Parsing a file can establish parser behavior but not scientific reliability.",
+      "minimal_change": "Retain P4A-G4, P4-CH-01, and P5-RG-05 as unresolved/red.",
+      "evidence": "P4 review records and absence of task-bound recomputation.",
+      "result": "Focused validation retained P4A-G4, P4-CH-01, and P5-RG-05 without emitting a parsed value or reliability claim.",
+      "limitation": "A future audited archive still requires separately authorized recomputation.",
+      "rollback_boundary": "Do not promote without inputs, environment, diagnostics, and independent reproduction."
+    },
+    {
+      "id": "P4A-F3",
+      "failure": "Bulk repository output scanning would mix success, error, synthetic, and unrelated fixtures.",
+      "hypothesis": "A bounded two-bundle inventory prevents a test corpus from becoming accidental evidence.",
+      "minimal_change": "Inspect only the two named water bundles and retain all others out of scope.",
+      "evidence": "Repository role/path audit.",
+      "result": "Focused validation confirmed the fixed two-bundle scope and no bulk archive admission.",
+      "limitation": "Other candidate files remain unexamined here.",
+      "rollback_boundary": "A later audit must be separately scoped and hash-pinned."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "archive_output_contents_retained": false,
+    "parsed_numerical_values_retained": false,
+    "raw_scores_retained": false,
+    "error_text_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "read_only_archive_hash_and_nonadmission_validation",
+    "invocations": [
+      {
+        "purpose": "base/candidate/source hash integrity and P4/P5 non-admission boundary",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_p4_archived_result_triage.py -q",
+        "result": "1 passed (focused offline archive-triage validator)",
+        "recorded_at": "2026-07-31T23:12:31Z"
+      }
+    ]
+  }
+}

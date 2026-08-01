@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "phase": "P5",
+  "recorded_at": "2026-07-31T19:24:07Z",
+  "records": [
+    {
+      "id": "P5-F0",
+      "failure": "The initial offline preregistration test rejected public fixture ID task-settings-005 as secret-shaped because the sk- token heuristic was too short.",
+      "hypothesis": "A broad sk- pattern can falsely match ordinary synthetic artifact identifiers.",
+      "minimal_change": "Require at least twenty characters after sk- while retaining API-key/header field guards; do not weaken the fixture/manifest redaction boundary.",
+      "evidence": "The first focused P5 command failed before execution with ValueError from the secret-shaped-data guard at the P3 public fixture.",
+      "result": "The targeted repaired invocation passed 4 tests in 0.04 s; no provider, engine, scheduler, or trial ran.",
+      "limitation": "Pattern heuristics cannot prove an arbitrary artifact has no secret; the manifest continues to exclude credential values and raw provider material.",
+      "rollback_boundary": "Tighten or replace the heuristic only with a fixture corpus demonstrating a real missed secret shape; do not reintroduce the known false positive."
+    },
+    {
+      "id": "P5-F1",
+      "failure": "No provider capability receipt permits a bounded live condition; P3-G5 and P4-RT-01 remain red.",
+      "hypothesis": "Account allowance is not a model/tool-surface capability receipt.",
+      "minimal_change": "Keep the live envelope null, authority not granted, and all execution budgets zero.",
+      "evidence": "P1 API receipt, P3 receipt, and P4 review receipt pinned in the manifest.",
+      "result": "No completion or live comparison was attempted.",
+      "limitation": "The preregistration does not resolve the configured alias or tool surface.",
+      "rollback_boundary": "Populate a new manifest revision only after a separately authorized, redacted fixed provider/model/tool/prompt/budget receipt exists."
+    },
+    {
+      "id": "P5-F2",
+      "failure": "No independent held-out catalog or commitment is available; P3 public cases and source-controlled seeds are development material.",
+      "hypothesis": "Checkout visibility prevents a meaningful held-out secrecy claim.",
+      "minimal_change": "Require external evaluator custody and retain no held-out task or seed content in the manifest.",
+      "evidence": "P3 fixture boundary and P4-RT-02.",
+      "result": "Held-out status is external_evaluator_required and no P3 case is relabeled.",
+      "limitation": "No independent holder or commitment digest is supplied.",
+      "rollback_boundary": "Replace only with an immutable externally held catalog interface and a new preregistration revision."
+    },
+    {
+      "id": "P5-F3",
+      "failure": "Future aggregation could be corrupted by duplicate source case IDs or duplicate case/configuration/repetition tuple keys.",
+      "hypothesis": "Map-based summaries can silently diverge from raw records if identifiers are not rejected first.",
+      "minimal_change": "Validate source IDs, trial keys, complete eight-way pairs, pair IDs, and surface-control digests before any summary.",
+      "evidence": "P4-HA-02 and deterministic P5 structural tests.",
+      "result": "Duplicate and incomplete future trial matrices are rejected in fixture-only tests.",
+      "limitation": "No empirical trial set exists to aggregate.",
+      "rollback_boundary": "Retire this control only if a future scorer proves equivalent or stronger invariants over every raw receipt."
+    },
+    {
+      "id": "P5-F4",
+      "failure": "Manifest, catalog, scorer, configuration, or receipt drift would invalidate paired interpretation.",
+      "hypothesis": "A mutable comparison surface can create a post hoc component effect.",
+      "minimal_change": "Hash-pin visible inputs and require a new preregistration revision on drift.",
+      "evidence": "P5 manifest digest and source-artifact verification.",
+      "result": "The offline manifest rejects source digest drift.",
+      "limitation": "A future independent held-out source is not yet pinned.",
+      "rollback_boundary": "Never patch a frozen manifest in place after a trial; create a versioned replacement."
+    },
+    {
+      "id": "P5-F5",
+      "failure": "No paired counterpart, trial outcome, retry/exhaustion record, or exclusion record exists.",
+      "hypothesis": "Missing records would make any inferential analysis undefined or selectively filtered.",
+      "minimal_change": "Keep P5-C1 through P5-C3 unresolved and make P5-RG-06 a stop condition.",
+      "evidence": "Empty trial_receipts field and P4-ST-01.",
+      "result": "No metric, interval, adoption, or comparator result is reported.",
+      "limitation": "The manifest is not a raw outcome set.",
+      "rollback_boundary": "Replace only with complete retained raw receipt coverage for every preregistered pair."
+    },
+    {
+      "id": "P5-F6",
+      "failure": "A future approval bypass, fabricated evidence, artifact mutation, secret exposure, or red-gate terminal success would disqualify a configuration.",
+      "hypothesis": "Safety integrity cannot be traded for an apparent score improvement.",
+      "minimal_change": "Freeze P5-RG-07 and retain red-line cases as outcomes rather than exclusions.",
+      "evidence": "P5 protocol and P4 red-team integrity conditions.",
+      "result": "No trial occurred, so no absence-of-red-line performance claim is made.",
+      "limitation": "The control is structural until future receipts exercise it.",
+      "rollback_boundary": "Do not relax this rule; a red-line configuration remains ineligible for default adoption."
+    },
+    {
+      "id": "P5-F7",
+      "failure": "No native or archived chemical-result trace binds values, units, diagnostics, and independent recomputation.",
+      "hypothesis": "A workflow or parser outcome does not establish chemical validity or reliability.",
+      "minimal_change": "Freeze P5-RG-05 and prohibit chemical-validity/reliability claims.",
+      "evidence": "P4-CH-01 and P3 receipt.",
+      "result": "No chemistry result is represented.",
+      "limitation": "P5 has no authority for engine execution or result construction.",
+      "rollback_boundary": "Resolve only through an authorized artifact-backed result and independent recomputation path."
+    },
+    {
+      "id": "P5-F8",
+      "failure": "An LLM judge could be incorrectly used as the primary pass arbiter.",
+      "hypothesis": "Judge preference can mask deterministic safety or scientific defects.",
+      "minimal_change": "Fix deterministic scoring as primary, expert rubric as secondary, and LLM judgment as supplementary only.",
+      "evidence": "P5 protocol and manifest scoring section.",
+      "result": "No LLM judge was invoked or used for a gate.",
+      "limitation": "Critic precision/recall remains unmeasured without held-out labels.",
+      "rollback_boundary": "Invalidate a future analysis that uses LLM judgment as a primary score or terminal arbiter."
+    },
+    {
+      "id": "P5-F9",
+      "failure": "The final focused program validator classified a P5 documentation reference to a public settings-fixture identifier as a secret-shaped token.",
+      "hypothesis": "The frozen validator's short sk- heuristic can match an ordinary identifier embedded in prose.",
+      "minimal_change": "Reword the P5 failure description without changing the frozen P3-era validator or weakening any validation rule.",
+      "evidence": "The first final focused invocation reported one failure and 34 passes, naming 05-component-ablation.md as the source of the false positive.",
+      "result": "The wording-only repair yielded 35 focused passes; no credential, provider, engine, or trial action occurred.",
+      "limitation": "A syntax heuristic remains a conservative signal, not proof that every arbitrary document contains no secret material.",
+      "rollback_boundary": "Change the validator only through a separately receipted P3/P4 source revision; preserve the documentation wording if it remains compatible with the frozen checker."
+    }
+  ]
+}

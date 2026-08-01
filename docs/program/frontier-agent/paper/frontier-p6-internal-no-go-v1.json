@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "manifest_id": "frontier-p6-internal-no-go-v1",
+  "status": "internal_no_go",
+  "manifest_sha256": "41cd0758023d2740b2e396824c1d290483f9db0f4e0a8aee863fe6cc712a76d4",
+  "source_artifacts": [
+    {"artifact_id": "P0-RECEIPT", "path": "docs/program/frontier-agent/p0-baseline-receipt.json", "sha256": "b9f5f91fbf258c4490b675723a55993aac466281e11ca4edd4ba9dc5fb67b3d9"},
+    {"artifact_id": "P1-API", "path": "docs/program/frontier-agent/receipts/p1-api-usage.json", "sha256": "22e08a5b66b63c1c8c204171ce3d4bffac4983ef223ab411e73f5801ba1e2e61"},
+    {"artifact_id": "P1-LITERATURE", "path": "docs/program/frontier-agent/receipts/p1-literature-evidence.json", "sha256": "addb24100d68350f2d77e7b5d238a7e5590eab6f824a0e9b13a39fd71cee5e51"},
+    {"artifact_id": "P1-FAILURES", "path": "docs/program/frontier-agent/receipts/p1-failure-ledger.json", "sha256": "80a21b2a83eca19261e232b005ff5efd9d2bae05b208bdc0857ec395b1be8759"},
+    {"artifact_id": "P2-RECEIPT", "path": "docs/program/frontier-agent/receipts/p2-runtime-contracts.json", "sha256": "2e49e6e0d00db04520c248a235a31c993a4bd0746ae0e74e3d474d42fb0b51ac"},
+    {"artifact_id": "P3-RECEIPT", "path": "docs/program/frontier-agent/receipts/p3-single-agent-fault-suite.json", "sha256": "9f7592791e2c9349344348da3ee6b9f407ae9de032e8e85e0fb274c28316911c"},
+    {"artifact_id": "P4-RECEIPT", "path": "docs/program/frontier-agent/receipts/p4-evidence-expert-review.json", "sha256": "e6071301c3e7b0a4a994e6710c31f17dcafe79a17c76125af18215c378386d96"},
+    {"artifact_id": "P5-RECEIPT", "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json", "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"}
+  ],
+  "claims": [
+    {
+      "claim_id": "P6-I1",
+      "category": "infrastructure_observation",
+      "statement": "The P0-P5 evidence package records source, fixture, review, and preregistration boundaries with hashes and explicit limitations.",
+      "status": "supported_observation",
+      "evidence_ids": ["P0-RECEIPT", "P2-RECEIPT", "P3-RECEIPT", "P4-RECEIPT", "P5-RECEIPT"],
+      "limitation": "This is an infrastructure observation, not a scientific, provider, or release result."
+    },
+    {
+      "claim_id": "P6-I2",
+      "category": "provider_observation",
+      "statement": "The P1 record shows only timestamped qualified allowance observations for configured services.",
+      "status": "qualified",
+      "evidence_ids": ["P1-API", "P1-FAILURES"],
+      "limitation": "It does not establish a canonical provider binding, tool surface, model behavior, or permitted live condition."
+    },
+    {
+      "claim_id": "P6-I3",
+      "category": "literature_reference",
+      "statement": "The P1 literature record supports only its stated narrow design references.",
+      "status": "qualified",
+      "evidence_ids": ["P1-LITERATURE", "P1-FAILURES"],
+      "limitation": "Unresolved primary passages and correction or retraction coverage remain limitations."
+    },
+    {
+      "claim_id": "P6-C1",
+      "category": "replication_decision",
+      "statement": "The paper bundle can be reconstructed independently.",
+      "status": "unresolved",
+      "evidence_ids": ["P3-RECEIPT", "P5-RECEIPT"],
+      "limitation": "No independently controlled clean-environment reconstruction receipt exists."
+    },
+    {
+      "claim_id": "P6-C2",
+      "category": "comparative_inference",
+      "statement": "A controlled comparison supports a bounded SOTA statement.",
+      "status": "unresolved",
+      "evidence_ids": ["P3-RECEIPT", "P4-RECEIPT", "P5-RECEIPT"],
+      "limitation": "There is no held-out paired study, named comparator, interval, or independent replication."
+    },
+    {
+      "claim_id": "P6-C3",
+      "category": "training_decision",
+      "statement": "Training is justified.",
+      "status": "unresolved",
+      "evidence_ids": ["P3-RECEIPT", "P4-RECEIPT", "P5-RECEIPT"],
+      "limitation": "No visible verified trace corpus, external held-out evaluation, training authority, or compute authorization exists."
+    },
+    {
+      "claim_id": "P6-C4",
+      "category": "release_decision",
+      "statement": "A missing receipt or arbiter is explicitly represented as unresolved.",
+      "status": "unresolved",
+      "evidence_ids": ["P1-FAILURES", "P4-RECEIPT", "P5-RECEIPT"],
+      "limitation": "The package is internal only and cannot resolve missing evidence by narrative."
+    },
+    {
+      "claim_id": "P6-R1",
+      "category": "release_decision",
+      "statement": "A results, SOTA, replication, training, or publication release can proceed now.",
+      "status": "rejected",
+      "evidence_ids": ["P0-RECEIPT", "P4-RECEIPT", "P5-RECEIPT"],
+      "limitation": "This is a current no-go decision, not a permanent conclusion about future work."
+    }
+  ],
+  "blocker_ids": [
+    "P6-B1-clean-replication",
+    "P6-B2-held-out-comparison",
+    "P6-B3-provider-capability-and-live-trials",
+    "P6-B4-chemical-result-validation",
+    "P6-B5-training-traces-and-authority",
+    "P6-B6-publication-authority"
+  ],
+  "publication_authority": false,
+  "training_authority": false,
+  "clean_replication_receipt": null
+}

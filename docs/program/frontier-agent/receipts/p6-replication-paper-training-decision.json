@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "status": "completed",
+  "phase_outcome": "closed_blocked",
+  "observed_at": "2026-07-31T19:32:16Z",
+  "decision_manifest": {
+    "path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json",
+    "file_sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819",
+    "manifest_digest": "41cd0758023d2740b2e396824c1d290483f9db0f4e0a8aee863fe6cc712a76d4",
+    "classification": "internal_no_go",
+    "paper_release_ready": false,
+    "replication_ready": false,
+    "training_eligible": false,
+    "sota_claim_permitted": false
+  },
+  "source_artifacts": [
+    {"path": "chemsmart/agent/harness/frontier_decision.py", "sha256": "545e32fe39d3ee2eed11060b43533778bb0250953f2fcfb12e50906b38ddf1b8"},
+    {"path": "tests/agent/harness/test_frontier_decision_manifest.py", "sha256": "ea9f0a8b769b1b112b859cc9d6cf5206e3b7868e1daf8dd0580cfcdd7e67ee86"},
+    {"path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json", "sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819"},
+    {"path": "docs/program/frontier-agent/paper/frontier-paper-outline-v1.md", "sha256": "b2689fba99f6eaa43c72d06fb7f6d3f44011a0e25ceed1b89985bb1fc411f9a5"},
+    {"path": "docs/program/frontier-agent/paper/frontier-replication-training-no-go-v1.md", "sha256": "4db7ea8acb21c3db76e4890135384a539531c0d3164601dc8892e6f7730cd4b6"}
+  ],
+  "authority_use": {
+    "live_provider_calls": 0,
+    "model_completions": 0,
+    "real_chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "dependency_installs": 0,
+    "training_runs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P6-G1": "passed_for_internal_claim_register_only_not_for_scientific_results",
+    "P6-G2": "blocked_no_independent_clean_environment_replication_receipt",
+    "P6-G3": "passed_internal_no_go_status_separation_and_limitations",
+    "P6-G4": "blocked_zero_eligible_training_records_and_no_authority",
+    "P6-G5": "blocked_no_external_release_or_compute_authority",
+    "claim_outcome": "closed_blocked_no_results_sota_replication_training_or_publication_claim"
+  },
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_decision_manifest.py -q",
+    "result": "4 passed in 0.06s",
+    "validated_at": "2026-07-31T19:32:16Z",
+    "classification": "focused_offline_claim_binding_overclaim_and_release_refusal_only"
+  },
+  "claims": [
+    {"id": "P6-C1", "status": "unresolved"},
+    {"id": "P6-C2", "status": "unresolved"},
+    {"id": "P6-C3", "status": "unresolved"},
+    {"id": "P6-C4", "status": "unresolved"},
+    {"id": "P6-R1", "status": "rejected_current_release"}
+  ],
+  "limitations": [
+    "The P6 verifier checks only the internal no-go package and cannot establish external truth or authorization.",
+    "No independent replication, held-out comparison, provider execution, chemistry calculation, training trace corpus, training run, or publication occurred.",
+    "Qualified P1 provider and literature observations retain all P1 limitations.",
+    "SOTA remains a hypothesis and has no admissible current result."
+  ],
+  "next_safe_action": "Ask for a material user decision only if pursuing a live path: resolve a bounded provider capability envelope, provide independent held-out custody, authorize any environment/engine action, and separately authorize training or publication. Otherwise preserve this internal no-go package unchanged."
+}

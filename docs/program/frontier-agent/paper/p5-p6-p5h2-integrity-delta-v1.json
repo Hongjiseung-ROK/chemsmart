@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "receipt_id": "p5-p6-p5h2-integrity-delta-v1",
+  "status": "closed_blocked_delta",
+  "scope": "Append-only P6 receipt-level reconciliation of the later qualified P5H-v2 fixture-only pair-ownership control; not an amendment of frozen P5, P6, or P6A, independent custody, a trial, score, analysis, replication, training, release, paper, or SOTA result.",
+  "recorded_at": "2026-08-01T01:12:00Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P5-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"
+    },
+    {
+      "artifact_id": "P5H2-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-custody-pair-ownership-v2.json",
+      "sha256": "795ca1b278f98fdb3ac4f5d7ee076dedf1694824d540923da5881450781da4a7"
+    },
+    {
+      "artifact_id": "P6-NO-GO-MANIFEST",
+      "path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json",
+      "sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819"
+    },
+    {
+      "artifact_id": "P6-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p6-replication-paper-training-decision.json",
+      "sha256": "2c43eccee4322d59b4dc5fca4a5ee3a1b772bb5dfaa4330de1bb9048f4729d5f"
+    },
+    {
+      "artifact_id": "P6-CANDIDATE-CLOSURE",
+      "path": "docs/program/frontier-agent/paper/frontier-candidate-closure-v1.json",
+      "sha256": "0d713e47399940df8a747bff1b9931519fc703824f6eb155c07667f298f3acdf"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "docs/program/frontier-agent/paper/p5-p6-p5h2-integrity-delta-v1.md",
+      "sha256": "2a871ad197d0cf5d92db09e2f3467b3b382dc0ca9dc2d8540f1113e4c8ea50ab"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p5_p6_p5h2_integrity_delta.py",
+      "sha256": "710ab90d1bb7f97ebba508e9bb5eed580ecf125dbb124fa69dde717f8d310949"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p5_p6_p5h2_integrity_delta.py",
+      "sha256": "a2f4d58268edb5a8b2c8b224c18f50096de93cd93d7bd804cf2e5c8a8e287000"
+    }
+  ],
+  "authority_use": {
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "heldout_catalog_accesses": 0,
+    "heldout_case_accesses": 0,
+    "tool_dispatches": 0,
+    "real_command_executions": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "network_calls": 0,
+    "dependency_installs": 0,
+    "training_runs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gate_reconciliation": {
+    "P6B-G1-p5h2-receipt-integrity": "passed_local_hash_pinned_fixture_receipt",
+    "P6B-G2-p5h2-predecessor-disposition": "qualified_bytes_preserved_v1_static_guard_revalidation_failed",
+    "P6B-G3-frozen-p5-p6-preservation": "passed_hash_pinned_no_source_rewrite",
+    "P6B-G4-p6a-scope-boundary": "passed_p5h2_excluded_from_frozen_candidate_not_amended",
+    "P6-replication-training-release-sota": "no_go_unchanged",
+    "P5-G4-P5-G5": "blocked_unchanged_no_trial_or_replication_inputs",
+    "P6-G2": "blocked_unchanged_no_independent_clean_environment_replication_receipt",
+    "P6-G4": "blocked_unchanged_zero_eligible_training_records_and_no_authority",
+    "P6-G5": "blocked_unchanged_no_external_release_or_compute_authority"
+  },
+  "claims": {
+    "supported": [
+      "The hash-pinned P5H-v2 fixture rejects its declared cross-group synthetic pair-commitment reuse before any score or aggregate and remains p5_evaluation_eligible=false."
+    ],
+    "qualified": [
+      "P5H-v2 is a local prospective fixture control; its predecessor bytes are preserved but its broad historical static guard currently reruns red after later fixture-only imports."
+    ],
+    "unresolved": [
+      "Independent custody, active approval consumption, provider/tool-loop behavior, executor and chemical provenance, raw paired trials and intervals, resolved environment, independent replication, training authority, release, and SOTA remain unresolved."
+    ],
+    "rejected": [
+      "This control changes P5 eligibility or P5-G4/P5-G5, completes the frozen P6A candidate closure, or supports a component effect, replication, training, release, paper readiness, or SOTA."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P56H2-F1",
+      "failure": "The frozen P6A candidate closure predates P5H-v2 and has no P5H artifact in its fixed graph.",
+      "hypothesis": "A removable receipt-level delta can preserve chronology without claiming a rewritten candidate closure.",
+      "minimal_change": "Bind the qualified P5H-v2 receipt and five frozen P5/P6 base artifacts in a separate P6B delta.",
+      "evidence": "P6A has its recorded 101-artifact graph and P5H-v2 has a later timestamp and distinct receipt hash.",
+      "result": "P6A remains unamended; the delta records only the qualified control and unchanged no-go boundaries.",
+      "limitation": "The delta is not a portable reconstruction or an independent replication record.",
+      "rollback_boundary": "Delete only this delta; do not edit P5, P6, or P6A frozen bytes."
+    },
+    {
+      "id": "P56H2-F2",
+      "failure": "P5H-v1's current broad static non-wiring revalidation is red after later fixture-only harness imports.",
+      "hypothesis": "The disposition must remain qualified and cannot be converted to a clean predecessor pass by narrative.",
+      "minimal_change": "Carry P5H2-F2 into P6B and retain all P5/P6 red gates.",
+      "evidence": "The P5H-v2 receipt records 14 passed and 1 failed for the current historical-test compatibility check.",
+      "result": "P6B-G2 remains qualified; no P5/P6 gate is promoted.",
+      "limitation": "This does not establish active-path safety, custody, a trial, or a score.",
+      "rollback_boundary": "Replace only through a reviewed successor guard; never rewrite the frozen P5H-v1 test or receipt."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "raw_responses_retained": false,
+    "provider_transcripts_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false,
+    "raw_heldout_content_retained": false,
+    "grader_seeds_retained": false,
+    "raw_scores_retained": false,
+    "error_text_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_offline_receipt_reconciliation_and_no_go_scope_only",
+    "invocations": [
+      {
+        "purpose": "bind the five base artifacts and three delta source artifacts by SHA-256 before delta validation",
+        "command": "shasum -a 256 <five base artifacts and three delta source artifacts>",
+        "result": "All eight digests recorded in this delta; no external or execution action occurred."
+      },
+      {
+        "purpose": "qualified P5H-v2 receipt, frozen P5/P6, P6A-scope, redaction, and no-go reconciliation validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_p5_p6_p5h2_integrity_delta.py -q",
+        "result": "1 passed in 0.04s"
+      },
+      {
+        "purpose": "final direct P6B source-hash, P5H-v2 disposition, frozen-boundary, P6A-scope, redaction, and no-go validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_p6_p5h2_integrity_delta.py --repo .",
+        "result": "P5/P6 P5H-v2 integrity delta validation passed."
+      },
+      {
+        "purpose": "final hardened P6B validation after P5H-v2 source-set and redaction checks were added",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_p6_p5h2_integrity_delta.py --repo .",
+        "result": "P5/P6 P5H-v2 integrity delta validation passed."
+      }
+    ]
+  },
+  "next_safe_action": "Keep P5/P6 blocked. A future P5 study still requires independent custody, a new fixed live-study envelope, active executor evidence, deterministic outcomes, and independent reconstruction before any comparative, paper, training, release, or SOTA decision can change."
+}

@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "phase": "P2",
+  "receipt_id": "p2-runtime-approval-consumption-library-v1",
+  "status": "closed_library_only",
+  "scope": "Append-only pure approval-consumption evaluator; not active Runtime enforcement, a command path, provider, chemistry, evaluation, replication, paper, training, release, or SOTA evidence.",
+  "recorded_at": "2026-07-31T23:35:42Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P2-RUNTIME-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p2-runtime-contracts.json",
+      "sha256": "2e49e6e0d00db04520c248a235a31c993a4bd0746ae0e74e3d474d42fb0b51ac"
+    },
+    {
+      "artifact_id": "P2B-V2-FIXTURE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p2-executor-binding-v2-fixture-v1.json",
+      "sha256": "b1186b1df3cc51e88ca5a4fbb8922e94b7a3a3847f599fd496ecae45a7d809d4"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/runtime/approval_consumption.py",
+      "sha256": "161bd846a63cbbb09674121e3c047cf7943e6337a2229b9cba92f5d1ec273628"
+    },
+    {
+      "path": "tests/agent/runtime/test_approval_consumption.py",
+      "sha256": "8812ca30acc114c4456d70ac28c6bff5477540cba2ce38590ac4aab44b1ff90e"
+    },
+    {
+      "path": "docs/program/frontier-agent/p2-runtime-approval-consumption-library-v1.md",
+      "sha256": "d5360b839ae2f72ff237237ff5fc2e1fa637a3f45de88cb4abf7efa8d8c335bd"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p2_runtime_approval_consumption_library.py",
+      "sha256": "8e8e33878a1c97bedfe4d859620c1764ee0daa5daac027061d71e5e0064a02c0"
+    }
+  ],
+  "authority_use": {
+    "in_process_schema_document_builds": 1,
+    "focused_offline_test_invocations": 2,
+    "direct_receipt_validator_invocations": 1,
+    "cli_invocations": 0,
+    "provider_api_requests": 0,
+    "command_executor_calls": 0,
+    "engine_calls": 0,
+    "scheduler_calls": 0,
+    "network_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P2C-G1-exact-approval-and-invocation-binding": "passed_library_only",
+    "P2C-G2-preflight-and-schema-verification": "passed_library_only",
+    "P2C-G3-user-lineage-and-invalidation-refusal": "passed_library_only",
+    "P2C-G4-no-active-path-wiring": "passed_static_guard_only",
+    "P2C-G5-durable-executor-enforcement": "unresolved",
+    "P4-HA-01": "red_unresolved",
+    "P3-P6": "red_unchanged"
+  },
+  "claims": {
+    "supported": [
+      "The isolated evaluator has only digest-based inputs and returns a library-only verdict under its tested invariants."
+    ],
+    "qualified": [
+      "The contract is a prospective Runtime V2 integration seam, not an active executor control."
+    ],
+    "unresolved": [
+      "Durable atomic consumption, restart safety, concurrency, user-interface provenance, active execution integration, scientific validity, held-out outcomes, replication, and paper readiness."
+    ],
+    "rejected": [
+      "This receipt authorizes an action or demonstrates an active executor, chemistry result, provider capability, evaluation result, release, or SOTA."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P2C-F1",
+      "failure": "P2B-v2's stronger approval/preflight/schema check was fixture-only.",
+      "hypothesis": "A pure Runtime library can preserve the refusal invariants without active-path edits.",
+      "minimal_change": "Add one isolated evaluator and deterministic test matrix.",
+      "evidence": "Digest, receipt, schema, lineage, timing, and invalidation test cases.",
+      "result": "Library verdicts return only the declared success/refusal outcomes.",
+      "limitation": "No active caller invokes the evaluator.",
+      "rollback_boundary": "Delete only P2C artifacts if unsuitable; preserve frozen P2/P2B artifacts."
+    },
+    {
+      "id": "P2C-F2",
+      "failure": "A supplied schema digest alone does not prove its body is current.",
+      "hypothesis": "Recomputing metadata over the schema body catches drift.",
+      "minimal_change": "Require local schema metadata recomputation.",
+      "evidence": "Changed-body and mismatched-pin refusal cases.",
+      "result": "Schema drift is refused at library scope.",
+      "limitation": "This does not bind all future runtime behavior.",
+      "rollback_boundary": "Replace only with a reviewed versioned schema-binding contract."
+    },
+    {
+      "id": "P2C-F3",
+      "failure": "A pure in-memory verdict cannot prove durable atomic cross-process consumption.",
+      "hypothesis": "Omitting persistence avoids an unsupported executor-safety claim.",
+      "minimal_change": "Return a verdict only and retain no mutable consumption state.",
+      "evidence": "Static non-wiring guard and absence of a new event/persistence surface.",
+      "result": "P2C-G5 and P4-HA-01 remain unresolved/red.",
+      "limitation": "A later process could evaluate the same facts again.",
+      "rollback_boundary": "Require separately approved durable storage and concurrency design before active integration."
+    },
+    {
+      "id": "P2C-F4",
+      "failure": "The first focused test bound observed_at into the outer decision and re-created that decision after a schema change.",
+      "hypothesis": "The outer proposal must exclude the later observation, while schema drift must be evaluated against the already approved pin.",
+      "minimal_change": "Exclude observed_at from the outer digest and retain the original outer pin in the schema-drift case.",
+      "evidence": "Initial focused run: 30 passed and 2 failed.",
+      "result": "The corrected focused rerun is required before phase closure.",
+      "limitation": "This remains a pure evaluator with no active caller.",
+      "rollback_boundary": "Revert only this correction if a reviewed future contract explicitly adopts a different observation model."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_command_retained": false,
+    "raw_prompts_retained": false,
+    "raw_responses_retained": false,
+    "provider_transcripts_retained": false
+  },
+  "phase_close_validation": {
+    "focused_test_command": "tests/agent/runtime/test_approval_consumption.py",
+    "focused_test_result": "initial focused attempt: 30 passed, 2 failed; corrected focused rerun: 32 passed in 1.04s",
+    "validator_command": "scripts/review/validate_frontier_p2_runtime_approval_consumption_library.py",
+    "validator_result": "P2C runtime approval-consumption library validation passed.",
+    "classification": "focused_offline_library_and_receipt_integrity_only"
+  }
+}

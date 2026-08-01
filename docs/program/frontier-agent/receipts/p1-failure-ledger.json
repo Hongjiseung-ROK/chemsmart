@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "phase": "P1",
+  "recorded_at": "2026-07-31T18:13:49Z",
+  "records": [
+    {
+      "id": "P1-F1",
+      "failure": "Configured DeepSeek provider does not use the requested canonical DEEPSEEK_API_KEY alias.",
+      "hypothesis": "A legacy configuration uses the noncanonical DEEPSEEK-api-key environment variable.",
+      "minimal_change": "None in P1; preserve configuration and record the mismatch.",
+      "evidence": "Canonical alias absent; configured alias present and accepted one redacted official balance request.",
+      "result": "Qualified account availability only; P3 completion/tool surface remains blocked.",
+      "limitation": "A balance response does not validate the configured gateway, tool loop, or cost envelope.",
+      "rollback_boundary": "No configuration modification without explicit user direction; no second balance probe."
+    },
+    {
+      "id": "P1-F2",
+      "failure": "Elsevier authentication returned HTTP 403.",
+      "hypothesis": "The key may be invalid, disabled for Authentication API, outside an entitled IP/account context, or subject to another access policy.",
+      "minimal_change": "None in P1; stop after the single documented probe.",
+      "evidence": "One HTTP 403 outcome; raw body, account identifiers, and entitlement token were not retained.",
+      "result": "Entitlement and full-text retrieval blocked.",
+      "limitation": "The status code alone does not identify the failing access condition.",
+      "rollback_boundary": "No retry, token request, or full-text request without a new authorized entitlement path."
+    },
+    {
+      "id": "P1-F3",
+      "failure": "Current primary publisher passages were inaccessible or insufficient for El Agente Q, DynaMate, and AiiDA.",
+      "hypothesis": "Publisher access and bounded browser retrieval were unavailable or incomplete for the required proposition.",
+      "minimal_change": "Do not replace primary evidence with snippets or historical prose.",
+      "evidence": "Recorded primary-passage status and current Crossref metadata observations in p1-literature-evidence.json.",
+      "result": "Those propositions remain unresolved.",
+      "limitation": "Inaccessibility is not evidence against the studies; it only prevents adoption of the claim here.",
+      "rollback_boundary": "Refresh only with a permitted primary passage and correction/retraction check."
+    },
+    {
+      "id": "P1-F4",
+      "failure": "Current Crossref relation and update-to fields were empty but do not constitute definitive global retraction clearance.",
+      "hypothesis": "Crossref relation metadata has limited correction/retraction coverage.",
+      "minimal_change": "Retain the exact qualified classification; do not state no correction or retraction exists.",
+      "evidence": "Seven HTTP 200 Crossref works records with empty relation and update-to fields.",
+      "result": "Publisher-supported claims remain qualified; unresolved records remain unresolved.",
+      "limitation": "An independent authoritative correction/retraction index was not available within P1's bounded review.",
+      "rollback_boundary": "A future source refresh must explicitly identify the correction/retraction authority used."
+    }
+  ]
+}

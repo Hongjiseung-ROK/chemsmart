@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "program": "frontier-agent",
+  "observed_at": "2026-07-31T19:35:37Z",
+  "phase_outcomes": {
+    "P0": "completed_baseline",
+    "P1": "closed_blocked_with_red_gates_retained",
+    "P2": "completed_contract_boundary",
+    "P3": "closed_blocked_fixture_only",
+    "P4": "closed_blocked_review_process_only",
+    "P5": "closed_blocked_offline_preregistration_only",
+    "P6": "closed_blocked_internal_no_go"
+  },
+  "authority_use": {
+    "p1_account_or_usage_requests": 4,
+    "model_completions": 0,
+    "real_chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "dependency_installs": 0,
+    "training_runs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "quota_boundary": {
+    "deepseek": "one redacted balance observation through a configured noncanonical alias; no completion",
+    "elsevier": "one authentication observation returned HTTP 403; no full-text request",
+    "serpapi": "one account observation; no discovery query",
+    "tavily": "one usage observation; no discovery query",
+    "purchases_or_topups": 0
+  },
+  "final_claim_register": {
+    "supported_observations": [
+      "P0 baseline isolation",
+      "P2 Runtime V2 contract/replay/CLI characterization boundary",
+      "P3 frozen zero-call fixture reference",
+      "P4 evidence-review process",
+      "P5 eight-configuration zero-call preregistration"
+    ],
+    "qualified": [
+      "P1 configured-service allowance observations",
+      "P1 narrow literature design references",
+      "P2 approval-binding contract observation"
+    ],
+    "unresolved": [
+      "provider capability and live harness outcome",
+      "chemical validity and reliability",
+      "held-out component effect and named comparator",
+      "independent clean-environment replication",
+      "training eligibility"
+    ],
+    "rejected_currently": [
+      "results, SOTA, replication, training, or publication release"
+    ]
+  },
+  "validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/test_frontier_agent_program.py tests/agent/runtime/test_scientific_contracts.py tests/agent/harness/test_frontier_fault_suite.py tests/agent/harness/test_frontier_review_bundle.py tests/agent/harness/test_frontier_ablation_preregistration.py tests/agent/harness/test_frontier_decision_manifest.py -q",
+    "invocations": [
+      {
+        "reason": "initial final program milestone",
+        "result": "1 failed, 34 passed in 1.48s",
+        "finding": "P5-F9 documentation-only false positive in the frozen program validator"
+      },
+      {
+        "reason": "P5-F9 wording-only repair",
+        "result": "35 passed in 1.19s"
+      }
+    ],
+    "git_diff_check": "passed_no_whitespace_errors",
+    "classification": "focused_offline_program_runtime_fixture_review_preregistration_and_no_go_validation_only"
+  },
+  "source_artifacts": [
+    {"path": "docs/program/frontier-agent/05-component-ablation.md", "sha256": "c81dba7ea293d21ecbf06386f153912c6b49853c3f00e80f5d076bfaba4a7237"},
+    {"path": "docs/program/frontier-agent/06-replication-paper-training-decision.md", "sha256": "2aa96cfa0d3368fac39125596f8bfd57d95f38e53790dfd2275eb1510815b4f4"},
+    {"path": "docs/program/frontier-agent/receipts/p5-failure-ledger.json", "sha256": "46680ad86ca2af7a0b8c34a10cabbb0d17539e4cba5edc25cc9c4454dadbbd5b"},
+    {"path": "docs/program/frontier-agent/receipts/p6-replication-paper-training-decision.json", "sha256": "2c43eccee4322d59b4dc5fca4a5ee3a1b772bb5dfaa4330de1bb9048f4729d5f"}
+  ],
+  "next_safe_action": "Preserve the package. Seek user direction only for the material live-path permissions enumerated in P6; otherwise no execution, training, publication, commit, or push is authorized."
+}

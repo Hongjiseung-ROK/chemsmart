@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "phase": "P5",
+  "manifest_id": "frontier-component-ablation-preregistration-v1",
+  "status": "offline_preregistered_blocked",
+  "manifest_sha256": "7d9803a31936642a7b8b16597e7efd3d5032d3d6d75d0484b1223ab47322051b",
+  "source_artifacts": [
+    {
+      "artifact_id": "P1-API",
+      "path": "docs/program/frontier-agent/receipts/p1-api-usage.json",
+      "sha256": "22e08a5b66b63c1c8c204171ce3d4bffac4983ef223ab411e73f5801ba1e2e61"
+    },
+    {
+      "artifact_id": "P3-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p3-single-agent-fault-suite.json",
+      "sha256": "9f7592791e2c9349344348da3ee6b9f407ae9de032e8e85e0fb274c28316911c"
+    },
+    {
+      "artifact_id": "P3-REFERENCE",
+      "path": "tests/agent/harness/fixtures/frontier_single_agent_reference_v1.json",
+      "sha256": "22ec6c7525b0c0fcfbabbbe24277b66b3eef81032e9cd146a244db6c2c3df060"
+    },
+    {
+      "artifact_id": "P3-PUBLIC-CASES",
+      "path": "tests/agent/harness/fixtures/frontier_single_agent_fault_cases_v1.json",
+      "sha256": "713750060944320a3fc82a47ef27f4d26cf86b8f185ee77384202b0924e75d24"
+    },
+    {
+      "artifact_id": "P3-GRADER",
+      "path": "chemsmart/agent/harness/frontier_faults.py",
+      "sha256": "1991fe72a6c1276d1c630c60aa7189bc4d9bac764c79f6ab970a91730a66cdb4"
+    },
+    {
+      "artifact_id": "P4-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p4-evidence-expert-review.json",
+      "sha256": "e6071301c3e7b0a4a994e6710c31f17dcafe79a17c76125af18215c378386d96"
+    },
+    {
+      "artifact_id": "P5-PROTOCOL",
+      "path": "docs/evaluation/frontier-agent-ablation-protocol.md",
+      "sha256": "4ed0030af2af654690836fcaf503d4750d9ab20f66c548dc01b343ee60a00193"
+    }
+  ],
+  "frozen_reference": {
+    "reference_id": "frontier-single-agent-fixture-v1",
+    "reference_digest": "d11f5cdabd029bc3f574470529386b156e4e80da1c14822f301bec6cc1c9b69a",
+    "provider_mode": "fixture_only",
+    "prompt_sha256": "fbf12af86998d259e3b95aa233bacb24fff51795d588adfcad0f33d5a6655a39",
+    "tool_schema_sha256": "d3a9bc2c87891337c0556028dcbf28676bb549aebc6269fc1d2ce89c3d080a5a",
+    "parser_revision_sha256": "6ee4305796fb8dcad492dc25adf712c1145b1dac07ccf96861a28d4287bae683"
+  },
+  "configurations": [
+    {"configuration_id": "D0-E0-C0", "decomposition": false, "documentation": false, "critique": false},
+    {"configuration_id": "D0-E0-C1", "decomposition": false, "documentation": false, "critique": true},
+    {"configuration_id": "D0-E1-C0", "decomposition": false, "documentation": true, "critique": false},
+    {"configuration_id": "D0-E1-C1", "decomposition": false, "documentation": true, "critique": true},
+    {"configuration_id": "D1-E0-C0", "decomposition": true, "documentation": false, "critique": false},
+    {"configuration_id": "D1-E0-C1", "decomposition": true, "documentation": false, "critique": true},
+    {"configuration_id": "D1-E1-C0", "decomposition": true, "documentation": true, "critique": false},
+    {"configuration_id": "D1-E1-C1", "decomposition": true, "documentation": true, "critique": true}
+  ],
+  "configuration_order": [
+    "D1-E0-C1",
+    "D0-E1-C0",
+    "D1-E1-C1",
+    "D0-E0-C1",
+    "D1-E0-C0",
+    "D0-E1-C1",
+    "D0-E0-C0",
+    "D1-E1-C0"
+  ],
+  "repetitions_per_held_out_case": 3,
+  "held_out_boundary": {
+    "development_case_ids": [
+      "P3-F01",
+      "P3-F02",
+      "P3-F03",
+      "P3-F04",
+      "P3-F05",
+      "P3-F06",
+      "P3-F07",
+      "P3-F08",
+      "P3-F09",
+      "P3-F10",
+      "P3-F11",
+      "P3-F12"
+    ],
+    "grader_only_seed_manifest_sha256": "6131fd9f2a93dd291ac58c14518fc94e7219ba6b66edb121731efa5bdca40c68",
+    "held_out_status": "external_evaluator_required",
+    "independent_holder_required": true,
+    "held_out_commitment_sha256": null
+  },
+  "execution_enabled": false,
+  "authority_budget": {
+    "max_model_calls": 0,
+    "max_tokens": 0,
+    "max_tool_calls": 0,
+    "max_engine_invocations": 0,
+    "max_scheduler_calls": 0,
+    "max_cost_usd": 0,
+    "max_wall_time_s": 0
+  },
+  "planned_live_envelope": {
+    "authorization_state": "not_granted",
+    "model_snapshot": null,
+    "provider_capability_receipt": null,
+    "prompt_revision": null,
+    "tool_schema_digest": null,
+    "ceilings": {
+      "tokens": null,
+      "wall_time_s": null,
+      "tool_calls": null,
+      "cost_usd": null
+    },
+    "retry_policy": "none"
+  },
+  "scoring": {
+    "primary": "deterministic",
+    "expert_rubric": "secondary_only",
+    "llm_judge": "supplementary_only",
+    "paired_bootstrap": {
+      "method": "paired_nonparametric",
+      "confidence": 0.95,
+      "resamples": 10000,
+      "seed": 240731
+    }
+  },
+  "red_gate_ids": [
+    "P5-RG-01-provider-capability",
+    "P5-RG-02-live-authority",
+    "P5-RG-03-heldout-boundary",
+    "P5-RG-04-executor-approval",
+    "P5-RG-05-chemical-result",
+    "P5-RG-06-trial-completeness",
+    "P5-RG-07-integrity",
+    "P5-RG-08-aggregation"
+  ],
+  "claims": {
+    "P5-C1": "unresolved",
+    "P5-C2": "unresolved",
+    "P5-C3": "unresolved"
+  },
+  "trial_receipts": []
+}

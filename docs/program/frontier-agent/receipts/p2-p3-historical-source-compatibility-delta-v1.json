@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "phase": "P2_P3",
+  "receipt_id": "p2-p3-historical-source-compatibility-delta-v1",
+  "status": "closed_reconciled_compatibility_delta",
+  "scope": "Append-only reconciliation of two P2 source changes against a frozen P3 source snapshot; not a current P3 green gate, provider, evaluation, chemistry, replication, training, paper, release, or SOTA result.",
+  "recorded_at": "2026-07-31T20:36:28Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P2-FIREWALL-ADDENDUM-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p2-scientific-firewall-addendum-v1.json",
+      "sha256": "bff979a3f97aeb23942763a41f9d85418ffcb4ddab93fa5b52d5006080826008"
+    },
+    {
+      "artifact_id": "P3-FROZEN-FAULT-SUITE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p3-single-agent-fault-suite.json",
+      "sha256": "9f7592791e2c9349344348da3ee6b9f407ae9de032e8e85e0fb274c28316911c"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "docs/program/frontier-agent/p2-p3-historical-source-compatibility-delta-v1.md",
+      "sha256": "332d3acc57caa1b0fa8eee3ed7c25e479ffb914c06072acde9f1987fcea61802"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p2_p3_historical_source_compatibility.py",
+      "sha256": "57f7d7c9ea9fdd39be78c8bf8b62af0013cbbb2bbe852d2ed6117127f3b68405"
+    },
+    {
+      "path": "tests/agent/runtime/test_frontier_p2_p3_historical_source_compatibility.py",
+      "sha256": "4f0049136bb6dc0228837a3488f01196556ea517fddd54af49ae0b85a4d001d7"
+    }
+  ],
+  "historical_validator": {
+    "path": "scripts/review/validate_frontier_program.py",
+    "p3_recorded_sha256": "a3aa3c92023907b2ffa78841bea2233aadd9118ce80d71164dda4bc4c7742b90",
+    "current_sha256": "a3aa3c92023907b2ffa78841bea2233aadd9118ce80d71164dda4bc4c7742b90",
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_program.py --repo .",
+    "exit_code": 1,
+    "result": "expected_nonzero_two_p3_source_hash_drifts",
+    "drift_paths": [
+      "chemsmart/agent/runtime/events.py",
+      "tests/agent/runtime/test_scientific_contracts.py"
+    ]
+  },
+  "reconciled_source_drift": [
+    {
+      "path": "chemsmart/agent/runtime/events.py",
+      "p3_recorded_sha256": "a4d8ad161a215db012646d7a3a5aaa9f88c319a049646ce1bf053c7337418db0",
+      "p2_firewall_addendum_sha256": "81d8335edd49a304ac691857bb3750ff0c3d4024c556003ef6a7340c268525d4",
+      "current_sha256": "81d8335edd49a304ac691857bb3750ff0c3d4024c556003ef6a7340c268525d4"
+    },
+    {
+      "path": "tests/agent/runtime/test_scientific_contracts.py",
+      "p3_recorded_sha256": "e33888fc3fb57cbaa4770c43c7d165bbdc7dc91f21b0aa9247e8e99be24fe85a",
+      "p2_firewall_addendum_sha256": "5f9edf2bd530d3ebc2ec243deb2e05b2c188384f28d8940360338ba720bee0e0",
+      "current_sha256": "5f9edf2bd530d3ebc2ec243deb2e05b2c188384f28d8940360338ba720bee0e0"
+    }
+  ],
+  "authority_use": {
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "tool_dispatches": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "dependency_installs": 0,
+    "cli_semantic_changes": 0,
+    "original_p3_receipt_changes": 0,
+    "original_p3_validator_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P3-historical-source-hash-check": "expected_red_two_later_p2_changes",
+    "P2A-current-firewall-source-integrity": "passed_hash_pinned",
+    "P3-original-validator-integrity": "passed_original_sha256",
+    "P3-frozen-evidence-interpretation": "passed_historical_fixture_only",
+    "P5-P6-provider-evaluation-replication-training-release": "red_no_go_unchanged"
+  },
+  "claims": {
+    "supported": [
+      "The unchanged historical P3 validator reports exactly two later source-hash drifts.",
+      "Those two current source hashes exactly match the P2 firewall addendum."
+    ],
+    "qualified": [
+      "The frozen P3 record remains a valid historical fixture-only source snapshot."
+    ],
+    "unresolved": [
+      "A reviewed current-source P3 validation, provider capability, evaluation, chemistry, replication, and all P5/P6 evidence surfaces."
+    ],
+    "rejected": [
+      "Treating the historical P3 validator as green for the current patched source or promoting any program gate from this provenance delta."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P23-F1",
+      "failure": "The frozen P3 validator reported source-hash drift after the later P2 firewall repair.",
+      "hypothesis": "P3 correctly pins its historical source snapshot and cannot know whether a later change is reviewed without losing its own hash boundary.",
+      "minimal_change": "Preserve P3 byte-for-byte and add a separate validator that permits only the two P2-pinned drifts.",
+      "evidence": "One unchanged historical-validator invocation, the frozen P3 receipt, and the P2 firewall receipt/source hashes.",
+      "result": "Historical-red and current P2 integrity are reported separately; no original P3 data was changed.",
+      "limitation": "This does not create a current P3 green validation or repair any P3/P5/P6 blocker.",
+      "rollback_boundary": "Delete only this delta; any later source change requires a new delta and must not alter the historical P3 receipt or validator."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "engine_outputs_retained": false,
+    "raw_error_text_retained": false
+  },
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/runtime/test_frontier_p2_p3_historical_source_compatibility.py -q",
+    "result": "1 passed in 0.04s",
+    "recorded_at": "2026-07-31T20:39:05Z",
+    "classification": "focused_offline_historical_hash_reconciliation_only"
+  }
+}

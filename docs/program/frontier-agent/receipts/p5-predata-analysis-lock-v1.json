@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "phase": "P5",
+  "receipt_id": "p5-predata-analysis-lock-v1",
+  "status": "closed_fixture_predata_lock",
+  "scope": "Append-only fixture-only pre-data analysis lock; not an external custody verification, held-out catalog, real trial admission, scorer, aggregate, confidence interval, provider, tool dispatch, chemistry result, replication, paper, training, release, or SOTA result.",
+  "recorded_at": "2026-07-31T23:57:20Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P5-PREREGISTRATION",
+      "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+      "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad"
+    },
+    {
+      "artifact_id": "P5-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"
+    },
+    {
+      "artifact_id": "P5-FAILURE-LEDGER",
+      "path": "docs/program/frontier-agent/receipts/p5-failure-ledger.json",
+      "sha256": "46680ad86ca2af7a0b8c34a10cabbb0d17539e4cba5edc25cc9c4454dadbbd5b"
+    },
+    {
+      "artifact_id": "P5-CUSTODY-FIXTURE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-heldout-custody-fixture-v1.json",
+      "sha256": "189476bcb00ca9b38100064f4e3c59731adf6fc2c05ddd5e59bf7b69a2648cb4"
+    },
+    {
+      "artifact_id": "P4-REVIEW-JOIN",
+      "path": "docs/program/frontier-agent/reviews/p4-review-join-v1.json",
+      "sha256": "f209dc5e52f24422217003972709cd299e07d805ed7b13f16870f1dc7a49d01e"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_ablation_analysis_lock.py",
+      "sha256": "fdc42f307b0bb3b3a33c2dfdbdd09dfd41be4d12d3330a155bb1f76b26e58c6c"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_ablation_analysis_lock.py",
+      "sha256": "c4fed03869a0fb5df3e22856a7421e2282d2d6a59f28b7794b986eb7824d0612"
+    },
+    {
+      "path": "docs/program/frontier-agent/p5-predata-analysis-lock-v1.md",
+      "sha256": "e76a29266298e544b7f9e83430dcfe6f025f3b977709c433add1f449e1faf3ba"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p5_predata_analysis_lock.py",
+      "sha256": "3da488e32a8256e060fb2c97cd96bc91559fdfb59a5ebd2ea171c03ece80aeb8"
+    }
+  ],
+  "frozen_p5_inputs_preserved": {
+    "frontier_ablation_source_mutated": false,
+    "p5_preregistration_mutated": false,
+    "p5_close_receipt_mutated": false,
+    "p5_failure_ledger_mutated": false,
+    "p5_custody_fixture_mutated": false
+  },
+  "fixture_contract": {
+    "schema_version": "frontier.ablation-analysis-lock.v1",
+    "fixture_only": true,
+    "real_external_evidence_verified": false,
+    "raw_heldout_content_retained": false,
+    "raw_trial_outcome_retained": false,
+    "frozen_p5_manifest_file_sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad",
+    "required_factor_configurations": 8,
+    "required_repetitions_per_case": 3,
+    "synthetic_matrix_cases": 1,
+    "synthetic_matrix_rows": 24,
+    "analysis_evaluable": false,
+    "p5_evaluation_eligible": false,
+    "adoption_permitted": false
+  },
+  "budget_observation": {
+    "frozen_p5_preregistration_loads": 1,
+    "synthetic_opaque_matrix_cases": 1,
+    "synthetic_opaque_matrix_rows": 24,
+    "actual_heldout_catalog_case_seed_or_outcome_accesses": 0,
+    "aggregation_or_bootstrap_calculations": 0
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "network_calls": 0,
+    "command_executor_calls": 0,
+    "tool_dispatches": 0,
+    "engine_calls": 0,
+    "scheduler_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P5A-G1-frozen-study-binding": "passed_fixture_only",
+    "P5A-G2-outcome-shape-refusal": "passed_fixture_only",
+    "P5A-G3-deterministic-first-and-red-line-retention": "passed_fixture_only",
+    "P5A-G4-material-analysis-policy": "unresolved_by_design",
+    "P5A-G5-external-evidence-admission": "unresolved_not_provisioned",
+    "P5-G2-P5-G5": "red_unchanged_no_observed_study"
+  },
+  "unresolved_policy_decisions": {
+    "analysis_unit_and_estimand": "unresolved",
+    "repeat_trial_treatment": "unresolved",
+    "blocked_retry_missing_data_coding": "unresolved",
+    "exclusions_and_denominator": "unresolved",
+    "family_grouping_and_weighting": "unresolved",
+    "comparison_and_contrast_family": "unresolved",
+    "threshold_mapping": "unresolved",
+    "multiplicity_treatment": "unresolved"
+  },
+  "claims": {
+    "supported": [
+      "The fixture-only module hash-binds the frozen P5 surface and refuses its defined synthetic matrix and policy inconsistencies."
+    ],
+    "qualified": [
+      "The opaque commitments are prospective integrity controls only; they do not verify any external source or result."
+    ],
+    "unresolved": [
+      "External custody, complete analysis decisions, actual receipts, deterministic scoring, intervals, replication, and all P5/P6 material gates."
+    ],
+    "rejected": [
+      "This receipt establishes a held-out outcome, component benefit, chemical validity, comparator result, approval consumption, paper readiness, or SOTA."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P5A-F1",
+      "failure": "P5 fixed the factorial surface and broad bootstrap pins without binding all material policy choices before data.",
+      "hypothesis": "Opaque decision bindings can expose missing policy without a scorer selecting it implicitly.",
+      "minimal_change": "Add fixture-only decision and metric-definition hashes, with unresolved choices explicit.",
+      "evidence": "P5 protocol, P5-F2/P5-F5/P5-F8, and focused unresolved-decision checks.",
+      "result": "Unresolved choices return predata_analysis_incomplete and do not make P5 evaluable.",
+      "limitation": "A digest does not define an estimand, interval convention, contrast, or evidence source.",
+      "rollback_boundary": "Replace only through a new authorized preregistration revision with explicit decisions."
+    },
+    {
+      "id": "P5A-F2",
+      "failure": "Future receipts could mix configurations, repetitions, surface controls, custody, policy, or grader revisions before analysis.",
+      "hypothesis": "A typed opaque 8 x 3 matrix can reject structural drift before a scorer runs.",
+      "minimal_change": "Add prospective digest-only keys and exact pair/repetition coverage checks.",
+      "evidence": "Focused duplicate, visible-development reuse, missing-pair/repetition, and digest-drift fixtures.",
+      "result": "Defined structural defects are refused without a score or interval.",
+      "limitation": "The fixture cannot prove custody, receipt truth, or a real outcome.",
+      "rollback_boundary": "Retire only for a reviewed external-receipt validator with equivalent or stronger controls."
+    },
+    {
+      "id": "P5A-F3",
+      "failure": "A synthetic success-like row could be misread as evidence or used to promote a component.",
+      "hypothesis": "Hard-coded ineligibility and conclusion refusal prevent structural checks becoming a result claim.",
+      "minimal_change": "Keep P5 evaluation and adoption false and reject enable-default or SOTA intents while gates are red.",
+      "evidence": "Focused red-line and conclusion-refusal fixture.",
+      "result": "Synthetic input remains external_evidence_required with the unchanged P5 blocker set.",
+      "limitation": "No P5-G2 through P5-G5 condition is observed.",
+      "rollback_boundary": "Do not relax without independent custody, complete receipts, qualifying gates, and separate authority."
+    },
+    {
+      "id": "P5A-F4",
+      "failure": "The first red-line vocabulary omitted fabricated evidence despite it being a required integrity category.",
+      "hypothesis": "A named fixture event must cover every required integrity category before future outcomes are shaped.",
+      "minimal_change": "Add fabricated_evidence and parameterize the existing conclusion-refusal fixture over it and red-gate terminal success.",
+      "evidence": "Source audit after the initial 7-pass focused run, followed by the corrected 8-pass rerun.",
+      "result": "Both named synthetic red-line records are accepted as retained failure evidence and cannot support adoption.",
+      "limitation": "The two cases are fixtures and do not establish an observed violation or a live policy control.",
+      "rollback_boundary": "Replace only with a reviewed event registry that is a strict semantic superset."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "raw_heldout_content_retained": false,
+    "raw_outcome_values_retained": false,
+    "raw_scores_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_fixture_only_predata_lock_and_receipt_integrity",
+    "invocations": [
+      {
+        "purpose": "fixture-only pre-data policy, matrix, red-line, and unwired-boundary checks",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_ablation_analysis_lock.py -q",
+        "result": "initial focused run: 7 passed in 0.10s; corrected rerun after P5A-F4: 8 passed in 0.08s"
+      },
+      {
+        "purpose": "source hash, frozen-P5 preservation, redaction, and receipt-integrity validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_predata_analysis_lock.py --repo .",
+        "result": "P5 pre-data analysis-lock validation passed."
+      }
+    ]
+  },
+  "next_safe_action": "Keep P5 and P6 blocked. A future study needs a material user decision that supplies independent external custody, a fixed analysis-policy revision, a bounded live provider/model/tool/prompt/budget envelope, executor evidence, and separate chemistry-engine authority where applicable."
+}

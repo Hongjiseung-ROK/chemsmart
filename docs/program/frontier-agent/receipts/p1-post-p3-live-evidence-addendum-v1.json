@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "phase": "P1",
+  "receipt_id": "p1-post-p3-live-evidence-addendum-v1",
+  "status": "closed_blocked_reconciled",
+  "scope": "No-call reconciliation of immutable P1 evidence with the later P3 v1 live-provider result.",
+  "base_artifacts": [
+    {
+      "artifact_id": "P1-API",
+      "path": "docs/program/frontier-agent/receipts/p1-api-usage.json",
+      "sha256": "22e08a5b66b63c1c8c204171ce3d4bffac4983ef223ab411e73f5801ba1e2e61"
+    },
+    {
+      "artifact_id": "P1-LITERATURE",
+      "path": "docs/program/frontier-agent/receipts/p1-literature-evidence.json",
+      "sha256": "addb24100d68350f2d77e7b5d238a7e5590eab6f824a0e9b13a39fd71cee5e51"
+    },
+    {
+      "artifact_id": "P1-FAILURES",
+      "path": "docs/program/frontier-agent/receipts/p1-failure-ledger.json",
+      "sha256": "80a21b2a83eca19261e232b005ff5efd9d2bae05b208bdc0857ec395b1be8759"
+    },
+    {
+      "artifact_id": "P3-LIVE-PROTOCOL",
+      "path": "docs/program/frontier-agent/p3-live-deepseek-capability-protocol-v1.md",
+      "sha256": "0a814daa4da7cba7d3fa4de51e9157b26bbc784625ba26e7a05136b5e3d1c0ca"
+    },
+    {
+      "artifact_id": "P3-LIVE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p3-live-provider-capability-v1.json",
+      "sha256": "9d0a0eb2325a3495f58e995eded194ade653e73c9dd9594754de1295ffc3b9ff"
+    },
+    {
+      "artifact_id": "HISTORICAL-CITATION-AUDIT",
+      "path": "docs/research/frontier-agent-citation-audit.json",
+      "sha256": "9dca3f4c78db86bf2cb0b51679adcf0d58af164341fb0cc5898d99cb5614833c"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "scripts/review/validate_frontier_p1_post_p3_addendum.py",
+      "sha256": "4bf16a481d99fa3d81c9cc850d41604c9f22c5d3d7c6663f156e668bc6daa259"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p1_post_p3_addendum.py",
+      "sha256": "cd90965aa213290645fe9bccdd09babbea89b807ca6ddeeca4d528ed57bb6eec"
+    },
+    {
+      "path": "docs/program/frontier-agent/p1-post-p3-live-evidence-addendum-v1.md",
+      "sha256": "9327712f30952ea169c4791ed7b6eae9d7720068b5daf0ae64e9c26a776d07c7"
+    },
+    {
+      "path": "docs/program/frontier-agent/01-api-literature-evidence.md",
+      "sha256": "9bb73d8ef79d33830b4c8a562a088ce82441fd4c864eee5418bd8efb1c481baa"
+    }
+  ],
+  "authority_use": {
+    "new_external_api_calls": 0,
+    "new_provider_completions": 0,
+    "tool_executions": 0,
+    "chemistry_engine_invocations": 0,
+    "scheduler_invocations": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "provider_reconciliation": {
+    "p1_phase_model_completions": 0,
+    "later_p3_model_completions": 1,
+    "later_p3_status": "blocked",
+    "narrow_supported_observation": "One P1-pinned model/endpoint request returned HTTP 200, one correctly named function call, zero tool execution, zero engines, zero schedulers, and observed cost upper bound USD 0.00050808.",
+    "strict_protocol_claim": "rejected",
+    "strict_protocol_reason": "The sole response had finish_reason length and invalid arguments under the frozen 64-token cap.",
+    "active_provider_configuration": "unresolved_noncanonical_alias_not_modified",
+    "normal_chemsmart_tool_loop": "unresolved_not_invoked"
+  },
+  "gate_reconciliation": {
+    "P1-G1": "passed_addendum_redaction_boundary",
+    "P1-G2": "qualified_historical_positive_allowance_not_refreshed",
+    "P1-G3": "red_active_alias_and_v1_strict_tool_protocol",
+    "P1-G4": "mixed_four_qualified_three_unresolved_no_independent_correction_authority",
+    "P1-G5": "passed_conservative_classification_only"
+  },
+  "literature_provenance_matrix": [
+    {
+      "id": "el-agente-q",
+      "doi": "10.1016/j.matt.2025.102263",
+      "primary_passage_status": "inaccessible_http_403",
+      "claim_status": "unresolved",
+      "crossref_relation_observation": "no_crossref_relation_recorded_at_p1_time",
+      "independent_correction_retraction_authority": "not_recorded",
+      "historical_metadata_status": "citation_audit_snapshot_only"
+    },
+    {
+      "id": "chemgraph",
+      "doi": "10.1038/s42004-025-01776-9",
+      "primary_passage_status": "publisher_results_multi_agent_evaluations",
+      "claim_status": "qualified_architecture_and_evaluation_reference",
+      "crossref_relation_observation": "no_crossref_relation_recorded_at_p1_time",
+      "independent_correction_retraction_authority": "not_recorded",
+      "historical_metadata_status": "citation_audit_snapshot_only"
+    },
+    {
+      "id": "acra",
+      "doi": "10.1038/s42004-026-01993-w",
+      "primary_passage_status": "publisher_abstract_workflow_and_limitations",
+      "claim_status": "qualified_adjacent_domain_reference",
+      "crossref_relation_observation": "no_crossref_relation_recorded_at_p1_time",
+      "independent_correction_retraction_authority": "not_recorded",
+      "historical_metadata_status": "citation_audit_snapshot_only"
+    },
+    {
+      "id": "chemcrow",
+      "doi": "10.1038/s42256-024-00832-8",
+      "primary_passage_status": "publisher_abstract",
+      "claim_status": "qualified_architecture_reference",
+      "crossref_relation_observation": "no_crossref_relation_recorded_at_p1_time",
+      "independent_correction_retraction_authority": "not_recorded",
+      "historical_metadata_status": "citation_audit_snapshot_only"
+    },
+    {
+      "id": "dynamate",
+      "doi": "10.1039/d5me00062a",
+      "primary_passage_status": "inaccessible_within_budget",
+      "claim_status": "unresolved",
+      "crossref_relation_observation": "no_crossref_relation_recorded_at_p1_time",
+      "independent_correction_retraction_authority": "not_recorded",
+      "historical_metadata_status": "citation_audit_snapshot_only"
+    },
+    {
+      "id": "aiida",
+      "doi": "10.1038/s41597-020-00638-4",
+      "primary_passage_status": "insufficient_current_passage",
+      "claim_status": "unresolved",
+      "crossref_relation_observation": "no_crossref_relation_recorded_at_p1_time",
+      "independent_correction_retraction_authority": "not_recorded",
+      "historical_metadata_status": "citation_audit_snapshot_only"
+    },
+    {
+      "id": "workflow-run-ro-crate",
+      "doi": "10.1371/journal.pone.0309210",
+      "primary_passage_status": "publisher_abstract_and_introduction",
+      "claim_status": "qualified_provenance_reference",
+      "crossref_relation_observation": "no_crossref_relation_recorded_at_p1_time",
+      "independent_correction_retraction_authority": "not_recorded",
+      "historical_metadata_status": "citation_audit_snapshot_only"
+    }
+  ],
+  "claims": {
+    "supported": [
+      "The P3 v1 request remained within its recorded cost, timeout, redaction, and non-execution boundaries and returned one correctly named function call."
+    ],
+    "qualified": [
+      "The P1 balance is a positive historical allowance observation only.",
+      "ChemGraph, ACRA, ChemCrow, and Workflow Run RO-Crate remain narrow qualified design references."
+    ],
+    "unresolved": [
+      "Active provider canonical configuration and normal ChemSmart tool-loop behavior.",
+      "El Agente Q, DynaMate, AiiDA, and named independent correction/retraction coverage."
+    ],
+    "rejected": [
+      "The v1 model response formed a valid fixed function record.",
+      "Any ChemSmart readiness, performance, replication, training, publication, or SOTA claim."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P1-AF1",
+      "failure": "The historical P1 phase page stated that no completion or P3 tool-surface observation existed after a later P3 specimen had occurred.",
+      "hypothesis": "Phase-local statements can become incomplete when a later bounded phase consumes an explicitly linked allowance.",
+      "minimal_change": "Add a hash-linked reconciliation receipt instead of rewriting P1 historical receipts.",
+      "evidence": "P1 receipt hashes and P3 live protocol/receipt hashes in this addendum.",
+      "result": "Closed with a focused offline source/hash/classification validation pass.",
+      "limitation": "The reconciliation does not refresh quota, provider configuration, or literature sources.",
+      "rollback_boundary": "Remove this addendum only; do not edit the immutable P1 or P3 records."
+    },
+    {
+      "id": "P1-AF2",
+      "failure": "P3 v1 reached the token cap with invalid function arguments despite one correctly named call.",
+      "hypothesis": "The fixed strict record was not completed within the predeclared 64-token envelope.",
+      "minimal_change": "Record the red result and retain the cap; do not retry or alter the v1 request.",
+      "evidence": "P3 live receipt structural fields and validation findings.",
+      "result": "Strict valid-tool-schema claim rejected; normal path remains unresolved.",
+      "limitation": "No raw arguments are retained, so the precise invalidity mechanism is not inferred.",
+      "rollback_boundary": "A future test needs a separately frozen protocol and budget."
+    }
+  ],
+  "redaction": {
+    "credentials_retained": false,
+    "raw_prompt_retained": false,
+    "raw_response_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false,
+    "error_text_retained": false
+  },
+  "phase_close_validation": {
+    "command": "scripts/review/validate_frontier_p1_post_p3_addendum.py --repo .",
+    "result": "1 passed in 0.04s",
+    "validated_at": "2026-07-31T20:11:40Z",
+    "classification": "offline_reconciliation_only"
+  }
+}

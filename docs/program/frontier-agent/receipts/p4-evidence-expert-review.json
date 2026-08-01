@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "phase": "P4",
+  "status": "completed",
+  "phase_outcome": "closed_blocked",
+  "observed_at": "2026-07-31T19:16:25Z",
+  "review_origin": {
+    "reviewer_role_containers": 5,
+    "independent_human_expert_reviews": 0,
+    "reviewer_authority": "read_only",
+    "packet_builder_is_not_an_arbiter": true,
+    "interpretation": "The role containers encode bounded adviser findings and process controls; they are not evidence of five commissioned independent human expert reviews."
+  },
+  "packet": {
+    "path": "docs/program/frontier-agent/reviews/p4-review-packet-v1.json",
+    "packet_digest": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+    "bundle_digest": "cb8d01ec12d4f1ca713e3beeacec5beebc9e5f2bed30fd6efae3ff3a92e10eb3",
+    "excluded_material": [
+      "credential_values",
+      "grader_only_seeds",
+      "mutable_workspace_paths",
+      "provider_transcripts",
+      "raw_prompts",
+      "reasoning_traces"
+    ],
+    "redaction": "All retained packet data are locators, hashes, claim identifiers, and bounded reviewer statements; no credential value, prompt, transcript, reasoning trace, seed, or mutable absolute path is retained."
+  },
+  "source_artifacts": [
+    {"path": "chemsmart/agent/harness/frontier_review.py", "sha256": "48cdb2cbeff7c6b22a27b96821b237df348913eea461191863988b753f4de9b7"},
+    {"path": "tests/agent/harness/test_frontier_review_bundle.py", "sha256": "9035eaeb1a2929abb7afba2e3dcfded080c353854379cc17f95c613568612e65"},
+    {"path": "docs/program/frontier-agent/reviews/p4-inputs/p5-component-ablation-plan-v1.md", "sha256": "c477097fd7444198fcf60d26ecbb26160dbbecd29aaf422e7fbea47200c73812"},
+    {"path": "docs/program/frontier-agent/reviews/p4-review-packet-v1.json", "sha256": "c2ab1c757dc68b0f150c1cf6af981be50f88250f24f13b597c518104699183e6"},
+    {"path": "docs/program/frontier-agent/reviews/p4-chemistry-findings-v1.json", "sha256": "d12484abff0473c0fe70e33b494b91c35cc2a9b2447d7f1d42ba08a806c4fbfd"},
+    {"path": "docs/program/frontier-agent/reviews/p4-statistics-findings-v1.json", "sha256": "a8456ffb8491f566c841c9dcda650acc5a51b081de3fd70d3d633f9bc60eaf39"},
+    {"path": "docs/program/frontier-agent/reviews/p4-harness-findings-v1.json", "sha256": "b8391026437411cee6de8928bb5919585174f555507a87ca67c131c5ca807068"},
+    {"path": "docs/program/frontier-agent/reviews/p4-citation-findings-v1.json", "sha256": "fa161da597c54db46981b0e9312bf6ae5bf36c0d06417a0df781a27ab986b66e"},
+    {"path": "docs/program/frontier-agent/reviews/p4-red-team-findings-v1.json", "sha256": "ce8cae9929222f0dae3e716ea4efce3f73ed10ecf6190e40c6ff084978fd55ce"},
+    {"path": "docs/program/frontier-agent/reviews/p4-review-join-v1.json", "sha256": "f209dc5e52f24422217003972709cd299e07d805ed7b13f16870f1dc7a49d01e"},
+    {"path": "docs/program/frontier-agent/receipts/p4-failure-ledger.json", "sha256": "46dd1f9d5d0d997912e817adecff619af687b837461b1df8577f637e01f32575"}
+  ],
+  "review_summary": {
+    "finding_count": 7,
+    "roles": ["chemistry", "citation", "harness", "red_team", "statistics"],
+    "critical_finding_count": 4,
+    "stop_condition_count": 4,
+    "claim_promotions": 0
+  },
+  "authority_use": {
+    "live_provider_calls": 0,
+    "model_completions": 0,
+    "real_chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0,
+    "publication_actions": 0
+  },
+  "gates": {
+    "P4-G1": "passed_packet_hashes_and_read_only_role_declarations",
+    "P4-G2": "passed_all_findings_have_frozen_evidence_locators_and_claim_links",
+    "P4-G3": "passed_complete_deterministic_join_with_one_row_per_finding",
+    "P4-G4": "passed_explicit_stop_condition_validation_no_live_action_or_packet_mutation_performed",
+    "claim_outcome": "blocked_by_four_critical_stop_dispositions_and_retained_cross_phase_red_gates"
+  },
+  "phase_close_validation": {
+    "classification": "focused_offline_packet_hash_role_isolation_and_deterministic_join_only",
+    "invocations": [
+      {
+        "reason": "initial P4 packet close before P5 input archival correction",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_review_bundle.py -q",
+        "result": "4 passed in 0.07s",
+        "validated_at": "2026-07-31T19:07:00Z"
+      },
+      {
+        "reason": "P4-F6 immutable-input archival repair",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_review_bundle.py -q",
+        "result": "4 passed in 0.06s",
+        "validated_at": "2026-07-31T19:16:25Z"
+      }
+    ]
+  },
+  "claims": [
+    {"id": "P4-C1", "status": "supported_process_observation"},
+    {"id": "P4-C2", "status": "unresolved"},
+    {"id": "P4-C3", "status": "unresolved"},
+    {"id": "P1-C2", "status": "qualified"},
+    {"id": "P1-C3", "status": "qualified"},
+    {"id": "P1-C4", "status": "rejected"},
+    {"id": "P2-C1", "status": "supported_contract_observation"},
+    {"id": "P2-C3", "status": "qualified"},
+    {"id": "P3-C1", "status": "unresolved"},
+    {"id": "P3-C2", "status": "unresolved"},
+    {"id": "P3-C3", "status": "unresolved"},
+    {"id": "P5-C1", "status": "unresolved"},
+    {"id": "P5-C2", "status": "unresolved"},
+    {"id": "P5-C3", "status": "unresolved"}
+  ],
+  "limitations": [
+    "P4 validates an evidence-review process, not the truth of every reviewer statement or a calibrated critic.",
+    "No external independent human expert review, live provider outcome, chemistry calculation, held-out trial, or clean-environment replication occurred.",
+    "P3-G5 remains blocked and P2 executor-side approval consumption remains unimplemented.",
+    "SOTA remains a hypothesis requiring a named controlled comparison and independent replication."
+  ],
+  "next_safe_action": "Start P5 only as an offline preregistration and deterministic fixture-plan phase; do not run a model, provider completion, chemistry engine, scheduler, or held-out comparison while the retained gates and separate authority requirements are unresolved."
+}

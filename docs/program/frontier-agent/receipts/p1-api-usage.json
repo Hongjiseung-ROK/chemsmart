@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "phase": "P1",
+  "observed_at": "2026-07-31T18:13:49Z",
+  "scope": "One redacted account, balance, usage, or authentication request per configured service; no completion, discovery, full-text, engine, scheduler, installation, purchase, top-up, or retry.",
+  "alias_resolution": {
+    "deepseek": {
+      "requested_alias": "DEEPSEEK_API_KEY",
+      "requested_alias_present": false,
+      "configured_api_key_env": "DEEPSEEK-api-key",
+      "configured_alias_present": true,
+      "provider_type": "openai",
+      "wire_protocol": "openai_chat_completions",
+      "model": "deepseek-v4-pro",
+      "base_url_sha256": "a34e2a4708ed1c61008a151688838dcf1c44d4e7f08054633e72ba7c0b16cfc1",
+      "configuration_status": "noncanonical_alias_observed_not_modified"
+    },
+    "elsevier": {
+      "canonical_alias": "ELSEVIER_API_KEY",
+      "canonical_alias_present": false,
+      "fallback_alias": "Elsivier_api_key",
+      "fallback_alias_present": true
+    },
+    "serpapi": {
+      "canonical_alias": "SERPAPI_KEY",
+      "canonical_alias_present": false,
+      "fallback_alias": "SerpApi_api_key",
+      "fallback_alias_present": true
+    },
+    "tavily": {
+      "canonical_alias": "TAVILY_API_KEY",
+      "canonical_alias_present": false,
+      "fallback_alias": "Tavily_api_key",
+      "fallback_alias_present": true
+    }
+  },
+  "probes": [
+    {
+      "service": "deepseek",
+      "endpoint": "https://api.deepseek.com/user/balance",
+      "endpoint_id": "deepseek.user.balance.v1",
+      "credential_alias": "DEEPSEEK-api-key",
+      "credential_source_class": "user_api_env",
+      "request_count": 1,
+      "http_status": 200,
+      "outcome": "ok",
+      "model_completions": 0,
+      "usage": {
+        "is_available": true,
+        "balances": [
+          {
+            "currency": "USD",
+            "total_balance": "0.82",
+            "granted_balance": "0.00",
+            "topped_up_balance": "0.82"
+          }
+        ]
+      },
+      "limitation": "Balance availability does not validate the configured gateway, Chat-Completions tool loop, canonical alias mapping, or a P3 cost ceiling."
+    },
+    {
+      "service": "elsevier",
+      "endpoint": "https://api.elsevier.com/authenticate?platform=SCOPUS",
+      "endpoint_id": "elsevier.authenticate.scopus.v1",
+      "credential_alias": "Elsivier_api_key",
+      "credential_source_class": "user_api_env",
+      "request_count": 1,
+      "http_status": 403,
+      "outcome": "http_error",
+      "model_completions": 0,
+      "entitlement": "unknown_blocked",
+      "raw_body_retained": false,
+      "limitation": "HTTP 403 cannot distinguish invalid key, service enablement, IP/account entitlement, or another policy restriction."
+    },
+    {
+      "service": "serpapi",
+      "endpoint": "https://serpapi.com/account.json",
+      "endpoint_id": "serpapi.account.v1",
+      "credential_alias": "SerpApi_api_key",
+      "credential_source_class": "user_api_env",
+      "request_count": 1,
+      "http_status": 200,
+      "outcome": "ok",
+      "model_completions": 0,
+      "usage": {
+        "account_status": "Active",
+        "searches_per_month": 250,
+        "plan_searches_left": 250,
+        "extra_credits": 0,
+        "total_searches_left": 250,
+        "this_month_usage": 0,
+        "this_hour_searches": 0,
+        "last_hour_searches": 0,
+        "account_rate_limit_per_hour": 250
+      },
+      "limitation": "Account availability does not turn a search snippet into evidence."
+    },
+    {
+      "service": "tavily",
+      "endpoint": "https://api.tavily.com/usage",
+      "endpoint_id": "tavily.usage.v1",
+      "credential_alias": "Tavily_api_key",
+      "credential_source_class": "user_api_env",
+      "request_count": 1,
+      "http_status": 200,
+      "outcome": "ok",
+      "model_completions": 0,
+      "usage": {
+        "key": {
+          "usage": 0,
+          "search_usage": 0,
+          "extract_usage": 0,
+          "crawl_usage": 0,
+          "map_usage": 0,
+          "research_usage": 0
+        },
+        "account": {
+          "current_plan": "Researcher",
+          "plan_usage": 0,
+          "plan_limit": 1000,
+          "paygo_usage": 0,
+          "search_usage": 0,
+          "extract_usage": 0,
+          "crawl_usage": 0,
+          "map_usage": 0,
+          "research_usage": 0
+        }
+      },
+      "limitation": "Usage endpoint output does not establish discovery quality, source support, or claim validity."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_request_urls_retained": false,
+    "authorization_headers_retained": false,
+    "raw_response_bodies_retained": false,
+    "account_identifiers_retained": false,
+    "transport_debug_logging_enabled": false
+  },
+  "quota_decision": {
+    "existing_quota_only": true,
+    "purchases_or_topups": 0,
+    "discovery_queries": 0,
+    "deepseek_completion_calls": 0,
+    "safe_next_action": "Do not issue a completion until a separate P3 frozen tool/prompt/token/wall-time/cost envelope is approved or a human resolves the canonical-alias binding."
+  },
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/test_frontier_agent_program.py -q",
+    "result": "1 passed in 0.04s",
+    "validated_at": "2026-07-31T18:16:39Z",
+    "classification": "offline_redaction_schema_hash_and_link_validation_only"
+  }
+}

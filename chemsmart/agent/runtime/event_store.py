@@ -13,7 +13,11 @@ from chemsmart.agent.private_io import (
     ensure_private_directory,
     ensure_private_file,
 )
-from chemsmart.agent.runtime.events import EventKind, RuntimeEvent
+from chemsmart.agent.runtime.events import (
+    EventKind,
+    RuntimeEvent,
+    scientific_extension_from_payload,
+)
 
 if os.name == "nt":  # Windows has no fcntl; use byte-range locks instead.
     import msvcrt
@@ -59,6 +63,10 @@ class RuntimeEventStore:
         payload: dict[str, Any] | None = None,
         idempotency_key: str = "",
     ) -> RuntimeEvent:
+        payload_data = dict(payload or {})
+        # Validate before opening the append path.  The registry never writes
+        # normalized data back into the payload whose exact bytes are hashed.
+        scientific_extension_from_payload(kind, payload_data)
         descriptor = os.open(
             self.path,
             os.O_RDWR
@@ -80,13 +88,24 @@ class RuntimeEventStore:
                 if idempotency_key:
                     for event in events:
                         if event.idempotency_key == idempotency_key:
+                            if (
+                                "scientific_v1" in payload_data
+                                or "scientific_v1" in event.payload
+                            ) and (
+                                event.kind is not kind
+                                or event.payload != payload_data
+                            ):
+                                raise ValueError(
+                                    "scientific runtime idempotency key was "
+                                    "reused with a different payload"
+                                )
                             return event
                 event = RuntimeEvent.create(
                     sequence=len(events) + 1,
                     session_id=session_id,
                     turn_id=turn_id,
                     kind=kind,
-                    payload=dict(payload or {}),
+                    payload=payload_data,
                     previous_hash=events[-1].event_hash if events else "",
                     idempotency_key=idempotency_key,
                 )
@@ -146,6 +165,7 @@ class RuntimeEventStore:
     def _validate(events: list[RuntimeEvent]) -> None:
         previous_hash = ""
         for expected_sequence, event in enumerate(events, start=1):
+            scientific_extension_from_payload(event.kind, event.payload)
             if event.sequence != expected_sequence:
                 raise EventStoreCorruptionError(
                     "runtime event sequence is not contiguous"

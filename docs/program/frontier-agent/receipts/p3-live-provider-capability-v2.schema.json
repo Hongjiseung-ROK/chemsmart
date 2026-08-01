@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "artifact_type": "p3_live_provider_capability_v2_receipt_schema",
+  "receipt_path": "docs/program/frontier-agent/receipts/p3-live-provider-capability-v2.json",
+  "terminal_statuses": [
+    "completed",
+    "blocked"
+  ],
+  "required_top_level_fields": [
+    "schema_version",
+    "phase",
+    "receipt_id",
+    "observed_at",
+    "status",
+    "outcome",
+    "related_public_case",
+    "not_a_fault_trace_or_grade",
+    "source_artifacts",
+    "provider",
+    "contract",
+    "observation",
+    "non_execution",
+    "redaction",
+    "validation_issues",
+    "error_class",
+    "pre_call_validation"
+  ],
+  "required_source_paths": [
+    "chemsmart/agent/harness/frontier_live_provider_v2.py",
+    "scripts/review/run_frontier_live_deepseek_capability_v2.py",
+    "scripts/review/validate_frontier_live_provider_v2.py",
+    "tests/agent/harness/test_frontier_live_provider_v2.py",
+    "tests/agent/harness/test_frontier_live_provider_v2_receipt.py",
+    "docs/program/frontier-agent/p3-live-deepseek-capability-protocol-v2.md",
+    "docs/program/frontier-agent/receipts/p3-live-provider-capability-v2.schema.json"
+  ],
+  "pre_call_validation_fields": [
+    "offline_contract_result",
+    "dry_run_outcome",
+    "credential_preflight_outcome",
+    "credential_value_retained"
+  ],
+  "forbidden_raw_field_names": [
+    "raw_prompt",
+    "prompt_text",
+    "messages",
+    "raw_response",
+    "response_text",
+    "provider_transcript",
+    "tool_arguments",
+    "reasoning_content",
+    "credential_value",
+    "authorization",
+    "headers",
+    "error_text"
+  ],
+  "required_redaction_flags": {
+    "raw_prompt_retained": false,
+    "raw_response_retained": false,
+    "credentials_retained": false,
+    "headers_retained": false,
+    "error_text_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false
+  },
+  "claim_boundary": "A completed receipt is only a direct-provider structural observation; it cannot promote runtime, CLI, chemistry, evaluation, paper, training, replication, or SOTA claims."
+}

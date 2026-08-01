@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "phase": "P3",
+  "status": "completed",
+  "phase_outcome": "closed_blocked",
+  "observed_at": "2026-07-31T18:51:43Z",
+  "baseline": {
+    "p0_receipt": "docs/program/frontier-agent/p0-baseline-receipt.json",
+    "p1_status": "closed_blocked_with_red_gates_retained",
+    "p2_status": "completed_contract_boundary_superseded_by_p3_guardrail_slice"
+  },
+  "frozen_reference": {
+    "reference_path": "tests/agent/harness/fixtures/frontier_single_agent_reference_v1.json",
+    "reference_digest": "d11f5cdabd029bc3f574470529386b156e4e80da1c14822f301bec6cc1c9b69a",
+    "suite_digest": "61d3b4108dd3008f232540d538f6c0aa50ebcfb98505b0bd4ee256083be5bf6a",
+    "provider_mode": "fixture_only",
+    "provider_model": "not_invoked",
+    "budget": {
+      "max_model_calls": 0,
+      "max_tokens": 0,
+      "max_tool_calls": 0,
+      "max_cost_usd": 0,
+      "max_wall_time_s": 0
+    }
+  },
+  "source_artifacts": [
+    {"path": "scripts/review/validate_frontier_program.py", "sha256": "a3aa3c92023907b2ffa78841bea2233aadd9118ce80d71164dda4bc4c7742b90"},
+    {"path": "chemsmart/agent/harness/frontier_faults.py", "sha256": "1991fe72a6c1276d1c630c60aa7189bc4d9bac764c79f6ab970a91730a66cdb4"},
+    {"path": "chemsmart/agent/runtime/events.py", "sha256": "a4d8ad161a215db012646d7a3a5aaa9f88c319a049646ce1bf053c7337418db0"},
+    {"path": "chemsmart/agent/runtime/orchestrator.py", "sha256": "235304cf2d2fa698d1dfe3a457f7cf19d89d5bde3ea4183a60d507a27f98ef62"},
+    {"path": "tests/agent/harness/fixtures/frontier_single_agent_reference_v1.json", "sha256": "22ec6c7525b0c0fcfbabbbe24277b66b3eef81032e9cd146a244db6c2c3df060"},
+    {"path": "tests/agent/harness/fixtures/frontier_single_agent_fault_cases_v1.json", "sha256": "713750060944320a3fc82a47ef27f4d26cf86b8f185ee77384202b0924e75d24"},
+    {"path": "tests/agent/harness/fixtures/frontier_single_agent_fault_seeds_v1.json", "sha256": "6131fd9f2a93dd291ac58c14518fc94e7219ba6b66edb121731efa5bdca40c68"},
+    {"path": "tests/agent/harness/test_frontier_fault_suite.py", "sha256": "68ad46050f19352289948b1f379d07e88d796a36c094f3e1fe50d6cc3f2960a5"},
+    {"path": "tests/agent/runtime/test_scientific_contracts.py", "sha256": "e33888fc3fb57cbaa4770c43c7d165bbdc7dc91f21b0aa9247e8e99be24fe85a"}
+  ],
+  "fixture_boundary": {
+    "public_cases_path": "tests/agent/harness/fixtures/frontier_single_agent_fault_cases_v1.json",
+    "grader_seeds_path": "tests/agent/harness/fixtures/frontier_single_agent_fault_seeds_v1.json",
+    "one_seed_per_case": true,
+    "public_fixture_contains_grader_metadata": false,
+    "held_out_use": "reserved_for_P5"
+  },
+  "authority_use": {
+    "live_provider_calls": 0,
+    "model_completions": 0,
+    "real_chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "failure_ledger": [
+    {
+      "id": "P3-FL1",
+      "failure": "RuntimeEvent accepted schema versions other than v1 because schema_version was an unconstrained integer.",
+      "hypothesis": "An unsupported event version can appear hash-valid while bypassing the declared v1 compatibility contract.",
+      "minimal_change": "Constrain RuntimeEvent.schema_version to Literal[1] and add a future-version rejection fixture.",
+      "evidence": "P3 source review and the P3-F11 replay/version fault specification identified the unconstrained field.",
+      "result": "Implemented pending focused validation.",
+      "limitation": "This validates the event envelope only; it does not migrate or interpret a future schema.",
+      "rollback_boundary": "Restore the permissive field only if a separately versioned migration and compatibility policy is approved."
+    },
+    {
+      "id": "P3-FL2",
+      "failure": "An opt-in scientific task could complete after evidence and validation without a green phase-close record, and terminal claims were not checked for record closure.",
+      "hypothesis": "A scientific success must bind an explicit green phase close and resolve every referenced evidence/validation ID before completion.",
+      "minimal_change": "Add optional phase-close and claim inputs to RuntimeController.complete and gate only explicit scientific tasks.",
+      "evidence": "P3-F09 and the deterministic fault inventory isolate missing claim closure and phase-close bypasses.",
+      "result": "Implemented pending focused validation.",
+      "limitation": "The gate does not make a claim true; it only prevents an unresolved or red record from being called complete.",
+      "rollback_boundary": "Remove the opt-in completion extensions if replay or legacy CLI tests show a semantic regression."
+    },
+    {
+      "id": "P3-FL3",
+      "failure": "A recorded approval invalidation or budget exhaustion did not independently prevent scientific completion.",
+      "hypothesis": "Any active-task invalidation or exhausted active budget is a deterministic red completion gate.",
+      "minimal_change": "Add active-task approval-invalidation and budget-exhaustion checks to the opt-in scientific completion rules.",
+      "evidence": "P3-F10 and P3-F12 fixture definitions plus the P2 reducer-state review.",
+      "result": "Implemented pending focused validation.",
+      "limitation": "Executor-side one-shot consumption is still outside this phase and no action was dispatched.",
+      "rollback_boundary": "Retain the records but remove only the completion checks if a future executor proves a stricter authoritative gate."
+    }
+  ],
+  "gates": {
+    "P3-G1": "passed_frozen_zero_call_reference_and_digest",
+    "P3-G2": "qualified_deterministic_grader_and_guardrail_fixtures_only",
+    "P3-G3": "qualified_fixture_claim_closure_only",
+    "P3-G4": "passed_contract_guardrail_fixture_only",
+    "P3-G5": "blocked_by_retained_P1_provider_configuration_and_tool_surface_gates"
+  },
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_fault_suite.py tests/agent/runtime/test_scientific_contracts.py tests/agent/harness/test_agentic_contract.py tests/agent/runtime/test_calculations.py tests/agent/test_permissions.py tests/agent/test_frontier_agent_program.py -q",
+    "result": "129 passed in 4.21s",
+    "validated_at": "2026-07-31T18:53:39Z",
+    "classification": "focused_fixture_runtime_permission_and_program_integrity_only"
+  },
+  "claims": [
+    {"id": "P3-C1", "status": "unresolved"},
+    {"id": "P3-C2", "status": "unresolved"},
+    {"id": "P3-C3", "status": "unresolved"}
+  ],
+  "limitations": [
+    "The source-controlled grader-only seed manifest is operationally separated from public fixture input, not cryptographically hidden from a repository reader.",
+    "Archived output text, when introduced in later cases, is evidence of an archived artifact and not proof of a newly run calculation.",
+    "P3-G5 remains blocked: no DeepSeek completion was attempted because P1 configuration/tool-surface gates remain red."
+  ]
+}

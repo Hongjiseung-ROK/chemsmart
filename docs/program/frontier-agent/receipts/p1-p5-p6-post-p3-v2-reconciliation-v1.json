@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "receipt_id": "p1-p5-p6-post-p3-v2-reconciliation-v1",
+  "observed_at": "2026-07-31T21:14:48Z",
+  "status": "closed_no_go_reconciliation",
+  "scope": "Append-only chronology and claim-scope reconciliation after the completed P3 v2 direct specimen; not an evaluation, training, replication, paper, release, or SOTA result.",
+  "base_artifacts": [
+    {
+      "artifact_id": "P1-POST-P3-V1",
+      "path": "docs/program/frontier-agent/receipts/p1-post-p3-live-evidence-addendum-v1.json",
+      "sha256": "f60236928a3e420b156d03e01747c388a3eb998c3db931841b0d683fefe1bdb1"
+    },
+    {
+      "artifact_id": "P3-V1-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p3-live-provider-capability-v1.json",
+      "sha256": "9d0a0eb2325a3495f58e995eded194ade653e73c9dd9594754de1295ffc3b9ff"
+    },
+    {
+      "artifact_id": "P3-V2-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p3-live-provider-capability-v2.json",
+      "sha256": "4d9c996f611a4c7a983a524077f52d25174e3033215f0880d111bd3191c48436"
+    },
+    {
+      "artifact_id": "P5-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"
+    },
+    {
+      "artifact_id": "P5-PREREGISTRATION",
+      "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+      "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad"
+    },
+    {
+      "artifact_id": "P6-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p6-replication-paper-training-decision.json",
+      "sha256": "2c43eccee4322d59b4dc5fca4a5ee3a1b772bb5dfaa4330de1bb9048f4729d5f"
+    },
+    {
+      "artifact_id": "P6-NO-GO",
+      "path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json",
+      "sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "scripts/review/validate_frontier_p1_p5_p6_v2_reconciliation.py",
+      "sha256": "5eb74b610c305b32f3a66a44862842bbab35300baebc38a5c7fa430dc9e5da11"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p1_p5_p6_v2_reconciliation.py",
+      "sha256": "068c3959d08a3575b53574f16d137ce23eedafe2b8510c153b6ee850741db5d7"
+    },
+    {
+      "path": "docs/program/frontier-agent/p1-p5-p6-post-p3-v2-reconciliation-v1.md",
+      "sha256": "3eb13034b3e1ebcfbba252554938feb4e9163bf0954f4bc0b1a66a9bf5a5f429"
+    },
+    {
+      "path": "docs/program/frontier-agent/p3-live-deepseek-capability-v2-close-delta-v1.md",
+      "sha256": "275f7f2a98f336bbab3226757aa7124fc72d58b4bae690ae9404c7ea6912e537"
+    }
+  ],
+  "chronology": {
+    "P5_closed_at": "2026-07-31T19:24:07Z",
+    "P6_closed_at": "2026-07-31T19:32:16Z",
+    "P3_v1_observed_at": "2026-07-31T19:55:22Z",
+    "P1_post_v1_reconciled_at": "2026-07-31T20:11:40Z",
+    "P3_v2_observed_at": "2026-07-31T21:07:35Z",
+    "interpretation": "P5/P6 no-provider-execution statements are true at their own earlier closes; v2 is later chronology only."
+  },
+  "authority_use": {
+    "new_external_api_calls": 0,
+    "new_provider_completions": 0,
+    "new_p5_trials": 0,
+    "tool_executions": 0,
+    "chemistry_engine_invocations": 0,
+    "scheduler_invocations": 0,
+    "training_runs": 0,
+    "dependency_installs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "p3_v2_later_observation": {
+    "observed_at": "2026-07-31T21:07:35Z",
+    "http_status": 200,
+    "elapsed_ms": 2180,
+    "request_count": 1,
+    "retry_count": 0,
+    "finish_reason": "tool_calls",
+    "tool_call_count": 1,
+    "tool_name_matches": true,
+    "arguments_schema_valid": true,
+    "tool_execution_count": 0,
+    "engine_invocations": 0,
+    "scheduler_invocations": 0,
+    "observed_cost_upper_bound_usd": "0.00055506"
+  },
+  "gate_reconciliation": {
+    "P1-direct-provider-surface": "qualified_single_direct_specimen_only",
+    "P3-v1-historical-result": "red_unchanged",
+    "P3-v2-direct-observation": "supported_narrow_nonexecuting_structural_only",
+    "P4-executor-and-chemical-boundaries": "red_unresolved",
+    "P5-RG-01-and-evaluation-eligibility": "red_false_no_trials",
+    "P5-G4-G5": "blocked_no_paired_results_or_replication_inputs",
+    "P6-results-sota-replication-training-publication": "no_go_unchanged"
+  },
+  "claims": {
+    "supported": [
+      "One direct, P1-pinned, non-executing provider specimen met the v2 structural contract.",
+      "Frozen P5/P6 no-provider statements remain historically true at their earlier close times."
+    ],
+    "qualified": [
+      "The one-observation v1-v2 contrast is consistent with but does not identify a ceiling effect.",
+      "The P1 balance is a historical allowance observation rather than a current quota statement."
+    ],
+    "unresolved": [
+      "Active provider/tool-loop/CLI behavior, executor consumption, chemistry, held-out outcomes, replication, and training eligibility."
+    ],
+    "rejected": [
+      "A completed direct specimen clears P5 evaluation eligibility or supports results, SOTA, replication, training, publication, or a fresh quota claim."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P1V2-F1",
+      "failure": "Frozen P1/P5/P6 artifacts predate v2.",
+      "hypothesis": "Editing historical sources would erase chronology and break provenance hashes.",
+      "minimal_change": "Add this hash-linked reconciliation only.",
+      "evidence": "Base-artifact hashes and close/observation timestamps preserve the order of events.",
+      "result": "closed_append_only_chronology",
+      "limitation": "Chronology alone cannot create a trial, result, or eligibility decision.",
+      "rollback_boundary": "Delete only this reconciliation if invalid; preserve every frozen base artifact."
+    },
+    {
+      "id": "P1V2-F2",
+      "failure": "A valid direct function record could be overread as active-agent or chemical capability.",
+      "hypothesis": "Structural validity is not execution, domain correctness, or reliability.",
+      "minimal_change": "Retain every active-path, P4, P5, and P6 red gate explicitly.",
+      "evidence": "V2 records zero dispatches and there are no P5 trial or chemical artifacts.",
+      "result": "no_go_unchanged",
+      "limitation": "The specimen cannot diagnose or reproduce the v1 failure mechanism.",
+      "rollback_boundary": "Downgrade to unresolved if the v2 receipt or hashes fail validation; never reinterpret unseen content."
+    },
+    {
+      "id": "P1V2-F3",
+      "failure": "A later provider call might be mistaken for current quota evidence.",
+      "hypothesis": "A historical balance and one recorded cost upper bound do not prove present allowance.",
+      "minimal_change": "Make no refreshed balance or future-spend claim in this delta.",
+      "evidence": "P1 and v2 receipt timestamps and bounded numeric fields.",
+      "result": "qualified_historical_allowance_only",
+      "limitation": "No new account or usage observation was made by this reconciliation.",
+      "rollback_boundary": "A current quota claim requires a separately bounded usage probe."
+    }
+  ],
+  "redaction": {
+    "credentials_retained": false,
+    "headers_retained": false,
+    "raw_prompt_retained": false,
+    "raw_response_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false,
+    "error_text_retained": false
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "phase": "P5",
+  "status": "completed",
+  "phase_outcome": "closed_blocked",
+  "observed_at": "2026-07-31T19:24:07Z",
+  "preregistration": {
+    "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+    "file_sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad",
+    "manifest_digest": "7d9803a31936642a7b8b16597e7efd3d5032d3d6d75d0484b1223ab47322051b",
+    "status": "offline_preregistered_blocked",
+    "execution_enabled": false,
+    "configuration_ids": [
+      "D0-E0-C0",
+      "D0-E0-C1",
+      "D0-E1-C0",
+      "D0-E1-C1",
+      "D1-E0-C0",
+      "D1-E0-C1",
+      "D1-E1-C0",
+      "D1-E1-C1"
+    ],
+    "reference_configuration": "D0-E0-C0",
+    "repetitions_per_future_held_out_case": 3,
+    "held_out_status": "external_evaluator_required",
+    "live_envelope": "not_granted_with_all_model_and_ceiling_fields_null"
+  },
+  "eligibility": {
+    "eligible": false,
+    "blocker_ids": [
+      "P5-RG-01-provider-capability",
+      "P5-RG-02-live-authority",
+      "P5-RG-03-heldout-boundary",
+      "P5-RG-04-executor-approval",
+      "P5-RG-05-chemical-result",
+      "P5-RG-06-trial-completeness",
+      "P5-RG-07-integrity",
+      "P5-RG-08-aggregation"
+    ]
+  },
+  "source_artifacts": [
+    {"path": "chemsmart/agent/harness/frontier_ablation.py", "sha256": "ef3a3ea4ac231e2f775e49c2981a884012fc799c29eb3c8c4825cdf44cd6a8da"},
+    {"path": "tests/agent/harness/test_frontier_ablation_preregistration.py", "sha256": "0fd598be7cb8f96ad343a97607ad217086fe6696501803154680b7e60fe91600"},
+    {"path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json", "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad"},
+    {"path": "docs/program/frontier-agent/receipts/p4-evidence-expert-review.json", "sha256": "e6071301c3e7b0a4a994e6710c31f17dcafe79a17c76125af18215c378386d96"}
+  ],
+  "authority_use": {
+    "live_provider_calls": 0,
+    "model_completions": 0,
+    "real_chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0,
+    "publication_actions": 0
+  },
+  "gates": {
+    "P5-G1": "passed_hash_pinned_eight_configuration_zero_call_preregistration",
+    "P5-G2": "configured_deterministic_primary_expert_secondary_llm_supplementary_not_observed",
+    "P5-G3": "configured_red_line_stop_conditions_not_observed",
+    "P5-G4": "blocked_no_complete_paired_trial_receipt_or_interval",
+    "P5-G5": "blocked_no_raw_receipt_environment_or_independent_rerun",
+    "claim_outcome": "blocked_all_P5_claims_remain_unresolved"
+  },
+  "phase_close_validation": {
+    "classification": "focused_offline_manifest_factorial_boundary_and_future_key_validation_only",
+    "invocations": [
+      {
+        "reason": "initial P5 structural check",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_ablation_preregistration.py -q",
+        "result": "1 failed, 1 passed, 2 errors in 0.12s",
+        "finding": "P5-F0 false positive secret-shaped-data detection on public artifact ID task-settings-005"
+      },
+      {
+        "reason": "P5-F0 targeted regex repair",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_ablation_preregistration.py -q",
+        "result": "4 passed in 0.04s",
+        "validated_at": "2026-07-31T19:24:07Z"
+      }
+    ]
+  },
+  "claims": [
+    {"id": "P5-C1", "status": "unresolved"},
+    {"id": "P5-C2", "status": "unresolved"},
+    {"id": "P5-C3", "status": "unresolved"}
+  ],
+  "limitations": [
+    "An offline preregistration is not a study result, a calibration result, or a replication result.",
+    "No provider configuration/capability receipt, externally held-out catalog, executor dispatch gate, or chemical-result trace is available.",
+    "P3 public fixtures and source-controlled seed material remain development-only and cannot be called held out.",
+    "SOTA remains an untested hypothesis."
+  ],
+  "next_safe_action": "Proceed to P6 only for an offline no-go paper/replication/training decision package. A live P5 trial needs a material user decision covering provider capability, a bounded existing-quota envelope, independent held-out custody, and any separately required chemistry-engine authority."
+}

@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "phase": "P5",
+  "receipt_id": "p5-custody-pair-ownership-v2",
+  "status": "closed_fixture_successor_qualified",
+  "scope": "Append-only P5H-v2 digest-only pair-ownership fixture successor; not an external held-out catalog, active Runtime or CLI control, provider, tool dispatch, chemistry result, trial, replication, paper, training, release, or SOTA evidence.",
+  "recorded_at": "2026-08-01T00:58:55Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P5-PREREGISTRATION",
+      "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+      "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad"
+    },
+    {
+      "artifact_id": "P5-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"
+    },
+    {
+      "artifact_id": "P4-RED-TEAM",
+      "path": "docs/program/frontier-agent/reviews/p4-red-team-findings-v1.json",
+      "sha256": "ce8cae9929222f0dae3e716ea4efce3f73ed10ecf6190e40c6ff084978fd55ce"
+    },
+    {
+      "artifact_id": "P5H-V1-SOURCE",
+      "path": "chemsmart/agent/harness/frontier_heldout_custody.py",
+      "sha256": "ad1b071894898ab4c745edb169d934459360ab30e6fd9741a2535b4844189d29"
+    },
+    {
+      "artifact_id": "P5H-V1-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-heldout-custody-fixture-v1.json",
+      "sha256": "189476bcb00ca9b38100064f4e3c59731adf6fc2c05ddd5e59bf7b69a2648cb4"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_custody_pair_ownership_v2.py",
+      "sha256": "b174767a89c169dfc0e8f00645774bec146dbf4217dd62b87faff3fa4dd748ee"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_custody_pair_ownership_v2.py",
+      "sha256": "bc4795d3593d06f8adb8791da1ae2e87865ac9f9452bc29cb579db7c79a7ce33"
+    },
+    {
+      "path": "docs/program/frontier-agent/p5-custody-pair-ownership-v2.md",
+      "sha256": "4a4b2fd7dd59c5a51b8eaffe4423ccbc4a6bb24e74aa13638f9ef868ae3981fa"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p5_custody_pair_ownership_v2.py",
+      "sha256": "e08cc948f4962b2633a815243308ab3f1a4beba17c9161d54ebc305dbc182e46"
+    }
+  ],
+  "fixture_contract": {
+    "schema_version": "frontier.custody-pair-ownership.v2",
+    "custody_mode": "fixture_only",
+    "real_custody_verified": false,
+    "raw_heldout_content_retained": false,
+    "case_labels_retained": false,
+    "p5_evaluation_eligible": false,
+    "required_factor_configurations": 8,
+    "required_repetitions_per_case": 3,
+    "pair_commitment_owner_cardinality": 1
+  },
+  "budget_observation": {
+    "maximum_synthetic_case_commitments_per_matrix": 2,
+    "maximum_synthetic_sealed_keys_per_matrix": 48,
+    "actual_heldout_catalog_accesses": 0,
+    "actual_heldout_case_accesses": 0,
+    "p5_trial_receipts_or_aggregates": 0
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "heldout_catalog_accesses": 0,
+    "heldout_case_accesses": 0,
+    "tool_dispatches": 0,
+    "real_command_executions": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "network_calls": 0,
+    "dependency_installs": 0,
+    "active_runtime_wiring_changes": 0,
+    "cli_semantic_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P5H2-G1-predecessor-preservation": "qualified_bytes_preserved_v1_static_guard_revalidation_failed",
+    "P5H2-G2-global-pair-ownership": "passed_fixture_only",
+    "P5H2-G3-no-active-wiring-or-p5-promotion": "passed_fixture_only",
+    "P5H-G4-actual-independent-custody": "unresolved_not_provisioned",
+    "P5-G4-P5-G5": "blocked_unchanged_no_trial_or_replication_inputs"
+  },
+  "claims": {
+    "supported": [
+      "The successor rejects the declared cross-group synthetic pair-commitment reuse before any score or aggregate while retaining no held-out content."
+    ],
+    "qualified": [
+      "The control is a local prospective fixture invariant and does not attest a custodian, catalog, or external secrecy boundary.",
+      "P5H-v1 source and receipt bytes are preserved, but its current broad static non-wiring test is red because later fixture-only harness modules import its helper."
+    ],
+    "unresolved": [
+      "Independent custody, active approval consumption, provider/tool-loop evidence, chemical-result provenance, raw paired trials, intervals, resolved environment, independent replication, paper readiness, training, release, and SOTA remain unresolved."
+    ],
+    "rejected": [
+      "A synthetic pair-owner check establishes P5 eligibility, a component effect, a scientific calculation, a comparator result, replication, training readiness, publication readiness, or SOTA."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P5H2-F1",
+      "failure": "P5H-v1 accepted one opaque pair commitment reused by two distinct synthetic case × repetition groups.",
+      "hypothesis": "A pair commitment needs one global case × repetition owner in addition to group-local agreement.",
+      "minimal_change": "Create a separately named digest-only successor with a pair-ownership map; preserve v1 bytes.",
+      "evidence": "The recorded local diagnostic returned fixture_boundary_valid=true with no issue for the malformed two-group matrix; the focused successor test exercises its refusal.",
+      "result": "The successor test passed; the v2 contract emits heldout.pair_commitment_reused and remains P5-ineligible.",
+      "limitation": "Opaque ownership does not prove external secrecy, a custodian, a live trial, a score, or a component benefit.",
+      "rollback_boundary": "Replace only with a reviewed external custody and scoring interface that provides an equal-or-stronger globally unique pairing invariant."
+    },
+    {
+      "id": "P5H2-F2",
+      "failure": "P5H-v1's broad static non-wiring test is red in the current checkout because it classifies later fixture-only harness imports as active wiring.",
+      "hypothesis": "Exact predecessor byte preservation and successor-local non-wiring evidence are more truthful than rewriting a historical test to force a green result.",
+      "minimal_change": "Preserve P5H-v1 and record the failed current revalidation; validate P5H-v2's own module separately.",
+      "evidence": "One focused v1 test invocation returned 14 passed and 1 failed; the matching importers are fixture harness modules rather than Runtime, CLI, provider, or executor code.",
+      "result": "P5H2-G1 is qualified, not passed; P5/P6 red gates remain unchanged.",
+      "limitation": "This does not prove the predecessor's original close, an active-path boundary, or any real custody fact.",
+      "rollback_boundary": "Replace the historical static guard only in a reviewed successor; do not edit P5H-v1 source, test, or receipt to manufacture a green rerun."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "raw_heldout_tasks_retained": false,
+    "raw_heldout_case_content_retained": false,
+    "grader_seeds_retained": false,
+    "raw_scores_retained": false,
+    "error_text_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_offline_fixture_only_pair_ownership_and_receipt_integrity",
+    "invocations": [
+      {
+        "purpose": "reproduce the v1 cross-group pair-commitment reuse failure with two synthetic opaque groups",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -",
+        "result": "fixture_boundary_valid=true, issue_ids=(), p5_evaluation_eligible=false; recorded as P5H2-F1."
+      },
+      {
+        "purpose": "successor global pair-owner, predecessor-pin, and no-active-wiring checks",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_custody_pair_ownership_v2.py -q",
+        "result": "4 passed in 0.08s"
+      },
+      {
+        "purpose": "successor source-hash, predecessor-preservation, gate, redaction, and receipt-integrity validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_custody_pair_ownership_v2.py --repo .",
+        "result": "P5H2 custody pair-ownership validation passed."
+      },
+      {
+        "purpose": "final source/document hash, predecessor-preservation, gate, redaction, and receipt-integrity validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_custody_pair_ownership_v2.py --repo .",
+        "result": "P5H2 custody pair-ownership validation passed."
+      },
+      {
+        "purpose": "current predecessor compatibility check for the frozen P5H-v1 static non-wiring guard",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_heldout_custody.py -q",
+        "result": "14 passed, 1 failed at test_custody_fixture_is_unwired_from_active_agent_paths; recorded as P5H2-F2 without mutating P5H-v1."
+      },
+      {
+        "purpose": "final qualified-successor source/document hash, predecessor-byte, gate, redaction, and receipt-integrity validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_custody_pair_ownership_v2.py --repo .",
+        "result": "P5H2 custody pair-ownership validation passed."
+      }
+    ],
+    "validator_result": "P5H2 custody pair-ownership validation passed."
+  },
+  "next_safe_action": "Keep P5/P6 blocked. A future evaluation needs separately authorized independent custody, a frozen live-study envelope, active executor evidence, raw deterministic outcomes, and independent reconstruction; no fixture control can supply them."
+}

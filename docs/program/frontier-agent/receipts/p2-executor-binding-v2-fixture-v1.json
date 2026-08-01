@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "phase": "P2",
+  "receipt_id": "p2-executor-binding-v2-fixture-v1",
+  "status": "closed_fixture_protocol",
+  "scope": "Prospective fixture-only approval lineage and canonical-preflight binding; not active Runtime V2/CLI/tool/executor wiring, real execution, provider, chemistry, evaluation, replication, training, paper, release, or SOTA evidence.",
+  "recorded_at": "2026-07-31T21:40:32Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P2-ORIGINAL-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p2-runtime-contracts.json",
+      "sha256": "2e49e6e0d00db04520c248a235a31c993a4bd0746ae0e74e3d474d42fb0b51ac"
+    },
+    {
+      "artifact_id": "P2B-V1-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p2-executor-binding-fixture-protocol-v1.json",
+      "sha256": "54e98d8d8419366c3c7ab5ae5c936f9c276652125669580c66f0910b098a6ab6"
+    },
+    {
+      "artifact_id": "P4-HARNESS-FINDING",
+      "path": "docs/program/frontier-agent/reviews/p4-harness-findings-v1.json",
+      "sha256": "b8391026437411cee6de8928bb5919585174f555507a87ca67c131c5ca807068"
+    }
+  ],
+  "frozen_v1_sources": {
+    "receipt_source_artifacts_preserved": true,
+    "source_count": 5
+  },
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_executor_binding_v2.py",
+      "sha256": "c32bd970a3fb64a93c6a85844dc0180470dbf02e9435aaa7609207bebf424eb3"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_executor_binding_v2.py",
+      "sha256": "80ad6ba1bdf2834829d058bd551e81316ac8fef7e34f3fc04753e481bb83c5ac"
+    },
+    {
+      "path": "docs/program/frontier-agent/p2-executor-binding-v2-fixture-addendum-v1.md",
+      "sha256": "2412257b94cca6e39c9b719a71a14c4f5b42e3b0ec707357165e59c9a9a564f8"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p2_executor_binding_v2_fixture.py",
+      "sha256": "58a029713d4dc264380d874f34a46cef660d074a0cec630bfaa7986d6335a174"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p2_executor_binding_v2_fixture.py",
+      "sha256": "33f95728fcac8a74a969222d65b723b0afe6d9a0e4fd0dcd16a53d509930eb66"
+    }
+  ],
+  "fixture_contract": {
+    "schema_version": "frontier.fixture-executor-binding.v2",
+    "execution_mode": "fixture_only",
+    "active_runtime_wiring": false,
+    "dispatcher_argument_present": false,
+    "canonical_preflight_receipt_digest_required": true,
+    "accepted_preflight_gates": {
+      "parser": "ok",
+      "semantic": "ok",
+      "intent": "ok"
+    },
+    "runtime_lineage_models": [
+      "ApprovalRequest",
+      "ApprovalResolution",
+      "ApprovalInvalidation"
+    ],
+    "required_actor_role": "user",
+    "cli_schema_digest_source": "schema_with_metadata(build_chemsmart_cli_schema())._meta.schema_hash"
+  },
+  "budget_observation": {
+    "live_derived_cli_schema_documents": 1,
+    "valid_fake_dispatch_observations": 1,
+    "invalid_fake_dispatch_observations": 0
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "real_command_executions": 0,
+    "tool_dispatches": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "external_evaluation_calls": 0,
+    "dependency_installs": 0,
+    "active_runtime_wiring_changes": 0,
+    "cli_semantic_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P2B2-G1-canonical-preflight-binding": "passed_fixture_only",
+    "P2B2-G2-typed-user-lineage-and-timing": "passed_fixture_only",
+    "P2B2-G3-one-shot-refusal-contract": "passed_one_fake_observation_zero_negative_observations",
+    "P2B2-G4-active-path-preservation": "passed_static_unwired_guard",
+    "P2B2-G5-real-executor-enforcement": "unresolved_not_implemented"
+  },
+  "claims": {
+    "supported": [
+      "The isolated fixture accepted exactly one matching user-only lineage and refused the declared receipt, lineage, timing, schema, target, request-drift, and reuse cases before fake dispatch."
+    ],
+    "qualified": [
+      "The current full Click-schema digest is derived and checked only within the fixture; it is not active CLI enforcement."
+    ],
+    "unresolved": [
+      "No durable, active executor-side approval consumption is implemented.",
+      "No P1, P3, P4, P5, or P6 gate is promoted by this fixture protocol."
+    ],
+    "rejected": [
+      "The fixture authorizes a real command, provider, engine, scheduler, chemical result, or held-out evaluation."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P2B2-F1",
+      "failure": "P2B-v1 cannot establish a typed preflight receipt's canonical digest, command digest, and gates against the request binding.",
+      "hypothesis": "A fixture should bind one acceptable archived-shaped receipt and fail closed on substitution or unsuitable gates.",
+      "minimal_change": "Add an unwired v2 receipt-hash checker only.",
+      "evidence": "Direct local receipt-shape fixtures and focused deterministic outcomes.",
+      "result": "Focused fixture cases passed; exact acceptable receipt binding and declared receipt failures were observed only in memory.",
+      "limitation": "No production preflight or command execution is exercised.",
+      "rollback_boundary": "Delete only the v2 fixture protocol if unsuitable; preserve P2B-v1."
+    },
+    {
+      "id": "P2B2-F2",
+      "failure": "P2B-v1 does not model actor provenance, typed Runtime V2 timing, invalidation history, or duplicate terminal refusal.",
+      "hypothesis": "A future executor needs ordered user-only lineage facts in addition to an outer binding.",
+      "minimal_change": "Add an in-memory lineage evaluator that consumes no dispatcher.",
+      "evidence": "Typed resolution/invalidation fixtures and fake-dispatch counters.",
+      "result": "Focused fixture cases passed; user-only, duplicate, stale, invalidated, and mistimed lineages failed closed before fake dispatch.",
+      "limitation": "No persistence, concurrency, UI, or active enforcement is exercised.",
+      "rollback_boundary": "Any active lineage migration needs separate design and authority."
+    },
+    {
+      "id": "P2B2-F3",
+      "failure": "A supplied 64-character schema string alone does not prove derivation from current schema content.",
+      "hypothesis": "The fixture should recompute metadata from a supplied schema body before comparing pins.",
+      "minimal_change": "Validate a copied in-memory schema document locally without changing Click.",
+      "evidence": "A synthetic copied-schema content-drift fixture.",
+      "result": "A copied in-memory schema-content change recomputed to a distinct digest and failed the pinned binding.",
+      "limitation": "Schema content is not all runtime behavior.",
+      "rollback_boundary": "Retire only this fixture check if a versioned executor contract supersedes it."
+    },
+    {
+      "id": "P2B2-F4",
+      "failure": "The first closed receipt-wrapper invocation rejected its own phase-close command field as prohibited raw content before fixture evaluation.",
+      "hypothesis": "Validation provenance commands are safe local check identifiers, while raw execution command strings must remain prohibited.",
+      "minimal_change": "Remove only the generic command key from the validator denylist and retain command_string plus secret, prompt, response, argument, and error-text exclusions.",
+      "evidence": "One focused wrapper failure reporting a generic redaction-field error before fixture evaluation.",
+      "result": "After the narrowly scoped validator repair, one justified focused wrapper rerun passed.",
+      "limitation": "The repair validates receipt shape only and does not exercise a command executor.",
+      "rollback_boundary": "Restore a stricter key rule only if phase-close evidence moves to a dedicated safe field without breaking receipt provenance."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "real_execution_command_strings_retained": false,
+    "engine_outputs_retained": false,
+    "preflight_receipt_contents_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_fixture_only_approval_lineage_and_receipt_integrity",
+    "invocations": [
+      {
+        "purpose": "typed approval-lineage, canonical-preflight, schema, and fake-dispatch behavior",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_executor_binding_v2.py -q",
+        "result": "33 passed in 1.60s",
+        "recorded_at": "2026-07-31T21:40:32Z"
+      },
+      {
+        "purpose": "closed fixture receipt integrity and static unwired guard",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_p2_executor_binding_v2_fixture.py -q",
+        "result": "first focused attempt: 1 failed before fixture evaluation because of the validator redaction-field defect; corrected rerun: 1 passed in 0.09s",
+        "recorded_at": "2026-07-31T21:40:32Z"
+      }
+    ]
+  }
+}

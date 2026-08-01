@@ -1,0 +1,190 @@
+{
+  "schema_version": 2,
+  "goal_id": "chemsmart-frontier-agent-m1",
+  "observed_at": "2026-08-01T02:11:12Z",
+  "control_document": "docs/goals/frontier-agent/goal-control-v2.md",
+  "repository": {
+    "worktree": "/Users/hongjiseung/.codex/worktrees/chemsmart-frontier-agent-foundation/chemsmart",
+    "branch": "codex/frontier-agent-foundation",
+    "head": "6da43bab030b90ea5b9777105f78fd5848dd4aed",
+    "foundation_base": "cf986251077b7ee65f8afa951ee76052146c7613",
+    "dirty": true,
+    "tracked_modified_files": 6,
+    "untracked_files": 163,
+    "snapshot_only": true
+  },
+  "program_context": {
+    "ultimate_goal": "A CLI-first, provider-neutral computational-chemistry agent with reproducible active-path evidence and a defensible SOTA paper after held-out comparison and independent replication.",
+    "historical_program_frozen": true,
+    "historical_phase_states": {
+      "P0": "completed_baseline",
+      "P1": "qualified_api_and_literature_observations_with_elsevier_blocked",
+      "P2": "additive_runtime_contract_boundary_only",
+      "P3": "one_qualified_direct_nonexecuting_provider_observation_active_path_unresolved",
+      "P4": "review_process_only_no_independent_expert_validation",
+      "P5": "offline_preregistered_no_trials_ineligible",
+      "P6": "internal_no_go_no_sota_replication_training_or_publication"
+    },
+    "highest_supported_claim": "The worktree contains an additive offline Runtime V2 scientific-contract foundation and one bounded direct DeepSeek function-call observation; production harness integration and computational-chemistry validity remain unresolved."
+  },
+  "active_goal": {
+    "milestone_id": "M1-active-path-nonexecuting-provider",
+    "objective": "Observe one bounded DeepSeek tool-call turn through the active ChemSmart session, provider adapter, tool loop, permission boundary, and Runtime V2 event store with zero tool or chemistry execution.",
+    "state": "paused",
+    "vertical_path": [
+      "chemsmart.agent.services.unified_session",
+      "configured provider adapter",
+      "chemsmart.agent.loop active tool loop",
+      "existing permission policy and exact binding",
+      "Runtime V2 lifecycle and event store",
+      "blocked terminal receipt"
+    ],
+    "entry_conditions": [
+      "The previous Goal task remains idle and no other task writes this worktree.",
+      "The user reviews this v2 control plane and decides whether the large uncommitted package may be checkpointed, split, or otherwise given a rollback boundary.",
+      "The current DeepSeek allowance is sufficient for the declared single-call cap without recording exact account telemetry.",
+      "No chemistry execution, scheduler, dependency, commit, push, training, or publication authority is inferred."
+    ],
+    "exit_gates": [
+      "Exactly one explicitly authorized production-path completion and zero retries are recorded.",
+      "One schema-valid tool call is observed through the active provider and tool loop.",
+      "The exact-bound permission decision prevents tool dispatch and rejects one changed-binding case.",
+      "The Runtime V2 event log deterministically replays to the same blocked terminal state.",
+      "No credential, hidden reasoning, raw provider payload, tool execution, engine call, scheduler call, artifact overwrite, or unsupported scientific claim is retained.",
+      "At most one focused milestone test run and one minimal-repair rerun are recorded."
+    ],
+    "on_block": "record_one_failure_and_stop_without_adjacent_work"
+  },
+  "authority": {
+    "deepseek_existing_quota": "authorized_within_milestone_cap",
+    "literature_existing_quota": "authorized_but_out_of_scope_for_m1",
+    "chemistry_execution": false,
+    "scheduler_hpc": false,
+    "dependency_install": false,
+    "commit_push": false,
+    "training": false,
+    "publication": false
+  },
+  "budgets": {
+    "account_probes": 1,
+    "deepseek_completions": 1,
+    "retries": 0,
+    "tool_executions": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "new_production_modules": 2,
+    "new_test_files": 2,
+    "new_milestone_documents": 3,
+    "focused_pytest_invocations": 2,
+    "standalone_validator_invocations": 1,
+    "broad_suite_invocations": 0,
+    "ruff_formatter_invocations": 0,
+    "writable_subagents": 0
+  },
+  "evidence": [
+    {
+      "evidence_id": "E-RUNTIME-SCIENTIFIC-V1",
+      "classification": "deterministic_code_observation",
+      "status": "qualified",
+      "summary": "Optional scientific_v1 records extend existing Runtime V2 events and replay state, but the active unified session and tool loop do not yet supply or consume the full scientific binding.",
+      "sources": [
+        "chemsmart/agent/runtime/events.py",
+        "chemsmart/agent/runtime/reducer.py",
+        "chemsmart/agent/runtime/orchestrator.py",
+        "chemsmart/agent/runtime/scientific_contracts.py"
+      ]
+    },
+    {
+      "evidence_id": "E-DEEPSEEK-DIRECT-V2",
+      "classification": "direct_provider_observation",
+      "status": "qualified",
+      "summary": "One direct non-executing DeepSeek request returned one schema-valid tool call within the recorded cap; the specimen explicitly bypassed the active ChemSmart provider, tool-loop, CLI, and engine paths.",
+      "sources": [
+        "chemsmart/agent/harness/frontier_live_provider_v2.py",
+        "docs/program/frontier-agent/receipts/p3-live-provider-capability-v2.json"
+      ]
+    },
+    {
+      "evidence_id": "E-ACTIVE-PATH",
+      "classification": "unresolved",
+      "status": "unresolved",
+      "summary": "No accepted receipt currently proves scientific task binding, one-shot approval consumption, provider tool-call handling, and terminal replay through the active ChemSmart session path.",
+      "sources": [
+        "chemsmart/agent/services/unified_session.py",
+        "chemsmart/agent/loop.py",
+        "chemsmart/agent/runtime/approval_consumption.py"
+      ]
+    },
+    {
+      "evidence_id": "E-P5-P6-NO-GO",
+      "classification": "deterministic_code_observation",
+      "status": "supported",
+      "summary": "The historical P5/P6 package correctly records zero held-out trials and refuses SOTA, replication, training, and publication readiness.",
+      "sources": [
+        "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+        "docs/program/frontier-agent/receipts/p6-replication-paper-training-decision.json"
+      ]
+    },
+    {
+      "evidence_id": "E-API-ACCOUNT-OBSERVATIONS",
+      "classification": "direct_provider_observation",
+      "status": "qualified",
+      "summary": "DeepSeek, SerpAPI, and Tavily account endpoints responded successfully at the historical observation time; Elsevier returned HTTP 403 and remains entitlement-unknown. Account availability is not harness or literature-claim evidence.",
+      "sources": [
+        "docs/program/frontier-agent/receipts/p1-api-usage.json"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "blocker_id": "B-ROLLBACK-BOUNDARY",
+      "status": "open",
+      "description": "The Goal-session package is a large uncommitted tree with no durable review or rollback boundary.",
+      "resolution_evidence": "A user-authorized checkpoint/split decision and a changed-path inventory that separates runtime, harness experiments, tests, and historical evidence."
+    },
+    {
+      "blocker_id": "B-ACTIVE-PROVIDER-PATH",
+      "status": "open",
+      "description": "The successful DeepSeek specimen used a standalone direct request rather than the active ChemSmart session and tool loop.",
+      "resolution_evidence": "An M1 active-path receipt satisfying every exit gate."
+    },
+    {
+      "blocker_id": "B-APPROVAL-CONSUMPTION",
+      "status": "open",
+      "description": "The new approval evaluator is deliberately unwired and does not atomically persist consumption before exact invocation dispatch.",
+      "resolution_evidence": "A production-path negative and positive binding trace with durable one-shot consumption semantics and zero executed tools in M1."
+    },
+    {
+      "blocker_id": "B-SCIENTIFIC-PROVENANCE",
+      "status": "open",
+      "description": "Task, evidence, validation, approval, graph, and execution records do not yet have complete active-path referential integrity.",
+      "resolution_evidence": "A later authorized vertical milestone over a pinned archived or native chemistry artifact."
+    },
+    {
+      "blocker_id": "B-EMPIRICAL-STUDY",
+      "status": "open",
+      "description": "No independently held-out paired 2 x 2 x 2 trials, chemical-result recomputation, clean-environment replication, or accepted training corpus exists.",
+      "resolution_evidence": "Separately authorized held-out execution, deterministic grading, bootstrap intervals, and independent replication."
+    }
+  ],
+  "forbidden_work": [
+    "Create another fixture-only v1/v2/v3 successor that is not wired into the M1 active path.",
+    "Create cross-phase reconciliation, delta, closure, or validator documents unrelated to the M1 receipt.",
+    "Run broad pytest, Ruff, a formatter, schema regeneration, chemistry engines, schedulers, training, or publication actions.",
+    "Retry or tune a failed external model call.",
+    "Retain exact account balance, plan telemetry, credentials, headers, raw prompts, raw responses, hidden reasoning, or returned tool arguments.",
+    "Claim scientific correctness, component superiority, replication, SOTA, training eligibility, or paper readiness from M1."
+  ],
+  "handoff": {
+    "required_fields": [
+      "outcome",
+      "observed_active_path",
+      "quota_use",
+      "validation",
+      "changed_files_and_rollback",
+      "remaining_blockers",
+      "next_milestone"
+    ],
+    "single_next_milestone_only": true
+  }
+}

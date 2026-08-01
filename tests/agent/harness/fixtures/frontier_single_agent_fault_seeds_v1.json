@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "reference_id": "frontier-single-agent-fixture-v1",
+  "seeds": [
+    {"case_id": "P3-F01", "seed_id": "geometry-input-digest", "defect_class": "geometry_identity_mismatch", "severity": "critical"},
+    {"case_id": "P3-F02", "seed_id": "frame-units-order", "defect_class": "frame_units_or_order_mismatch", "severity": "critical"},
+    {"case_id": "P3-F03", "seed_id": "electronic-state", "defect_class": "charge_multiplicity_mismatch", "severity": "critical"},
+    {"case_id": "P3-F04", "seed_id": "ecp-policy", "defect_class": "ecp_required", "severity": "major"},
+    {"case_id": "P3-F05", "seed_id": "settings-policy", "defect_class": "solvation_dispersion_mismatch", "severity": "major"},
+    {"case_id": "P3-F06", "seed_id": "thermo-convention", "defect_class": "convention_or_unit_mismatch", "severity": "critical"},
+    {"case_id": "P3-F07", "seed_id": "optimization-diagnostic", "defect_class": "optimization_not_converged", "severity": "critical"},
+    {"case_id": "P3-F08", "seed_id": "frequency-diagnostic", "defect_class": "ts_imaginary_mode_count", "severity": "critical"},
+    {"case_id": "P3-F09", "seed_id": "claim-closure", "defect_class": "claim_closure_missing", "severity": "critical"},
+    {"case_id": "P3-F10", "seed_id": "approval-binding", "defect_class": "approval_binding_changed", "severity": "critical"},
+    {"case_id": "P3-F11", "seed_id": "truncated-parser", "defect_class": "required_fields_missing", "severity": "major"},
+    {"case_id": "P3-F12", "seed_id": "provider-boundary", "defect_class": "capability_or_tool_drift", "severity": "critical"}
+  ]
+}

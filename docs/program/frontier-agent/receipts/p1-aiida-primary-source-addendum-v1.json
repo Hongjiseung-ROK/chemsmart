@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "phase": "P1",
+  "receipt_id": "p1-aiida-primary-source-addendum-v1",
+  "status": "closed_qualified_source_refresh",
+  "scope": "Append-only AiiDA primary-source and limited correction-metadata refresh; not provider capability, evaluation, chemistry, replication, training, paper, release, or SOTA evidence.",
+  "recorded_at": "2026-07-31T20:30:55Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P1-LITERATURE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p1-literature-evidence.json",
+      "sha256": "addb24100d68350f2d77e7b5d238a7e5590eab6f824a0e9b13a39fd71cee5e51"
+    },
+    {
+      "artifact_id": "P1-FAILURE-LEDGER",
+      "path": "docs/program/frontier-agent/receipts/p1-failure-ledger.json",
+      "sha256": "80a21b2a83eca19261e232b005ff5efd9d2bae05b208bdc0857ec395b1be8759"
+    },
+    {
+      "artifact_id": "P1-POST-P3-ADDENDUM",
+      "path": "docs/program/frontier-agent/receipts/p1-post-p3-live-evidence-addendum-v1.json",
+      "sha256": "f60236928a3e420b156d03e01747c388a3eb998c3db931841b0d683fefe1bdb1"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "docs/program/frontier-agent/p1-aiida-primary-source-addendum-v1.md",
+      "sha256": "9626b7e44d8f07d2313e3c8477858cca4e519d85573c8f9bc54bc63dd4ae95be"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p1_aiida_primary_source_addendum.py",
+      "sha256": "67fe8df14207ebdf474d5256e24423261be3e0817538213e094590905f7bc549"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p1_aiida_primary_source_addendum.py",
+      "sha256": "54330acf2a1c571fcb8b10cd4b25328b2b929309e5178da2f2f953ec9448c7ec"
+    }
+  ],
+  "primary_source_record": {
+    "id": "aiida",
+    "doi": "10.1038/s41597-020-00638-4",
+    "publisher_url": "https://www.nature.com/articles/s41597-020-00638-4",
+    "version_of_record_pdf_url": "https://www.nature.com/articles/s41597-020-00638-4.pdf",
+    "access": "public_publisher_version_of_record",
+    "passage_locators": [
+      {
+        "page": 1,
+        "location": "unheaded front-matter abstract immediately before Introduction",
+        "supports": "automatic storage/preservation of full provenance in queryable and traversable form"
+      },
+      {
+        "page": 1,
+        "location": "unheaded front-matter abstract immediately before Introduction",
+        "supports": "workflow automation, error handling, and plugin interfaces for external simulation software"
+      },
+      {
+        "page": 2,
+        "location": "Architecture Overview",
+        "supports": "calculation and workflow runs are automatically recorded in the provenance graph"
+      }
+    ],
+    "accepted_proposition": "The authors describe automated workflow/calculation provenance recording with queryable/traversable records, workflow error handling, and external-code interfaces. This is a qualified architectural reference for Runtime V2 evidence/provenance boundaries.",
+    "claim_status": "qualified_architecture_and_provenance_reference",
+    "limitation": "Not immutable lineage, restartability, ChemSmart correctness, performance, reproducibility outcomes, physical validity, or SOTA evidence."
+  },
+  "correction_retraction_boundary": {
+    "observed_on": "2026-08-01",
+    "metadata_source": "public_crossref_works_record",
+    "metadata_url": "https://api.crossref.org/works/10.1038/s41597-020-00638-4",
+    "update_to_observation": "null",
+    "relation_observation": "ordinary_reference_relations_only",
+    "publisher_update_policy_observation": "springer_crossmark_policy_link",
+    "named_independent_authority": null,
+    "does_not_establish_global_clearance": true,
+    "status": "limited_metadata_observation_only"
+  },
+  "authority_use": {
+    "public_publisher_primary_source_retrievals": 1,
+    "public_crossref_metadata_requests": 1,
+    "credentialed_source_requests": 0,
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "discovery_snippets_used_as_evidence": 0,
+    "full_text_copies_retained": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P1-G4-aiida-passage": "qualified_primary_passages_located",
+    "P1-G4-correction-retraction": "unresolved_no_named_independent_authority",
+    "P1-G4-overall": "mixed_no_blanket_literature_pass",
+    "P1-G3-provider-configuration-and-tool-surface": "red_unchanged",
+    "P5-P6-evaluation-replication-training-release": "red_no_go_unchanged"
+  },
+  "claims": {
+    "supported": [
+      "The publisher version-of-record has the specified page and section locators.",
+      "The current Crossref update-to field is a limited metadata observation."
+    ],
+    "qualified": [
+      "AiiDA is a qualified architectural provenance/workflow reference for Runtime V2 design."
+    ],
+    "unresolved": [
+      "Global correction/retraction status, El Agente Q, DynaMate, provider capability, held-out outcomes, and all P5/P6 evidence surfaces."
+    ],
+    "rejected": [
+      "The source establishes no correction/retraction globally, ChemSmart capability, a chemistry result, reproducibility, training eligibility, release readiness, or SOTA."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P1A-F1",
+      "failure": "The original P1 AiiDA record lacked an adequate accessible primary passage and could not support a proposition.",
+      "hypothesis": "The public version-of-record PDF could support a narrower publisher-located architecture proposition without resolving correction status.",
+      "minimal_change": "Add only this hash-pinned source addendum with page locators and no copied text.",
+      "evidence": "One public publisher PDF review and one public Crossref metadata observation.",
+      "result": "A qualified architecture/provenance source reference is recorded; global correction status remains unresolved.",
+      "limitation": "The record does not support ChemSmart or performance claims and has no named independent correction/retraction authority.",
+      "rollback_boundary": "Delete only this addendum if a locator is disproved; preserve all frozen P1 artifacts and gate statuses."
+    },
+    {
+      "id": "P1A-F2",
+      "failure": "Current Crossref metadata and a publisher policy do not establish global correction/retraction clearance.",
+      "hypothesis": "Treating those fields as clearance would overstate the source record.",
+      "minimal_change": "Record the metadata as limited observation and preserve the unresolved status.",
+      "evidence": "The public Crossref update-to/policy observation and no named independent authority.",
+      "result": "P1-G4 remains mixed and no no-correction/retraction claim is admitted.",
+      "limitation": "A later authoritative correction-status path may yield a different result.",
+      "rollback_boundary": "Only a future named authority can change this classification; do not infer it from this addendum."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_pdf_or_full_text_retained": false,
+    "verbatim_passages_retained": false,
+    "provider_transcripts_retained": false,
+    "raw_prompts_retained": false
+  },
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_p1_aiida_primary_source_addendum.py -q",
+    "result": "1 passed in 0.05s",
+    "recorded_at": "2026-07-31T20:34:18Z",
+    "classification": "focused_offline_source_locator_hash_and_claim_scope_only"
+  }
+}

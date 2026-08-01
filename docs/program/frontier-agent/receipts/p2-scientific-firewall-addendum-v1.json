@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "phase": "P2",
+  "receipt_id": "p2-scientific-firewall-addendum-v1",
+  "status": "closed_remediated_addendum",
+  "scope": "A localized scientific_v1 secret-shaped-value firewall repair; not a provider, CLI, executor, chemistry, evaluation, replication, training, paper, release, or SOTA result.",
+  "recorded_at": "2026-07-31T20:27:31Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P2-ORIGINAL-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p2-runtime-contracts.json",
+      "sha256": "2e49e6e0d00db04520c248a235a31c993a4bd0746ae0e74e3d474d42fb0b51ac"
+    },
+    {
+      "artifact_id": "P2-ORIGINAL-PHASE-DOCUMENT",
+      "path": "docs/program/frontier-agent/02-runtime-scientific-contracts.md",
+      "sha256": "080ca12dea040620a994c5f84fe2b9924236d3c2f1a9191cadf33f9ac320f54c"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/runtime/events.py",
+      "sha256": "81d8335edd49a304ac691857bb3750ff0c3d4024c556003ef6a7340c268525d4"
+    },
+    {
+      "path": "tests/agent/runtime/test_scientific_contracts.py",
+      "sha256": "5f9edf2bd530d3ebc2ec243deb2e05b2c188384f28d8940360338ba720bee0e0"
+    },
+    {
+      "path": "docs/program/frontier-agent/p2-scientific-firewall-addendum-v1.md",
+      "sha256": "621b036d82a7e1a1448781f84b5690e316115b3546248274d40a047ca4647470"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p2_scientific_firewall_addendum.py",
+      "sha256": "5256f39030c01411df5942b68ee907e07fd7ca7152dae2ff22de8cd9da252fc2"
+    },
+    {
+      "path": "tests/agent/runtime/test_frontier_p2_scientific_firewall_addendum.py",
+      "sha256": "c58e6d7f41f7cc90e91f87908f28c385ab8049be93faa5d272d03b2ec1c40c0a"
+    }
+  ],
+  "failure_ledger": [
+    {
+      "id": "P2A-F1",
+      "failure": "The scientific_v1 value firewall accepted one harmless synthetic secret-shaped claim statement before event creation.",
+      "hypothesis": "Doubled backslashes in raw-string regexes made the intended word-boundary and whitespace expressions literal backslash sequences.",
+      "minimal_change": "Correct only the three value-pattern escapes and add synthetic creation/replay regression coverage.",
+      "evidence": "One in-memory fixture-only probe; inspected event source; no credential, provider, file, engine, or network action.",
+      "result": "The repaired patterns reject three predeclared synthetic shapes at both boundaries.",
+      "limitation": "The guard remains a heuristic confined to the optional scientific_v1 namespace.",
+      "rollback_boundary": "Revert only this localized addendum patch if a reviewed false-positive compatibility regression is demonstrated; retain the failure record."
+    }
+  ],
+  "authority_use": {
+    "real_credential_values": 0,
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "tool_dispatches": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "dependency_installs": 0,
+    "cli_semantic_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "regression_outcomes": {
+    "creation_rejects_synthetic_secret_shapes": true,
+    "replay_rejects_hash_correct_synthetic_secret_shapes": true,
+    "frozen_v1_fixture_replay_preserved": true,
+    "runtime_event_schema_version": 1,
+    "event_kind_changes": 0,
+    "scientific_namespace": "scientific_v1"
+  },
+  "gates": {
+    "P2A-G1-creation-firewall": "passed_three_synthetic_shapes",
+    "P2A-G2-replay-firewall": "passed_three_synthetic_shapes",
+    "P2A-G3-v1-preservation": "passed_focused_fixture_only",
+    "P2A-G4-scope-preservation": "passed_no_cli_provider_or_execution_change",
+    "P2A-G5-universal-secret-prevention": "unresolved_heuristic_boundary"
+  },
+  "claims": {
+    "supported": [
+      "The pre-patch value firewall accepted a synthetic secret-shaped string.",
+      "The repaired value firewall rejects the three predeclared synthetic shapes at creation and replay boundaries."
+    ],
+    "qualified": [
+      "The focused fixture demonstrates the localized Runtime V2 firewall behavior only."
+    ],
+    "unresolved": [
+      "Universal secret detection, executor-side approval consumption, normal provider behavior, and all chemistry/evaluation outcomes."
+    ],
+    "rejected": [
+      "This patch establishes whole-application credential safety, a provider capability pass, a chemistry result, or a SOTA claim."
+    ]
+  },
+  "redaction": {
+    "credential_values_retained": false,
+    "provider_transcripts_retained": false,
+    "raw_prompts_retained": false,
+    "engine_outputs_retained": false
+  },
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/runtime/test_scientific_contracts.py -q",
+    "result": "18 passed in 0.90s",
+    "recorded_at": "2026-07-31T20:27:31Z",
+    "classification": "focused_fixture_only_runtime_firewall_and_v1_replay_validation"
+  }
+}

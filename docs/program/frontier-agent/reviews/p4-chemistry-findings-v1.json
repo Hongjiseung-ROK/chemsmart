@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "packet_id": "p4-frontier-review-v1",
+  "packet_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "reviewer_input_manifest_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "role": "chemistry",
+  "authority": "read_only",
+  "conflict_declaration": {
+    "mutable_authority": false,
+    "repair_or_approval_authority": false,
+    "reviewer_is_packet_builder": false,
+    "reviewer_is_arbitrator": false,
+    "authored_artifact_ids": [],
+    "prior_finding_ids": []
+  },
+  "findings": [
+    {
+      "finding_id": "P4-CH-01",
+      "severity": "critical",
+      "claim_ids": ["P3-C2", "P3-C3"],
+      "evidence_ids": ["P3-DOC", "P3-RECEIPT", "P3-PUBLIC-CASES"],
+      "domain": "scientific_task_and_physical_validation",
+      "statement": "The P3 evidence is fixture-only and contains no native or archived chemical output with a parsed numerical value, unit, convergence or frequency diagnosis, and stoichiometric result.",
+      "defect_hypothesis": "A correct blocked or failed fixture terminal state could be mistaken for evidence that a completed calculation is chemically valid or reliable.",
+      "impact": "P3 cannot support a chemical-validity result or a task-family reliability inference.",
+      "safety_red_line": "Do not represent a parser, fixture, or terminal state as chemical validity.",
+      "arbitration_path": "independent_recomputation",
+      "proposed_check_id": "P5-CHEMICAL-RESULT-TRACE",
+      "recommended_claim_status": "unresolved",
+      "limitation": "Independent recomputation requires separately authorized inputs, engine/environment provenance, and native or archived artifacts; none is supplied by P3."
+    }
+  ]
+}

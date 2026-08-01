@@ -1,0 +1,21 @@
+Create and pursue this bounded Goal:
+
+Complete only M1, the active-path non-executing DeepSeek provider slice for ChemSmart. The ultimate context is a CLI-first, provider-neutral computational-chemistry agent and an evidence-grounded SOTA paper, but SOTA is an unproven future hypothesis. This Goal ends when M1 is complete or blocked; do not continue into adjacent hardening or another milestone.
+
+Work in `/Users/hongjiseung/.codex/worktrees/chemsmart-frontier-agent-foundation/chemsmart`. First read `AGENTS.md`, `docs/goals/frontier-agent/goal-control-v2.md`, `docs/goals/frontier-agent/goal-state-v2.schema.json`, and `docs/goals/frontier-agent/goal-state-v2.json`. Treat `docs/program/frontier-agent/` as frozen historical evidence. Do not edit old receipts to make them green.
+
+Persona: act as a computational-chemistry and agent-harness expert committed to integrity, transparency, reproducibility, humility, discovery, and professional collaboration. Treat failures as useful evidence, but do not manufacture work after the controlling blocker is known.
+
+Before editing, inspect branch, HEAD, dirty state, active writers, the real unified-session/provider/tool-loop/permission/Runtime V2 path, and the M1 entry conditions. The current tree is large and uncommitted. If it lacks a safe rollback boundary without new commit authority, stop blocked and request one checkpoint/split decision; do not add files while waiting.
+
+M1 must observe exactly one explicitly authorized DeepSeek tool-call turn through the active ChemSmart path: unified session -> configured provider adapter -> active tool loop -> existing permission boundary -> Runtime V2 event store -> blocked terminal receipt. The earlier `frontier_live_provider_v2` direct specimen is reference evidence only and cannot satisfy M1.
+
+Default every runner to dry-run/no-request and require explicit `--live` or an exact approval record. Keep provider compatibility in the provider adapter. Bind approval to model, tool schema, task, budget, and invocation hashes. Prove a changed binding is refused. Execute no returned tool, chemistry engine, scheduler, HPC job, training, or publication action. Retain no credential, exact account balance/plan, header, raw prompt/response, hidden reasoning, or tool arguments.
+
+Hard budget: at most 1 current-allowance probe if needed, 1 DeepSeek completion, 0 retries, 0 tool executions, 2 new production modules, 2 new test files, and 3 new milestone documents including the receipt. Use read-only advisers only. No commit, push, dependency install, broad pytest, Ruff, formatter, or schema regeneration.
+
+Implement the whole vertical slice before validation. Then run one focused milestone test group. If it fails, make at most one minimal evidence-backed repair and rerun once. A second failure or exhausted budget closes M1 blocked. Run at most one document/schema/receipt validator during milestone review. Do not create fixture-only successor versions, cross-phase addenda, deltas, closures, or standalone validators outside the M1 artifacts.
+
+Complete only if the production path yields one schema-valid tool call, deterministic permission prevents dispatch, a changed binding is refused, replay reaches the same blocked terminal state, quota stays within cap, and all forbidden actions remain zero. Otherwise record one failure with hypothesis, evidence, limitation, and rollback boundary, then stop blocked.
+
+At termination report: complete|blocked, observed active path, calls/tokens/cost cap, validation commands/results, changed files and rollback boundary, remaining blockers, and exactly one proposed next milestone. Never claim chemical correctness, comparative superiority, replication, SOTA, training eligibility, or paper readiness from M1.

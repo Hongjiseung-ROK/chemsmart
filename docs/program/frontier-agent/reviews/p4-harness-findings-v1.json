@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "packet_id": "p4-frontier-review-v1",
+  "packet_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "reviewer_input_manifest_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "role": "harness",
+  "authority": "read_only",
+  "conflict_declaration": {
+    "mutable_authority": false,
+    "repair_or_approval_authority": false,
+    "reviewer_is_packet_builder": false,
+    "reviewer_is_arbitrator": false,
+    "authored_artifact_ids": [],
+    "prior_finding_ids": []
+  },
+  "findings": [
+    {
+      "finding_id": "P4-HA-01",
+      "severity": "critical",
+      "claim_ids": ["P2-C3", "P3-C1"],
+      "evidence_ids": ["P2-DOC", "P2-RECEIPT", "P3-RECEIPT", "P3-EVENTS", "P3-ORCHESTRATOR", "P3-CONTRACT-TEST"],
+      "domain": "approval_and_execution_boundary",
+      "statement": "Approval binding, invalidation, and completion blocking are demonstrated as Runtime V2 contract fixtures, while executor-side one-shot consumption and dispatch authority remain intentionally unimplemented.",
+      "defect_hypothesis": "A future executor could treat recorded approval state as sufficient authority without consuming the bound record at dispatch.",
+      "impact": "The current evidence supports only a qualified contract observation, not enforcement of an executed action.",
+      "safety_red_line": "No dispatch or terminal success may be inferred from a durable approval record alone.",
+      "arbitration_path": "deterministic_validation",
+      "proposed_check_id": "P5-EXECUTOR-APPROVAL-CONSUMPTION",
+      "recommended_claim_status": "qualified",
+      "limitation": "There is no executor implementation or separately authorized action to exercise in P4."
+    },
+    {
+      "finding_id": "P4-HA-02",
+      "severity": "warning",
+      "claim_ids": ["P3-C1"],
+      "evidence_ids": ["P3-GRADER", "P3-RECEIPT"],
+      "domain": "metric_aggregation",
+      "statement": "The public P3 receipt reports suite-level totals, while future aggregation must reject duplicate case identifiers before a per-case map and raw-list totals can diverge.",
+      "defect_hypothesis": "A duplicated case ID in a future trial receipt could yield inconsistent aggregate counts and distort a P5 denominator.",
+      "impact": "The P3 result is not contradicted, but P5 metric integrity needs an explicit duplicate-ID rejection check before scoring.",
+      "safety_red_line": "Do not aggregate a trial set with duplicate case identifiers.",
+      "arbitration_path": "deterministic_validation",
+      "proposed_check_id": "P5-DUPLICATE-CASE-ID-REJECTION",
+      "recommended_claim_status": "unresolved",
+      "limitation": "This is a prospective scoring-control finding, not evidence of a P3 grading error."
+    }
+  ]
+}

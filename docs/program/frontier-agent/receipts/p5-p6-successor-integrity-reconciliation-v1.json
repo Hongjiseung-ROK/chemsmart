@@ -1,0 +1,346 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "receipt_id": "p5-p6-successor-integrity-reconciliation-v1",
+  "status": "closed_blocked_reconciliation",
+  "scope": "Append-only P6 receipt-level reconciliation of P5A-v3 and P5H2 integrity successors; not an amendment of frozen P5, P6, P6A, or P6B, and not independent custody, a trial, score, analysis, replication, training, release, paper, or SOTA result.",
+  "recorded_at": "2026-08-01T02:00:00Z",
+  "amends_frozen_artifacts": false,
+  "adds_to_p6a_candidate_closure": false,
+  "base_artifacts": [
+    {
+      "artifact_id": "P5A2-BASE-P5A-V1-SOURCE",
+      "path": "chemsmart/agent/harness/frontier_ablation_analysis_lock.py",
+      "sha256": "fdc42f307b0bb3b3a33c2dfdbdd09dfd41be4d12d3330a155bb1f76b26e58c6c",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5H2-SOURCE-1",
+      "path": "chemsmart/agent/harness/frontier_custody_pair_ownership_v2.py",
+      "sha256": "b174767a89c169dfc0e8f00645774bec146dbf4217dd62b87faff3fa4dd748ee",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5H2-BASE-P5H-V1-SOURCE",
+      "path": "chemsmart/agent/harness/frontier_heldout_custody.py",
+      "sha256": "ad1b071894898ab4c745edb169d934459360ab30e6fd9741a2535b4844189d29",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-SOURCE-1",
+      "path": "chemsmart/agent/harness/frontier_predata_contract_v2.py",
+      "sha256": "e9e20b61b1ae7bcbcacead0af03dee95c556fa442ec463ce66e153044f7cfa8a",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A3-SOURCE-1",
+      "path": "chemsmart/agent/harness/frontier_predata_contract_v3.py",
+      "sha256": "a33a6feed91ea093fdec50f20bb43d69af1fd2ad1be26c304ccecb5630910440",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5H2-SOURCE-3",
+      "path": "docs/program/frontier-agent/p5-custody-pair-ownership-v2.md",
+      "sha256": "4a4b2fd7dd59c5a51b8eaffe4423ccbc4a6bb24e74aa13638f9ef868ae3981fa",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-BASE-P5A-V1-DOCUMENT",
+      "path": "docs/program/frontier-agent/p5-predata-analysis-lock-v1.md",
+      "sha256": "e76a29266298e544b7f9e83430dcfe6f025f3b977709c433add1f449e1faf3ba",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-SOURCE-3",
+      "path": "docs/program/frontier-agent/p5-predata-contract-v2.md",
+      "sha256": "ff638a670ab3fcb12c503f015bfa2a67f4d92ac244675f0b7802d87b91bb07b4",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A3-SOURCE-3",
+      "path": "docs/program/frontier-agent/p5-predata-contract-v3.md",
+      "sha256": "01c1276931227a533464c0e57f4f0983deaa11a9f1adf038a25b1eb5e24b687f",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P6A-CANDIDATE-CLOSURE",
+      "path": "docs/program/frontier-agent/paper/frontier-candidate-closure-v1.json",
+      "sha256": "0d713e47399940df8a747bff1b9931519fc703824f6eb155c07667f298f3acdf",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P6-NO-GO-MANIFEST",
+      "path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json",
+      "sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P6B-RECEIPT",
+      "path": "docs/program/frontier-agent/paper/p5-p6-p5h2-integrity-delta-v1.json",
+      "sha256": "0da168a3ea2280ed756ec877e2a31ab89facba9b890c80f875325570f116ed23",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P6B-SOURCE-1",
+      "path": "docs/program/frontier-agent/paper/p5-p6-p5h2-integrity-delta-v1.md",
+      "sha256": "2a871ad197d0cf5d92db09e2f3467b3b382dc0ca9dc2d8540f1113e4c8ea50ab",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5H2-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-custody-pair-ownership-v2.json",
+      "sha256": "795ca1b278f98fdb3ac4f5d7ee076dedf1694824d540923da5881450781da4a7",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5-FAILURE-LEDGER",
+      "path": "docs/program/frontier-agent/receipts/p5-failure-ledger.json",
+      "sha256": "46680ad86ca2af7a0b8c34a10cabbb0d17539e4cba5edc25cc9c4454dadbbd5b",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-BASE-P5-CUSTODY-FIXTURE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-heldout-custody-fixture-v1.json",
+      "sha256": "189476bcb00ca9b38100064f4e3c59731adf6fc2c05ddd5e59bf7b69a2648cb4",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-BASE-P5A-V1-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-predata-analysis-lock-v1.json",
+      "sha256": "210d86a853656780c584dfd1b63628c3150fb1d91ba3e7b460a27d281b8a7c5c",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-predata-contract-v2.json",
+      "sha256": "4969c473aec9ba97166c9493ceb05380dd007f12273de23d9a1325e82e84da74",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A3-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-predata-contract-v3.json",
+      "sha256": "5a6d078bebc9659b5902763ba57d33eaa5d745400f1830e280136c240fb3215e",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P6-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p6-replication-paper-training-decision.json",
+      "sha256": "2c43eccee4322d59b4dc5fca4a5ee3a1b772bb5dfaa4330de1bb9048f4729d5f",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5H2-BASE-P4-RED-TEAM",
+      "path": "docs/program/frontier-agent/reviews/p4-red-team-findings-v1.json",
+      "sha256": "ce8cae9929222f0dae3e716ea4efce3f73ed10ecf6190e40c6ff084978fd55ce",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-BASE-P4-REVIEW-JOIN",
+      "path": "docs/program/frontier-agent/reviews/p4-review-join-v1.json",
+      "sha256": "f209dc5e52f24422217003972709cd299e07d805ed7b13f16870f1dc7a49d01e",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5H2-SOURCE-4",
+      "path": "scripts/review/validate_frontier_p5_custody_pair_ownership_v2.py",
+      "sha256": "e08cc948f4962b2633a815243308ab3f1a4beba17c9161d54ebc305dbc182e46",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P6B-SOURCE-2",
+      "path": "scripts/review/validate_frontier_p5_p6_p5h2_integrity_delta.py",
+      "sha256": "710ab90d1bb7f97ebba508e9bb5eed580ecf125dbb124fa69dde717f8d310949",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-BASE-P5A-V1-VALIDATOR",
+      "path": "scripts/review/validate_frontier_p5_predata_analysis_lock.py",
+      "sha256": "3da488e32a8256e060fb2c97cd96bc91559fdfb59a5ebd2ea171c03ece80aeb8",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-SOURCE-4",
+      "path": "scripts/review/validate_frontier_p5_predata_contract_v2.py",
+      "sha256": "fdf528e6de19dd9a27884cd78f997caa1be4589446e0a249dbb15f6fccd63501",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A3-SOURCE-4",
+      "path": "scripts/review/validate_frontier_p5_predata_contract_v3.py",
+      "sha256": "80a92ad1a421f915ae22bf3f0fd3fe0aa56cd5a378ff8999a6df83be467b918b",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5-PREREGISTRATION",
+      "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+      "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-BASE-P5A-V1-TEST",
+      "path": "tests/agent/harness/test_frontier_ablation_analysis_lock.py",
+      "sha256": "c4fed03869a0fb5df3e22856a7421e2282d2d6a59f28b7794b986eb7824d0612",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5H2-SOURCE-2",
+      "path": "tests/agent/harness/test_frontier_custody_pair_ownership_v2.py",
+      "sha256": "bc4795d3593d06f8adb8791da1ae2e87865ac9f9452bc29cb579db7c79a7ce33",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P6B-SOURCE-3",
+      "path": "tests/agent/harness/test_frontier_p5_p6_p5h2_integrity_delta.py",
+      "sha256": "a2f4d58268edb5a8b2c8b224c18f50096de93cd93d7bd804cf2e5c8a8e287000",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A2-SOURCE-2",
+      "path": "tests/agent/harness/test_frontier_predata_contract_v2.py",
+      "sha256": "8800049cb2173a72735e2851cb086bad45cc17c5d8e619d967bfe426d8ee1c62",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "artifact_id": "P5A3-SOURCE-2",
+      "path": "tests/agent/harness/test_frontier_predata_contract_v3.py",
+      "sha256": "ce97462e13ad0562730faad164f59dc9d75e7e72abbee78e4f963a84a9867a59",
+      "snapshot_mode": "current_file"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "docs/program/frontier-agent/paper/p5-p6-successor-integrity-reconciliation-v1.md",
+      "sha256": "8bc460f21279a60ab3a52eae9b81712f0831048ad9ab690c68e1939b205b46f4",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p5_p6_successor_integrity_reconciliation.py",
+      "sha256": "21483ea8ce40e5775309452d9d566211bd9f9baa474cc74e6a161bf25085d85e",
+      "snapshot_mode": "current_file"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p5_p6_successor_integrity_reconciliation.py",
+      "sha256": "017e7fe2175598dd485606224d32ebffa7f3c38bf527b299551fde9e34132041",
+      "snapshot_mode": "current_file"
+    }
+  ],
+  "graph_summary": {
+    "current_file_artifacts": 34,
+    "historical_snapshot_artifacts": 0,
+    "absent_required_artifacts": 0,
+    "p6a_candidate_artifacts": 101,
+    "p6a_amended": false
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "heldout_catalog_accesses": 0,
+    "heldout_case_accesses": 0,
+    "tool_dispatches": 0,
+    "real_command_executions": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "network_calls": 0,
+    "dependency_installs": 0,
+    "training_runs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gate_reconciliation": {
+    "P6C-G1-p5a3-transitive-integrity": "passed_local_hash_pinned_fixture_only",
+    "P6C-G2-p5h2-transitive-integrity": "passed_local_hash_pinned_fixture_only_qualified_predecessor",
+    "P6C-G3-frozen-p5-p6-p6a-p6b-preservation": "passed_hash_pinned_no_source_rewrite",
+    "P6C-G4-p6a-scope-boundary": "passed_p5a3_p5h2_excluded_from_frozen_candidate_not_amended",
+    "P5-G4-P5-G5": "blocked_unchanged_no_trial_or_replication_inputs",
+    "P6-G2": "blocked_unchanged_no_independent_clean_environment_replication_receipt",
+    "P6-G4": "blocked_unchanged_zero_eligible_training_records_and_no_authority",
+    "P6-G5": "blocked_unchanged_no_external_release_or_compute_authority",
+    "P6-results-replication-training-release-sota": "no_go_unchanged"
+  },
+  "claims": {
+    "supported": [
+      "The complete current-file provenance declared by P5A-v3/P5A-v2 and P5H2 is locally hash-pinned while frozen P5/P6 no-go decisions remain unchanged."
+    ],
+    "qualified": [
+      "P5A-v3 and P5H2 are local prospective fixture controls; P5H2 retains its qualified historical static-guard limitation."
+    ],
+    "unresolved": [
+      "Independent custody, material analysis policy, live provider/executor/chemical provenance, paired outcomes and intervals, reproducible environment, independent replication, training authority, release, paper readiness, and SOTA."
+    ],
+    "rejected": [
+      "That this reconciliation repairs P6A, makes P5 eligible, or supports a scientific, comparative, training, release, paper, or SOTA conclusion."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P56S-F1",
+      "failure": "A legacy malformed policy record can cross the P5A-v2 type boundary.",
+      "hypothesis": "A separate strict-admission successor can retain historical bytes while closing the specified fixture ingress.",
+      "minimal_change": "Bind P5A-v3 and its complete P5A-v1/v2 lineage without rewriting a predecessor.",
+      "evidence": "P5A-v3 records the real legacy decision regression and strict boolean-admission fixture.",
+      "result": "The P5A-v3 graph is locally complete and P5 remains ineligible.",
+      "limitation": "No policy document, holder, outcome, or scientific result is authenticated.",
+      "rollback_boundary": "Remove only P5A-v3 and this reconciliation; preserve P5A-v1/v2 bytes."
+    },
+    {
+      "id": "P56S-F2",
+      "failure": "P6B verified P5H2's receipt and source set but did not enumerate every P5H2 base artifact.",
+      "hypothesis": "Recursive base/source enumeration makes the local provenance boundary auditable.",
+      "minimal_change": "Pin every declared P5H2 base and source record in this reconciliation.",
+      "evidence": "The receipt graph contains the five P5H2 bases, four sources, and P5H2 receipt with current hashes.",
+      "result": "P5H2 provenance is complete locally and its predecessor qualification remains visible.",
+      "limitation": "Local hashes do not establish independent custody or secrecy.",
+      "rollback_boundary": "Remove only this reconciliation; leave P6B and historical P5H bytes intact."
+    },
+    {
+      "id": "P56S-F3",
+      "failure": "P6A predates both later P5 successors and its fixed graph excludes them.",
+      "hypothesis": "A separate receipt can preserve chronology without making a false amended-closure claim.",
+      "minimal_change": "Pin P6A's identity, 101-artifact scope, and explicit P5A3/P5H2 exclusions.",
+      "evidence": "The frozen candidate manifest hash and deterministic scope check remain unchanged.",
+      "result": "P6A stays unamended and P6 no-go remains unchanged.",
+      "limitation": "This is not portable reconstruction or independent replication.",
+      "rollback_boundary": "Remove only this reconciliation; never alter P6A."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "raw_responses_retained": false,
+    "provider_transcripts_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false,
+    "raw_heldout_content_retained": false,
+    "grader_seeds_retained": false,
+    "raw_scores_retained": false,
+    "error_text_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_offline_transitive_provenance_and_no_go_reconciliation",
+    "invocations": [
+      {
+        "purpose": "read-only transitive current-file graph inventory and source hash binding",
+        "command": "python - <read-only P5A2/P5A3/P5H2/P6B graph inventory> && shasum -a 256 <reconciliation source artifacts>",
+        "result": "34 current-file graph artifacts and three reconciliation source hashes recorded; no provider, holder, runner, engine, or network action occurred."
+      },
+      {
+        "purpose": "focused transitive P5A3/P5H2 provenance, frozen no-go, P6A scope, redaction, and authority validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_p5_p6_successor_integrity_reconciliation.py -q",
+        "result": "1 passed in 0.06s"
+      },
+      {
+        "purpose": "direct successor graph, frozen decision, chronology, redaction, authority, and no-go validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_p6_successor_integrity_reconciliation.py --repo .",
+        "result": "P5/P6 successor-integrity reconciliation validation passed."
+      }
+    ]
+  },
+  "next_safe_action": "Keep P5/P6 blocked. A live 2x2x2 study requires independent custody, an explicit study and analysis envelope, active executor evidence, raw deterministic outcomes, and separate chemistry-engine authority where needed."
+}

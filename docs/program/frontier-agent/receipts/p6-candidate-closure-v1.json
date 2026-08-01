@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "receipt_id": "p6-candidate-closure-v1",
+  "status": "closed_partial_local_evidence_closure",
+  "scope": "Append-only offline local evidence-reference closure with explicit historical-content gaps; not a portable reconstruction, independent replication, provider result, chemistry result, training, publication, release, or SOTA result.",
+  "recorded_at": "2026-08-01T00:20:51Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P6-NO-GO",
+      "path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json",
+      "sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819"
+    },
+    {
+      "artifact_id": "P6-EVIDENCE-INDEX",
+      "path": "docs/program/frontier-agent/paper/frontier-evidence-index-v1.json",
+      "sha256": "a3c54a7590db6a2acc65c50e4690610852c91c92c1c7024835b5736ce64a7a6a"
+    },
+    {
+      "artifact_id": "P5A-V2",
+      "path": "docs/program/frontier-agent/receipts/p5-predata-contract-v2.json",
+      "sha256": "4969c473aec9ba97166c9493ceb05380dd007f12273de23d9a1325e82e84da74"
+    },
+    {
+      "artifact_id": "P4-REVIEW-JOIN",
+      "path": "docs/program/frontier-agent/reviews/p4-review-join-v1.json",
+      "sha256": "f209dc5e52f24422217003972709cd299e07d805ed7b13f16870f1dc7a49d01e"
+    },
+    {
+      "artifact_id": "P2-P3-DELTA",
+      "path": "docs/program/frontier-agent/receipts/p2-p3-historical-source-compatibility-delta-v1.json",
+      "sha256": "afc1b4a69c8def0d3e995e31c0d8cc5ab5bd866d4f411f45c418378a9ef75f22"
+    },
+    {
+      "artifact_id": "P6-PROGRAM-MILESTONE",
+      "path": "docs/program/frontier-agent/receipts/program-milestone-validation.json",
+      "sha256": "71cc3b6d907e577f5a62ad19ef19232139ab0eb778f33a36400870cd58320df6"
+    },
+    {
+      "artifact_id": "CANDIDATE-MANIFEST",
+      "path": "docs/program/frontier-agent/paper/frontier-candidate-closure-v1.json",
+      "sha256": "0d713e47399940df8a747bff1b9931519fc703824f6eb155c07667f298f3acdf"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_candidate_closure.py",
+      "sha256": "2ee6572bb683ba249fbebbc0ce2856656db558326aa708afef900df5b899a180"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_candidate_closure.py",
+      "sha256": "90561ddd865f8a9cd48323c7e1b11e6fb8b660408d66b6acca3928e7f1e4d330"
+    },
+    {
+      "path": "scripts/review/validate_frontier_candidate_closure.py",
+      "sha256": "844f92ebd0295b9457680fd3ffbf8e047db0a16ab2bc813eb7cecf2475996a6f"
+    },
+    {
+      "path": "docs/program/frontier-agent/p6-candidate-closure-v1.md",
+      "sha256": "9a50a07fe4ba2c0c4b598ab2ecbbd394d066c401d343277b90dab440f948c37c"
+    }
+  ],
+  "closure_summary": {
+    "candidate_id": "frontier-candidate-closure-v1",
+    "manifest_sha256": "222b6116445691d5be38b3f061899b7fae6ea559ce69c4642d45b57bf0a53384",
+    "manifest_file_sha256": "0d713e47399940df8a747bff1b9931519fc703824f6eb155c07667f298f3acdf",
+    "present_hashed_artifacts": 84,
+    "receipt_only_historical_snapshots": 10,
+    "required_absent_artifacts": 6,
+    "environment_specifications_unlocked": 4,
+    "local_evidence_reference_closed": true,
+    "historical_content_snapshots_complete": false,
+    "portable_reconstruction_ready": false,
+    "independent_replication_performed": false
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "network_calls": 0,
+    "command_executor_calls": 0,
+    "tool_dispatches": 0,
+    "engine_calls": 0,
+    "scheduler_calls": 0,
+    "dependency_installs": 0,
+    "training_runs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P6A-G1-current-local-binding": "passed_hash_pinned_local_only",
+    "P6A-G2-chronology-preservation": "passed_historical_gaps_explicit",
+    "P6A-G3-partial-closure-classification": "passed_nonportable_no_go",
+    "P6A-G4-restricted-negative-absent-boundaries": "passed_local_fixture_only",
+    "P6-G2-independent-replication": "red_historical_content_incomplete_no_clean_reconstruction",
+    "P5-G4-P5-G5-and-P6-results-training-release-sota": "red_no_go_unchanged"
+  },
+  "claims": {
+    "supported": [
+      "The declared present local artifacts and transitive receipt bindings are hash-checked under an explicit partial-closure model."
+    ],
+    "qualified": [
+      "The closure preserves known historical mismatch identities and records environment specifications without claiming a resolved environment."
+    ],
+    "unresolved": [
+      "Exact historical bytes, portable reconstruction, independent replication, external custody, observed trials, chemistry provenance, component effects, comparators, training, release, and SOTA."
+    ],
+    "rejected": [
+      "That a local reference closure or an available current file recreates a missing historical snapshot or clears any P5/P6 material gate."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P6A-F1",
+      "failure": "The existing P6 evidence index did not traverse the broader P0-P6 package.",
+      "hypothesis": "An explicit root graph plus recursive receipt bindings exposes coverage and drift.",
+      "minimal_change": "Add a no-go closure manifest and offline validator.",
+      "evidence": "Source inventory and focused closure checks.",
+      "result": "Present local references are hash-checked.",
+      "limitation": "No absent historical content is reconstructed.",
+      "rollback_boundary": "Replace only with a reviewed expanded closure revision."
+    },
+    {
+      "id": "P6A-F2",
+      "failure": "Historical source hashes differ from current files after later repairs and addenda.",
+      "hypothesis": "Explicit snapshot modes prevent a current hash from masquerading as historical bytes.",
+      "minimal_change": "Register each discovered mismatch as receipt-only historical.",
+      "evidence": "P2/P3 compatibility delta and P4/P6 records.",
+      "result": "Chronology is preserved with no receipt rewrite.",
+      "limitation": "Matching historical bytes remain unavailable.",
+      "rollback_boundary": "Remove a gap only when exact bytes are archived and independently verified."
+    },
+    {
+      "id": "P6A-F3",
+      "failure": "A loose dependency specification could be mistaken for a reproducible environment lock.",
+      "hypothesis": "Explicit unlocked status prevents false reconstruction readiness.",
+      "minimal_change": "Classify all four environment specifications as unlocked.",
+      "evidence": "Current environment and project files.",
+      "result": "Portable reconstruction remains false.",
+      "limitation": "No clean environment receipt exists.",
+      "rollback_boundary": "Change only after a separately authorized resolved-environment capture."
+    },
+    {
+      "id": "P6A-F4",
+      "failure": "Restricted seeds or archived parser fixtures could be exported or misread as results.",
+      "hypothesis": "Export classes make non-admission machine-checkable.",
+      "minimal_change": "Require restricted, negative, and absent artifact modes.",
+      "evidence": "Focused malformed-export fixtures.",
+      "result": "Boundary violations fail closed.",
+      "limitation": "Classification does not create a held-out or chemistry result.",
+      "rollback_boundary": "Replace only with a reviewed data-governance revision."
+    },
+    {
+      "id": "P6A-F5",
+      "failure": "The first canonical digest rendered omitted optional fields as null after parsing, so an intact manifest could not reload.",
+      "hypothesis": "The digest representation must preserve the serialized optional-field convention.",
+      "minimal_change": "Omit absent optional fields from canonical artifact payloads.",
+      "evidence": "Initial focused test failure followed by the corrected reload check.",
+      "result": "The serialized manifest and recomputed tampered manifests share one canonical digest rule.",
+      "limitation": "This does not verify content outside the declared graph.",
+      "rollback_boundary": "Change canonicalization only in a versioned closure revision."
+    },
+    {
+      "id": "P6A-F6",
+      "failure": "The direct validator could not import the local harness when launched as a script.",
+      "hypothesis": "A review entrypoint must locate its repository package without ambient PYTHONPATH.",
+      "minimal_change": "Prepend the repository root derived from the validator location.",
+      "evidence": "One failed direct invocation before any closure verdict.",
+      "result": "The dedicated validator is self-contained for the checked-out package.",
+      "limitation": "This does not demonstrate a clean environment or independent reconstruction.",
+      "rollback_boundary": "Replace only with a packaged entrypoint validated in a separately authorized environment."
+    },
+    {
+      "id": "P6A-F7",
+      "failure": "Receipt self-validation exposed stale manifest and validator hashes after the validator was strengthened.",
+      "hypothesis": "A receipt validator must compare every declared artifact byte before asserting closure integrity.",
+      "minimal_change": "Update the manifest and validator bindings together, then rerun the dedicated validator.",
+      "evidence": "One direct validation failure listing the stale manifest and validator bindings.",
+      "result": "The stale bindings are explicit and are corrected only by exact new hashes.",
+      "limitation": "This validates local byte consistency, not independent reproduction.",
+      "rollback_boundary": "Any later bound-source change requires a new receipt revision and validation record."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "raw_heldout_content_retained": false,
+    "raw_outcome_values_retained": false,
+    "raw_scores_retained": false,
+    "grader_only_seed_values_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_offline_partial_local_evidence_closure_only",
+    "invocations": [
+      {
+        "purpose": "initial closure load, drift, historical-gap, environment, path, cycle, and prohibited-content checks",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_candidate_closure.py -q",
+        "result": "4 failed in 0.12s; P6A-F5 canonical optional-field mismatch found before closure acceptance."
+      },
+      {
+        "purpose": "corrected closure load, drift, historical-gap, environment, path, cycle, and prohibited-content checks",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_candidate_closure.py -q",
+        "result": "4 passed in 0.17s"
+      },
+      {
+        "purpose": "final closure reload after source and document bindings were fixed",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_candidate_closure.py -q",
+        "result": "4 passed in 0.17s"
+      },
+      {
+        "purpose": "initial direct closure-validator entrypoint check",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_candidate_closure.py --repo .",
+        "result": "failed before validation with ModuleNotFoundError for the local closure harness; recorded as P6A-F6."
+      },
+      {
+        "purpose": "final closure reload after direct-validator import repair",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_candidate_closure.py -q",
+        "result": "4 passed in 0.17s"
+      },
+      {
+        "purpose": "final manifest, historical-gap, no-go, and local-path validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_candidate_closure.py --repo .",
+        "result": "Frontier partial local evidence closure validation passed: frontier-candidate-closure-v1 remains non-replicable and no-go."
+      },
+      {
+        "purpose": "receipt self-validation after validator coverage expansion",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_candidate_closure.py --repo .",
+        "result": "failed with stale candidate-manifest and validator artifact hashes plus stale summary; recorded as P6A-F7."
+      },
+      {
+        "purpose": "final focused closure regression after receipt re-binding",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_candidate_closure.py -q",
+        "result": "4 passed in 0.16s"
+      },
+      {
+        "purpose": "final receipt-integrity, manifest, historical-gap, no-go, and local-path validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_candidate_closure.py --repo .",
+        "result": "Frontier partial local evidence closure validation passed: frontier-candidate-closure-v1 remains non-replicable and no-go."
+      }
+    ]
+  },
+  "next_safe_action": "Keep P5 and P6 blocked. A future reconstruction needs exact historical snapshot recovery, a separately authorized resolved environment, independent custody, native trial receipts, deterministic scoring, and an independent rerun before any release, training, chemistry, comparison, or SOTA decision can change."
+}

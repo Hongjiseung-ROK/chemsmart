@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "phase": "P1",
+  "checked_at": "2026-07-31T18:13:49Z",
+  "method": {
+    "primary_source_rule": "A publisher passage or official scholarly record is required for an adopted proposition; search snippets are discovery only.",
+    "metadata_check": "One current Crossref works lookup per frozen DOI; relation and update-to fields preserved as metadata observations.",
+    "correction_retraction_boundary": "An empty Crossref relation/update-to field is not a definitive global retraction clearance. Sources without an accessible primary passage or sufficient current correction evidence remain unresolved."
+  },
+  "crossref_relation_checks": [
+    {"doi": "10.1016/j.matt.2025.102263", "http_status": 200, "relation": {}, "update_to": [], "classification": "no_crossref_relation_recorded"},
+    {"doi": "10.1038/s42004-025-01776-9", "http_status": 200, "relation": {}, "update_to": [], "classification": "no_crossref_relation_recorded"},
+    {"doi": "10.1038/s42004-026-01993-w", "http_status": 200, "relation": {}, "update_to": [], "classification": "no_crossref_relation_recorded"},
+    {"doi": "10.1038/s42256-024-00832-8", "http_status": 200, "relation": {}, "update_to": [], "classification": "no_crossref_relation_recorded"},
+    {"doi": "10.1039/d5me00062a", "http_status": 200, "relation": {}, "update_to": [], "classification": "no_crossref_relation_recorded"},
+    {"doi": "10.1038/s41597-020-00638-4", "http_status": 200, "relation": {}, "update_to": [], "classification": "no_crossref_relation_recorded"},
+    {"doi": "10.1371/journal.pone.0309210", "http_status": 200, "relation": {}, "update_to": [], "classification": "no_crossref_relation_recorded"}
+  ],
+  "records": [
+    {
+      "id": "el-agente-q",
+      "doi": "10.1016/j.matt.2025.102263",
+      "publisher_url": "https://www.sciencedirect.com/science/article/pii/S2590238525003066",
+      "metadata_status": "current_crossref_title_and_date_verified",
+      "primary_passage_status": "inaccessible_http_403",
+      "accepted_proposition": null,
+      "claim_status": "unresolved",
+      "limitation": "Historical landscape claims about hierarchy, recovery, traceability, or success are not refreshed P1 evidence."
+    },
+    {
+      "id": "chemgraph",
+      "doi": "10.1038/s42004-025-01776-9",
+      "publisher_url": "https://www.nature.com/articles/s42004-025-01776-9",
+      "metadata_status": "publisher_and_current_crossref_verified",
+      "primary_passage_status": "publisher_results_multi_agent_evaluations",
+      "accepted_proposition": "The authors report task-specific benefit from planner, per-species executor, and aggregation decomposition for selected thermochemistry benchmark tasks under their named models and three-run averaging.",
+      "claim_status": "qualified_architecture_and_evaluation_reference",
+      "limitation": "Not independent replication, universal multi-agent benefit, physical-validity proof, or ChemSmart SOTA evidence."
+    },
+    {
+      "id": "acra",
+      "doi": "10.1038/s42004-026-01993-w",
+      "publisher_url": "https://www.nature.com/articles/s42004-026-01993-w",
+      "metadata_status": "publisher_and_current_crossref_verified",
+      "primary_passage_status": "publisher_abstract_workflow_and_limitations",
+      "accepted_proposition": "The authors report translation of textual synthetic procedures into XDL with syntactic and hardware-constrained simulation checks; this is an adjacent-domain analogy for structured procedures plus deterministic validation.",
+      "claim_status": "qualified_adjacent_domain_reference",
+      "limitation": "Not a quantum-chemistry study or evidence that an LLM critic is a scientific authority; no unlocated numeric critic claim is accepted."
+    },
+    {
+      "id": "chemcrow",
+      "doi": "10.1038/s42256-024-00832-8",
+      "publisher_url": "https://www.nature.com/articles/s42256-024-00832-8",
+      "metadata_status": "publisher_and_current_crossref_verified",
+      "primary_passage_status": "publisher_abstract",
+      "accepted_proposition": "ChemCrow is a chemistry-agent architecture reference for expert-designed tool augmentation.",
+      "claim_status": "qualified_architecture_reference",
+      "limitation": "Does not establish provenance-complete computational chemistry, Runtime V2 correctness, reproducibility, or SOTA."
+    },
+    {
+      "id": "dynamate",
+      "doi": "10.1039/d5me00062a",
+      "publisher_url": "https://pubs.rsc.org/en/content/articlelanding/2025/me/d5me00062a",
+      "metadata_status": "current_crossref_title_and_date_verified",
+      "primary_passage_status": "inaccessible_within_budget",
+      "accepted_proposition": null,
+      "claim_status": "unresolved",
+      "limitation": "The historical modular-scheduling statement is not refreshed P1 evidence."
+    },
+    {
+      "id": "aiida",
+      "doi": "10.1038/s41597-020-00638-4",
+      "publisher_url": "https://www.nature.com/articles/s41597-020-00638-4",
+      "metadata_status": "publisher_landing_and_current_crossref_verified",
+      "primary_passage_status": "insufficient_current_passage",
+      "accepted_proposition": null,
+      "claim_status": "unresolved",
+      "limitation": "No P1 claim about immutable lineage or restartability is accepted from title-level evidence."
+    },
+    {
+      "id": "workflow-run-ro-crate",
+      "doi": "10.1371/journal.pone.0309210",
+      "publisher_url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0309210",
+      "metadata_status": "publisher_and_current_crossref_verified",
+      "primary_passage_status": "publisher_abstract_and_introduction",
+      "accepted_proposition": "Workflow Run RO-Crate is a provenance-packaging design reference for recording workflow-execution provenance and associated objects at varying granularity.",
+      "claim_status": "qualified_provenance_reference",
+      "limitation": "A manifest format does not itself prove scientific validity, reproducibility, or agent performance."
+    }
+  ],
+  "review_budget": {
+    "chemistry_citation_review_external_operations": 12,
+    "infrastructure_citation_review_open_operations": 14,
+    "crossref_metadata_requests": 7,
+    "direct_quotes_retained": 0,
+    "credentialed_source_requests": 0,
+    "elsevier_full_text_requests": 0,
+    "search_snippets_used_as_evidence": 0
+  },
+  "conclusion": {
+    "supported": ["No present-tense ChemSmart performance or SOTA claim."],
+    "qualified": ["ChemGraph conditional decomposition reference", "ACRA structured-procedure and deterministic-validation analogy", "ChemCrow tool-augmentation reference", "Workflow Run RO-Crate provenance-packaging reference"],
+    "unresolved": ["El Agente Q substantive claims", "DynaMate primary proposition", "AiiDA primary proposition", "Definitive global correction/retraction clearance for all records"],
+    "rejected": ["Generic multi-agent superiority", "LLM critic as scientific authority", "Literature-only SOTA or ChemSmart scientific-readiness claim"]
+  }
+}

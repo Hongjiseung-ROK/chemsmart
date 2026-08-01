@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "receipt_id": "p5-p6-post-p3-live-evidence-delta-v1",
+  "status": "closed_blocked_delta",
+  "scope": "Append-only chronology and claim-scope correction after P3 v1; not an evaluation, training, replication, paper, release, or SOTA result.",
+  "base_artifacts": [
+    {
+      "artifact_id": "P1-POST-P3-ADDENDUM",
+      "path": "docs/program/frontier-agent/receipts/p1-post-p3-live-evidence-addendum-v1.json",
+      "sha256": "f60236928a3e420b156d03e01747c388a3eb998c3db931841b0d683fefe1bdb1"
+    },
+    {
+      "artifact_id": "P3-LIVE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p3-live-provider-capability-v1.json",
+      "sha256": "9d0a0eb2325a3495f58e995eded194ade653e73c9dd9594754de1295ffc3b9ff"
+    },
+    {
+      "artifact_id": "P5-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"
+    },
+    {
+      "artifact_id": "P5-PREREGISTRATION",
+      "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+      "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad"
+    },
+    {
+      "artifact_id": "P6-NO-GO-MANIFEST",
+      "path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json",
+      "sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819"
+    },
+    {
+      "artifact_id": "P6-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p6-replication-paper-training-decision.json",
+      "sha256": "2c43eccee4322d59b4dc5fca4a5ee3a1b772bb5dfaa4330de1bb9048f4729d5f"
+    },
+    {
+      "artifact_id": "P6-PAPER-OUTLINE",
+      "path": "docs/program/frontier-agent/paper/frontier-paper-outline-v1.md",
+      "sha256": "b2689fba99f6eaa43c72d06fb7f6d3f44011a0e25ceed1b89985bb1fc411f9a5"
+    },
+    {
+      "artifact_id": "P6-REPLICATION-TRAINING-NO-GO",
+      "path": "docs/program/frontier-agent/paper/frontier-replication-training-no-go-v1.md",
+      "sha256": "4db7ea8acb21c3db76e4890135384a539531c0d3164601dc8892e6f7730cd4b6"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "scripts/review/validate_frontier_p5_p6_live_delta.py",
+      "sha256": "2254e43f6338bfc432f178088c25c312fe05ef9460996b810605d71e082ed303"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p5_p6_live_delta.py",
+      "sha256": "377df9eb88cb4b3f9ccce767b824b70b02838b0077e78223d3782877cb701e0f"
+    },
+    {
+      "path": "docs/program/frontier-agent/paper/p5-p6-post-p3-live-evidence-delta-v1.md",
+      "sha256": "0c6d2e40c6486b2750d8febfb0cf48ec7e3db34a463c03ca5e2ef3df5435bff8"
+    }
+  ],
+  "chronology": {
+    "P5_closed_at": "2026-07-31T19:24:07Z",
+    "P6_closed_at": "2026-07-31T19:32:16Z",
+    "P3_live_observed_at": "2026-07-31T19:55:22Z",
+    "P1_post_P3_reconciled_at": "2026-07-31T20:11:40Z",
+    "interpretation": "P5 and P6 no-provider-execution limitations are historical statements at their respective closes; the later P3 event is recorded only by this delta."
+  },
+  "authority_use": {
+    "new_external_api_calls": 0,
+    "new_provider_completions": 0,
+    "new_p5_trials": 0,
+    "tool_executions": 0,
+    "chemistry_engine_invocations": 0,
+    "scheduler_invocations": 0,
+    "training_runs": 0,
+    "dependency_installs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "p3_later_observation": {
+    "http_status": 200,
+    "returned_model_matches_declared": true,
+    "tool_call_count": 1,
+    "tool_name_matches": true,
+    "finish_reason": "length",
+    "arguments_schema_valid": false,
+    "tool_execution_count": 0,
+    "engine_invocations": 0,
+    "scheduler_invocations": 0,
+    "observed_cost_upper_bound_usd": "0.00050808"
+  },
+  "gate_reconciliation": {
+    "P5-RG-01-provider-capability": "red_strict_p3_v1_tool_protocol_invalid",
+    "P5-evaluation-eligibility": "false_all_original_blockers_remain",
+    "P6-B3-provider-capability-and-live-trials": "red_no_valid_capability_or_trial",
+    "P6-results-sota-replication-training-publication": "no_go_unchanged"
+  },
+  "claims": {
+    "supported": [
+      "The later P3 v1 request was bounded, non-executing, and structurally red.",
+      "The P5/P6 no-provider-execution language is time-scoped to their own earlier closes."
+    ],
+    "qualified": [
+      "The P3 endpoint accepted a bounded request and returned one correctly named call, but this is not valid tool capability."
+    ],
+    "unresolved": [
+      "Normal provider/tool-loop behavior, P5 trial outcomes, replication, and all P6 future evidence surfaces."
+    ],
+    "rejected": [
+      "P3 v1 permits P5 evaluation or clears P5-RG-01.",
+      "P3 v1 changes the P6 no-go for results, SOTA, training, replication, publication, or release."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P56-D-F1",
+      "failure": "P5/P6 frozen records predate the later P3 provider event and therefore describe no provider execution at their own close times.",
+      "hypothesis": "Editing those records would break their historical hashes and incorrectly erase chronology.",
+      "minimal_change": "Add this separate hash-linked delta with explicit timestamps.",
+      "evidence": "Frozen P5/P6 receipt timestamps and hashes plus P3 live receipt timestamp/hash.",
+      "result": "Closed with a focused offline chronology/hash/no-go-scope validation pass.",
+      "limitation": "The delta cannot repair the failed strict P3 protocol or create a P5/P6 result.",
+      "rollback_boundary": "Delete only this delta; preserve every frozen base artifact."
+    },
+    {
+      "id": "P56-D-F2",
+      "failure": "The one P3 v1 response reached the output cap with invalid arguments.",
+      "hypothesis": "A correctly named call alone is insufficient provider capability for P5 or P6.",
+      "minimal_change": "Keep P5-RG-01 and P6-B3 red; do not create a trial or amend eligibility.",
+      "evidence": "P3 live receipt structural findings and P1 post-P3 addendum.",
+      "result": "No-go decisions unchanged.",
+      "limitation": "No raw arguments are retained and no normal tool loop was invoked.",
+      "rollback_boundary": "A future program revision needs independent capability and all other red-gate evidence."
+    }
+  ],
+  "redaction": {
+    "credentials_retained": false,
+    "raw_prompt_retained": false,
+    "raw_response_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false,
+    "error_text_retained": false
+  },
+  "phase_close_validation": {
+    "command": "scripts/review/validate_frontier_p5_p6_live_delta.py --repo .",
+    "result": "1 passed in 0.05s",
+    "validated_at": "2026-07-31T20:15:54Z",
+    "classification": "offline_provenance_and_no_go_scope_only"
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "index_id": "frontier-evidence-index-v1",
+  "status": "closed_no_go_evidence_index",
+  "scope": "Offline provenance index for the frozen P6 no-go package and later P3 v2 addenda; not an evaluation, replication, training, release, or SOTA result.",
+  "manifest_sha256": "f6f450c775a887475e73603b280959e14398994b2ec5bbc6ab720e5d4489eb53",
+  "base_artifacts": [
+    {
+      "artifact_id": "P6-NO-GO",
+      "path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json",
+      "sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819"
+    },
+    {
+      "artifact_id": "P6-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p6-replication-paper-training-decision.json",
+      "sha256": "2c43eccee4322d59b4dc5fca4a5ee3a1b772bb5dfaa4330de1bb9048f4729d5f"
+    },
+    {
+      "artifact_id": "P3-V2-PRECALL",
+      "path": "docs/program/frontier-agent/receipts/p3-v2-pre-call-readiness-v1.json",
+      "sha256": "b8c5ae57a8e2707e21a05cbc904e1cbdfa0aa24cebde1ea49da4eb1f52d3ce5d"
+    },
+    {
+      "artifact_id": "P3-V2-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p3-live-provider-capability-v2.json",
+      "sha256": "4d9c996f611a4c7a983a524077f52d25174e3033215f0880d111bd3191c48436"
+    },
+    {
+      "artifact_id": "P1-P5-P6-V2-RECONCILIATION",
+      "path": "docs/program/frontier-agent/receipts/p1-p5-p6-post-p3-v2-reconciliation-v1.json",
+      "sha256": "235bdd666ada720edae20431492765df38b9345382b541eeb89839eddef10f0b"
+    }
+  ],
+  "verifier_bindings": [
+    {
+      "artifact_id": "P6-DECISION-HARNESS",
+      "path": "chemsmart/agent/harness/frontier_decision.py",
+      "sha256": "545e32fe39d3ee2eed11060b43533778bb0250953f2fcfb12e50906b38ddf1b8"
+    },
+    {
+      "artifact_id": "P6-DECISION-TEST",
+      "path": "tests/agent/harness/test_frontier_decision_manifest.py",
+      "sha256": "ea9f0a8b769b1b112b859cc9d6cf5206e3b7868e1daf8dd0580cfcdd7e67ee86"
+    },
+    {
+      "artifact_id": "P3-V2-RECEIPT-VALIDATOR",
+      "path": "scripts/review/validate_frontier_live_provider_v2.py",
+      "sha256": "a28616bc81d946d6a3137cd72788a4faa1b5bf85a71b5a3a71761d9e233c0acc"
+    },
+    {
+      "artifact_id": "P3-V2-RECEIPT-VALIDATOR-TEST",
+      "path": "tests/agent/harness/test_frontier_live_provider_v2_receipt.py",
+      "sha256": "c5a0d5d21dd42d6a0548cf4723eb9d558a42fbd15460b2277fda04d44a961227"
+    },
+    {
+      "artifact_id": "P1-P5-P6-V2-VALIDATOR",
+      "path": "scripts/review/validate_frontier_p1_p5_p6_v2_reconciliation.py",
+      "sha256": "5eb74b610c305b32f3a66a44862842bbab35300baebc38a5c7fa430dc9e5da11"
+    },
+    {
+      "artifact_id": "P1-P5-P6-V2-VALIDATOR-TEST",
+      "path": "tests/agent/harness/test_frontier_p1_p5_p6_v2_reconciliation.py",
+      "sha256": "068c3959d08a3575b53574f16d137ce23eedafe2b8510c153b6ee850741db5d7"
+    },
+    {
+      "artifact_id": "EVIDENCE-INDEX-HARNESS",
+      "path": "chemsmart/agent/harness/frontier_evidence_index.py",
+      "sha256": "eab1b7075940c3d761a181671418acac5e82681b71ff95134029482303ced850"
+    },
+    {
+      "artifact_id": "EVIDENCE-INDEX-VALIDATOR",
+      "path": "scripts/review/validate_frontier_evidence_index.py",
+      "sha256": "ba0505ddbe62a1f5b983d828708d6fa3efed021a0aeb876343473bb6456cc9c8"
+    },
+    {
+      "artifact_id": "EVIDENCE-INDEX-TEST",
+      "path": "tests/agent/harness/test_frontier_evidence_index.py",
+      "sha256": "48498bd555b708398c8b8080f2ec10b654bb01e41b9074549d7ea01adfc8710b"
+    },
+    {
+      "artifact_id": "EVIDENCE-INDEX-DOCUMENT",
+      "path": "docs/program/frontier-agent/paper/frontier-evidence-index-v1.md",
+      "sha256": "7d89a27ea4c884b352acaa840d9d66c8a6c022f7728ab92810797bddf7d2aeec"
+    }
+  ],
+  "gate_statuses": {
+    "P1-direct-provider-surface": "qualified_single_direct_specimen_only",
+    "P3-v1-historical-result": "red_unchanged",
+    "P3-v2-direct-observation": "supported_narrow_nonexecuting_structural_only",
+    "P4-executor-and-chemical-boundaries": "red_unresolved",
+    "P5-RG-01-and-evaluation-eligibility": "red_false_no_trials",
+    "P5-G4-G5": "blocked_no_paired_results_or_replication_inputs",
+    "P6-results-sota-replication-training-publication": "no_go_unchanged"
+  },
+  "claim_statuses": {
+    "P6-C1": "unresolved",
+    "P6-C2": "unresolved",
+    "P6-C3": "unresolved",
+    "P6-C4": "unresolved",
+    "P3-V2": "supported_narrow_nonexecuting_structural_only",
+    "P5-ELIGIBILITY": "rejected_no_trial",
+    "P6-RELEASE": "rejected_no_go"
+  },
+  "blocker_ids": [
+    "P6-B1-clean-replication",
+    "P6-B2-held-out-comparison",
+    "P6-B3-provider-capability-and-live-trials",
+    "P6-B4-chemical-result-validation",
+    "P6-B5-training-traces-and-authority",
+    "P6-B6-publication-authority"
+  ],
+  "no_go_flags": {
+    "paper_release_ready": false,
+    "replication_ready": false,
+    "training_eligible": false,
+    "sota_claim_permitted": false
+  },
+  "authority_use": {
+    "new_external_api_calls": 0,
+    "new_provider_completions": 0,
+    "tool_executions": 0,
+    "chemistry_engine_invocations": 0,
+    "scheduler_invocations": 0,
+    "training_runs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  }
+}

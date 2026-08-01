@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "phase": "P2",
+  "receipt_id": "p2-executor-binding-fixture-protocol-v1",
+  "status": "closed_fixture_protocol",
+  "scope": "Prospective fixture-only executor approval binding; not active runtime/CLI/loop wiring, real execution, provider, chemistry, evaluation, replication, training, paper, release, or SOTA evidence.",
+  "recorded_at": "2026-07-31T20:44:09Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P2-ORIGINAL-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p2-runtime-contracts.json",
+      "sha256": "2e49e6e0d00db04520c248a235a31c993a4bd0746ae0e74e3d474d42fb0b51ac"
+    },
+    {
+      "artifact_id": "P2-FIREWALL-ADDENDUM",
+      "path": "docs/program/frontier-agent/receipts/p2-scientific-firewall-addendum-v1.json",
+      "sha256": "bff979a3f97aeb23942763a41f9d85418ffcb4ddab93fa5b52d5006080826008"
+    },
+    {
+      "artifact_id": "P4-HARNESS-FINDING",
+      "path": "docs/program/frontier-agent/reviews/p4-harness-findings-v1.json",
+      "sha256": "b8391026437411cee6de8928bb5919585174f555507a87ca67c131c5ca807068"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_executor_binding.py",
+      "sha256": "9ff5e8b8edfa77ad27c1f368d18b21ed1478a5ba69d69b8acc67fd94c5aae48b"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_executor_binding.py",
+      "sha256": "d172f181d357a54a2f7b78e51f5fce450657041ddfc523564bb1370418d6c8f4"
+    },
+    {
+      "path": "docs/program/frontier-agent/p2-executor-binding-fixture-protocol-v1.md",
+      "sha256": "ddb82ec60d3fbf103e9654698e2a13a2fd6ded7171394567848e1da9102e2693"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p2_executor_binding_fixture.py",
+      "sha256": "2bc8158b309cddd65286bfd28e7ddcae77f90370c330a4f569c550678a146d41"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p2_executor_binding_fixture.py",
+      "sha256": "c403053d9420bc75234178311084bcdd98932605a42acfadfda67fcfcdc7de64"
+    }
+  ],
+  "current_gap_observation": {
+    "approval_request_field_count": 19,
+    "approval_request_has_cli_schema_sha256": false,
+    "active_executor_side_consumption_implemented": false,
+    "source": "in_memory_model_inspection_and_P4_HA_01"
+  },
+  "fixture_contract": {
+    "schema_version": "frontier.fixture-executor-binding.v1",
+    "execution_mode": "fixture_only",
+    "active_runtime_wiring": false,
+    "dispatcher_argument_present": false,
+    "required_binding_surfaces": [
+      "approval_request_binding_sha256",
+      "command_sha256",
+      "preflight_receipt_sha256s",
+      "cli_schema_sha256",
+      "execution_target",
+      "expires_at"
+    ],
+    "live_schema_derivation": "schema_with_metadata(build_chemsmart_cli_schema())._meta.schema_hash"
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "real_command_executions": 0,
+    "tool_dispatches": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "dependency_installs": 0,
+    "active_runtime_wiring_changes": 0,
+    "cli_semantic_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P2B-G1-exact-binding": "passed_fixture_only",
+    "P2B-G2-mismatch-refusal": "passed_nine_cases_zero_fake_dispatch",
+    "P2B-G3-one-shot-consumption": "passed_fixture_only",
+    "P2B-G4-active-path-preservation": "passed_unwired",
+    "P2B-G5-real-executor-enforcement": "unresolved_not_implemented"
+  },
+  "claims": {
+    "supported": [
+      "The current ApprovalRequest lacks a CLI-schema digest field.",
+      "The fixture checks the declared exact-binding and one-shot conditions without a real dispatcher."
+    ],
+    "qualified": [
+      "The live-derived Click schema is used only as a fixture input."
+    ],
+    "unresolved": [
+      "Durable executor-side consumption, real user-approval integration, provider behavior, chemistry outcomes, and all P3-P6 evidence surfaces."
+    ],
+    "rejected": [
+      "This fixture authorizes a real command or demonstrates active execution enforcement."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P2B-F1",
+      "failure": "Current ApprovalRequest lacks a CLI schema digest and no active executor consumes an extended exact approval binding.",
+      "hypothesis": "A future executor needs a versioned binding with schema, command, preflight, target, expiry, and one-shot consumption checks.",
+      "minimal_change": "Add an unwired fixture-only binding module and fake-dispatch tests; do not alter active models or dispatch paths.",
+      "evidence": "One in-memory model-field observation plus frozen P4-HA-01 and deterministic fixture cases.",
+      "result": "The prospective fixture blocks all declared invalid cases and permits one exact fake-dispatch observation once.",
+      "limitation": "No active runtime persistence, user approval UI, dispatcher, process, engine, or scheduler is exercised.",
+      "rollback_boundary": "Delete only the fixture protocol/module if unsuitable; any active integration needs a separately approved versioned design."
+    },
+    {
+      "id": "P2B-F2",
+      "failure": "The first focused receipt-wrapper invocation could not import scientific_contracts with PYTHONPATH intentionally unset.",
+      "hypothesis": "A standalone review script starts under scripts/review and resolved an installed package rather than this checkout.",
+      "minimal_change": "Bind only the validator repository root to sys.path before its local contract import.",
+      "evidence": "One focused wrapper failure reporting ModuleNotFoundError before protocol evaluation.",
+      "result": "The one targeted wrapper rerun passed after the local-source binding repair.",
+      "limitation": "The repair applies only to the review script and does not exercise an active executor.",
+      "rollback_boundary": "Remove only the validator-local path binding if a project-standard source loader supersedes it; do not install or modify dependencies."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "real_execution_command_strings_retained": false,
+    "engine_outputs_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_fixture_only_approval_binding_and_receipt_integrity",
+    "invocations": [
+      {
+        "purpose": "fixture binding and fake-dispatch behavior",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_executor_binding.py -q",
+        "result": "11 passed in 0.95s",
+        "recorded_at": "2026-07-31T20:44:09Z"
+      },
+      {
+        "purpose": "receipt integrity",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_p2_executor_binding_fixture.py -q",
+        "result": "1 passed in 1.09s",
+        "recorded_at": "2026-07-31T20:47:48Z"
+      }
+    ]
+  }
+}

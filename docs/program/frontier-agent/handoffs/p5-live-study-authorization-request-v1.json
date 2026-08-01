@@ -1,0 +1,352 @@
+{
+  "schema_version": 1,
+  "artifact_type": "nonbinding_p5_live_study_authorization_request",
+  "request_id": "p5-live-study-authorization-request-v1",
+  "status": "awaiting_material_user_decision",
+  "scope": "Append-only nonbinding request template. It is not a provider authorization, current quota assertion, held-out custody attestation, active executor approval, chemistry-engine permission, P5 preregistration revision, trial, analysis, replication, training, release, paper, or SOTA result.",
+  "amends_frozen_artifacts": false,
+  "requires_new_p5_preregistration_revision": true,
+  "base_artifacts": [
+    {
+      "artifact_id": "P3-V2-DIRECT-SPECIMEN",
+      "path": "docs/program/frontier-agent/receipts/p3-live-provider-capability-v2.json",
+      "sha256": "4d9c996f611a4c7a983a524077f52d25174e3033215f0880d111bd3191c48436"
+    },
+    {
+      "artifact_id": "P5-PREREGISTRATION",
+      "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+      "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad"
+    },
+    {
+      "artifact_id": "P5-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"
+    },
+    {
+      "artifact_id": "P5A3-STRICT-ADMISSION-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-predata-contract-v3.json",
+      "sha256": "5a6d078bebc9659b5902763ba57d33eaa5d745400f1830e280136c240fb3215e"
+    },
+    {
+      "artifact_id": "P6-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p6-replication-paper-training-decision.json",
+      "sha256": "2c43eccee4322d59b4dc5fca4a5ee3a1b772bb5dfaa4330de1bb9048f4729d5f"
+    },
+    {
+      "artifact_id": "P6-NO-GO",
+      "path": "docs/program/frontier-agent/paper/frontier-p6-internal-no-go-v1.json",
+      "sha256": "87f28869b8b657828883ed0703b458e368d0bf56211bc048b6991173bfc8b819"
+    }
+  ],
+  "non_authorization": {
+    "live_study_authorized": false,
+    "provider_call_authorized": false,
+    "active_provider_path_authorized": false,
+    "heldout_catalog_access_authorized": false,
+    "active_executor_authorized": false,
+    "chemistry_engine_authorized": false,
+    "scheduler_or_hpc_authorized": false,
+    "training_authorized": false,
+    "release_or_publication_authorized": false,
+    "p5_evaluation_eligible": false,
+    "analysis_evaluable": false,
+    "adoption_permitted": false,
+    "sota_claim_permitted": false
+  },
+  "frozen_controls": {
+    "factor_configurations": 8,
+    "repetitions_per_heldout_case": 3,
+    "retry_policy": "none",
+    "deterministic_role": "primary",
+    "expert_rubric_role": "secondary_only",
+    "llm_judge_role": "supplementary_only",
+    "bootstrap_method": "paired_nonparametric",
+    "bootstrap_confidence": 0.95,
+    "bootstrap_resamples": 10000,
+    "bootstrap_seed": 240731
+  },
+  "prior_provider_context": {
+    "p3_v2_direct_specimen_status": "context_only_not_p5_authority_or_current_quota",
+    "may_be_reused_as_provider_capability_receipt": false,
+    "may_be_reused_as_live_authorization": false
+  },
+  "material_authorization_requests": {
+    "independent_heldout_custody": {
+      "state": "unselected",
+      "custodian_or_organization": null,
+      "catalog_commitment_sha256": null,
+      "access_and_audit_method": null,
+      "independence_attestation_reference": null,
+      "case_and_family_commitment_scheme": null
+    },
+    "bounded_active_path_provider_envelope": {
+      "state": "unselected",
+      "provider_id": null,
+      "endpoint_identity": null,
+      "model_snapshot": null,
+      "sanitized_prompt_or_skill_revision": null,
+      "tool_schema_sha256": null,
+      "active_path_capability_receipt_reference": null,
+      "per_trial_model_call_ceiling": null,
+      "total_model_call_ceiling": null,
+      "token_ceiling": null,
+      "tool_call_ceiling": null,
+      "request_size_ceiling": null,
+      "wall_time_ceiling_s": null,
+      "cost_ceiling_usd": null,
+      "stop_conditions": null
+    },
+    "execution_and_chemistry_scope": {
+      "state": "unselected",
+      "execution_mode": null,
+      "active_executor_approval_consumption_evidence": null,
+      "chemistry_engine_authority_reference": null,
+      "scheduler_or_hpc_authority_reference": null,
+      "environment_capture_plan": null,
+      "independent_rerun_plan": null
+    }
+  },
+  "analysis_policy_decisions": [
+    {
+      "decision_id": "analysis_unit_and_estimand",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "repeat_trial_treatment",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "blocked_retry_missing_data_coding",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "exclusions_and_denominator",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "family_grouping_and_weighting",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "comparison_and_contrast_family",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "threshold_mapping",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "multiplicity_treatment",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "terminal_to_metric_mapping",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "critic_truth_standard",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    },
+    {
+      "decision_id": "handoff_information_loss_calculation",
+      "state": "unresolved",
+      "formal_rule": null,
+      "rationale": null,
+      "scope": null,
+      "metric_or_terminal_mapping": null,
+      "decision_owner": null,
+      "authorization_reference": null,
+      "recorded_at": null
+    }
+  ],
+  "transition_rule": "Only a new, separately authorized, hash-pinned P5 preregistration revision with nonblank formal policy decisions, independent custody, active-path capability evidence, and applicable executor/engine authority may leave this request state. Filling this file in place is not authorization.",
+  "gate_status": {
+    "P5-G4": "blocked_no_complete_paired_trial_receipt_or_interval",
+    "P5-G5": "blocked_no_raw_receipt_environment_or_independent_rerun",
+    "P6-G2": "blocked_no_independent_clean_environment_replication_receipt",
+    "P6-G4": "blocked_zero_eligible_training_records_and_no_authority",
+    "P6-G5": "blocked_no_external_release_or_compute_authority",
+    "results_replication_training_release_sota": "no_go_unchanged"
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "heldout_catalog_accesses": 0,
+    "heldout_case_accesses": 0,
+    "tool_dispatches": 0,
+    "real_command_executions": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "network_calls": 0,
+    "dependency_installs": 0,
+    "training_runs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "claims": {
+    "supported": [
+      "The request lists current documented prerequisites without granting a live action or changing a P5/P6 decision."
+    ],
+    "qualified": [
+      "The completed P3-v2 direct specimen is context only; it is neither a P5 capability receipt nor current quota evidence."
+    ],
+    "unresolved": [
+      "Every material authorization, policy decision, custody input, active-path capability, executor/chemistry evidence, trial, analysis, replication, training, release, paper, and SOTA claim."
+    ],
+    "rejected": [
+      "That this template, a populated field, or a historical receipt grants authority, locks policy, permits a trial, or changes a P5/P6 gate."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P5HND-F1",
+      "failure": "A direct P3-v2 structural provider specimen could be overread as active-path capability or P5 authorization.",
+      "hypothesis": "A request must explicitly prohibit reuse of the specimen as authority or current quota evidence.",
+      "minimal_change": "Record P3-v2 only as context and require a fresh active-path capability receipt in a future revision.",
+      "evidence": "P3-v2 receipt and P1/P5/P6 chronology reconciliation.",
+      "result": "P5 remains zero-call and authorization is unselected.",
+      "limitation": "No current quota, provider behavior, or chemistry competence is established.",
+      "rollback_boundary": "A future authorized study uses a distinct protocol and receipt; do not modify P3-v2."
+    },
+    {
+      "id": "P5HND-F2",
+      "failure": "Material analysis policy and custody choices are unresolved and cannot be inferred from fixtures or model opinion.",
+      "hypothesis": "A typed blank register prevents accidental implicit policy selection.",
+      "minimal_change": "List every required decision as unresolved with every operative value null.",
+      "evidence": "P4 statistics review and P5A decision locks.",
+      "result": "No trial, analysis, adoption, or P5 eligibility is enabled.",
+      "limitation": "The register is not a policy revision or evidence of external custody.",
+      "rollback_boundary": "Create a new signed/reviewed P5 revision rather than filling this template in place."
+    },
+    {
+      "id": "P5HND-F3",
+      "failure": "The initial focused test failed because normal validation correctly required a phase-close invocation before that test could be recorded.",
+      "hypothesis": "An explicit bootstrap mode can validate only the static zero-authority template without weakening normal phase-close evidence requirements.",
+      "minimal_change": "Add a named empty-log bootstrap flag, retain strict default rejection of an empty log, and make the focused test verify both behaviors.",
+      "evidence": "The initial focused test returned nonzero with the incomplete phase-close condition before any invocation existed.",
+      "result": "The corrected focused test passed; it confirmed strict rejection before a record and zero-authority bootstrap validation only for the empty template.",
+      "limitation": "Bootstrap validation is not a phase-close receipt and cannot validate a future material decision or live study.",
+      "rollback_boundary": "Use normal validation after recording the focused test; remove or supersede this template only through a new authorized revision."
+    },
+    {
+      "id": "P5HND-F4",
+      "failure": "After the first phase-close result was recorded, the focused test still expected the actual artifact to have an empty log, making a rerun state-dependent.",
+      "hypothesis": "The empty-log boundary can be tested on an in-memory document while the recorded artifact is checked in normal strict mode.",
+      "minimal_change": "Add a read-only in-memory validation seam and split the focused checks between the recorded artifact and an empty-log copy.",
+      "evidence": "The recorded artifact now has two phase-close invocations, so its normal validator result is expected to be successful rather than incomplete.",
+      "result": "No authority or gate changed; the repaired reproducibility check is pending.",
+      "limitation": "The in-memory copy proves only validator behavior and cannot establish a live-study result or material decision.",
+      "rollback_boundary": "Keep the CLI fixed to the recorded artifact; supersede this request only with a new separately authorized P5 revision."
+    }
+  ],
+  "redaction": {
+    "credentials_retained": false,
+    "raw_prompts_retained": false,
+    "raw_responses_retained": false,
+    "provider_transcripts_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false,
+    "raw_heldout_content_retained": false,
+    "grader_seeds_retained": false,
+    "raw_scores_retained": false,
+    "error_text_retained": false
+  },
+  "source_artifacts": [
+    {
+      "path": "docs/program/frontier-agent/handoffs/p5-live-study-authorization-request-v1.md",
+      "sha256": "756b5aee3c4ec61083f38c85b27ea25161d27093d9348f7fed8ac910bba37712"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p5_live_study_authorization_request.py",
+      "sha256": "e945b3b5b0625e9ed495ba824b312d4ec745b9ba53133a3ba08ef395cf154d71"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p5_live_study_authorization_request.py",
+      "sha256": "d3f9eac3ed48991d61032fc3cc98424a583ca8890ff43523c8c3dfbd89b77937"
+    }
+  ],
+  "phase_close_validation": {
+    "classification": "focused_local_nonbinding_template_validation",
+    "invocations": [
+      {
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_p5_live_study_authorization_request.py -q",
+        "result": "1 passed in 0.08s"
+      },
+      {
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_live_study_authorization_request.py --repo .",
+        "result": "P5 live-study authorization-request validation passed."
+      }
+    ]
+  }
+}

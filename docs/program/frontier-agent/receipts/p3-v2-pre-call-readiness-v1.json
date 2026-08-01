@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "phase": "P3",
+  "receipt_id": "p3-v2-pre-call-readiness-v1",
+  "observed_at": "2026-07-31T21:06:16Z",
+  "status": "armed_one_call_pending",
+  "purpose": "Pre-call evidence for one isolated, non-executing P3 v2 provider specimen; not a provider observation or score.",
+  "input_pins": {
+    "p1_receipt_sha256": "22e08a5b66b63c1c8c204171ce3d4bffac4983ef223ab411e73f5801ba1e2e61",
+    "p3_v1_receipt_sha256": "9d0a0eb2325a3495f58e995eded194ade653e73c9dd9594754de1295ffc3b9ff",
+    "p3_v1_status_required": "blocked",
+    "p3_v1_source_artifacts_verified": 6
+  },
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_live_provider_v2.py",
+      "sha256": "7a62826747361449ad7f9f26c0182cbb4be298feda43e52466901cb3c24525c9"
+    },
+    {
+      "path": "scripts/review/run_frontier_live_deepseek_capability_v2.py",
+      "sha256": "0deb459721f98d46fc50cd288615d927de8810c7abfdf377694c63249b4a2e7e"
+    },
+    {
+      "path": "scripts/review/validate_frontier_live_provider_v2.py",
+      "sha256": "a28616bc81d946d6a3137cd72788a4faa1b5bf85a71b5a3a71761d9e233c0acc"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_live_provider_v2.py",
+      "sha256": "006ff84bdc5d3aff63e5ec7305bf2150015730ab55bb72ec1a28c7a6cbd5cc11"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_live_provider_v2_receipt.py",
+      "sha256": "c5a0d5d21dd42d6a0548cf4723eb9d558a42fbd15460b2277fda04d44a961227"
+    },
+    {
+      "path": "docs/program/frontier-agent/p3-live-deepseek-capability-protocol-v2.md",
+      "sha256": "2b27ea6f80a89f29fd539d93f28fdfc3e481307b975e687ca6ef07da35d4d059"
+    },
+    {
+      "path": "docs/program/frontier-agent/receipts/p3-live-provider-capability-v2.schema.json",
+      "sha256": "412486a4e42d66ce0a3b525264540a17a07c4261227bde101b2de210736ac018"
+    }
+  ],
+  "fixed_budget": {
+    "max_model_calls": 1,
+    "max_retries": 0,
+    "model": "deepseek-v4-pro",
+    "max_tokens": 256,
+    "max_request_bytes": 4096,
+    "max_tool_calls": 1,
+    "max_tool_executions": 0,
+    "max_engine_invocations": 0,
+    "max_scheduler_invocations": 0,
+    "max_wall_time_s": 15.0,
+    "estimated_max_cost_usd": "0.00400896",
+    "absolute_max_cost_usd": "0.005"
+  },
+  "pre_call_validation": {
+    "offline_contract": {
+      "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_live_provider_v2.py tests/agent/harness/test_frontier_live_provider_v2_receipt.py -q",
+      "result": "12 passed in 0.30s",
+      "classification": "focused_offline_contract_and_receipt_validation_only"
+    },
+    "dry_run": {
+      "outcome": "no_request_dry_run",
+      "status": "preflight_ready",
+      "credentials_retained": false,
+      "raw_prompt_retained": false
+    },
+    "credential_preflight": {
+      "outcome": "credential_resolved_no_request",
+      "status": "preflight_ready",
+      "canonical_alias": "DEEPSEEK_API_KEY",
+      "source_class": "configured_legacy_api_env_bound_in_process",
+      "bound_in_process": true,
+      "credential_value_retained": false
+    },
+    "workspace_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "failure_ledger": [
+    {
+      "id": "P3-V2-F1",
+      "failure": "The first v2 offline run passed a numeric clock result into a helper that requires a callable.",
+      "hypothesis": "The controlled provider envelope is untested until elapsed-time calculation works in both response and exception paths.",
+      "minimal_change": "Pass the clock callable to the helper and add a deterministic request-delta test.",
+      "evidence": "The local focused test failed before any credential preflight or request; the corrected focused group passed 12 tests.",
+      "result": "closed_local",
+      "limitation": "This establishes only local harness behavior, not provider behavior.",
+      "rollback_boundary": "Delete v2 artifacts rather than changing frozen v1, dependencies, or active paths."
+    },
+    {
+      "id": "P3-V2-F2",
+      "failure": "The initial receipt validator could accept a manually altered completed receipt with a red observation.",
+      "hypothesis": "Envelope-only checks are insufficient to prevent an invalid response from being labeled green.",
+      "minimal_change": "Require completed-path request, model, tool, argument, usage, cost, timing, outcome, and no-finding invariants.",
+      "evidence": "A focused tamper case now rejects altered finish reason, arguments, request count, and retained findings.",
+      "result": "closed_local",
+      "limitation": "Receipt validation cannot prove an external response happened; source hashes and a single audited invocation remain required.",
+      "rollback_boundary": "Treat any validator defect as a red receipt and stop without a new request."
+    },
+    {
+      "id": "P3-V2-F3",
+      "failure": "The initial profile accepted any same-shaped v1 receipt rather than the exact frozen input.",
+      "hypothesis": "A substituted historical failure could improperly justify v2.",
+      "minimal_change": "Pin the v1 receipt SHA-256 and verify all six v1 source artifacts before v2 profile loading.",
+      "evidence": "Focused fixtures reject both receipt-byte and source-artifact drift.",
+      "result": "closed_local",
+      "limitation": "This pins the local frozen record, not a global archival system.",
+      "rollback_boundary": "A v1 pin mismatch blocks v2 before any credential resolution or request."
+    },
+    {
+      "id": "P3-V2-F4",
+      "failure": "The first v2 error-status helper omitted direct SDK status-code capture and the green path did not enforce the completion-token ceiling.",
+      "hypothesis": "A provider error or over-cap usage could lose a material red-gate fact.",
+      "minimal_change": "Restore direct-then-response status capture and reject completion usage above 256.",
+      "evidence": "Focused fake-provider cases retain a direct 429 class without retry and block 257 completion tokens.",
+      "result": "closed_local",
+      "limitation": "Fake errors do not characterize the live endpoint.",
+      "rollback_boundary": "Any live error or over-cap observation remains terminal and cannot be retried."
+    }
+  ],
+  "claims": {
+    "supported": [
+      "The final pre-call local harness is bounded, source-pinned, redaction-checked, and fixture-tested."
+    ],
+    "qualified": [
+      "The P1 receipt records a prior positive allowance, not current balance or a spending guarantee."
+    ],
+    "unresolved": [
+      "Any live structural response, active-path behavior, scientific capability, ablation effect, replication, training, paper readiness, or SOTA."
+    ],
+    "rejected": [
+      "Using the v1 red result as an in-place retry or claiming a local fixture check is provider evidence."
+    ]
+  },
+  "next_safe_action": "One and only one v2 direct provider request, followed by a redacted receipt and deterministic receipt validation; any result closes v2 without retry.",
+  "redaction": {
+    "credentials_retained": false,
+    "headers_retained": false,
+    "raw_prompt_retained": false,
+    "raw_response_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false,
+    "error_text_retained": false
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "phase": "P0",
+  "status": "completed",
+  "observed_at": "2026-07-31T18:00:06Z",
+  "frontier_worktree": {
+    "path": "/Users/hongjiseung/.codex/worktrees/chemsmart-frontier-agent-foundation/chemsmart",
+    "branch": "codex/frontier-agent-foundation",
+    "head": "6da43bab030b90ea5b9777105f78fd5848dd4aed",
+    "merge_base": "cf986251077b7ee65f8afa951ee76052146c7613",
+    "initial_status": {
+      "tracked_changes": 0,
+      "untracked_entries": 0,
+      "other_entries": 0
+    }
+  },
+  "original_checkout": {
+    "path": "/Users/hongjiseung/developer/chemsmart",
+    "branch": "feat/agent-xtb-harness",
+    "head": "fbb82316d13370940080a6b6981f9a047edb761b",
+    "observed_status": {
+      "tracked_change_entries": 3,
+      "untracked_entries": 11,
+      "other_entries": 3
+    },
+    "preservation": "Read-only observation only; no original-checkout paths or contents were modified or incorporated."
+  },
+  "historical_receipts": [
+    {
+      "path": "docs/research/frontier-agent-foundation-receipt.md",
+      "status": "historical_not_rerun",
+      "reason": "Its source, validation, and retrieval timestamps predate this P0 observation."
+    },
+    {
+      "path": "docs/research/frontier-agent-evidence-ledger.json",
+      "status": "historical_not_rerun",
+      "reason": "Literature metadata and correction-status fields require P1 refresh before use as current external evidence."
+    }
+  ],
+  "quota_use": {
+    "DEEPSEEK_API_KEY": {"calls": 0, "spend": 0, "receipt": "not_attempted_in_P0"},
+    "ELSEVIER_API_KEY_or_Elsivier_api_key": {"calls": 0, "spend": 0, "receipt": "not_attempted_in_P0"},
+    "SERPAPI_KEY_or_SerpApi_api_key": {"calls": 0, "spend": 0, "receipt": "not_attempted_in_P0"},
+    "TAVILY_API_KEY_or_Tavily_api_key": {"calls": 0, "spend": 0, "receipt": "not_attempted_in_P0"}
+  },
+  "prohibited_actions": {
+    "live_provider_calls": 0,
+    "real_chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0,
+    "publication_actions": 0
+  },
+  "source_artifacts": [
+    {"path": "AGENTS.md", "sha256": "83c4379798563712ca5b09e54d89100b21c205642e186b7a57c4fb77de6d1777"},
+    {"path": ".agents/skills/chemsmart-agent-harness/SKILL.md", "sha256": "0bec2b39bbcd20cbc37c0c1f47cd04566bce2713c658e1ac7601abe7507d9d97"},
+    {"path": ".agents/skills/chemsmart-agent-harness/references/runtime-contract.md", "sha256": "468bffe30692ec370c38cd327cca4e189e6295f4210fee3cd298ff3c8a386eda"},
+    {"path": ".agents/skills/chemsmart-agent-harness/references/approval-and-evaluation.md", "sha256": "c9d9e8938c0ac973a7a9fde93ae0183f7beb1de56c9d2a225487842e406d2eb9"},
+    {"path": ".agents/skills/chemsmart-scientific-workflow/SKILL.md", "sha256": "404bf6d3eef879e44891f3c0eb2250023e91cc9bf3380337d4aef39fe59b6b13"},
+    {"path": ".agents/skills/chemsmart-scientific-workflow/references/scientific-task-contract.md", "sha256": "c1c236a3529eef8107bdef4ae6f142ba69979c743717f738f6109424374d850a"},
+    {"path": ".agents/skills/chemsmart-scientific-workflow/references/program-validation.md", "sha256": "94e2b3865db40d488a4dc671072318f3e2c8fc8281f7e4fe7df93380e612f22f"},
+    {"path": ".agents/skills/chemsmart-evidence-audit/SKILL.md", "sha256": "3a9c8bee113d324673d3c9ca4799f3621d588389c708bc645f507cf9361dd9db"},
+    {"path": ".agents/skills/chemsmart-evidence-audit/references/evidence-and-reports.md", "sha256": "c8cafd9c3fc65229e073178d3b11cada8b95aecdeb638fc95bb85d6a34c2176d"},
+    {"path": ".agents/skills/chemsmart-evidence-audit/references/red-team-and-ablation.md", "sha256": "d075f7fc7d17bd9f41df10e1f38f7f26c15d65649277566626931a5cf8c59095"},
+    {"path": "docs/design/chemsmart-agent-ultimate-goal.md", "sha256": "e085e2075eb6f362682b98e60762d70532f7bbc292f61ae9fbe3bd63c9d5e1ac"},
+    {"path": "docs/research/chemsmart-agent-gap-analysis.md", "sha256": "dbe3f3f65ed1b407b517f81a7a6d913229a414bcdf6af00eebdfdcbd4aff0487"},
+    {"path": "docs/research/frontier-agent-landscape.md", "sha256": "4225b16595c4a90767791c9ffa82a5cd9f882b493e8b2379c39899e0557a2890"},
+    {"path": "docs/research/frontier-agent-evidence-ledger.json", "sha256": "2e08127b9b1bb94d031d2a53bdbd10154adf14e49060c69b7734e9335ac7bdd9"},
+    {"path": "docs/research/frontier-agent-citation-audit.json", "sha256": "9dca3f4c78db86bf2cb0b51679adcf0d58af164341fb0cc5898d99cb5614833c"},
+    {"path": "docs/evaluation/frontier-agent-ablation-protocol.md", "sha256": "4ed0030af2af654690836fcaf503d4750d9ab20f66c548dc01b343ee60a00193"},
+    {"path": "chemsmart/agent/runtime/contracts.py", "sha256": "78f8abc5eab055754a901f5f412c6c99742b19a73877c55861531c478e596506"},
+    {"path": "chemsmart/agent/runtime/events.py", "sha256": "8b0e3f6c60a7c719e84373469fc855fa4f8f6a1c866e90633f1fbcb7fe7dba99"},
+    {"path": "chemsmart/agent/provider_config.py", "sha256": "882d784416056a8e4d03c98474a49ca8ccb92ee5ae29dae7daef6c1c429bbbe1"},
+    {"path": "chemsmart/agent/cli_schema.py", "sha256": "d3a9bc2c87891337c0556028dcbf28676bb549aebc6269fc1d2ce89c3d080a5a"},
+    {"path": "tests/agent/runtime/test_runtime_kernel.py", "sha256": "b643dbdf4c7b3313c304803719068212229f1a80169b0cc0816198c676be6a92"},
+    {"path": "tests/agent/test_providers_api_env_resolution.py", "sha256": "7cae815257fc45e1b7001f06f1400a7568145c6435d9931109e92ab8ef0c296a"},
+    {"path": "tests/agent/test_cli_schema.py", "sha256": "6aa190ac10decee97d8e490d52e5229da32768868f4055347da5f3a2692177ef"},
+    {"path": "tests/agent/harness/fixtures/high_risk_matrix.json", "sha256": "88df9955a0e8fc587a074969ce356ba0bb1fd2c0bd7859a18d166b93b05a4dd1"}
+  ],
+  "claims": [
+    {"id": "P0-C1", "status": "supported_observation"},
+    {"id": "P0-C2", "status": "supported_observation"},
+    {"id": "P0-C3", "status": "supported_observation"},
+    {"id": "P0-C4", "status": "unresolved"},
+    {"id": "P0-C5", "status": "rejected_present_tense_claim"}
+  ],
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/test_frontier_agent_program.py -q",
+    "result": "1 passed in 0.05s",
+    "validated_at": "2026-07-31T18:06:03Z",
+    "classification": "offline_document_and_source_integrity_only"
+  }
+}

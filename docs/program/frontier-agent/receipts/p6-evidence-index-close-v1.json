@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "receipt_id": "p6-evidence-index-close-v1",
+  "observed_at": "2026-07-31T21:24:23Z",
+  "status": "closed_no_go_evidence_index",
+  "scope": "Offline close receipt for the append-only no-go evidence index; not an evaluation, replication, training, release, or SOTA result.",
+  "index_artifact": {
+    "path": "docs/program/frontier-agent/paper/frontier-evidence-index-v1.json",
+    "sha256": "a3c54a7590db6a2acc65c50e4690610852c91c92c1c7024835b5736ce64a7a6a",
+    "manifest_sha256": "f6f450c775a887475e73603b280959e14398994b2ec5bbc6ab720e5d4489eb53"
+  },
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_evidence_index.py",
+      "sha256": "eab1b7075940c3d761a181671418acac5e82681b71ff95134029482303ced850"
+    },
+    {
+      "path": "scripts/review/validate_frontier_evidence_index.py",
+      "sha256": "ba0505ddbe62a1f5b983d828708d6fa3efed021a0aeb876343473bb6456cc9c8"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_evidence_index.py",
+      "sha256": "48498bd555b708398c8b8080f2ec10b654bb01e41b9074549d7ea01adfc8710b"
+    },
+    {
+      "path": "docs/program/frontier-agent/paper/frontier-evidence-index-v1.md",
+      "sha256": "7d89a27ea4c884b352acaa840d9d66c8a6c022f7728ab92810797bddf7d2aeec"
+    }
+  ],
+  "reaffirmed_state": {
+    "paper_release_ready": false,
+    "replication_ready": false,
+    "training_eligible": false,
+    "sota_claim_permitted": false,
+    "P5_evaluation_eligibility": "red_false_no_trials",
+    "P3_v2": "supported_narrow_nonexecuting_structural_only",
+    "P6_results_sota_replication_training_publication": "no_go_unchanged"
+  },
+  "authority_use": {
+    "new_external_api_calls": 0,
+    "new_provider_completions": 0,
+    "tool_executions": 0,
+    "chemistry_engine_invocations": 0,
+    "scheduler_invocations": 0,
+    "training_runs": 0,
+    "publication_actions": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "failure_ledger": [
+    {
+      "id": "IDX-F1",
+      "failure": "The frozen P6 manifest predates the later P3 v2 evidence chain.",
+      "hypothesis": "Editing the frozen manifest would destroy its historical no-go provenance.",
+      "minimal_change": "Create a separate hash-pinned index that recursively preserves the P6 decision and later bounded evidence.",
+      "evidence": "The index loads the immutable P6 decision and retains all six blocker IDs and four false no-go flags.",
+      "result": "closed_append_only",
+      "limitation": "The index cannot make P6-C1 through P6-C4 or any P5 outcome green.",
+      "rollback_boundary": "Delete only the index and this close receipt if invalid; never rewrite the frozen P6 package."
+    },
+    {
+      "id": "IDX-F2",
+      "failure": "A single v2 structural tool record could be misread as active-agent, chemical, or comparative evidence.",
+      "hypothesis": "Explicit state gates prevent provenance packaging from becoming claim promotion.",
+      "minimal_change": "Require the exact P3 isolation, P5 eligibility red state, P6 no-go flags, and claim-status register.",
+      "evidence": "Focused tamper validation rejects a P5 eligibility promotion before any external action.",
+      "result": "closed_local",
+      "limitation": "The check is offline and cannot characterize a provider, CLI, chemistry task, or held-out study.",
+      "rollback_boundary": "Any source, hash, status, or authority drift invalidates the index rather than updating its conclusion."
+    },
+    {
+      "id": "IDX-F3",
+      "failure": "The first standalone index-validator draft had a local entry-point typo.",
+      "hypothesis": "The imported harness test alone does not prove the reproducibility command works.",
+      "minimal_change": "Correct the entry point before the focused harness test and run the standalone validator once.",
+      "evidence": "The focused test passed 2 tests in 0.05 s and the standalone command passed after correction; no external call occurred.",
+      "result": "closed_local",
+      "limitation": "Command execution proves only local offline validation.",
+      "rollback_boundary": "Delete the index artifacts rather than modifying frozen P6/P3 evidence."
+    }
+  ],
+  "phase_close_validation": {
+    "focused_test": {
+      "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_evidence_index.py -q",
+      "result": "2 passed in 0.05s",
+      "classification": "offline_hash_no_go_and_tamper_validation_only"
+    },
+    "standalone_validator": {
+      "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_evidence_index.py --repo .",
+      "result": "passed",
+      "classification": "offline_index_provenance_and_no_go_validation_only"
+    },
+    "workspace_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "redaction": {
+    "credentials_retained": false,
+    "headers_retained": false,
+    "raw_prompt_retained": false,
+    "raw_response_retained": false,
+    "tool_arguments_retained": false,
+    "reasoning_content_retained": false,
+    "error_text_retained": false
+  }
+}

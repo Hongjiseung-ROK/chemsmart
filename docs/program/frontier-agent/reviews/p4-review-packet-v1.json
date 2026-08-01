@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "packet_id": "p4-frontier-review-v1",
+  "packet_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "claim_ids": [
+    "P0-C1",
+    "P0-C2",
+    "P0-C3",
+    "P0-C4",
+    "P0-C5",
+    "P1-C1",
+    "P1-C2",
+    "P1-C3",
+    "P1-C4",
+    "P2-C1",
+    "P2-C2",
+    "P2-C3",
+    "P3-C1",
+    "P3-C2",
+    "P3-C3",
+    "P5-C1",
+    "P5-C2",
+    "P5-C3"
+  ],
+  "excluded_material": [
+    "credential_values",
+    "grader_only_seeds",
+    "mutable_workspace_paths",
+    "provider_transcripts",
+    "raw_prompts",
+    "reasoning_traces"
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "grader_only_seeds_retained": false,
+    "mutable_workspace_paths_retained": false,
+    "provider_transcripts_retained": false,
+    "raw_prompts_retained": false,
+    "reasoning_traces_retained": false
+  },
+  "evidence": [
+    {
+      "evidence_id": "P0-DOC",
+      "path": "docs/program/frontier-agent/00-charter-baseline.md",
+      "sha256": "ae43f654fbf847365dbfac3cc05df6a31c6d234558c0c3126667e1e724fe5477",
+      "claim_ids": ["P0-C1", "P0-C2", "P0-C3", "P0-C4", "P0-C5"]
+    },
+    {
+      "evidence_id": "P0-RECEIPT",
+      "path": "docs/program/frontier-agent/p0-baseline-receipt.json",
+      "sha256": "b9f5f91fbf258c4490b675723a55993aac466281e11ca4edd4ba9dc5fb67b3d9",
+      "claim_ids": ["P0-C1", "P0-C2", "P0-C3", "P0-C4", "P0-C5"]
+    },
+    {
+      "evidence_id": "P1-DOC",
+      "path": "docs/program/frontier-agent/01-api-literature-evidence.md",
+      "sha256": "548307be931d7c712d9162bc6f97ce1378e45aa57c1479adfcb81e0c5f02adb4",
+      "claim_ids": ["P1-C1", "P1-C2", "P1-C3", "P1-C4"]
+    },
+    {
+      "evidence_id": "P1-API",
+      "path": "docs/program/frontier-agent/receipts/p1-api-usage.json",
+      "sha256": "22e08a5b66b63c1c8c204171ce3d4bffac4983ef223ab411e73f5801ba1e2e61",
+      "claim_ids": ["P1-C1", "P1-C2"]
+    },
+    {
+      "evidence_id": "P1-LITERATURE",
+      "path": "docs/program/frontier-agent/receipts/p1-literature-evidence.json",
+      "sha256": "addb24100d68350f2d77e7b5d238a7e5590eab6f824a0e9b13a39fd71cee5e51",
+      "claim_ids": ["P1-C3", "P1-C4"]
+    },
+    {
+      "evidence_id": "P1-FAILURES",
+      "path": "docs/program/frontier-agent/receipts/p1-failure-ledger.json",
+      "sha256": "80a21b2a83eca19261e232b005ff5efd9d2bae05b208bdc0857ec395b1be8759",
+      "claim_ids": ["P1-C1", "P1-C2", "P1-C3"]
+    },
+    {
+      "evidence_id": "P2-DOC",
+      "path": "docs/program/frontier-agent/02-runtime-scientific-contracts.md",
+      "sha256": "080ca12dea040620a994c5f84fe2b9924236d3c2f1a9191cadf33f9ac320f54c",
+      "claim_ids": ["P2-C1", "P2-C2", "P2-C3"]
+    },
+    {
+      "evidence_id": "P2-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p2-runtime-contracts.json",
+      "sha256": "2e49e6e0d00db04520c248a235a31c993a4bd0746ae0e74e3d474d42fb0b51ac",
+      "claim_ids": ["P2-C1", "P2-C2", "P2-C3"]
+    },
+    {
+      "evidence_id": "P3-DOC",
+      "path": "docs/program/frontier-agent/03-single-agent-fault-suite.md",
+      "sha256": "26cecba553ebdd686462128dac6229d338a12b0251284f8869f2d71d3563fb1f",
+      "claim_ids": ["P3-C1", "P3-C2", "P3-C3"]
+    },
+    {
+      "evidence_id": "P3-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p3-single-agent-fault-suite.json",
+      "sha256": "9f7592791e2c9349344348da3ee6b9f407ae9de032e8e85e0fb274c28316911c",
+      "claim_ids": ["P3-C1", "P3-C2", "P3-C3"]
+    },
+    {
+      "evidence_id": "P3-REFERENCE",
+      "path": "tests/agent/harness/fixtures/frontier_single_agent_reference_v1.json",
+      "sha256": "22ec6c7525b0c0fcfbabbbe24277b66b3eef81032e9cd146a244db6c2c3df060",
+      "claim_ids": ["P3-C1"]
+    },
+    {
+      "evidence_id": "P3-PUBLIC-CASES",
+      "path": "tests/agent/harness/fixtures/frontier_single_agent_fault_cases_v1.json",
+      "sha256": "713750060944320a3fc82a47ef27f4d26cf86b8f185ee77384202b0924e75d24",
+      "claim_ids": ["P3-C1", "P3-C2", "P3-C3"]
+    },
+    {
+      "evidence_id": "P3-GRADER",
+      "path": "chemsmart/agent/harness/frontier_faults.py",
+      "sha256": "1991fe72a6c1276d1c630c60aa7189bc4d9bac764c79f6ab970a91730a66cdb4",
+      "claim_ids": ["P3-C1", "P3-C2", "P3-C3"]
+    },
+    {
+      "evidence_id": "P3-EVENTS",
+      "path": "chemsmart/agent/runtime/events.py",
+      "sha256": "a4d8ad161a215db012646d7a3a5aaa9f88c319a049646ce1bf053c7337418db0",
+      "claim_ids": ["P2-C1", "P2-C2", "P2-C3", "P3-C1"]
+    },
+    {
+      "evidence_id": "P3-ORCHESTRATOR",
+      "path": "chemsmart/agent/runtime/orchestrator.py",
+      "sha256": "235304cf2d2fa698d1dfe3a457f7cf19d89d5bde3ea4183a60d507a27f98ef62",
+      "claim_ids": ["P2-C1", "P2-C2", "P2-C3", "P3-C1"]
+    },
+    {
+      "evidence_id": "P3-FAULT-TEST",
+      "path": "tests/agent/harness/test_frontier_fault_suite.py",
+      "sha256": "68ad46050f19352289948b1f379d07e88d796a36c094f3e1fe50d6cc3f2960a5",
+      "claim_ids": ["P3-C1", "P3-C2", "P3-C3"]
+    },
+    {
+      "evidence_id": "P3-CONTRACT-TEST",
+      "path": "tests/agent/runtime/test_scientific_contracts.py",
+      "sha256": "e33888fc3fb57cbaa4770c43c7d165bbdc7dc91f21b0aa9247e8e99be24fe85a",
+      "claim_ids": ["P2-C1", "P2-C2", "P2-C3", "P3-C1"]
+    },
+    {
+      "evidence_id": "P5-DOC",
+      "path": "docs/program/frontier-agent/reviews/p4-inputs/p5-component-ablation-plan-v1.md",
+      "sha256": "c477097fd7444198fcf60d26ecbb26160dbbecd29aaf422e7fbea47200c73812",
+      "claim_ids": ["P5-C1", "P5-C2", "P5-C3"]
+    },
+    {
+      "evidence_id": "P5-PROTOCOL",
+      "path": "docs/evaluation/frontier-agent-ablation-protocol.md",
+      "sha256": "4ed0030af2af654690836fcaf503d4750d9ab20f66c548dc01b343ee60a00193",
+      "claim_ids": ["P5-C1", "P5-C2", "P5-C3"]
+    }
+  ]
+}

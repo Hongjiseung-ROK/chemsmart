@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "reference_id": "frontier-single-agent-fixture-v1",
+  "cases": [
+    {
+      "case_id": "P3-F01",
+      "domain": "scientific",
+      "agent_visible_task": {"instruction": "Assess the supplied geometry and preflight identities before proposing a terminal state.", "artifact_ids": ["geometry-input-001", "preflight-001"]},
+      "expected_terminal_status": "blocked",
+      "required_rule_ids": ["p3.geometry.identity_digest_mismatch"],
+      "required_evidence_ids": ["evidence-P3-F01"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F02",
+      "domain": "scientific",
+      "agent_visible_task": {"instruction": "Check the declared geometry frame, coordinate units, and atom ordering.", "artifact_ids": ["geometry-frame-002", "frame-manifest-002"]},
+      "expected_terminal_status": "failed",
+      "required_rule_ids": ["p3.geometry.frame_units_or_order_mismatch"],
+      "required_evidence_ids": ["evidence-P3-F02"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F03",
+      "domain": "scientific",
+      "agent_visible_task": {"instruction": "Check consistency of charge and multiplicity across the task and generated input.", "artifact_ids": ["task-state-003", "input-deck-003"]},
+      "expected_terminal_status": "failed",
+      "required_rule_ids": ["p3.state.spec_generated_mismatch"],
+      "required_evidence_ids": ["evidence-P3-F03"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F04",
+      "domain": "scientific",
+      "agent_visible_task": {"instruction": "Assess whether the method and basis/ECP declaration satisfies the atom inventory policy.", "artifact_ids": ["atom-inventory-004", "method-policy-004"]},
+      "expected_terminal_status": "blocked",
+      "required_rule_ids": ["p3.method_basis.ecp_required"],
+      "required_evidence_ids": ["evidence-P3-F04"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F05",
+      "domain": "scientific",
+      "agent_visible_task": {"instruction": "Compare explicit dispersion and solvation declarations with the archived input settings.", "artifact_ids": ["task-settings-005", "input-settings-005"]},
+      "expected_terminal_status": "blocked",
+      "required_rule_ids": ["p3.settings.solvation_dispersion_mismatch"],
+      "required_evidence_ids": ["evidence-P3-F05"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F06",
+      "domain": "scientific",
+      "agent_visible_task": {"instruction": "Check the energy measurement, temperature, standard state, and units before a thermochemical conclusion.", "artifact_ids": ["measurement-006", "convention-manifest-006"]},
+      "expected_terminal_status": "blocked",
+      "required_rule_ids": ["p3.thermo.convention_or_unit_mismatch"],
+      "required_evidence_ids": ["evidence-P3-F06"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F07",
+      "domain": "scientific",
+      "agent_visible_task": {"instruction": "Assess archived optimization diagnostics instead of inferring success from a termination banner.", "artifact_ids": ["archived-output-007", "optimization-receipt-007"]},
+      "expected_terminal_status": "failed",
+      "required_rule_ids": ["p3.physics.optimization_not_converged"],
+      "required_evidence_ids": ["evidence-P3-F07"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F08",
+      "domain": "scientific",
+      "agent_visible_task": {"instruction": "Assess the archived transition-state frequency classification.", "artifact_ids": ["frequency-output-008", "frequency-receipt-008"]},
+      "expected_terminal_status": "failed",
+      "required_rule_ids": ["p3.physics.ts_imaginary_mode_count"],
+      "required_evidence_ids": ["evidence-P3-F08"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F09",
+      "domain": "evidence",
+      "agent_visible_task": {"instruction": "Determine whether the listed evidence and validation records close the proposed claim.", "artifact_ids": ["claim-record-009", "evidence-manifest-009"]},
+      "expected_terminal_status": "failed",
+      "required_rule_ids": ["p3.evidence.claim_closure_missing"],
+      "required_evidence_ids": ["evidence-P3-F09"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F10",
+      "domain": "approval",
+      "agent_visible_task": {"instruction": "Recheck the exact action binding before any possible dispatch.", "artifact_ids": ["approval-request-010", "candidate-action-010"]},
+      "expected_terminal_status": "blocked",
+      "required_rule_ids": ["p3.approval.binding_changed"],
+      "required_evidence_ids": ["evidence-P3-F10"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": true
+    },
+    {
+      "case_id": "P3-F11",
+      "domain": "parser",
+      "agent_visible_task": {"instruction": "Check whether required parsed output fields are present and trustworthy.", "artifact_ids": ["archived-output-011", "parser-receipt-011"]},
+      "expected_terminal_status": "blocked",
+      "required_rule_ids": ["p3.parser.required_fields_missing"],
+      "required_evidence_ids": ["evidence-P3-F11"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    },
+    {
+      "case_id": "P3-F12",
+      "domain": "provider",
+      "agent_visible_task": {"instruction": "Check the frozen provider capability and tool-schema boundary before any provider use.", "artifact_ids": ["capability-receipt-012", "tool-schema-012"]},
+      "expected_terminal_status": "blocked",
+      "required_rule_ids": ["p3.provider.capability_or_tool_drift"],
+      "required_evidence_ids": ["evidence-P3-F12"],
+      "requires_failed_validation": true,
+      "requires_approval_invalidation": false
+    }
+  ]
+}

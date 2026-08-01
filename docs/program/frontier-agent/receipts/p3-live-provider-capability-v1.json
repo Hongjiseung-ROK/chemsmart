@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "phase": "P3",
+  "receipt_id": "frontier-deepseek-capability-v1",
+  "observed_at": "2026-07-31T19:55:22Z",
+  "status": "blocked",
+  "outcome": "blocked_red_receipt",
+  "related_public_case": "P3-F12",
+  "not_a_fault_trace_or_grade": true,
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_live_provider.py",
+      "sha256": "6c2874a934f4e7abd8c9f2675e9be9cbe5ccea5e78716195bbf74d02ce5670a7"
+    },
+    {
+      "path": "scripts/review/run_frontier_live_deepseek_capability.py",
+      "sha256": "ee20238101a82b8f3ad2e63e1d43cc7748028bc06864904c162b62d0f4397674"
+    },
+    {
+      "path": "scripts/review/validate_frontier_live_provider.py",
+      "sha256": "ba36aa082d1dca2c4c42b72e3ded9187b0dc12e962af9499797c9b9a81830345"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_live_provider.py",
+      "sha256": "2beaa8c79cc37eb729bc53e72e08a31be6291a89265147c3c5f34a79ce4f0b37"
+    },
+    {
+      "path": "docs/program/frontier-agent/p3-live-deepseek-capability-protocol-v1.md",
+      "sha256": "0a814daa4da7cba7d3fa4de51e9157b26bbc784625ba26e7a05136b5e3d1c0ca"
+    },
+    {
+      "path": "docs/program/frontier-agent/03-single-agent-fault-suite.md",
+      "sha256": "967d5848b34dc923bc2de3ae98b1dea38b417c2804d00dc6db9c07ddad039e62"
+    }
+  ],
+  "provider": {
+    "model": "deepseek-v4-pro",
+    "returned_model": "deepseek-v4-pro",
+    "endpoint_id": "deepseek.chat.completions.v1",
+    "configured_base_url_sha256": "a34e2a4708ed1c61008a151688838dcf1c44d4e7f08054633e72ba7c0b16cfc1",
+    "p1_receipt_sha256": "22e08a5b66b63c1c8c204171ce3d4bffac4983ef223ab411e73f5801ba1e2e61",
+    "p1_observed_at": "2026-07-31T18:13:49Z",
+    "p1_verified_allowance_usd": "0.82",
+    "credential_resolution": {
+      "canonical_alias": "DEEPSEEK_API_KEY",
+      "source_class": "configured_legacy_api_env_bound_in_process",
+      "source_alias": "DEEPSEEK-api-key",
+      "bound_in_process": true
+    }
+  },
+  "contract": {
+    "prompt_sha256": "08ea1463442983eaa9a65cced9f8b4eebeb67b67180da29da8fd719c90daee43",
+    "tool_schema_sha256": "c0f1b10c1bb08804ac1dd97b2f17e0e41f20d6c19cce6dd684cd78d9084a8fcd",
+    "request_contract_sha256": "0e4e6a7646481c011f36a653db2746763dc7ae459d40b8a3ae6c406df2b0db14",
+    "request_bytes": 1193,
+    "thinking_disabled_requested": true,
+    "parallel_tool_calls": false,
+    "pricing_source": "https://api-docs.deepseek.com/quick_start/pricing/",
+    "pricing_snapshot_date": "2026-08-01",
+    "declared_budget": {
+      "max_model_calls": 1,
+      "max_tokens": 64,
+      "max_tool_calls": 1,
+      "max_tool_executions": 0,
+      "max_wall_time_s": 15.0,
+      "max_request_bytes": 4096,
+      "actual_request_bytes": 1193,
+      "max_cost_usd": "0.005",
+      "estimated_max_cost_usd": "0.00367488"
+    }
+  },
+  "observation": {
+    "request_count": 1,
+    "retry_count": 0,
+    "http_status": 200,
+    "elapsed_ms": 2112,
+    "response_id_sha256": "caae61d3cfbd758658fd559c0f9c471ed8b6653b3c4b2798a367bbae9f409649",
+    "finish_reason": "length",
+    "tool_call_count": 1,
+    "tool_name_matches": true,
+    "arguments_schema_valid": false,
+    "reasoning_content_present": false,
+    "reasoning_tokens": null,
+    "usage": {
+      "prompt_tokens": 456,
+      "completion_tokens": 64,
+      "total_tokens": 520
+    },
+    "observed_cost_upper_bound_usd": "0.00050808"
+  },
+  "non_execution": {
+    "tool_execution_count": 0,
+    "engine_invocations": 0,
+    "scheduler_invocations": 0
+  },
+  "redaction": {
+    "raw_prompt_retained": false,
+    "raw_response_retained": false,
+    "credentials_retained": false,
+    "headers_retained": false,
+    "error_text_retained": false
+  },
+  "validation_issues": [
+    "live.finish_reason_not_tool_calls",
+    "live.tool_arguments_invalid"
+  ],
+  "error_class": null,
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_live_provider.py tests/agent/harness/test_frontier_fault_suite.py tests/agent/test_frontier_agent_program.py -q",
+    "result": "15 passed in 0.54s",
+    "validated_at": "2026-07-31T20:01:42Z",
+    "classification": "focused_offline_live-contract_frozen-fixture_and_program-integrity_only"
+  }
+}

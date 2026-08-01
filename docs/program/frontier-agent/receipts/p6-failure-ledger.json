@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "phase": "P6",
+  "recorded_at": "2026-07-31T19:32:16Z",
+  "records": [
+    {
+      "id": "P6-F1",
+      "failure": "No independently controlled clean-environment reconstruction receipt exists.",
+      "hypothesis": "A same-worktree focused test cannot establish independent reproducibility.",
+      "minimal_change": "Keep P6-C1 unresolved and publish only a future replication runbook/receipt schema.",
+      "evidence": "P0-P5 receipts and the absence of a P6 clean replication artifact.",
+      "result": "Replication readiness and paper release remain blocked.",
+      "limitation": "Creating a new environment could require separately approved dependency installation.",
+      "rollback_boundary": "Resolve only with a frozen candidate, independently controlled environment identity, commands, output hashes, tolerance comparison, and receipt."
+    },
+    {
+      "id": "P6-F2",
+      "failure": "No held-out paired 2 x 2 x 2 outcomes, named comparator, raw trial receipt, or confidence interval exists.",
+      "hypothesis": "A preregistration or fixture result cannot support comparative inference.",
+      "minimal_change": "Keep P6-C2 unresolved and reject present-tense SOTA language.",
+      "evidence": "P5 receipt and P4 statistics review finding.",
+      "result": "No component or comparator conclusion is made.",
+      "limitation": "P5 has no live authority or independent held-out custody.",
+      "rollback_boundary": "Resolve only through a complete preregistered study and independent replication."
+    },
+    {
+      "id": "P6-F3",
+      "failure": "No validated provider capability/tool-surface receipt or model-executed harness outcome exists.",
+      "hypothesis": "A balance/account response is not a bounded operational experiment.",
+      "minimal_change": "Keep the package zero-call and preserve P1/P3 provider blockers.",
+      "evidence": "P1 API/failure receipts, P3-G5, and P4-RT-01.",
+      "result": "No provider, model, or tool call was made in P6.",
+      "limitation": "The configured alias and tool surface remain unresolved.",
+      "rollback_boundary": "Use a new authorized receipt with fixed model/tools/prompt/ceiling before any live condition."
+    },
+    {
+      "id": "P6-F4",
+      "failure": "No native or archived chemical-result trace establishes values, units, diagnostics, and recomputation.",
+      "hypothesis": "Runtime and fixture evidence cannot establish chemical validity.",
+      "minimal_change": "Keep scientific-result and reliability claims unresolved.",
+      "evidence": "P3 receipt and P4-CH-01.",
+      "result": "The paper outline reports no electronic-structure setting or chemical result.",
+      "limitation": "P6 has no engine-execution authority.",
+      "rollback_boundary": "Resolve only with separately authorized artifact-backed calculations and independent recomputation."
+    },
+    {
+      "id": "P6-F5",
+      "failure": "There is no eligible training corpus of visible verified action/outcome traces, external held-out labels, or training authority.",
+      "hypothesis": "Fixture labels and hidden reasoning cannot justify scientific model training.",
+      "minimal_change": "Set eligible training records to zero and keep P6-C3 unresolved.",
+      "evidence": "P3/P4/P5 receipts and the P6 training checklist.",
+      "result": "No dataset, dependency, model, compute, or training run was created.",
+      "limitation": "Future trace collection itself needs authority and an anti-hacking evaluation boundary.",
+      "rollback_boundary": "Reassess only after verified visible traces, deterministic labels, held-out evaluation, and separate data/model/compute authority exist."
+    },
+    {
+      "id": "P6-F6",
+      "failure": "Publication, commit, push, dependency, compute, and training authority were not granted.",
+      "hypothesis": "An evidence package cannot imply permission for external or irreversible actions.",
+      "minimal_change": "Emit an internal no-go decision and refuse release through the deterministic verifier.",
+      "evidence": "P0 authority boundary, P5 receipt, and P6 decision manifest.",
+      "result": "No commit, push, publication, dependency installation, or training action occurred.",
+      "limitation": "The internal package is not a release candidate.",
+      "rollback_boundary": "A later explicit approval must name the desired external action; it does not retroactively validate missing evidence."
+    }
+  ]
+}

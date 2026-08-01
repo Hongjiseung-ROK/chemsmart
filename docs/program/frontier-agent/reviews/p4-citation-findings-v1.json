@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "packet_id": "p4-frontier-review-v1",
+  "packet_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "reviewer_input_manifest_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "role": "citation",
+  "authority": "read_only",
+  "conflict_declaration": {
+    "mutable_authority": false,
+    "repair_or_approval_authority": false,
+    "reviewer_is_packet_builder": false,
+    "reviewer_is_arbitrator": false,
+    "authored_artifact_ids": [],
+    "prior_finding_ids": []
+  },
+  "findings": [
+    {
+      "finding_id": "P4-CI-01",
+      "severity": "warning",
+      "claim_ids": ["P1-C3", "P1-C4"],
+      "evidence_ids": ["P1-DOC", "P1-LITERATURE", "P1-FAILURES"],
+      "domain": "literature_provenance_and_claim_fit",
+      "statement": "ChemGraph, ACRA, ChemCrow, and Workflow Run RO-Crate support only their recorded narrow propositions; inaccessible or insufficient passages remain unresolved, and empty Crossref relation fields are not global correction or retraction clearance.",
+      "defect_hypothesis": "An adjacent architecture reference, incomplete publisher passage, or metadata-only observation could be expanded into a performance, scientific-validity, or SOTA proposition.",
+      "impact": "The literature statements remain qualified and cannot support a ChemSmart comparative claim.",
+      "safety_red_line": "No snippet, title, or empty metadata field may be used as scientific evidence or correction clearance.",
+      "arbitration_path": "human_decision",
+      "proposed_check_id": "P6-PRIMARY-PASSAGE-AND-CORRECTION-REFRESH",
+      "recommended_claim_status": "qualified",
+      "limitation": "P4 does not obtain additional publisher passages or correction-index access."
+    }
+  ]
+}

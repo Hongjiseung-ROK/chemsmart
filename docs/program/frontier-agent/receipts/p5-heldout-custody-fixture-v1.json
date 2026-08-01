@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "phase": "P5",
+  "receipt_id": "p5-heldout-custody-fixture-v1",
+  "status": "closed_fixture_protocol",
+  "scope": "Prospective digest-only held-out custody admission control; not an external catalog, independent-holder attestation, held-out evaluation, P5 trial, provider, execution, chemistry, aggregation, replication, training, paper, release, or SOTA result.",
+  "recorded_at": "2026-07-31T23:05:33Z",
+  "base_artifacts": [
+    {
+      "artifact_id": "P5-PREREGISTRATION",
+      "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+      "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad"
+    },
+    {
+      "artifact_id": "P5-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"
+    },
+    {
+      "artifact_id": "P5-FAILURE-LEDGER",
+      "path": "docs/program/frontier-agent/receipts/p5-failure-ledger.json",
+      "sha256": "46680ad86ca2af7a0b8c34a10cabbb0d17539e4cba5edc25cc9c4454dadbbd5b"
+    },
+    {
+      "artifact_id": "P4-RED-TEAM",
+      "path": "docs/program/frontier-agent/reviews/p4-red-team-findings-v1.json",
+      "sha256": "ce8cae9929222f0dae3e716ea4efce3f73ed10ecf6190e40c6ff084978fd55ce"
+    },
+    {
+      "artifact_id": "P1P5P6-V2-RECONCILIATION",
+      "path": "docs/program/frontier-agent/receipts/p1-p5-p6-post-p3-v2-reconciliation-v1.json",
+      "sha256": "235bdd666ada720edae20431492765df38b9345382b541eeb89839eddef10f0b"
+    }
+  ],
+  "frozen_p5_inputs_preserved": {
+    "frontier_ablation_source_mutated": false,
+    "p5_preregistration_mutated": false,
+    "p5_close_receipt_mutated": false,
+    "p5_failure_ledger_mutated": false
+  },
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_heldout_custody.py",
+      "sha256": "ad1b071894898ab4c745edb169d934459360ab30e6fd9741a2535b4844189d29"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_heldout_custody.py",
+      "sha256": "5e02afd4295adf394bafe58d4cbc334cf848b0547d72b27cb732edc735a30519"
+    },
+    {
+      "path": "docs/program/frontier-agent/p5-heldout-custody-fixture-protocol-v1.md",
+      "sha256": "a57cfa7f42693e166e7f5849dbcbe4b7c7c0ff4a64b86d3f3f002fa0c2d42170"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p5_heldout_custody_fixture.py",
+      "sha256": "bfc36304edc8225b7020d7e1d7579f71b9d0713b937373d843a8c07c02740b6d"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_p5_heldout_custody_fixture.py",
+      "sha256": "df3af9c87c53ef94bd005e41f8f3b00e1c339858c82c78e9868158ac69237cc9"
+    }
+  ],
+  "fixture_contract": {
+    "schema_version": "frontier.heldout-custody-fixture.v1",
+    "custody_mode": "fixture_only",
+    "real_custody_verified": false,
+    "raw_heldout_content_retained": false,
+    "case_identifier_retained": false,
+    "independent_custodian_declaration_required": true,
+    "p5_evaluation_eligible": false,
+    "required_factor_configurations": 8,
+    "required_repetitions_per_case": 3
+  },
+  "budget_observation": {
+    "frozen_p5_preregistration_loads": 1,
+    "synthetic_sealed_matrix_cases": 1,
+    "synthetic_sealed_matrix_keys": 24,
+    "actual_heldout_catalog_or_case_accesses": 0,
+    "p5_trial_receipts_or_aggregates": 0
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "model_completions": 0,
+    "real_command_executions": 0,
+    "tool_dispatches": 0,
+    "chemistry_engine_calls": 0,
+    "scheduler_calls": 0,
+    "external_evaluator_calls": 0,
+    "heldout_catalog_accesses": 0,
+    "dependency_installs": 0,
+    "active_runtime_wiring_changes": 0,
+    "cli_semantic_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P5H-G1-development-only-reuse-refusal": "passed_fixture_only",
+    "P5H-G2-sealed-factorial-repetition-shape": "passed_fixture_only",
+    "P5H-G3-fail-closed-study-eligibility": "passed_fixture_only",
+    "P5H-G4-actual-independent-custody": "unresolved_not_provisioned",
+    "P5-G4-P5-G5": "blocked_unchanged_no_trial_or_replication_inputs"
+  },
+  "claims": {
+    "supported": [
+      "The new isolated fixture rejects the declared development-reuse, custody, pairing, repetition, duplicate, and control-drift shapes without retaining held-out content."
+    ],
+    "qualified": [
+      "A complete synthetic digest-only fixture shape is structurally checked while retaining the original frozen P5 blocker list."
+    ],
+    "unresolved": [
+      "No external holder, catalog, attestation, or actual held-out case is available.",
+      "All P5 red gates remain active and P5 evaluation remains ineligible."
+    ],
+    "rejected": [
+      "A synthetic fixture custody shape establishes external held-out custody, a trial, a component benefit, replication, or SOTA evidence."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P5H-F1",
+      "failure": "P5 has no independent held-out catalog or commitment, so visible development material could be mislabeled.",
+      "hypothesis": "A digest-only fixture control can refuse known development commitments while preserving actual custody as unresolved.",
+      "minimal_change": "Add an unwired custody shape without creating a catalog or revising P5.",
+      "evidence": "P5-F2, P4-RT-02, and focused visible-case commitment refusal.",
+      "result": "Focused fixture cases passed; visible development-case reuse and claimed-real custody were refused without external access.",
+      "limitation": "Digest checks cannot prove secrecy, independence, or non-leakage outside the checkout.",
+      "rollback_boundary": "Replace only with an external custody interface and a new authorized P5 preregistration revision."
+    },
+    {
+      "id": "P5H-F2",
+      "failure": "Future paired aggregates can be distorted by an incomplete or drifting sealed matrix before scores exist.",
+      "hypothesis": "A no-content key shape should require the frozen 2 x 2 x 2 x 3 pairing and common controls.",
+      "minimal_change": "Add deterministic prospective shape checks only.",
+      "evidence": "Focused duplicate, incomplete, pair, surface, and custody drift fixtures.",
+      "result": "Focused fixture cases passed; duplicate, incomplete, pair, surface, and custody drift shapes were refused before any aggregate.",
+      "limitation": "No outcome, interval, or statistical analysis is produced.",
+      "rollback_boundary": "Retire only if a future scorer proves equivalent or stronger validation over retained raw receipts."
+    },
+    {
+      "id": "P5H-F3",
+      "failure": "A fixture-positive custody shape could be overread as external-held-out evaluation.",
+      "hypothesis": "The result object must be incapable of reporting P5 eligibility and retain the red-gate list.",
+      "minimal_change": "Hard-code false eligibility and use frozen P5 blockers.",
+      "evidence": "Complete synthetic shape fixture.",
+      "result": "Focused fixture cases passed; the complete synthetic shape remained ineligible with every frozen P5 red gate present.",
+      "limitation": "This does not solve provider, executor, chemical-result, trial, or replication gates.",
+      "rollback_boundary": "Do not relax without separate authorized live-study design and evidence."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "raw_heldout_tasks_retained": false,
+    "raw_heldout_case_identifiers_retained": false,
+    "grader_seeds_retained": false,
+    "raw_scores_retained": false,
+    "error_text_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_fixture_only_custody_and_receipt_integrity",
+    "invocations": [
+      {
+        "purpose": "digest-only custody, development-reuse, and sealed-matrix refusal behavior",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_heldout_custody.py -q",
+        "result": "15 passed in 0.11s",
+        "recorded_at": "2026-07-31T23:05:33Z"
+      },
+      {
+        "purpose": "closed fixture receipt integrity, frozen-P5 preservation, and static unwired guard",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_p5_heldout_custody_fixture.py -q",
+        "result": "1 passed (focused offline receipt validator)",
+        "recorded_at": "2026-07-31T23:05:33Z"
+      }
+    ]
+  }
+}

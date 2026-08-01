@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chemsmart.dev/schemas/frontier-agent-goal-state-v2.schema.json",
+  "title": "ChemSmart Frontier Agent bounded Goal state v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "goal_id",
+    "observed_at",
+    "control_document",
+    "repository",
+    "program_context",
+    "active_goal",
+    "authority",
+    "budgets",
+    "evidence",
+    "blockers",
+    "forbidden_work",
+    "handoff"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "goal_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "control_document": {
+      "type": "string",
+      "const": "docs/goals/frontier-agent/goal-control-v2.md"
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worktree",
+        "branch",
+        "head",
+        "foundation_base",
+        "dirty",
+        "tracked_modified_files",
+        "untracked_files",
+        "snapshot_only"
+      ],
+      "properties": {
+        "worktree": {
+          "type": "string",
+          "minLength": 1
+        },
+        "branch": {
+          "type": "string",
+          "const": "codex/frontier-agent-foundation"
+        },
+        "head": {
+          "$ref": "#/$defs/sha"
+        },
+        "foundation_base": {
+          "$ref": "#/$defs/sha"
+        },
+        "dirty": {
+          "const": true
+        },
+        "tracked_modified_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "untracked_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "snapshot_only": {
+          "const": true
+        }
+      }
+    },
+    "program_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ultimate_goal",
+        "historical_program_frozen",
+        "historical_phase_states",
+        "highest_supported_claim"
+      ],
+      "properties": {
+        "ultimate_goal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "historical_program_frozen": {
+          "const": true
+        },
+        "historical_phase_states": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["P0", "P1", "P2", "P3", "P4", "P5", "P6"],
+          "properties": {
+            "P0": {"type": "string"},
+            "P1": {"type": "string"},
+            "P2": {"type": "string"},
+            "P3": {"type": "string"},
+            "P4": {"type": "string"},
+            "P5": {"type": "string"},
+            "P6": {"type": "string"}
+          }
+        },
+        "highest_supported_claim": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "active_goal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "milestone_id",
+        "objective",
+        "state",
+        "vertical_path",
+        "entry_conditions",
+        "exit_gates",
+        "on_block"
+      ],
+      "properties": {
+        "milestone_id": {
+          "type": "string",
+          "pattern": "^M[0-9]+-[a-z0-9-]+$"
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "enum": [
+            "paused",
+            "ready",
+            "in_progress",
+            "review",
+            "complete",
+            "blocked"
+          ]
+        },
+        "vertical_path": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "entry_conditions": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        },
+        "exit_gates": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        },
+        "on_block": {
+          "type": "string",
+          "const": "record_one_failure_and_stop_without_adjacent_work"
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deepseek_existing_quota",
+        "literature_existing_quota",
+        "chemistry_execution",
+        "scheduler_hpc",
+        "dependency_install",
+        "commit_push",
+        "training",
+        "publication"
+      ],
+      "properties": {
+        "deepseek_existing_quota": {
+          "enum": ["authorized_within_milestone_cap", "not_authorized"]
+        },
+        "literature_existing_quota": {
+          "enum": ["authorized_but_out_of_scope_for_m1", "not_authorized"]
+        },
+        "chemistry_execution": {"const": false},
+        "scheduler_hpc": {"const": false},
+        "dependency_install": {"const": false},
+        "commit_push": {"const": false},
+        "training": {"const": false},
+        "publication": {"const": false}
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "account_probes",
+        "deepseek_completions",
+        "retries",
+        "tool_executions",
+        "chemistry_engine_calls",
+        "scheduler_calls",
+        "new_production_modules",
+        "new_test_files",
+        "new_milestone_documents",
+        "focused_pytest_invocations",
+        "standalone_validator_invocations",
+        "broad_suite_invocations",
+        "ruff_formatter_invocations",
+        "writable_subagents"
+      ],
+      "properties": {
+        "account_probes": {"type": "integer", "minimum": 0, "maximum": 1},
+        "deepseek_completions": {"type": "integer", "minimum": 0, "maximum": 1},
+        "retries": {"const": 0},
+        "tool_executions": {"const": 0},
+        "chemistry_engine_calls": {"const": 0},
+        "scheduler_calls": {"const": 0},
+        "new_production_modules": {"type": "integer", "minimum": 0, "maximum": 2},
+        "new_test_files": {"type": "integer", "minimum": 0, "maximum": 2},
+        "new_milestone_documents": {"type": "integer", "minimum": 1, "maximum": 3},
+        "focused_pytest_invocations": {"type": "integer", "minimum": 1, "maximum": 2},
+        "standalone_validator_invocations": {"type": "integer", "minimum": 0, "maximum": 1},
+        "broad_suite_invocations": {"const": 0},
+        "ruff_formatter_invocations": {"const": 0},
+        "writable_subagents": {"const": 0}
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/blocker"
+      }
+    },
+    "forbidden_work": {
+      "$ref": "#/$defs/nonEmptyStringArray"
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_fields", "single_next_milestone_only"],
+      "properties": {
+        "required_fields": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "outcome",
+              "observed_active_path",
+              "quota_use",
+              "validation",
+              "changed_files_and_rollback",
+              "remaining_blockers",
+              "next_milestone"
+            ]
+          }
+        },
+        "single_next_milestone_only": {
+          "const": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "nonEmptyStringArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "classification", "status", "summary", "sources"],
+      "properties": {
+        "evidence_id": {"type": "string", "minLength": 1},
+        "classification": {
+          "enum": [
+            "active_path_observation",
+            "direct_provider_observation",
+            "deterministic_code_observation",
+            "fixture_observation",
+            "literature_observation",
+            "unresolved"
+          ]
+        },
+        "status": {
+          "enum": ["supported", "qualified", "blocked", "rejected", "unresolved"]
+        },
+        "summary": {"type": "string", "minLength": 1},
+        "sources": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        }
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blocker_id", "status", "description", "resolution_evidence"],
+      "properties": {
+        "blocker_id": {"type": "string", "minLength": 1},
+        "status": {"enum": ["open", "resolved"]},
+        "description": {"type": "string", "minLength": 1},
+        "resolution_evidence": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

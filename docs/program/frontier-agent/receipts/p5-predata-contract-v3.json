@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "phase": "P5",
+  "receipt_id": "p5-predata-contract-v3",
+  "status": "closed_fixture_successor",
+  "scope": "Append-only strict fixture-admission successor; not independent custody, a held-out catalog, provider activity, tool dispatch, chemistry execution, scoring, aggregation, replication, paper, training, release, or SOTA result.",
+  "recorded_at": "2026-08-01T01:30:00Z",
+  "predecessor": {
+    "predecessor_id": "p5-predata-contract-v2",
+    "source_sha256": "e9e20b61b1ae7bcbcacead0af03dee95c556fa442ec463ce66e153044f7cfa8a",
+    "receipt_sha256": "4969c473aec9ba97166c9493ceb05380dd007f12273de23d9a1325e82e84da74",
+    "preservation": "historical_bytes_preserved_not_rewritten"
+  },
+  "base_artifacts": [
+    {
+      "artifact_id": "P5-PREREGISTRATION",
+      "path": "tests/agent/harness/fixtures/frontier_component_ablation_preregistration_v1.json",
+      "sha256": "deec08f929e07d56530bdae201a2152f48a8619666007bb87eb0c9e5013536ad"
+    },
+    {
+      "artifact_id": "P5-CLOSE-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-component-ablation.json",
+      "sha256": "51cf06e0e6f7266e5a4f490117ab4272411ee414900d950f109ee86485d139d0"
+    },
+    {
+      "artifact_id": "P5-FAILURE-LEDGER",
+      "path": "docs/program/frontier-agent/receipts/p5-failure-ledger.json",
+      "sha256": "46680ad86ca2af7a0b8c34a10cabbb0d17539e4cba5edc25cc9c4454dadbbd5b"
+    },
+    {
+      "artifact_id": "P4-REVIEW-JOIN",
+      "path": "docs/program/frontier-agent/reviews/p4-review-join-v1.json",
+      "sha256": "f209dc5e52f24422217003972709cd299e07d805ed7b13f16870f1dc7a49d01e"
+    },
+    {
+      "artifact_id": "P5A1-SOURCE",
+      "path": "chemsmart/agent/harness/frontier_ablation_analysis_lock.py",
+      "sha256": "fdc42f307b0bb3b3a33c2dfdbdd09dfd41be4d12d3330a155bb1f76b26e58c6c"
+    },
+    {
+      "artifact_id": "P5A1-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-predata-analysis-lock-v1.json",
+      "sha256": "210d86a853656780c584dfd1b63628c3150fb1d91ba3e7b460a27d281b8a7c5c"
+    },
+    {
+      "artifact_id": "P5A2-SOURCE",
+      "path": "chemsmart/agent/harness/frontier_predata_contract_v2.py",
+      "sha256": "e9e20b61b1ae7bcbcacead0af03dee95c556fa442ec463ce66e153044f7cfa8a"
+    },
+    {
+      "artifact_id": "P5A2-TEST",
+      "path": "tests/agent/harness/test_frontier_predata_contract_v2.py",
+      "sha256": "8800049cb2173a72735e2851cb086bad45cc17c5d8e619d967bfe426d8ee1c62"
+    },
+    {
+      "artifact_id": "P5A2-DOCUMENT",
+      "path": "docs/program/frontier-agent/p5-predata-contract-v2.md",
+      "sha256": "ff638a670ab3fcb12c503f015bfa2a67f4d92ac244675f0b7802d87b91bb07b4"
+    },
+    {
+      "artifact_id": "P5A2-VALIDATOR",
+      "path": "scripts/review/validate_frontier_p5_predata_contract_v2.py",
+      "sha256": "fdf528e6de19dd9a27884cd78f997caa1be4589446e0a249dbb15f6fccd63501"
+    },
+    {
+      "artifact_id": "P5A2-RECEIPT",
+      "path": "docs/program/frontier-agent/receipts/p5-predata-contract-v2.json",
+      "sha256": "4969c473aec9ba97166c9493ceb05380dd007f12273de23d9a1325e82e84da74"
+    }
+  ],
+  "source_artifacts": [
+    {
+      "path": "chemsmart/agent/harness/frontier_predata_contract_v3.py",
+      "sha256": "a33a6feed91ea093fdec50f20bb43d69af1fd2ad1be26c304ccecb5630910440"
+    },
+    {
+      "path": "tests/agent/harness/test_frontier_predata_contract_v3.py",
+      "sha256": "ce97462e13ad0562730faad164f59dc9d75e7e72abbee78e4f963a84a9867a59"
+    },
+    {
+      "path": "docs/program/frontier-agent/p5-predata-contract-v3.md",
+      "sha256": "01c1276931227a533464c0e57f4f0983deaa11a9f1adf038a25b1eb5e24b687f"
+    },
+    {
+      "path": "scripts/review/validate_frontier_p5_predata_contract_v3.py",
+      "sha256": "80a92ad1a421f915ae22bf3f0fd3fe0aa56cd5a378ff8999a6df83be467b918b"
+    }
+  ],
+  "frozen_inputs_preserved": {
+    "frontier_ablation_source_mutated": false,
+    "p5_preregistration_mutated": false,
+    "p5_close_receipt_mutated": false,
+    "p5_failure_ledger_mutated": false,
+    "p5a_v1_source_mutated": false,
+    "p5a_v1_receipt_mutated": false,
+    "p5a_v2_source_mutated": false,
+    "p5a_v2_receipt_mutated": false
+  },
+  "fixture_contract": {
+    "schema_version": "frontier.predata-contract.v3",
+    "fixture_only": true,
+    "real_external_evidence_verified": false,
+    "raw_heldout_content_retained": false,
+    "raw_trial_outcome_retained": false,
+    "v2_source_sha256": "e9e20b61b1ae7bcbcacead0af03dee95c556fa442ec463ce66e153044f7cfa8a",
+    "v2_receipt_sha256": "4969c473aec9ba97166c9493ceb05380dd007f12273de23d9a1325e82e84da74",
+    "v1_source_sha256": "fdc42f307b0bb3b3a33c2dfdbdd09dfd41be4d12d3330a155bb1f76b26e58c6c",
+    "v1_receipt_sha256": "210d86a853656780c584dfd1b63628c3150fb1d91ba3e7b460a27d281b8a7c5c",
+    "required_factor_configurations": 8,
+    "required_repetitions_per_case": 3,
+    "synthetic_matrix_cases": 1,
+    "synthetic_matrix_rows": 24,
+    "analysis_evaluable": false,
+    "p5_evaluation_eligible": false,
+    "adoption_permitted": false
+  },
+  "budget_observation": {
+    "frozen_p5_preregistration_loads": 1,
+    "synthetic_opaque_matrix_cases": 1,
+    "synthetic_opaque_matrix_rows": 24,
+    "legacy_malformed_decision_records": 1,
+    "integer_boolean_alias_probes": 1,
+    "actual_heldout_catalog_case_seed_or_outcome_accesses": 0,
+    "aggregation_or_bootstrap_calculations": 0
+  },
+  "authority_use": {
+    "provider_api_requests": 0,
+    "network_calls": 0,
+    "command_executor_calls": 0,
+    "tool_dispatches": 0,
+    "engine_calls": 0,
+    "scheduler_calls": 0,
+    "dependency_installs": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "gates": {
+    "P5A3-G1-predecessor-preservation": "passed_local_hash_pinned",
+    "P5A3-G2-exact-policy-admission": "passed_fixture_only",
+    "P5A3-G3-boolean-safety-admission": "passed_fixture_only",
+    "P5A3-G4-revalidated-structural-bridge": "passed_fixture_only",
+    "P5A2-G2-P5A2-G3-historical-scope": "qualified_direct_v2_constructor_evidence_only_v3_required_for_strict_admission",
+    "P5-G2-P5-G5": "red_unchanged_no_observed_study"
+  },
+  "claims": {
+    "supported": [
+      "The specified legacy malformed decision record and integer safety flags are rejected on the P5A-v3 fixture admission path."
+    ],
+    "qualified": [
+      "P5A-v2 remains preserved local historical code; its direct constructor evidence is narrower than a cross-version ingress guarantee."
+    ],
+    "unresolved": [
+      "Independent custody, material analysis decisions, live provider and executor evidence, chemistry provenance, observed trials, aggregation, replication, paper readiness, training, release, and SOTA."
+    ],
+    "rejected": [
+      "That a synthetic regression fixture, hash binding, or local focused check establishes a component effect, chemical result, replication, training, release, paper, or SOTA claim."
+    ]
+  },
+  "failure_ledger": [
+    {
+      "id": "P5A3-F1",
+      "failure": "A legacy v1 decision with status bogus can duck-type into v2 and reach its external-evidence classification.",
+      "hypothesis": "Exact record types plus canonical reconstruction reject incompatible semantic records.",
+      "minimal_change": "Add v3 decision and lock wrappers that reconstruct direct v2 policy records at ingress.",
+      "evidence": "Read-only audit and a real legacy malformed-record fixture.",
+      "result": "The foreign record and a poisoned v2 lock are rejected before structural evaluation.",
+      "limitation": "No external decision document or holder is authenticated.",
+      "rollback_boundary": "Supersede only with a reviewed strict schema retaining exact-record admission."
+    },
+    {
+      "id": "P5A3-F2",
+      "failure": "Integers zero and one can satisfy v2 equality checks intended for deterministic safety booleans.",
+      "hypothesis": "Exact booleans prevent truthy numeric aliases from entering the admission path.",
+      "minimal_change": "Wrap rows in StrictTrialOutcomeV3 and require type(value) is bool for six safety fields.",
+      "evidence": "Local construction probe and focused integer-flag fixture.",
+      "result": "The malformed row is refused before structural evaluation.",
+      "limitation": "The material terminal-to-metric mapping is still unresolved.",
+      "rollback_boundary": "Resolve semantics only through an authorized analysis-policy revision while retaining strict Boolean representation."
+    },
+    {
+      "id": "P5A3-F3",
+      "failure": "The first focused regression expected a later policy-digest rejection for a poisoned v2 lock.",
+      "hypothesis": "The invariant is fail-closed rejection, not a particular ordering of redundant guards.",
+      "minimal_change": "Correct only the test expectation to the earlier exact-record-type rejection.",
+      "evidence": "Initial focused run: 1 failed, 3 passed.",
+      "result": "The regression asserts the stronger boundary; no product or policy behavior changed.",
+      "limitation": "This is test-level evidence only.",
+      "rollback_boundary": "Retain an explicit assertion that a poisoned v2 lock cannot be wrapped."
+    }
+  ],
+  "redaction": {
+    "credential_values_retained": false,
+    "raw_prompts_retained": false,
+    "provider_transcripts_retained": false,
+    "raw_heldout_content_retained": false,
+    "raw_outcome_values_retained": false,
+    "raw_scores_retained": false
+  },
+  "phase_close_validation": {
+    "classification": "focused_fixture_only_strict_admission",
+    "invocations": [
+      {
+        "purpose": "initial strict-admission regression fixture",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_predata_contract_v3.py -q",
+        "result": "1 failed, 3 passed in 0.13s; the test expected a later digest mismatch while the stronger exact-record-type guard rejected first."
+      },
+      {
+        "purpose": "corrected strict-admission regression fixture",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/harness/test_frontier_predata_contract_v3.py -q",
+        "result": "4 passed in 0.07s"
+      },
+      {
+        "purpose": "source-hash, predecessor, frozen-P5, redaction, authority, and receipt-integrity validation",
+        "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python scripts/review/validate_frontier_p5_predata_contract_v3.py --repo .",
+        "result": "P5A-v3 strict pre-data admission validation passed."
+      }
+    ]
+  },
+  "next_safe_action": "Keep P5 and P6 blocked. Reconcile this append-only successor into the P6 no-go evidence ledger without changing P6A; a live study requires independent custody and explicit bounded authorization."
+}

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "phase": "P2",
+  "status": "completed",
+  "observed_at": "2026-07-31T18:38:23Z",
+  "baseline": {
+    "frontier_worktree_head": "6da43bab030b90ea5b9777105f78fd5848dd4aed",
+    "p0_receipt": "docs/program/frontier-agent/p0-baseline-receipt.json",
+    "p1_status": "closed_blocked_with_red_gates_retained"
+  },
+  "event_contract": {
+    "runtime_event_schema_version": 1,
+    "event_kind_changes": "none",
+    "event_namespace": "scientific_v1",
+    "registry": "EventPayloadRegistry",
+    "raw_payload_rewrite": "prohibited",
+    "execution_authority": "not_granted"
+  },
+  "source_artifacts": [
+    {"path": "scripts/review/validate_frontier_program.py", "sha256": "4a7b10321e30a8a73ce5d8212ddffd5ce8e456b04d2fd6f8f10f6c0e8ddb990c"},
+    {"path": "chemsmart/agent/runtime/scientific_contracts.py", "sha256": "45d6f0dd19fc4f9507d561bbbf46b78afec06bbde69d8d995a99a0abce6c088e"},
+    {"path": "chemsmart/agent/runtime/events.py", "sha256": "6cc22f2b40b4aa34929d7bee13ce9aca590c6d775d8c9f4ba8cd35a6a92f5a38"},
+    {"path": "chemsmart/agent/runtime/event_store.py", "sha256": "404aef534eeb73a4350d27f70b69fc20cb46144177d47a894d82c6920ef87eb9"},
+    {"path": "chemsmart/agent/runtime/reducer.py", "sha256": "9066e4f805931b65251617fd1fc56b25db373e7582470554c18d10b8e2a3ee5c"},
+    {"path": "chemsmart/agent/runtime/lifecycle.py", "sha256": "fcee370fe1ffdff49969e0b4c13a0ed085df6cb32dddc4ad7ae13d8f3112186a"},
+    {"path": "chemsmart/agent/runtime/orchestrator.py", "sha256": "25f376a9703af1126d815d367be65a991d4667350aae349d5936023e2c90f575"},
+    {"path": "chemsmart/agent/runtime/__init__.py", "sha256": "09532e28b9f80f0c51a01c4c07ab796377d84607bb62a0a8eafd29e8bfaac11e"},
+    {"path": "tests/agent/runtime/fixtures/runtime_v1_frontier_baseline.jsonl", "sha256": "d2f45c6071d45436cb44946d70d5c269ef798fa718cda5d0e83f1eab3886723c"},
+    {"path": "tests/agent/runtime/test_scientific_contracts.py", "sha256": "59576617914e94fe8e58683bfaef9220b1cdb36bd0bad085c9a0a9702913eef5"}
+  ],
+  "preserved_boundaries": [
+    {"path": "chemsmart/agent/cli_schema.py", "sha256": "d3a9bc2c87891337c0556028dcbf28676bb549aebc6269fc1d2ce89c3d080a5a"},
+    {"path": "chemsmart/agent/compact_cli_schema.py", "sha256": "43507e4b2a3794b3fc363dd332ccc8b579adef0576a79108f428e0c6086a3884"},
+    {"path": "chemsmart/agent/provider_config.py", "sha256": "882d784416056a8e4d03c98474a49ca8ccb92ee5ae29dae7daef6c1c429bbbe1"},
+    {"path": "tests/agent/runtime/test_runtime_kernel.py", "sha256": "b643dbdf4c7b3313c304803719068212229f1a80169b0cc0816198c676be6a92"},
+    {"path": "tests/agent/test_cli_schema.py", "sha256": "6aa190ac10decee97d8e490d52e5229da32768868f4055347da5f3a2692177ef"}
+  ],
+  "frozen_v1_fixture": {
+    "path": "tests/agent/runtime/fixtures/runtime_v1_frontier_baseline.jsonl",
+    "sha256": "d2f45c6071d45436cb44946d70d5c269ef798fa718cda5d0e83f1eab3886723c",
+    "event_hashes": [
+      "66f4e8e85bf2ca0ad51e866647b6c695faee0c1cb94980023b00e8d9dd723abc",
+      "c2643e044e437701fd91d28f57bf0873715c9bc16abc39048ba2b4b1e248f452",
+      "7aafa47ab3cc9751bb080d6f5059a32297516bd9264e75ac1c795fc37468bfe1"
+    ]
+  },
+  "authority_use": {
+    "live_api_requests": 0,
+    "model_completions": 0,
+    "real_chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "dependency_installs": 0,
+    "cli_semantic_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "failure_ledger": [
+    {
+      "id": "P2-F1",
+      "failure": "The P0 validator compared baseline source hashes to the mutable working tree, which would classify an authorized additive Runtime V2 edit as baseline drift.",
+      "hypothesis": "P0 must anchor source evidence to its recorded Git revision, while P2 must separately hash its changed artifacts and preserved boundaries.",
+      "minimal_change": "Read P0 source objects through the recorded Git revision and add a separate P2 current-artifact receipt check.",
+      "evidence": "The P0 receipt records frontier_worktree.head 6da43bab030b90ea5b9777105f78fd5848dd4aed; P2 needs to alter Runtime V2 files that P0 inventories.",
+      "result": "Implemented pending focused validation; P0 now validates immutable baseline objects and P2 records current files separately.",
+      "limitation": "The receipt is an uncommitted working-artifact boundary until a later user-authorized commit.",
+      "rollback_boundary": "Revert the validator baseline-object lookup and remove the P2 receipt check if it prevents a valid clean-baseline audit."
+    }
+  ],
+  "gates": {
+    "P2-G1": "passed_frozen_v1_hash_and_reducer_replay",
+    "P2-G2": "passed_additive_registered_namespace_only",
+    "P2-G3": "passed_contract_fixture_only_executor_authority_not_granted",
+    "P2-G4": "passed_typed_identity_and_declared_gap_fixture",
+    "P2-G5": "passed_existing_cli_schema_characterization"
+  },
+  "phase_close_validation": {
+    "command": "env -u PYTHONPATH conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent/runtime/test_scientific_contracts.py tests/agent/runtime/test_runtime_kernel.py tests/agent/test_cli_schema.py tests/agent/test_frontier_agent_program.py -q",
+    "result": "59 passed in 2.54s",
+    "validated_at": "2026-07-31T18:40:28Z",
+    "classification": "focused_runtime_replay_permission_and_cli_characterization_only"
+  },
+  "claims": [
+    {"id": "P2-C1", "status": "supported_observation"},
+    {"id": "P2-C2", "status": "unresolved"},
+    {"id": "P2-C3", "status": "qualified_contract_observation"}
+  ],
+  "limitations": [
+    "No chemistry engine, scheduler, provider completion, or paid external request was invoked.",
+    "The contract records durable approval evidence but does not grant or enforce executor-side dispatch authority.",
+    "Typed records are safety infrastructure, not evidence that a calculation or SOTA result is scientifically valid."
+  ]
+}

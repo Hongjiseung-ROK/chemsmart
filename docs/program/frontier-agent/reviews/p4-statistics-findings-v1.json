@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "packet_id": "p4-frontier-review-v1",
+  "packet_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "reviewer_input_manifest_sha256": "5e4aa931a5af685f942d70f187bd7d8e631935b1e68b9df5fbf0e1ccf4470c0a",
+  "role": "statistics",
+  "authority": "read_only",
+  "conflict_declaration": {
+    "mutable_authority": false,
+    "repair_or_approval_authority": false,
+    "reviewer_is_packet_builder": false,
+    "reviewer_is_arbitrator": false,
+    "authored_artifact_ids": [],
+    "prior_finding_ids": []
+  },
+  "findings": [
+    {
+      "finding_id": "P4-ST-01",
+      "severity": "critical",
+      "claim_ids": ["P5-C1", "P5-C2", "P5-C3"],
+      "evidence_ids": ["P5-DOC", "P5-PROTOCOL", "P3-RECEIPT"],
+      "domain": "preregistration_and_inference",
+      "statement": "The 2 x 2 x 2 protocol is a future preregistration, not an executed study: it has no held-out cases, paired repetitions, randomized order receipt, per-trial outcomes, or confidence intervals.",
+      "defect_hypothesis": "Fixture-development results or a point estimate could be used as a component-benefit or comparative conclusion without the prespecified denominator and uncertainty analysis.",
+      "impact": "No component effect, default-adoption decision, comparator result, or SOTA conclusion is estimable from P0-P4.",
+      "safety_red_line": "Do not promote a component or comparator from a non-held-out, unpaired, or post hoc result.",
+      "arbitration_path": "unresolved",
+      "proposed_check_id": "P5-PREREGISTERED-2X2X2",
+      "recommended_claim_status": "unresolved",
+      "limitation": "No live-model or chemistry-engine trial is authorized by this review packet, so the missing experimental data cannot be manufactured by review."
+    }
+  ]
+}

@@ -14,6 +14,7 @@ from chemsmart.agent.runtime.calculations import (
 from chemsmart.agent.runtime.contracts import RuntimeV2Mode
 from chemsmart.agent.runtime.events import EventKind
 from chemsmart.agent.runtime.receipts import collect_artifact_refs
+from chemsmart.agent.runtime.scientific_contracts import ScientificV1Extension
 from chemsmart.agent.runtime.tool_catalog import ToolSelection
 
 
@@ -95,16 +96,26 @@ class RuntimeLifecycle:
         tool_name: str,
         decision: str,
         reason: str,
+        scientific_v1: ScientificV1Extension | None = None,
     ) -> None:
+        payload: dict[str, Any] = {
+            "request_id": request_id,
+            "tool": tool_name,
+            "decision": decision,
+            "reason": reason,
+        }
+        if scientific_v1 is not None:
+            # This is an explicit typed input from a trusted deterministic
+            # caller, never a scrape of a provider reply or arbitrary tool
+            # output.  The event registry validates it before persistence.
+            payload["scientific_v1"] = scientific_v1.model_dump(mode="json")
         self.emitter.emit(
             EventKind.PERMISSION_RESOLVED,
-            {
-                "request_id": request_id,
-                "tool": tool_name,
-                "decision": decision,
-                "reason": reason,
-            },
-            idempotency_key=f"permission:{request_id}:{decision}",
+            payload,
+            idempotency_key=(
+                f"permission:{request_id}:{decision}"
+                f"{_approval_binding_idempotency_suffix(scientific_v1)}"
+            ),
         )
 
     def after_tool(
@@ -161,6 +172,22 @@ class RuntimeLifecycle:
             return
         reset_calculation_context(self._calculation_context_token)
         self._calculation_context_token = None
+
+
+def _approval_binding_idempotency_suffix(
+    scientific_v1: ScientificV1Extension | None,
+) -> str:
+    """Bind durable permission events to the exact approved invocation."""
+
+    if scientific_v1 is None:
+        return ""
+    if scientific_v1.approval_request is not None:
+        return f":{scientific_v1.approval_request.binding_sha256}"
+    if scientific_v1.approval_resolution is not None:
+        return f":{scientific_v1.approval_resolution.request_binding_sha256}"
+    if scientific_v1.approval_invalidation is not None:
+        return f":{scientific_v1.approval_invalidation.current_binding_sha256}"
+    return ""
 
 
 def _success_payload(

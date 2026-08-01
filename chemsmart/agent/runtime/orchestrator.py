@@ -22,6 +22,16 @@ from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.runtime.events import EventKind, RuntimeEvent
 from chemsmart.agent.runtime.lifecycle import RuntimeLifecycle
 from chemsmart.agent.runtime.reducer import apply_event, reduce_events
+from chemsmart.agent.runtime.scientific_contracts import (
+    ClaimRecord,
+    ClaimStatus,
+    ClaimType,
+    PhaseCloseReceipt,
+    ResourceBudget,
+    ScientificTaskSpec,
+    TaskGraph,
+    ValidationStatus,
+)
 from chemsmart.agent.runtime.tool_catalog import (
     PhaseToolProfile,
     ToolCatalog,
@@ -166,19 +176,41 @@ class RuntimeController:
         provider_name: str,
         cwd: str,
         workflow_state: WorkflowState | None = None,
+        scientific_task: ScientificTaskSpec | None = None,
+        scientific_task_graph: TaskGraph | None = None,
+        scientific_resource_budget: ResourceBudget | None = None,
     ) -> TaskEnvelope:
         self.ensure_session(cwd=cwd)
         role = provider_role(provider_name)
         intent = IntentSpec.from_request(request)
         phase = route_initial_phase(request, role=role, intent=intent)
         self.turn_id = f"turn_{turn_index:04d}"
+        turn_payload: dict[str, Any] = {
+            "request": request,
+            "phase": phase.value,
+            "provider_role": role.value,
+        }
+        scientific_records: dict[str, Any] = {}
+        if scientific_task is not None:
+            scientific_records["task_spec"] = scientific_task.model_dump(
+                mode="json"
+            )
+        if scientific_task_graph is not None:
+            scientific_records["task_graph"] = scientific_task_graph.model_dump(
+                mode="json"
+            )
+        if scientific_resource_budget is not None:
+            scientific_records["resource_budget"] = (
+                scientific_resource_budget.model_dump(mode="json")
+            )
+        if scientific_records:
+            turn_payload["scientific_v1"] = {
+                "version": 1,
+                **scientific_records,
+            }
         self.emit(
             EventKind.TURN_STARTED,
-            {
-                "request": request,
-                "phase": phase.value,
-                "provider_role": role.value,
-            },
+            turn_payload,
             idempotency_key=f"turn-start:{self.turn_id}",
         )
         self.selection = self.catalog.select(
@@ -244,25 +276,53 @@ class RuntimeController:
                 f"invalid runtime transition {current.value} -> {decision.phase.value}"
             )
 
-    def complete(self, *, status: str = "ok") -> bool:
-        rule_ids = self.completion_rule_ids()
+    def complete(
+        self,
+        *,
+        status: str = "ok",
+        phase_close: PhaseCloseReceipt | None = None,
+        claim: ClaimRecord | None = None,
+    ) -> bool:
+        rule_ids = self.completion_rule_ids(
+            phase_close=phase_close,
+            claim=claim,
+        )
         if rule_ids:
             self.block(reason=rule_ids[0], rule_ids=rule_ids)
             return False
+        payload: dict[str, Any] = {"status": status}
+        scientific_records: dict[str, Any] = {}
+        if claim is not None:
+            scientific_records["claim"] = claim.model_dump(mode="json")
+        if phase_close is not None:
+            scientific_records["phase_close"] = phase_close.model_dump(
+                mode="json"
+            )
+        if scientific_records:
+            payload["scientific_v1"] = {
+                "version": 1,
+                **scientific_records,
+            }
         self.emit(
             EventKind.TURN_COMPLETED,
-            {"status": status},
+            payload,
             idempotency_key=f"turn-complete:{self.turn_id}",
         )
         return True
 
-    def completion_rule_ids(self) -> tuple[str, ...]:
+    def completion_rule_ids(
+        self,
+        *,
+        phase_close: PhaseCloseReceipt | None = None,
+        claim: ClaimRecord | None = None,
+    ) -> tuple[str, ...]:
         phase = (
             self.selection.phase
             if self.selection is not None
             else self.state.phase
         )
         receipts = self.state.completed_tool_receipts
+        rule_ids: list[str] = []
         if phase is TaskPhase.PROJECT and _project_authoring_requested(
             self.state.request
         ):
@@ -272,9 +332,9 @@ class RuntimeController:
                 if item.get("tool") == "render_project_yaml"
             ]
             if not rendered:
-                return ("runtime.project.render_required",)
-            if rendered[-1].get("verdict") not in {"ok", "warn"}:
-                return ("runtime.project.validation_required",)
+                rule_ids.append("runtime.project.render_required")
+            elif rendered[-1].get("verdict") not in {"ok", "warn"}:
+                rule_ids.append("runtime.project.validation_required")
         if phase is TaskPhase.PROJECT_READ:
             reads = [
                 item
@@ -282,19 +342,108 @@ class RuntimeController:
                 if item.get("tool") == "read_project_yaml"
             ]
             if not reads:
-                return ("runtime.project.read_required",)
-            if reads[-1].get("verdict") == "reject":
-                return ("runtime.project.read_invalid",)
+                rule_ids.append("runtime.project.read_required")
+            elif reads[-1].get("verdict") == "reject":
+                rule_ids.append("runtime.project.read_invalid")
         if phase is TaskPhase.PROJECT_WRITE and not any(
             item.get("tool") in {"write_project_yaml", "update_project_yaml"}
             for item in receipts
         ):
-            return ("runtime.project.write_required",)
+            rule_ids.append("runtime.project.write_required")
         if phase is TaskPhase.DIAGNOSTICS and not any(
             item.get("tool") == "inspect_calculation" for item in receipts
         ):
-            return ("runtime.calculation.inspection_required",)
-        return ()
+            rule_ids.append("runtime.calculation.inspection_required")
+        rule_ids.extend(
+            self.scientific_completion_rule_ids(
+                phase_close=phase_close,
+                claim=claim,
+            )
+        )
+        return tuple(rule_ids)
+
+    def scientific_completion_rule_ids(
+        self,
+        *,
+        phase_close: PhaseCloseReceipt | None = None,
+        claim: ClaimRecord | None = None,
+    ) -> tuple[str, ...]:
+        """Apply scientific completion gates only to an explicit opt-in task."""
+
+        spec = self.state.scientific_task_spec
+        if spec is None:
+            return ()
+        rule_ids: list[str] = []
+        if spec.unresolved_facts:
+            rule_ids.append("runtime.science.spec_unresolved")
+        required_evidence_ids = {
+            requirement.requirement_id
+            for requirement in spec.expected_evidence
+            if requirement.required
+        }
+        if required_evidence_ids - set(self.state.evidence_records):
+            rule_ids.append("runtime.science.evidence_required")
+        validation_statuses = {
+            receipt.status for receipt in self.state.validation_receipts.values()
+        }
+        if not validation_statuses:
+            rule_ids.append("runtime.science.validation_required")
+        elif ValidationStatus.FAIL in validation_statuses:
+            rule_ids.append("runtime.science.validation_failed")
+        elif ValidationStatus.UNKNOWN in validation_statuses:
+            rule_ids.append("runtime.science.validation_unresolved")
+        if self.state.scientific_resource_budget is not None and any(
+            exhaustion.budget_id == self.state.scientific_resource_budget.budget_id
+            for exhaustion in self.state.budget_exhaustions.values()
+        ):
+            rule_ids.append("runtime.science.budget_exhausted")
+        if any(
+            (
+                request := self.state.approval_requests.get(
+                    invalidation.approval_id
+                )
+            ) is not None
+            and request.task_spec_id == spec.task_spec_id
+            for invalidation in self.state.approval_invalidations
+        ):
+            rule_ids.append("runtime.science.approval_invalidated")
+
+        claims = list(self.state.claim_records.values())
+        if claim is not None:
+            claims.append(claim)
+        known_evidence_ids = set(self.state.evidence_records)
+        known_validation_ids = set(self.state.validation_receipts)
+        for candidate in claims:
+            if set(candidate.evidence_ids) - known_evidence_ids or set(
+                candidate.validation_receipt_ids
+            ) - known_validation_ids:
+                rule_ids.append("runtime.science.claim_evidence_unresolved")
+            if (
+                candidate.claim_type is ClaimType.COMPUTED_RESULT
+                and candidate.status is ClaimStatus.SUPPORTED
+            ):
+                validations = [
+                    self.state.validation_receipts[receipt_id]
+                    for receipt_id in candidate.validation_receipt_ids
+                    if receipt_id in self.state.validation_receipts
+                ]
+                if not validations or any(
+                    receipt.status is not ValidationStatus.PASS
+                    for receipt in validations
+                ):
+                    rule_ids.append(
+                        "runtime.science.claim_validation_not_green"
+                    )
+
+        if phase_close is None:
+            rule_ids.append("runtime.science.phase_close_required")
+        else:
+            if phase_close.outcome != "passed" or phase_close.gate_status != "green":
+                rule_ids.append("runtime.science.phase_close_not_green")
+            known_claim_ids = {record.claim_id for record in claims}
+            if set(phase_close.claim_ids) - known_claim_ids:
+                rule_ids.append("runtime.science.phase_close_claim_unresolved")
+        return tuple(dict.fromkeys(rule_ids))
 
     def completion_notice(self) -> str:
         phase = (
