@@ -1,0 +1,75 @@
+{
+  "schema_version": "chemsmart.goal-command-length-receipt.v1",
+  "measured_on": "2026-08-02",
+  "character_limit_exclusive": 3500,
+  "measurement": {
+    "body": "bytes strictly between the opening ~~~text newline and the closing ~~~ fence",
+    "terminating_newline_included": true,
+    "line_endings": "LF",
+    "hash": "SHA-256 of the UTF-8 encoded body"
+  },
+  "all_commands_ascii_only": true,
+  "all_commands_below_limit": true,
+  "commands": [
+    {
+      "phase": "M2A",
+      "path": "M2A.md",
+      "unicode_characters": 2342,
+      "utf8_bytes": 2342,
+      "lines": 11,
+      "ascii_only": true,
+      "below_limit": true,
+      "sha256": "31455d47a392e78e3e0ae98911f4aa06455279bdc54b2b3931b0954a2176cc4f"
+    },
+    {
+      "phase": "M2B",
+      "path": "M2B.md",
+      "unicode_characters": 2314,
+      "utf8_bytes": 2314,
+      "lines": 11,
+      "ascii_only": true,
+      "below_limit": true,
+      "sha256": "a1523526e3143ed5fb93d59d777685e3b86c5bad65a88a505d2cdf71f6d6f556"
+    },
+    {
+      "phase": "M2C",
+      "path": "M2C.md",
+      "unicode_characters": 2599,
+      "utf8_bytes": 2599,
+      "lines": 11,
+      "ascii_only": true,
+      "below_limit": true,
+      "sha256": "4387e6079bd8a1838895f1f228c3225ba658c44d68b3a10aef20fb5400d36918"
+    },
+    {
+      "phase": "M2D",
+      "path": "M2D.md",
+      "unicode_characters": 2419,
+      "utf8_bytes": 2419,
+      "lines": 11,
+      "ascii_only": true,
+      "below_limit": true,
+      "sha256": "59f78f04a4b7d541f154fccbceb16809e06dac70fabadaa17cf51be84d34c615"
+    },
+    {
+      "phase": "M3",
+      "path": "M3.md",
+      "unicode_characters": 2520,
+      "utf8_bytes": 2520,
+      "lines": 11,
+      "ascii_only": true,
+      "below_limit": true,
+      "sha256": "7a7db42829fdb39b40f2965f6d23d3db17158109b573e2754de3036af2264b01"
+    },
+    {
+      "phase": "M4",
+      "path": "M4.md",
+      "unicode_characters": 2703,
+      "utf8_bytes": 2703,
+      "lines": 11,
+      "ascii_only": true,
+      "below_limit": true,
+      "sha256": "3f65380216abefcee0f95ca89fda5f09fe7ca7c3f72884b68187349b95a1582e"
+    }
+  ]
+}
