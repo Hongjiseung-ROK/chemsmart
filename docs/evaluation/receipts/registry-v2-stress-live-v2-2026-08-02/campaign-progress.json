@@ -1,0 +1,58 @@
+{
+  "campaign_plan_sha256": "757d9ca2cdb29fce61ae1d06702e1a93e3ec350199894c96dccfff7231379935",
+  "campaign_wall_time_limit_seconds": 14400.0,
+  "campaign_wall_time_ms": 272165,
+  "completed_run_ids": [
+    "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v2",
+    "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v2",
+    "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+    "run:gaussian-pcseg2-materialization-gap:minimal:v2",
+    "run:gaussian-pcseg2-materialization-gap:registry_v1:v2",
+    "run:gaussian-pcseg2-materialization-gap:registry_v2:v2"
+  ],
+  "error_class": null,
+  "last_started_hypothesis_id": "hypothesis.gaussian-pcseg2-materialization-gap:registry_v2:v2",
+  "outcome_artifacts": [
+    {
+      "artifact_sha256": "09daac041e60329f33f9c2a4d1de6fe98c16e51521e38a2d9f473641a2756483",
+      "locator": "outcomes/run_orca-ma-def2-tzvp-cross-field-blocked_minimal_v2.json",
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v2"
+    },
+    {
+      "artifact_sha256": "f62aa5e70475c7766b4b57ff77d60b5ce34aaaa7d0126dd641d7ad003e909366",
+      "locator": "outcomes/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v1_v2.json",
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v2"
+    },
+    {
+      "artifact_sha256": "9e9a4f069ca12c534bb6fd2a1acb5b66b6294a24af64f95772da2e50bd93a4bf",
+      "locator": "outcomes/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v2_v2.json",
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2"
+    },
+    {
+      "artifact_sha256": "d71a3a53cc331711606c6f3bd4ebf49ac5dc6405dc1e7c7038e220964022b114",
+      "locator": "outcomes/run_gaussian-pcseg2-materialization-gap_minimal_v2.json",
+      "run_id": "run:gaussian-pcseg2-materialization-gap:minimal:v2"
+    },
+    {
+      "artifact_sha256": "1d42399b8a25bb554a246641f9dee5dd26a4e461155304ba1fe0d564ec6fc3e7",
+      "locator": "outcomes/run_gaussian-pcseg2-materialization-gap_registry_v1_v2.json",
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v1:v2"
+    },
+    {
+      "artifact_sha256": "a1e293363dc97a93c80552c082a6906f9136f6c97dde7e94fe633d211e76b6e3",
+      "locator": "outcomes/run_gaussian-pcseg2-materialization-gap_registry_v2_v2.json",
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v2:v2"
+    }
+  ],
+  "outcome_receipt_sha256s": [
+    "82b8554885cd185dc6ef9531221b7d7f0c50af5d51b2d31e0219c55b12144555",
+    "713ed234805e4db41f0541b876f2533b62120e34d6189d55a506b62e98f54ffd",
+    "ed77949c2677db5c5c95309adcd5bd93fe0582f067a433295efe6d7258bbfba2",
+    "ebf3f537b2035022ea01c4bed4340c117c9056b29af5031615ef0b51aba7f109",
+    "e64a5d059dd68c5a76fe5eb1b5778eace6fa8c512400cb6408dfdfaf8d51b34f",
+    "16632464c8f3c7d3726935937080698d924005b121479939b6b0dcc8e7bb083c"
+  ],
+  "schema_version": "chemsmart.registry-stress-campaign-progress.v1",
+  "status": "running",
+  "termination_reason": null
+}

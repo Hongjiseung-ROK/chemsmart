@@ -454,8 +454,101 @@ def test_exactly_one_successful_typed_submission_is_required():
     payload = _proposal(_case("orca-b97m-d4-exact-compound"))
     outcome = _outcome("submit_registry_stress_plan", payload)
 
-    assert stress._proposal_from_outcomes((outcome,)) == (payload, 1)
-    assert stress._proposal_from_outcomes((outcome, outcome)) == (None, 2)
+    assert stress._proposal_from_outcomes((outcome,)) == (
+        payload,
+        1,
+        None,
+        payload,
+    )
+    assert stress._proposal_from_outcomes((outcome, outcome)) == (
+        None,
+        2,
+        None,
+        None,
+    )
+
+
+def test_submission_normalizer_fills_omission_and_sorts_sets():
+    case = _case("orca-ma-def2-tzvp-cross-field-blocked")
+    payload = _proposal(case)
+    payload["settings"]["freq"] = None
+    payload["blocking_rule_ids"] = ["z.rule", "a.rule", "z.rule"]
+
+    normalized, receipt = stress._normalize_case_bound_submission(
+        case,
+        payload,
+    )
+
+    assert normalized["settings"]["freq"] is True
+    assert normalized["blocking_rule_ids"] == ["a.rule", "z.rule"]
+    assert receipt.filled_explicit_setting_fields == ("settings.freq",)
+    assert receipt.canonicalized_set_fields == ("blocking_rule_ids",)
+    assert receipt.conflicting_explicit_setting_fields == ()
+    assert receipt.raw_contract_valid is False
+    assert receipt.raw_contract_error_paths == ("blocking_rule_ids",)
+    assert receipt.normalization_applied is True
+
+
+def test_submission_normalizer_never_overwrites_a_contradiction():
+    case = _case("gaussian-pcseg2-materialization-gap")
+    payload = _proposal(case)
+    payload["settings"]["functional"] = "PBE0"
+
+    normalized, receipt = stress._normalize_case_bound_submission(
+        case,
+        payload,
+    )
+    grade = stress.grade_proposal(
+        case,
+        normalized,
+        arm=RegistryStressArm.REGISTRY_V2,
+        normalization_receipt=receipt.model_dump(mode="json"),
+    )
+
+    assert normalized["settings"]["functional"] == "PBE0"
+    assert receipt.conflicting_explicit_setting_fields == (
+        "settings.functional",
+    )
+    assert receipt.raw_contract_valid is True
+    assert "oracle.setting-preservation" in grade["failed_oracle_ids"]
+
+
+def test_submission_normalizer_rejects_a_missing_settings_object():
+    case = _case("gaussian-pcseg2-materialization-gap")
+    payload = _proposal(case)
+    payload.pop("settings")
+
+    with pytest.raises(ValueError, match="settings must be an object"):
+        stress._normalize_case_bound_submission(case, payload)
+
+
+def test_submission_normalizer_is_idempotent_and_rejects_unknown_fields():
+    case = _case("orca-ma-def2-tzvp-cross-field-blocked")
+    payload = _proposal(case)
+    payload["settings"]["freq"] = None
+
+    once, first_receipt = stress._normalize_case_bound_submission(case, payload)
+    twice, second_receipt = stress._normalize_case_bound_submission(case, once)
+    assert once == twice
+    assert first_receipt.normalization_applied is True
+    assert second_receipt.normalization_applied is False
+
+    invalid = dict(payload)
+    invalid["unregistered_field"] = "forbidden"
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        stress._normalize_case_bound_submission(case, invalid)
+
+
+@pytest.mark.parametrize("explicit_empty", ([], {}))
+def test_submission_normalizer_does_not_fill_explicit_empty_values(
+    explicit_empty,
+):
+    case = _case("gaussian-pcseg2-materialization-gap")
+    payload = _proposal(case)
+    payload["settings"]["basis"] = explicit_empty
+
+    with pytest.raises(ValidationError):
+        stress._normalize_case_bound_submission(case, payload)
 
 
 @pytest.mark.parametrize(

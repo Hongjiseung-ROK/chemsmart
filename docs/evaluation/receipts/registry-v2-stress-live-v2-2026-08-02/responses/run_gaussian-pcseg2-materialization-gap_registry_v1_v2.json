@@ -1,0 +1,67 @@
+{
+  "assistant_text": "Proposal submitted for case `gaussian-pcseg2-materialization-gap`.\n\n**Outcome: `blocked_missing_evidence`** — the project is not a candidate because of the BSE-discovery vs. deterministic compiler-materialization gap:\n\n- **`pcseg-2` (method.basis, opt):** `exact_registered` via capability `gaussian.basis.bse.pcseg2` — BSE-discoverable, loader-accepted, renderer-preserved. However, the evidence ceiling is `loader_renderer_verification_only`: `engine_executed: false`, `safe_preview_executed: false`, `scientific_adequacy_verified: false`, `setting_combination_verified: false`. No deterministic materialization receipt exists for Gaussian 16.C01.\n- **`B3LYP` (method.functional, opt):** `exact_registered` via non-BSE capability `gaussian.functional.b3lyp`, but carries the same loader/renderer-only evidence ceiling.\n\nThe inventory listing (pcseg-0…4 / aug-pcseg-0…4) is advisory only and cannot discharge the materialization gap. The blocked proposal preserves the source literals (`B3LYP`, `pcseg-2`, `freq`), and no native input, command, project write, or execution was requested — consistent with the read-only experiment constraints.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Proposal submitted for case `gaussian-pcseg2-materialization-gap`.\n\n**Outcome: `blocked_missing_evidence`** — the project is not a candidate because of the BSE-discovery vs. deterministic compiler-materialization gap:\n\n- **`pcseg-2` (method.basis, opt):** `exact_registered` via capability `gaussian.basis.bse.pcseg2` — BSE-discoverable, loader-accepted, renderer-preserved. However, the evidence ceiling is `loader_renderer_verification_only`: `engine_executed: false`, `safe_preview_executed: false`, `scientific_adequacy_verified: false`, `setting_combination_verified: false`. No deterministic materialization receipt exists for Gaussian 16.C01.\n- **`B3LYP` (method.functional, opt):** `exact_registered` via non-BSE capability `gaussian.functional.b3lyp`, but carries the same loader/renderer-only evidence ceiling.\n\nThe inventory listing (pcseg-0…4 / aug-pcseg-0…4) is advisory only and cannot discharge the materialization gap. The blocked proposal preserves the source literals (`B3LYP`, `pcseg-2`, `freq`), and no native input, command, project write, or execution was requested — consistent with the read-only experiment constraints.",
+  "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v1:v2",
+  "typed_analysis_summary": "Planned Gaussian B3LYP/pcseg-2 frequency project (registry accessor job kind opt, engine 16.C01). Frozen V1 evidence: resolve method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal, capability gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved, loader_renderer_eligible true. Resolve method.functional 'B3LYP' for opt returned exact_registered via capability gaussian.functional.b3lyp. Both resolutions carry evidence_ceiling loader_renderer_verification_only with engine_executed false, safe_preview_executed false, scientific_adequacy_verified false, setting_combination_verified false. This is the materialization gap: the BSE-marked capability (gaussian.basis.bse.pcseg2) demonstrates pcseg-2 is BSE-discoverable and loader/renderer-verifiable, but there is no deterministic compiler materialization receipt for Gaussian 16.C01 (engine never executed, no safe preview, no scientific-adequacy or combination verification). BSE discovery is not native/compiler readiness. The inventory (bounded view) lists the pcseg-0..4 and aug-pcseg-0..4 family, which is advisory and cannot override the missing materialization evidence. Functional B3LYP is exact_registered via a non-BSE capability, but its deterministic materialization is likewise unverified at this ceiling. Therefore the project is blocked pending an exact, request-bound deterministic materialization receipt; source literals (B3LYP, pcseg-2, freq) are preserved. No native input authored, no command authored, no project write, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Planned Gaussian B3LYP/pcseg-2 frequency project (registry accessor job kind opt, engine 16.C01). Frozen V1 evidence: resolve method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal, capability gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved, loader_renderer_eligible true. Resolve method.functional 'B3LYP' for opt returned exact_registered via capability gaussian.functional.b3lyp. Both resolutions carry evidence_ceiling loader_renderer_verification_only with engine_executed false, safe_preview_executed false, scientific_adequacy_verified false, setting_combination_verified false. This is the materialization gap: the BSE-marked capability (gaussian.basis.bse.pcseg2) demonstrates pcseg-2 is BSE-discoverable and loader/renderer-verifiable, but there is no deterministic compiler materialization receipt for Gaussian 16.C01 (engine never executed, no safe preview, no scientific-adequacy or combination verification). BSE discovery is not native/compiler readiness. The inventory (bounded view) lists the pcseg-0..4 and aug-pcseg-0..4 family, which is advisory and cannot override the missing materialization evidence. Functional B3LYP is exact_registered via a non-BSE capability, but its deterministic materialization is likewise unverified at this ceiling. Therefore the project is blocked pending an exact, request-bound deterministic materialization receipt; source literals (B3LYP, pcseg-2, freq) are preserved. No native input authored, no command authored, no project write, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-pcseg2-freq",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

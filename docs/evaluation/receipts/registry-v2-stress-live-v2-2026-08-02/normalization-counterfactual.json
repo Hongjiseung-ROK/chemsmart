@@ -1,0 +1,66 @@
+{
+  "schema_version": "chemsmart.registry-stress-normalization-counterfactual.v1",
+  "campaign_plan_sha256": "757d9ca2cdb29fce61ae1d06702e1a93e3ec350199894c96dccfff7231379935",
+  "normalizer_contract_artifact_sha256": "3e7adc0606dd162f21b54f894717fb79cf78923c26cc7dc08173de233c6076d0",
+  "normalizer_runner_artifact_sha256": "d5456396adb48db5c489ccd6a2b0224bfa103fcfafbf9670cdf1eb65e72399f1",
+  "model_calls": 0,
+  "positive_counterfactuals": [
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+      "public_tool_trace_sha256": "fd9f681d87033911f1053aa571915eea7972cc7f09cc2a16ba0017b371df6193",
+      "raw_oracle_passed": false,
+      "normalized_oracle_passed": true,
+      "filled_explicit_setting_fields": [
+        "settings.freq"
+      ],
+      "canonicalized_set_fields": [],
+      "conflicting_explicit_setting_fields": [],
+      "normalization_receipt_sha256": "d38af98211633878b080c877be51071ee4d6e3116a29ef8cf04b87428899ed61"
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v2:v2",
+      "public_tool_trace_sha256": "e6a570080ea4a44c26431d53fb018219b2239450ca925522fb3e2ffa499779d6",
+      "raw_oracle_passed": false,
+      "normalized_oracle_passed": true,
+      "filled_explicit_setting_fields": [],
+      "canonicalized_set_fields": [
+        "blocking_rule_ids"
+      ],
+      "conflicting_explicit_setting_fields": [],
+      "normalization_receipt_sha256": "605dc8331d4070147c4d44b7e58bd6314d9531dd6d889a869d44b25111579f4d"
+    }
+  ],
+  "negative_controls": [
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v2",
+      "public_tool_trace_sha256": "824cd598f568379097b3fe6febb7591e8031d6ecf1685a05715ec949cc994f55",
+      "normalized_oracle_passed": false,
+      "normalization_applied": false,
+      "remaining_failed_oracle_ids": [
+        "oracle.honest-readiness",
+        "oracle.project-render",
+        "oracle.setting-preservation"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:minimal:v2",
+      "public_tool_trace_sha256": "d61a9012ab5354bdd9567ca74a06fd8e323a7e00f9e725bcdbd82c9ff179e9ce",
+      "normalized_oracle_passed": false,
+      "normalization_applied": false,
+      "remaining_failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v1:v2",
+      "public_tool_trace_sha256": "87b958ab392feb8f574c946a233092b98dc11e2a1c9b185cfc3cfcf024113ca7",
+      "normalized_oracle_passed": false,
+      "normalization_applied": false,
+      "remaining_failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ]
+    }
+  ],
+  "claim_ceiling": "Deterministic replay of two positive and three negative development traces only; no live V3 or held-out generalization claim.",
+  "receipt_sha256": "96f73a7be3d15474df223228c5472488485966a8713f0dfdc8aec1872fff1091"
+}

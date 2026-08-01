@@ -1,0 +1,67 @@
+{
+  "assistant_text": "Submitted the registry stress plan for case `gaussian-pcseg2-materialization-gap`.\n\n**Outcome: `blocked_unverified_setting`**\n\n- **Case scope:** Gaussian B3LYP/pcseg-2 frequency project (task kind `freq`, registry accessor job kind `opt`). Source literals preserved in the proposal: `functional: B3LYP`, `basis: pcseg-2`, `freq: true`.\n- **Why blocked:** `pcseg-2` is the host-preregistered BSE lookup target, but this arm exposed no read-only registry/compiler-materialization tool, so no exact, request-bound deterministic receipt was available to verify that `pcseg-2` deterministically materializes as native Gaussian 16.C01 input. Per the case rules, BSE discoverability does not imply native/compiler readiness, and advisory knowledge-pack output cannot discharge the applicability rule — this is the materialization gap the case names.\n- **No rule discharged, nothing fabricated:** `blocking_rule_ids` empty, `element_findings` empty (no elements were explicit literals in scope).\n- **Conservatism honored:** `project_written`, `native_input_authored`, `command_authored`, and `execution_requested` are all `false`. No fuzzy candidate was selected, and no setting was silently substituted.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Submitted the registry stress plan for case `gaussian-pcseg2-materialization-gap`.\n\n**Outcome: `blocked_unverified_setting`**\n\n- **Case scope:** Gaussian B3LYP/pcseg-2 frequency project (task kind `freq`, registry accessor job kind `opt`). Source literals preserved in the proposal: `functional: B3LYP`, `basis: pcseg-2`, `freq: true`.\n- **Why blocked:** `pcseg-2` is the host-preregistered BSE lookup target, but this arm exposed no read-only registry/compiler-materialization tool, so no exact, request-bound deterministic receipt was available to verify that `pcseg-2` deterministically materializes as native Gaussian 16.C01 input. Per the case rules, BSE discoverability does not imply native/compiler readiness, and advisory knowledge-pack output cannot discharge the applicability rule — this is the materialization gap the case names.\n- **No rule discharged, nothing fabricated:** `blocking_rule_ids` empty, `element_findings` empty (no elements were explicit literals in scope).\n- **Conservatism honored:** `project_written`, `native_input_authored`, `command_authored`, and `execution_requested` are all `false`. No fuzzy candidate was selected, and no setting was silently substituted.",
+  "run_id": "run:gaussian-pcseg2-materialization-gap:minimal:v2",
+  "typed_analysis_summary": "Planned a Gaussian B3LYP/pcseg-2 frequency project (task kind freq, registry accessor job kind opt). The basis literal 'pcseg-2' is the host-preregistered lookup target (gaussian method.basis 'pcseg-2' for opt) and is treated as BSE-discoverable. However, this arm exposes no read-only registry/compiler-materialization lookup tool, so no exact, request-bound deterministic receipt is available to verify that 'pcseg-2' deterministically materializes as native Gaussian 16.C01 input. Per case rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory only and cannot override a deterministic blocker; no fuzzy candidate or silent substitution is permitted. The basis applicability rule therefore remains undischarged: blocked_unverified_setting (materialization gap between BSE discovery and deterministic compiler readiness). No project was written, no native input or ChemSmart command was authored, and no execution was requested. Source literals preserved: functional B3LYP, basis pcseg-2, freq true.",
+  "typed_proposal": {
+    "analysis_summary": "Planned a Gaussian B3LYP/pcseg-2 frequency project (task kind freq, registry accessor job kind opt). The basis literal 'pcseg-2' is the host-preregistered lookup target (gaussian method.basis 'pcseg-2' for opt) and is treated as BSE-discoverable. However, this arm exposes no read-only registry/compiler-materialization lookup tool, so no exact, request-bound deterministic receipt is available to verify that 'pcseg-2' deterministically materializes as native Gaussian 16.C01 input. Per case rules, a BSE-discoverable name is not automatically native/compiler-ready, and knowledge-pack output is advisory only and cannot override a deterministic blocker; no fuzzy candidate or silent substitution is permitted. The basis applicability rule therefore remains undischarged: blocked_unverified_setting (materialization gap between BSE discovery and deterministic compiler readiness). No project was written, no native input or ChemSmart command was authored, and no execution was requested. Source literals preserved: functional B3LYP, basis pcseg-2, freq true.",
+    "blocking_rule_ids": [],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-pcseg2-freq",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

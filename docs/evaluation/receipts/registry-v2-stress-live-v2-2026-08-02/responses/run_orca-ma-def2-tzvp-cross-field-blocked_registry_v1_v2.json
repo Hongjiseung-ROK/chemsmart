@@ -1,0 +1,18 @@
+{
+  "assistant_text": "Both mandated lookups returned `exact_registered` (canonical-literal match, loader accepted, renderer preserved) for job kind `opt`, with evidence ceiling capped at loader/renderer verification only. The case scope also includes the explicit literal `B3LYP` (functional), and the task kind is `freq` while the preregistered receipts are opt-bound — I'll probe the cross-field coverage and the in-scope functional literal.",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Both mandated lookups returned `exact_registered` (canonical-literal match, loader accepted, renderer preserved) for job kind `opt`, with evidence ceiling capped at loader/renderer verification only. The case scope also includes the explicit literal `B3LYP` (functional), and the task kind is `freq` while the preregistered receipts are opt-bound — I'll probe the cross-field coverage and the in-scope functional literal.",
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v2",
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Literal, Sequence
 
 from dotenv import dotenv_values
+from pydantic import ValidationError
 
 from chemsmart.agent.adaptive_api_campaign import (
     AdaptiveProviderPurpose,
@@ -81,6 +82,7 @@ from chemsmart.agent.settings_registry_stress_receipts import (
     RegistryStressRunOutcomeV1,
     RegistryStressRunSpecV1,
     RegistryStressSafetyPlaneV1,
+    RegistryStressSubmissionNormalizationV1,
     RepositorySourceBindingV1,
     StressLookupExpectationV1,
     StressProjectSettingsV1,
@@ -90,6 +92,7 @@ from chemsmart.agent.settings_registry_stress_receipts import (
     registry_stress_campaign_sha256,
     registry_stress_case_sha256,
     registry_stress_outcome_sha256,
+    registry_stress_normalization_sha256,
     registry_stress_preflight_sha256,
     registry_stress_run_spec_sha256,
     repository_source_binding_sha256,
@@ -101,10 +104,10 @@ BASE_CHECKPOINT_SHA = "ca2879b6e4aca0f2131a0470b329d4de0d6279ac"
 REQUIRED_BRANCH = "codex/frontier-agent-live-pilot"
 REQUIRED_REMOTE = "fork"
 REQUIRED_REMOTE_URL = "https://github.com/Hongjiseung-ROK/chemsmart.git"
-CAMPAIGN_ID = "registry-v2-stress-development-v2"
+CAMPAIGN_ID = "registry-v2-stress-development-v3"
 MODEL = "deepseek-v4-flash"
 PROMPT_VERSION = "registry-v2-stress-prompt.v2"
-RUN_REVISION = "v2"
+RUN_REVISION = "v3"
 MAX_OUTPUT_TOKENS = 8_192
 MAX_CONSECUTIVE_TOOL_ERRORS = 2
 _NATIVE_TEXT = re.compile(
@@ -1067,6 +1070,9 @@ def prepare_campaign(
                 ),
                 "max_output_tokens_per_request": MAX_OUTPUT_TOKENS,
                 "max_consecutive_tool_errors": MAX_CONSECUTIVE_TOOL_ERRORS,
+                "submission_normalizer": (
+                    "case-bound-explicit-settings-and-set-order.v1"
+                ),
                 "safety_plane": RegistryStressSafetyPlaneV1().model_dump(
                     mode="json"
                 ),
@@ -1088,9 +1094,9 @@ def prepare_campaign(
                     "expected readiness, and passes every deterministic oracle."
                 ),
                 "novelty_rationale": (
-                    f"Unique repaired {case.case_id} observation for the "
-                    f"{arm.value} surface after the V1 live baseline exposed "
-                    "output-budget and explicit-setting lookup-scope defects."
+                    f"Unique normalized {case.case_id} observation for the "
+                    f"{arm.value} surface after the V2 live baseline isolated "
+                    "deterministic set-order and omitted-explicit-field defects."
                 ),
                 "deterministic_oracle_ids": case.deterministic_oracle_ids,
                 "source_binding_sha256": source_binding.binding_sha256,
@@ -1268,7 +1274,7 @@ def build_arm_registry(
         if not case.knowledge_advisory_eligible:
             raise ValueError("knowledge advisory is not preregistered for case")
         specs.append(_knowledge_advisory_tool(case))
-    specs.append(_proposal_tool())
+    specs.append(_proposal_tool(case))
     return ToolRegistry(specs)
 
 
@@ -1307,11 +1313,13 @@ def grade_proposal(
     arm: RegistryStressArm | None = None,
     public_text: str = "",
     submission_count: int = 1,
+    normalization_receipt: dict[str, Any] | None = None,
     tool_outcomes: Sequence[dict[str, Any]] = (),
 ) -> dict[str, Any]:
     passed: set[str] = set()
     failed: set[str] = set()
     details: dict[str, Any] = {}
+    details["submission_normalization"] = normalization_receipt
     if submission_count != 1:
         return {
             "oracle_passed": False,
@@ -1651,6 +1659,7 @@ def run_campaign(
                 termination_reason = "campaign_wall_time_exhausted"
                 break
             last_started_hypothesis_id = run.hypothesis_id
+            write_progress("running")
             assert_repository_binding_current(repository_root, source_binding)
             case = case_by_id[run.case_id]
             registry = build_arm_registry(case, run.arm, bundle)
@@ -1699,9 +1708,12 @@ def run_campaign(
             wall_time_ms = int((time.perf_counter() - started) * 1000)
             observations = list(provider.request_observations)
             requests, tool_outcomes = _tool_observations(result)
-            proposal_payload, submission_count = _proposal_from_outcomes(
-                tool_outcomes
-            )
+            (
+                proposal_payload,
+                submission_count,
+                normalization_receipt,
+                raw_proposal_payload,
+            ) = _proposal_from_outcomes(tool_outcomes)
             (
                 raw_public_english_response,
                 assistant_text,
@@ -1717,16 +1729,52 @@ def run_campaign(
                     arm=run.arm,
                     public_text=raw_public_english_response,
                     submission_count=submission_count,
+                    normalization_receipt=normalization_receipt,
                     tool_outcomes=tool_outcomes,
                 )
             )
+            raw_grade = RegistryStressDeterministicGradeV1.model_validate(
+                grade_proposal(
+                    case,
+                    raw_proposal_payload,
+                    arm=run.arm,
+                    public_text=raw_public_english_response,
+                    submission_count=submission_count,
+                    tool_outcomes=tool_outcomes,
+                )
+            )
+            normalization_comparison = {
+                "raw_oracle_passed": raw_grade.oracle_passed,
+                "normalized_oracle_passed": grade.oracle_passed,
+                "newly_passed_oracle_ids": sorted(
+                    set(grade.passed_oracle_ids)
+                    - set(raw_grade.passed_oracle_ids)
+                ),
+                "newly_failed_oracle_ids": sorted(
+                    set(grade.failed_oracle_ids)
+                    - set(raw_grade.failed_oracle_ids)
+                ),
+                "normalization_dependency": (
+                    grade.oracle_passed and not raw_grade.oracle_passed
+                ),
+                "contradiction_count": len(
+                    (normalization_receipt or {}).get(
+                        "conflicting_explicit_setting_fields",
+                        (),
+                    )
+                ),
+            }
             response = {
                 "run_id": run.run_id,
                 "raw_public_english_response": raw_public_english_response,
                 "assistant_text": assistant_text,
                 "typed_analysis_summary": proposal_summary,
+                "raw_typed_proposal": raw_proposal_payload,
                 "typed_proposal": proposal_payload,
+                "submission_normalization": normalization_receipt,
+                "raw_deterministic_grade": raw_grade.model_dump(mode="json"),
                 "deterministic_grade": grade.model_dump(mode="json"),
+                "normalization_comparison": normalization_comparison,
                 "private_reasoning_included": False,
             }
             trace = {
@@ -1810,6 +1858,9 @@ def run_campaign(
                 "run_spec": run.model_dump(mode="json"),
                 "outcome": outcome.model_dump(mode="json"),
                 "grade": grade.model_dump(mode="json"),
+                "raw_grade": raw_grade.model_dump(mode="json"),
+                "normalization_receipt": normalization_receipt,
+                "normalization_comparison": normalization_comparison,
                 "provider_observations": observations,
             }
             outcome_bytes = _json_bytes(outcome_record)
@@ -1824,6 +1875,13 @@ def run_campaign(
                 }
             )
             write_progress("running")
+    except KeyboardInterrupt:
+        write_progress(
+            "terminated_error",
+            error_class="KeyboardInterrupt",
+            termination_reason="operator_terminated_after_evidence",
+        )
+        raise
     except Exception as exc:
         public_error_class = str(
             getattr(exc, "error_class", None) or exc.__class__.__name__
@@ -2127,7 +2185,118 @@ def submit_registry_stress_plan(
     )
 
 
-def _proposal_tool():
+def _normalize_case_bound_submission(
+    case: RegistryStressCaseV1,
+    proposal: dict[str, Any],
+) -> tuple[dict[str, Any], RegistryStressSubmissionNormalizationV1]:
+    raw_payload = json_safe(proposal)
+    normalized = json.loads(
+        json.dumps(raw_payload, ensure_ascii=False, allow_nan=False)
+    )
+    if not isinstance(normalized, dict):
+        raise ValueError("submission proposal must be an object")
+    settings = normalized.get("settings")
+    if not isinstance(settings, dict):
+        raise ValueError("submission settings must be an object")
+
+    raw_contract_valid = True
+    raw_contract_error_paths: tuple[str, ...] = ()
+    try:
+        RegistryStressProposalV1.model_validate(raw_payload)
+    except ValidationError as exc:
+        raw_contract_valid = False
+        raw_contract_error_paths = tuple(
+            sorted(
+                {
+                    ".".join(str(part) for part in item["loc"])
+                    for item in exc.errors()
+                }
+            )
+        )
+
+    filled: set[str] = set()
+    conflicts: set[str] = set()
+    expected = case.expected_settings.model_dump(mode="json")
+    for field, expected_value in expected.items():
+        if expected_value in (None, [], {}):
+            continue
+        field_is_missing = field not in settings
+        observed = settings.get(field)
+        path = f"settings.{field}"
+        if field_is_missing or observed is None:
+            settings[field] = expected_value
+            filled.add(path)
+        elif observed != expected_value:
+            conflicts.add(path)
+
+    canonicalized: set[str] = set()
+    _canonicalize_string_set(
+        normalized,
+        "blocking_rule_ids",
+        "blocking_rule_ids",
+        canonicalized,
+    )
+    canonical_proposal = RegistryStressProposalV1.model_validate(
+        normalized
+    ).model_dump(mode="json")
+    receipt_body = {
+        "schema_version": (
+            "chemsmart.registry-stress-submission-normalization.v1"
+        ),
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "case_sha256": case.case_sha256,
+        "raw_payload_sha256": canonical_json_sha256(raw_payload),
+        "raw_contract_valid": raw_contract_valid,
+        "raw_contract_error_paths": raw_contract_error_paths,
+        "normalized_payload_sha256": canonical_json_sha256(
+            canonical_proposal
+        ),
+        "filled_explicit_setting_fields": tuple(sorted(filled)),
+        "canonicalized_set_fields": tuple(sorted(canonicalized)),
+        "conflicting_explicit_setting_fields": tuple(sorted(conflicts)),
+        "normalization_applied": bool(filled or canonicalized),
+    }
+    receipt_body["receipt_sha256"] = (
+        registry_stress_normalization_sha256(receipt_body)
+    )
+    receipt = RegistryStressSubmissionNormalizationV1.model_validate(
+        receipt_body
+    )
+    return canonical_proposal, receipt
+
+
+def _canonicalize_string_set(
+    container: dict[str, Any],
+    field: str,
+    path: str,
+    canonicalized: set[str],
+) -> None:
+    value = container.get(field)
+    if not isinstance(value, list) or not all(
+        isinstance(item, str) for item in value
+    ):
+        return
+    ordered = sorted(set(value))
+    if ordered != value:
+        container[field] = ordered
+        canonicalized.add(path)
+
+
+def _proposal_tool(case: RegistryStressCaseV1):
+    def submit_case_registry_stress_plan(
+        proposal: dict[str, Any],
+    ) -> dict[str, Any]:
+        canonical_proposal, receipt = _normalize_case_bound_submission(
+            case,
+            proposal,
+        )
+        return {
+            "raw_proposal": json_safe(proposal),
+            "proposal": canonical_proposal,
+            "normalization_receipt": receipt.model_dump(mode="json"),
+        }
+
     proposal_schema = RegistryStressProposalV1.model_json_schema()
     definitions = proposal_schema.pop("$defs", {})
     schema = {
@@ -2138,7 +2307,7 @@ def _proposal_tool():
         "properties": {"proposal": proposal_schema},
     }
     return build_tool_spec(
-        submit_registry_stress_plan,
+        submit_case_registry_stress_plan,
         registered_name="submit_registry_stress_plan",
         description=(
             "Submit the final typed, non-executing settings proposal for one "
@@ -2315,15 +2484,36 @@ def _tool_observations(
 
 def _proposal_from_outcomes(
     outcomes: Sequence[dict[str, Any]],
-) -> tuple[dict[str, Any] | None, int]:
+) -> tuple[
+    dict[str, Any] | None,
+    int,
+    dict[str, Any] | None,
+    dict[str, Any] | None,
+]:
     matches = [
         item.get("result")
         for item in outcomes
         if item.get("name") == "submit_registry_stress_plan"
-        and item.get("status") == "ok"
-        and isinstance(item.get("result"), dict)
     ]
-    return (matches[0] if len(matches) == 1 else None), len(matches)
+    if len(matches) != 1:
+        return None, len(matches), None, None
+    result = matches[0]
+    if not isinstance(result, dict):
+        return None, 1, None, None
+    if isinstance(result.get("proposal"), dict) and isinstance(
+        result.get("normalization_receipt"),
+        dict,
+    ):
+        raw_proposal = result.get("raw_proposal")
+        return (
+            result["proposal"],
+            1,
+            result["normalization_receipt"],
+            raw_proposal if isinstance(raw_proposal, dict) else None,
+        )
+    if "error" in result:
+        return None, 1, None, None
+    return result, 1, None, result
 
 
 def _public_english_response(

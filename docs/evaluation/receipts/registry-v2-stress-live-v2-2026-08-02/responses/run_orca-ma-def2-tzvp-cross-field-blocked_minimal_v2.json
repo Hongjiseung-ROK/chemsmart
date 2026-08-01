@@ -1,0 +1,71 @@
+{
+  "assistant_text": "Proposal submitted for case `orca-ma-def2-tzvp-cross-field-blocked`.\n\n**Outcome: `blocked_unverified_setting`** — a single preregistered proposal was registered, no execution requested.\n\nKey reasoning:\n- **Cross-field blocker:** The host-preregistered lookup targets (`orca method.basis 'ma-def2-TZVP'` and `orca method.dispersion 'D3BJ'`) are scoped to job kind **opt**, but this project is task kind **freq**. An opt-scoped receipt cannot discharge the freq applicability rules, and this arm exposes no read-only registry tool to produce a freq-scoped deterministic receipt.\n- **Literals preserved:** `functional: B3LYP`, `basis: ma-def2-TZVP`, `dispersion: D3BJ`, `freq: true`; no solvent, no heavy elements, `ecp_intent: not_applicable`.\n- **No side effects:** no native input, no command, no project write, no execution (read-only arm).\n- `element_findings` and `blocking_rule_ids` left empty — no element evidence or raw rule status was exposed by this arm, and none were fabricated.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.field_unknown"
+        ],
+        "expected": "project_candidate_valid",
+        "observed": "blocked_invalid_specification",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Proposal submitted for case `orca-ma-def2-tzvp-cross-field-blocked`.\n\n**Outcome: `blocked_unverified_setting`** — a single preregistered proposal was registered, no execution requested.\n\nKey reasoning:\n- **Cross-field blocker:** The host-preregistered lookup targets (`orca method.basis 'ma-def2-TZVP'` and `orca method.dispersion 'D3BJ'`) are scoped to job kind **opt**, but this project is task kind **freq**. An opt-scoped receipt cannot discharge the freq applicability rules, and this arm exposes no read-only registry tool to produce a freq-scoped deterministic receipt.\n- **Literals preserved:** `functional: B3LYP`, `basis: ma-def2-TZVP`, `dispersion: D3BJ`, `freq: true`; no solvent, no heavy elements, `ecp_intent: not_applicable`.\n- **No side effects:** no native input, no command, no project write, no execution (read-only arm).\n- `element_findings` and `blocking_rule_ids` left empty — no element evidence or raw rule status was exposed by this arm, and none were fabricated.",
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v2",
+  "typed_analysis_summary": "Blocked cross-field proposal. Request: neutral-singlet ORCA freq (engine 6.1) preserving B3LYP-D3BJ/ma-def2-TZVP exactly. Host-preregistered lookup targets are field-scoped to job kind 'opt' (orca method.basis 'ma-def2-TZVP' for opt; orca method.dispersion 'D3BJ' for opt), whereas this project is task kind 'freq'. This arm exposes no read-only registry lookup tool, so no exact, request-bound deterministic receipt scoped to the freq field is available; an opt-scoped preregistration cannot discharge the freq applicability rules (cross-field), and knowledge-pack output cannot override a registry status. All explicit setting literals are preserved in the proposal: functional B3LYP, basis ma-def2-TZVP, dispersion D3BJ, freq true. No heavy elements or ECP were specified, so ecp_intent is not_applicable and element_findings is empty (no element evidence exposed by this arm). No native input authored, no command authored, no project written, no execution requested. Readiness: blocked_unverified_setting because the basis and dispersion settings remain unverified for the freq field.",
+  "typed_proposal": {
+    "analysis_summary": "Blocked cross-field proposal. Request: neutral-singlet ORCA freq (engine 6.1) preserving B3LYP-D3BJ/ma-def2-TZVP exactly. Host-preregistered lookup targets are field-scoped to job kind 'opt' (orca method.basis 'ma-def2-TZVP' for opt; orca method.dispersion 'D3BJ' for opt), whereas this project is task kind 'freq'. This arm exposes no read-only registry lookup tool, so no exact, request-bound deterministic receipt scoped to the freq field is available; an opt-scoped preregistration cannot discharge the freq applicability rules (cross-field), and knowledge-pack output cannot override a registry status. All explicit setting literals are preserved in the proposal: functional B3LYP, basis ma-def2-TZVP, dispersion D3BJ, freq true. No heavy elements or ECP were specified, so ecp_intent is not_applicable and element_findings is empty (no element evidence exposed by this arm). No native input authored, no command authored, no project written, no execution requested. Readiness: blocked_unverified_setting because the basis and dispersion settings remain unverified for the freq field.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-ma-def2-tzvp-freq",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "ma-def2-TZVP",
+      "dispersion": "D3BJ",
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

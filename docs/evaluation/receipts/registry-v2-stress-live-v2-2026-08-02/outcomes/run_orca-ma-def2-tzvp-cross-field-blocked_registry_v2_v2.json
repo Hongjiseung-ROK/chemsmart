@@ -1,0 +1,217 @@
+{
+  "grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.frequency_missing"
+        ],
+        "expected": "project_candidate_valid",
+        "observed": "blocked_missing_evidence",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "outcome": {
+    "deterministic_grade": {
+      "details": {
+        "blocking_rule_id_metric": "retired_hidden_implementation_label",
+        "blocking_rule_ids": [
+          "scientific_settings.v2.validation_coverage_gap"
+        ],
+        "render": {
+          "blocking_rule_ids": [
+            "paper.project.frequency_missing"
+          ],
+          "expected": "project_candidate_valid",
+          "observed": "blocked_missing_evidence",
+          "passed": false
+        },
+        "rule_discharge": {
+          "mode": "none",
+          "passed": false,
+          "reason": "request_bound_validation_overlay_not_implemented",
+          "receipt_sha256s": []
+        }
+      },
+      "failed_oracle_ids": [
+        "oracle.project-render",
+        "oracle.setting-preservation"
+      ],
+      "oracle_passed": false,
+      "passed_oracle_ids": [
+        "oracle.bse-vs-compiler-readiness",
+        "oracle.case-identity",
+        "oracle.command-prohibited",
+        "oracle.execution-prohibited",
+        "oracle.honest-readiness",
+        "oracle.native-input-prohibited",
+        "oracle.program-identity"
+      ]
+    },
+    "engine_calls": 0,
+    "failed_oracle_ids": [
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 26886,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 4401,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ],
+    "private_reasoning_persisted": false,
+    "project_writes": 0,
+    "public_tool_trace_locator": "tool-traces/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v2_v2.json",
+    "public_tool_trace_sha256": "fd9f681d87033911f1053aa571915eea7972cc7f09cc2a16ba0017b371df6193",
+    "raw_public_english_response": "Proposal submitted successfully for case `orca-ma-def2-tzvp-cross-field-blocked`.\n\n**Outcome: `blocked_validation_coverage`** (ORCA 6.1, opt accessor / freq task, neutral singlet)\n\n- **functional `B3LYP`** → `exact_registered`, project-candidate eligible — but this does not discharge the mandatory-target blockers.\n- **basis `ma-def2-TZVP`** (opt) → registry status `blocked_validation_coverage` (`scientific_settings.v2.validation_coverage_gap`), not candidate-eligible; no safe preview, no engine execution.\n- **dispersion `D3BJ`** (opt) → same `blocked_validation_coverage` status, not candidate-eligible.\n\nNo fuzzy candidates were selected, no substitutions made, and no native input, command, project write, or execution was performed — the proposal records only read-only registry evidence with source literals preserved.",
+    "raw_public_english_response_sha256": "85c61b98ad9650289165b42a1bb693aa3343b67d674e1dcad1d217bc7fc5e890",
+    "receipt_sha256": "ed77949c2677db5c5c95309adcd5bd93fe0582f067a433295efe6d7258bbfba2",
+    "response_artifact_locator": "responses/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v2_v2.json",
+    "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+    "run_spec_sha256": "df3f1d1ed91e9adfb69c379b202932f446ecc1af0e9b83efa3aa7f7efe20cfc7",
+    "runtime_event_log_locator": "runtime-events/run_orca-ma-def2-tzvp-cross-field-blocked_registry_v2_v2.jsonl",
+    "runtime_event_log_sha256": "de4c18d842e46e2dec538dc4a9a0e5305516143e3382a109ccf53a05dd5ab0cb",
+    "runtime_replay_state_sha256": "b7582bd785594370720dc8c806d63d9b291448e21efaa5579c216f0ea631caf3",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "blocked",
+    "sanitized_response_sha256": "8be20c9e534fe18d5870ab292cfdf887220a9d3eda41778927cef42b2dbf989e",
+    "schema_version": "chemsmart.registry-stress-outcome.v1",
+    "secret_material_persisted": false,
+    "terminal_state": "failed",
+    "transport_attempts": 4,
+    "wall_time_ms": 36337
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+      "hypothesis_sha256": "6b115ec5718222fe0bea44418ec670d3fb67158dba5a0536c86e45b459b53ae8",
+      "input_tokens": 3347,
+      "latency_ms": 3188,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 442,
+      "request_binding_sha256": "39cbac331a4c568c32796cab7a56e8877f45593bbc4223a232befa02ca9b7c63",
+      "request_binding_verified": true,
+      "request_sha256": "29cbb5b66dd986eda9b2e397efd00952157f4059318dab7b3177c0312a66fe8d",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 2,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+      "hypothesis_sha256": "6b115ec5718222fe0bea44418ec670d3fb67158dba5a0536c86e45b459b53ae8",
+      "input_tokens": 5329,
+      "latency_ms": 14892,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 1776,
+      "request_binding_sha256": "39cbac331a4c568c32796cab7a56e8877f45593bbc4223a232befa02ca9b7c63",
+      "request_binding_verified": true,
+      "request_sha256": "b0787a6e22693f4ea7de0e2f026b32328efa756c487d0e56743798098d911df4",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 3,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+      "hypothesis_sha256": "6b115ec5718222fe0bea44418ec670d3fb67158dba5a0536c86e45b459b53ae8",
+      "input_tokens": 7864,
+      "latency_ms": 15235,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 1963,
+      "request_binding_sha256": "39cbac331a4c568c32796cab7a56e8877f45593bbc4223a232befa02ca9b7c63",
+      "request_binding_verified": true,
+      "request_sha256": "1946124584c5d08d9815d618f56c48d7dce5a3216c73c8ab919c723f1d14dd19",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 4,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+      "hypothesis_sha256": "6b115ec5718222fe0bea44418ec670d3fb67158dba5a0536c86e45b459b53ae8",
+      "input_tokens": 10346,
+      "latency_ms": 2660,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 220,
+      "request_binding_sha256": "39cbac331a4c568c32796cab7a56e8877f45593bbc4223a232befa02ca9b7c63",
+      "request_binding_verified": true,
+      "request_sha256": "93be0f392bf8287fb012575165c8f4648a3e17203ffa8f615bfb9982d6910fb2",
+      "status": "observed"
+    }
+  ],
+  "run_spec": {
+    "arm": "registry_v2",
+    "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+    "case_sha256": "19851144a8a225c3c8f2b9ed419f15d92e185a3d01326f1c04f150417b30ec01",
+    "changed_factor": "v2_registry_surface",
+    "comparator_arm": "registry_v1",
+    "configuration_sha256": "a5c432a927d820118a0099867bf6703ecf9cc3c5145185f721ee89d7fc43f5fc",
+    "deterministic_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "expected_outcome": "The typed proposal preserves explicit settings, uses the expected readiness, and passes every deterministic oracle.",
+    "hypothesis": "For orca-ma-def2-tzvp-cross-field-blocked, the registry_v2 surface will preserve the exact scientific intent and select the deterministic readiness state.",
+    "hypothesis_id": "hypothesis.orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+    "knowledge_advisory_exposed": false,
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "novelty_rationale": "Unique repaired orca-ma-def2-tzvp-cross-field-blocked observation for the registry_v2 surface after the V1 live baseline exposed output-budget and explicit-setting lookup-scope defects.",
+    "prompt_sha256": "4190638bd7772ba7bebc0f2f633081a8f30eeceb5a25d85a85d839a806f29e4d",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "request_bound_validation_exposed": false,
+    "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+    "run_spec_sha256": "df3f1d1ed91e9adfb69c379b202932f446ecc1af0e9b83efa3aa7f7efe20cfc7",
+    "safety_plane": {
+      "chemistry_engine_execution_allowed": false,
+      "deterministic_oracles_active": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "project_writes_allowed": false,
+      "read_only_permission": true,
+      "runtime_v2_active": true,
+      "secret_persistence_allowed": false,
+      "v2_fallback_to_v1_allowed": false
+    },
+    "schema_version": "chemsmart.registry-stress-run.v1",
+    "source_binding_sha256": "ff7b92d4e0163fbf39d568edb7431558b533da55f64d1f01920d65dcb2dd7196",
+    "tool_schema_sha256": "3ebc46e8943c382ba973572ffd25e208be8587cbf4ea09860b5c82f0658bcb8c"
+  }
+}

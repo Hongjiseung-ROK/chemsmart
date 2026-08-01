@@ -28,6 +28,9 @@ STRESS_PREFLIGHT_SCHEMA_VERSION = "chemsmart.registry-stress-preflight.v1"
 STRESS_RUN_SCHEMA_VERSION = "chemsmart.registry-stress-run.v1"
 STRESS_OUTCOME_SCHEMA_VERSION = "chemsmart.registry-stress-outcome.v1"
 STRESS_CAMPAIGN_SCHEMA_VERSION = "chemsmart.registry-stress-campaign.v1"
+SUBMISSION_NORMALIZATION_SCHEMA_VERSION = (
+    "chemsmart.registry-stress-submission-normalization.v1"
+)
 
 _IDENTIFIER = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$"
 _SETTING_PATH = r"^[a-z][a-z0-9_.-]{0,191}$"
@@ -334,6 +337,57 @@ class RegistryStressProposalV1(_Contract):
         return value
 
 
+class RegistryStressSubmissionNormalizationV1(_Contract):
+    """Deterministic normalization that never overwrites scientific conflict."""
+
+    schema_version: Literal[SUBMISSION_NORMALIZATION_SCHEMA_VERSION] = (
+        SUBMISSION_NORMALIZATION_SCHEMA_VERSION
+    )
+    normalizer_id: Literal[
+        "case-bound-explicit-settings-and-set-order"
+    ] = "case-bound-explicit-settings-and-set-order"
+    normalizer_version: Literal["1.0.0"] = "1.0.0"
+    case_sha256: str = Field(pattern=_SHA256)
+    raw_payload_sha256: str = Field(pattern=_SHA256)
+    raw_contract_valid: bool
+    raw_contract_error_paths: tuple[str, ...] = ()
+    normalized_payload_sha256: str = Field(pattern=_SHA256)
+    filled_explicit_setting_fields: tuple[str, ...] = ()
+    canonicalized_set_fields: tuple[str, ...] = ()
+    conflicting_explicit_setting_fields: tuple[str, ...] = ()
+    normalization_applied: bool
+    receipt_sha256: str = Field(pattern=_SHA256)
+
+    @field_validator(
+        "filled_explicit_setting_fields",
+        "canonicalized_set_fields",
+        "conflicting_explicit_setting_fields",
+        "raw_contract_error_paths",
+    )
+    @classmethod
+    def _fields_are_canonical(
+        cls,
+        value: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        if value != tuple(sorted(set(value))):
+            raise ValueError("normalization fields must be unique and sorted")
+        return value
+
+    @model_validator(mode="after")
+    def _normalization_is_bound(
+        self,
+    ) -> "RegistryStressSubmissionNormalizationV1":
+        changed = bool(
+            self.filled_explicit_setting_fields
+            or self.canonicalized_set_fields
+        )
+        if self.normalization_applied != changed:
+            raise ValueError("normalization-applied flag is inconsistent")
+        if self.receipt_sha256 != registry_stress_normalization_sha256(self):
+            raise ValueError("submission-normalization digest mismatch")
+        return self
+
+
 class RegistryStressCasePreflightV1(_Contract):
     schema_version: Literal[STRESS_PREFLIGHT_SCHEMA_VERSION] = (
         STRESS_PREFLIGHT_SCHEMA_VERSION
@@ -631,6 +685,12 @@ def registry_stress_outcome_sha256(
     return _contract_sha256(value, "receipt_sha256")
 
 
+def registry_stress_normalization_sha256(
+    value: RegistryStressSubmissionNormalizationV1 | dict[str, Any],
+) -> str:
+    return _contract_sha256(value, "receipt_sha256")
+
+
 def registry_stress_campaign_sha256(
     value: RegistryStressCampaignPlanV1 | dict[str, Any],
 ) -> str:
@@ -699,6 +759,7 @@ __all__ = [
     "RegistryStressRunOutcomeV1",
     "RegistryStressRunSpecV1",
     "RegistryStressSafetyPlaneV1",
+    "RegistryStressSubmissionNormalizationV1",
     "RepositorySourceBindingV1",
     "StressLookupExpectationV1",
     "StressProjectSettingsV1",
@@ -708,6 +769,7 @@ __all__ = [
     "registry_stress_campaign_sha256",
     "registry_stress_case_sha256",
     "registry_stress_outcome_sha256",
+    "registry_stress_normalization_sha256",
     "registry_stress_preflight_sha256",
     "registry_stress_run_spec_sha256",
     "repository_source_binding_sha256",

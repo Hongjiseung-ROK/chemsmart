@@ -1,0 +1,114 @@
+{
+  "schema_version": "chemsmart.registry-stress-live-reconciliation.v1",
+  "campaign_id": "registry-v2-stress-development-v2",
+  "campaign_plan_sha256": "757d9ca2cdb29fce61ae1d06702e1a93e3ec350199894c96dccfff7231379935",
+  "source_commit": "acf007b422455ce768981eaee757fe80ae479feb",
+  "source_binding_sha256": "ff7b92d4e0163fbf39d568edb7431558b533da55f64d1f01920d65dcb2dd7196",
+  "source_tree_sha256": "70b5fd4f3a19e70ea2b2cc6ef30e5966366dc3a407451c5670b6d7a7c0218e70",
+  "registry_v2_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+  "termination": {
+    "raw_progress_status": "running",
+    "completed_run_count": 6,
+    "planned_run_count": 44,
+    "operator_action": "The local campaign process was interrupted after six durable outcomes because a deterministic canonical-order rejection made further unchanged calls non-informative.",
+    "operator_action_evidence_class": "reconciliation_record_only",
+    "decision": "retire_before_matrix_completion",
+    "decision_reason": "The two complete three-arm cases were sufficient to isolate scientific-readiness gains from deterministic submission-boundary defects."
+  },
+  "aggregate_observations": {
+    "strict_oracle_passes": 0,
+    "strict_oracle_trials": 6,
+    "successful_typed_submissions": 4,
+    "typed_submission_attempts_visible": 5,
+    "v2_raw_readiness_correct": 2,
+    "v2_raw_readiness_trials": 2,
+    "completed_output_token_maximum": 7629,
+    "configured_output_token_limit": 8192,
+    "chemistry_engine_calls": 0,
+    "hpc_calls": 0,
+    "project_writes": 0
+  },
+  "run_receipts": [
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v2",
+      "outcome_receipt_sha256": "82b8554885cd185dc6ef9531221b7d7f0c50af5d51b2d31e0219c55b12144555",
+      "outcome_artifact_sha256": "09daac041e60329f33f9c2a4d1de6fe98c16e51521e38a2d9f473641a2756483",
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.honest-readiness",
+        "oracle.project-render",
+        "oracle.setting-preservation"
+      ]
+    },
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v2",
+      "outcome_receipt_sha256": "713ed234805e4db41f0541b876f2533b62120e34d6189d55a506b62e98f54ffd",
+      "outcome_artifact_sha256": "f62aa5e70475c7766b4b57ff77d60b5ce34aaaa7d0126dd641d7ad003e909366",
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ]
+    },
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+      "outcome_receipt_sha256": "ed77949c2677db5c5c95309adcd5bd93fe0582f067a433295efe6d7258bbfba2",
+      "outcome_artifact_sha256": "9e9a4f069ca12c534bb6fd2a1acb5b66b6294a24af64f95772da2e50bd93a4bf",
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.project-render",
+        "oracle.setting-preservation"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:minimal:v2",
+      "outcome_receipt_sha256": "ebf3f537b2035022ea01c4bed4340c117c9056b29af5031615ef0b51aba7f109",
+      "outcome_artifact_sha256": "d71a3a53cc331711606c6f3bd4ebf49ac5dc6405dc1e7c7038e220964022b114",
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v1:v2",
+      "outcome_receipt_sha256": "e64a5d059dd68c5a76fe5eb1b5778eace6fa8c512400cb6408dfdfaf8d51b34f",
+      "outcome_artifact_sha256": "1d42399b8a25bb554a246641f9dee5dd26a4e461155304ba1fe0d564ec6fc3e7",
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v2:v2",
+      "outcome_receipt_sha256": "16632464c8f3c7d3726935937080698d924005b121479939b6b0dcc8e7bb083c",
+      "outcome_artifact_sha256": "a1e293363dc97a93c80552c082a6906f9136f6c97dde7e94fe633d211e76b6e3",
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ]
+    }
+  ],
+  "confirmed_facts": [
+    "All six completed runs stayed below the repaired 8192-token output ceiling and produced durable replayable Runtime V2 evidence.",
+    "Both populated V2 arms selected the expected blocked_validation_coverage readiness in their raw model submission content.",
+    "The ORCA V2 submission succeeded but omitted the explicit freq=true field, causing setting-preservation and project-render failures.",
+    "The Gaussian V2 submission contained the expected readiness and complete explicit settings, but its tool call was rejected because blocking_rule_ids were not sorted.",
+    "The repaired lookup scope accepted the explicit B3LYP functional in both V1 and V2 tool surfaces.",
+    "The strict aggregate result is 0/6; it combines scientific-decision errors, missing terminal submissions, omitted explicit fields, and deterministic canonical-order rejection."
+  ],
+  "supported_interpretations": [
+    "The populated V2 registry improved readiness classification over minimal and V1 in these two development cases.",
+    "Requiring the model to reproduce canonical ordering for set-like fields creates avoidable false failures unrelated to chemistry.",
+    "Explicit task values already fixed by intake should be bound deterministically when omitted, while contradictory model values must remain failures."
+  ],
+  "unknowns": [
+    "Whether the V2 readiness advantage holds outside these two development cases.",
+    "Whether deterministic submission normalization improves terminal success without hiding model contradictions.",
+    "Whether the opt accessor versus freq task wording caused the ORCA minimal and V1 errors."
+  ],
+  "retired_or_revised_metrics": [
+    "Strict terminal pass remains a safety gate but is insufficient by itself to measure scientific-decision quality.",
+    "Future receipts must report raw model intent, deterministic normalization, canonical submission validity, and final oracle validity separately."
+  ],
+  "next_hypothesis": "A case-bound deterministic submission normalizer that sorts only set-like fields and fills only omitted explicit settings will convert both scientifically correct V2 raw proposals into valid canonical proposals without changing any contradictory value.",
+  "receipt_sha256": "fefb1c0d9352704ffd5609c2c770834101a523f5fe05cd794e738fdb75012d48"
+}

@@ -1,0 +1,75 @@
+{
+  "assistant_text": "Proposal submitted successfully for case `orca-ma-def2-tzvp-cross-field-blocked`.\n\n**Outcome: `blocked_validation_coverage`** (ORCA 6.1, opt accessor / freq task, neutral singlet)\n\n- **functional `B3LYP`** → `exact_registered`, project-candidate eligible — but this does not discharge the mandatory-target blockers.\n- **basis `ma-def2-TZVP`** (opt) → registry status `blocked_validation_coverage` (`scientific_settings.v2.validation_coverage_gap`), not candidate-eligible; no safe preview, no engine execution.\n- **dispersion `D3BJ`** (opt) → same `blocked_validation_coverage` status, not candidate-eligible.\n\nNo fuzzy candidates were selected, no substitutions made, and no native input, command, project write, or execution was performed — the proposal records only read-only registry evidence with source literals preserved.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "blocking_rule_ids": [
+          "paper.project.frequency_missing"
+        ],
+        "expected": "project_candidate_valid",
+        "observed": "blocked_missing_evidence",
+        "passed": false
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Proposal submitted successfully for case `orca-ma-def2-tzvp-cross-field-blocked`.\n\n**Outcome: `blocked_validation_coverage`** (ORCA 6.1, opt accessor / freq task, neutral singlet)\n\n- **functional `B3LYP`** → `exact_registered`, project-candidate eligible — but this does not discharge the mandatory-target blockers.\n- **basis `ma-def2-TZVP`** (opt) → registry status `blocked_validation_coverage` (`scientific_settings.v2.validation_coverage_gap`), not candidate-eligible; no safe preview, no engine execution.\n- **dispersion `D3BJ`** (opt) → same `blocked_validation_coverage` status, not candidate-eligible.\n\nNo fuzzy candidates were selected, no substitutions made, and no native input, command, project write, or execution was performed — the proposal records only read-only registry evidence with source literals preserved.",
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v2",
+  "typed_analysis_summary": "Neutral-singlet ORCA frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly (engine 6.1, accessor job kind opt). Read-only V2 resolutions: method.functional 'B3LYP' (opt) resolved exact_registered, project_candidate_eligible=true, reason scientific_settings.v2.exact_registered. Both mandatory host-preregistered lookups returned status blocked_validation_coverage with reason rule scientific_settings.v2.validation_coverage_gap, project_candidate_eligible=false, deterministic_validator_enforced=false, empty candidates, matched_by canonical_literal, loader accepted, renderer preserved, evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution): (1) method.basis 'ma-def2-TZVP' for opt, applicability rule scientific_settings.basis.registry_validator_integration_required; (2) method.dispersion 'D3BJ' for opt, applicability rule scientific_settings.dispersion.functional_conflict_guard. The exact registered functional does not discharge the validation-coverage blockers on the mandatory basis and dispersion literals; per raw registry status the project is blocked_validation_coverage. No fuzzy candidate selected, no silent substitution, no native input or command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Neutral-singlet ORCA frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly (engine 6.1, accessor job kind opt). Read-only V2 resolutions: method.functional 'B3LYP' (opt) resolved exact_registered, project_candidate_eligible=true, reason scientific_settings.v2.exact_registered. Both mandatory host-preregistered lookups returned status blocked_validation_coverage with reason rule scientific_settings.v2.validation_coverage_gap, project_candidate_eligible=false, deterministic_validator_enforced=false, empty candidates, matched_by canonical_literal, loader accepted, renderer preserved, evidence ceiling loader_renderer_verification_only (no safe preview, no engine execution): (1) method.basis 'ma-def2-TZVP' for opt, applicability rule scientific_settings.basis.registry_validator_integration_required; (2) method.dispersion 'D3BJ' for opt, applicability rule scientific_settings.dispersion.functional_conflict_guard. The exact registered functional does not discharge the validation-coverage blockers on the mandatory basis and dispersion literals; per raw registry status the project is blocked_validation_coverage. No fuzzy candidate selected, no silent substitution, no native input or command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-ma-def2-tzvp-freq",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "ma-def2-TZVP",
+      "dispersion": "D3BJ",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

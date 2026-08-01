@@ -1,0 +1,18 @@
+{
+  "assistant_text": "All evidence is now in. Summary of the read-only findings:\n\n- **Basis `pcseg-2` (mandatory target, opt):** resolved by canonical literal (`normalized 'pcseg2'`), BSE-catalog-0.11 source present, loader accepted / renderer preserved — but `deterministic_validator_enforced=false`, no engine or safe-preview execution, evidence ceiling is `loader_renderer_verification_only`, `project_candidate_eligible=false`, raw status **`blocked_validation_coverage`** (`scientific_settings.v2.validation_coverage_gap`). Applicability rules `bse_materialization_required` and `request_element_coverage_required` are present and undischarged — a true BSE-discovery → compiler-materialization gap.\n- **Functional `B3LYP`:** no Gaussian V2 entry; resolution matched only an ORCA entry (`registered_elsewhere`) → status `incompatible` (`program_or_path_incompatible`). Fuzzy candidates are not selectable and no substitution is permitted.\n- **`freq` lookup:** rejected as outside this case's scope; frequency task intent is preserved in the blocked proposal but carries no verification.\n\nNo project writes, native inputs, commands, or execution — submitting the blocked proposal now.",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "All evidence is now in. Summary of the read-only findings:\n\n- **Basis `pcseg-2` (mandatory target, opt):** resolved by canonical literal (`normalized 'pcseg2'`), BSE-catalog-0.11 source present, loader accepted / renderer preserved — but `deterministic_validator_enforced=false`, no engine or safe-preview execution, evidence ceiling is `loader_renderer_verification_only`, `project_candidate_eligible=false`, raw status **`blocked_validation_coverage`** (`scientific_settings.v2.validation_coverage_gap`). Applicability rules `bse_materialization_required` and `request_element_coverage_required` are present and undischarged — a true BSE-discovery → compiler-materialization gap.\n- **Functional `B3LYP`:** no Gaussian V2 entry; resolution matched only an ORCA entry (`registered_elsewhere`) → status `incompatible` (`program_or_path_incompatible`). Fuzzy candidates are not selectable and no substitution is permitted.\n- **`freq` lookup:** rejected as outside this case's scope; frequency task intent is preserved in the blocked proposal but carries no verification.\n\nNo project writes, native inputs, commands, or execution — submitting the blocked proposal now.",
+  "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v2:v2",
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

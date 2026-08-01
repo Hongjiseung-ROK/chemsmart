@@ -1,0 +1,422 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T213601Z-073ea17d\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: gaussian-pcseg2-materialization-gap\nProgram: gaussian\nEngine version: 16.C01\nTask kind: freq\nProject/registry accessor job kind: opt\n\nPlan a Gaussian B3LYP/pcseg-2 frequency project. Distinguish BSE discovery from deterministic compiler materialization.\n\nHost-preregistered lookup targets:\n- basis: gaussian method.basis 'pcseg-2' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "I'll start by resolving the case-scoped literals against the frozen V1 registry. The mandatory target is basis `pcseg-2` for the opt accessor job kind, and the explicit request literal `B3LYP` is also in case scope, so I'll resolve both independently.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"program\": \"gaussian\", \"setting_path\": \"method.basis\", \"value\": \"pcseg-2\", \"job_kind\": \"opt\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_00_4PdfeHVTb6MZf9KYHtBq4211",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"program\": \"gaussian\", \"setting_path\": \"method.functional\", \"value\": \"B3LYP\", \"job_kind\": \"opt\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_01_pw4lgCFOv15kpKB0vn1M1165",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"program\": \"gaussian\", \"setting_path\": \"method.basis\", \"job_kind\": \"opt\", \"query\": \"pcseg\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_02_zu0eoVAfj5trnHEUq0hr0778",
+          "index": 2,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": \"pcseg-2\", \"capability_id\": \"gaussian.basis.bse.pcseg2\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"pcseg2\", \"program\": \"gaussian\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"pcseg-2\", \"resolution_sha256\": \"fd686babca226da707a5fb249549c67fac2896dd16988bf8e91fdd9a154214c3\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.basis\", \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_4PdfeHVTb6MZf9KYHtBq4211"
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": \"B3LYP\", \"capability_id\": \"gaussian.functional.b3lyp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"b3lyp\", \"program\": \"gaussian\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"B3LYP\", \"resolution_sha256\": \"5f5aa8f3b9109db0c95d1f3b18ca9cd75337e17d8a63092f645510159d5fcaab\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.functional\", \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_01_pw4lgCFOv15kpKB0vn1M1165"
+    },
+    {
+      "content": "{\"inventory_count\": 748, \"matched_count\": 10, \"ok\": true, \"program\": \"gaussian\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 10, \"rule_ids\": [], \"setting_path\": \"method.basis\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": false, \"values\": [\"aug-pcseg-0\", \"aug-pcseg-1\", \"aug-pcseg-2\", \"aug-pcseg-3\", \"aug-pcseg-4\", \"pcseg-0\", \"pcseg-1\", \"pcseg-2\", \"pcseg-3\", \"pcseg-4\"]}",
+      "role": "tool",
+      "tool_call_id": "call_02_zu0eoVAfj5trnHEUq0hr0778"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Both case-scope literals resolve as `exact_registered`. Notably, the basis capability is `gaussian.basis.bse.pcseg2` (BSE-marked), while the functional capability is `gaussian.functional.b3lyp` (no BSE marker). Let me probe the registry conventions to confirm how native (compiler-materializable) basis capabilities are marked versus BSE-discovered ones, so I can characterize the materialization gap accurately.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"job_kind\": \"opt\", \"program\": \"gaussian\", \"query\": \"6-31\", \"setting_path\": \"method.basis\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_00_xmzF7CIXH4WyBcxhWXJd0949",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"job_kind\": \"opt\", \"program\": \"gaussian\", \"setting_path\": \"method.basis\", \"value\": \"6-31G(d)\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_01_qyg5yzuKFKPlTKSr6SpZ1861",
+          "index": 1,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"inventory_count\": 748, \"matched_count\": 41, \"ok\": true, \"program\": \"gaussian\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 10, \"rule_ids\": [], \"setting_path\": \"method.basis\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": true, \"values\": [\"6-31++G\", \"6-31++G*\", \"6-31++G**\", \"6-31++G**-J\", \"6-31+G\", \"6-31+G*\", \"6-31+G**\", \"6-31+G*-J\", \"6-311++G\", \"6-311++G(2d,2p)\"]}",
+      "role": "tool",
+      "tool_call_id": "call_00_xmzF7CIXH4WyBcxhWXJd0949"
+    },
+    {
+      "content": "{\"error\": {\"message\": \"lookup job kind is outside the case scope\", \"tool\": \"resolve_scientific_setting_v1\", \"type\": \"ValueError\"}, \"ok\": false}",
+      "role": "tool",
+      "tool_call_id": "call_01_qyg5yzuKFKPlTKSr6SpZ1861"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The out-of-scope probe was correctly refused (`lookup job kind is outside the case scope`), which confirms only case-scoped lookups are permitted — fine, the case-scope evidence is already conclusive.\n\n**Evidence summary (frozen V1):**\n- `method.basis` = `pcseg-2` (opt): `exact_registered`, matched by canonical literal, capability **`gaussian.basis.bse.pcseg2`** (BSE-marked), loader `accepted`, renderer `preserved`, `loader_renderer_eligible: true`.\n- `method.functional` = `B3LYP` (opt): `exact_registered`, capability `gaussian.functional.b3lyp` (no BSE marker).\n- Both resolutions carry evidence ceiling **`loader_renderer_verification_only`**: `engine_executed: false`, `safe_preview_executed: false`, `scientific_adequacy_verified: false`, `setting_combination_verified: false`.\n\nThis is exactly the materialization gap: `pcseg-2` is BSE-discoverable and loadable/renderable, but no deterministic compiler materialization receipt exists for Gaussian 16.C01 — the engine never executed, no safe preview, no scientific-adequacy verification. BSE discovery does not discharge compiler readiness, so the project is blocked on missing deterministic materialization evidence. Submitting the blocked proposal with source literals preserved.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"gaussian-pcseg2-materialization-gap\", \"program\": \"gaussian\", \"project_name\": \"gaussian-b3lyp-pcseg2-freq\", \"readiness\": \"blocked_missing_evidence\", \"blocking_rule_ids\": [], \"settings\": {\"functional\": \"B3LYP\", \"basis\": \"pcseg-2\", \"dispersion\": null, \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": true, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"element_findings\": [], \"analysis_summary\": \"Planned Gaussian B3LYP/pcseg-2 frequency project (registry accessor job kind opt, engine 16.C01). Frozen V1 evidence: resolve method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal, capability gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved, loader_renderer_eligible true. Resolve method.functional 'B3LYP' for opt returned exact_registered via capability gaussian.functional.b3lyp. Both resolutions carry evidence_ceiling loader_renderer_verification_only with engine_executed false, safe_preview_executed false, scientific_adequacy_verified false, setting_combination_verified false. This is the materialization gap: the BSE-marked capability (gaussian.basis.bse.pcseg2) demonstrates pcseg-2 is BSE-discoverable and loader/renderer-verifiable, but there is no deterministic compiler materialization receipt for Gaussian 16.C01 (engine never executed, no safe preview, no scientific-adequacy or combination verification). BSE discovery is not native/compiler readiness. The inventory (bounded view) lists the pcseg-0..4 and aug-pcseg-0..4 family, which is advisory and cannot override the missing materialization evidence. Functional B3LYP is exact_registered via a non-BSE capability, but its deterministic materialization is likewise unverified at this ceiling. Therefore the project is blocked pending an exact, request-bound deterministic materialization receipt; source literals (B3LYP, pcseg-2, freq) are preserved. No native input authored, no command authored, no project write, no execution requested.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_m0PttZ0AysSLr0P9vhGj4632",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"analysis_summary\": \"Planned Gaussian B3LYP/pcseg-2 frequency project (registry accessor job kind opt, engine 16.C01). Frozen V1 evidence: resolve method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal, capability gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved, loader_renderer_eligible true. Resolve method.functional 'B3LYP' for opt returned exact_registered via capability gaussian.functional.b3lyp. Both resolutions carry evidence_ceiling loader_renderer_verification_only with engine_executed false, safe_preview_executed false, scientific_adequacy_verified false, setting_combination_verified false. This is the materialization gap: the BSE-marked capability (gaussian.basis.bse.pcseg2) demonstrates pcseg-2 is BSE-discoverable and loader/renderer-verifiable, but there is no deterministic compiler materialization receipt for Gaussian 16.C01 (engine never executed, no safe preview, no scientific-adequacy or combination verification). BSE discovery is not native/compiler readiness. The inventory (bounded view) lists the pcseg-0..4 and aug-pcseg-0..4 family, which is advisory and cannot override the missing materialization evidence. Functional B3LYP is exact_registered via a non-BSE capability, but its deterministic materialization is likewise unverified at this ceiling. Therefore the project is blocked pending an exact, request-bound deterministic materialization receipt; source literals (B3LYP, pcseg-2, freq) are preserved. No native input authored, no command authored, no project write, no execution requested.\", \"blocking_rule_ids\": [], \"case_id\": \"gaussian-pcseg2-materialization-gap\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"gaussian-b3lyp-pcseg2-freq\", \"project_written\": false, \"readiness\": \"blocked_missing_evidence\", \"settings\": {\"basis\": \"pcseg-2\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}",
+      "role": "tool",
+      "tool_call_id": "call_00_m0PttZ0AysSLr0P9vhGj4632"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Proposal submitted for case `gaussian-pcseg2-materialization-gap`.\n\n**Outcome: `blocked_missing_evidence`** — the project is not a candidate because of the BSE-discovery vs. deterministic compiler-materialization gap:\n\n- **`pcseg-2` (method.basis, opt):** `exact_registered` via capability `gaussian.basis.bse.pcseg2` — BSE-discoverable, loader-accepted, renderer-preserved. However, the evidence ceiling is `loader_renderer_verification_only`: `engine_executed: false`, `safe_preview_executed: false`, `scientific_adequacy_verified: false`, `setting_combination_verified: false`. No deterministic materialization receipt exists for Gaussian 16.C01.\n- **`B3LYP` (method.functional, opt):** `exact_registered` via non-BSE capability `gaussian.functional.b3lyp`, but carries the same loader/renderer-only evidence ceiling.\n\nThe inventory listing (pcseg-0…4 / aug-pcseg-0…4) is advisory only and cannot discharge the materialization gap. The blocked proposal preserves the source literals (`B3LYP`, `pcseg-2`, `freq`), and no native input, command, project write, or execution was requested — consistent with the read-only experiment constraints.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v1:v2",
+  "tool_outcomes": [
+    {
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_00_4PdfeHVTb6MZf9KYHtBq4211",
+      "request_id": "openai:call_00_4PdfeHVTb6MZf9KYHtBq4211",
+      "result": {
+        "candidate_values": [],
+        "canonical_value": "pcseg-2",
+        "capability_id": "gaussian.basis.bse.pcseg2",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "accepted",
+        "loader_renderer_eligible": true,
+        "matched_by": "canonical_literal",
+        "normalized_requested_value": "pcseg2",
+        "program": "gaussian",
+        "reason_rule_id": "scientific_settings.exact_registered",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "preserved",
+        "requested_value": "pcseg-2",
+        "resolution_sha256": "fd686babca226da707a5fb249549c67fac2896dd16988bf8e91fdd9a154214c3",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.basis",
+        "status": "exact_registered"
+      },
+      "result_sha256": "2326e612d37bceda0df20285598ec753d09b4fe0f4002a0b25d3091ccc16d925",
+      "status": "ok"
+    },
+    {
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_pw4lgCFOv15kpKB0vn1M1165",
+      "request_id": "openai:call_01_pw4lgCFOv15kpKB0vn1M1165",
+      "result": {
+        "candidate_values": [],
+        "canonical_value": "B3LYP",
+        "capability_id": "gaussian.functional.b3lyp",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "accepted",
+        "loader_renderer_eligible": true,
+        "matched_by": "canonical_literal",
+        "normalized_requested_value": "b3lyp",
+        "program": "gaussian",
+        "reason_rule_id": "scientific_settings.exact_registered",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "preserved",
+        "requested_value": "B3LYP",
+        "resolution_sha256": "5f5aa8f3b9109db0c95d1f3b18ca9cd75337e17d8a63092f645510159d5fcaab",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.functional",
+        "status": "exact_registered"
+      },
+      "result_sha256": "7c687bf7f58c66af9f9ddaef0bbaa47576fa5b533312667828d2bf6548579888",
+      "status": "ok"
+    },
+    {
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_02_zu0eoVAfj5trnHEUq0hr0778",
+      "request_id": "openai:call_02_zu0eoVAfj5trnHEUq0hr0778",
+      "result": {
+        "inventory_count": 748,
+        "matched_count": 10,
+        "ok": true,
+        "program": "gaussian",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 10,
+        "rule_ids": [],
+        "setting_path": "method.basis",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": false,
+        "values": [
+          "aug-pcseg-0",
+          "aug-pcseg-1",
+          "aug-pcseg-2",
+          "aug-pcseg-3",
+          "aug-pcseg-4",
+          "pcseg-0",
+          "pcseg-1",
+          "pcseg-2",
+          "pcseg-3",
+          "pcseg-4"
+        ]
+      },
+      "result_sha256": "052cb589ffffa9addca105b570cbeb931bb66f8e1c7ef9392007aa3933f7dd41",
+      "status": "ok"
+    },
+    {
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_00_xmzF7CIXH4WyBcxhWXJd0949",
+      "request_id": "openai:call_00_xmzF7CIXH4WyBcxhWXJd0949",
+      "result": {
+        "inventory_count": 748,
+        "matched_count": 41,
+        "ok": true,
+        "program": "gaussian",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 10,
+        "rule_ids": [],
+        "setting_path": "method.basis",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": true,
+        "values": [
+          "6-31++G",
+          "6-31++G*",
+          "6-31++G**",
+          "6-31++G**-J",
+          "6-31+G",
+          "6-31+G*",
+          "6-31+G**",
+          "6-31+G*-J",
+          "6-311++G",
+          "6-311++G(2d,2p)"
+        ]
+      },
+      "result_sha256": "f60694e2550b10cc835c29ba8dda413d46320c4dbc86f818d206097a949e00f8",
+      "status": "ok"
+    },
+    {
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_qyg5yzuKFKPlTKSr6SpZ1861",
+      "request_id": "openai:call_01_qyg5yzuKFKPlTKSr6SpZ1861",
+      "result": {
+        "error": {
+          "message": "lookup job kind is outside the case scope",
+          "tool": "resolve_scientific_setting_v1",
+          "type": "ValueError"
+        },
+        "ok": false
+      },
+      "result_sha256": "091c059b36142b7e79a973e41379551737ebb070f99ce9c35f0ca927ca557990",
+      "status": "error"
+    },
+    {
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_m0PttZ0AysSLr0P9vhGj4632",
+      "request_id": "openai:call_00_m0PttZ0AysSLr0P9vhGj4632",
+      "result": {
+        "analysis_summary": "Planned Gaussian B3LYP/pcseg-2 frequency project (registry accessor job kind opt, engine 16.C01). Frozen V1 evidence: resolve method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal, capability gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved, loader_renderer_eligible true. Resolve method.functional 'B3LYP' for opt returned exact_registered via capability gaussian.functional.b3lyp. Both resolutions carry evidence_ceiling loader_renderer_verification_only with engine_executed false, safe_preview_executed false, scientific_adequacy_verified false, setting_combination_verified false. This is the materialization gap: the BSE-marked capability (gaussian.basis.bse.pcseg2) demonstrates pcseg-2 is BSE-discoverable and loader/renderer-verifiable, but there is no deterministic compiler materialization receipt for Gaussian 16.C01 (engine never executed, no safe preview, no scientific-adequacy or combination verification). BSE discovery is not native/compiler readiness. The inventory (bounded view) lists the pcseg-0..4 and aug-pcseg-0..4 family, which is advisory and cannot override the missing materialization evidence. Functional B3LYP is exact_registered via a non-BSE capability, but its deterministic materialization is likewise unverified at this ceiling. Therefore the project is blocked pending an exact, request-bound deterministic materialization receipt; source literals (B3LYP, pcseg-2, freq) are preserved. No native input authored, no command authored, no project write, no execution requested.",
+        "blocking_rule_ids": [],
+        "case_id": "gaussian-pcseg2-materialization-gap",
+        "command_authored": false,
+        "element_findings": [],
+        "execution_requested": false,
+        "native_input_authored": false,
+        "program": "gaussian",
+        "project_name": "gaussian-b3lyp-pcseg2-freq",
+        "project_written": false,
+        "readiness": "blocked_missing_evidence",
+        "settings": {
+          "basis": "pcseg-2",
+          "dispersion": null,
+          "ecp_elements": [],
+          "ecp_intent": null,
+          "freq": true,
+          "functional": "B3LYP",
+          "gfn_version": null,
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "integration_grid": null,
+          "light_elements_basis": null,
+          "optimization_level": null,
+          "solv_freq": null,
+          "solvent_id": null,
+          "solvent_model": null
+        }
+      },
+      "result_sha256": "2b3c845db3912f3b938c411e75bcc561e56d5d6b9c776fd0e1851df0dcd5110d",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "gaussian",
+        "setting_path": "method.basis",
+        "value": "pcseg-2"
+      },
+      "arguments_sha256": "b8d239a6fd4bbc07bd6d131f4ab828c53bdab3205b6303ab0f1e6a73dfac4cae",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_00_4PdfeHVTb6MZf9KYHtBq4211",
+      "request_id": "openai:call_00_4PdfeHVTb6MZf9KYHtBq4211"
+    },
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "gaussian",
+        "setting_path": "method.functional",
+        "value": "B3LYP"
+      },
+      "arguments_sha256": "75831d4a1e80b543c5f73e822e196379fbe09f8a3af208e11345d59964ce35e2",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_pw4lgCFOv15kpKB0vn1M1165",
+      "request_id": "openai:call_01_pw4lgCFOv15kpKB0vn1M1165"
+    },
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "gaussian",
+        "query": "pcseg",
+        "setting_path": "method.basis"
+      },
+      "arguments_sha256": "ee36f66d1a8b815b26d9b4fccb477df74ae6babcbc463d7f09af0cf544955fc3",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_02_zu0eoVAfj5trnHEUq0hr0778",
+      "request_id": "openai:call_02_zu0eoVAfj5trnHEUq0hr0778"
+    },
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "gaussian",
+        "query": "6-31",
+        "setting_path": "method.basis"
+      },
+      "arguments_sha256": "69abd511ed4d966557583c56f0187d138d72bc85467f69bffce9a0998603d1a1",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_00_xmzF7CIXH4WyBcxhWXJd0949",
+      "request_id": "openai:call_00_xmzF7CIXH4WyBcxhWXJd0949"
+    },
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "gaussian",
+        "setting_path": "method.basis",
+        "value": "6-31G(d)"
+      },
+      "arguments_sha256": "5b0f33fdd924b312d53d4b2a24a5a91d978f4a8c765c1bd0223b3af7e9b55085",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_qyg5yzuKFKPlTKSr6SpZ1861",
+      "request_id": "openai:call_01_qyg5yzuKFKPlTKSr6SpZ1861"
+    },
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Planned Gaussian B3LYP/pcseg-2 frequency project (registry accessor job kind opt, engine 16.C01). Frozen V1 evidence: resolve method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal, capability gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved, loader_renderer_eligible true. Resolve method.functional 'B3LYP' for opt returned exact_registered via capability gaussian.functional.b3lyp. Both resolutions carry evidence_ceiling loader_renderer_verification_only with engine_executed false, safe_preview_executed false, scientific_adequacy_verified false, setting_combination_verified false. This is the materialization gap: the BSE-marked capability (gaussian.basis.bse.pcseg2) demonstrates pcseg-2 is BSE-discoverable and loader/renderer-verifiable, but there is no deterministic compiler materialization receipt for Gaussian 16.C01 (engine never executed, no safe preview, no scientific-adequacy or combination verification). BSE discovery is not native/compiler readiness. The inventory (bounded view) lists the pcseg-0..4 and aug-pcseg-0..4 family, which is advisory and cannot override the missing materialization evidence. Functional B3LYP is exact_registered via a non-BSE capability, but its deterministic materialization is likewise unverified at this ceiling. Therefore the project is blocked pending an exact, request-bound deterministic materialization receipt; source literals (B3LYP, pcseg-2, freq) are preserved. No native input authored, no command authored, no project write, no execution requested.",
+          "blocking_rule_ids": [],
+          "case_id": "gaussian-pcseg2-materialization-gap",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "gaussian-b3lyp-pcseg2-freq",
+          "project_written": false,
+          "readiness": "blocked_missing_evidence",
+          "settings": {
+            "basis": "pcseg-2",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_sha256": "79118b99454ef4d1cd51255a573329ed08a9a5fd0f765db0f930763a919ec893",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_m0PttZ0AysSLr0P9vhGj4632",
+      "request_id": "openai:call_00_m0PttZ0AysSLr0P9vhGj4632"
+    }
+  ]
+}
