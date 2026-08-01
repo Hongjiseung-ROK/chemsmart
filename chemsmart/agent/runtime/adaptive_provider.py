@@ -11,7 +11,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from chemsmart.agent.adaptive_api_campaign import AdaptiveNetworkBudgetV1
+from chemsmart.agent.adaptive_api_campaign import (
+    AdaptiveHypothesisV1,
+    AdaptiveNetworkBudgetV1,
+    AdaptiveProviderPurpose,
+)
 from chemsmart.agent.api_access import (
     ApiProvider,
     ApiUsageBudget,
@@ -72,6 +76,7 @@ class AdaptiveLeaseBoundDeepSeekProvider:
         *,
         controller: CredentialAccessController,
         network_budget: AdaptiveNetworkBudgetV1,
+        hypothesis: AdaptiveHypothesisV1,
         config: AdaptiveDeepSeekProviderConfig | None = None,
         provider_factory: Callable[..., Any] | None = None,
         monotonic_clock: Callable[[], float] = time.monotonic,
@@ -81,9 +86,18 @@ class AdaptiveLeaseBoundDeepSeekProvider:
             network_budget.max_output_tokens_per_request
         ):
             raise ValueError("provider output bound exceeds adaptive network budget")
+        if hypothesis.provider is not ApiProvider.DEEPSEEK:
+            raise ValueError("adaptive DeepSeek provider requires a DeepSeek hypothesis")
+        if hypothesis.purpose not in {
+            AdaptiveProviderPurpose.HARNESS_VALIDATION,
+            AdaptiveProviderPurpose.PAPER_PLAN_VALIDATION,
+            AdaptiveProviderPurpose.ADVERSARIAL_REVIEW,
+        }:
+            raise ValueError("hypothesis purpose is not valid for DeepSeek")
         self.default_model = self.config.model
         self._controller = controller
         self._network_budget = network_budget
+        self._hypothesis = hypothesis
         self._provider_factory = provider_factory or OpenAIProvider
         self._clock = monotonic_clock
         self._started = self._clock()
@@ -126,11 +140,16 @@ class AdaptiveLeaseBoundDeepSeekProvider:
         request_sha256 = _sha256_json(
             {"messages": messages, "tools": tools or []}
         )
+        attempt_ordinal = self._transport_attempts + 1
         try:
             permit = self._controller.prepare_status_probe(
                 ApiProvider.DEEPSEEK,
                 caller="chemsmart-adaptive-deepseek",
-                purpose=f"adaptive-turn-{request_sha256[:24]}",
+                purpose=(
+                    "adaptive-"
+                    f"{self._hypothesis.hypothesis_sha256[:16]}-"
+                    f"{attempt_ordinal}"
+                ),
                 budget=ApiUsageBudget(1),
                 target_origin=self.config.endpoint,
             )
@@ -174,6 +193,9 @@ class AdaptiveLeaseBoundDeepSeekProvider:
             error_class = str(captured.get("error_class") or "provider.fail.unknown")
             self._request_observations.append(
                 {
+                    "hypothesis_id": self._hypothesis.hypothesis_id,
+                    "hypothesis_sha256": self._hypothesis.hypothesis_sha256,
+                    "attempt_ordinal": attempt_ordinal,
                     "request_sha256": request_sha256,
                     "status": "failed",
                     "error_class": error_class,
@@ -184,17 +206,38 @@ class AdaptiveLeaseBoundDeepSeekProvider:
 
         response = captured.get("response")
         if not isinstance(response, dict):
+            self._record_protocol_failure(
+                attempt_ordinal,
+                request_sha256,
+                "provider.fail.protocol",
+                started,
+            )
             raise AdaptiveProviderTurnError("provider.fail.protocol")
         model = response.get("model")
         if not isinstance(model, str) or _MODEL.fullmatch(model) is None:
+            self._record_protocol_failure(
+                attempt_ordinal,
+                request_sha256,
+                "provider.fail.model_identity",
+                started,
+            )
             raise AdaptiveProviderTurnError("provider.fail.model_identity")
         if self._observed_model_id and self._observed_model_id != model:
+            self._record_protocol_failure(
+                attempt_ordinal,
+                request_sha256,
+                "provider.fail.model_identity_changed",
+                started,
+            )
             raise AdaptiveProviderTurnError("provider.fail.model_identity_changed")
         self._observed_model_id = model
         self._requests_used += 1
         usage = response.get("usage") if isinstance(response.get("usage"), dict) else {}
         self._request_observations.append(
             {
+                "hypothesis_id": self._hypothesis.hypothesis_id,
+                "hypothesis_sha256": self._hypothesis.hypothesis_sha256,
+                "attempt_ordinal": attempt_ordinal,
                 "request_sha256": request_sha256,
                 "status": "observed",
                 "credential_status": status.status.value,
@@ -209,6 +252,25 @@ class AdaptiveLeaseBoundDeepSeekProvider:
             }
         )
         return response
+
+    def _record_protocol_failure(
+        self,
+        attempt_ordinal: int,
+        request_sha256: str,
+        error_class: str,
+        started: float,
+    ) -> None:
+        self._request_observations.append(
+            {
+                "hypothesis_id": self._hypothesis.hypothesis_id,
+                "hypothesis_sha256": self._hypothesis.hypothesis_sha256,
+                "attempt_ordinal": attempt_ordinal,
+                "request_sha256": request_sha256,
+                "status": "failed",
+                "error_class": error_class,
+                "latency_ms": int((self._clock() - started) * 1000),
+            }
+        )
 
     def _observe_reasoning_continuation(
         self, messages: list[dict[str, Any]]

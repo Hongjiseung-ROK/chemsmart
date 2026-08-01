@@ -14,7 +14,11 @@ from typing import Any
 
 from dotenv import dotenv_values
 
-from chemsmart.agent.adaptive_api_campaign import build_adaptive_network_budget_v1
+from chemsmart.agent.adaptive_api_campaign import (
+    AdaptiveProviderPurpose,
+    build_adaptive_hypothesis_v1,
+    build_adaptive_network_budget_v1,
+)
 from chemsmart.agent.core import AgentSession
 from chemsmart.agent.experiment_outcomes import classify_experiment_outcome
 from chemsmart.agent.loop import ToolLoopBudgets
@@ -37,7 +41,7 @@ from chemsmart.agent.source_spans import (
     tool_input_json_schema,
 )
 from chemsmart.agent.tool_protocol import RuntimeToolMetadata
-from chemsmart.agent.api_access import CredentialAccessController
+from chemsmart.agent.api_access import ApiProvider, CredentialAccessController
 
 
 MODEL = "deepseek-v4-flash"
@@ -455,9 +459,44 @@ def main() -> int:
     started = time.perf_counter()
     try:
         for case_id in CASE_SPECS:
+            prompt = _prompt(
+                case_id,
+                document,
+                tool_contract=args.tool_contract,
+            )
+            tool_schema_sha256 = _sha256_json(
+                tool_input_json_schema(_tool_name(args.tool_contract))
+            )
+            hypothesis = build_adaptive_hypothesis_v1(
+                hypothesis_id=f"hypothesis:elq:{case_id}:{args.tool_contract}",
+                provider=ApiProvider.DEEPSEEK,
+                purpose=AdaptiveProviderPurpose.HARNESS_VALIDATION,
+                prompt_sha256=_sha256_text(prompt),
+                input_state_sha256=_sha256_json(
+                    {
+                        "case_id": case_id,
+                        "source_sha256": document.sha256,
+                        "tool_contract": args.tool_contract,
+                    }
+                ),
+                expected_observation_sha256=_sha256_json(
+                    {
+                        "required_lines": CASE_SPECS[case_id]["required_lines"],
+                        "acceptable_claim_lines": CASE_SPECS[case_id][
+                            "acceptable_claim_lines"
+                        ],
+                    }
+                ),
+                precondition_sha256s=(
+                    document.sha256,
+                    network_budget.budget_sha256,
+                    tool_schema_sha256,
+                ),
+            )
             provider = AdaptiveLeaseBoundDeepSeekProvider(
                 controller=controller,
                 network_budget=network_budget,
+                hypothesis=hypothesis,
                 config=AdaptiveDeepSeekProviderConfig(
                     max_output_tokens=8_192,
                     reasoning_effort="high",
@@ -475,11 +514,6 @@ def main() -> int:
                     "Use only observable source evidence. Models propose; "
                     "deterministic validators decide. No native input or execution."
                 ),
-            )
-            prompt = _prompt(
-                case_id,
-                document,
-                tool_contract=args.tool_contract,
             )
             binding = EvidenceSelectionBinding(
                 source_id=document.source_id,
@@ -522,7 +556,7 @@ def main() -> int:
             results.append(
                 {
                     "case_id": case_id,
-                    "hypothesis_id": f"hypothesis:elq:{case_id}",
+                    "hypothesis": hypothesis.model_dump(mode="json"),
                     "tool_contract": args.tool_contract,
                     "prompt_sha256": _sha256_text(prompt),
                     "prompt_chars": len(prompt),
