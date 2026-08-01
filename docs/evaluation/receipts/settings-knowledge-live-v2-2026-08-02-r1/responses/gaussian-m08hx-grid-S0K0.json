@@ -1,0 +1,21 @@
+{
+  "arm": "S0K0",
+  "assistant_text": "I have no registered read-only inspection tools in this session (only the terminal planner and ask_user), so I cannot verify whether M08-HX, pcseg-2, or UltraFine are `exact_registered` in the registry. Per the experiment rules, settings whose registration status is unverified must be treated as `unknown_unverified`, and I retain the reported literals exactly with readiness `blocked_unverified_setting`. There is no ambiguity requiring `ask_user`: method, basis, grid, charge, and multiplicity are all explicitly supplied.\n\nI will submit the plan now, preserving every explicit setting verbatim (M08-HX, pcseg-2, UltraFine, neutral singlet frequency) with no substitutions.",
+  "private_reasoning_included": false,
+  "run_id": "gaussian-m08hx-grid:S0K0:v2-r1",
+  "typed_proposal": {
+    "analysis_summary": "Project-only Gaussian plan for a neutral singlet (charge 0, multiplicity 1) frequency calculation preserving the explicitly reported method exactly: functional M08-HX, basis pcseg-2, integration grid UltraFine. All reported literals are retained verbatim; no settings were substituted or added (dispersion, solvent, and GFN fields do not apply and are left null). No read-only inspection tool was available in this session, so the registry registration status of M08-HX, pcseg-2, and UltraFine could not be verified; settings are therefore treated as unknown_unverified, and readiness is blocked_unverified_setting pending host verification. This plan is not previewed, executed, or scientifically validated; no coordinates, native input, or shell commands were created.",
+    "basis": "pcseg-2",
+    "case_id": "gaussian-m08hx-pcseg2-ultrafine-freq-singlet",
+    "charge": 0,
+    "execution_requested": false,
+    "functional": "M08-HX",
+    "integration_grid": "UltraFine",
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "M08-HX/pcseg-2 UltraFine frequency (neutral singlet)",
+    "readiness": "blocked_unverified_setting"
+  }
+}

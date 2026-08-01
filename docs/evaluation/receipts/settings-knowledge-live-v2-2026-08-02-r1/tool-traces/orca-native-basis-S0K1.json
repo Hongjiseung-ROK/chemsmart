@@ -1,0 +1,55 @@
+{
+  "run_id": "orca-native-basis:S0K1:v2-r1",
+  "tool_outcomes": [
+    {
+      "name": "inspect_domain_knowledge",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_domain_knowledge",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_domain_knowledge",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "domain": "functional_registry",
+        "engine_version": "unspecified",
+        "program": "orca",
+        "task_kind": "frequency"
+      },
+      "arguments_sha256": "a5a5d59fb2e853c2f91e4555c41116e39444a4fd29415d445d247a91d53be289",
+      "name": "inspect_domain_knowledge"
+    },
+    {
+      "arguments": {
+        "domain": "dispersion_registry",
+        "engine_version": "unspecified",
+        "program": "orca",
+        "task_kind": "frequency"
+      },
+      "arguments_sha256": "495d47ecbe90169f133e391a86f43c2e334513d37add56c82c75d22987d68d20",
+      "name": "inspect_domain_knowledge"
+    },
+    {
+      "arguments": {
+        "domain": "basis_registry",
+        "engine_version": "unspecified",
+        "program": "orca",
+        "task_kind": "frequency"
+      },
+      "arguments_sha256": "ba1e14ee125c886bc61651a0c1a1b2ee5129e7569f80dc2f8d8a9f59d2999d3d",
+      "name": "inspect_domain_knowledge"
+    }
+  ]
+}

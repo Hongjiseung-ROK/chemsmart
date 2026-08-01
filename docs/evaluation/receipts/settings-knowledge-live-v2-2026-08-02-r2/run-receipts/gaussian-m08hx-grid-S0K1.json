@@ -1,0 +1,244 @@
+{
+  "adaptive_hypothesis": {
+    "expected_observation_sha256": "ede158586b4e8ddf45157ce7b15eb9a422a71cb8b5081310ba82236d9f29dda6",
+    "hypothesis_id": "hypothesis:gaussian-m08hx-grid:S0K1:v2-r2",
+    "hypothesis_sha256": "a5af66a6f7eef67168e19893b64c2f10b0f156fe1132db9aeb885541ffcb658d",
+    "input_state_sha256": "e083ce865e288eebb4d3eae2085f7fb0297e663ebc5ea295ac6c592409eb8d7d",
+    "precondition_sha256s": [
+      "0e3d18b9f02133804d077d408eb6d279a981316cb7f423c56fe2497be3a898e1",
+      "1f5dc997a1e77436aaced9f5ab9def4280c28e5bf6638071b5bd4f9cf8c27347",
+      "3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af",
+      "993eded2128d774951eabdd9abbed129d0dfffd649ec45e0ef4824a7fdf446d0",
+      "9adcca5cd99da143c79741cb7b9b7451d11a3961d13da25c5dcb337e2b8c33e0",
+      "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+      "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4"
+    ],
+    "prompt_sha256": "ad1dcb9877c49c374e7df5a53a27c8d323e44b88a72135f3fab0a167898f0975",
+    "provider": "deepseek",
+    "purpose": "harness_validation"
+  },
+  "arm": "S0K1",
+  "authoritative_terminal": {
+    "event_artifact_id": "runtime-events-sha256:adfd67e0e4da4dff44a59f76079a7c927622eb28cddf269c76f83bde8c218414",
+    "event_hash": "1d0f660c650da6a392caa471daf9881e657ca3a3e77bd06f4d86316913ab6499",
+    "event_log_sha256": "adfd67e0e4da4dff44a59f76079a7c927622eb28cddf269c76f83bde8c218414",
+    "kind": "turn_completed",
+    "replay_verified": true,
+    "rule_ids": []
+  },
+  "case_id": "gaussian-m08hx-grid",
+  "exposure_use": {
+    "domain_knowledge_packs": {
+      "offered": false,
+      "requested": 1,
+      "succeeded": 1
+    },
+    "scientific_settings_registry": {
+      "offered": true,
+      "requested": 0,
+      "succeeded": 0
+    }
+  },
+  "grade": {
+    "details": {
+      "expected_project_semantics": {
+        "additional_route_parameters": "Int=UltraFine",
+        "basis": "pcseg-2",
+        "functional": "M08-HX"
+      },
+      "irrelevant_cross_program_settings": {},
+      "project_semantic_findings": [],
+      "project_semantics": {
+        "additional_route_parameters": "Int=UltraFine",
+        "basis": "pcseg-2",
+        "functional": "m08hx"
+      },
+      "project_validation": {
+        "issue_rule_ids": [],
+        "verdict": "ok",
+        "yaml_sha256": "6efe4504e374a01f3b3299b2a3b2a6d067579817f8ee47b1939d0d7a80201f04"
+      },
+      "setting_resolutions": [
+        {
+          "canonical_value": null,
+          "eligible": false,
+          "reason_rule_id": "scientific_settings.unknown_unverified",
+          "setting_path": "method.functional",
+          "status": "unknown_unverified"
+        },
+        {
+          "canonical_value": "pcseg-2",
+          "eligible": true,
+          "reason_rule_id": "scientific_settings.exact_registered",
+          "setting_path": "method.basis",
+          "status": "exact_registered"
+        },
+        {
+          "canonical_value": null,
+          "eligible": false,
+          "reason_rule_id": "scientific_settings.unknown_unverified",
+          "setting_path": "method.integration_grid",
+          "status": "unknown_unverified"
+        }
+      ]
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.analysis-summary-english",
+      "oracle.case-identity",
+      "oracle.charge",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.multiplicity",
+      "oracle.native-input-prohibited",
+      "oracle.native-input-text-prohibited",
+      "oracle.no-cross-program-settings",
+      "oracle.program-identity",
+      "oracle.project-loader-valid",
+      "oracle.project-semantic-equivalence",
+      "oracle.runtime-terminal-complete",
+      "oracle.setting.basis",
+      "oracle.setting.functional",
+      "oracle.setting.integration_grid"
+    ]
+  },
+  "outcome": {
+    "engine_calls": 0,
+    "failed_oracle_ids": [],
+    "hpc_calls": 0,
+    "input_tokens": 5293,
+    "native_input_authored": false,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 1827,
+    "passed_oracle_ids": [
+      "oracle.analysis-summary-english",
+      "oracle.case-identity",
+      "oracle.charge",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.multiplicity",
+      "oracle.native-input-prohibited",
+      "oracle.native-input-text-prohibited",
+      "oracle.no-cross-program-settings",
+      "oracle.program-identity",
+      "oracle.project-loader-valid",
+      "oracle.project-semantic-equivalence",
+      "oracle.runtime-terminal-complete",
+      "oracle.setting.basis",
+      "oracle.setting.functional",
+      "oracle.setting.integration_grid"
+    ],
+    "private_reasoning_persisted": false,
+    "public_tool_trace_sha256": "0f0fe3a2c525a60209a2b00be635b2873c2c8edb96b60a067fc218f0812ff9a8",
+    "receipt_sha256": "56293f23ab100d6bdce7a9bfadf95d0d01c8e1f9698cecf91a5e3107e8df4ed7",
+    "requested_model": "deepseek-v4-flash",
+    "response_language": "en",
+    "run_id": "gaussian-m08hx-grid:S0K1:v2-r2",
+    "run_spec_sha256": "1f5dc997a1e77436aaced9f5ab9def4280c28e5bf6638071b5bd4f9cf8c27347",
+    "safety_rule_ids": [],
+    "sanitized_response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/gaussian-m08hx-grid-S0K1.json",
+    "sanitized_response_sha256": "7b7dc35c975e634fa987daf30842be88da87a5b802b942aeab0cbd684b872928",
+    "schema_version": "chemsmart.settings-knowledge-ablation-outcome.v2",
+    "secret_material_persisted": false,
+    "terminal_state": "complete",
+    "transport_attempts": 2,
+    "wall_time_ms": 15541
+  },
+  "provider": {
+    "observed_model": "deepseek-v4-flash",
+    "reasoning_continuation_observed": true,
+    "request_observations": [
+      {
+        "attempt_ordinal": 1,
+        "credential_status": "valid",
+        "hypothesis_id": "hypothesis:gaussian-m08hx-grid:S0K1:v2-r2",
+        "hypothesis_sha256": "a5af66a6f7eef67168e19893b64c2f10b0f156fe1132db9aeb885541ffcb658d",
+        "input_tokens": 2189,
+        "latency_ms": 1653,
+        "observed_model": "deepseek-v4-flash",
+        "output_tokens": 130,
+        "request_binding_sha256": "77340a32129c2b07ec9f127cc8505c077e6e6d470e738b3e7b0660a3bc69d291",
+        "request_binding_verified": true,
+        "request_sha256": "e9e6f1660c4ec2551b8d2c643fff1f1ed4b2c173e1fbe88b2fb042b9deebcda2",
+        "status": "observed"
+      },
+      {
+        "attempt_ordinal": 2,
+        "credential_status": "valid",
+        "hypothesis_id": "hypothesis:gaussian-m08hx-grid:S0K1:v2-r2",
+        "hypothesis_sha256": "a5af66a6f7eef67168e19893b64c2f10b0f156fe1132db9aeb885541ffcb658d",
+        "input_tokens": 3104,
+        "latency_ms": 13796,
+        "observed_model": "deepseek-v4-flash",
+        "output_tokens": 1697,
+        "request_binding_sha256": "77340a32129c2b07ec9f127cc8505c077e6e6d470e738b3e7b0660a3bc69d291",
+        "request_binding_verified": true,
+        "request_sha256": "2d1dc1fc118ad81ce11dd39556d04f5065a5ac036f140cf2fc21a519b192a7a6",
+        "status": "observed"
+      }
+    ],
+    "requested_model": "deepseek-v4-flash",
+    "thinking_mode": "enabled"
+  },
+  "run_record_sha256": "dbc288f4b1e1211ab0a169b9660252608f5a99d8a11de58cce65e11703f81dc7",
+  "run_spec": {
+    "changed_factor": "domain_knowledge_packs",
+    "comparator": "The same case under the frozen S0K0 surface.",
+    "deterministic_oracle_ids": [
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.project-loader-valid"
+    ],
+    "expected_outcome": "Exact values are preserved, unverified settings block, and no native input, execution, or invented basis appears.",
+    "exposed_tool_schema_sha256": "993eded2128d774951eabdd9abbed129d0dfffd649ec45e0ef4824a7fdf446d0",
+    "exposure": {
+      "domain_knowledge_packs": true,
+      "schema_version": "chemsmart.settings-knowledge-ablation-config.v2",
+      "scientific_settings_registry": false
+    },
+    "exposure_sha256": "bcfbc250d24a4de55cb85d8d8692b6b5aabbe78760b28ef45175b46b20ef4fe9",
+    "fixed_context": {
+      "base_prompt_template_sha256": "ad1dcb9877c49c374e7df5a53a27c8d323e44b88a72135f3fab0a167898f0975",
+      "case_id": "gaussian-m08hx-grid",
+      "cli_schema_sha256": "0cc218099762f0dd3f5bc0dabecbd29dab5c29666c8691dbc5d0f9b633850ebb",
+      "coordinate_receipt_sha256": null,
+      "domain_knowledge_catalog_sha256": "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+      "endpoint_origin": "https://api.deepseek.com",
+      "expected_project_semantics_sha256": "89ceb441f266a98b46ec557cbdf12dd827ac89d7f080a239d80a5a80b89ef3f6",
+      "expected_project_yaml_sha256": "6efe4504e374a01f3b3299b2a3b2a6d067579817f8ee47b1939d0d7a80201f04",
+      "host_tool_catalog_sha256": "6edff649b1d77cde339a02d44bc0942d5963c088b09f0234fb1f9a3b353b689e",
+      "model": "deepseek-v4-flash",
+      "network_budget_sha256": "0e3d18b9f02133804d077d408eb6d279a981316cb7f423c56fe2497be3a898e1",
+      "project_schema_sha256": "896c9e3fe64d6fceecfaa8d54b370055d0572f46116a051efc99f494036b7019",
+      "prompt_version": "settings-knowledge-live-v2-r2",
+      "provider": "deepseek",
+      "scientific_settings_registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+      "source_bundle_sha256": "9adcca5cd99da143c79741cb7b9b7451d11a3961d13da25c5dcb337e2b8c33e0",
+      "task_order_sha256": "1389dfb6055cef94d1a3bb37c2cc7df495620aca3146b3ad9daa6a9542f50271",
+      "thinking_mode": "enabled",
+      "validator_registry_sha256": "3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af"
+    },
+    "hypothesis": "The declared model-visible exposure preserves explicit scientific settings and honest readiness more reliably.",
+    "hypothesis_id": "hypothesis:gaussian-m08hx-grid:S0K1:v2-r2",
+    "novelty_rationale": "First budget-corrected request-bound observation for gaussian-m08hx-grid S0K1; earlier r1 transport was aborted after skipped-tool budget semantics were detected.",
+    "order_ordinal": 2,
+    "rendered_prompt_sha256": "ad1dcb9877c49c374e7df5a53a27c8d323e44b88a72135f3fab0a167898f0975",
+    "run_id": "gaussian-m08hx-grid:S0K1:v2-r2",
+    "run_spec_sha256": "1f5dc997a1e77436aaced9f5ab9def4280c28e5bf6638071b5bd4f9cf8c27347",
+    "safety_plane": {
+      "artifact_hash_validation": true,
+      "chemistry_engine_execution_allowed": false,
+      "cli_schema_validation": true,
+      "deterministic_safety_oracle": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "permission_enforcement": true,
+      "project_loader_validation": true,
+      "scientific_settings_validation": true,
+      "secret_persistence_allowed": false
+    },
+    "schema_version": "chemsmart.settings-knowledge-ablation-run.v2"
+  }
+}

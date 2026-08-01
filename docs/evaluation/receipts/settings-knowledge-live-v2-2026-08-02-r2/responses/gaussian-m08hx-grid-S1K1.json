@@ -1,0 +1,25 @@
+{
+  "arm": "S1K1",
+  "assistant_text": "Both case-bound inspections are complete. Results:\n\n- **method.functional = \"M08-HX\"** → `unknown_unverified` (not observed in loader/renderer, no canonical match)\n- **method.basis = \"pcseg-2\"** → `exact_registered` (canonical literal pcseg-2, BSE pcseg2 capability)\n- **method.integration_grid = \"UltraFine\"** → `unknown_unverified` (not observed)\n\nKnowledge activation selected no packs (Gaussian-relevant packs absent; orca/xtb packs excluded by program mismatch), and there are no critical missing fact IDs.\n\nSince two required settings are `unknown_unverified`, readiness must be `blocked_unverified_setting`, while retaining the reported literals exactly. Submitting the terminal plan now.",
+  "private_reasoning_included": false,
+  "run_id": "gaussian-m08hx-grid:S1K1:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only Gaussian 16.0 plan for a neutral singlet (charge 0, multiplicity 1) frequency calculation in the general domain, preserving every explicitly reported setting verbatim: functional M08-HX, basis pcseg-2, and UltraFine integration grid. Registry resolution via inspect_case_settings: basis pcseg-2 resolved exact_registered (canonical literal pcseg-2, BSE pcseg2 capability); functional M08-HX resolved unknown_unverified (loader/renderer not observed, no canonical match); integration grid UltraFine resolved unknown_unverified (not observed). Because two required settings are not exact_registered, readiness is blocked_unverified_setting; the reported literals M08-HX and UltraFine are retained unchanged pending host-side registration verification. No dispersion, solvent, or gfn settings were reported and none are added. Knowledge activation selected no packs (no Gaussian-domain packs matched; orca/xtb packs excluded by program mismatch) and reported no critical missing fact IDs. No native input authored, no preview, no execution, no write: this proposal is project-only and unverified.",
+    "basis": "pcseg-2",
+    "case_id": "gaussian-m08hx-grid",
+    "charge": 0,
+    "dispersion": null,
+    "execution_requested": false,
+    "functional": "M08-HX",
+    "gfn_version": null,
+    "integration_grid": "UltraFine",
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "m08hx-pcseg2-ultrafine-freq-project",
+    "readiness": "blocked_unverified_setting",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}

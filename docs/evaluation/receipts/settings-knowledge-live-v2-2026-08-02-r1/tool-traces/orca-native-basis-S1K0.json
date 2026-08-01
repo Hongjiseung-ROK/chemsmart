@@ -1,0 +1,87 @@
+{
+  "run_id": "orca-native-basis:S1K0:v2-r1",
+  "tool_outcomes": [
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "orca",
+        "setting_path": "functional",
+        "value": "B3LYP"
+      },
+      "arguments_sha256": "e21c8e8b846aeda71ff05b94576a5b5325f7f05a93e5c2fbb68a4d31f6b5ad06",
+      "name": "inspect_scientific_setting"
+    },
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "orca",
+        "setting_path": "dispersion",
+        "value": "D3BJ"
+      },
+      "arguments_sha256": "e0e423c54ea0d46104a1c4404c1c531dae3b64cee2dec943ab5d34e1b8df3b08",
+      "name": "inspect_scientific_setting"
+    },
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "orca",
+        "setting_path": "basis",
+        "value": "ma-def2-TZVP"
+      },
+      "arguments_sha256": "2de4dac109ed596d857c653d2993acfb88290be9941ec8e98beb3ae683285983",
+      "name": "inspect_scientific_setting"
+    },
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "orca",
+        "setting_path": "charge",
+        "value": "0"
+      },
+      "arguments_sha256": "eec46dcfda57fc830b7c402094c7cb318c319ac37e52a77b82909328b145ab1e",
+      "name": "inspect_scientific_setting"
+    },
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "orca",
+        "setting_path": "multiplicity",
+        "value": "1"
+      },
+      "arguments_sha256": "5d0730a7c389dc214ff2d42687645c6d207b6d75678f4ef591140809fbeb0e29",
+      "name": "inspect_scientific_setting"
+    }
+  ]
+}

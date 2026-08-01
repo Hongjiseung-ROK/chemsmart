@@ -1,0 +1,25 @@
+{
+  "arm": "S1K0",
+  "assistant_text": "The host-bound inspection resolved all three explicitly reported method settings. Let me record the plan.\n\n- **functional** B3LYP → `exact_registered` (canonical literal preserved)\n- **basis** ma-def2-TZVP → `exact_registered` (canonical literal preserved)\n- **dispersion** D3BJ → `exact_registered` (canonical literal preserved)\n\nNo candidate-only or unknown-unverified settings, and no basis-applicability restriction (ORCA program). With every required setting exact-registered, readiness is `project_candidate`.",
+  "private_reasoning_included": false,
+  "run_id": "orca-native-basis:S1K0:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only ORCA frequency plan (engine 6.1, general domain) preserving the explicitly reported B3LYP-D3BJ/ma-def2-TZVP method for a neutral singlet. All three reported settings were inspected via the host-bound case settings tool and resolved as exact_registered, with literals preserved exactly: functional B3LYP (orca.functional.b3lyp), basis ma-def2-TZVP (orca.basis.ma-def2-tzvp), dispersion D3BJ (orca.dispersion.d3bj). No integration grid, solvent, or xTB-specific settings were reported, so none were invented. Charge 0 and multiplicity 1 reflect the neutral singlet default; no other charge or spin was specified. Readiness is project_candidate because every required setting is exact_registered; this does not imply preview, execution, or scientific validation (evidence ceiling is loader/renderer verification only, engine not executed, combination not verified). Plan is read-only: no coordinates, native ORCA input, commands, or execution were authored or requested.",
+    "basis": "ma-def2-TZVP",
+    "case_id": "orca-native-basis",
+    "charge": 0,
+    "dispersion": "D3BJ",
+    "execution_requested": false,
+    "functional": "B3LYP",
+    "gfn_version": null,
+    "integration_grid": null,
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "b3lyp-d3bj-ma-def2-tzvp-freq",
+    "readiness": "project_candidate",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}

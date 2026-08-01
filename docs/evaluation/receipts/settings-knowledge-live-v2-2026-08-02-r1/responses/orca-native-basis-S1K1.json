@@ -1,0 +1,7 @@
+{
+  "arm": "S1K1",
+  "assistant_text": "I'll inspect the explicitly reported method components against the ORCA registry using read-only tools.",
+  "private_reasoning_included": false,
+  "run_id": "orca-native-basis:S1K1:v2-r1",
+  "typed_proposal": null
+}

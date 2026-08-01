@@ -1,0 +1,270 @@
+{
+  "audit_time_utc": "2026-08-01T19:15:06Z",
+  "campaigns": [
+    {
+      "campaign_id": "settings-knowledge-live-v2-2026-08-02",
+      "classification": "aborted_pretransport_harness_integration_defect",
+      "diagnostic_observations": {
+        "assistant_response_files_empty": 12,
+        "authoritative_turn_blocked": 12,
+        "campaign_receipt_outcome_failed": 12,
+        "duplicate_request_observation_records": 24,
+        "model_responses_observed": 0,
+        "provider_model_observed": false,
+        "provider_stop_rule": "provider.stop.tool_schema_binding_mismatch",
+        "run_level_pretransport_rejections": 12,
+        "tool_request_files_empty": 12,
+        "transport_attempts": 0,
+        "typed_proposals_observed": 0
+      },
+      "evidence_ceiling": "pretransport_harness_diagnostic_only",
+      "metric_disposition": {
+        "ablation_effect_estimation": "excluded",
+        "arm_success_or_failure_rates": "excluded",
+        "cost_latency_and_token_model_metrics": "excluded",
+        "model_quality_metrics": "excluded",
+        "oracle_passes_zero_interpretation": "not_a_model_score",
+        "quota_or_transport_count": "zero_transport_diagnostic_only",
+        "scientific_performance_metrics": "excluded"
+      },
+      "private_event_logs": {
+        "artifact_count": 12,
+        "artifact_manifest_sha256": "70b74c9bd20704779a067858f0593ad5c041cb45faa47e443c1484b17763db0c",
+        "artifacts": [
+          {
+            "arm": "S0K0",
+            "case_id": "gaussian-m08hx-grid",
+            "event_log_sha256": "0da5e3b96fcf0eefdd0e2600b4ce68518391a8e6eac8a9168106e1e4733599f9",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K1",
+            "case_id": "gaussian-m08hx-grid",
+            "event_log_sha256": "618005472c26ba141ad672019f366c21943319c35390049b4c8852c45f6318ab",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K0",
+            "case_id": "gaussian-m08hx-grid",
+            "event_log_sha256": "c94333957405fb78f239a33d6268485830f5e06489a74bf9273a01d737315a3c",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K1",
+            "case_id": "gaussian-m08hx-grid",
+            "event_log_sha256": "930977ef8dbf455a0f4bd90610557dc7247db628d5954037af45ed6607652b87",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K0",
+            "case_id": "orca-native-basis",
+            "event_log_sha256": "48145583d0aaa0a0806627668e24dbc47952692aac4a5c35a54f5a94032d2697",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K1",
+            "case_id": "orca-native-basis",
+            "event_log_sha256": "97370493fa10de3488848123eb3c2c264b9a6dfec32a55db610056dd71197794",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K0",
+            "case_id": "orca-native-basis",
+            "event_log_sha256": "f3683ce6b25d794aeb0f10b7504e0cd4924a0ed39d8f06c528bac724c9784cd2",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K1",
+            "case_id": "orca-native-basis",
+            "event_log_sha256": "3e28d0b91ad8d6dbc045f02a857a4de56db7d9443639c2428638c10c15419db0",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K0",
+            "case_id": "xtb-gfn2-alpb-water",
+            "event_log_sha256": "a4907294dc7e5c0b4e9f4b2374d960a2c56850119002f893b5504a02f929b482",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K1",
+            "case_id": "xtb-gfn2-alpb-water",
+            "event_log_sha256": "af2c40ca875590591c7b94a06801b19803cd45ac122fc31a60c386ca4183e872",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K0",
+            "case_id": "xtb-gfn2-alpb-water",
+            "event_log_sha256": "bb55738e9c0e39b5780b579edf9a507669766a62a719195f5337014157ea05fc",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K1",
+            "case_id": "xtb-gfn2-alpb-water",
+            "event_log_sha256": "f20fd30a2951354affdd71097fb02692dbbeaa821b61ef0e4df980519aecdf4b",
+            "terminal_kind": "turn_blocked"
+          }
+        ],
+        "bytes": 37016,
+        "campaign_receipt_hash_match": "12_of_12",
+        "copy_hash_match": "12_of_12",
+        "git_ignore_status": "verified_by_git_check_ignore",
+        "locator_class": "repository_ignored_private_evidence",
+        "locator_disclosed": true,
+        "locator_sha256": "d8cd3942927df9cb4e2c466c6ef8e78ff8ea741fcb644f1a8d3e8f7c6fb8f3cd",
+        "promotion_source_locator_sha256": "479597ecf3c9702fe590e35c900970829302abd23985211bba1df100537fcdc3",
+        "retention_status": "verified_promoted_to_ignored_stable_private_store",
+        "stable_locator": "tmp/private-evidence/settings-knowledge-live-v2-2026-08-02/sessions"
+      },
+      "public_artifact_manifest": {
+        "artifact_count": 25,
+        "artifact_manifest_sha256": "0f1b682433fde079595bf388d4403e4377686afa4dbbe2212e9151b3200fbf72",
+        "bytes": 99990,
+        "campaign_receipt_file_sha256": "37f37328c378ca265566bd63e173ea219669b48f5bf46fa1ab0d25a1b7ae908f",
+        "campaign_receipt_payload_sha256": "a3d542f1e0c0577cf18e7abe6965ef85b7447b27435fbf310ace7ddab79a67a7",
+        "included_paths": [
+          "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02/campaign-receipt.json",
+          "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02/responses/*.json",
+          "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02/tool-traces/*.json"
+        ],
+        "raw_artifacts_mutated": false
+      },
+      "receipt_defects": [
+        "requested_model_was_mislabeled_as_observed_model",
+        "each_pretransport_rejection_observation_was_duplicated",
+        "authoritative_turn_blocked_was_projected_as_failed"
+      ],
+      "source_directory": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02"
+    },
+    {
+      "campaign_id": "settings-knowledge-live-v2-2026-08-02-r1",
+      "classification": "partial_invalid_harness_run",
+      "diagnostic_observations": {
+        "assistant_text_nonempty": 6,
+        "campaign_receipt_present": false,
+        "complete_public_case_arm_projections": 8,
+        "private_sessions_observed": 9,
+        "public_response_files": 8,
+        "public_tool_trace_files": 8,
+        "response_bearing_provider_turns_verified": 8,
+        "terminal_turn_blocked_repeat_signature": 8,
+        "tool_outcomes_skipped": 26,
+        "tool_requests_observed": 26,
+        "typed_proposals_extracted_from_unexecuted_requests": 2,
+        "unterminated_private_sessions": 1,
+        "xtb_public_case_arm_projections": 0
+      },
+      "evidence_ceiling": "partial_invalid_harness_diagnostic_only",
+      "metric_disposition": {
+        "ablation_effect_estimation": "excluded",
+        "arm_success_or_failure_rates": "excluded",
+        "cost_latency_and_token_model_metrics": "excluded_pending_complete_public_campaign_receipt",
+        "model_response_content": "qualitative_invalid_pipeline_diagnostic_only",
+        "scientific_performance_metrics": "excluded",
+        "typed_proposal_scoring": "excluded_because_submit_or_inspection_tools_did_not_execute"
+      },
+      "private_event_logs": {
+        "artifact_count": 9,
+        "artifact_manifest_sha256": "4b777922913f011a49b2ff76de95a20bbc6e7cd552068d013fce9b95a87625c3",
+        "artifacts": [
+          {
+            "arm": "S0K0",
+            "case_id": "gaussian-m08hx-grid",
+            "event_log_sha256": "52d58c4a68db189d3143f5ca81f8b22a417da503aabd20339ebf1054859cb449",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K1",
+            "case_id": "gaussian-m08hx-grid",
+            "event_log_sha256": "08f5877ed9ec0dd6f1a7f40e2e8bcf432471adaf8ad649f696bde64f8b3ba0d1",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K0",
+            "case_id": "gaussian-m08hx-grid",
+            "event_log_sha256": "9d215ca861277d49fb2bdc7cc9c98d7ea762958223dfa514e0c5a03d34fe923f",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K1",
+            "case_id": "gaussian-m08hx-grid",
+            "event_log_sha256": "cdd01e1a8e0c7e536a2ab99daff4660881765dd394c51a874b38f9d5f37247e7",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K0",
+            "case_id": "orca-native-basis",
+            "event_log_sha256": "b63adda6129028f05dd377981647d680044b90ce429ece3847eca9bb0106e4c3",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K1",
+            "case_id": "orca-native-basis",
+            "event_log_sha256": "cca6278873b91d2650265255110c95568d531b73bcff8451ec726ddec9e41c87",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K0",
+            "case_id": "orca-native-basis",
+            "event_log_sha256": "2c5fddada1b7bb993e1f99ba5d76f5fca8b74e161341e8c88b247eae82cd2cd1",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S1K1",
+            "case_id": "orca-native-basis",
+            "event_log_sha256": "0e3b187cd2958429f5d8e3fca95ee80fc0e3918f314f5ae2388bbf1fb2e1627b",
+            "terminal_kind": "turn_blocked"
+          },
+          {
+            "arm": "S0K1",
+            "case_id": "xtb-gfn2-alpb-water",
+            "event_log_sha256": "75ed5c3f2da447879d40ef68314ba27d791296f3348260ba7811996828f91366",
+            "terminal_kind": null
+          }
+        ],
+        "bytes": 27267,
+        "copy_hash_match": "9_of_9",
+        "git_ignore_status": "verified_by_git_check_ignore",
+        "locator_class": "repository_ignored_private_evidence",
+        "locator_disclosed": true,
+        "locator_sha256": "289d21e1add71f6f2b6ed9249d69c230852e536211a9cff1f975fd4040d81e2a",
+        "promotion_source_locator_sha256": "9ea3ac62967666cf61b6f2cc320beae9294fdd903579fc8ec4634c2ad7eb60aa",
+        "retention_status": "verified_promoted_to_ignored_stable_private_store",
+        "stable_locator": "tmp/private-evidence/settings-knowledge-live-v2-2026-08-02-r1/runtime"
+      },
+      "public_artifact_manifest": {
+        "artifact_count": 16,
+        "artifact_manifest_sha256": "a030571e7dd8a6317c6fa1d65f26e717e5cc9649eb12296de7312d6f405ba797",
+        "bytes": 21586,
+        "campaign_receipt_present": false,
+        "included_paths": [
+          "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r1/responses/*.json",
+          "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r1/tool-traces/*.json"
+        ],
+        "raw_artifacts_mutated": false
+      },
+      "run_defects": [
+        "all_26_public_tool_outcomes_were_skipped",
+        "all_8_terminal_public_sessions_blocked_on_repeat_signature",
+        "campaign_aborted_during_xtb_S0K1_before_a_terminal_or_public_projection",
+        "campaign_receipt_and_complete_three_case_four_arm_block_are_absent",
+        "the_exact_process_level_abort_exception_is_not_preserved_in_the_audited_artifacts"
+      ],
+      "source_directory": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r1"
+    }
+  ],
+  "global_exclusion_rules": [
+    "Neither campaign may contribute to S_x_K main_effect interaction_effect or noninferiority estimates.",
+    "Neither campaign may contribute a scientific success failure false_ready or readiness denominator.",
+    "Empty original response and trace projections are sentinel artifacts not model outputs.",
+    "R1 model text may be inspected only as qualitative behavior from an invalid harness path.",
+    "R1 typed proposals are not executed tool outcomes and may not be scored as validated proposals.",
+    "A successor campaign must use a distinct output directory and immutable retry lineage; neither source directory may be overwritten.",
+    "M2D remains incomplete until a fully receipt-bound three_case four_arm campaign passes deterministic replay and rerender checks."
+  ],
+  "manifest_digest_method": "sha256(canonical_json(sorted artifact records containing relative path, sha256, and byte count)); event manifests additionally contain case, arm, session, event count, and terminal fields",
+  "raw_artifacts_mutated": false,
+  "reconciliation_digest_method": "sha256(canonical_json(document excluding reconciliation_sha256))",
+  "reconciliation_id": "settings-knowledge-live-v2-2026-08-02-original-r1-diagnostic-reconciliation",
+  "reconciliation_sha256": "dd1ff56eaa139b6cbe37963618b05b396ef2bb62b3f50c6566387179f3425197",
+  "schema_version": "chemsmart.settings-knowledge-diagnostic-reconciliation.v1"
+}

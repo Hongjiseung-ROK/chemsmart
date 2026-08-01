@@ -1,0 +1,25 @@
+{
+  "arm": "S0K0",
+  "assistant_text": "",
+  "private_reasoning_included": false,
+  "run_id": "orca-native-basis:S0K0:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only ORCA 6.1 plan for a frequency task on a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP. No coordinates, native input, commands, or execution are included. No case-bound read-only inspection tools were available in this session's toolset, so the host could not verify the registry status of the required settings (B3LYP, D3BJ, ma-def2-TZVP for ORCA 6.1); readiness is therefore blocked_missing_evidence pending registry verification. All explicit settings were retained as reported without substitution.",
+    "basis": "ma-def2-TZVP",
+    "case_id": "orca-native-basis",
+    "charge": 0,
+    "dispersion": "D3BJ",
+    "execution_requested": false,
+    "functional": "B3LYP",
+    "gfn_version": null,
+    "integration_grid": null,
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "b3lyp-d3bj-ma-def2tzvp-frequency",
+    "readiness": "blocked_missing_evidence",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}

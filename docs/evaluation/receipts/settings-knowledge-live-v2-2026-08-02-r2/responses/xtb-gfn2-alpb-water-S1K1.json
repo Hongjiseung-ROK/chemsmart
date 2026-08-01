@@ -1,0 +1,25 @@
+{
+  "arm": "S1K1",
+  "assistant_text": "Both inspection tools returned. Summary of evidence:\n\n- **`inspect_case_settings`**: `method.gfn_version` = `gfn2` resolves **exact_registered** (matched by canonical literal). `method.solvent_model` = `alpb` and `method.solvent_id` = `water` are both **unknown_unverified** (loader not observed, no registry match). `method.basis` is **not_applicable** for xTB (rule `scientific_settings.xtb_basis_not_applicable`, zero inventory). No execution/preview/write capability.\n- **`inspect_case_knowledge`**: selected pack `xtb-explicit-method-semantics` (rule `knowledge.xtb.explicit_gfn_and_basis_semantics`, critical) — preserve the explicit GFN version, never invent an orbital basis, and keep the solvent settings paired. No critical missing facts.\n\nPer instructions, every explicit setting is retained literally (gfn2 / alpb / water), but because required solvent settings are unknown_unverified, readiness must be **blocked_unverified_setting**. Basis stays null (not applicable for xTB). Charge 0, multiplicity 1 for the neutral singlet. Submitting the terminal plan now.",
+  "private_reasoning_included": false,
+  "run_id": "xtb-gfn2-alpb-water:S1K1:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only xTB 6.7.1 geometry-optimization plan preserving every explicitly reported setting verbatim. Method GFN version gfn2 is exact_registered in the registry. The ALPB implicit solvent model (method.solvent_model = alpb) and its solvent water (method.solvent_id = water) are retained exactly as reported, but both are unknown_unverified (loader not observed, no canonical registry match), so readiness is blocked_unverified_setting. No orbital basis is specified or invented: basis selection is not applicable for xTB (registry rule scientific_settings.xtb_basis_not_applicable). Functional, dispersion, and integration grid are not applicable for xTB and are left unset. System is a neutral singlet (charge 0, multiplicity 1). Evidence ceiling is loader/renderer verification only: nothing was previewed, executed, or scientifically validated, and the domain-knowledge pack xtb-explicit-method-semantics prohibits GFN version substitution, invented xTB orbital bases, and unpaired solvent settings. No coordinates, native input, or commands were authored.",
+    "basis": null,
+    "case_id": "xtb-gfn2-alpb-water",
+    "charge": 0,
+    "dispersion": null,
+    "execution_requested": false,
+    "functional": null,
+    "gfn_version": "gfn2",
+    "integration_grid": null,
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-gfn2-alpb-water",
+    "readiness": "blocked_unverified_setting",
+    "solvent_id": "water",
+    "solvent_model": "alpb"
+  }
+}

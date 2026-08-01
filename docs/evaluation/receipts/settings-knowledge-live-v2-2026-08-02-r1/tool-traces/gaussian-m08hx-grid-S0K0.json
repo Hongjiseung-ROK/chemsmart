@@ -1,0 +1,32 @@
+{
+  "run_id": "gaussian-m08hx-grid:S0K0:v2-r1",
+  "tool_outcomes": [
+    {
+      "name": "submit_settings_plan",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "analysis_summary": "Project-only Gaussian plan for a neutral singlet (charge 0, multiplicity 1) frequency calculation preserving the explicitly reported method exactly: functional M08-HX, basis pcseg-2, integration grid UltraFine. All reported literals are retained verbatim; no settings were substituted or added (dispersion, solvent, and GFN fields do not apply and are left null). No read-only inspection tool was available in this session, so the registry registration status of M08-HX, pcseg-2, and UltraFine could not be verified; settings are therefore treated as unknown_unverified, and readiness is blocked_unverified_setting pending host verification. This plan is not previewed, executed, or scientifically validated; no coordinates, native input, or shell commands were created.",
+        "basis": "pcseg-2",
+        "case_id": "gaussian-m08hx-pcseg2-ultrafine-freq-singlet",
+        "charge": 0,
+        "execution_requested": false,
+        "functional": "M08-HX",
+        "integration_grid": "UltraFine",
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "gaussian",
+        "project_name": "M08-HX/pcseg-2 UltraFine frequency (neutral singlet)",
+        "readiness": "blocked_unverified_setting"
+      },
+      "arguments_sha256": "db791e9845ffe1dfca13ba171407e7134b0a9ba971bf7a6d5bf3ef06ccb8f70d",
+      "name": "submit_settings_plan"
+    }
+  ]
+}

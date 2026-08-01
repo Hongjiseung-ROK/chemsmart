@@ -1,0 +1,309 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: execution,project_yaml,synthesis; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T190254Z-7cdd862d\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nControlled project-settings experiment. Read-only tools only; no native input, command, execution, or private reasoning as evidence.",
+      "role": "system"
+    },
+    {
+      "content": "You are the project-settings planner in a controlled ChemSmart development experiment.\n\nCase ID: gaussian-m08hx-grid\nProgram: gaussian\nEngine version: 16.0\nTask kind: frequency\nScientific domain: general\n\nPrepare a project-only Gaussian plan preserving the explicitly reported M08-HX/pcseg-2 method and UltraFine integration grid for a neutral singlet frequency calculation. Do not substitute settings, create coordinates or native input, compile commands, or execute anything.\n\nUse any read-only inspection tools that are available. Call each available case-bound inspection tool exactly once; they take no arguments because the host has already bound identity and scope. Preserve every explicit setting exactly; never substitute a familiar value. The host, not you, decides whether a setting is registered. If an inspection result is candidate_only or unknown_unverified, retain the reported literal but set readiness to blocked_unverified_setting. If every required setting is exact_registered, use project_candidate; this still does not mean previewed, executed, or scientifically validated. For xTB, do not invent an orbital basis. Finish by calling submit_settings_plan exactly once with the Case ID above. Write analysis_summary in English and do not include native engine input or shell commands.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{}",
+            "name": "inspect_case_settings"
+          },
+          "id": "call_00_Tn3arfr39ZWcHFmWnC8e0166",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{}",
+            "name": "inspect_case_knowledge"
+          },
+          "id": "call_01_RqrBTm6CtRt3doFGMZyC6233",
+          "index": 1,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"basis_applicability\": null, \"can_execute\": false, \"can_preview\": false, \"can_write\": false, \"case_id\": \"gaussian-m08hx-grid\", \"engine_version\": \"16.0\", \"program\": \"gaussian\", \"resolutions\": [{\"candidate_values\": [], \"canonical_value\": null, \"capability_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"freq\", \"loader_observation\": \"not_observed\", \"loader_renderer_eligible\": false, \"matched_by\": \"none\", \"normalized_requested_value\": \"m08hx\", \"program\": \"gaussian\", \"reason_rule_id\": \"scientific_settings.unknown_unverified\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"not_observed\", \"requested_value\": \"M08-HX\", \"resolution_sha256\": \"becd8952e82d05c4eda7c4e2ab996eb0c0f05f1d6282cf6e9e4aa897a7d5c722\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.functional\", \"status\": \"unknown_unverified\"}, {\"candidate_values\": [], \"canonical_value\": \"pcseg-2\", \"capability_id\": \"gaussian.basis.bse.pcseg2\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"freq\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"pcseg2\", \"program\": \"gaussian\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"pcseg-2\", \"resolution_sha256\": \"490209264410bbc53730e293b6e66f30c8267ecaa7d954b1ac5b5f8e76fc4108\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.basis\", \"status\": \"exact_registered\"}, {\"candidate_values\": [], \"canonical_value\": null, \"capability_id\": null, \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"freq\", \"loader_observation\": \"not_observed\", \"loader_renderer_eligible\": false, \"matched_by\": \"none\", \"normalized_requested_value\": \"ultrafine\", \"program\": \"gaussian\", \"reason_rule_id\": \"scientific_settings.unknown_unverified\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"not_observed\", \"requested_value\": \"UltraFine\", \"resolution_sha256\": \"cda73c4ca500f62ace425d94b3c852f9bde6eef2d7da647826f8de05e4117938\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.integration_grid\", \"status\": \"unknown_unverified\"}], \"task_kind\": \"frequency\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_Tn3arfr39ZWcHFmWnC8e0166"
+    },
+    {
+      "content": "{\"activation_receipt\": {\"can_approve\": false, \"can_author_native_input\": false, \"can_execute\": false, \"can_fill_missing_paper_facts\": false, \"can_repair\": false, \"catalog_id\": \"chemsmart-domain-knowledge-k1-v1\", \"catalog_sha256\": \"eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4\", \"considered_packs\": [{\"exclusion_rule_ids\": [\"knowledge.catalog.exclude.program_mismatch\"], \"matched_negative_trigger_ids\": [], \"matched_positive_trigger_ids\": [], \"pack_id\": \"orca-explicit-native-basis-preservation\", \"pack_sha256\": \"60224472d99ba9f48b83128d1a94eab691aa35ce239cc227c7188983d16e7ef5\", \"selected\": false, \"version\": \"1.0.0\"}, {\"exclusion_rule_ids\": [\"knowledge.catalog.exclude.program_mismatch\"], \"matched_negative_trigger_ids\": [], \"matched_positive_trigger_ids\": [], \"pack_id\": \"xtb-explicit-method-semantics\", \"pack_sha256\": \"196828716a38041cd4989cd98cfc7523236852b16f2585c826b89e6a8ef1b1c3\", \"selected\": false, \"version\": \"1.0.0\"}], \"context_sha256\": \"081be683124876ed8450d984bbfc5402409aed287d62afe40e703a112ac7dd5d\", \"critical_missing_fact_ids\": [], \"domain\": \"general\", \"engine_version\": \"16.0\", \"exclusion_rule_ids\": [\"knowledge.catalog.exclude.program_mismatch\"], \"input_sha256\": \"e1f0454a28da2e805ea9a34f0a12a9468903b6eaf9d452764b8589308fb73b36\", \"model_visible_exposure\": false, \"model_visible_exposure_requested\": true, \"model_visible_pack_ids\": [], \"program\": \"gaussian\", \"read_only\": true, \"receipt_sha256\": \"da7cc17e06984389837c63f07f5a8c365925c82123c27a7b2c850bf2051367ec\", \"request_id\": \"ablation:gaussian:frequency:e1f0454a28da\", \"request_sha256\": \"322cbcfca5c399a0a64c588c65a231d077bc84a9e284962d448828377a74a331\", \"schema_version\": \"chemsmart.knowledge-pack-activation-receipt.v1\", \"scientific_source_ledger_sha256\": \"23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598\", \"selected_packs\": [], \"selection_status\": \"no_match\", \"source_audit_manifest_sha256\": \"7140412ae9e4c65b9d99ae5a05b9d0e3e39fa7b03be53f818e6f4377127d6af9\", \"task_kind\": \"frequency\"}, \"packs\": []}",
+      "role": "tool",
+      "tool_call_id": "call_01_RqrBTm6CtRt3doFGMZyC6233"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Both case-bound inspections are complete. Results:\n\n- **method.functional = \"M08-HX\"** → `unknown_unverified` (not observed in loader/renderer, no canonical match)\n- **method.basis = \"pcseg-2\"** → `exact_registered` (canonical literal pcseg-2, BSE pcseg2 capability)\n- **method.integration_grid = \"UltraFine\"** → `unknown_unverified` (not observed)\n\nKnowledge activation selected no packs (Gaussian-relevant packs absent; orca/xtb packs excluded by program mismatch), and there are no critical missing fact IDs.\n\nSince two required settings are `unknown_unverified`, readiness must be `blocked_unverified_setting`, while retaining the reported literals exactly. Submitting the terminal plan now.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"case_id\": \"gaussian-m08hx-grid\", \"program\": \"gaussian\", \"project_name\": \"m08hx-pcseg2-ultrafine-freq-project\", \"readiness\": \"blocked_unverified_setting\", \"analysis_summary\": \"Project-only Gaussian 16.0 plan for a neutral singlet (charge 0, multiplicity 1) frequency calculation in the general domain, preserving every explicitly reported setting verbatim: functional M08-HX, basis pcseg-2, and UltraFine integration grid. Registry resolution via inspect_case_settings: basis pcseg-2 resolved exact_registered (canonical literal pcseg-2, BSE pcseg2 capability); functional M08-HX resolved unknown_unverified (loader/renderer not observed, no canonical match); integration grid UltraFine resolved unknown_unverified (not observed). Because two required settings are not exact_registered, readiness is blocked_unverified_setting; the reported literals M08-HX and UltraFine are retained unchanged pending host-side registration verification. No dispersion, solvent, or gfn settings were reported and none are added. Knowledge activation selected no packs (no Gaussian-domain packs matched; orca/xtb packs excluded by program mismatch) and reported no critical missing fact IDs. No native input authored, no preview, no execution, no write: this proposal is project-only and unverified.\", \"functional\": \"M08-HX\", \"basis\": \"pcseg-2\", \"dispersion\": null, \"integration_grid\": \"UltraFine\", \"gfn_version\": null, \"solvent_model\": null, \"solvent_id\": null, \"charge\": 0, \"multiplicity\": 1, \"missing_fact_ids\": [], \"native_input_authored\": false, \"execution_requested\": false}",
+            "name": "submit_settings_plan"
+          },
+          "id": "call_00_JZX38qzxyITOLrDpNfjy1633",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"analysis_summary\": \"Project-only Gaussian 16.0 plan for a neutral singlet (charge 0, multiplicity 1) frequency calculation in the general domain, preserving every explicitly reported setting verbatim: functional M08-HX, basis pcseg-2, and UltraFine integration grid. Registry resolution via inspect_case_settings: basis pcseg-2 resolved exact_registered (canonical literal pcseg-2, BSE pcseg2 capability); functional M08-HX resolved unknown_unverified (loader/renderer not observed, no canonical match); integration grid UltraFine resolved unknown_unverified (not observed). Because two required settings are not exact_registered, readiness is blocked_unverified_setting; the reported literals M08-HX and UltraFine are retained unchanged pending host-side registration verification. No dispersion, solvent, or gfn settings were reported and none are added. Knowledge activation selected no packs (no Gaussian-domain packs matched; orca/xtb packs excluded by program mismatch) and reported no critical missing fact IDs. No native input authored, no preview, no execution, no write: this proposal is project-only and unverified.\", \"basis\": \"pcseg-2\", \"case_id\": \"gaussian-m08hx-grid\", \"charge\": 0, \"dispersion\": null, \"execution_requested\": false, \"functional\": \"M08-HX\", \"gfn_version\": null, \"integration_grid\": \"UltraFine\", \"missing_fact_ids\": [], \"multiplicity\": 1, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"m08hx-pcseg2-ultrafine-freq-project\", \"readiness\": \"blocked_unverified_setting\", \"solvent_id\": null, \"solvent_model\": null}",
+      "role": "tool",
+      "tool_call_id": "call_00_JZX38qzxyITOLrDpNfjy1633"
+    }
+  ],
+  "run_id": "gaussian-m08hx-grid:S1K1:v2-r2",
+  "tool_outcomes": [
+    {
+      "name": "inspect_case_settings",
+      "provider_call_id": "call_00_Tn3arfr39ZWcHFmWnC8e0166",
+      "request_id": "openai:call_00_Tn3arfr39ZWcHFmWnC8e0166",
+      "result": {
+        "basis_applicability": null,
+        "can_execute": false,
+        "can_preview": false,
+        "can_write": false,
+        "case_id": "gaussian-m08hx-grid",
+        "engine_version": "16.0",
+        "program": "gaussian",
+        "resolutions": [
+          {
+            "candidate_values": [],
+            "canonical_value": null,
+            "capability_id": null,
+            "evidence_ceiling": {
+              "engine_executed": false,
+              "maximum_claim": "loader_renderer_verification_only",
+              "safe_preview_executed": false,
+              "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+              "scientific_adequacy_verified": false,
+              "setting_combination_verified": false
+            },
+            "job_kind": "freq",
+            "loader_observation": "not_observed",
+            "loader_renderer_eligible": false,
+            "matched_by": "none",
+            "normalized_requested_value": "m08hx",
+            "program": "gaussian",
+            "reason_rule_id": "scientific_settings.unknown_unverified",
+            "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+            "renderer_observation": "not_observed",
+            "requested_value": "M08-HX",
+            "resolution_sha256": "becd8952e82d05c4eda7c4e2ab996eb0c0f05f1d6282cf6e9e4aa897a7d5c722",
+            "schema_version": "chemsmart.scientific-setting-resolution.v1",
+            "setting_path": "method.functional",
+            "status": "unknown_unverified"
+          },
+          {
+            "candidate_values": [],
+            "canonical_value": "pcseg-2",
+            "capability_id": "gaussian.basis.bse.pcseg2",
+            "evidence_ceiling": {
+              "engine_executed": false,
+              "maximum_claim": "loader_renderer_verification_only",
+              "safe_preview_executed": false,
+              "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+              "scientific_adequacy_verified": false,
+              "setting_combination_verified": false
+            },
+            "job_kind": "freq",
+            "loader_observation": "accepted",
+            "loader_renderer_eligible": true,
+            "matched_by": "canonical_literal",
+            "normalized_requested_value": "pcseg2",
+            "program": "gaussian",
+            "reason_rule_id": "scientific_settings.exact_registered",
+            "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+            "renderer_observation": "preserved",
+            "requested_value": "pcseg-2",
+            "resolution_sha256": "490209264410bbc53730e293b6e66f30c8267ecaa7d954b1ac5b5f8e76fc4108",
+            "schema_version": "chemsmart.scientific-setting-resolution.v1",
+            "setting_path": "method.basis",
+            "status": "exact_registered"
+          },
+          {
+            "candidate_values": [],
+            "canonical_value": null,
+            "capability_id": null,
+            "evidence_ceiling": {
+              "engine_executed": false,
+              "maximum_claim": "loader_renderer_verification_only",
+              "safe_preview_executed": false,
+              "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+              "scientific_adequacy_verified": false,
+              "setting_combination_verified": false
+            },
+            "job_kind": "freq",
+            "loader_observation": "not_observed",
+            "loader_renderer_eligible": false,
+            "matched_by": "none",
+            "normalized_requested_value": "ultrafine",
+            "program": "gaussian",
+            "reason_rule_id": "scientific_settings.unknown_unverified",
+            "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+            "renderer_observation": "not_observed",
+            "requested_value": "UltraFine",
+            "resolution_sha256": "cda73c4ca500f62ace425d94b3c852f9bde6eef2d7da647826f8de05e4117938",
+            "schema_version": "chemsmart.scientific-setting-resolution.v1",
+            "setting_path": "method.integration_grid",
+            "status": "unknown_unverified"
+          }
+        ],
+        "task_kind": "frequency"
+      },
+      "result_sha256": "74e686be1e39f50e1ca7bb5ba8a78c7407bbbe0279be248e3188c089d964910b",
+      "status": "ok"
+    },
+    {
+      "name": "inspect_case_knowledge",
+      "provider_call_id": "call_01_RqrBTm6CtRt3doFGMZyC6233",
+      "request_id": "openai:call_01_RqrBTm6CtRt3doFGMZyC6233",
+      "result": {
+        "activation_receipt": {
+          "can_approve": false,
+          "can_author_native_input": false,
+          "can_execute": false,
+          "can_fill_missing_paper_facts": false,
+          "can_repair": false,
+          "catalog_id": "chemsmart-domain-knowledge-k1-v1",
+          "catalog_sha256": "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+          "considered_packs": [
+            {
+              "exclusion_rule_ids": [
+                "knowledge.catalog.exclude.program_mismatch"
+              ],
+              "matched_negative_trigger_ids": [],
+              "matched_positive_trigger_ids": [],
+              "pack_id": "orca-explicit-native-basis-preservation",
+              "pack_sha256": "60224472d99ba9f48b83128d1a94eab691aa35ce239cc227c7188983d16e7ef5",
+              "selected": false,
+              "version": "1.0.0"
+            },
+            {
+              "exclusion_rule_ids": [
+                "knowledge.catalog.exclude.program_mismatch"
+              ],
+              "matched_negative_trigger_ids": [],
+              "matched_positive_trigger_ids": [],
+              "pack_id": "xtb-explicit-method-semantics",
+              "pack_sha256": "196828716a38041cd4989cd98cfc7523236852b16f2585c826b89e6a8ef1b1c3",
+              "selected": false,
+              "version": "1.0.0"
+            }
+          ],
+          "context_sha256": "081be683124876ed8450d984bbfc5402409aed287d62afe40e703a112ac7dd5d",
+          "critical_missing_fact_ids": [],
+          "domain": "general",
+          "engine_version": "16.0",
+          "exclusion_rule_ids": [
+            "knowledge.catalog.exclude.program_mismatch"
+          ],
+          "input_sha256": "e1f0454a28da2e805ea9a34f0a12a9468903b6eaf9d452764b8589308fb73b36",
+          "model_visible_exposure": false,
+          "model_visible_exposure_requested": true,
+          "model_visible_pack_ids": [],
+          "program": "gaussian",
+          "read_only": true,
+          "receipt_sha256": "da7cc17e06984389837c63f07f5a8c365925c82123c27a7b2c850bf2051367ec",
+          "request_id": "ablation:gaussian:frequency:e1f0454a28da",
+          "request_sha256": "322cbcfca5c399a0a64c588c65a231d077bc84a9e284962d448828377a74a331",
+          "schema_version": "chemsmart.knowledge-pack-activation-receipt.v1",
+          "scientific_source_ledger_sha256": "23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598",
+          "selected_packs": [],
+          "selection_status": "no_match",
+          "source_audit_manifest_sha256": "7140412ae9e4c65b9d99ae5a05b9d0e3e39fa7b03be53f818e6f4377127d6af9",
+          "task_kind": "frequency"
+        },
+        "packs": []
+      },
+      "result_sha256": "8a9076ae1879105acec90be25bc9bf217bd4f9704f7562c2a421632611f70792",
+      "status": "ok"
+    },
+    {
+      "name": "submit_settings_plan",
+      "provider_call_id": "call_00_JZX38qzxyITOLrDpNfjy1633",
+      "request_id": "openai:call_00_JZX38qzxyITOLrDpNfjy1633",
+      "result": {
+        "analysis_summary": "Project-only Gaussian 16.0 plan for a neutral singlet (charge 0, multiplicity 1) frequency calculation in the general domain, preserving every explicitly reported setting verbatim: functional M08-HX, basis pcseg-2, and UltraFine integration grid. Registry resolution via inspect_case_settings: basis pcseg-2 resolved exact_registered (canonical literal pcseg-2, BSE pcseg2 capability); functional M08-HX resolved unknown_unverified (loader/renderer not observed, no canonical match); integration grid UltraFine resolved unknown_unverified (not observed). Because two required settings are not exact_registered, readiness is blocked_unverified_setting; the reported literals M08-HX and UltraFine are retained unchanged pending host-side registration verification. No dispersion, solvent, or gfn settings were reported and none are added. Knowledge activation selected no packs (no Gaussian-domain packs matched; orca/xtb packs excluded by program mismatch) and reported no critical missing fact IDs. No native input authored, no preview, no execution, no write: this proposal is project-only and unverified.",
+        "basis": "pcseg-2",
+        "case_id": "gaussian-m08hx-grid",
+        "charge": 0,
+        "dispersion": null,
+        "execution_requested": false,
+        "functional": "M08-HX",
+        "gfn_version": null,
+        "integration_grid": "UltraFine",
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "gaussian",
+        "project_name": "m08hx-pcseg2-ultrafine-freq-project",
+        "readiness": "blocked_unverified_setting",
+        "solvent_id": null,
+        "solvent_model": null
+      },
+      "result_sha256": "c63579bb0e52e655e782acd833b136999916d5a73b70c8570d20af8dbd2d901f",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {},
+      "arguments_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "name": "inspect_case_settings",
+      "provider_call_id": "call_00_Tn3arfr39ZWcHFmWnC8e0166",
+      "request_id": "openai:call_00_Tn3arfr39ZWcHFmWnC8e0166"
+    },
+    {
+      "arguments": {},
+      "arguments_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "name": "inspect_case_knowledge",
+      "provider_call_id": "call_01_RqrBTm6CtRt3doFGMZyC6233",
+      "request_id": "openai:call_01_RqrBTm6CtRt3doFGMZyC6233"
+    },
+    {
+      "arguments": {
+        "analysis_summary": "Project-only Gaussian 16.0 plan for a neutral singlet (charge 0, multiplicity 1) frequency calculation in the general domain, preserving every explicitly reported setting verbatim: functional M08-HX, basis pcseg-2, and UltraFine integration grid. Registry resolution via inspect_case_settings: basis pcseg-2 resolved exact_registered (canonical literal pcseg-2, BSE pcseg2 capability); functional M08-HX resolved unknown_unverified (loader/renderer not observed, no canonical match); integration grid UltraFine resolved unknown_unverified (not observed). Because two required settings are not exact_registered, readiness is blocked_unverified_setting; the reported literals M08-HX and UltraFine are retained unchanged pending host-side registration verification. No dispersion, solvent, or gfn settings were reported and none are added. Knowledge activation selected no packs (no Gaussian-domain packs matched; orca/xtb packs excluded by program mismatch) and reported no critical missing fact IDs. No native input authored, no preview, no execution, no write: this proposal is project-only and unverified.",
+        "basis": "pcseg-2",
+        "case_id": "gaussian-m08hx-grid",
+        "charge": 0,
+        "dispersion": null,
+        "execution_requested": false,
+        "functional": "M08-HX",
+        "gfn_version": null,
+        "integration_grid": "UltraFine",
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "gaussian",
+        "project_name": "m08hx-pcseg2-ultrafine-freq-project",
+        "readiness": "blocked_unverified_setting",
+        "solvent_id": null,
+        "solvent_model": null
+      },
+      "arguments_sha256": "c63579bb0e52e655e782acd833b136999916d5a73b70c8570d20af8dbd2d901f",
+      "name": "submit_settings_plan",
+      "provider_call_id": "call_00_JZX38qzxyITOLrDpNfjy1633",
+      "request_id": "openai:call_00_JZX38qzxyITOLrDpNfjy1633"
+    }
+  ]
+}

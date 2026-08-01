@@ -1,0 +1,71 @@
+{
+  "run_id": "gaussian-m08hx-grid:S0K1:v2-r1",
+  "tool_outcomes": [
+    {
+      "name": "inspect_domain_knowledge",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_domain_knowledge",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_domain_knowledge",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_domain_knowledge",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "domain": "functional",
+        "engine_version": "g16",
+        "program": "gaussian",
+        "task_kind": "frequency"
+      },
+      "arguments_sha256": "dc458775d0fdde266ff54924ba510318ccbcb7682eea577335eedbf3bb2679af",
+      "name": "inspect_domain_knowledge"
+    },
+    {
+      "arguments": {
+        "domain": "basis",
+        "engine_version": "g16",
+        "program": "gaussian",
+        "task_kind": "frequency"
+      },
+      "arguments_sha256": "cfd9b61c8ac5d4bafd29f449756a51f807d3c19b6ee7740d9d7c4e5d01962ca5",
+      "name": "inspect_domain_knowledge"
+    },
+    {
+      "arguments": {
+        "domain": "integration_grid",
+        "engine_version": "g16",
+        "program": "gaussian",
+        "task_kind": "frequency"
+      },
+      "arguments_sha256": "7920351ae4dd6434fde5f202ddf9549a36575e6562f918fefa691f82fb94230b",
+      "name": "inspect_domain_knowledge"
+    },
+    {
+      "arguments": {
+        "domain": "settings",
+        "engine_version": "g16",
+        "program": "gaussian",
+        "task_kind": "frequency"
+      },
+      "arguments_sha256": "ca6238a0ee5f8fafe9f9c55b5e0d17b35dc07f7a18ba9cd225c4db7bc6a6b4a2",
+      "name": "inspect_domain_knowledge"
+    }
+  ]
+}

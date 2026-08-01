@@ -1,0 +1,736 @@
+{
+  "campaign_id": "settings-knowledge-live-v2-2026-08-02-r2",
+  "classification": "transported_development_ablation_with_additive_metadata_correction",
+  "corrections": [
+    {
+      "authority": "run_spec.exposure plus the hashed public tool trace",
+      "field": "results[*].exposure_use[*].offered",
+      "reason": "runner used a stale preparation-loop exposure value"
+    },
+    {
+      "authority": "typed proposal plus deterministic registry-derived expected readiness",
+      "field": "summary.by_arm[*].false_ready",
+      "reason": "the raw summary counted every readiness mismatch as false-ready"
+    }
+  ],
+  "interpretation_limits": [
+    "Three development cases do not establish cross-paper generalization or SOTA.",
+    "This campaign prepared project candidates only and executed no chemistry engine.",
+    "Knowledge-pack eligibility differed by program and must be stratified.",
+    "The raw receipt remains the immutable primary observation; this sidecar owns corrected derived metrics only.",
+    "Nine continuation request hashes depend on intentionally ephemeral provider reasoning state and are not exactly reconstructible from public artifacts.",
+    "The uncommitted generation source was not content-addressed at campaign start; current-code reconstruction is supporting evidence, not exact source provenance."
+  ],
+  "private_event_evidence": {
+    "git_ignored_locator": "tmp/private-evidence/settings-knowledge-live-v2-2026-08-02-r2/runtime",
+    "runtime_event_artifacts_indexed": 12,
+    "secret_or_reasoning_content_asserted_public": false
+  },
+  "raw_campaign_receipt": {
+    "embedded_receipt_integrity": true,
+    "embedded_receipt_sha256": "5b372d3d4a340a5a4c64976d5d39df56b960592fe9d4ed4d4ccf7299c02ef79a",
+    "file_sha256": "fd7587f51eecf8430f407b369355cbaa3cc8065d0f0b41ab0d24884ee4afa119",
+    "mutated": false,
+    "path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/campaign-receipt.json"
+  },
+  "receipt_sha256": "90d4491dd5a43cdf447db8822188ea079d83f0fa0172bc4ebeb0713065350c76",
+  "runs": [
+    {
+      "arm": "S0K0",
+      "case_id": "orca-native-basis",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        },
+        "scientific_settings_registry": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        }
+      },
+      "event_integrity": {
+        "event_count": 7,
+        "event_log_sha256": "df2ad8f56e638d3043de5f370f7734220e3c1acffec1e7fb566edcac251bf93f",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ],
+      "input_tokens": 2125,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": false,
+      "outcome_integrity": true,
+      "output_tokens": 3080,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/orca-native-basis-S0K0.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/orca-native-basis-S0K0.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "false_block",
+        "expected": "project_candidate",
+        "observed": "blocked_missing_evidence"
+      },
+      "reasoning_continuation_observed": false,
+      "response_integrity": true,
+      "run_id": "orca-native-basis:S0K0:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 1,
+      "wall_time_ms": 24841
+    },
+    {
+      "arm": "S1K0",
+      "case_id": "orca-native-basis",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        },
+        "scientific_settings_registry": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        }
+      },
+      "event_integrity": {
+        "event_count": 10,
+        "event_log_sha256": "f841cd20422aacfe7e5a338701e18e2bd76da5f1e6c1984f11a32292b733b046",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 5513,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 1351,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/orca-native-basis-S1K0.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/orca-native-basis-S1K0.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "project_candidate",
+        "observed": "project_candidate"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "orca-native-basis:S1K0:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 11205
+    },
+    {
+      "arm": "S0K1",
+      "case_id": "orca-native-basis",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        },
+        "scientific_settings_registry": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        }
+      },
+      "event_integrity": {
+        "event_count": 10,
+        "event_log_sha256": "a42c6081e7fa7ad890737ab7efda7062855f104a9428d11b920d7f35ee749781",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 6070,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 2206,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/orca-native-basis-S0K1.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/orca-native-basis-S0K1.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "project_candidate",
+        "observed": "project_candidate"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "orca-native-basis:S0K1:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 17102
+    },
+    {
+      "arm": "S1K1",
+      "case_id": "orca-native-basis",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        },
+        "scientific_settings_registry": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        }
+      },
+      "event_integrity": {
+        "event_count": 13,
+        "event_log_sha256": "73fbe5901ff48033c476dd99bb4f38d32263eabad6b38dd804a133439a62292c",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 7241,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 1608,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/orca-native-basis-S1K1.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/orca-native-basis-S1K1.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "project_candidate",
+        "observed": "project_candidate"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "orca-native-basis:S1K1:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 12123
+    },
+    {
+      "arm": "S1K0",
+      "case_id": "gaussian-m08hx-grid",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        },
+        "scientific_settings_registry": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        }
+      },
+      "event_integrity": {
+        "event_count": 10,
+        "event_log_sha256": "82114ef0b55a2f4db5f3c2009e1c564e621bc60381f8d26fc2d7080c35f21a04",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 5501,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 768,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/gaussian-m08hx-grid-S1K0.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/gaussian-m08hx-grid-S1K0.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "blocked_unverified_setting",
+        "observed": "blocked_unverified_setting"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "gaussian-m08hx-grid:S1K0:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 6888
+    },
+    {
+      "arm": "S0K1",
+      "case_id": "gaussian-m08hx-grid",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        },
+        "scientific_settings_registry": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        }
+      },
+      "event_integrity": {
+        "event_count": 10,
+        "event_log_sha256": "adfd67e0e4da4dff44a59f76079a7c927622eb28cddf269c76f83bde8c218414",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 5293,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 1827,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/gaussian-m08hx-grid-S0K1.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/gaussian-m08hx-grid-S0K1.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "blocked_unverified_setting",
+        "observed": "blocked_unverified_setting"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "gaussian-m08hx-grid:S0K1:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 15541
+    },
+    {
+      "arm": "S1K1",
+      "case_id": "gaussian-m08hx-grid",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        },
+        "scientific_settings_registry": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        }
+      },
+      "event_integrity": {
+        "event_count": 13,
+        "event_log_sha256": "c29ae06ab3b5a2cd15edbad33aac447b532903a4caf04279a5ec9411ea01a544",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 6449,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 1438,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/gaussian-m08hx-grid-S1K1.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/gaussian-m08hx-grid-S1K1.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "blocked_unverified_setting",
+        "observed": "blocked_unverified_setting"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "gaussian-m08hx-grid:S1K1:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 11731
+    },
+    {
+      "arm": "S0K0",
+      "case_id": "gaussian-m08hx-grid",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        },
+        "scientific_settings_registry": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        }
+      },
+      "event_integrity": {
+        "event_count": 7,
+        "event_log_sha256": "697717324ab4fb3d27511ac3b1c6e0f044d52240ca765987508eb2e1f40ab9b0",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 2130,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 3007,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/gaussian-m08hx-grid-S0K0.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/gaussian-m08hx-grid-S0K0.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "blocked_unverified_setting",
+        "observed": "blocked_unverified_setting"
+      },
+      "reasoning_continuation_observed": false,
+      "response_integrity": true,
+      "run_id": "gaussian-m08hx-grid:S0K0:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 1,
+      "wall_time_ms": 25845
+    },
+    {
+      "arm": "S0K1",
+      "case_id": "xtb-gfn2-alpb-water",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        },
+        "scientific_settings_registry": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        }
+      },
+      "event_integrity": {
+        "event_count": 10,
+        "event_log_sha256": "044a2ad3aef0b18791cb33f10057e1bdc8116f9244977620a75f836da5041fbc",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 2,
+      "failed_oracle_ids": [
+        "oracle.honest-readiness",
+        "oracle.project-loader-valid",
+        "oracle.project-semantic-equivalence",
+        "oracle.setting.gfn_version"
+      ],
+      "input_tokens": 6177,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": false,
+      "outcome_integrity": true,
+      "output_tokens": 2221,
+      "project_loader_passed": false,
+      "project_semantic_equivalence_passed": false,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/xtb-gfn2-alpb-water-S0K1.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/xtb-gfn2-alpb-water-S0K1.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "false_ready",
+        "expected": "blocked_unverified_setting",
+        "observed": "project_candidate"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "xtb-gfn2-alpb-water:S0K1:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 19184
+    },
+    {
+      "arm": "S1K1",
+      "case_id": "xtb-gfn2-alpb-water",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        },
+        "scientific_settings_registry": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        }
+      },
+      "event_integrity": {
+        "event_count": 13,
+        "event_log_sha256": "154966c950c09d3be8bba1ee5515d5ab0a01e49b687765649e92c08440b6b1d6",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 7467,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 1831,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/xtb-gfn2-alpb-water-S1K1.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/xtb-gfn2-alpb-water-S1K1.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "blocked_unverified_setting",
+        "observed": "blocked_unverified_setting"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "xtb-gfn2-alpb-water:S1K1:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 14989
+    },
+    {
+      "arm": "S0K0",
+      "case_id": "xtb-gfn2-alpb-water",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        },
+        "scientific_settings_registry": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        }
+      },
+      "event_integrity": {
+        "event_count": 7,
+        "event_log_sha256": "79c0165c62d4fc762b27bdc22234f6989ce434afe9ab905bc23b60e81954ea28",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 2,
+      "failed_oracle_ids": [
+        "oracle.project-loader-valid",
+        "oracle.project-semantic-equivalence",
+        "oracle.setting.gfn_version"
+      ],
+      "input_tokens": 2132,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": false,
+      "outcome_integrity": true,
+      "output_tokens": 2437,
+      "project_loader_passed": false,
+      "project_semantic_equivalence_passed": false,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/xtb-gfn2-alpb-water-S0K0.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/xtb-gfn2-alpb-water-S0K0.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "blocked_unverified_setting",
+        "observed": "blocked_unverified_setting"
+      },
+      "reasoning_continuation_observed": false,
+      "response_integrity": true,
+      "run_id": "xtb-gfn2-alpb-water:S0K0:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 1,
+      "wall_time_ms": 19032
+    },
+    {
+      "arm": "S1K0",
+      "case_id": "xtb-gfn2-alpb-water",
+      "corrected_exposure_use": {
+        "domain_knowledge_packs": {
+          "offered": false,
+          "requested": 0,
+          "succeeded": 0
+        },
+        "scientific_settings_registry": {
+          "offered": true,
+          "requested": 1,
+          "succeeded": 1
+        }
+      },
+      "event_integrity": {
+        "event_count": 10,
+        "event_log_sha256": "a2a21a78be63be90ceb72be5a8478772308fb9648019c7c8a4571b1d62eff7ed",
+        "hash_chain_replay_verified": true,
+        "matching_private_artifact_count": 1,
+        "terminal_kinds": [
+          "turn_completed"
+        ]
+      },
+      "explicit_setting_fields": 3,
+      "explicit_setting_fields_correct": 3,
+      "failed_oracle_ids": [],
+      "input_tokens": 5627,
+      "observed_model": "deepseek-v4-flash",
+      "oracle_passed": true,
+      "outcome_integrity": true,
+      "output_tokens": 1070,
+      "project_loader_passed": true,
+      "project_semantic_equivalence_passed": true,
+      "public_artifacts": {
+        "response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/xtb-gfn2-alpb-water-S1K0.json",
+        "tool_trace_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/tool-traces/xtb-gfn2-alpb-water-S1K0.json"
+      },
+      "raw_and_regraded_oracle_sets_match": true,
+      "readiness": {
+        "classification": "correct",
+        "expected": "blocked_unverified_setting",
+        "observed": "blocked_unverified_setting"
+      },
+      "reasoning_continuation_observed": true,
+      "response_integrity": true,
+      "run_id": "xtb-gfn2-alpb-water:S1K0:v2-r2",
+      "run_record_integrity": true,
+      "trace_integrity": true,
+      "transport_attempts": 2,
+      "wall_time_ms": 8930
+    }
+  ],
+  "schema_version": "chemsmart.settings-knowledge-campaign-reconciliation.v1",
+  "summary": {
+    "all_event_hash_chains_replay": true,
+    "all_observed_models": [
+      "deepseek-v4-flash"
+    ],
+    "all_public_artifact_and_record_checks_pass": true,
+    "by_arm": {
+      "S0K0": {
+        "false_block": 1,
+        "false_ready": 0,
+        "input_tokens": 6387,
+        "oracle_passes": 1,
+        "output_tokens": 8524,
+        "runs": 3,
+        "transport_attempts": 3,
+        "wall_time_ms": 69718,
+        "wrong_block_state": 0
+      },
+      "S0K1": {
+        "false_block": 0,
+        "false_ready": 1,
+        "input_tokens": 17540,
+        "oracle_passes": 2,
+        "output_tokens": 6254,
+        "runs": 3,
+        "transport_attempts": 6,
+        "wall_time_ms": 51827,
+        "wrong_block_state": 0
+      },
+      "S1K0": {
+        "false_block": 0,
+        "false_ready": 0,
+        "input_tokens": 16641,
+        "oracle_passes": 3,
+        "output_tokens": 3189,
+        "runs": 3,
+        "transport_attempts": 6,
+        "wall_time_ms": 27023,
+        "wrong_block_state": 0
+      },
+      "S1K1": {
+        "false_block": 0,
+        "false_ready": 0,
+        "input_tokens": 21157,
+        "oracle_passes": 3,
+        "output_tokens": 4877,
+        "runs": 3,
+        "transport_attempts": 6,
+        "wall_time_ms": 38843,
+        "wrong_block_state": 0
+      }
+    },
+    "explicit_setting_fields": 36,
+    "explicit_setting_fields_correct": 34,
+    "oracle_passes": 9,
+    "project_loader_passes": 10,
+    "project_semantic_equivalence_passes": 10,
+    "reasoning_continuation_runs": 9,
+    "runs": 12,
+    "transport_attempts": 21
+  }
+}

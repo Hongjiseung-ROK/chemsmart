@@ -1,0 +1,92 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: execution,project_yaml,synthesis; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T190126Z-746e3a1b\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nControlled project-settings experiment. Read-only tools only; no native input, command, execution, or private reasoning as evidence.",
+      "role": "system"
+    },
+    {
+      "content": "You are the project-settings planner in a controlled ChemSmart development experiment.\n\nCase ID: orca-native-basis\nProgram: orca\nEngine version: 6.1\nTask kind: frequency\nScientific domain: general\n\nPrepare a project-only ORCA plan preserving the explicitly reported B3LYP-D3BJ/ma-def2-TZVP method for a neutral singlet frequency calculation. Do not create coordinates, native input, commands, or execute anything.\n\nUse any read-only inspection tools that are available. Call each available case-bound inspection tool exactly once; they take no arguments because the host has already bound identity and scope. Preserve every explicit setting exactly; never substitute a familiar value. The host, not you, decides whether a setting is registered. If an inspection result is candidate_only or unknown_unverified, retain the reported literal but set readiness to blocked_unverified_setting. If every required setting is exact_registered, use project_candidate; this still does not mean previewed, executed, or scientifically validated. For xTB, do not invent an orbital basis. Finish by calling submit_settings_plan exactly once with the Case ID above. Write analysis_summary in English and do not include native engine input or shell commands.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"case_id\": \"orca-native-basis\", \"program\": \"orca\", \"project_name\": \"b3lyp-d3bj-ma-def2tzvp-frequency\", \"readiness\": \"blocked_missing_evidence\", \"analysis_summary\": \"Project-only ORCA 6.1 plan for a frequency task on a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP. No coordinates, native input, commands, or execution are included. No case-bound read-only inspection tools were available in this session's toolset, so the host could not verify the registry status of the required settings (B3LYP, D3BJ, ma-def2-TZVP for ORCA 6.1); readiness is therefore blocked_missing_evidence pending registry verification. All explicit settings were retained as reported without substitution.\", \"functional\": \"B3LYP\", \"basis\": \"ma-def2-TZVP\", \"dispersion\": \"D3BJ\", \"integration_grid\": null, \"gfn_version\": null, \"solvent_model\": null, \"solvent_id\": null, \"charge\": 0, \"multiplicity\": 1, \"missing_fact_ids\": [], \"native_input_authored\": false, \"execution_requested\": false}",
+            "name": "submit_settings_plan"
+          },
+          "id": "call_00_pxAZ3hbaIZzgUQJQqijP3680",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"analysis_summary\": \"Project-only ORCA 6.1 plan for a frequency task on a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP. No coordinates, native input, commands, or execution are included. No case-bound read-only inspection tools were available in this session's toolset, so the host could not verify the registry status of the required settings (B3LYP, D3BJ, ma-def2-TZVP for ORCA 6.1); readiness is therefore blocked_missing_evidence pending registry verification. All explicit settings were retained as reported without substitution.\", \"basis\": \"ma-def2-TZVP\", \"case_id\": \"orca-native-basis\", \"charge\": 0, \"dispersion\": \"D3BJ\", \"execution_requested\": false, \"functional\": \"B3LYP\", \"gfn_version\": null, \"integration_grid\": null, \"missing_fact_ids\": [], \"multiplicity\": 1, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"b3lyp-d3bj-ma-def2tzvp-frequency\", \"readiness\": \"blocked_missing_evidence\", \"solvent_id\": null, \"solvent_model\": null}",
+      "role": "tool",
+      "tool_call_id": "call_00_pxAZ3hbaIZzgUQJQqijP3680"
+    }
+  ],
+  "run_id": "orca-native-basis:S0K0:v2-r2",
+  "tool_outcomes": [
+    {
+      "name": "submit_settings_plan",
+      "provider_call_id": "call_00_pxAZ3hbaIZzgUQJQqijP3680",
+      "request_id": "openai:call_00_pxAZ3hbaIZzgUQJQqijP3680",
+      "result": {
+        "analysis_summary": "Project-only ORCA 6.1 plan for a frequency task on a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP. No coordinates, native input, commands, or execution are included. No case-bound read-only inspection tools were available in this session's toolset, so the host could not verify the registry status of the required settings (B3LYP, D3BJ, ma-def2-TZVP for ORCA 6.1); readiness is therefore blocked_missing_evidence pending registry verification. All explicit settings were retained as reported without substitution.",
+        "basis": "ma-def2-TZVP",
+        "case_id": "orca-native-basis",
+        "charge": 0,
+        "dispersion": "D3BJ",
+        "execution_requested": false,
+        "functional": "B3LYP",
+        "gfn_version": null,
+        "integration_grid": null,
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "orca",
+        "project_name": "b3lyp-d3bj-ma-def2tzvp-frequency",
+        "readiness": "blocked_missing_evidence",
+        "solvent_id": null,
+        "solvent_model": null
+      },
+      "result_sha256": "94dddc7e375faa85322472072f76eb791a97988347cffac2a3fb15e6feaf6c69",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "analysis_summary": "Project-only ORCA 6.1 plan for a frequency task on a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP. No coordinates, native input, commands, or execution are included. No case-bound read-only inspection tools were available in this session's toolset, so the host could not verify the registry status of the required settings (B3LYP, D3BJ, ma-def2-TZVP for ORCA 6.1); readiness is therefore blocked_missing_evidence pending registry verification. All explicit settings were retained as reported without substitution.",
+        "basis": "ma-def2-TZVP",
+        "case_id": "orca-native-basis",
+        "charge": 0,
+        "dispersion": "D3BJ",
+        "execution_requested": false,
+        "functional": "B3LYP",
+        "gfn_version": null,
+        "integration_grid": null,
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "orca",
+        "project_name": "b3lyp-d3bj-ma-def2tzvp-frequency",
+        "readiness": "blocked_missing_evidence",
+        "solvent_id": null,
+        "solvent_model": null
+      },
+      "arguments_sha256": "94dddc7e375faa85322472072f76eb791a97988347cffac2a3fb15e6feaf6c69",
+      "name": "submit_settings_plan",
+      "provider_call_id": "call_00_pxAZ3hbaIZzgUQJQqijP3680",
+      "request_id": "openai:call_00_pxAZ3hbaIZzgUQJQqijP3680"
+    }
+  ]
+}

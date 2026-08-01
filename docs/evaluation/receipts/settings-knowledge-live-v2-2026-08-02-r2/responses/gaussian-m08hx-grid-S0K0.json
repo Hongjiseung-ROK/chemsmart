@@ -1,0 +1,25 @@
+{
+  "arm": "S0K0",
+  "assistant_text": "I'll prepare this project-only plan. First, a note on inspection: the only tools registered in this session are `submit_settings_plan` and `ask_user` — no case-bound read-only inspection tool is available, so I cannot produce tool evidence of registry registration status. I will not fabricate such evidence; I'll retain the reported literals exactly and set readiness accordingly.",
+  "private_reasoning_included": false,
+  "run_id": "gaussian-m08hx-grid:S0K0:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only plan for a Gaussian 16.0 frequency calculation on a neutral singlet (charge 0, multiplicity 1) preserving the explicitly reported method exactly: M08-HX functional with pcseg-2 basis set and UltraFine integration grid. No settings were substituted; all reported literals are retained as given. No case-bound read-only inspection tool was registered in this session, so registry registration status of the required settings could not be verified via tool evidence; readiness is therefore blocked_unverified_setting pending host-side registry verification. No native input, coordinates, commands, or execution are included.",
+    "basis": "pcseg-2",
+    "case_id": "gaussian-m08hx-grid",
+    "charge": 0,
+    "dispersion": null,
+    "execution_requested": false,
+    "functional": "M08-HX",
+    "gfn_version": null,
+    "integration_grid": "UltraFine",
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "m08hx-pcseg2-ultrafine-frequency",
+    "readiness": "blocked_unverified_setting",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}

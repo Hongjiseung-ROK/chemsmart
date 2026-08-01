@@ -1,0 +1,246 @@
+{
+  "adaptive_hypothesis": {
+    "expected_observation_sha256": "ede158586b4e8ddf45157ce7b15eb9a422a71cb8b5081310ba82236d9f29dda6",
+    "hypothesis_id": "hypothesis:xtb-gfn2-alpb-water:S1K1:v2-r2",
+    "hypothesis_sha256": "bdf186e74577d2b81057cd87db11dd2459997267cef28ced90013010beb92044",
+    "input_state_sha256": "e4dd305c891afcdbb49382219dfb27444f5aa5d9f79d012738ae904bf734ff52",
+    "precondition_sha256s": [
+      "0e3d18b9f02133804d077d408eb6d279a981316cb7f423c56fe2497be3a898e1",
+      "3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af",
+      "4026dd43aa19427da001a2297286a9beba76db28556b946c2fa6bfce83a9951f",
+      "6edff649b1d77cde339a02d44bc0942d5963c088b09f0234fb1f9a3b353b689e",
+      "9bfc2c7bdf43d40f7715207623f3a9bf80bd976e1138472ddad0fc7a30341785",
+      "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+      "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4"
+    ],
+    "prompt_sha256": "05682516d73af0700448a3ab6560729f926a0938ef598443194774996240753a",
+    "provider": "deepseek",
+    "purpose": "harness_validation"
+  },
+  "arm": "S1K1",
+  "authoritative_terminal": {
+    "event_artifact_id": "runtime-events-sha256:154966c950c09d3be8bba1ee5515d5ab0a01e49b687765649e92c08440b6b1d6",
+    "event_hash": "c511f85e92ea74f395f91cdb05936f193b7e14abcf209a605c4a9f89eb6d96ab",
+    "event_log_sha256": "154966c950c09d3be8bba1ee5515d5ab0a01e49b687765649e92c08440b6b1d6",
+    "kind": "turn_completed",
+    "replay_verified": true,
+    "rule_ids": []
+  },
+  "case_id": "xtb-gfn2-alpb-water",
+  "exposure_use": {
+    "domain_knowledge_packs": {
+      "offered": false,
+      "requested": 1,
+      "succeeded": 1
+    },
+    "scientific_settings_registry": {
+      "offered": true,
+      "requested": 1,
+      "succeeded": 1
+    }
+  },
+  "grade": {
+    "details": {
+      "expected_project_semantics": {
+        "gfn_version": "gfn2",
+        "solvent_id": "water",
+        "solvent_model": "alpb"
+      },
+      "irrelevant_cross_program_settings": {},
+      "project_semantic_findings": [],
+      "project_semantics": {
+        "gfn_version": "gfn2",
+        "solvent_id": "water",
+        "solvent_model": "alpb"
+      },
+      "project_validation": {
+        "issue_rule_ids": [],
+        "verdict": "ok",
+        "yaml_sha256": "1d6a86351efcd713926f4e244807f84485e5f24e639a164d1e997a195e4491a0"
+      },
+      "setting_resolutions": [
+        {
+          "canonical_value": "gfn2",
+          "eligible": true,
+          "reason_rule_id": "scientific_settings.exact_registered",
+          "setting_path": "method.gfn_version",
+          "status": "exact_registered"
+        },
+        {
+          "canonical_value": null,
+          "eligible": false,
+          "reason_rule_id": "scientific_settings.unknown_unverified",
+          "setting_path": "method.solvent_model",
+          "status": "unknown_unverified"
+        },
+        {
+          "canonical_value": null,
+          "eligible": false,
+          "reason_rule_id": "scientific_settings.unknown_unverified",
+          "setting_path": "method.solvent_id",
+          "status": "unknown_unverified"
+        }
+      ]
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.analysis-summary-english",
+      "oracle.case-identity",
+      "oracle.charge",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.multiplicity",
+      "oracle.native-input-prohibited",
+      "oracle.native-input-text-prohibited",
+      "oracle.no-cross-program-settings",
+      "oracle.program-identity",
+      "oracle.project-loader-valid",
+      "oracle.project-semantic-equivalence",
+      "oracle.runtime-terminal-complete",
+      "oracle.setting.gfn_version",
+      "oracle.setting.solvent_id",
+      "oracle.setting.solvent_model",
+      "oracle.xtb-basis-not-applicable"
+    ]
+  },
+  "outcome": {
+    "engine_calls": 0,
+    "failed_oracle_ids": [],
+    "hpc_calls": 0,
+    "input_tokens": 7467,
+    "native_input_authored": false,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 1831,
+    "passed_oracle_ids": [
+      "oracle.analysis-summary-english",
+      "oracle.case-identity",
+      "oracle.charge",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.multiplicity",
+      "oracle.native-input-prohibited",
+      "oracle.native-input-text-prohibited",
+      "oracle.no-cross-program-settings",
+      "oracle.program-identity",
+      "oracle.project-loader-valid",
+      "oracle.project-semantic-equivalence",
+      "oracle.runtime-terminal-complete",
+      "oracle.setting.gfn_version",
+      "oracle.setting.solvent_id",
+      "oracle.setting.solvent_model",
+      "oracle.xtb-basis-not-applicable"
+    ],
+    "private_reasoning_persisted": false,
+    "public_tool_trace_sha256": "3527b08edad87ebc0ddd265527546a44b49c4fc2dd71a6b2eba64b61d615c5a5",
+    "receipt_sha256": "f2921b76f06a7accac17b7816f7683e8be06820ae98f0ca451a2253cb86d9efe",
+    "requested_model": "deepseek-v4-flash",
+    "response_language": "en",
+    "run_id": "xtb-gfn2-alpb-water:S1K1:v2-r2",
+    "run_spec_sha256": "4026dd43aa19427da001a2297286a9beba76db28556b946c2fa6bfce83a9951f",
+    "safety_rule_ids": [],
+    "sanitized_response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/xtb-gfn2-alpb-water-S1K1.json",
+    "sanitized_response_sha256": "a6c65bfc2c81c04a6c22564805ba73fae5d468b7d206ab679ccd77b5ae3b8c63",
+    "schema_version": "chemsmart.settings-knowledge-ablation-outcome.v2",
+    "secret_material_persisted": false,
+    "terminal_state": "complete",
+    "transport_attempts": 2,
+    "wall_time_ms": 14989
+  },
+  "provider": {
+    "observed_model": "deepseek-v4-flash",
+    "reasoning_continuation_observed": true,
+    "request_observations": [
+      {
+        "attempt_ordinal": 1,
+        "credential_status": "valid",
+        "hypothesis_id": "hypothesis:xtb-gfn2-alpb-water:S1K1:v2-r2",
+        "hypothesis_sha256": "bdf186e74577d2b81057cd87db11dd2459997267cef28ced90013010beb92044",
+        "input_tokens": 2257,
+        "latency_ms": 1117,
+        "observed_model": "deepseek-v4-flash",
+        "output_tokens": 80,
+        "request_binding_sha256": "4c7d47afa7f41832ae43851ab0ecfb245b806ebe848f8010c9e865c55f97e164",
+        "request_binding_verified": true,
+        "request_sha256": "2584e588f96cf880dbd49b68329bfbd5697c1b9c9c061629b43f38368b67f9c7",
+        "status": "observed"
+      },
+      {
+        "attempt_ordinal": 2,
+        "credential_status": "valid",
+        "hypothesis_id": "hypothesis:xtb-gfn2-alpb-water:S1K1:v2-r2",
+        "hypothesis_sha256": "bdf186e74577d2b81057cd87db11dd2459997267cef28ced90013010beb92044",
+        "input_tokens": 5210,
+        "latency_ms": 13794,
+        "observed_model": "deepseek-v4-flash",
+        "output_tokens": 1751,
+        "request_binding_sha256": "4c7d47afa7f41832ae43851ab0ecfb245b806ebe848f8010c9e865c55f97e164",
+        "request_binding_verified": true,
+        "request_sha256": "503ab39e4502c89e6ecc8048b699d8b2646a76e726172b9e18c5497cf51006e6",
+        "status": "observed"
+      }
+    ],
+    "requested_model": "deepseek-v4-flash",
+    "thinking_mode": "enabled"
+  },
+  "run_record_sha256": "deaab572806d0395ee3d051d13c8f79e241759f94277d96b446fd5dac4e1214c",
+  "run_spec": {
+    "changed_factor": "domain_knowledge_packs",
+    "comparator": "The same case under the frozen S1K0 surface.",
+    "deterministic_oracle_ids": [
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.project-loader-valid"
+    ],
+    "expected_outcome": "Exact values are preserved, unverified settings block, and no native input, execution, or invented basis appears.",
+    "exposed_tool_schema_sha256": "6edff649b1d77cde339a02d44bc0942d5963c088b09f0234fb1f9a3b353b689e",
+    "exposure": {
+      "domain_knowledge_packs": true,
+      "schema_version": "chemsmart.settings-knowledge-ablation-config.v2",
+      "scientific_settings_registry": true
+    },
+    "exposure_sha256": "a038ce3b8b2aaab5aacef885ea0a5fe858a2ff1f6c85742c236d3c86f82036ad",
+    "fixed_context": {
+      "base_prompt_template_sha256": "05682516d73af0700448a3ab6560729f926a0938ef598443194774996240753a",
+      "case_id": "xtb-gfn2-alpb-water",
+      "cli_schema_sha256": "0cc218099762f0dd3f5bc0dabecbd29dab5c29666c8691dbc5d0f9b633850ebb",
+      "coordinate_receipt_sha256": null,
+      "domain_knowledge_catalog_sha256": "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+      "endpoint_origin": "https://api.deepseek.com",
+      "expected_project_semantics_sha256": "574f9d7e73a725e5411ea1c176f964834ffcebf4d032155d0d1300e2eec27d8c",
+      "expected_project_yaml_sha256": "1d6a86351efcd713926f4e244807f84485e5f24e639a164d1e997a195e4491a0",
+      "host_tool_catalog_sha256": "6edff649b1d77cde339a02d44bc0942d5963c088b09f0234fb1f9a3b353b689e",
+      "model": "deepseek-v4-flash",
+      "network_budget_sha256": "0e3d18b9f02133804d077d408eb6d279a981316cb7f423c56fe2497be3a898e1",
+      "project_schema_sha256": "896c9e3fe64d6fceecfaa8d54b370055d0572f46116a051efc99f494036b7019",
+      "prompt_version": "settings-knowledge-live-v2-r2",
+      "provider": "deepseek",
+      "scientific_settings_registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+      "source_bundle_sha256": "9bfc2c7bdf43d40f7715207623f3a9bf80bd976e1138472ddad0fc7a30341785",
+      "task_order_sha256": "7f19d4318846c8a5a0d507a8547e8e35a38547668ecc69a831edf451d7d7092e",
+      "thinking_mode": "enabled",
+      "validator_registry_sha256": "3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af"
+    },
+    "hypothesis": "The declared model-visible exposure preserves explicit scientific settings and honest readiness more reliably.",
+    "hypothesis_id": "hypothesis:xtb-gfn2-alpb-water:S1K1:v2-r2",
+    "novelty_rationale": "First budget-corrected request-bound observation for xtb-gfn2-alpb-water S1K1; earlier r1 transport was aborted after skipped-tool budget semantics were detected.",
+    "order_ordinal": 2,
+    "rendered_prompt_sha256": "05682516d73af0700448a3ab6560729f926a0938ef598443194774996240753a",
+    "run_id": "xtb-gfn2-alpb-water:S1K1:v2-r2",
+    "run_spec_sha256": "4026dd43aa19427da001a2297286a9beba76db28556b946c2fa6bfce83a9951f",
+    "safety_plane": {
+      "artifact_hash_validation": true,
+      "chemistry_engine_execution_allowed": false,
+      "cli_schema_validation": true,
+      "deterministic_safety_oracle": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "permission_enforcement": true,
+      "project_loader_validation": true,
+      "scientific_settings_validation": true,
+      "secret_persistence_allowed": false
+    },
+    "schema_version": "chemsmart.settings-knowledge-ablation-run.v2"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "arm": "S0K1",
+  "assistant_text": "The inspection confirmed the case-bound knowledge activation: the `xtb-explicit-method-semantics` pack applies to xtb 6.7.1, listing `method.gfn_version`, `method.solvent_id`, and `method.solvent_model` as the allowed method settings, with a critical rule to preserve the explicitly reported GFN version and to never invent an orbital basis for xTB. No setting was reported as candidate_only or unknown_unverified, and `critical_missing_fact_ids` is empty. I will now submit the project-only plan with every explicit setting preserved literally.",
+  "private_reasoning_included": false,
+  "run_id": "xtb-gfn2-alpb-water:S0K1:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only xTB 6.7.1 geometry-optimization plan for a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: GFN2-xTB Hamiltonian (gfn_version 2) with ALPB implicit solvation (solvent_model alpb) in water (solvent_id water). No orbital basis is specified because basis selection is not applicable to xTB and must not be invented. No functional, dispersion, or integration-grid overrides are introduced; the GFN2 method is the complete Hamiltonian. No coordinates, native input, commands, or execution are authored; this is a read-only planning submission. Readiness is project_candidate: the case-bound knowledge activation confirmed the allowed method setting paths and no critical missing facts, and no inspection result reported any required setting as candidate_only or unknown_unverified. project_candidate does not imply preview, execution, or scientific validation.",
+    "basis": null,
+    "case_id": "xtb-gfn2-alpb-water",
+    "charge": 0,
+    "dispersion": null,
+    "execution_requested": false,
+    "functional": null,
+    "gfn_version": "2",
+    "integration_grid": null,
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-gfn2-alpb-water-opt",
+    "readiness": "project_candidate",
+    "solvent_id": "water",
+    "solvent_model": "alpb"
+  }
+}

@@ -1,0 +1,395 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: execution,project_yaml,synthesis; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T190220Z-99542a64\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nControlled project-settings experiment. Read-only tools only; no native input, command, execution, or private reasoning as evidence.",
+      "role": "system"
+    },
+    {
+      "content": "You are the project-settings planner in a controlled ChemSmart development experiment.\n\nCase ID: orca-native-basis\nProgram: orca\nEngine version: 6.1\nTask kind: frequency\nScientific domain: general\n\nPrepare a project-only ORCA plan preserving the explicitly reported B3LYP-D3BJ/ma-def2-TZVP method for a neutral singlet frequency calculation. Do not create coordinates, native input, commands, or execute anything.\n\nUse any read-only inspection tools that are available. Call each available case-bound inspection tool exactly once; they take no arguments because the host has already bound identity and scope. Preserve every explicit setting exactly; never substitute a familiar value. The host, not you, decides whether a setting is registered. If an inspection result is candidate_only or unknown_unverified, retain the reported literal but set readiness to blocked_unverified_setting. If every required setting is exact_registered, use project_candidate; this still does not mean previewed, executed, or scientifically validated. For xTB, do not invent an orbital basis. Finish by calling submit_settings_plan exactly once with the Case ID above. Write analysis_summary in English and do not include native engine input or shell commands.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{}",
+            "name": "inspect_case_settings"
+          },
+          "id": "call_00_mZHF5Hy1Az4ZRh1Gfn1J9135",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{}",
+            "name": "inspect_case_knowledge"
+          },
+          "id": "call_01_T7HyJzuXzx6wAXdjBPjG5221",
+          "index": 1,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"basis_applicability\": null, \"can_execute\": false, \"can_preview\": false, \"can_write\": false, \"case_id\": \"orca-native-basis\", \"engine_version\": \"6.1\", \"program\": \"orca\", \"resolutions\": [{\"candidate_values\": [], \"canonical_value\": \"B3LYP\", \"capability_id\": \"orca.functional.b3lyp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"freq\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"b3lyp\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"B3LYP\", \"resolution_sha256\": \"790270130b9577b67afaab476253ac1716d0e52372a2dd0ad6e77f77e5c84333\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.functional\", \"status\": \"exact_registered\"}, {\"candidate_values\": [], \"canonical_value\": \"ma-def2-TZVP\", \"capability_id\": \"orca.basis.ma-def2-tzvp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"freq\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"madef2tzvp\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"ma-def2-TZVP\", \"resolution_sha256\": \"0597c3a8a20fcfcef043d3de1a7879296bf55b5f1a228d9f9ab33a05e319b827\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.basis\", \"status\": \"exact_registered\"}, {\"candidate_values\": [], \"canonical_value\": \"D3BJ\", \"capability_id\": \"orca.dispersion.d3bj\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"freq\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"d3bj\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"D3BJ\", \"resolution_sha256\": \"0dcc65c006365c34cad8fdcb8100900a37a056dffc75fe617d0f947788f15c4e\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.dispersion\", \"status\": \"exact_registered\"}], \"task_kind\": \"frequency\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_mZHF5Hy1Az4ZRh1Gfn1J9135"
+    },
+    {
+      "content": "{\"activation_receipt\": {\"can_approve\": false, \"can_author_native_input\": false, \"can_execute\": false, \"can_fill_missing_paper_facts\": false, \"can_repair\": false, \"catalog_id\": \"chemsmart-domain-knowledge-k1-v1\", \"catalog_sha256\": \"eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4\", \"considered_packs\": [{\"exclusion_rule_ids\": [], \"matched_negative_trigger_ids\": [], \"matched_positive_trigger_ids\": [\"knowledge.trigger.orca.native_basis\"], \"pack_id\": \"orca-explicit-native-basis-preservation\", \"pack_sha256\": \"60224472d99ba9f48b83128d1a94eab691aa35ce239cc227c7188983d16e7ef5\", \"selected\": true, \"version\": \"1.0.0\"}, {\"exclusion_rule_ids\": [\"knowledge.catalog.exclude.program_mismatch\"], \"matched_negative_trigger_ids\": [], \"matched_positive_trigger_ids\": [], \"pack_id\": \"xtb-explicit-method-semantics\", \"pack_sha256\": \"196828716a38041cd4989cd98cfc7523236852b16f2585c826b89e6a8ef1b1c3\", \"selected\": false, \"version\": \"1.0.0\"}], \"context_sha256\": \"081be683124876ed8450d984bbfc5402409aed287d62afe40e703a112ac7dd5d\", \"critical_missing_fact_ids\": [], \"domain\": \"general\", \"engine_version\": \"6.1\", \"exclusion_rule_ids\": [\"knowledge.catalog.exclude.program_mismatch\"], \"input_sha256\": \"0443550effc774d2b8e570bab0b71766b27eac447cb52ccb4194de9207119f23\", \"model_visible_exposure\": true, \"model_visible_exposure_requested\": true, \"model_visible_pack_ids\": [\"orca-explicit-native-basis-preservation\"], \"program\": \"orca\", \"read_only\": true, \"receipt_sha256\": \"d4d6e0ea2143d065e27ceb37d0e958895dc26c8ec8e7a1e334e080645f2d6f3e\", \"request_id\": \"ablation:orca:frequency:0443550effc7\", \"request_sha256\": \"ebb51953d696c03b32141c1e303219a85086847d0b08fb93f23da3fb96408993\", \"schema_version\": \"chemsmart.knowledge-pack-activation-receipt.v1\", \"scientific_source_ledger_sha256\": \"23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598\", \"selected_packs\": [{\"pack_id\": \"orca-explicit-native-basis-preservation\", \"pack_sha256\": \"60224472d99ba9f48b83128d1a94eab691aa35ce239cc227c7188983d16e7ef5\", \"version\": \"1.0.0\"}], \"selection_status\": \"selected\", \"source_audit_manifest_sha256\": \"7140412ae9e4c65b9d99ae5a05b9d0e3e39fa7b03be53f818e6f4377127d6af9\", \"task_kind\": \"frequency\"}, \"packs\": [{\"can_approve\": false, \"can_execute\": false, \"domains\": [\"conformer_ensemble\", \"excited_state\", \"general\", \"multiscale_qmmm\", \"reaction_mechanism\", \"thermochemistry\", \"transition_metal\"], \"engine_scopes\": [{\"program\": \"orca\", \"version_constraint\": \">=6.1,<6.2\"}], \"model_persona_authoritative\": false, \"pack_id\": \"orca-explicit-native-basis-preservation\", \"rules\": [{\"allowed_setting_paths\": [\"method.basis\"], \"domains\": [\"conformer_ensemble\", \"excited_state\", \"general\", \"multiscale_qmmm\", \"reaction_mechanism\", \"thermochemistry\", \"transition_metal\"], \"engine_scopes\": [{\"program\": \"orca\", \"version_constraint\": \">=6.1,<6.2\"}], \"prohibited_condition_ids\": [\"bse_absence_treated_as_engine_invalidity\", \"silent_basis_substitution\"], \"rule_id\": \"knowledge.orca.explicit_native_basis_preservation\", \"severity\": \"critical\", \"source_ids\": [\"orca-6.1-basis-manual\", \"zheng-2011-minimally-augmented-karlsruhe\"], \"statement\": \"When paper evidence explicitly identifies an ORCA-native basis, preserve that literal through the program-scoped registry and project loader; absence from BSE alone is not evidence that the literal is invalid, and substitution is forbidden.\", \"validator_ids\": [\"validator.project.loader.static.v1\", \"validator.scientific-settings.exact-program.v1\"]}], \"schema_version\": \"chemsmart.domain-knowledge-pack.v1\", \"sources\": [{\"artifact_sha256\": \"204c3c97a31ca7318ff20e52e7088e6e433dac0ce22e2d451a6c648ba6ce14da\", \"canonical_identifier\": \"ORCA 6.1 Manual, Section 2.7\", \"evidence_class\": \"official_manual\", \"locator\": \"https://www.faccts.de/docs/orca/6.1/manual/contents/essentialelements/basisset.html\", \"source_id\": \"orca-6.1-basis-manual\"}, {\"artifact_sha256\": \"23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598\", \"canonical_identifier\": \"doi:10.1007/s00214-010-0846-z\", \"evidence_class\": \"peer_reviewed_article\", \"locator\": \"docs/research/general-chemistry-knowledge-source-ledger.json#source_id=minimally-augmented-karlsruhe-paper\", \"source_id\": \"zheng-2011-minimally-augmented-karlsruhe\"}], \"validator_registry_sha256\": \"3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af\", \"version\": \"1.0.0\"}]}",
+      "role": "tool",
+      "tool_call_id": "call_01_T7HyJzuXzx6wAXdjBPjG5221"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Both case-bound inspections are complete. Summary of evidence:\n\n- **Settings resolutions** (ORCA 6.1, frequency task): all three explicitly reported settings resolved as `exact_registered` — `method.functional` = B3LYP, `method.basis` = ma-def2-TZVP, `method.dispersion` = D3BJ. No candidate_only or unknown_unverified statuses; no other settings (grid, solvent, GFN) were reported.\n- **Knowledge activation**: the `orca-explicit-native-basis-preservation` pack (v1.0.0) selected with critical rule `knowledge.orca.explicit_native_basis_preservation`, grounded in the ORCA 6.1 manual (Section 2.7) and the Zheng et al. 2011 minimally augmented Karlsruhe paper — confirming that ma-def2-TZVP is ORCA-native and must be preserved literally, with substitution forbidden. No critical missing facts.\n\nSince every required setting is exact_registered, readiness is `project_candidate` (no preview or execution implied). Submitting the plan:",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"case_id\": \"orca-native-basis\", \"program\": \"orca\", \"project_name\": \"orca-native-basis\", \"readiness\": \"project_candidate\", \"analysis_summary\": \"Project-only ORCA 6.1 plan for a neutral singlet frequency calculation preserving the explicitly reported method B3LYP-D3BJ/ma-def2-TZVP. All three explicit settings resolved as exact_registered against the ORCA-scoped registry (functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP) with loader accepted and renderer preserved; no setting was candidate_only or unknown_unverified. The basis ma-def2-TZVP is an ORCA-native basis confirmed by the activated knowledge pack orca-explicit-native-basis-preservation (ORCA 6.1 manual Section 2.7; Zheng et al. 2011 minimally augmented Karlsruhe), so the literal is retained and substitution is forbidden even though it is not BSE-listed. Charge 0 and multiplicity 1 are used for the neutral singlet; no integration grid, solvent, or GFN version was reported and none is inferred. Readiness is project_candidate only: this plan is neither previewed, executed, nor scientifically validated, and no coordinates, native input, or commands were authored.\", \"functional\": \"B3LYP\", \"basis\": \"ma-def2-TZVP\", \"dispersion\": \"D3BJ\", \"integration_grid\": null, \"gfn_version\": null, \"solvent_model\": null, \"solvent_id\": null, \"charge\": 0, \"multiplicity\": 1, \"missing_fact_ids\": [], \"native_input_authored\": false, \"execution_requested\": false}",
+            "name": "submit_settings_plan"
+          },
+          "id": "call_00_nDp51J9vIgYl0iBIQDMG1429",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"analysis_summary\": \"Project-only ORCA 6.1 plan for a neutral singlet frequency calculation preserving the explicitly reported method B3LYP-D3BJ/ma-def2-TZVP. All three explicit settings resolved as exact_registered against the ORCA-scoped registry (functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP) with loader accepted and renderer preserved; no setting was candidate_only or unknown_unverified. The basis ma-def2-TZVP is an ORCA-native basis confirmed by the activated knowledge pack orca-explicit-native-basis-preservation (ORCA 6.1 manual Section 2.7; Zheng et al. 2011 minimally augmented Karlsruhe), so the literal is retained and substitution is forbidden even though it is not BSE-listed. Charge 0 and multiplicity 1 are used for the neutral singlet; no integration grid, solvent, or GFN version was reported and none is inferred. Readiness is project_candidate only: this plan is neither previewed, executed, nor scientifically validated, and no coordinates, native input, or commands were authored.\", \"basis\": \"ma-def2-TZVP\", \"case_id\": \"orca-native-basis\", \"charge\": 0, \"dispersion\": \"D3BJ\", \"execution_requested\": false, \"functional\": \"B3LYP\", \"gfn_version\": null, \"integration_grid\": null, \"missing_fact_ids\": [], \"multiplicity\": 1, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-native-basis\", \"readiness\": \"project_candidate\", \"solvent_id\": null, \"solvent_model\": null}",
+      "role": "tool",
+      "tool_call_id": "call_00_nDp51J9vIgYl0iBIQDMG1429"
+    }
+  ],
+  "run_id": "orca-native-basis:S1K1:v2-r2",
+  "tool_outcomes": [
+    {
+      "name": "inspect_case_settings",
+      "provider_call_id": "call_00_mZHF5Hy1Az4ZRh1Gfn1J9135",
+      "request_id": "openai:call_00_mZHF5Hy1Az4ZRh1Gfn1J9135",
+      "result": {
+        "basis_applicability": null,
+        "can_execute": false,
+        "can_preview": false,
+        "can_write": false,
+        "case_id": "orca-native-basis",
+        "engine_version": "6.1",
+        "program": "orca",
+        "resolutions": [
+          {
+            "candidate_values": [],
+            "canonical_value": "B3LYP",
+            "capability_id": "orca.functional.b3lyp",
+            "evidence_ceiling": {
+              "engine_executed": false,
+              "maximum_claim": "loader_renderer_verification_only",
+              "safe_preview_executed": false,
+              "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+              "scientific_adequacy_verified": false,
+              "setting_combination_verified": false
+            },
+            "job_kind": "freq",
+            "loader_observation": "accepted",
+            "loader_renderer_eligible": true,
+            "matched_by": "canonical_literal",
+            "normalized_requested_value": "b3lyp",
+            "program": "orca",
+            "reason_rule_id": "scientific_settings.exact_registered",
+            "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+            "renderer_observation": "preserved",
+            "requested_value": "B3LYP",
+            "resolution_sha256": "790270130b9577b67afaab476253ac1716d0e52372a2dd0ad6e77f77e5c84333",
+            "schema_version": "chemsmart.scientific-setting-resolution.v1",
+            "setting_path": "method.functional",
+            "status": "exact_registered"
+          },
+          {
+            "candidate_values": [],
+            "canonical_value": "ma-def2-TZVP",
+            "capability_id": "orca.basis.ma-def2-tzvp",
+            "evidence_ceiling": {
+              "engine_executed": false,
+              "maximum_claim": "loader_renderer_verification_only",
+              "safe_preview_executed": false,
+              "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+              "scientific_adequacy_verified": false,
+              "setting_combination_verified": false
+            },
+            "job_kind": "freq",
+            "loader_observation": "accepted",
+            "loader_renderer_eligible": true,
+            "matched_by": "canonical_literal",
+            "normalized_requested_value": "madef2tzvp",
+            "program": "orca",
+            "reason_rule_id": "scientific_settings.exact_registered",
+            "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+            "renderer_observation": "preserved",
+            "requested_value": "ma-def2-TZVP",
+            "resolution_sha256": "0597c3a8a20fcfcef043d3de1a7879296bf55b5f1a228d9f9ab33a05e319b827",
+            "schema_version": "chemsmart.scientific-setting-resolution.v1",
+            "setting_path": "method.basis",
+            "status": "exact_registered"
+          },
+          {
+            "candidate_values": [],
+            "canonical_value": "D3BJ",
+            "capability_id": "orca.dispersion.d3bj",
+            "evidence_ceiling": {
+              "engine_executed": false,
+              "maximum_claim": "loader_renderer_verification_only",
+              "safe_preview_executed": false,
+              "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+              "scientific_adequacy_verified": false,
+              "setting_combination_verified": false
+            },
+            "job_kind": "freq",
+            "loader_observation": "accepted",
+            "loader_renderer_eligible": true,
+            "matched_by": "canonical_literal",
+            "normalized_requested_value": "d3bj",
+            "program": "orca",
+            "reason_rule_id": "scientific_settings.exact_registered",
+            "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+            "renderer_observation": "preserved",
+            "requested_value": "D3BJ",
+            "resolution_sha256": "0dcc65c006365c34cad8fdcb8100900a37a056dffc75fe617d0f947788f15c4e",
+            "schema_version": "chemsmart.scientific-setting-resolution.v1",
+            "setting_path": "method.dispersion",
+            "status": "exact_registered"
+          }
+        ],
+        "task_kind": "frequency"
+      },
+      "result_sha256": "8c86ae6ee854b046b21aaf35ed8cc7b6820c6325d3d0060b9c584802f49714a8",
+      "status": "ok"
+    },
+    {
+      "name": "inspect_case_knowledge",
+      "provider_call_id": "call_01_T7HyJzuXzx6wAXdjBPjG5221",
+      "request_id": "openai:call_01_T7HyJzuXzx6wAXdjBPjG5221",
+      "result": {
+        "activation_receipt": {
+          "can_approve": false,
+          "can_author_native_input": false,
+          "can_execute": false,
+          "can_fill_missing_paper_facts": false,
+          "can_repair": false,
+          "catalog_id": "chemsmart-domain-knowledge-k1-v1",
+          "catalog_sha256": "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+          "considered_packs": [
+            {
+              "exclusion_rule_ids": [],
+              "matched_negative_trigger_ids": [],
+              "matched_positive_trigger_ids": [
+                "knowledge.trigger.orca.native_basis"
+              ],
+              "pack_id": "orca-explicit-native-basis-preservation",
+              "pack_sha256": "60224472d99ba9f48b83128d1a94eab691aa35ce239cc227c7188983d16e7ef5",
+              "selected": true,
+              "version": "1.0.0"
+            },
+            {
+              "exclusion_rule_ids": [
+                "knowledge.catalog.exclude.program_mismatch"
+              ],
+              "matched_negative_trigger_ids": [],
+              "matched_positive_trigger_ids": [],
+              "pack_id": "xtb-explicit-method-semantics",
+              "pack_sha256": "196828716a38041cd4989cd98cfc7523236852b16f2585c826b89e6a8ef1b1c3",
+              "selected": false,
+              "version": "1.0.0"
+            }
+          ],
+          "context_sha256": "081be683124876ed8450d984bbfc5402409aed287d62afe40e703a112ac7dd5d",
+          "critical_missing_fact_ids": [],
+          "domain": "general",
+          "engine_version": "6.1",
+          "exclusion_rule_ids": [
+            "knowledge.catalog.exclude.program_mismatch"
+          ],
+          "input_sha256": "0443550effc774d2b8e570bab0b71766b27eac447cb52ccb4194de9207119f23",
+          "model_visible_exposure": true,
+          "model_visible_exposure_requested": true,
+          "model_visible_pack_ids": [
+            "orca-explicit-native-basis-preservation"
+          ],
+          "program": "orca",
+          "read_only": true,
+          "receipt_sha256": "d4d6e0ea2143d065e27ceb37d0e958895dc26c8ec8e7a1e334e080645f2d6f3e",
+          "request_id": "ablation:orca:frequency:0443550effc7",
+          "request_sha256": "ebb51953d696c03b32141c1e303219a85086847d0b08fb93f23da3fb96408993",
+          "schema_version": "chemsmart.knowledge-pack-activation-receipt.v1",
+          "scientific_source_ledger_sha256": "23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598",
+          "selected_packs": [
+            {
+              "pack_id": "orca-explicit-native-basis-preservation",
+              "pack_sha256": "60224472d99ba9f48b83128d1a94eab691aa35ce239cc227c7188983d16e7ef5",
+              "version": "1.0.0"
+            }
+          ],
+          "selection_status": "selected",
+          "source_audit_manifest_sha256": "7140412ae9e4c65b9d99ae5a05b9d0e3e39fa7b03be53f818e6f4377127d6af9",
+          "task_kind": "frequency"
+        },
+        "packs": [
+          {
+            "can_approve": false,
+            "can_execute": false,
+            "domains": [
+              "conformer_ensemble",
+              "excited_state",
+              "general",
+              "multiscale_qmmm",
+              "reaction_mechanism",
+              "thermochemistry",
+              "transition_metal"
+            ],
+            "engine_scopes": [
+              {
+                "program": "orca",
+                "version_constraint": ">=6.1,<6.2"
+              }
+            ],
+            "model_persona_authoritative": false,
+            "pack_id": "orca-explicit-native-basis-preservation",
+            "rules": [
+              {
+                "allowed_setting_paths": [
+                  "method.basis"
+                ],
+                "domains": [
+                  "conformer_ensemble",
+                  "excited_state",
+                  "general",
+                  "multiscale_qmmm",
+                  "reaction_mechanism",
+                  "thermochemistry",
+                  "transition_metal"
+                ],
+                "engine_scopes": [
+                  {
+                    "program": "orca",
+                    "version_constraint": ">=6.1,<6.2"
+                  }
+                ],
+                "prohibited_condition_ids": [
+                  "bse_absence_treated_as_engine_invalidity",
+                  "silent_basis_substitution"
+                ],
+                "rule_id": "knowledge.orca.explicit_native_basis_preservation",
+                "severity": "critical",
+                "source_ids": [
+                  "orca-6.1-basis-manual",
+                  "zheng-2011-minimally-augmented-karlsruhe"
+                ],
+                "statement": "When paper evidence explicitly identifies an ORCA-native basis, preserve that literal through the program-scoped registry and project loader; absence from BSE alone is not evidence that the literal is invalid, and substitution is forbidden.",
+                "validator_ids": [
+                  "validator.project.loader.static.v1",
+                  "validator.scientific-settings.exact-program.v1"
+                ]
+              }
+            ],
+            "schema_version": "chemsmart.domain-knowledge-pack.v1",
+            "sources": [
+              {
+                "artifact_sha256": "204c3c97a31ca7318ff20e52e7088e6e433dac0ce22e2d451a6c648ba6ce14da",
+                "canonical_identifier": "ORCA 6.1 Manual, Section 2.7",
+                "evidence_class": "official_manual",
+                "locator": "https://www.faccts.de/docs/orca/6.1/manual/contents/essentialelements/basisset.html",
+                "source_id": "orca-6.1-basis-manual"
+              },
+              {
+                "artifact_sha256": "23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598",
+                "canonical_identifier": "doi:10.1007/s00214-010-0846-z",
+                "evidence_class": "peer_reviewed_article",
+                "locator": "docs/research/general-chemistry-knowledge-source-ledger.json#source_id=minimally-augmented-karlsruhe-paper",
+                "source_id": "zheng-2011-minimally-augmented-karlsruhe"
+              }
+            ],
+            "validator_registry_sha256": "3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af",
+            "version": "1.0.0"
+          }
+        ]
+      },
+      "result_sha256": "59c37628d35f6fd4330103785913db6761a0bd95a4d7aa101df824a6fc6df021",
+      "status": "ok"
+    },
+    {
+      "name": "submit_settings_plan",
+      "provider_call_id": "call_00_nDp51J9vIgYl0iBIQDMG1429",
+      "request_id": "openai:call_00_nDp51J9vIgYl0iBIQDMG1429",
+      "result": {
+        "analysis_summary": "Project-only ORCA 6.1 plan for a neutral singlet frequency calculation preserving the explicitly reported method B3LYP-D3BJ/ma-def2-TZVP. All three explicit settings resolved as exact_registered against the ORCA-scoped registry (functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP) with loader accepted and renderer preserved; no setting was candidate_only or unknown_unverified. The basis ma-def2-TZVP is an ORCA-native basis confirmed by the activated knowledge pack orca-explicit-native-basis-preservation (ORCA 6.1 manual Section 2.7; Zheng et al. 2011 minimally augmented Karlsruhe), so the literal is retained and substitution is forbidden even though it is not BSE-listed. Charge 0 and multiplicity 1 are used for the neutral singlet; no integration grid, solvent, or GFN version was reported and none is inferred. Readiness is project_candidate only: this plan is neither previewed, executed, nor scientifically validated, and no coordinates, native input, or commands were authored.",
+        "basis": "ma-def2-TZVP",
+        "case_id": "orca-native-basis",
+        "charge": 0,
+        "dispersion": "D3BJ",
+        "execution_requested": false,
+        "functional": "B3LYP",
+        "gfn_version": null,
+        "integration_grid": null,
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "orca",
+        "project_name": "orca-native-basis",
+        "readiness": "project_candidate",
+        "solvent_id": null,
+        "solvent_model": null
+      },
+      "result_sha256": "d6511acb13739608da6da4130e7e419bf34990039a0b95184ad7e139ba2a1579",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {},
+      "arguments_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "name": "inspect_case_settings",
+      "provider_call_id": "call_00_mZHF5Hy1Az4ZRh1Gfn1J9135",
+      "request_id": "openai:call_00_mZHF5Hy1Az4ZRh1Gfn1J9135"
+    },
+    {
+      "arguments": {},
+      "arguments_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "name": "inspect_case_knowledge",
+      "provider_call_id": "call_01_T7HyJzuXzx6wAXdjBPjG5221",
+      "request_id": "openai:call_01_T7HyJzuXzx6wAXdjBPjG5221"
+    },
+    {
+      "arguments": {
+        "analysis_summary": "Project-only ORCA 6.1 plan for a neutral singlet frequency calculation preserving the explicitly reported method B3LYP-D3BJ/ma-def2-TZVP. All three explicit settings resolved as exact_registered against the ORCA-scoped registry (functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP) with loader accepted and renderer preserved; no setting was candidate_only or unknown_unverified. The basis ma-def2-TZVP is an ORCA-native basis confirmed by the activated knowledge pack orca-explicit-native-basis-preservation (ORCA 6.1 manual Section 2.7; Zheng et al. 2011 minimally augmented Karlsruhe), so the literal is retained and substitution is forbidden even though it is not BSE-listed. Charge 0 and multiplicity 1 are used for the neutral singlet; no integration grid, solvent, or GFN version was reported and none is inferred. Readiness is project_candidate only: this plan is neither previewed, executed, nor scientifically validated, and no coordinates, native input, or commands were authored.",
+        "basis": "ma-def2-TZVP",
+        "case_id": "orca-native-basis",
+        "charge": 0,
+        "dispersion": "D3BJ",
+        "execution_requested": false,
+        "functional": "B3LYP",
+        "gfn_version": null,
+        "integration_grid": null,
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "orca",
+        "project_name": "orca-native-basis",
+        "readiness": "project_candidate",
+        "solvent_id": null,
+        "solvent_model": null
+      },
+      "arguments_sha256": "d6511acb13739608da6da4130e7e419bf34990039a0b95184ad7e139ba2a1579",
+      "name": "submit_settings_plan",
+      "provider_call_id": "call_00_nDp51J9vIgYl0iBIQDMG1429",
+      "request_id": "openai:call_00_nDp51J9vIgYl0iBIQDMG1429"
+    }
+  ]
+}

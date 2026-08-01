@@ -1,0 +1,285 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: execution,project_yaml,synthesis; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T190332Z-33167b43\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nControlled project-settings experiment. Read-only tools only; no native input, command, execution, or private reasoning as evidence.",
+      "role": "system"
+    },
+    {
+      "content": "You are the project-settings planner in a controlled ChemSmart development experiment.\n\nCase ID: xtb-gfn2-alpb-water\nProgram: xtb\nEngine version: 6.7.1\nTask kind: geometry_optimization\nScientific domain: general\n\nPrepare a project-only xTB geometry-optimization plan preserving the explicitly reported GFN2-xTB method with ALPB water for a neutral singlet. Do not invent an orbital basis, create coordinates or native input, compile commands, or execute anything.\n\nUse any read-only inspection tools that are available. Call each available case-bound inspection tool exactly once; they take no arguments because the host has already bound identity and scope. Preserve every explicit setting exactly; never substitute a familiar value. The host, not you, decides whether a setting is registered. If an inspection result is candidate_only or unknown_unverified, retain the reported literal but set readiness to blocked_unverified_setting. If every required setting is exact_registered, use project_candidate; this still does not mean previewed, executed, or scientifically validated. For xTB, do not invent an orbital basis. Finish by calling submit_settings_plan exactly once with the Case ID above. Write analysis_summary in English and do not include native engine input or shell commands.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{}",
+            "name": "inspect_case_knowledge"
+          },
+          "id": "call_00_kOmeZsmMB36YJbqabyUk5944",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"activation_receipt\": {\"can_approve\": false, \"can_author_native_input\": false, \"can_execute\": false, \"can_fill_missing_paper_facts\": false, \"can_repair\": false, \"catalog_id\": \"chemsmart-domain-knowledge-k1-v1\", \"catalog_sha256\": \"eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4\", \"considered_packs\": [{\"exclusion_rule_ids\": [\"knowledge.catalog.exclude.program_mismatch\"], \"matched_negative_trigger_ids\": [], \"matched_positive_trigger_ids\": [], \"pack_id\": \"orca-explicit-native-basis-preservation\", \"pack_sha256\": \"60224472d99ba9f48b83128d1a94eab691aa35ce239cc227c7188983d16e7ef5\", \"selected\": false, \"version\": \"1.0.0\"}, {\"exclusion_rule_ids\": [], \"matched_negative_trigger_ids\": [], \"matched_positive_trigger_ids\": [\"knowledge.trigger.xtb.explicit_method\"], \"pack_id\": \"xtb-explicit-method-semantics\", \"pack_sha256\": \"196828716a38041cd4989cd98cfc7523236852b16f2585c826b89e6a8ef1b1c3\", \"selected\": true, \"version\": \"1.0.0\"}], \"context_sha256\": \"081be683124876ed8450d984bbfc5402409aed287d62afe40e703a112ac7dd5d\", \"critical_missing_fact_ids\": [], \"domain\": \"general\", \"engine_version\": \"6.7.1\", \"exclusion_rule_ids\": [\"knowledge.catalog.exclude.program_mismatch\"], \"input_sha256\": \"1af8c5367d092f51bbf518a976f63a66a7432f8f4374b4942ffa14ff8e17c9e5\", \"model_visible_exposure\": true, \"model_visible_exposure_requested\": true, \"model_visible_pack_ids\": [\"xtb-explicit-method-semantics\"], \"program\": \"xtb\", \"read_only\": true, \"receipt_sha256\": \"f7bfe2ec09eafc9fd2b556ecf49e0922a5bac1df9a420857af7ffa301d0f4768\", \"request_id\": \"ablation:xtb:geometry_optimization:1af8c5367d09\", \"request_sha256\": \"f27c1db7a3360246bd27bf2bd9c6f6029fbf4156b31485b92c2afa76219a3e10\", \"schema_version\": \"chemsmart.knowledge-pack-activation-receipt.v1\", \"scientific_source_ledger_sha256\": \"23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598\", \"selected_packs\": [{\"pack_id\": \"xtb-explicit-method-semantics\", \"pack_sha256\": \"196828716a38041cd4989cd98cfc7523236852b16f2585c826b89e6a8ef1b1c3\", \"version\": \"1.0.0\"}], \"selection_status\": \"selected\", \"source_audit_manifest_sha256\": \"7140412ae9e4c65b9d99ae5a05b9d0e3e39fa7b03be53f818e6f4377127d6af9\", \"task_kind\": \"geometry_optimization\"}, \"packs\": [{\"can_approve\": false, \"can_execute\": false, \"domains\": [\"conformer_ensemble\", \"excited_state\", \"general\", \"multiscale_qmmm\", \"reaction_mechanism\", \"thermochemistry\", \"transition_metal\"], \"engine_scopes\": [{\"program\": \"xtb\", \"version_constraint\": \">=6.7,<7\"}], \"model_persona_authoritative\": false, \"pack_id\": \"xtb-explicit-method-semantics\", \"rules\": [{\"allowed_setting_paths\": [\"method.gfn_version\", \"method.solvent_id\", \"method.solvent_model\"], \"domains\": [\"conformer_ensemble\", \"excited_state\", \"general\", \"multiscale_qmmm\", \"reaction_mechanism\", \"thermochemistry\", \"transition_metal\"], \"engine_scopes\": [{\"program\": \"xtb\", \"version_constraint\": \">=6.7,<7\"}], \"prohibited_condition_ids\": [\"gfn_version_substitution\", \"invented_xtb_orbital_basis\", \"unpaired_xtb_solvent_setting\"], \"rule_id\": \"knowledge.xtb.explicit_gfn_and_basis_semantics\", \"severity\": \"critical\", \"source_ids\": [\"bannwarth-2019-gfn2-xtb\", \"bannwarth-2020-xtb-review\", \"xtb-6.7.1-release\"], \"statement\": \"Preserve an explicitly reported GFN method version. Do not invent an orbital basis field for xTB, where the ChemSmart project contract treats basis selection as not applicable.\", \"validator_ids\": [\"validator.project.protocol-alignment.v1\", \"validator.xtb.method-solvent.static.v1\"]}], \"schema_version\": \"chemsmart.domain-knowledge-pack.v1\", \"sources\": [{\"artifact_sha256\": \"23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598\", \"canonical_identifier\": \"doi:10.1021/acs.jctc.8b01176\", \"evidence_class\": \"peer_reviewed_article\", \"locator\": \"docs/research/general-chemistry-knowledge-source-ledger.json#source_id=gfn2-xtb-method-paper\", \"source_id\": \"bannwarth-2019-gfn2-xtb\"}, {\"artifact_sha256\": \"23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598\", \"canonical_identifier\": \"doi:10.1002/wcms.1493\", \"evidence_class\": \"peer_reviewed_article\", \"locator\": \"docs/research/general-chemistry-knowledge-source-ledger.json#source_id=xtb-method-review\", \"source_id\": \"bannwarth-2020-xtb-review\"}, {\"artifact_sha256\": \"79a2a2f50091b3b941e5139c1b38a53203d5d2e9ba496a7ad505d8c31ccd6013\", \"canonical_identifier\": \"grimme-lab/xtb@v6.7.1\", \"evidence_class\": \"open_specification\", \"locator\": \"https://github.com/grimme-lab/xtb/releases/tag/v6.7.1\", \"source_id\": \"xtb-6.7.1-release\"}], \"validator_registry_sha256\": \"3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af\", \"version\": \"1.0.0\"}]}",
+      "role": "tool",
+      "tool_call_id": "call_00_kOmeZsmMB36YJbqabyUk5944"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The inspection confirmed the case-bound knowledge activation: the `xtb-explicit-method-semantics` pack applies to xtb 6.7.1, listing `method.gfn_version`, `method.solvent_id`, and `method.solvent_model` as the allowed method settings, with a critical rule to preserve the explicitly reported GFN version and to never invent an orbital basis for xTB. No setting was reported as candidate_only or unknown_unverified, and `critical_missing_fact_ids` is empty. I will now submit the project-only plan with every explicit setting preserved literally.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"case_id\": \"xtb-gfn2-alpb-water\", \"program\": \"xtb\", \"project_name\": \"xtb-gfn2-alpb-water-opt\", \"readiness\": \"project_candidate\", \"analysis_summary\": \"Project-only xTB 6.7.1 geometry-optimization plan for a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: GFN2-xTB Hamiltonian (gfn_version 2) with ALPB implicit solvation (solvent_model alpb) in water (solvent_id water). No orbital basis is specified because basis selection is not applicable to xTB and must not be invented. No functional, dispersion, or integration-grid overrides are introduced; the GFN2 method is the complete Hamiltonian. No coordinates, native input, commands, or execution are authored; this is a read-only planning submission. Readiness is project_candidate: the case-bound knowledge activation confirmed the allowed method setting paths and no critical missing facts, and no inspection result reported any required setting as candidate_only or unknown_unverified. project_candidate does not imply preview, execution, or scientific validation.\", \"functional\": null, \"basis\": null, \"dispersion\": null, \"integration_grid\": null, \"gfn_version\": \"2\", \"solvent_model\": \"alpb\", \"solvent_id\": \"water\", \"charge\": 0, \"multiplicity\": 1, \"missing_fact_ids\": [], \"native_input_authored\": false, \"execution_requested\": false}",
+            "name": "submit_settings_plan"
+          },
+          "id": "call_00_lLYhuaPp0MP8fJN7MPKm9107",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"analysis_summary\": \"Project-only xTB 6.7.1 geometry-optimization plan for a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: GFN2-xTB Hamiltonian (gfn_version 2) with ALPB implicit solvation (solvent_model alpb) in water (solvent_id water). No orbital basis is specified because basis selection is not applicable to xTB and must not be invented. No functional, dispersion, or integration-grid overrides are introduced; the GFN2 method is the complete Hamiltonian. No coordinates, native input, commands, or execution are authored; this is a read-only planning submission. Readiness is project_candidate: the case-bound knowledge activation confirmed the allowed method setting paths and no critical missing facts, and no inspection result reported any required setting as candidate_only or unknown_unverified. project_candidate does not imply preview, execution, or scientific validation.\", \"basis\": null, \"case_id\": \"xtb-gfn2-alpb-water\", \"charge\": 0, \"dispersion\": null, \"execution_requested\": false, \"functional\": null, \"gfn_version\": \"2\", \"integration_grid\": null, \"missing_fact_ids\": [], \"multiplicity\": 1, \"native_input_authored\": false, \"program\": \"xtb\", \"project_name\": \"xtb-gfn2-alpb-water-opt\", \"readiness\": \"project_candidate\", \"solvent_id\": \"water\", \"solvent_model\": \"alpb\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_lLYhuaPp0MP8fJN7MPKm9107"
+    }
+  ],
+  "run_id": "xtb-gfn2-alpb-water:S0K1:v2-r2",
+  "tool_outcomes": [
+    {
+      "name": "inspect_case_knowledge",
+      "provider_call_id": "call_00_kOmeZsmMB36YJbqabyUk5944",
+      "request_id": "openai:call_00_kOmeZsmMB36YJbqabyUk5944",
+      "result": {
+        "activation_receipt": {
+          "can_approve": false,
+          "can_author_native_input": false,
+          "can_execute": false,
+          "can_fill_missing_paper_facts": false,
+          "can_repair": false,
+          "catalog_id": "chemsmart-domain-knowledge-k1-v1",
+          "catalog_sha256": "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+          "considered_packs": [
+            {
+              "exclusion_rule_ids": [
+                "knowledge.catalog.exclude.program_mismatch"
+              ],
+              "matched_negative_trigger_ids": [],
+              "matched_positive_trigger_ids": [],
+              "pack_id": "orca-explicit-native-basis-preservation",
+              "pack_sha256": "60224472d99ba9f48b83128d1a94eab691aa35ce239cc227c7188983d16e7ef5",
+              "selected": false,
+              "version": "1.0.0"
+            },
+            {
+              "exclusion_rule_ids": [],
+              "matched_negative_trigger_ids": [],
+              "matched_positive_trigger_ids": [
+                "knowledge.trigger.xtb.explicit_method"
+              ],
+              "pack_id": "xtb-explicit-method-semantics",
+              "pack_sha256": "196828716a38041cd4989cd98cfc7523236852b16f2585c826b89e6a8ef1b1c3",
+              "selected": true,
+              "version": "1.0.0"
+            }
+          ],
+          "context_sha256": "081be683124876ed8450d984bbfc5402409aed287d62afe40e703a112ac7dd5d",
+          "critical_missing_fact_ids": [],
+          "domain": "general",
+          "engine_version": "6.7.1",
+          "exclusion_rule_ids": [
+            "knowledge.catalog.exclude.program_mismatch"
+          ],
+          "input_sha256": "1af8c5367d092f51bbf518a976f63a66a7432f8f4374b4942ffa14ff8e17c9e5",
+          "model_visible_exposure": true,
+          "model_visible_exposure_requested": true,
+          "model_visible_pack_ids": [
+            "xtb-explicit-method-semantics"
+          ],
+          "program": "xtb",
+          "read_only": true,
+          "receipt_sha256": "f7bfe2ec09eafc9fd2b556ecf49e0922a5bac1df9a420857af7ffa301d0f4768",
+          "request_id": "ablation:xtb:geometry_optimization:1af8c5367d09",
+          "request_sha256": "f27c1db7a3360246bd27bf2bd9c6f6029fbf4156b31485b92c2afa76219a3e10",
+          "schema_version": "chemsmart.knowledge-pack-activation-receipt.v1",
+          "scientific_source_ledger_sha256": "23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598",
+          "selected_packs": [
+            {
+              "pack_id": "xtb-explicit-method-semantics",
+              "pack_sha256": "196828716a38041cd4989cd98cfc7523236852b16f2585c826b89e6a8ef1b1c3",
+              "version": "1.0.0"
+            }
+          ],
+          "selection_status": "selected",
+          "source_audit_manifest_sha256": "7140412ae9e4c65b9d99ae5a05b9d0e3e39fa7b03be53f818e6f4377127d6af9",
+          "task_kind": "geometry_optimization"
+        },
+        "packs": [
+          {
+            "can_approve": false,
+            "can_execute": false,
+            "domains": [
+              "conformer_ensemble",
+              "excited_state",
+              "general",
+              "multiscale_qmmm",
+              "reaction_mechanism",
+              "thermochemistry",
+              "transition_metal"
+            ],
+            "engine_scopes": [
+              {
+                "program": "xtb",
+                "version_constraint": ">=6.7,<7"
+              }
+            ],
+            "model_persona_authoritative": false,
+            "pack_id": "xtb-explicit-method-semantics",
+            "rules": [
+              {
+                "allowed_setting_paths": [
+                  "method.gfn_version",
+                  "method.solvent_id",
+                  "method.solvent_model"
+                ],
+                "domains": [
+                  "conformer_ensemble",
+                  "excited_state",
+                  "general",
+                  "multiscale_qmmm",
+                  "reaction_mechanism",
+                  "thermochemistry",
+                  "transition_metal"
+                ],
+                "engine_scopes": [
+                  {
+                    "program": "xtb",
+                    "version_constraint": ">=6.7,<7"
+                  }
+                ],
+                "prohibited_condition_ids": [
+                  "gfn_version_substitution",
+                  "invented_xtb_orbital_basis",
+                  "unpaired_xtb_solvent_setting"
+                ],
+                "rule_id": "knowledge.xtb.explicit_gfn_and_basis_semantics",
+                "severity": "critical",
+                "source_ids": [
+                  "bannwarth-2019-gfn2-xtb",
+                  "bannwarth-2020-xtb-review",
+                  "xtb-6.7.1-release"
+                ],
+                "statement": "Preserve an explicitly reported GFN method version. Do not invent an orbital basis field for xTB, where the ChemSmart project contract treats basis selection as not applicable.",
+                "validator_ids": [
+                  "validator.project.protocol-alignment.v1",
+                  "validator.xtb.method-solvent.static.v1"
+                ]
+              }
+            ],
+            "schema_version": "chemsmart.domain-knowledge-pack.v1",
+            "sources": [
+              {
+                "artifact_sha256": "23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598",
+                "canonical_identifier": "doi:10.1021/acs.jctc.8b01176",
+                "evidence_class": "peer_reviewed_article",
+                "locator": "docs/research/general-chemistry-knowledge-source-ledger.json#source_id=gfn2-xtb-method-paper",
+                "source_id": "bannwarth-2019-gfn2-xtb"
+              },
+              {
+                "artifact_sha256": "23d670368bc03f693b1074bdf8f16f129e1fb07c9909843d0655ad81bde2b598",
+                "canonical_identifier": "doi:10.1002/wcms.1493",
+                "evidence_class": "peer_reviewed_article",
+                "locator": "docs/research/general-chemistry-knowledge-source-ledger.json#source_id=xtb-method-review",
+                "source_id": "bannwarth-2020-xtb-review"
+              },
+              {
+                "artifact_sha256": "79a2a2f50091b3b941e5139c1b38a53203d5d2e9ba496a7ad505d8c31ccd6013",
+                "canonical_identifier": "grimme-lab/xtb@v6.7.1",
+                "evidence_class": "open_specification",
+                "locator": "https://github.com/grimme-lab/xtb/releases/tag/v6.7.1",
+                "source_id": "xtb-6.7.1-release"
+              }
+            ],
+            "validator_registry_sha256": "3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af",
+            "version": "1.0.0"
+          }
+        ]
+      },
+      "result_sha256": "b73a88cccad23cea75fd3f3e11aa44d2b4c349b9a70390cbef098596ac9d162c",
+      "status": "ok"
+    },
+    {
+      "name": "submit_settings_plan",
+      "provider_call_id": "call_00_lLYhuaPp0MP8fJN7MPKm9107",
+      "request_id": "openai:call_00_lLYhuaPp0MP8fJN7MPKm9107",
+      "result": {
+        "analysis_summary": "Project-only xTB 6.7.1 geometry-optimization plan for a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: GFN2-xTB Hamiltonian (gfn_version 2) with ALPB implicit solvation (solvent_model alpb) in water (solvent_id water). No orbital basis is specified because basis selection is not applicable to xTB and must not be invented. No functional, dispersion, or integration-grid overrides are introduced; the GFN2 method is the complete Hamiltonian. No coordinates, native input, commands, or execution are authored; this is a read-only planning submission. Readiness is project_candidate: the case-bound knowledge activation confirmed the allowed method setting paths and no critical missing facts, and no inspection result reported any required setting as candidate_only or unknown_unverified. project_candidate does not imply preview, execution, or scientific validation.",
+        "basis": null,
+        "case_id": "xtb-gfn2-alpb-water",
+        "charge": 0,
+        "dispersion": null,
+        "execution_requested": false,
+        "functional": null,
+        "gfn_version": "2",
+        "integration_grid": null,
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "xtb",
+        "project_name": "xtb-gfn2-alpb-water-opt",
+        "readiness": "project_candidate",
+        "solvent_id": "water",
+        "solvent_model": "alpb"
+      },
+      "result_sha256": "031a5ad1458554ab74f442aa038cbd0c6d210c02d241f8b174882d35f7e9ec57",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {},
+      "arguments_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "name": "inspect_case_knowledge",
+      "provider_call_id": "call_00_kOmeZsmMB36YJbqabyUk5944",
+      "request_id": "openai:call_00_kOmeZsmMB36YJbqabyUk5944"
+    },
+    {
+      "arguments": {
+        "analysis_summary": "Project-only xTB 6.7.1 geometry-optimization plan for a neutral singlet (charge 0, multiplicity 1), preserving the explicitly reported method exactly: GFN2-xTB Hamiltonian (gfn_version 2) with ALPB implicit solvation (solvent_model alpb) in water (solvent_id water). No orbital basis is specified because basis selection is not applicable to xTB and must not be invented. No functional, dispersion, or integration-grid overrides are introduced; the GFN2 method is the complete Hamiltonian. No coordinates, native input, commands, or execution are authored; this is a read-only planning submission. Readiness is project_candidate: the case-bound knowledge activation confirmed the allowed method setting paths and no critical missing facts, and no inspection result reported any required setting as candidate_only or unknown_unverified. project_candidate does not imply preview, execution, or scientific validation.",
+        "basis": null,
+        "case_id": "xtb-gfn2-alpb-water",
+        "charge": 0,
+        "dispersion": null,
+        "execution_requested": false,
+        "functional": null,
+        "gfn_version": "2",
+        "integration_grid": null,
+        "missing_fact_ids": [],
+        "multiplicity": 1,
+        "native_input_authored": false,
+        "program": "xtb",
+        "project_name": "xtb-gfn2-alpb-water-opt",
+        "readiness": "project_candidate",
+        "solvent_id": "water",
+        "solvent_model": "alpb"
+      },
+      "arguments_sha256": "031a5ad1458554ab74f442aa038cbd0c6d210c02d241f8b174882d35f7e9ec57",
+      "name": "submit_settings_plan",
+      "provider_call_id": "call_00_lLYhuaPp0MP8fJN7MPKm9107",
+      "request_id": "openai:call_00_lLYhuaPp0MP8fJN7MPKm9107"
+    }
+  ]
+}

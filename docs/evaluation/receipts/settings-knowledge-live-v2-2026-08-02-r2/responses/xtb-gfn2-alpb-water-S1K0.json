@@ -1,0 +1,25 @@
+{
+  "arm": "S1K0",
+  "assistant_text": "",
+  "private_reasoning_included": false,
+  "run_id": "xtb-gfn2-alpb-water:S1K0:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only xTB geometry-optimization plan for a neutral singlet, preserving the explicitly reported GFN2-xTB method with ALPB water solvation. The GFN Hamiltonian is the entire method for xTB, so no orbital basis, functional, dispersion, or integration grid is applicable or was invented. Inspection resolved method.gfn_version \"gfn2\" as exact_registered (canonical literal match, loader accepted, renderer preserved; evidence ceiling is loader/renderer verification only, no preview or execution). The explicitly reported solvent settings remain unverified in the registry: method.solvent_model \"alpb\" and method.solvent_id \"water\" both resolved unknown_unverified. These literals are retained exactly and not substituted with familiar alternatives. Because a required registry setting is unverified, readiness is blocked_unverified_setting. Charge 0, multiplicity 1 correspond to the neutral singlet. No coordinates, native input, commands, or execution were produced; the plan is project-only.",
+    "basis": null,
+    "case_id": "xtb-gfn2-alpb-water",
+    "charge": 0,
+    "dispersion": null,
+    "execution_requested": false,
+    "functional": null,
+    "gfn_version": "gfn2",
+    "integration_grid": null,
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "xtb",
+    "project_name": "xtb-gfn2-alpb-water",
+    "readiness": "blocked_unverified_setting",
+    "solvent_id": "water",
+    "solvent_model": "alpb"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "arm": "S0K1",
+  "assistant_text": "",
+  "private_reasoning_included": false,
+  "run_id": "gaussian-m08hx-grid:S0K1:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only Gaussian 16.0 frequency plan for a neutral singlet (charge 0, multiplicity 1) preserving every explicitly reported setting exactly: M08-HX functional, pcseg-2 basis set, and UltraFine integration grid. No substitutions, coordinates, native input, commands, or execution were authored or requested. The case-bound inspection receipt (chemsmart-domain-knowledge-k1-v1) reported no selected packs (selection_status no_match; ORCA and xTB packs excluded by program mismatch), an empty critical_missing_fact_ids list, and provided no per-setting exact_registered registry confirmation for M08-HX, pcseg-2, or UltraFine. Because the host did not verify any required setting as exact_registered, readiness is blocked_unverified_setting while the reported literals are retained unchanged pending host registry verification.",
+    "basis": "pcseg-2",
+    "case_id": "gaussian-m08hx-grid",
+    "charge": 0,
+    "dispersion": null,
+    "execution_requested": false,
+    "functional": "M08-HX",
+    "gfn_version": null,
+    "integration_grid": "UltraFine",
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-m08hx-grid",
+    "readiness": "blocked_unverified_setting",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}

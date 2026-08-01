@@ -1,0 +1,25 @@
+{
+  "arm": "S1K1",
+  "assistant_text": "Both case-bound inspections are complete. Summary of evidence:\n\n- **Settings resolutions** (ORCA 6.1, frequency task): all three explicitly reported settings resolved as `exact_registered` — `method.functional` = B3LYP, `method.basis` = ma-def2-TZVP, `method.dispersion` = D3BJ. No candidate_only or unknown_unverified statuses; no other settings (grid, solvent, GFN) were reported.\n- **Knowledge activation**: the `orca-explicit-native-basis-preservation` pack (v1.0.0) selected with critical rule `knowledge.orca.explicit_native_basis_preservation`, grounded in the ORCA 6.1 manual (Section 2.7) and the Zheng et al. 2011 minimally augmented Karlsruhe paper — confirming that ma-def2-TZVP is ORCA-native and must be preserved literally, with substitution forbidden. No critical missing facts.\n\nSince every required setting is exact_registered, readiness is `project_candidate` (no preview or execution implied). Submitting the plan:",
+  "private_reasoning_included": false,
+  "run_id": "orca-native-basis:S1K1:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only ORCA 6.1 plan for a neutral singlet frequency calculation preserving the explicitly reported method B3LYP-D3BJ/ma-def2-TZVP. All three explicit settings resolved as exact_registered against the ORCA-scoped registry (functional B3LYP, dispersion D3BJ, basis ma-def2-TZVP) with loader accepted and renderer preserved; no setting was candidate_only or unknown_unverified. The basis ma-def2-TZVP is an ORCA-native basis confirmed by the activated knowledge pack orca-explicit-native-basis-preservation (ORCA 6.1 manual Section 2.7; Zheng et al. 2011 minimally augmented Karlsruhe), so the literal is retained and substitution is forbidden even though it is not BSE-listed. Charge 0 and multiplicity 1 are used for the neutral singlet; no integration grid, solvent, or GFN version was reported and none is inferred. Readiness is project_candidate only: this plan is neither previewed, executed, nor scientifically validated, and no coordinates, native input, or commands were authored.",
+    "basis": "ma-def2-TZVP",
+    "case_id": "orca-native-basis",
+    "charge": 0,
+    "dispersion": "D3BJ",
+    "execution_requested": false,
+    "functional": "B3LYP",
+    "gfn_version": null,
+    "integration_grid": null,
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-native-basis",
+    "readiness": "project_candidate",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}

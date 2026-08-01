@@ -1,0 +1,87 @@
+{
+  "run_id": "gaussian-m08hx-grid:S1K0:v2-r1",
+  "tool_outcomes": [
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    },
+    {
+      "name": "inspect_scientific_setting",
+      "result": null,
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "status": "skipped"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "gaussian",
+        "setting_path": "functional",
+        "value": "M08-HX"
+      },
+      "arguments_sha256": "fcf26f7e9bcb98951939498a58655590a4ed1bfa0ec238e2dbf66848a53dfee9",
+      "name": "inspect_scientific_setting"
+    },
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "gaussian",
+        "setting_path": "basis",
+        "value": "pcseg-2"
+      },
+      "arguments_sha256": "47605a70b6bf4aa8a110d8a2c6db60da2e22e8969e749ec14ede0b4d8fed2ddd",
+      "name": "inspect_scientific_setting"
+    },
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "gaussian",
+        "setting_path": "integration_grid",
+        "value": "UltraFine"
+      },
+      "arguments_sha256": "02b836ad902dc17a446dead383029a1eea2fd298577fa3d60c66d2f23b3d33ab",
+      "name": "inspect_scientific_setting"
+    },
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "gaussian",
+        "setting_path": "charge",
+        "value": "0"
+      },
+      "arguments_sha256": "cb26fca5be7e2742981bd5fa5f4ebceef78a6cfedf4d6d51f75b3da00d99865e",
+      "name": "inspect_scientific_setting"
+    },
+    {
+      "arguments": {
+        "job_kind": "frequency",
+        "program": "gaussian",
+        "setting_path": "multiplicity",
+        "value": "1"
+      },
+      "arguments_sha256": "c6b47b987fbd66fbeab0058ebe3f7e1df9da1d7903db5d0566ce34d8b7a854dd",
+      "name": "inspect_scientific_setting"
+    }
+  ]
+}

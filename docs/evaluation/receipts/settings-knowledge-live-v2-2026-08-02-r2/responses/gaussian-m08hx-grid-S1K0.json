@@ -1,0 +1,25 @@
+{
+  "arm": "S1K0",
+  "assistant_text": "",
+  "private_reasoning_included": false,
+  "run_id": "gaussian-m08hx-grid:S1K0:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only Gaussian plan for a frequency (task kind: frequency) calculation on a neutral singlet (charge 0, multiplicity 1) with engine version 16.0, preserving the explicitly reported settings exactly. Functional M08-HX (method.functional) was resolved as unknown_unverified (loader not observed, no canonical match) and integration grid UltraFine (method.integration_grid) was resolved as unknown_unverified (loader not observed, no canonical match); both literals are retained. Basis pcseg-2 (method.basis) was resolved as exact_registered (canonical pcseg-2, loader accepted, renderer preserved). Because not every required setting is exact_registered, readiness is blocked_unverified_setting. No substitution of settings, coordinates, native input, commands, or execution was performed; evidence ceiling is loader/renderer verification only, with no preview, execution, or scientific validation.",
+    "basis": "pcseg-2",
+    "case_id": "gaussian-m08hx-grid",
+    "charge": 0,
+    "dispersion": null,
+    "execution_requested": false,
+    "functional": "M08-HX",
+    "gfn_version": null,
+    "integration_grid": "UltraFine",
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-m08hx-grid",
+    "readiness": "blocked_unverified_setting",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}

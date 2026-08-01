@@ -1,0 +1,25 @@
+{
+  "arm": "S0K0",
+  "assistant_text": "I have no read-only inspection tools exposed in this session (only the plan submission and clarification tools are registered), so I cannot verify the registry status of any setting against a live registry. Per the rules, since registration status cannot be confirmed as exact_registered, I retain the reported literals exactly and mark readiness as blocked_unverified_setting for host-side registry verification.\n\nSubmitting the project-only ORCA plan now:",
+  "private_reasoning_included": false,
+  "run_id": "orca-native-basis:S0K0:v2-r1",
+  "typed_proposal": {
+    "analysis_summary": "Project-only ORCA plan for a neutral singlet (charge 0, multiplicity 1) frequency calculation preserving the explicitly reported B3LYP-D3BJ/ma-def2-TZVP method. Functional B3LYP, dispersion D3BJ, and basis ma-def2-TZVP are retained literally as reported; no familiar or substitute values were introduced. No integration grid, solvent model, or solvent ID was reported, so none is proposed. No coordinates, native engine input, commands, or execution are included (native_input_authored=false, execution_requested=false). No read-only registry inspection tool was available in this session, so the registration status of the required settings could not be verified; readiness is therefore blocked_unverified_setting pending host-side registry verification.",
+    "basis": "ma-def2-TZVP",
+    "case_id": "20260801T184609Z-e69f4c9d",
+    "charge": 0,
+    "dispersion": "D3BJ",
+    "execution_requested": false,
+    "functional": "B3LYP",
+    "gfn_version": null,
+    "integration_grid": null,
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "b3lyp-d3bj-ma-def2-tzvp-freq",
+    "readiness": "blocked_unverified_setting",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}

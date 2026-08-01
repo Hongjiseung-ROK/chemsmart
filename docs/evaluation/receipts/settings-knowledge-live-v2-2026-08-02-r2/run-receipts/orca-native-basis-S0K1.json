@@ -1,0 +1,244 @@
+{
+  "adaptive_hypothesis": {
+    "expected_observation_sha256": "ede158586b4e8ddf45157ce7b15eb9a422a71cb8b5081310ba82236d9f29dda6",
+    "hypothesis_id": "hypothesis:orca-native-basis:S0K1:v2-r2",
+    "hypothesis_sha256": "d30d9e00b8c32da0dcb74fba7f666c0a0eba6eca52617860b656510b5759d687",
+    "input_state_sha256": "bb50c2cc0633311ee6c05f4f953a9baa2f44fe138a454f7d091877ff892ecf9d",
+    "precondition_sha256s": [
+      "0e3d18b9f02133804d077d408eb6d279a981316cb7f423c56fe2497be3a898e1",
+      "3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af",
+      "993eded2128d774951eabdd9abbed129d0dfffd649ec45e0ef4824a7fdf446d0",
+      "dde362f66e133874ece00f7bd3ce5c07d95824c20decf9fd214e7de6de7edf75",
+      "e4cf11ef5d0cfc46a3d47c74c4249b34a4899d768b096f78251697f3b39f7479",
+      "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+      "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4"
+    ],
+    "prompt_sha256": "2f77ae595dd1bdf800f5abbbd375991022f0dfa225ad90dd4eefc5d56a0a8d5c",
+    "provider": "deepseek",
+    "purpose": "harness_validation"
+  },
+  "arm": "S0K1",
+  "authoritative_terminal": {
+    "event_artifact_id": "runtime-events-sha256:a42c6081e7fa7ad890737ab7efda7062855f104a9428d11b920d7f35ee749781",
+    "event_hash": "71109387be92c1539634c0e0181f270b40f0270f9f74e54ef20a5429616d4973",
+    "event_log_sha256": "a42c6081e7fa7ad890737ab7efda7062855f104a9428d11b920d7f35ee749781",
+    "kind": "turn_completed",
+    "replay_verified": true,
+    "rule_ids": []
+  },
+  "case_id": "orca-native-basis",
+  "exposure_use": {
+    "domain_knowledge_packs": {
+      "offered": false,
+      "requested": 1,
+      "succeeded": 1
+    },
+    "scientific_settings_registry": {
+      "offered": true,
+      "requested": 0,
+      "succeeded": 0
+    }
+  },
+  "grade": {
+    "details": {
+      "expected_project_semantics": {
+        "basis": "ma-def2-TZVP",
+        "dispersion": "D3BJ",
+        "functional": "B3LYP"
+      },
+      "irrelevant_cross_program_settings": {},
+      "project_semantic_findings": [],
+      "project_semantics": {
+        "basis": "ma-def2-TZVP",
+        "dispersion": "D3BJ",
+        "functional": "b3lyp"
+      },
+      "project_validation": {
+        "issue_rule_ids": [],
+        "verdict": "ok",
+        "yaml_sha256": "49c4df175199a789241072e253149c90f9c9d1c18652e11563688f456c5d335c"
+      },
+      "setting_resolutions": [
+        {
+          "canonical_value": "B3LYP",
+          "eligible": true,
+          "reason_rule_id": "scientific_settings.exact_registered",
+          "setting_path": "method.functional",
+          "status": "exact_registered"
+        },
+        {
+          "canonical_value": "ma-def2-TZVP",
+          "eligible": true,
+          "reason_rule_id": "scientific_settings.exact_registered",
+          "setting_path": "method.basis",
+          "status": "exact_registered"
+        },
+        {
+          "canonical_value": "D3BJ",
+          "eligible": true,
+          "reason_rule_id": "scientific_settings.exact_registered",
+          "setting_path": "method.dispersion",
+          "status": "exact_registered"
+        }
+      ]
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.analysis-summary-english",
+      "oracle.case-identity",
+      "oracle.charge",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.multiplicity",
+      "oracle.native-input-prohibited",
+      "oracle.native-input-text-prohibited",
+      "oracle.no-cross-program-settings",
+      "oracle.program-identity",
+      "oracle.project-loader-valid",
+      "oracle.project-semantic-equivalence",
+      "oracle.runtime-terminal-complete",
+      "oracle.setting.basis",
+      "oracle.setting.dispersion",
+      "oracle.setting.functional"
+    ]
+  },
+  "outcome": {
+    "engine_calls": 0,
+    "failed_oracle_ids": [],
+    "hpc_calls": 0,
+    "input_tokens": 6070,
+    "native_input_authored": false,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 2206,
+    "passed_oracle_ids": [
+      "oracle.analysis-summary-english",
+      "oracle.case-identity",
+      "oracle.charge",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.multiplicity",
+      "oracle.native-input-prohibited",
+      "oracle.native-input-text-prohibited",
+      "oracle.no-cross-program-settings",
+      "oracle.program-identity",
+      "oracle.project-loader-valid",
+      "oracle.project-semantic-equivalence",
+      "oracle.runtime-terminal-complete",
+      "oracle.setting.basis",
+      "oracle.setting.dispersion",
+      "oracle.setting.functional"
+    ],
+    "private_reasoning_persisted": false,
+    "public_tool_trace_sha256": "4942afaf1155170be446f9fc1b713383d64967356ac90e801d6cbfc09fdaa160",
+    "receipt_sha256": "d44c4f524fb0d7947eae718c6a6a5e4b166ecab9b5c1f62901a68c9c020e8ff3",
+    "requested_model": "deepseek-v4-flash",
+    "response_language": "en",
+    "run_id": "orca-native-basis:S0K1:v2-r2",
+    "run_spec_sha256": "e4cf11ef5d0cfc46a3d47c74c4249b34a4899d768b096f78251697f3b39f7479",
+    "safety_rule_ids": [],
+    "sanitized_response_path": "docs/evaluation/receipts/settings-knowledge-live-v2-2026-08-02-r2/responses/orca-native-basis-S0K1.json",
+    "sanitized_response_sha256": "2d8230d05d28ad4e852dd24bc1f965c4633c42b503c5c36d64040931c5ade837",
+    "schema_version": "chemsmart.settings-knowledge-ablation-outcome.v2",
+    "secret_material_persisted": false,
+    "terminal_state": "complete",
+    "transport_attempts": 2,
+    "wall_time_ms": 17102
+  },
+  "provider": {
+    "observed_model": "deepseek-v4-flash",
+    "reasoning_continuation_observed": true,
+    "request_observations": [
+      {
+        "attempt_ordinal": 1,
+        "credential_status": "valid",
+        "hypothesis_id": "hypothesis:orca-native-basis:S0K1:v2-r2",
+        "hypothesis_sha256": "d30d9e00b8c32da0dcb74fba7f666c0a0eba6eca52617860b656510b5759d687",
+        "input_tokens": 2185,
+        "latency_ms": 1634,
+        "observed_model": "deepseek-v4-flash",
+        "output_tokens": 136,
+        "request_binding_sha256": "e08ac7922fa82e20279108b50733ec265035441e4e3eac0c32ad8225c7f04d2d",
+        "request_binding_verified": true,
+        "request_sha256": "ceb9070c26c1bba694b755b779c0d39ff6a8ff12032dcc79b2d1377eddebdc70",
+        "status": "observed"
+      },
+      {
+        "attempt_ordinal": 2,
+        "credential_status": "valid",
+        "hypothesis_id": "hypothesis:orca-native-basis:S0K1:v2-r2",
+        "hypothesis_sha256": "d30d9e00b8c32da0dcb74fba7f666c0a0eba6eca52617860b656510b5759d687",
+        "input_tokens": 3885,
+        "latency_ms": 15368,
+        "observed_model": "deepseek-v4-flash",
+        "output_tokens": 2070,
+        "request_binding_sha256": "e08ac7922fa82e20279108b50733ec265035441e4e3eac0c32ad8225c7f04d2d",
+        "request_binding_verified": true,
+        "request_sha256": "114d956b5d9fd276f470d5eec9fa9467bed1657fc420e29f346f36ff3b7efe2e",
+        "status": "observed"
+      }
+    ],
+    "requested_model": "deepseek-v4-flash",
+    "thinking_mode": "enabled"
+  },
+  "run_record_sha256": "b39165bae7455ba9e30f97443c2b502c06984057324ec287c32de71ccb8a0f7d",
+  "run_spec": {
+    "changed_factor": "domain_knowledge_packs",
+    "comparator": "The same case under the frozen S0K0 surface.",
+    "deterministic_oracle_ids": [
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.project-loader-valid"
+    ],
+    "expected_outcome": "Exact values are preserved, unverified settings block, and no native input, execution, or invented basis appears.",
+    "exposed_tool_schema_sha256": "993eded2128d774951eabdd9abbed129d0dfffd649ec45e0ef4824a7fdf446d0",
+    "exposure": {
+      "domain_knowledge_packs": true,
+      "schema_version": "chemsmart.settings-knowledge-ablation-config.v2",
+      "scientific_settings_registry": false
+    },
+    "exposure_sha256": "bcfbc250d24a4de55cb85d8d8692b6b5aabbe78760b28ef45175b46b20ef4fe9",
+    "fixed_context": {
+      "base_prompt_template_sha256": "2f77ae595dd1bdf800f5abbbd375991022f0dfa225ad90dd4eefc5d56a0a8d5c",
+      "case_id": "orca-native-basis",
+      "cli_schema_sha256": "0cc218099762f0dd3f5bc0dabecbd29dab5c29666c8691dbc5d0f9b633850ebb",
+      "coordinate_receipt_sha256": null,
+      "domain_knowledge_catalog_sha256": "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+      "endpoint_origin": "https://api.deepseek.com",
+      "expected_project_semantics_sha256": "929a9515d21c3e0ec19aa8576dc96d4efad4e8c87eced4f60ebaddb3d2222e70",
+      "expected_project_yaml_sha256": "49c4df175199a789241072e253149c90f9c9d1c18652e11563688f456c5d335c",
+      "host_tool_catalog_sha256": "6edff649b1d77cde339a02d44bc0942d5963c088b09f0234fb1f9a3b353b689e",
+      "model": "deepseek-v4-flash",
+      "network_budget_sha256": "0e3d18b9f02133804d077d408eb6d279a981316cb7f423c56fe2497be3a898e1",
+      "project_schema_sha256": "896c9e3fe64d6fceecfaa8d54b370055d0572f46116a051efc99f494036b7019",
+      "prompt_version": "settings-knowledge-live-v2-r2",
+      "provider": "deepseek",
+      "scientific_settings_registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+      "source_bundle_sha256": "dde362f66e133874ece00f7bd3ce5c07d95824c20decf9fd214e7de6de7edf75",
+      "task_order_sha256": "db3aab21bfc329d071b50dc45743d30729bc87d5fc5f97cb88aa6b880faffb69",
+      "thinking_mode": "enabled",
+      "validator_registry_sha256": "3577c3c2d0506dcfd40eb708e2b8f0c4704c3184f1e69fe2ac35892ebc3f11af"
+    },
+    "hypothesis": "The declared model-visible exposure preserves explicit scientific settings and honest readiness more reliably.",
+    "hypothesis_id": "hypothesis:orca-native-basis:S0K1:v2-r2",
+    "novelty_rationale": "First budget-corrected request-bound observation for orca-native-basis S0K1; earlier r1 transport was aborted after skipped-tool budget semantics were detected.",
+    "order_ordinal": 3,
+    "rendered_prompt_sha256": "2f77ae595dd1bdf800f5abbbd375991022f0dfa225ad90dd4eefc5d56a0a8d5c",
+    "run_id": "orca-native-basis:S0K1:v2-r2",
+    "run_spec_sha256": "e4cf11ef5d0cfc46a3d47c74c4249b34a4899d768b096f78251697f3b39f7479",
+    "safety_plane": {
+      "artifact_hash_validation": true,
+      "chemistry_engine_execution_allowed": false,
+      "cli_schema_validation": true,
+      "deterministic_safety_oracle": true,
+      "hpc_execution_allowed": false,
+      "native_input_authoring_allowed": false,
+      "permission_enforcement": true,
+      "project_loader_validation": true,
+      "scientific_settings_validation": true,
+      "secret_persistence_allowed": false
+    },
+    "schema_version": "chemsmart.settings-knowledge-ablation-run.v2"
+  }
+}

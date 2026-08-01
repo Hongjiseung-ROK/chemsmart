@@ -1,0 +1,25 @@
+{
+  "arm": "S0K1",
+  "assistant_text": "The inspection receipt selected the critical `orca-explicit-native-basis-preservation` pack (rule: preserve the ORCA-native basis literal through the program-scoped registry; absence from BSE alone is not evidence of invalidity, and substitution is forbidden). No setting was reported as `candidate_only` or `unknown_unverified`, and `critical_missing_fact_ids` is empty, so the explicitly reported settings are retained exactly with readiness `project_candidate`.",
+  "private_reasoning_included": false,
+  "run_id": "orca-native-basis:S0K1:v2-r2",
+  "typed_proposal": {
+    "analysis_summary": "Project-only ORCA 6.1 frequency plan for a neutral singlet (charge 0, multiplicity 1) preserving the explicitly reported method B3LYP-D3BJ/ma-def2-TZVP exactly. The case-bound inspection selected the critical knowledge pack orca-explicit-native-basis-preservation (source: ORCA 6.1 Manual Section 2.7; Zheng 2011 minimally augmented Karlsruhe paper), whose rule requires keeping the ORCA-native basis literal ma-def2-TZVP through the program-scoped registry and forbids silent substitution; absence of the literal from BSE alone is not evidence of invalidity. The inspection reported no candidate_only or unknown_unverified settings and no critical missing facts, so all required settings are treated as exact_registered and readiness is project_candidate. No integration grid, solvent model, or solvent was specified, so those slots are left unset. No coordinates, native input, or shell commands were authored, and no execution was requested; project_candidate does not imply preview, execution, or scientific validation.",
+    "basis": "ma-def2-TZVP",
+    "case_id": "orca-native-basis",
+    "charge": 0,
+    "dispersion": "D3BJ",
+    "execution_requested": false,
+    "functional": "B3LYP",
+    "gfn_version": null,
+    "integration_grid": null,
+    "missing_fact_ids": [],
+    "multiplicity": 1,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-native-basis-frequency",
+    "readiness": "project_candidate",
+    "solvent_id": null,
+    "solvent_model": null
+  }
+}
