@@ -15,7 +15,6 @@ from chemsmart.agent.harness.basis_sets import (
     search_basis_sets,
 )
 from chemsmart.agent.harness.scientific_settings.contracts import (
-    EvidenceCeilingV1,
     LoaderObservation,
     RendererObservation,
     ScientificProgram,
@@ -57,6 +56,11 @@ def load_scientific_settings_registry() -> ScientificSettingsRegistryV1:
     }
     body["registry_sha256"] = scientific_settings_registry_sha256(body)
     return ScientificSettingsRegistryV1.model_validate(body)
+
+
+# Preserve an explicit handle to the immutable V1 loader before a future
+# release assigns any newer generation to the unversioned API.
+load_scientific_settings_registry_v1 = load_scientific_settings_registry
 
 
 def resolve_scientific_setting(
@@ -667,6 +671,7 @@ __all__ = [
     "build_scientific_settings_validation_receipt",
     "list_scientific_settings",
     "load_scientific_settings_registry",
+    "load_scientific_settings_registry_v1",
     "resolve_scientific_setting",
     "validate_scientific_settings_source_snapshot",
 ]
