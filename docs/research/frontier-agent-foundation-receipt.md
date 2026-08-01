@@ -2,9 +2,13 @@
 
 > Historical foundation receipt. Its checkout and test observations describe
 > the earlier foundation validation only; they are not a current custody or
-> release assertion for command refinement. See the active
+> release assertion for the two-frontier paper-research work. See the active
+> [R0-R6 roadmap](../goals/two-frontier-paper-research/README.md) and retain the
+> [machine-readable phase status](../goals/two-frontier-paper-research/phase-status.json)
+> as the current admission authority. At this snapshot no phase has passed and
+> `R0` is the next required gate. Retain the
 > [M0 lineage receipt](../goals/frontier-agent-command-refinement/M0-lineage-receipt.md)
-> for the later original-checkout custody exception.
+> only as the later command-refinement custody record.
 
 ## Isolation and preservation
 

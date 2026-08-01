@@ -1,13 +1,36 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-07-31T16:38:33Z",
+  "checked_at": "2026-08-01T00:00:00Z",
   "scope": "Entries in frontier-agent-references.bib only",
   "method": {
-    "metadata": "Crossref REST works endpoint",
+    "metadata": "Crossref REST works endpoint and arXiv Atom API",
     "bibtex": "DOI content negotiation with Accept: application/x-bibtex",
-    "correction_check": "Crossref update-to and relation fields"
+    "correction_check": "Crossref update-to and relation fields; arXiv version and updated timestamp"
   },
   "records": [
+    {
+      "bibkey": "Perez_Sanchez_2026",
+      "arxiv": "2602.04850",
+      "version": "v2",
+      "title": "El Agente Quntur: A research collaborator agent for quantum chemistry",
+      "year": 2026,
+      "metadata_source": "arXiv Atom API",
+      "published": "2026-02-04T18:38:50Z",
+      "updated": "2026-04-14T01:09:29Z",
+      "status": "verified_preprint"
+    },
+    {
+      "bibkey": "Kimi_Team_2026",
+      "arxiv": "2607.24653",
+      "version": "v1",
+      "title": "Kimi K3: Open Frontier Intelligence",
+      "year": 2026,
+      "metadata_source": "arXiv Atom API",
+      "published": "2026-07-27T16:49:54Z",
+      "updated": "2026-07-27T16:49:54Z",
+      "author_policy": "BibTeX uses the verified Kimi Team collaboration label shown by arXiv; the complete individual author list remains in the arXiv record.",
+      "status": "verified_preprint"
+    },
     {
       "bibkey": "Zou_2025",
       "doi": "10.1016/j.matt.2025.102263",

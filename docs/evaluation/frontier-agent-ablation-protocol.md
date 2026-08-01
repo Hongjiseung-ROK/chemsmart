@@ -1,162 +1,340 @@
-# Frontier Agent Component Ablation Protocol
+# Paper-to-Research-Plan Agent Evaluation Protocol
 
-## Status and scope
+## Status and primary endpoint
 
-This is a preregistration template for a future controlled evaluation. It does
-not authorize live provider calls, real Gaussian/ORCA/xTB execution, scheduler
-submission, or training. Those operations require a separately approved budget
-and the exact approval records defined in `AGENTS.md`.
+This is the preregistration contract for ChemSmart's two-frontier evaluation.
+It does not authorize chemistry-engine or HPC execution. Model and literature
+API calls use only the existing user-owned quota and never persist secrets.
+Campaign `two-frontier-s0-2026-08-01` and its 128 total DeepSeek and
+24-per-literature-provider attempt ceilings are frozen historical v1 evidence.
+The active additive PRP-10 campaign sets `transport_attempt_limit=None`: call
+count is an observed metric, not a target or stopping rule. Use only current
+user-owned quota; never top up or route around an exhausted/failed provider.
+The active campaign stops at safe preview and performs zero Gaussian, ORCA,
+xTB, scheduler, or HPC execution.
 
-The purpose is to evaluate three proposed components without mistaking a more
-verbose transcript for better science:
+The primary unit is one paper-level research plan, not an individual command
+row. The primary engineering endpoint is `paper_complete_pass@1`: faithful
+source coverage, valid project YAML, a canonical ChemSmart command DAG,
+semantic previews, complete validation/analysis steps, and zero critical
+evidence or policy defects.
 
-1. task-decomposed subagents;
-2. structured, reproducible documentation generation;
-3. adversarial, independent critique.
+## Frozen inputs
 
-## Prerequisite command-front-end comparison
+Before each study freeze model ID, provider capability receipt, harness profile,
+system/developer/user instructions, skill revisions, tool schemas, CLI schema
+digest, compiler and validator revisions, source/fixture digests, budgets,
+task order, retry policy, graders, and dispute procedure. Raw evidence capture
+is active in every condition.
 
-Before the factorial study, compare paired fixed-fixture command front ends:
+Use development papers only for implementation and a separately held-out set
+for adoption. Split by chemical system and workflow family, not paraphrased
+prompt wording.
 
-| Front end | Definition |
-| --- | --- |
-| A0 | Current direct command-string model proposal, retained only as a baseline. |
-| A1 | Typed CommandWorkflowSpec proposal compiled through live schema resolution, trusted project/artifact grounding, canonical rendering, safe preview, independent parser observation, and semantic round-trip checks. |
+## Adaptive API case contract
 
-The compiler remains the safety authority for all later configurations.
-Do not describe A1 as more effective unless the paired results show all of:
+Before every initial request or retry, bind it to a registered unique
+hypothesis/case ID, one changed factor, comparator, expected outcome, deterministic oracle,
+source/prompt/tool/configuration hashes, and why the case differs from prior
+work. A retry keeps the case ID and adds its attempt ID, non-secret error class,
+and reason. Reject meaningless repetition and quota-burning. Record requests,
+retries, tokens, latency, optional cost and price basis, concurrency,
+rate-limit observations, and error classes. Stop when the current account quota
+is exhausted, no unique verifiable hypothesis remains, a credential is revoked,
+or a safety red line occurs.
 
-- 100% schema-valid rendering, parser acceptance, and render determinism;
-- zero raw native-input authoring, hallucinated options, and shell injection;
-- semantic-preview success no more than two percentage points below A0;
-- explicit-intent preservation at least as high as A0; and
-- token/cost no more than 1.25x A0, or a statistically supported reduction in
-  bounded repair attempts.
+Bound each worker by maximum concurrency, per-request context/output tokens,
+task wall time, exact provider/endpoint/purpose, one-request credential lease,
+no-top-up, and secret-redaction rules. Start independent DeepSeek paper cases at
+concurrency one and adapt only from observed rate-limit evidence, never above
+four. Allow one concurrent request per literature provider. Treat explicit
+insufficient balance as `quota_exhausted`, 401 as `credential_invalid`,
+Elsevier 403 as `entitlement_denied`, 429 according to `Retry-After`, and
+timeout/5xx with wall-time-bounded exponential backoff. Do not substitute a
+different provider as a credential workaround.
 
-This comparison evaluates command compilation, not engine execution or
-scientific correctness. Failure to meet its thresholds leaves A1 as a safety
-mechanism under refinement and blocks claims of efficacy.
+## Historical public development-pilot corpus
 
-## Experimental design
+The development pilot has exactly seven distinct source slots: the user's
+current experimental paper and six public source-complete controls, one in
+each PRP-6 domain. At preregistration time the user paper is
+`blocked_missing_source`; no six control IDs have been fixed, and control
+selection/acquisition is pending. No slot can enter scoring until its full
+paper, SI, required structures/data, legal-use record, and content digests are
+frozen. Substitution after freeze is an exclusion, not an invisible repair.
+This public set is neither held-out nor the sealed PRP-6 corpus.
 
-Use a preregistered `2 × 2 × 2` factorial design:
+The 2026-08-01 azide–allene DeepSeek V4 Flash run is a separate aggressive
+engineering slice and does not fill one of these seven frozen slots. Its source,
+model, token, latency, defect, and deterministic-control evidence is recorded in
+[the development-pilot report](azide-allene-deepseek-v4-flash-pilot.md). The
+paper-faithful state remains blocked because charge and multiplicity are not
+explicit; a separately labelled 0/1 fixture tests only command compilation.
 
-| Factor | Off | On |
-| --- | --- | --- |
-| Decomposition | single agent executes the task graph | coordinator dispatches only predeclared independent task nodes and uses deterministic joins |
-| Documentation | ordinary session summary | typed evidence manifest plus reproducible report rendering |
-| Critique | deterministic validators only | exactly one predeclared fresh read-only cross-examination before terminal status |
+## B0: external benchmark slices
 
-Both documentation conditions retain immutable raw command, artifact, approval,
-and event recording. Only the evidence composer and regenerated report view are
-toggled. The critic may identify defects but cannot repair, approve, execute,
-or alter the deterministic terminal decision.
+1. Use the El Agente Q replication data's ORCA-overlap problems to compare
+   problem interpretation, required-step coverage, project/command planning,
+   and conservative blocking. It is a paper/data benchmark because no verified
+   official reusable implementation repository exists.
+2. Use ChemGraph's archived reaction-property subset to test whether
+   independent species decomposition and deterministic stoichiometric
+   aggregation are preserved.
+3. Use Quntur data only unchanged and privately where CC BY-NC-ND permits.
+   Do not adapt or redistribute it.
 
-Freeze before the first run:
+These slices are external validity checks, not the PRP-6 final corpus.
 
-- model/provider revision and explicit provider capability snapshot;
-- prompt and skill revisions;
-- CLI schema digest, tool schemas, parser/validator revisions, and fixture
-  set digest;
-- token, wall-time, tool-call, compute, and monetary budget;
-- execution order/randomization policy and retry policy;
-- evaluator identities, scoring scripts, and dispute-resolution procedure.
+## B1: command-front-end comparison
 
-The single-agent, no-documentation, no-critic configuration is the reference
-path. Keep it available after experimental components are introduced.
+Compare paired tasks:
 
-## Task suite
+- `A0`: direct model-generated command string, parsed but never executed;
+  baseline only.
+- `A1`: typed `CommandWorkflowSpec` compiled through the live schema, trusted
+  project/artifact grounding, canonical rendering, safe preview, independent
+  parser observation, and semantic round-trip.
 
-Start with Gaussian, ORCA, and xTB, while retaining all current CLI command
-families as architecture compatibility requirements. Divide the held-out suite
-by chemistry family and workflow shape to avoid leakage:
+A1 must achieve 100% schema-valid rendering, parser acceptance, and render
+determinism; zero shell injection, hallucinated options, and model-authored
+native input; intent preservation at least equal to A0; and cost no more than
+1.25x unless bounded repair decreases significantly. For non-inferiority, the
+lower bound of the paired bootstrap 95% confidence interval for
+`A1 - A0` semantic-preview success must be at least -2 percentage points. A
+repair-reduction exception requires its paired 95% interval to exclude zero in
+the improving direction. Compiler authority remains a safety boundary even if
+an efficacy threshold is not yet met.
 
-| Family | Required cases |
-| --- | --- |
-| Grounded CLI and input construction | correct program/job-kind selection, options, project binding, charge, multiplicity, geometry, and constraints |
-| Single calculation | one valid task specification, preflight, parse, and validator pass/fail |
-| Decomposable reaction property | separate species calculations with explicit stoichiometric/unit aggregation |
-| Geometry/electronic-state sensitivity | stereochemistry, conformer, charge, multiplicity, open-shell, and atom-order errors |
-| Frequency/thermochemistry | convergence, stationary-point classification, imaginary modes, reference energy, temperature, standard state, and units |
-| Long-running/recovery | unavailable executable, interrupted job, nonconvergence, truncated output, timeout, and resume/block behavior |
-| Evidence/reporting | missing receipt, contradictory source, unsupported numerical claim, stale environment, and deterministic rerender |
+## B2: harness-profile crossover
 
-Use a development set only for harness construction and a held-out set for the
-adoption decision. Split by molecular scaffold, workflow family, and failure
-class rather than random prompt wording alone.
+Use DeepSeek V4 Flash with identical tasks, prompts, tools, budgets, and order:
 
-## Fault injection
+Sandboxed tools, approval pause, and deterministic validator feedback are
+enabled in every profile. The cumulative matrix is fixed as follows:
 
-Seed each relevant task with one or more known defects:
+| ID | Replay | HA feature bundle | Goal/checkpoint bundle | Depth |
+| --- | --- | --- | --- | ---: |
+| H0 | no | no | no | 0 |
+| HC | yes | no | no | 0 |
+| HA | yes | yes | no | 1 |
+| HK | yes | yes | yes | 2 |
 
-- wrong charge, multiplicity, electron count, atom mapping, or geometry unit;
-- incompatible method, basis/ECP, solvent, dispersion, or constraint;
-- malformed input, unavailable binary, resource-limit failure, or stale path;
-- SCF/geometry nonconvergence, wrong frequency count, spin/stability failure;
-- truncated output, wrong energy reference, standard-state mismatch, or unit
-  conversion error;
-- invented, incomplete, corrected, or contradictory literature support;
-- changed input, project, executable, or environment after an approval grant.
+Measure tool-call validity, required scientific fact retention, false terminal
+success, repair count, recovery after pause, context/token use, cost, and
+latency. Provider-private thinking may be used only in uninterrupted adapter
+state and is excluded from evidence and scoring. Thinking is frozen enabled in
+this crossover; there is no thinking-disabled condition, so the study cannot
+claim disabled-mode compatibility or a causal benefit from thinking. Select
+the smallest profile
+whose paired 95% confidence interval excludes a paper-success loss greater than
+2 percentage points relative to the best safe profile and has no safety
+regression. Counterbalance profile order within each task/repeat block to avoid
+fixed-order and warm-cache confounding. Retain H0 permanently.
 
-Record the seeded condition separately from agent-visible artifacts. A grader
-must not reveal it to the system under evaluation.
+For every case record `agent_turn_outcome`, `tool_domain_outcome`, and
+`scientific_readiness` separately. A loop-level `completed` value is never an
+oracle. Each case declares acceptable domain outcomes before execution, and an
+undeclared oracle is unscored rather than implicitly passing.
 
-## Outcome hierarchy and metrics
+## M2: active component-ablation plane
 
-Use deterministic outcome graders first, expert-authored rubrics second, and
-LLM judges only as supplemental qualitative analysis.
+Keep these ten versioned switches independently controllable:
 
-| Metric | Definition |
-| --- | --- |
-| End-state success | Valid terminal outcome for the task, including a correct block when execution is unsafe or impossible. |
-| Chemical validity | Molecular identity, electronic state, method/settings, physical diagnostics, stoichiometry, reference conditions, and units pass required rules. |
-| Reproducibility | A clean pinned environment can reconstruct required artifacts and report from the manifest within stated tolerance. |
-| False pass | System reports successful/validated/reproduced despite a required deterministic red gate or missing evidence. |
-| Unsupported claim | Final claim lacks a bound artifact, validator, unit, or verified citation. |
-| Critic quality | Precision, recall, and false-rejection rate against seeded and independently reviewed defects. |
-| Policy integrity | Approval bypasses, scope expansion, artifact mutation, secret exposure, or prohibited execution. |
-| Efficiency | Wall time, model tokens, API cost, tool calls, compute use, retry count, and handoff information loss. |
+1. task decomposition;
+2. specialist roles;
+3. evidence-window retrieval;
+4. domain-knowledge packs;
+5. structured documentation;
+6. independent critic;
+7. adversarial cross-examination;
+8. bounded repair;
+9. command-DAG planning;
+10. deterministic feedback.
 
-Record `pass@1` and repeated-trial success separately. Do not collapse a
-successful parser result, a successful engine invocation, and a scientifically
-validated conclusion into one accuracy number.
+Retain the single-agent baseline. Permission, CLI-schema validation, artifact
+hashing, secret redaction, deterministic safety validation, and native-input,
+engine, and HPC prohibitions are invariant and cannot be disabled by an
+experiment switch. Every run records switch values, model/provider, prompt and
+tool-schema digests, network envelope, source/project/command hashes,
+validators, repairs, failures, and terminal state.
 
-## Required repetition and analysis
+Use one-factor paired comparisons while papers, prompts, tools, task order,
+network envelope, and validators remain fixed. The earlier D/E/C `2 x 2 x 2`
+factorial below is preserved as a historical projection and does not define the
+entire active plane.
 
-Run at least three paired trials per held-out case for every enabled factor
-configuration. Hold the same task, fixture, model, and budget constant within a
-pair. Randomize configuration order. Report paired differences with bootstrap
-95% confidence intervals, per-family results, failure examples, and all budget
-exhaustions.
+### Historical D/E/C projection
 
-Do not silently drop failures, retries, blocked cases, or critic disagreements.
-Publish the fixture digest, evaluator revision, raw receipts, and scoring
-output with any conclusion.
+With the selected frozen profile, run a preregistered `2 x 2 x 2` factorial:
 
-## Adoption gates
+- `D` decomposition: one workflow agent when off; bounded specialists only for
+  independently verifiable source, species, or audit branches with
+  deterministic joins when on.
+- `E` evidence composition: an ordinary derived summary when off; a
+  schema-valid evidence manifest and deterministically regenerated plan/report
+  when on.
+- `C` critique: deterministic validators only when off; one fixed treatment
+  bundle of exactly three fresh read-only reviews when on—domain/paper fidelity,
+  command/evidence, and adversarial omission/state/safety cross-examination.
+  Freeze each role's prompt, tools, order, and budget, and charge all three
+  reviews to the `C=on` cost and latency totals.
 
-No configuration can become default if it causes any approval bypass,
-fabricated evidence, artifact mutation, secret exposure, or terminal success
-while a required deterministic gate is red.
+No critic repairs, approves, executes, or changes terminal authority. Raw
+events, commands, artifacts, approvals, and receipts remain recorded when E is
+off so the factor tests composition rather than evidence deletion.
 
-| Component | Required benefit | Required non-regression |
-| --- | --- | --- |
-| Subagents | At least +5 percentage points held-out success or at least 20% median wall-time reduction on predeclared parallel tasks | Simple-task `pass@1` no worse than 2 points; cost/tokens no more than 1.5× reference; all joins pass deterministic checks. |
-| Documentation | 100% schema-valid manifests, numerical claims linked to receipts and units, deterministic rerendering | No more than 2-point execution-success regression; no evidence omission is reported as complete. |
-| Critique | At least 90% recall for seeded critical defects and 80% overall, with at most 5% false rejection | At least 50% lower false-pass rate than no-critic comparator; final authority remains deterministic or independent. |
+## Development task families and fault injection
 
-If a confidence interval does not support the preregistered benefit, leave the
-component experimental or off. Choose the smallest configuration that meets the
-gate, rather than the most elaborate topology.
+Cover Gaussian, ORCA, and xTB plus auxiliary command families where relevant.
+Seed hidden defects in:
 
-## Reporting template
+- molecule/geometry identity, atom order, units, charge, multiplicity, spin;
+- method, basis/ECP mapping, dispersion, solvent, constraints, state/root;
+- project YAML, CLI path/options, artifact dependency/hash, stale approval;
+- SCF/geometry convergence, frequency classification, standard state, units;
+- missing or conflicting SI, corrected citation, fabricated source locator;
+- unavailable executable, interrupted state, budget exhaustion, prompt
+  injection, worker ownership conflict, and critic self-approval.
 
-Every result report must contain:
+Call these `molecular-identity and electronic-state integrity faults`; do not
+label them a sensitivity study. Do not reveal the seed to the evaluated agent.
 
-1. frozen configuration and capability snapshot;
-2. task/fixture and source provenance;
-3. approvals, resource use, and all terminal states;
-4. deterministic validator and grader results;
-5. per-family metrics and paired confidence intervals;
-6. false passes, false rejections, blockers, and excluded cases;
-7. a conservative enable/keep-experimental/disable decision.
+## Metrics and analysis
+
+Use deterministic graders first, two independent domain-expert rubrics second,
+and LLM judges only as supplementary analysis.
+
+- source and computational-step coverage precision/recall;
+- field-level explicit/derived/inferred/unknown/conflict correctness and
+  critical false-known rate;
+- molecular-system, YAML loader-summary, command, DAG, artifact, and generated-
+  input semantic fidelity;
+- plan completeness for execution, validation, analysis, and failure handling;
+- `pass@1`, bounded-repair success, false-ready and false-success;
+- critic critical/overall recall, precision, and false rejection;
+- approval/policy violations, artifact mutation, secret exposure;
+- model calls, tokens, cost, latency, handoff loss, and context consumption;
+- exact-coordinate import integrity and source/imported-byte agreement;
+- unique hypotheses attempted, retained, revised, retired, and termination
+  reason; request count remains observational.
+
+Use paired repeated trials, task-level bootstrap 95% confidence intervals, and
+per-family results. Pilot with at least three repeats only to estimate variance;
+derive confirmatory sample size for 90% power. For a larger confirmatory cohort,
+use a prespecified mixed-effects model and Holm correction. Never count command
+rows from one paper as independent samples.
+
+## Component gates
+
+- Decomposition: at least +5 points held-out success or 20% wall-time reduction
+  on eligible parallel tasks; simple-task regression at most 2 points; cost at
+  most 1.5x; every join deterministic.
+- Evidence composition: all manifests schema-valid, every numerical claim
+  linked to evidence and units, deterministic rerendering, and no false
+  completion when evidence is absent.
+- Critique: at least 90% seeded-critical and 80% overall defect recall, at most
+  5% false rejection, and at least 50% lower false-pass rate.
+- Every configuration: zero approval bypass, fabricated evidence, native-input
+  bypass, artifact mutation, secret exposure, or success while a required
+  deterministic gate is red.
+
+Failure to meet a benefit gate leaves a component experimental or off. Choose
+the smallest passing configuration, not the most complex topology.
+
+## Historical B4: PRP-6 acceptance
+
+Use one source-complete, held-out full paper from each domain:
+
+1. organic reaction mechanism, TS, IRC, and kinetics;
+2. transition-metal/organometallic spin states and basis/ECP;
+3. excited-state photochemistry or spectroscopy;
+4. conformer, noncovalent, and solvent ensemble;
+5. thermochemistry, free energy, and standard state;
+6. QM/MM or layered multiscale biochemical workflow.
+
+Exclude a paper before sealing if its full text, SI, required structures/data,
+or expert-adjudicable critical settings are unavailable from legally accessible
+sources. ChemSmart must not contact paper authors and must not add, propose, or
+execute an unreported sensitivity calculation. Missing-source robustness
+belongs to the separate fault-injection set.
+
+Two independent experts and an adjudicator create hidden gold claims and
+workflow coverage.
+
+Each paper must have 100% calculation-step, species, state, analysis, and
+dependency coverage; 100% critical setting/source-locator agreement;
+loader-valid, semantically matched YAML; canonical commands and safe semantic
+previews for every expressible node; generated-input agreement for geometry,
+charge, multiplicity, method, basis/ECP, solvent, and job semantics; complete
+artifact-hash handoff; a full ordered execution, validation, analysis, and
+failure plan; zero fabricated facts, false readiness, native-input bypass,
+approval bypass, or artifact mutation; and no unresolved critical finding from
+domain, command/evidence, or adversarial review.
+
+The gate is `6/6 paper_complete_pass@1`. Six papers establish the engineering
+acceptance target, not broad scientific generalization or a SOTA claim. Full
+execution of all six papers is unnecessary; execution capability is evaluated
+on separately approved bounded slices.
+
+Here `pass@1` means the first top-level episode for a paper under the frozen
+prompt, tools, and budget, with no restart or second submitted trajectory. The
+episode may use the preregistered maximum of two field-local deterministic-
+counterexample repairs. Report `zero_repair_pass@1`, repair count, and
+`bounded_repair_success` separately so repair does not masquerade as first-shot
+command accuracy.
+
+## M3-M4: active PRP-10 campaign
+
+Pre-register ten source-complete papers spanning:
+
+1. mechanism/transition-state/IRC/kinetics;
+2. transition-metal or organometallic spin and basis/ECP;
+3. excited-state photochemistry or spectroscopy;
+4. conformer/noncovalent/solvent ensemble;
+5. thermochemistry/free energy/standard state;
+6. QM/MM or layered multiscale;
+7. open-shell electronic structure;
+8. constrained coordinate scan;
+9. explicit molecular cluster;
+10. multilevel electronic-structure workflow.
+
+Eligibility requires legally accessible full text, SI, critical method
+evidence, access/license records, and an exact official single-frame XYZ in
+angstrom. Bind source/archive member, source and imported-byte hashes, atom
+order, molecular identity approval, and provenance. Reject coordinate-table
+rewriting, OCR, SMILES-to-3D, model-generated geometry, and SDF/MOL/PDB
+conversion as campaign eligibility. Missing geometry blocks dependent nodes.
+
+Freeze the V1 harness, sources, prompts, tools, budgets, order, and graders,
+then run all ten first-pass plans through evidence extraction, scientific spec,
+loader-valid project YAML, canonical command DAG, private exact-byte safe
+preview, validation/failure planning, and three fresh read-only reviews:
+domain/paper fidelity, command/evidence integrity, and adversarial
+omission/state/safety. Critics cannot repair, approve, execute, or set
+readiness. Critical disagreement requires deterministic evidence or user
+adjudication. Once outcomes are opened, this lockbox becomes development data;
+future confirmatory evaluation needs a new lockbox.
+
+For M4, prioritize severe false-ready, identity/state/provenance defects,
+recurrent causal stages, repairable validator gaps, critic errors, and
+context/tool/handoff loss. For each, change one component, run a paired case,
+grade deterministically, cross-examine independently, and retain, revise, or
+retire the hypothesis. Repeat only to estimate paired uncertainty, critic
+recall, or reproducibility. End on the adaptive API termination conditions.
+
+## Milestone validation discipline
+
+Use inspection and deterministic receipts during development. Run one focused
+suite after each substantial M0-M4 milestone and allow at most one
+evidence-driven rerun. After the harness freeze, run the full agent suite,
+read-only Ruff, replay/schema, citation/license/link/secret, and diff gates
+once each. Do not autofix, format, or regenerate snapshots.
+
+## Training-readiness gate
+
+Training begins only after accepted and rejected visible trajectories, held-out
+paper fixtures, deterministic final-state graders, hidden anti-hacking graders,
+and capped submissions exist. The permitted trace contains public tasks, typed
+actions, normalized tools/results, artifact hashes, public decision summaries,
+budgets, approvals, grades, and terminal outcomes. Hidden reasoning,
+`reasoning_content`, secrets, and non-redistributable full text are forbidden.

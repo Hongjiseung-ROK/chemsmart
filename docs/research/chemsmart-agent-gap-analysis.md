@@ -2,8 +2,9 @@
 
 > Historical pinned-baseline analysis. It describes
 > `cf986251077b7ee65f8afa951ee76052146c7613`, not the command-refinement
-> implementation on top of it. The active boundary is
-> [CommandWorkflowSpec v1](../design/command-workflow-spec-v1.md).
+> implementation on top of it. The active boundaries are
+> [CommandWorkflowSpec v1](../design/command-workflow-spec-v1.md) and
+> [Paper Research Plan v1](../design/paper-research-plan-v1.md).
 
 ## Scope and evidence boundary
 
@@ -18,6 +19,33 @@ records the exact CLI-schema hash, focused-test result, research sources, and
 source limitations. The initial focused baseline passed 206 tests in 4.80 s;
 the full-suite result is intentionally recorded only after this branch's
 foundation changes are validated.
+
+## Active working-tree delta
+
+The table below is a source inspection of the uncommitted working tree based on
+`887ab923d45e1a8a97f04441d3df843500e8f1df` on 2026-08-01. It is not a release
+receipt. “Contract present” means the named strict type or rule exists in the
+working tree; it does not mean integration, provider conformance, chemistry
+execution, or PRP-6 acceptance has passed.
+
+| Area | Contract present in the working tree | Evidence still required |
+| --- | --- | --- |
+| Paper state | `paper_research.py` defines source, claim, molecular-system, project, knowledge-pack binding, research-plan, readiness, and digest contracts. | End-to-end source acquisition, plan assembly, safe-preview linkage, and a frozen paper fixture remain to be demonstrated together. |
+| Scientific knowledge | `domain_knowledge.py` defines versioned domain/engine scopes, source hashes, rules, prohibitions, and validator IDs. | Each of the six domains still needs reviewed pack content and implemented validators; selecting a pack is not evidence for a paper setting. |
+| Harness profiles | `runtime/harness_profiles.py` defines `H0`, `HC`, `HA`, and `HK`, provider capabilities, opaque state references, and conformance receipts. The retained [2026-08-01 DeepSeek V4 Flash H0 observation](../evaluation/receipts/deepseek-v4-flash-h0-2026-08-01.json) is historical only. | The H0 observation is `stale_invalidated`: it predates the current source snapshot, has a legacy short receipt ID, and lacks the current public-history digest. It admits no current profile. HC, HA, and HK are also untested; thinking-disabled behavior and a causal thinking benefit are untested. |
+| Delegation and review | `runtime/delegation_contracts.py` defines bounded specialist, result, merge, review, and review-gate envelopes. | Seeded-fault evaluation must show that ownership, budget, scope, join, and critic-independence rules work through the active runtime. |
+| Runtime research events | Additive event payloads and projection work are present under `runtime/`. | Legacy replay, invalid transition rejection, idempotency collision handling, and terminal receipt binding require a focused integration receipt after the event milestone stabilizes. |
+| Project coverage | The project loader and command grounding contain an xTB extension in addition to Gaussian and ORCA. | Loader, semantic-match, and generated-preview checks remain required; auxiliary and six-domain capability gaps must be recorded rather than bypassed. |
+
+The largest remaining system gap is orchestration: these contracts must be
+joined by one coordinator into a source-complete `PaperResearchPlan` without
+inventing missing settings. ChemSmart must not contact paper authors and must
+not add, propose, or execute an unreported sensitivity calculation. The final
+unresolved empirical gap is PRP-6: no contract or focused test substitutes for
+six sealed, held-out papers, hidden expert gold, and the exact acceptance gate.
+The nearer public pilot is also incomplete: the user experimental paper is
+`blocked_missing_source`, and the six public domain-control papers have not
+been selected or acquired.
 
 ## Current agent surface
 
@@ -87,13 +115,28 @@ can be regenerated from structured, pinned artifacts. The target is a
 QCSchema-compatible record plus native inputs/outputs and a workflow manifest,
 not a polished narrative that omits failed checks or assumptions.
 
-## Explicit non-goals of this foundation
+## Historical foundation limits
 
-- No runtime, CLI, provider, permission, or engine behavior changes.
-- No live model requests, real Gaussian/ORCA/xTB runs, or scheduler jobs.
-- No GUI, desktop application, packaging, or Studio changes.
-- No claim that the current agent is autonomous, production-ready, or
-  scientifically validated.
+The pinned `cf986251...` foundation release was documentation-and-skill work
+only. At that baseline it made no runtime, CLI, provider, permission, or engine
+behavior change; made no live model request or chemistry/scheduler run; and did
+not claim autonomy, production readiness, or scientific validation. Those are
+historical release facts, not a description of the active working tree.
+
+## Current development-slice boundaries
+
+The active slice may add strict paper, provider, delegation, project, and
+Runtime V2 contracts and may perform bounded provider/literature probes within
+the existing user-owned quota. It still does not authorize:
+
+- a real Gaussian, ORCA, or xTB calculation or scheduler/HPC job;
+- a native-input model surface or runtime self-modification;
+- GUI, desktop application, packaging, or Studio work;
+- model training, publication, preprint submission, or dataset release; or
+- a claim of paper reproduction, PRP-6 passage, broad generalization, or SOTA.
+
+Each such boundary changes only through explicit phase evidence and applicable
+user approval, not because a contract or API liveness probe exists.
 
 The implementation blueprint and its gates are in
 [chemsmart-agent-ultimate-goal.md](../design/chemsmart-agent-ultimate-goal.md).

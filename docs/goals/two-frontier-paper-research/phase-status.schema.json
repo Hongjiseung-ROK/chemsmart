@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://chemsmart.local/schemas/phase-status-ledger-v1.json",
+  "title": "ChemSmart R0-R6 Phase Status Ledger v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ledger_id",
+    "branch",
+    "baseline_sha",
+    "records",
+    "historical_foundation_receipts_are_current"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "chemsmart.phase-status-ledger.v1"
+    },
+    "ledger_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "branch": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240
+    },
+    "baseline_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "$ref": "#/$defs/phase_record"
+      }
+    },
+    "historical_foundation_receipts_are_current": {
+      "const": false
+    }
+  },
+  "$defs": {
+    "identifier_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$"
+      }
+    },
+    "phase_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "state",
+        "source_snapshot_sha256",
+        "receipt_ids",
+        "check_ids",
+        "blocker_rule_ids"
+      ],
+      "properties": {
+        "phase": {
+          "enum": ["R0", "R1", "R2", "R3", "R4", "R5", "R6"]
+        },
+        "state": {
+          "enum": [
+            "not_started",
+            "in_progress",
+            "evidence_pending",
+            "validated",
+            "blocked",
+            "failed"
+          ]
+        },
+        "source_snapshot_sha256": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+          ]
+        },
+        "receipt_ids": {
+          "$ref": "#/$defs/identifier_array"
+        },
+        "check_ids": {
+          "$ref": "#/$defs/identifier_array"
+        },
+        "blocker_rule_ids": {
+          "$ref": "#/$defs/identifier_array"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "validated"}}},
+          "then": {
+            "properties": {
+              "source_snapshot_sha256": {"type": "string"},
+              "receipt_ids": {"minItems": 1},
+              "check_ids": {"minItems": 1},
+              "blocker_rule_ids": {"maxItems": 0}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {"enum": ["blocked", "failed"]}
+            }
+          },
+          "then": {
+            "properties": {
+              "blocker_rule_ids": {"minItems": 1}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"state": {"const": "not_started"}}},
+          "then": {
+            "properties": {
+              "source_snapshot_sha256": {"type": "null"},
+              "receipt_ids": {"maxItems": 0},
+              "check_ids": {"maxItems": 0},
+              "blocker_rule_ids": {"maxItems": 0}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -2,9 +2,12 @@
 
 ## Status
 
-This is the active M2 contract. It supports deterministic command compilation
-and isolated safe preview only. It does not authorize an engine run, scheduler
-submission, training, or an SOTA claim. A successful new workflow is
+This is the bounded command-compiler nucleus created during the historical M2
+milestone and retained by the active R0-R6 roadmap. It supports deterministic
+command compilation and isolated safe preview only; the canonical full-paper
+composition rules live in [Paper Research Plan v1](paper-research-plan-v1.md).
+It does not authorize an engine run, scheduler submission, training, or an
+SOTA claim. A successful new workflow is
 `previewed`; an unavailable downstream artifact remains `planned`; a red gate
 is `blocked` or `needs_clarification`.
 
@@ -23,19 +26,22 @@ path, flag alias/order, project name, or quote escaping. The deterministic
 compiler resolves all of those values from the current Click schema and
 host-owned workspace bindings.
 
-## M2 supported scientific slice
+## Current bounded pre-R4 scientific slice
 
 | Program | Previewable jobs | Method authority |
 | --- | --- | --- |
 | Gaussian | `opt`, `ts`, `sp`, `td` | content-addressed project YAML; loader and route observation must agree |
 | ORCA | `opt`, `ts`, `sp` | content-addressed project YAML; loader and route observation must agree |
-| xTB | `opt`, `sp`, `hess` | typed `gfn_version`; `solvent_model`/`solvent_id` are an all-or-none pair |
+| xTB | `opt`, `sp`, `hess` | content-addressed xTB project YAML with an explicit block for every used job; generated call and loader observations must agree |
 
-M2 accepts only a single-frame XYZ artifact in Angstrom. QMMM, NEB, scans,
+This slice accepts only a single-frame XYZ artifact in Angstrom. QMMM, NEB, scans,
 modred, multi-frame geometries, arbitrary route text, custom/ECP layering that
 the existing project summary cannot verify, and native-input artifacts as
 calculation geometry are not previewable yet. They terminate with structured
 clarification or block evidence; no fallback input is created.
+Downstream optimized-geometry handoff remains blocked until a producer receipt
+binds an ordered-geometry digest. Element-resolved Gaussian `gen`/`genecp`
+mapping remains blocked until its own parser and validator exist.
 
 ## Compilation and preview order
 
@@ -89,7 +95,8 @@ The active Runtime V2 profile exposes `inspect_command_schema`,
 `inspect_command_workflow`, `synthesize_command`, and `repair_command`, along
 with read-only workspace/project operations. It hides and fail-closes native
 builders, job builders, direct raw-command inspection, `run_local`,
-`submit_hpc`, and `execute_chemsmart_command`. A future M3 executor must bind a
+`submit_hpc`, and `execute_chemsmart_command`. A future separately approved
+executor must bind a
 one-shot approval to the invocation, task, command, project, artifact,
 environment, and receipt hashes; this contract implements none of that
 execution authority. The active typed profile may reach its successful terminal
@@ -98,7 +105,7 @@ string, or an unconsumed repair proposal cannot satisfy that completion gate.
 
 ## Baseline comparison record
 
-M2 records a path-free A0/A1 observation for a fixed fixture: an already
+The historical M2 slice records a path-free A0/A1 observation for a fixed fixture: an already
 captured direct-command trace and the typed receipt are projected into the same
 schema/parser/preview/intent/repair/failure fields. The record is deliberately
 `experimental_not_adopted`; it does not include live provider identity, cost,

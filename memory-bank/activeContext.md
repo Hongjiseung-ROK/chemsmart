@@ -6,11 +6,11 @@ Do not update it during unrelated work, run the listed collection tasks, or
 interpret its counts as current status unless the user explicitly reactivates
 that SFT program.
 
-**2026-08-01 redirect:** the active command-compiled frontier roadmap is
-`docs/goals/frontier-agent-command-refinement/README.md`; its phase documents
-and `AGENTS.md` supersede the historical operational instructions below. The
-remaining text is retained as a historical snapshot, not a current status
-claim.
+**2026-08-01 redirect:** the active paper-to-research-plan roadmap is
+`docs/goals/two-frontier-paper-research/README.md`; the older command-refinement
+roadmap is compiler lineage only. The R0-R6 phase documents and `AGENTS.md`
+supersede the historical operational instructions below. The remaining text is
+retained as a historical snapshot, not a current status claim.
 
 ---
 

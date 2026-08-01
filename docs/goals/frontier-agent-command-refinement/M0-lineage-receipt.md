@@ -12,6 +12,7 @@
 | original checkout boundary observation at scope entry (2026-08-01) | 72 porcelain entries; SHA-256 `22afaff13b12d50278d32e11975bf70f368e839ac3d6817a373ee578adee0679` |
 | original checkout observation before target validation (2026-08-01) | `fbb82316d13370940080a6b6981f9a047edb761b`; 14 porcelain entries; SHA-256 `684d57bfcc7887a3b8d7f6ae4b83f06b459ab203a63042b06f97321e02ec3f0e` |
 | original checkout final read-only observation (2026-08-01) | `fbb82316d13370940080a6b6981f9a047edb761b`; 72 porcelain entries; SHA-256 `22afaff13b12d50278d32e11975bf70f368e839ac3d6817a373ee578adee0679` |
+| original checkout after live paper pilot (2026-08-01) | `fbb82316d13370940080a6b6981f9a047edb761b`; 14 porcelain entries; SHA-256 `684d57bfcc7887a3b8d7f6ae4b83f06b459ab203a63042b06f97321e02ec3f0e` |
 
 ## Preservation statement
 
@@ -28,6 +29,11 @@ current checkout untouched, do not use this matching digest as a release-
 success claim, and require a human owner to reconcile it before any operation
 that would touch that checkout. The digests deliberately record only Git
 porcelain text, not unrelated artifact names or contents.
+
+The post-pilot observation again matches the earlier 14-entry intermediate
+state rather than the 72-entry boundary state. No command in this isolated
+worktree targeted the original checkout. This repeated external fluctuation
+strengthens the custody exception and does not authorize cleanup or recovery.
 
 ## Remote boundary
 

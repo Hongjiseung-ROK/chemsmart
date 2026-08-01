@@ -4,6 +4,7 @@
   "records": [
     {
       "source_id": "openai-cli-creator",
+      "evidence_source_id": "openai-cli-creator",
       "source_url": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/cli-creator",
       "source_revision": "49f948faa9258a0c61caceaf225e179651397431",
       "license": {
@@ -25,8 +26,10 @@
     },
     {
       "source_id": "kdense-scientific-agent-skills",
+      "evidence_source_id": "kdense-scientific-skills",
       "source_url": "https://github.com/K-Dense-AI/scientific-agent-skills/tree/ab2f84ab10597c59fac186ecda6d5edd5dcc8b92",
       "source_revision": "ab2f84ab10597c59fac186ecda6d5edd5dcc8b92",
+      "release": "v2.61.0",
       "license": {
         "declared": "MIT",
         "verification_source": "Pinned repository LICENSE.md"
@@ -47,8 +50,10 @@
     },
     {
       "source_id": "atomisticskills",
+      "evidence_source_id": "atomistic-skills",
       "source_url": "https://github.com/learningmatter-mit/AtomisticSkills/tree/e4a1ba1c1e6657b09d7dfd69286fd3a8af411035",
       "source_revision": "e4a1ba1c1e6657b09d7dfd69286fd3a8af411035",
+      "release": "v1.4.0",
       "license": {
         "declared": "MIT",
         "verification_source": "Pinned repository LICENSE"
@@ -56,7 +61,14 @@
       "reviewed_files": [
         ".agents/skills/general-property-units/SKILL.md",
         ".agents/skills/general-fair-data-review/SKILL.md",
-        "ORCA workflow examples (reference-only candidate)"
+        ".agents/skills/chem-dft-orca-advanced-calculation/SKILL.md",
+        ".agents/skills/chem-dft-orca-optimization/SKILL.md",
+        ".agents/skills/chem-dft-orca-singlepoint/SKILL.md"
+      ],
+      "reference_only_candidates": [
+        ".agents/skills/chem-dft-orca-advanced-calculation/SKILL.md",
+        ".agents/skills/chem-dft-orca-optimization/SKILL.md",
+        ".agents/skills/chem-dft-orca-singlepoint/SKILL.md"
       ],
       "executable_dependency_surface": {
         "reviewed": "Units, FAIR-data review, and direct ORCA workflow examples",
@@ -69,6 +81,7 @@
     },
     {
       "source_id": "dpdispatcher-dpdisp-submit",
+      "evidence_source_id": "dpdispatcher-skill",
       "source_url": "https://github.com/deepmodeling/dpdispatcher/tree/92be874aca92f5506534122b308e10a00b10f03b/skills/dpdisp-submit",
       "source_revision": "92be874aca92f5506534122b308e10a00b10f03b",
       "license": {

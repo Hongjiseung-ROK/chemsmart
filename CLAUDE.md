@@ -2,9 +2,10 @@
 
 `AGENTS.md` is the authoritative repository contract. Read it first, then use
 the current checkout, parser, runtime contracts, and tests as ground truth.
-For the active command-compiled frontier roadmap, also read
-`docs/goals/frontier-agent-command-refinement/README.md` and the current phase
-document. Models propose typed command workflows; they do not write native
+For the active paper-to-research-plan roadmap, also read
+`docs/goals/two-frontier-paper-research/README.md` and the current R0-R6 phase
+document. The historical command-refinement roadmap remains compiler lineage.
+Models propose typed scientific and command workflows; they do not write native
 Gaussian, ORCA, or xTB inputs.
 
 This document preserves a 2026-07-10 SFT-collection snapshot for historical

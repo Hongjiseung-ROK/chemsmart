@@ -5,8 +5,9 @@ provider-neutral computational-chemistry automation agent with explicit
 approval and evidence gates.
 
 The active implementation roadmap is
-`docs/goals/frontier-agent-command-refinement/README.md`. Models propose
-typed scientific and command-workflow intent; deterministic code compiles,
+`docs/goals/two-frontier-paper-research/README.md`. The historical
+command-refinement roadmap remains compiler lineage. Models propose typed
+paper, scientific, and command-workflow intent; deterministic code compiles,
 previews, validates, and evidences canonical ChemSmart commands. Do not let a
 model write or repair native Gaussian, ORCA, or xTB input text.
 

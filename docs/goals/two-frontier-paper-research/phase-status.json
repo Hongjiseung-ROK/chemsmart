@@ -1,0 +1,87 @@
+{
+  "schema_version": "chemsmart.phase-status-ledger.v1",
+  "ledger_id": "53bde8a2d6a9bdaccb5c0982de2e8af7f64392cf43f7d2b88590f22769cf8d23",
+  "branch": "codex/frontier-agent-live-pilot",
+  "baseline_sha": "cf986251077b7ee65f8afa951ee76052146c7613",
+  "records": [
+    {
+      "phase": "R0",
+      "state": "evidence_pending",
+      "source_snapshot_sha256": null,
+      "receipt_ids": [],
+      "check_ids": [],
+      "blocker_rule_ids": [
+        "r0.foundation-validator-pending",
+        "r0.source-license-gaps"
+      ]
+    },
+    {
+      "phase": "R1",
+      "state": "evidence_pending",
+      "source_snapshot_sha256": null,
+      "receipt_ids": [],
+      "check_ids": [],
+      "blocker_rule_ids": [
+        "r1.focused-contract-gate-pending"
+      ]
+    },
+    {
+      "phase": "R2",
+      "state": "evidence_pending",
+      "source_snapshot_sha256": null,
+      "receipt_ids": [],
+      "check_ids": [],
+      "blocker_rule_ids": [
+        "r2.h0-observation-stale-invalidated",
+        "r2.hc-ha-hk-not-run",
+        "r2.thinking-disabled-untested"
+      ]
+    },
+    {
+      "phase": "R3",
+      "state": "evidence_pending",
+      "source_snapshot_sha256": null,
+      "receipt_ids": [],
+      "check_ids": [],
+      "blocker_rule_ids": [
+        "r3.focused-delegation-review-gate-pending"
+      ]
+    },
+    {
+      "phase": "R4",
+      "state": "evidence_pending",
+      "source_snapshot_sha256": null,
+      "receipt_ids": [],
+      "check_ids": [],
+      "blocker_rule_ids": [
+        "r4.genecp-validator-gap",
+        "r4.geometry-handoff-gap",
+        "r4.six-domain-coverage-pending"
+      ]
+    },
+    {
+      "phase": "R5",
+      "state": "blocked",
+      "source_snapshot_sha256": null,
+      "receipt_ids": [],
+      "check_ids": [],
+      "blocker_rule_ids": [
+        "r5.control-papers-selection-pending",
+        "r5.predecessor-receipts-absent",
+        "r5.user-paper-missing-source"
+      ]
+    },
+    {
+      "phase": "R6",
+      "state": "blocked",
+      "source_snapshot_sha256": null,
+      "receipt_ids": [],
+      "check_ids": [],
+      "blocker_rule_ids": [
+        "r6.r5-not-validated",
+        "r6.sealed-corpus-absent"
+      ]
+    }
+  ],
+  "historical_foundation_receipts_are_current": false
+}

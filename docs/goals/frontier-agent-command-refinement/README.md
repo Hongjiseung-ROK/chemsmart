@@ -1,4 +1,10 @@
-# Command-Compiled Frontier Agent Roadmap
+# Command-Compiled Frontier Agent Roadmap — Historical
+
+> This M0–M6 roadmap is preserved as the command-compiler lineage but is
+> superseded for new sessions by the
+> [Two-Frontier Paper Research roadmap](../two-frontier-paper-research/README.md).
+> Do not copy its goal commands as the active project goal. In particular, its
+> earlier provider-thinking instruction is historical.
 
 ## Purpose and status
 

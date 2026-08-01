@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "retrieved_at": "2026-07-31T16:38:33Z",
+  "retrieved_at": "2026-08-01T00:00:00Z",
   "baseline": {
     "commit": "cf986251077b7ee65f8afa951ee76052146c7613",
     "source_ref": "fork/codex/v015-cli-schema",
@@ -19,7 +19,94 @@
     "clean_room_adaptation": "Use concepts only after recording source revision, license status, executable surface, and decision.",
     "execution": "Reference-only sources never bypass ChemSmart parser, approval, receipt, or validation policy."
   },
+  "development_pilot": {
+    "total_papers": 7,
+    "user_experimental_papers": 1,
+    "public_control_papers": 6,
+    "user_paper_status": "blocked_missing_source",
+    "public_control_status": "selection_and_acquisition_pending",
+    "control_domains": [
+      "mechanism_ts_irc_kinetics",
+      "transition_metal_spin_basis_ecp",
+      "excited_state_photochemistry_spectroscopy",
+      "conformer_noncovalent_solvent_ensemble",
+      "thermochemistry_free_energy_standard_state",
+      "qmmm_layered_multiscale"
+    ],
+    "distinct_from_sealed_prp6": true
+  },
+  "evaluation_definitions": {
+    "thinking_condition": "enabled_only_no_disabled_or_causal_comparison",
+    "paper_complete_pass_at_1": "first_top_level_episode_no_restart_or_second_trajectory_max_two_field_local_repairs_reported_separately",
+    "critique_factor_on": "one_fixed_bundle_of_exactly_three_fresh_read_only_reviews_with_all_cost_and_latency_counted"
+  },
+  "api_validation": {
+    "checked_at": "2026-08-01T00:00:00Z",
+    "method": "One minimal liveness or metadata request per provider using an ephemeral environment alias; no key value, authorization header, raw response, or full text was retained. Each receipt_id is SHA-256 over that provider record without receipt_id using sorted compact JSON.",
+    "quota_policy": "Existing user-owned quota is the hard cap; remaining balances were not inferred, no top-up was performed, and future probes remain budgeted.",
+    "campaign_policy": {
+      "campaign_id": "two-frontier-s0-2026-08-01",
+      "credential_source": "session_environment",
+      "attempt_accounting": "Every initial transport request and every retry consumes one attempt.",
+      "transport_attempt_caps": {
+        "deepseek_total": 128,
+        "elsevier": 24,
+        "serpapi": 24,
+        "tavily": 24
+      },
+      "top_up_allowed": false
+    },
+    "providers": [
+      {
+        "provider": "deepseek",
+        "endpoint_class": "official_api",
+        "checked_at": "2026-08-01T00:00:00Z",
+        "receipt_id": "38be334370388ffe7455d3c058066211399ffdeb648c244f06f1c8b879b088ba",
+        "credential_status": "valid",
+        "entitlement_status": "requested model and typed-tool endpoint observed",
+        "quota_sufficiency": "sufficient_for_bounded_probe",
+        "non_secret_error_class": null,
+        "observed_models": [
+          "deepseek-v4-flash",
+          "deepseek-v4-pro"
+        ]
+      },
+      {
+        "provider": "elsevier",
+        "endpoint_class": "literature_api",
+        "checked_at": "2026-08-01T00:00:00Z",
+        "receipt_id": "63fd5dcca85f4cd05099311efd91c6fd33c091e319e0c486355c49f7d59c3521",
+        "credential_status": "valid",
+        "entitlement_status": "metadata endpoint observed; article-level full-text entitlement not evaluated",
+        "quota_sufficiency": "sufficient_for_bounded_probe",
+        "non_secret_error_class": null
+      },
+      {
+        "provider": "serpapi",
+        "endpoint_class": "literature_discovery_api",
+        "checked_at": "2026-08-01T00:00:00Z",
+        "receipt_id": "e81061747788f85732bd84d8ee7640d29b4d6eaf7fbe925bff89df5857e6b16f",
+        "credential_status": "valid",
+        "entitlement_status": "discovery endpoint observed",
+        "quota_sufficiency": "sufficient_for_bounded_probe",
+        "non_secret_error_class": null
+      },
+      {
+        "provider": "tavily",
+        "endpoint_class": "literature_discovery_api",
+        "checked_at": "2026-08-01T00:00:00Z",
+        "receipt_id": "5bc51375e648acfcbea80b669ad5446d7d41e974692516217f563de95ef707c6",
+        "credential_status": "valid",
+        "entitlement_status": "discovery endpoint observed",
+        "quota_sufficiency": "sufficient_for_bounded_probe",
+        "non_secret_error_class": null
+      }
+    ]
+  },
   "foundation_validation": {
+    "status": "historical_foundation_only",
+    "current_phase_authority": "docs/goals/two-frontier-paper-research/phase-status.json",
+    "scope_note": "The checks below describe the 2026-07-31 foundation snapshot and do not admit any current R0-R6 phase or provider profile.",
     "full_agent_suite": {
       "command": "PYTHONDONTWRITEBYTECODE=1 conda run --no-capture-output -n chemsmart python -m pytest -p no:cacheprovider tests/agent -q",
       "result": "1231 passed, 6 warnings in 65.56s",
@@ -42,6 +129,185 @@
       "result": "three representative clean-context skill tests completed without file changes or execution"
     }
   },
+  "claim_evidence": [
+    {
+      "claim_id": "frontier-claim-001",
+      "source_ids": [
+        "el-agente-q"
+      ],
+      "source_url": "https://doi.org/10.1016/j.matt.2025.102263",
+      "locator": "Publisher article sections describing human teaching, adaptive troubleshooting, and action-trace export",
+      "evidence_class": "peer_reviewed_article",
+      "supports_only": "Use the reported hierarchy, explicit domain context, recovery behavior, and exported artifacts as behavior-benchmark dimensions.",
+      "does_not_support": "No official reusable implementation repository or independent scientific correctness follows from trace export."
+    },
+    {
+      "claim_id": "frontier-claim-002",
+      "source_ids": [
+        "chemgraph"
+      ],
+      "source_url": "https://www.nature.com/articles/s42004-025-01776-9",
+      "locator": "Methods/Multi-Agent System and results for react2enthalpy and react2gibbs",
+      "evidence_class": "peer_reviewed_article",
+      "supports_only": "Evaluate decomposition for independently computable species followed by explicit aggregation.",
+      "does_not_support": "The two-task ablation does not establish universal multi-agent superiority or a fixed hierarchy."
+    },
+    {
+      "claim_id": "frontier-claim-003",
+      "source_ids": [
+        "openai-codex-loop"
+      ],
+      "source_url": "https://openai.com/index/unrolling-the-codex-agent-loop/",
+      "locator": "Official engineering description of the shared loop and exact-prefix prompt growth",
+      "evidence_class": "official_vendor_documentation",
+      "supports_only": "Test public event-prefix replay and a stable instruction/tool prefix as HC harness mechanisms.",
+      "does_not_support": "It does not prove DeepSeek or every frontier model was trained on the pinned Codex harness."
+    },
+    {
+      "claim_id": "frontier-claim-004",
+      "source_ids": [
+        "claude-code-subagents"
+      ],
+      "source_url": "https://code.claude.com/docs/en/sub-agents",
+      "locator": "Configure subagents / capability, permission, skill, memory, and hook controls",
+      "evidence_class": "official_vendor_documentation",
+      "supports_only": "Test fresh specialist contexts with narrow tools, skills, permissions, and deterministic hooks.",
+      "does_not_support": "Product documentation does not disclose an exact Claude Code reinforcement-learning recipe."
+    },
+    {
+      "claim_id": "frontier-claim-005",
+      "source_ids": [
+        "anthropic-long-running-harness"
+      ],
+      "source_url": "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents",
+      "locator": "The long-running agent problem, progress artifacts, testing, and future-work sections",
+      "evidence_class": "official_vendor_engineering_report",
+      "supports_only": "Test structured public handoff, fresh-context recovery, and explicit verification against premature completion.",
+      "does_not_support": "A web-application harness experiment is not direct computational-chemistry efficacy evidence."
+    },
+    {
+      "claim_id": "frontier-claim-006",
+      "source_ids": [
+        "kimi-code"
+      ],
+      "source_url": "https://github.com/MoonshotAI/kimi-code/tree/e22479a62eed9c3b78a67b313f4332c2c0ba9670",
+      "locator": "Pinned repository GOAL.md, README.md, session, permission, compaction, fork, and agent surfaces",
+      "evidence_class": "pinned_open_repository",
+      "supports_only": "Test persistent goal, checkpoint/fork/resume, explicit budget, and bounded nested delegation mechanisms.",
+      "does_not_support": "Repository features are not proof that another provider benefits from HK or that Kimi Code is a ChemSmart dependency."
+    },
+    {
+      "claim_id": "frontier-claim-007",
+      "source_ids": [
+        "kimi-k3"
+      ],
+      "source_url": "https://github.com/MoonshotAI/Kimi-K3/blob/7c5be9599120d7993748de66a76128614f15f210/k3_tech_report.pdf",
+      "locator": "Vendor technical report post-training, agentic training, and evaluation sections",
+      "evidence_class": "vendor_preprint",
+      "supports_only": "Treat verified visible trajectories, harness variation, budget-aware rewards, final-state verifiers, and hidden graders as future training hypotheses.",
+      "does_not_support": "The complete training corpus, RL environment, implementation, and independent replication are unavailable."
+    },
+    {
+      "claim_id": "frontier-claim-008",
+      "source_ids": [
+        "el-agente-quntur"
+      ],
+      "source_url": "https://arxiv.org/abs/2602.04850",
+      "artifact_url": "https://doi.org/10.5683/SP3/RDSOEA",
+      "locator": "Preprint benchmark/deep-research description and data-record license field",
+      "evidence_class": "vendor_preprint_and_research_data",
+      "supports_only": "Use the reported 17 quantum-chemistry exercises and literature/software-manual research as unchanged private reference material where CC BY-NC-ND 4.0 permits.",
+      "does_not_support": "The preprint is not peer reviewed; the dataset must not be adapted or redistributed; no official reusable implementation repository was verified."
+    },
+    {
+      "claim_id": "frontier-claim-009",
+      "source_ids": [
+        "chemcrow"
+      ],
+      "source_url": "https://doi.org/10.1038/s42256-024-00832-8",
+      "locator": "Peer-reviewed article tool-augmentation architecture and evaluation sections",
+      "evidence_class": "peer_reviewed_article",
+      "supports_only": "Use chemistry tool augmentation and task-oriented tool selection as secondary design references.",
+      "does_not_support": "The work does not establish paper-faithful computational-chemistry provenance or validation for ChemSmart."
+    },
+    {
+      "claim_id": "frontier-claim-010",
+      "source_ids": [
+        "dynamate"
+      ],
+      "source_url": "https://doi.org/10.1039/D5ME00062A",
+      "locator": "Peer-reviewed article workflow architecture and implementation sections",
+      "evidence_class": "peer_reviewed_article",
+      "supports_only": "Use modular scheduling over expert-defined simulation components as a secondary workflow reference.",
+      "does_not_support": "The work does not establish universal autonomous or multi-agent superiority."
+    },
+    {
+      "claim_id": "frontier-claim-011",
+      "source_ids": [
+        "mdcrow"
+      ],
+      "source_url": "https://arxiv.org/abs/2502.09565",
+      "locator": "Preprint architecture and tool-catalog sections",
+      "evidence_class": "preprint",
+      "supports_only": "Use expert-defined molecular-dynamics tool scoping as a secondary design hypothesis.",
+      "does_not_support": "The preprint is not peer reviewed and does not provide ChemSmart's quantum-chemistry validator or provenance contract."
+    },
+    {
+      "claim_id": "frontier-claim-012",
+      "source_ids": [
+        "quasar"
+      ],
+      "source_url": "https://arxiv.org/abs/2602.00185",
+      "locator": "Preprint architecture sections describing checkpoint, restart, and long-job handling",
+      "evidence_class": "preprint",
+      "supports_only": "Treat checkpoint/restart/check-in as hypotheses for bounded recovery evaluation.",
+      "does_not_support": "Author-designed preprint evidence does not establish safe ChemSmart execution or independent scientific validity."
+    },
+    {
+      "claim_id": "frontier-claim-013",
+      "source_ids": [
+        "virtuallab-cc"
+      ],
+      "source_url": "https://doi.org/10.1016/j.aichem.2026.100129",
+      "locator": "Journal article architecture/workflow sections and associated repository records",
+      "evidence_class": "journal_article_and_repository",
+      "supports_only": "Use calculation-stage gates, evidence logs, and structured result records as secondary lifecycle references.",
+      "does_not_support": "Limited published ablation and a young repository do not establish frontier efficacy."
+    },
+    {
+      "claim_id": "frontier-claim-014",
+      "source_ids": [
+        "deepseek-v4-thinking"
+      ],
+      "source_url": "https://api-docs.deepseek.com/guides/thinking_mode",
+      "locator": "Official Thinking Mode guide sections for multi-turn conversations and tool calls",
+      "evidence_class": "official_provider_documentation",
+      "supports_only": "Preserve provider-required reasoning_content ephemerally within an uninterrupted thinking-mode tool turn while keeping it out of public scientific evidence.",
+      "does_not_support": "Private reasoning is not a scientific source, public rationale, or training artifact, and the document does not establish ChemSmart conformance."
+    },
+    {
+      "claim_id": "frontier-claim-015",
+      "source_ids": [
+        "deepseek-v4-thinking"
+      ],
+      "source_url": "https://api-docs.deepseek.com/api/list-models",
+      "locator": "Official model-list endpoint plus model/pricing page context declaration",
+      "evidence_class": "official_provider_documentation",
+      "supports_only": "Treat deepseek-v4-flash availability and the published 1M context window as vendor-declared capabilities that require independent ChemSmart conformance observation.",
+      "does_not_support": "The declarations do not show that ChemSmart retained one million tokens, that thinking-disabled tool continuation works, or that thinking improves task outcomes."
+    },
+    {
+      "claim_id": "frontier-claim-016",
+      "source_ids": [
+        "elsevier-article-retrieval"
+      ],
+      "source_url": "https://dev.elsevier.com/documentation/ArticleRetrievalAPI.wadl",
+      "locator": "Official DOI article-retrieval endpoint definition and article-access guidance",
+      "evidence_class": "official_provider_documentation",
+      "supports_only": "Use the DOI article-retrieval endpoint for bounded full-text acquisition and classify credential validity separately from article-level entitlement.",
+      "does_not_support": "A metadata response or valid API key does not establish entitlement to a requested article's full text."
+    }
+  ],
   "sources": [
     {
       "id": "el-agente-q",
@@ -76,12 +342,40 @@
       "url": "https://doi.org/10.5683/SP3/JU2BQK",
       "metadata_source": "DOI landing record",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
-      "adoption": "benchmark_data_reference",
+      "license_status": "not_verified",
+      "adoption": "benchmark_candidate_blocked_pending_license",
       "supports": [
         "Reproducible benchmark inspection"
       ],
       "limitations": [
-        "Data availability does not imply implementation reuse rights"
+        "Data availability does not imply implementation reuse rights",
+        "Do not ingest, adapt, or redistribute this archive until its license and permitted benchmark use are independently verified"
+      ]
+    },
+    {
+      "id": "el-agente-quntur",
+      "kind": "preprint_and_research_data",
+      "status": "preprint",
+      "title": "El Agente Quntur: A research collaborator agent for quantum chemistry",
+      "arxiv": "2602.04850",
+      "arxiv_version": "v2",
+      "url": "https://arxiv.org/abs/2602.04850",
+      "bibkey": "Perez_Sanchez_2026",
+      "artifact_archive": "https://doi.org/10.5683/SP3/RDSOEA",
+      "artifact_license": "CC BY-NC-ND 4.0 reported by the data record; retain unchanged and private where used.",
+      "metadata_source": "arXiv Atom API and DOI data record",
+      "metadata_checked_at": "2026-08-01T00:00:00Z",
+      "correction_status": "arXiv v2 was current at retrieval; preprints have no Crossref update-to relation.",
+      "repository_status": "No verified official reusable implementation repository was identified.",
+      "adoption": "private_benchmark_reference_only",
+      "supports": [
+        "Seventeen quantum-chemistry exercises",
+        "Literature and software-manual research coverage"
+      ],
+      "limitations": [
+        "Preprint, not peer reviewed",
+        "Dataset license prohibits adaptation and redistribution",
+        "No verified reusable official codebase"
       ]
     },
     {
@@ -93,6 +387,7 @@
       "url": "https://doi.org/10.1038/s42004-025-01776-9",
       "bibkey": "Pham_2026",
       "repository": "https://github.com/argonne-lcf/ChemGraph",
+      "repository_revision": "e00472d4822310cb44e03c0a9edeeb2f587d7c3b",
       "repository_license": "Apache-2.0 reported by the GitHub repository metadata at retrieval.",
       "artifact_archive": "https://zenodo.org/records/17290519",
       "metadata_source": "Crossref REST, DOI content negotiation, and repository metadata",
@@ -118,6 +413,7 @@
       "url": "https://doi.org/10.1038/s42004-026-01993-w",
       "bibkey": "Pagel_2026",
       "repository": "https://github.com/croningp/acra",
+      "repository_revision_status": "not_verified",
       "repository_license": "BSD-3-Clause reported by the GitHub repository metadata at retrieval.",
       "metadata_source": "Crossref REST, DOI content negotiation, and repository metadata",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
@@ -129,7 +425,8 @@
       ],
       "limitations": [
         "Chemputation and wet-synthesis procedures are adjacent to, not equivalent to, quantum chemistry",
-        "An LLM critic alone cannot establish physical validity"
+        "An LLM critic alone cannot establish physical validity",
+        "Repository implementation reuse is blocked until a revision is pinned"
       ]
     },
     {
@@ -141,6 +438,8 @@
       "url": "https://doi.org/10.1038/s42256-024-00832-8",
       "bibkey": "M_Bran_2024",
       "repository": "https://github.com/ur-whitelab/chemcrow-public",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "metadata_source": "Crossref REST and DOI content negotiation",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "correction_status": "Crossref reported no update-to relation at retrieval.",
@@ -149,7 +448,8 @@
         "Tool augmentation as a chemistry-agent design pattern"
       ],
       "limitations": [
-        "Does not replace Chemistry-specific execution or reproducibility gates"
+        "Does not replace Chemistry-specific execution or reproducibility gates",
+        "Repository implementation reuse is blocked pending revision and license audit"
       ]
     },
     {
@@ -161,6 +461,8 @@
       "url": "https://doi.org/10.1039/D5ME00062A",
       "bibkey": "Mendible_Barreto_2025",
       "repository": "https://github.com/omendibleba/DynaMate",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "metadata_source": "Crossref REST and DOI content negotiation",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "correction_status": "Crossref reported no update-to relation at retrieval.",
@@ -169,7 +471,8 @@
         "Modular scheduling over expert-defined simulation tools"
       ],
       "limitations": [
-        "Limited direct evidence for autonomous or multi-agent superiority"
+        "Limited direct evidence for autonomous or multi-agent superiority",
+        "Repository implementation reuse is blocked pending revision and license audit"
       ]
     },
     {
@@ -180,6 +483,8 @@
       "arxiv": "2502.09565",
       "url": "https://arxiv.org/abs/2502.09565",
       "repository": "https://github.com/ur-whitelab/MDCrow",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "metadata_source": "arXiv API",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "adoption": "tool_coverage_reference_only",
@@ -188,7 +493,8 @@
       ],
       "limitations": [
         "Preprint status",
-        "No independent scientific verifier or formal provenance layer"
+        "No independent scientific verifier or formal provenance layer",
+        "Repository implementation reuse is blocked pending revision and license audit"
       ]
     },
     {
@@ -199,6 +505,8 @@
       "arxiv": "2602.00185",
       "url": "https://arxiv.org/abs/2602.00185",
       "repository": "https://github.com/fengxuyy/QUASAR",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "metadata_source": "arXiv API",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "adoption": "lifecycle_reference_only",
@@ -218,6 +526,8 @@
       "doi": "10.1016/j.aichem.2026.100129",
       "url": "https://doi.org/10.1016/j.aichem.2026.100129",
       "repository": "https://github.com/CCBG-Lab/VirtualLab_CC",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "artifact_archive": "https://doi.org/10.5281/zenodo.21396720",
       "metadata_source": "publisher and repository record",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
@@ -226,7 +536,8 @@
         "Calculation-stage gates, evidence logs, and structured result records"
       ],
       "limitations": [
-        "Young work-in-progress repository and limited published ablation evidence"
+        "Young work-in-progress repository and limited published ablation evidence",
+        "Repository implementation reuse is blocked pending revision and license audit"
       ]
     },
     {
@@ -238,6 +549,8 @@
       "url": "https://doi.org/10.1038/s41597-020-00638-4",
       "bibkey": "Huber_2020",
       "repository": "https://github.com/aiidateam/aiida-core",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "metadata_source": "Crossref REST and DOI content negotiation",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "correction_status": "Crossref reported no update-to relation at retrieval.",
@@ -246,7 +559,8 @@
         "Immutable process/data provenance and restartable workflow principles"
       ],
       "limitations": [
-        "Not an LLM-agent framework or a direct dependency decision"
+        "Not an LLM-agent framework or a direct dependency decision",
+        "Use the peer-reviewed provenance model; repository code reuse requires a separate pin and license audit"
       ]
     },
     {
@@ -255,6 +569,8 @@
       "status": "open_specification",
       "title": "QCSchema",
       "url": "https://github.com/MolSSI/QCSchema",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "metadata_source": "official repository",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "adoption": "compatibility_target",
@@ -262,7 +578,8 @@
         "Structured quantum-chemistry input and result representation"
       ],
       "limitations": [
-        "Compatibility target; this foundation adds no dependency"
+        "Compatibility target; this foundation adds no dependency",
+        "Repository code reuse requires a separate pin and license audit"
       ]
     },
     {
@@ -291,6 +608,8 @@
       "title": "Unrolling the Codex agent loop",
       "url": "https://openai.com/index/unrolling-the-codex-agent-loop/",
       "repository": "https://github.com/openai/codex",
+      "repository_revision": "ee0247f95a6fe2b094ba2253d82cae2a2b4c2dff",
+      "repository_license": "Apache-2.0",
       "metadata_source": "official OpenAI publication and repository",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "adoption": "harness_reference",
@@ -302,12 +621,57 @@
       ]
     },
     {
+      "id": "deepseek-v4-thinking",
+      "kind": "official_provider_documentation",
+      "status": "official_documentation",
+      "title": "DeepSeek Thinking Mode",
+      "url": "https://api-docs.deepseek.com/guides/thinking_mode",
+      "related_official_urls": [
+        "https://api-docs.deepseek.com/api/list-models",
+        "https://api-docs.deepseek.com/quick_start/pricing/"
+      ],
+      "metadata_source": "official DeepSeek API documentation",
+      "metadata_checked_at": "2026-08-01T00:00:00Z",
+      "adoption": "provider_adapter_reference",
+      "supports": [
+        "Thinking-mode tool continuation and reasoning_content replay requirements",
+        "Vendor-declared deepseek-v4-flash availability and 1M context window"
+      ],
+      "limitations": [
+        "Provider reasoning is private adapter state and not scientific evidence",
+        "Documentation does not substitute for a live conformance receipt"
+      ]
+    },
+    {
+      "id": "elsevier-article-retrieval",
+      "kind": "official_provider_documentation",
+      "status": "official_documentation",
+      "title": "Elsevier Article Retrieval API and Article Access",
+      "url": "https://dev.elsevier.com/documentation/ArticleRetrievalAPI.wadl",
+      "related_official_urls": [
+        "https://dev.elsevier.com/tecdoc_article_access.html"
+      ],
+      "metadata_source": "official Elsevier developer documentation",
+      "metadata_checked_at": "2026-08-01T00:00:00Z",
+      "adoption": "literature_adapter_reference",
+      "supports": [
+        "DOI article-retrieval endpoint shape",
+        "Separation of API-key validity from article-level full-text entitlement"
+      ],
+      "limitations": [
+        "Documentation does not establish entitlement for any specific article",
+        "Retrieved full text remains subject to source-specific access and redistribution terms"
+      ]
+    },
+    {
       "id": "claude-code-subagents",
       "kind": "official_product_documentation",
       "status": "official_documentation",
       "title": "Claude Code subagents",
       "url": "https://code.claude.com/docs/en/sub-agents",
       "repository": "https://github.com/anthropics/claude-agent-sdk-python",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "metadata_source": "official Anthropic documentation and repository",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "adoption": "harness_reference",
@@ -315,7 +679,25 @@
         "Isolated specialist contexts, permissions, and progressive instructions"
       ],
       "limitations": [
-        "No public evidence that the exact product harness is the model's training environment"
+        "No public evidence that the exact product harness is the model's training environment",
+        "The SDK repository is not treated as reusable evidence until revision and license audit"
+      ]
+    },
+    {
+      "id": "anthropic-long-running-harness",
+      "kind": "official_vendor_engineering_report",
+      "status": "official_documentation",
+      "title": "Effective harnesses for long-running agents",
+      "url": "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents",
+      "metadata_source": "official Anthropic engineering publication",
+      "metadata_checked_at": "2026-08-01T00:00:00Z",
+      "adoption": "harness_experiment_reference",
+      "supports": [
+        "Fresh-context progress artifacts and explicit verification against premature completion"
+      ],
+      "limitations": [
+        "Vendor web-application experiment, not peer-reviewed computational-chemistry evidence",
+        "Does not disclose a complete model-training recipe"
       ]
     },
     {
@@ -324,6 +706,8 @@
       "status": "open_repository",
       "title": "Kimi Code",
       "url": "https://github.com/MoonshotAI/kimi-code",
+      "repository_revision": "e22479a62eed9c3b78a67b313f4332c2c0ba9670",
+      "repository_license": "MIT",
       "metadata_source": "official repository",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "adoption": "harness_reference",
@@ -375,9 +759,13 @@
       "title": "Kimi K3: Open Frontier Intelligence",
       "arxiv": "2607.24653",
       "url": "https://arxiv.org/abs/2607.24653",
+      "bibkey": "Kimi_Team_2026",
       "repository": "https://github.com/MoonshotAI/Kimi-K3",
+      "repository_revision": "7c5be9599120d7993748de66a76128614f15f210",
+      "repository_license_status": "not_verified",
       "metadata_source": "arXiv API and official repository",
-      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "metadata_checked_at": "2026-08-01T00:00:00Z",
+      "correction_status": "arXiv v1 was current at retrieval; preprints have no Crossref update-to relation.",
       "adoption": "training_and_portability_reference",
       "supports": [
         "Cross-harness training and provider-portable evaluation ideas"
@@ -393,6 +781,8 @@
       "title": "MultiAgentBench",
       "url": "https://aclanthology.org/2025.acl-long.421/",
       "repository": "https://github.com/ulab-uiuc/MARBLE",
+      "repository_revision_status": "not_verified",
+      "repository_license_status": "not_verified",
       "metadata_source": "ACL Anthology and repository",
       "metadata_checked_at": "2026-07-31T16:38:33Z",
       "adoption": "evaluation_reference",
