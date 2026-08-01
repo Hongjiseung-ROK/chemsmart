@@ -14,6 +14,7 @@ from chemsmart.agent.runtime.adaptive_provider import (
     AdaptiveDeepSeekProviderConfig,
     AdaptiveLeaseBoundDeepSeekProvider,
     AdaptiveProviderTurnError,
+    build_adaptive_request_binding_v1,
 )
 
 
@@ -121,4 +122,77 @@ def test_provider_failure_is_sanitized() -> None:
     assert "private transport detail" not in str(exc_info.value)
     assert provider.request_observations[0]["hypothesis_sha256"] == (
         _hypothesis("failure").hypothesis_sha256
+    )
+
+
+def test_request_binding_verifies_real_prompt_and_tool_schema() -> None:
+    prompt = "Frozen model-visible prompt"
+    tools = [{"type": "function", "function": {"name": "inspect"}}]
+    tool_sha256 = hashlib.sha256(
+        b'[{"function":{"name":"inspect"},"type":"function"}]'
+    ).hexdigest()
+    hypothesis = build_adaptive_hypothesis_v1(
+        hypothesis_id="hypothesis:request-binding",
+        provider=ApiProvider.DEEPSEEK,
+        purpose=AdaptiveProviderPurpose.HARNESS_VALIDATION,
+        prompt_sha256=_digest(prompt),
+        input_state_sha256=_digest("state"),
+        expected_observation_sha256=_digest("expected"),
+        precondition_sha256s=(tool_sha256,),
+    )
+    binding = build_adaptive_request_binding_v1(
+        initial_user_prompt_sha256=_digest(prompt),
+        tool_schema_sha256=tool_sha256,
+    )
+    provider = AdaptiveLeaseBoundDeepSeekProvider(
+        controller=_controller(),
+        network_budget=build_adaptive_network_budget_v1(),
+        hypothesis=hypothesis,
+        request_binding=binding,
+        provider_factory=_Provider,
+    )
+
+    provider.chat([{"role": "user", "content": prompt}], tools=tools)
+
+    observation = provider.request_observations[0]
+    assert observation["request_binding_verified"] is True
+    assert observation["request_binding_sha256"] == binding.binding_sha256
+
+
+def test_request_binding_rejects_drift_before_transport() -> None:
+    prompt = "Frozen model-visible prompt"
+    tools = [{"type": "function", "function": {"name": "inspect"}}]
+    tool_sha256 = hashlib.sha256(
+        b'[{"function":{"name":"inspect"},"type":"function"}]'
+    ).hexdigest()
+    hypothesis = build_adaptive_hypothesis_v1(
+        hypothesis_id="hypothesis:request-binding-drift",
+        provider=ApiProvider.DEEPSEEK,
+        purpose=AdaptiveProviderPurpose.HARNESS_VALIDATION,
+        prompt_sha256=_digest(prompt),
+        input_state_sha256=_digest("state"),
+        expected_observation_sha256=_digest("expected"),
+        precondition_sha256s=(tool_sha256,),
+    )
+    provider = AdaptiveLeaseBoundDeepSeekProvider(
+        controller=_controller(),
+        network_budget=build_adaptive_network_budget_v1(),
+        hypothesis=hypothesis,
+        request_binding=build_adaptive_request_binding_v1(
+            initial_user_prompt_sha256=_digest(prompt),
+            tool_schema_sha256=tool_sha256,
+        ),
+        provider_factory=_Provider,
+    )
+
+    with pytest.raises(AdaptiveProviderTurnError) as exc_info:
+        provider.chat(
+            [{"role": "user", "content": "changed prompt"}],
+            tools=tools,
+        )
+
+    assert exc_info.value.error_class == "provider.stop.prompt_binding_mismatch"
+    assert provider.transport_attempts == 0
+    assert provider.request_observations[0]["status"] == (
+        "rejected_before_transport"
     )

@@ -9,7 +9,7 @@ import time
 from collections.abc import Callable
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from chemsmart.agent.adaptive_api_campaign import (
     AdaptiveHypothesisV1,
@@ -30,6 +30,42 @@ from chemsmart.agent.providers import OpenAIProvider
 
 _MODEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
 _PRIVATE_REASONING_KEYS = frozenset({"reasoning_content", "thinking"})
+_SHA256 = r"^[0-9a-f]{64}$"
+
+
+class AdaptiveRequestBindingV1(BaseModel):
+    """Exact model-visible prompt and tool schema expected by a hypothesis."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal["chemsmart.adaptive-request-binding.v1"] = (
+        "chemsmart.adaptive-request-binding.v1"
+    )
+    binding_sha256: str = Field(pattern=_SHA256)
+    initial_user_prompt_sha256: str = Field(pattern=_SHA256)
+    tool_schema_sha256: str = Field(pattern=_SHA256)
+
+    @model_validator(mode="after")
+    def _binding_is_content_addressed(self) -> "AdaptiveRequestBindingV1":
+        body = self.model_dump(mode="json", exclude={"binding_sha256"})
+        if self.binding_sha256 != _sha256_json(body):
+            raise ValueError("adaptive request binding digest mismatch")
+        return self
+
+
+def build_adaptive_request_binding_v1(
+    *,
+    initial_user_prompt_sha256: str,
+    tool_schema_sha256: str,
+) -> AdaptiveRequestBindingV1:
+    body = {
+        "schema_version": "chemsmart.adaptive-request-binding.v1",
+        "initial_user_prompt_sha256": initial_user_prompt_sha256,
+        "tool_schema_sha256": tool_schema_sha256,
+    }
+    return AdaptiveRequestBindingV1.model_validate(
+        {**body, "binding_sha256": _sha256_json(body)}
+    )
 
 
 class AdaptiveDeepSeekProviderConfig(BaseModel):
@@ -78,6 +114,7 @@ class AdaptiveLeaseBoundDeepSeekProvider:
         network_budget: AdaptiveNetworkBudgetV1,
         hypothesis: AdaptiveHypothesisV1,
         config: AdaptiveDeepSeekProviderConfig | None = None,
+        request_binding: AdaptiveRequestBindingV1 | None = None,
         provider_factory: Callable[..., Any] | None = None,
         monotonic_clock: Callable[[], float] = time.monotonic,
     ) -> None:
@@ -98,6 +135,20 @@ class AdaptiveLeaseBoundDeepSeekProvider:
         self._controller = controller
         self._network_budget = network_budget
         self._hypothesis = hypothesis
+        if request_binding is not None:
+            if (
+                request_binding.initial_user_prompt_sha256
+                != hypothesis.prompt_sha256
+            ):
+                raise ValueError("request binding differs from hypothesis prompt")
+            if (
+                request_binding.tool_schema_sha256
+                not in hypothesis.precondition_sha256s
+            ):
+                raise ValueError(
+                    "request binding tool schema is not a hypothesis precondition"
+                )
+        self._request_binding = request_binding
         self._provider_factory = provider_factory or OpenAIProvider
         self._clock = monotonic_clock
         self._started = self._clock()
@@ -141,6 +192,26 @@ class AdaptiveLeaseBoundDeepSeekProvider:
             {"messages": messages, "tools": tools or []}
         )
         attempt_ordinal = self._transport_attempts + 1
+        binding_error = self._request_binding_error(messages, tools or [])
+        if binding_error is not None:
+            self._request_observations.append(
+                {
+                    "hypothesis_id": self._hypothesis.hypothesis_id,
+                    "hypothesis_sha256": self._hypothesis.hypothesis_sha256,
+                    "attempt_ordinal": attempt_ordinal,
+                    "request_sha256": request_sha256,
+                    "request_binding_sha256": (
+                        self._request_binding.binding_sha256
+                        if self._request_binding is not None
+                        else None
+                    ),
+                    "request_binding_verified": False,
+                    "status": "rejected_before_transport",
+                    "error_class": binding_error,
+                    "latency_ms": 0,
+                }
+            )
+            raise AdaptiveProviderTurnError(binding_error)
         try:
             permit = self._controller.prepare_status_probe(
                 ApiProvider.DEEPSEEK,
@@ -239,6 +310,12 @@ class AdaptiveLeaseBoundDeepSeekProvider:
                 "hypothesis_sha256": self._hypothesis.hypothesis_sha256,
                 "attempt_ordinal": attempt_ordinal,
                 "request_sha256": request_sha256,
+                "request_binding_sha256": (
+                    self._request_binding.binding_sha256
+                    if self._request_binding is not None
+                    else None
+                ),
+                "request_binding_verified": self._request_binding is not None,
                 "status": "observed",
                 "credential_status": status.status.value,
                 "observed_model": model,
@@ -252,6 +329,27 @@ class AdaptiveLeaseBoundDeepSeekProvider:
             }
         )
         return response
+
+    def _request_binding_error(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+    ) -> str | None:
+        binding = self._request_binding
+        if binding is None:
+            return None
+        user_prompt_hashes = {
+            hashlib.sha256(message["content"].encode("utf-8")).hexdigest()
+            for message in messages
+            if isinstance(message, dict)
+            and message.get("role") == "user"
+            and isinstance(message.get("content"), str)
+        }
+        if binding.initial_user_prompt_sha256 not in user_prompt_hashes:
+            return "provider.stop.prompt_binding_mismatch"
+        if _sha256_json(tools) != binding.tool_schema_sha256:
+            return "provider.stop.tool_schema_binding_mismatch"
+        return None
 
     def _record_protocol_failure(
         self,
@@ -320,4 +418,6 @@ __all__ = [
     "AdaptiveDeepSeekProviderConfig",
     "AdaptiveLeaseBoundDeepSeekProvider",
     "AdaptiveProviderTurnError",
+    "AdaptiveRequestBindingV1",
+    "build_adaptive_request_binding_v1",
 ]
