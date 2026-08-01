@@ -1,0 +1,180 @@
+{
+  "assistant_text": "Submission complete. Final summary for case `gaussian-fuzzy-def2-typo`:\n\n**Investigation (read-only):**\n- `resolve_scientific_setting_v2(gaussian, method.basis, 'def2-TZVXP', opt, fuzzy disabled)` → deterministic status **`unknown_unverified`**, `matched_by: none`, empty candidates, `loader_accepted: false`, `project_candidate_eligible: false`, reason rule `scientific_settings.v2.unknown_unverified`.\n- Bounded listing of the Gaussian V2 basis inventory (query `def2`) shows only **`def2-SVP`** present — no `def2-TZVP`/`def2-TZVPP` family exists to fuzzy-match against. The reported spelling `def2-TZVXP` is not a supported setting.\n\n**Proposal submitted (blocked):**\n- **Readiness:** `blocked_unsupported_setting`\n- **Blocking rule:** `scientific_settings.v2.unknown_unverified`\n- **Settings:** `basis: \"def2-TZVXP\"` (source literal preserved verbatim), `freq: true` (task kind freq); no heavy elements, ECP, dispersion, solvent, or other literals in scope; no element findings.\n- No fuzzy candidate selected, no substitution; `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`.\n\nThe normalizer receipt confirms acceptance: raw contract valid, `filled_explicit_setting_fields: [\"settings.functional\"]` (Gaussian default B3LYP filled by the case-bound normalizer), case SHA-256 `3a69e3bd…`. The case is deterministically blocked because the typo'd basis literal is unsupported in the populated V2 inventory.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.unknown_unverified"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.functional"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "6b58d30d8e2d8ce5179ff474b0690df25e10f6a9b8320d1554a50e3f14263e3e",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "98f312f6b1a9e0e87dd78c2e47e2d73a61798ba7e9eb354f271121d9a50445dc",
+        "receipt_sha256": "4acb8017526d1a66280f0440062c08acbf1fa7410297df3031a7db004fb8646a",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.v2.unknown_unverified"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "Submission complete. Final summary for case `gaussian-fuzzy-def2-typo`:\n\n**Investigation (read-only):**\n- `resolve_scientific_setting_v2(gaussian, method.basis, 'def2-TZVXP', opt, fuzzy disabled)` → deterministic status **`unknown_unverified`**, `matched_by: none`, empty candidates, `loader_accepted: false`, `project_candidate_eligible: false`, reason rule `scientific_settings.v2.unknown_unverified`.\n- Bounded listing of the Gaussian V2 basis inventory (query `def2`) shows only **`def2-SVP`** present — no `def2-TZVP`/`def2-TZVPP` family exists to fuzzy-match against. The reported spelling `def2-TZVXP` is not a supported setting.\n\n**Proposal submitted (blocked):**\n- **Readiness:** `blocked_unsupported_setting`\n- **Blocking rule:** `scientific_settings.v2.unknown_unverified`\n- **Settings:** `basis: \"def2-TZVXP\"` (source literal preserved verbatim), `freq: true` (task kind freq); no heavy elements, ECP, dispersion, solvent, or other literals in scope; no element findings.\n- No fuzzy candidate selected, no substitution; `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`.\n\nThe normalizer receipt confirms acceptance: raw contract valid, `filled_explicit_setting_fields: [\"settings.functional\"]` (Gaussian default B3LYP filled by the case-bound normalizer), case SHA-256 `3a69e3bd…`. The case is deterministically blocked because the typo'd basis literal is unsupported in the populated V2 inventory.",
+  "raw_typed_proposal": {
+    "analysis_summary": "Mandatory target basis='def2-TZVXP' (Gaussian, method.basis, opt) was resolved conservatively with fuzzy candidates disabled. The deterministic resolution receipt returned status 'unknown_unverified' with matched_by 'none', an empty candidate list, loader_accepted false, renderer_preserved false, and project_candidate_eligible false, discharged by reason rule 'scientific_settings.v2.unknown_unverified'. A bounded listing of the Gaussian V2 basis inventory for query 'def2' shows only 'def2-SVP' present; no def2-TZVP/def2-TZVPP family entry exists, so the reported spelling 'def2-TZVXP' is not a supported setting in the populated V2 inventory. No fuzzy candidate was selected and the source literal is preserved verbatim in the blocked proposal. Task kind is freq, so freq=true is declared; no other settings, heavy elements, or element findings are in scope. Proposal is blocked as an unsupported setting; no native input, command, project write, or execution was performed.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.unknown_unverified"
+    ],
+    "case_id": "gaussian-fuzzy-def2-typo",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-fuzzy-def2-typo",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-TZVXP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": null,
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-fuzzy-def2-typo:registry_v2:v3",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.functional"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "6b58d30d8e2d8ce5179ff474b0690df25e10f6a9b8320d1554a50e3f14263e3e",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "98f312f6b1a9e0e87dd78c2e47e2d73a61798ba7e9eb354f271121d9a50445dc",
+    "receipt_sha256": "4acb8017526d1a66280f0440062c08acbf1fa7410297df3031a7db004fb8646a",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "typed_analysis_summary": "Mandatory target basis='def2-TZVXP' (Gaussian, method.basis, opt) was resolved conservatively with fuzzy candidates disabled. The deterministic resolution receipt returned status 'unknown_unverified' with matched_by 'none', an empty candidate list, loader_accepted false, renderer_preserved false, and project_candidate_eligible false, discharged by reason rule 'scientific_settings.v2.unknown_unverified'. A bounded listing of the Gaussian V2 basis inventory for query 'def2' shows only 'def2-SVP' present; no def2-TZVP/def2-TZVPP family entry exists, so the reported spelling 'def2-TZVXP' is not a supported setting in the populated V2 inventory. No fuzzy candidate was selected and the source literal is preserved verbatim in the blocked proposal. Task kind is freq, so freq=true is declared; no other settings, heavy elements, or element findings are in scope. Proposal is blocked as an unsupported setting; no native input, command, project write, or execution was performed.",
+  "typed_proposal": {
+    "analysis_summary": "Mandatory target basis='def2-TZVXP' (Gaussian, method.basis, opt) was resolved conservatively with fuzzy candidates disabled. The deterministic resolution receipt returned status 'unknown_unverified' with matched_by 'none', an empty candidate list, loader_accepted false, renderer_preserved false, and project_candidate_eligible false, discharged by reason rule 'scientific_settings.v2.unknown_unverified'. A bounded listing of the Gaussian V2 basis inventory for query 'def2' shows only 'def2-SVP' present; no def2-TZVP/def2-TZVPP family entry exists, so the reported spelling 'def2-TZVXP' is not a supported setting in the populated V2 inventory. No fuzzy candidate was selected and the source literal is preserved verbatim in the blocked proposal. Task kind is freq, so freq=true is declared; no other settings, heavy elements, or element findings are in scope. Proposal is blocked as an unsupported setting; no native input, command, project write, or execution was performed.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.unknown_unverified"
+    ],
+    "case_id": "gaussian-fuzzy-def2-typo",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-fuzzy-def2-typo",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-TZVXP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

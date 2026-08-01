@@ -1,0 +1,166 @@
+{
+  "assistant_text": "Proposal submitted successfully. Summary of the outcome:\n\n**Case:** `gaussian-pcseg2-materialization-gap` (Gaussian B3LYP/pcseg-2 frequency project, freq task; registry accessor job kind opt)\n\n**Readiness:** `blocked_unverified_setting`\n\n**Evidence basis:**\n- **Basis `pcseg-2`** (gaussian `method.basis`, opt): resolved `exact_registered` via canonical literal, capability `gaussian.basis.bse.pcseg2` — a BSE-discovered name. Evidence ceiling is `loader_renderer_verification_only`: loader accepted, renderer preserved, but **no engine execution, no safe preview, no scientific-adequacy or combination verification**. BSE discovery ≠ deterministic compiler materialization.\n- **Functional `B3LYP`**: resolved `exact_registered` (capability `gaussian.functional.b3lyp`) with the same loader/renderer-only ceiling.\n\n**Key decision:** The exact-registered receipts discharge only their own declared applicability rule (`scientific_settings.exact_registered`); they cannot discharge a deterministic-materialization requirement. Since no engine-execution/safe-preview receipt was exposed for `pcseg-2`, the source literal `pcseg-2` was preserved in the blocked proposal rather than silently promoted to compiler-ready.\n\n**Guarantees honored:** no native input authored, no command authored, no project written, no execution requested; source literals `B3LYP` and `pcseg-2` preserved; `freq: true` reflects the frequency task kind; no element findings asserted (no molecule specified).",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "60e7071cb6516ae0cf4ec4864ad71df71a875e7c48950acdeb55053a38464d0c",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "60e7071cb6516ae0cf4ec4864ad71df71a875e7c48950acdeb55053a38464d0c",
+        "receipt_sha256": "cce912030fe9f4ba259c236e090274b11e092ac16c73a955efac66d0d47942e8",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "raw_public_english_response": "Proposal submitted successfully. Summary of the outcome:\n\n**Case:** `gaussian-pcseg2-materialization-gap` (Gaussian B3LYP/pcseg-2 frequency project, freq task; registry accessor job kind opt)\n\n**Readiness:** `blocked_unverified_setting`\n\n**Evidence basis:**\n- **Basis `pcseg-2`** (gaussian `method.basis`, opt): resolved `exact_registered` via canonical literal, capability `gaussian.basis.bse.pcseg2` — a BSE-discovered name. Evidence ceiling is `loader_renderer_verification_only`: loader accepted, renderer preserved, but **no engine execution, no safe preview, no scientific-adequacy or combination verification**. BSE discovery ≠ deterministic compiler materialization.\n- **Functional `B3LYP`**: resolved `exact_registered` (capability `gaussian.functional.b3lyp`) with the same loader/renderer-only ceiling.\n\n**Key decision:** The exact-registered receipts discharge only their own declared applicability rule (`scientific_settings.exact_registered`); they cannot discharge a deterministic-materialization requirement. Since no engine-execution/safe-preview receipt was exposed for `pcseg-2`, the source literal `pcseg-2` was preserved in the blocked proposal rather than silently promoted to compiler-ready.\n\n**Guarantees honored:** no native input authored, no command authored, no project written, no execution requested; source literals `B3LYP` and `pcseg-2` preserved; `freq: true` reflects the frequency task kind; no element findings asserted (no molecule specified).",
+  "raw_typed_proposal": {
+    "analysis_summary": "The Gaussian B3LYP/pcseg-2 frequency project (task kind freq; registry accessor job kind opt) is blocked on the pcseg-2 materialization gap. Resolution of gaussian method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal (normalized 'pcseg2'), reason rule scientific_settings.exact_registered, with capability_id gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved. However, the evidence ceiling is loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false. The exact registration proves BSE discovery of the name 'pcseg-2', not deterministic compiler materialization into a native Gaussian input; a BSE-discoverable name is not automatically native/compiler-ready. The exact_registered receipt discharges only its own declared applicability rule and cannot discharge any other rule (e.g., deterministic materialization), and no engine-execution or safe-preview receipt was exposed by this arm. Functional B3LYP (gaussian method.functional, opt) also resolved exact_registered via canonical literal with the same loader_renderer_verification_only ceiling (engine and safe preview not executed). Both source literals (B3LYP, pcseg-2) are preserved; freq=true reflects the frequency task kind. No element findings are asserted because no molecule/elements were specified. Readiness is blocked_unverified_setting: the basis setting is registered but its deterministic materialization is unverified. No native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-pcseg2-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v1:v3",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "60e7071cb6516ae0cf4ec4864ad71df71a875e7c48950acdeb55053a38464d0c",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "60e7071cb6516ae0cf4ec4864ad71df71a875e7c48950acdeb55053a38464d0c",
+    "receipt_sha256": "cce912030fe9f4ba259c236e090274b11e092ac16c73a955efac66d0d47942e8",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "typed_analysis_summary": "The Gaussian B3LYP/pcseg-2 frequency project (task kind freq; registry accessor job kind opt) is blocked on the pcseg-2 materialization gap. Resolution of gaussian method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal (normalized 'pcseg2'), reason rule scientific_settings.exact_registered, with capability_id gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved. However, the evidence ceiling is loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false. The exact registration proves BSE discovery of the name 'pcseg-2', not deterministic compiler materialization into a native Gaussian input; a BSE-discoverable name is not automatically native/compiler-ready. The exact_registered receipt discharges only its own declared applicability rule and cannot discharge any other rule (e.g., deterministic materialization), and no engine-execution or safe-preview receipt was exposed by this arm. Functional B3LYP (gaussian method.functional, opt) also resolved exact_registered via canonical literal with the same loader_renderer_verification_only ceiling (engine and safe preview not executed). Both source literals (B3LYP, pcseg-2) are preserved; freq=true reflects the frequency task kind. No element findings are asserted because no molecule/elements were specified. Readiness is blocked_unverified_setting: the basis setting is registered but its deterministic materialization is unverified. No native input authored, no command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "The Gaussian B3LYP/pcseg-2 frequency project (task kind freq; registry accessor job kind opt) is blocked on the pcseg-2 materialization gap. Resolution of gaussian method.basis 'pcseg-2' for opt returned status exact_registered, matched_by canonical_literal (normalized 'pcseg2'), reason rule scientific_settings.exact_registered, with capability_id gaussian.basis.bse.pcseg2, loader_observation accepted, renderer_observation preserved. However, the evidence ceiling is loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false. The exact registration proves BSE discovery of the name 'pcseg-2', not deterministic compiler materialization into a native Gaussian input; a BSE-discoverable name is not automatically native/compiler-ready. The exact_registered receipt discharges only its own declared applicability rule and cannot discharge any other rule (e.g., deterministic materialization), and no engine-execution or safe-preview receipt was exposed by this arm. Functional B3LYP (gaussian method.functional, opt) also resolved exact_registered via canonical literal with the same loader_renderer_verification_only ceiling (engine and safe preview not executed). Both source literals (B3LYP, pcseg-2) are preserved; freq=true reflects the frequency task kind. No element findings are asserted because no molecule/elements were specified. Readiness is blocked_unverified_setting: the basis setting is registered but its deterministic materialization is unverified. No native input authored, no command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-pcseg2-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

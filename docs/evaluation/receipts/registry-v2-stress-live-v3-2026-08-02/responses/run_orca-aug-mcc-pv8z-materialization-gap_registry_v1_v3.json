@@ -1,0 +1,172 @@
+{
+  "assistant_text": "The plan was submitted and the arm returned a normalization receipt (case sha `fcd16d76...`, proposal sha `3ddd66ad...`). The normalizer canonicalized `settings.freq` from `null` to `false`; all source literals (`B3LYP`, `aug-mcc-pV8Z`) were preserved.\n\n**Outcome — `blocked_unverified_setting`**\n\nEvidence gathered in this read-only arm:\n- **`method.functional = B3LYP`** → `exact_registered` (loader accepted, renderer preserved); evidence ceiling `loader_renderer_verification_only` (`engine_executed: false`, `scientific_adequacy_verified: false`, `setting_combination_verified: false`).\n- **`method.basis = aug-mcc-pV8Z`** → `exact_registered`, capability `orca.basis.bse.augmccpv8z` — a BSE-discovered name — with the same loader/renderer-only evidence ceiling.\n- Inventory view confirms `aug-mcc-pV8Z` is present among the six aug-mcc basis values, i.e. discoverable but not natively materialized.\n\nRationale: the `exact_registered` receipt discharges only its declared loader/renderer rule (`scientific_settings.exact_registered`); it cannot discharge any materialization/native-readiness rule. BSE name discovery was therefore **not** treated as native/compiler readiness, and no engine-execution, scientific-adequacy, or combination evidence exists in this arm to close the materialization gap for `aug-mcc-pV8Z` in ORCA. Consequently:\n\n- No project candidate, no native input, no command, no project write, no execution requested (all flags `false`).\n- `element_findings` empty (no element literals in scope); no other settings were in scope.\n- Blocking rule ids left empty — the arm exposed no concrete materialization rule id, and none was invented.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "fcd16d7666011fdbfdda8ebafbb36cfe5c4b662078d38d144ceb777927c3f770",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "3ddd66adc8cbd4fb04ab42bc1ba57e715d12d0cd18d5a0db1ddf4ba6337d6b16",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "dae5d0bde324e8353f52283392a47c63ab0e929183b90e8ce8448631869bf473",
+        "receipt_sha256": "bf47682b692cbb6966c7377cdd369e2b4d40d1e879c9b613d99d16198065cfb2",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "The plan was submitted and the arm returned a normalization receipt (case sha `fcd16d76...`, proposal sha `3ddd66ad...`). The normalizer canonicalized `settings.freq` from `null` to `false`; all source literals (`B3LYP`, `aug-mcc-pV8Z`) were preserved.\n\n**Outcome — `blocked_unverified_setting`**\n\nEvidence gathered in this read-only arm:\n- **`method.functional = B3LYP`** → `exact_registered` (loader accepted, renderer preserved); evidence ceiling `loader_renderer_verification_only` (`engine_executed: false`, `scientific_adequacy_verified: false`, `setting_combination_verified: false`).\n- **`method.basis = aug-mcc-pV8Z`** → `exact_registered`, capability `orca.basis.bse.augmccpv8z` — a BSE-discovered name — with the same loader/renderer-only evidence ceiling.\n- Inventory view confirms `aug-mcc-pV8Z` is present among the six aug-mcc basis values, i.e. discoverable but not natively materialized.\n\nRationale: the `exact_registered` receipt discharges only its declared loader/renderer rule (`scientific_settings.exact_registered`); it cannot discharge any materialization/native-readiness rule. BSE name discovery was therefore **not** treated as native/compiler readiness, and no engine-execution, scientific-adequacy, or combination evidence exists in this arm to close the materialization gap for `aug-mcc-pV8Z` in ORCA. Consequently:\n\n- No project candidate, no native input, no command, no project write, no execution requested (all flags `false`).\n- `element_findings` empty (no element literals in scope); no other settings were in scope.\n- Blocking rule ids left empty — the arm exposed no concrete materialization rule id, and none was invented.",
+  "raw_typed_proposal": {
+    "analysis_summary": "Case-scope literals for the ORCA 6.1 B3LYP/aug-mcc-pV8Z opt plan: functional B3LYP and basis aug-mcc-pV8Z both resolved via resolve_scientific_setting_v1 with status exact_registered (loader accepted, renderer preserved), reason rule scientific_settings.exact_registered. However, both resolutions carry evidence_ceiling loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false. The basis capability id is orca.basis.bse.augmccpv8z, i.e. a BSE-discovered name; the inventory listing confirms aug-mcc-pV8Z is present among six aug-mcc basis values (pV5Z..pV8Z, pVQZ, pVTZ). Per the case rules, BSE name discovery is not native/compiler materialization readiness and the exact_registered receipt discharges only its declared loader/renderer applicability rule; it cannot discharge any materialization or native-readiness rule. No evidence in this arm demonstrates native materialization of aug-mcc-pV8Z in ORCA (no engine execution, no scientific-adequacy or combination verification). The plan is therefore blocked on the materialization gap for the basis setting: readiness blocked_unverified_setting. Source literals preserved in the settings (functional B3LYP, basis aug-mcc-pV8Z); no other settings were requested or in scope. No element literals were in scope, so element_findings is empty. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b3lyp-aug-mcc-pV8Z-opt",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "aug-mcc-pV8Z",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:registry_v1:v3",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "fcd16d7666011fdbfdda8ebafbb36cfe5c4b662078d38d144ceb777927c3f770",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "3ddd66adc8cbd4fb04ab42bc1ba57e715d12d0cd18d5a0db1ddf4ba6337d6b16",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "dae5d0bde324e8353f52283392a47c63ab0e929183b90e8ce8448631869bf473",
+    "receipt_sha256": "bf47682b692cbb6966c7377cdd369e2b4d40d1e879c9b613d99d16198065cfb2",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "typed_analysis_summary": "Case-scope literals for the ORCA 6.1 B3LYP/aug-mcc-pV8Z opt plan: functional B3LYP and basis aug-mcc-pV8Z both resolved via resolve_scientific_setting_v1 with status exact_registered (loader accepted, renderer preserved), reason rule scientific_settings.exact_registered. However, both resolutions carry evidence_ceiling loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false. The basis capability id is orca.basis.bse.augmccpv8z, i.e. a BSE-discovered name; the inventory listing confirms aug-mcc-pV8Z is present among six aug-mcc basis values (pV5Z..pV8Z, pVQZ, pVTZ). Per the case rules, BSE name discovery is not native/compiler materialization readiness and the exact_registered receipt discharges only its declared loader/renderer applicability rule; it cannot discharge any materialization or native-readiness rule. No evidence in this arm demonstrates native materialization of aug-mcc-pV8Z in ORCA (no engine execution, no scientific-adequacy or combination verification). The plan is therefore blocked on the materialization gap for the basis setting: readiness blocked_unverified_setting. Source literals preserved in the settings (functional B3LYP, basis aug-mcc-pV8Z); no other settings were requested or in scope. No element literals were in scope, so element_findings is empty. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Case-scope literals for the ORCA 6.1 B3LYP/aug-mcc-pV8Z opt plan: functional B3LYP and basis aug-mcc-pV8Z both resolved via resolve_scientific_setting_v1 with status exact_registered (loader accepted, renderer preserved), reason rule scientific_settings.exact_registered. However, both resolutions carry evidence_ceiling loader_renderer_verification_only: engine_executed=false, safe_preview_executed=false, scientific_adequacy_verified=false, setting_combination_verified=false. The basis capability id is orca.basis.bse.augmccpv8z, i.e. a BSE-discovered name; the inventory listing confirms aug-mcc-pV8Z is present among six aug-mcc basis values (pV5Z..pV8Z, pVQZ, pVTZ). Per the case rules, BSE name discovery is not native/compiler materialization readiness and the exact_registered receipt discharges only its declared loader/renderer applicability rule; it cannot discharge any materialization or native-readiness rule. No evidence in this arm demonstrates native materialization of aug-mcc-pV8Z in ORCA (no engine execution, no scientific-adequacy or combination verification). The plan is therefore blocked on the materialization gap for the basis setting: readiness blocked_unverified_setting. Source literals preserved in the settings (functional B3LYP, basis aug-mcc-pV8Z); no other settings were requested or in scope. No element literals were in scope, so element_findings is empty. No native input authored, no ChemSmart command authored, no project written, no execution requested.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-aug-mcc-pv8z-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-b3lyp-aug-mcc-pV8Z-opt",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "aug-mcc-pV8Z",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": false,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

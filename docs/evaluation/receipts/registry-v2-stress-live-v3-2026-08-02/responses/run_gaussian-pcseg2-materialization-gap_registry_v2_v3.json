@@ -1,0 +1,176 @@
+{
+  "assistant_text": "Proposal submitted and accepted (normalization receipt `2449d2cd…`, case SHA `af98c08b…`; only canonical set-order of `blocking_rule_ids` was normalized).\n\n## Summary — case `gaussian-pcseg2-materialization-gap`\n\n**Readiness: `blocked_validation_coverage`**\n\n**Evidence chain (read-only, V2 only):**\n- **Basis `pcseg-2` (mandatory target, gaussian `method.basis`, opt):** resolved by canonical literal from BSE discovery (bse-catalog-0.11) with loader/renderer verification only, but **zero candidates exposed**, `deterministic_validator_enforced=false`, evidence ceiling `loader_renderer_verification_only` (no safe preview, no engine execution, no adequacy/combination verification), status **blocked_validation_coverage** — the materialization gap: BSE discovery ≠ deterministic compiler materialization.\n- **Applicability rules present but undischarged:** `scientific_settings.basis.bse_materialization_required` and `scientific_settings.basis.request_element_coverage_required` — no exact, request-bound deterministic receipt exists in this arm, and no element-coverage findings were exposed (candidates empty).\n- **Functional `B3LYP`:** incompatible for Gaussian (`program_or_path_incompatible`, matched only as an ORCA registration); Gaussian inventory exposes only a fuzzy `lyp` hit (6000 bp) — no substitution made.\n- **freq job-kind lookup:** rejected as outside case scope; `opt` is the sole admissible accessor job kind.\n\n**Proposal contents:** source literals preserved (`basis: \"pcseg-2\"`, `functional: \"B3LYP\"`, `freq: true`); blocking rules `bse_materialization_required`, `request_element_coverage_required`, `program_or_path_incompatible`, `validation_coverage_gap`; `element_findings` empty; all execution/write flags false (`native_input_authored`, `command_authored`, `project_written`, `execution_requested` all false).\n\nNo native input, command, project write, or execution was authored or requested.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.basis.bse_materialization_required",
+        "scientific_settings.basis.request_element_coverage_required",
+        "scientific_settings.v2.program_or_path_incompatible",
+        "scientific_settings.v2.validation_coverage_gap"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [
+          "blocking_rule_ids"
+        ],
+        "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "10d7a516a220145e223add01848b66bbc192ce9e4d6726d5bcac35bfb9d05612",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [
+          "blocking_rule_ids"
+        ],
+        "raw_contract_valid": false,
+        "raw_payload_sha256": "ac4b764c5ae65336f4d6f8450a270e374fbfbf59dfad934021ef6edfb181d22c",
+        "receipt_sha256": "2449d2cd449761f802af5d3d286aa2d0b943189e209b8b29ad38d5f44d02dba5",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "validation_error_class": "ValidationError"
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-valid"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "Proposal submitted and accepted (normalization receipt `2449d2cd…`, case SHA `af98c08b…`; only canonical set-order of `blocking_rule_ids` was normalized).\n\n## Summary — case `gaussian-pcseg2-materialization-gap`\n\n**Readiness: `blocked_validation_coverage`**\n\n**Evidence chain (read-only, V2 only):**\n- **Basis `pcseg-2` (mandatory target, gaussian `method.basis`, opt):** resolved by canonical literal from BSE discovery (bse-catalog-0.11) with loader/renderer verification only, but **zero candidates exposed**, `deterministic_validator_enforced=false`, evidence ceiling `loader_renderer_verification_only` (no safe preview, no engine execution, no adequacy/combination verification), status **blocked_validation_coverage** — the materialization gap: BSE discovery ≠ deterministic compiler materialization.\n- **Applicability rules present but undischarged:** `scientific_settings.basis.bse_materialization_required` and `scientific_settings.basis.request_element_coverage_required` — no exact, request-bound deterministic receipt exists in this arm, and no element-coverage findings were exposed (candidates empty).\n- **Functional `B3LYP`:** incompatible for Gaussian (`program_or_path_incompatible`, matched only as an ORCA registration); Gaussian inventory exposes only a fuzzy `lyp` hit (6000 bp) — no substitution made.\n- **freq job-kind lookup:** rejected as outside case scope; `opt` is the sole admissible accessor job kind.\n\n**Proposal contents:** source literals preserved (`basis: \"pcseg-2\"`, `functional: \"B3LYP\"`, `freq: true`); blocking rules `bse_materialization_required`, `request_element_coverage_required`, `program_or_path_incompatible`, `validation_coverage_gap`; `element_findings` empty; all execution/write flags false (`native_input_authored`, `command_authored`, `project_written`, `execution_requested` all false).\n\nNo native input, command, project write, or execution was authored or requested.",
+  "raw_typed_proposal": {
+    "analysis_summary": "Mandatory preregistered target basis 'pcseg-2' for gaussian method.basis (job kind opt) resolved by canonical literal from BSE discovery (bse-catalog-0.11) with loader/renderer verification only, but exposed zero candidates, deterministic_validator_enforced=false, project_candidate_eligible=false, and status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, no scientific-adequacy or setting-combination verification. Applicability rules scientific_settings.basis.bse_materialization_required and scientific_settings.basis.request_element_coverage_required are present but cannot be discharged: this arm exposed no exact, request-bound deterministic materialized receipt for pcseg-2, so the BSE-discovery/materialization gap remains. No element-coverage findings were exposed (candidates empty), so request_element_coverage_required is unmet. Explicit functional literal B3LYP for gaussian method.functional resolved as incompatible (matched registered_elsewhere under orca; reason scientific_settings.v2.program_or_path_incompatible), and the Gaussian functional inventory exposes only a fuzzy 'lyp' candidate (similarity 6000), never B3LYP, so no substitution was made. A freq job-kind basis lookup was rejected as outside case scope, confirming opt is the only admissible accessor job kind. No native input, ChemSmart command, project write, or execution was authored or requested; source literals are preserved in this blocked proposal. Readiness: blocked_validation_coverage.",
+    "blocking_rule_ids": [
+      "scientific_settings.v2.validation_coverage_gap",
+      "scientific_settings.basis.bse_materialization_required",
+      "scientific_settings.basis.request_element_coverage_required",
+      "scientific_settings.v2.program_or_path_incompatible"
+    ],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-pcseg2-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v2:v3",
+  "submission_normalization": {
+    "canonicalized_set_fields": [
+      "blocking_rule_ids"
+    ],
+    "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "10d7a516a220145e223add01848b66bbc192ce9e4d6726d5bcac35bfb9d05612",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [
+      "blocking_rule_ids"
+    ],
+    "raw_contract_valid": false,
+    "raw_payload_sha256": "ac4b764c5ae65336f4d6f8450a270e374fbfbf59dfad934021ef6edfb181d22c",
+    "receipt_sha256": "2449d2cd449761f802af5d3d286aa2d0b943189e209b8b29ad38d5f44d02dba5",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "typed_analysis_summary": "Mandatory preregistered target basis 'pcseg-2' for gaussian method.basis (job kind opt) resolved by canonical literal from BSE discovery (bse-catalog-0.11) with loader/renderer verification only, but exposed zero candidates, deterministic_validator_enforced=false, project_candidate_eligible=false, and status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, no scientific-adequacy or setting-combination verification. Applicability rules scientific_settings.basis.bse_materialization_required and scientific_settings.basis.request_element_coverage_required are present but cannot be discharged: this arm exposed no exact, request-bound deterministic materialized receipt for pcseg-2, so the BSE-discovery/materialization gap remains. No element-coverage findings were exposed (candidates empty), so request_element_coverage_required is unmet. Explicit functional literal B3LYP for gaussian method.functional resolved as incompatible (matched registered_elsewhere under orca; reason scientific_settings.v2.program_or_path_incompatible), and the Gaussian functional inventory exposes only a fuzzy 'lyp' candidate (similarity 6000), never B3LYP, so no substitution was made. A freq job-kind basis lookup was rejected as outside case scope, confirming opt is the only admissible accessor job kind. No native input, ChemSmart command, project write, or execution was authored or requested; source literals are preserved in this blocked proposal. Readiness: blocked_validation_coverage.",
+  "typed_proposal": {
+    "analysis_summary": "Mandatory preregistered target basis 'pcseg-2' for gaussian method.basis (job kind opt) resolved by canonical literal from BSE discovery (bse-catalog-0.11) with loader/renderer verification only, but exposed zero candidates, deterministic_validator_enforced=false, project_candidate_eligible=false, and status blocked_validation_coverage (reason scientific_settings.v2.validation_coverage_gap). Evidence ceiling is loader_renderer_verification_only: no safe preview, no engine execution, no scientific-adequacy or setting-combination verification. Applicability rules scientific_settings.basis.bse_materialization_required and scientific_settings.basis.request_element_coverage_required are present but cannot be discharged: this arm exposed no exact, request-bound deterministic materialized receipt for pcseg-2, so the BSE-discovery/materialization gap remains. No element-coverage findings were exposed (candidates empty), so request_element_coverage_required is unmet. Explicit functional literal B3LYP for gaussian method.functional resolved as incompatible (matched registered_elsewhere under orca; reason scientific_settings.v2.program_or_path_incompatible), and the Gaussian functional inventory exposes only a fuzzy 'lyp' candidate (similarity 6000), never B3LYP, so no substitution was made. A freq job-kind basis lookup was rejected as outside case scope, confirming opt is the only admissible accessor job kind. No native input, ChemSmart command, project write, or execution was authored or requested; source literals are preserved in this blocked proposal. Readiness: blocked_validation_coverage.",
+    "blocking_rule_ids": [
+      "scientific_settings.basis.bse_materialization_required",
+      "scientific_settings.basis.request_element_coverage_required",
+      "scientific_settings.v2.program_or_path_incompatible",
+      "scientific_settings.v2.validation_coverage_gap"
+    ],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-pcseg2-materialization-gap",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

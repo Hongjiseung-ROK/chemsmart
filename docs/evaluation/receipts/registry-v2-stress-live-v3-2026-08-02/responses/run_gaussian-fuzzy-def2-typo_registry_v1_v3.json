@@ -1,0 +1,182 @@
+{
+  "assistant_text": "Submission complete. Summary of the Registry V2 stress case `gaussian-fuzzy-def2-typo`:\n\n**Lookup evidence (read-only resolve, gaussian / `method.basis` / `def2-TZVXP` / opt):**\n- Status: `candidate_only` — no exact canonical match; matched only via `fuzzy_candidate`\n- Candidates surfaced: def2-mTZVP, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD\n- `canonical_value: null`; loader and renderer observations both `not_observed`; `engine_executed: false`; evidence ceiling `loader_renderer_verification_only`\n- Blocking rule: `scientific_settings.candidate_requires_selection`\n\n**Decision:** Per the case rules (preserve reported spelling, never select a fuzzy candidate, never substitute silently), the proposal is **blocked** with readiness `blocked_unverified_setting`. The source literal `def2-TZVXP` is preserved verbatim in `settings.basis`, and no project write, native input, command authorship, or execution was requested.\n\n**Receipt note:** The arm's normalizer (`case-bound-explicit-settings-and-set-order`, v1.0.0) accepted the payload (`raw_contract_valid: true`) and filled case-bound defaults `functional=B3LYP` and `freq=true` in the canonicalized proposal. These are registry-side normalizations for the freq/opt case context and do not change the blocking status — the basis setting remains unverified, so no project candidate was produced.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.candidate_requires_selection"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [
+          "settings.freq",
+          "settings.functional"
+        ],
+        "normalization_applied": true,
+        "normalized_payload_sha256": "fcb5176f207206fe9fc87ce6e5a1fc90fa463c6778ddfb55e9570da05c2377e5",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "000068203278b4498e62f405177109b9170ce30ac4980eb77aecb4ed5e3adaea",
+        "receipt_sha256": "f6d35613649b6bfb791b692dee8be70bdc34036779e63f8c828f72b118e73d20",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [],
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.fuzzy-no-substitution",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity",
+      "oracle.setting-preservation"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.setting-preservation"
+    ],
+    "normalization_dependency": true,
+    "normalized_oracle_passed": true,
+    "raw_oracle_passed": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "scientific_settings.candidate_requires_selection"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.fuzzy-no-substitution",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "Submission complete. Summary of the Registry V2 stress case `gaussian-fuzzy-def2-typo`:\n\n**Lookup evidence (read-only resolve, gaussian / `method.basis` / `def2-TZVXP` / opt):**\n- Status: `candidate_only` — no exact canonical match; matched only via `fuzzy_candidate`\n- Candidates surfaced: def2-mTZVP, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD\n- `canonical_value: null`; loader and renderer observations both `not_observed`; `engine_executed: false`; evidence ceiling `loader_renderer_verification_only`\n- Blocking rule: `scientific_settings.candidate_requires_selection`\n\n**Decision:** Per the case rules (preserve reported spelling, never select a fuzzy candidate, never substitute silently), the proposal is **blocked** with readiness `blocked_unverified_setting`. The source literal `def2-TZVXP` is preserved verbatim in `settings.basis`, and no project write, native input, command authorship, or execution was requested.\n\n**Receipt note:** The arm's normalizer (`case-bound-explicit-settings-and-set-order`, v1.0.0) accepted the payload (`raw_contract_valid: true`) and filled case-bound defaults `functional=B3LYP` and `freq=true` in the canonicalized proposal. These are registry-side normalizations for the freq/opt case context and do not change the blocking status — the basis setting remains unverified, so no project candidate was produced.",
+  "raw_typed_proposal": {
+    "analysis_summary": "Resolved Gaussian method.basis literal 'def2-TZVXP' for opt against Registry V2 (evidence ceiling: loader_renderer_verification_only). Result: status candidate_only, matched_by fuzzy_candidate with candidates [def2-mTZVP, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD]; canonical_value null; loader_observation and renderer_observation both not_observed; engine_executed false; reason_rule_id scientific_settings.candidate_requires_selection. Per case instructions no fuzzy candidate may be selected and the reported spelling must be preserved, so the proposal is blocked as unverified. Source literal 'def2-TZVXP' is preserved in settings.basis. No project write, native input, command authorship, or execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.candidate_requires_selection"
+    ],
+    "case_id": "gaussian-fuzzy-def2-typo",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-fuzzy-def2-typo",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-TZVXP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": null,
+      "functional": null,
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-fuzzy-def2-typo:registry_v1:v3",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "3a69e3bd83b9a6892cf977cc91e45d57140fc865d34f5ea25266a1e0fd1dbdfa",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [
+      "settings.freq",
+      "settings.functional"
+    ],
+    "normalization_applied": true,
+    "normalized_payload_sha256": "fcb5176f207206fe9fc87ce6e5a1fc90fa463c6778ddfb55e9570da05c2377e5",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "000068203278b4498e62f405177109b9170ce30ac4980eb77aecb4ed5e3adaea",
+    "receipt_sha256": "f6d35613649b6bfb791b692dee8be70bdc34036779e63f8c828f72b118e73d20",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "typed_analysis_summary": "Resolved Gaussian method.basis literal 'def2-TZVXP' for opt against Registry V2 (evidence ceiling: loader_renderer_verification_only). Result: status candidate_only, matched_by fuzzy_candidate with candidates [def2-mTZVP, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD]; canonical_value null; loader_observation and renderer_observation both not_observed; engine_executed false; reason_rule_id scientific_settings.candidate_requires_selection. Per case instructions no fuzzy candidate may be selected and the reported spelling must be preserved, so the proposal is blocked as unverified. Source literal 'def2-TZVXP' is preserved in settings.basis. No project write, native input, command authorship, or execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "Resolved Gaussian method.basis literal 'def2-TZVXP' for opt against Registry V2 (evidence ceiling: loader_renderer_verification_only). Result: status candidate_only, matched_by fuzzy_candidate with candidates [def2-mTZVP, def2-TZVP, def2-TZVPD, def2-TZVPP, def2-TZVPPD]; canonical_value null; loader_observation and renderer_observation both not_observed; engine_executed false; reason_rule_id scientific_settings.candidate_requires_selection. Per case instructions no fuzzy candidate may be selected and the reported spelling must be preserved, so the proposal is blocked as unverified. Source literal 'def2-TZVXP' is preserved in settings.basis. No project write, native input, command authorship, or execution requested.",
+    "blocking_rule_ids": [
+      "scientific_settings.candidate_requires_selection"
+    ],
+    "case_id": "gaussian-fuzzy-def2-typo",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-fuzzy-def2-typo",
+    "project_written": false,
+    "readiness": "blocked_unverified_setting",
+    "settings": {
+      "basis": "def2-TZVXP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

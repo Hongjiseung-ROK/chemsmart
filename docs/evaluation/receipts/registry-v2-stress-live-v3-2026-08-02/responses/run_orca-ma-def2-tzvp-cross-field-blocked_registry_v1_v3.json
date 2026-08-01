@@ -1,0 +1,38 @@
+{
+  "assistant_text": "All three literals resolved as `exact_registered` for the `opt` accessor. Since this project is a `freq` task and the case ID flags a cross-field blocker, let me inspect the V1 setting views for the freq side to see what coverage exists there.",
+  "deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "successful_submission_count": 0
+    },
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": []
+  },
+  "raw_public_english_response": "All three literals resolved as `exact_registered` for the `opt` accessor. Since this project is a `freq` task and the case ID flags a cross-field blocker, let me inspect the V1 setting views for the freq side to see what coverage exists there.",
+  "raw_typed_proposal": null,
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v3",
+  "submission_normalization": null,
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

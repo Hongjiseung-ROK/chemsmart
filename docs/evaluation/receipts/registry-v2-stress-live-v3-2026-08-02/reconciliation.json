@@ -1,0 +1,330 @@
+{
+  "schema_version": "chemsmart.registry-stress-live-reconciliation.v2",
+  "campaign_id": "registry-v2-stress-development-v3",
+  "campaign_plan_sha256": "58a760ffaac3706e5fae0262d93966511c40fb03a2332c897716a0c23a64df17",
+  "source_commit": "0a26c0da1e288d988e7f666681fd20547637fa67",
+  "source_binding_sha256": "21eeade4e62d0bb88cee56ff0a2b6510ca4c764803e3c3dc8f019d3bf0b2460d",
+  "source_tree_sha256": "3321c30d94241f26220084e73f87298cf90b1b48ee16c7a0a014c580cc0a5a4e",
+  "registry_v2_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+  "termination": {
+    "raw_progress_status": "terminated_error",
+    "completed_run_count": 12,
+    "planned_run_count": 44,
+    "last_started_hypothesis_id": "hypothesis.orca-def2-tzvp-fe-no-ecp:minimal:v3",
+    "error_class": "JSONDecodeError",
+    "termination_reason": "safety_or_transport_error",
+    "decision": "repair_transport_before_resume",
+    "operator_observation": "The visible traceback located JSONDecodeError in the OpenAI-compatible provider adapter while decoding function.arguments; the malformed provider payload itself was not persisted.",
+    "operator_observation_evidence_class": "reconciliation_record_only"
+  },
+  "measurement_contract": {
+    "raw_strict_grade": "Contract-first grade; schema failure short-circuits semantic oracles.",
+    "normalized_grade": "Strict grade after case-bound transport normalization.",
+    "order_insensitive_raw_semantic_grade_available": false,
+    "retired_metric": "Do not interpret newly_passed_oracle_ids after a raw schema short-circuit as newly created scientific correctness."
+  },
+  "aggregate_observations": {
+    "arm_metrics": {
+      "minimal": {
+        "input_tokens": 49910,
+        "normalization_dependencies": 0,
+        "normalized_passes": 1,
+        "output_tokens": 22871,
+        "raw_strict_passes": 1,
+        "transport_attempts": 8,
+        "trials": 4,
+        "typed_submission_receipts": 4,
+        "wall_time_ms": 204442
+      },
+      "registry_v1": {
+        "input_tokens": 81200,
+        "normalization_dependencies": 1,
+        "normalized_passes": 1,
+        "output_tokens": 21751,
+        "raw_strict_passes": 0,
+        "transport_attempts": 13,
+        "trials": 4,
+        "typed_submission_receipts": 3,
+        "wall_time_ms": 189664
+      },
+      "registry_v2": {
+        "input_tokens": 102088,
+        "normalization_dependencies": 3,
+        "normalized_passes": 3,
+        "output_tokens": 22583,
+        "raw_strict_passes": 0,
+        "transport_attempts": 14,
+        "trials": 4,
+        "typed_submission_receipts": 4,
+        "wall_time_ms": 195742
+      }
+    },
+    "terminal_state_counts": {
+      "blocked": 5,
+      "failed": 7
+    },
+    "tool_outcome_status_counts": {
+      "error": 6,
+      "ok": 32
+    },
+    "total_trials": 12,
+    "raw_strict_passes": 1,
+    "normalized_passes": 5,
+    "normalization_dependencies": 4,
+    "chemistry_engine_calls": 0,
+    "hpc_calls": 0,
+    "project_writes": 0,
+    "private_reasoning_persisted_count": 0,
+    "secret_material_persisted_count": 0
+  },
+  "run_receipts": [
+    {
+      "run_id": "run:gaussian-fuzzy-def2-typo:minimal:v3",
+      "arm": "minimal",
+      "outcome_receipt_sha256": "8216300eea11c18ad24bf0f21f96926acb0988190c478933df5cc100575b5098",
+      "outcome_artifact_sha256": "1be3b44ab487c582bd854836f09ff47bdaff5d45816d902e268cca836bd78de0",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": false,
+      "normalization_dependency": false,
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.fuzzy-no-substitution",
+        "oracle.honest-readiness"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-fuzzy-def2-typo:registry_v1:v3",
+      "arm": "registry_v1",
+      "outcome_receipt_sha256": "2140f0e790256bb6bc247448e037a50f81479cbc00f5ba356263c3c6c93cdc0d",
+      "outcome_artifact_sha256": "b80347f0cc9ec137c8457802174b3f1e59bca3417a926444941059585d02cc7a",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": true,
+      "normalization_dependency": true,
+      "terminal_state": "blocked",
+      "failed_oracle_ids": []
+    },
+    {
+      "run_id": "run:gaussian-fuzzy-def2-typo:registry_v2:v3",
+      "arm": "registry_v2",
+      "outcome_receipt_sha256": "b902e071b626ca271eafcabbbe9e1bf8be055aacc4e4e6885035d6a57332e94c",
+      "outcome_artifact_sha256": "549f54a7a487ff8a35381916bddefec4932e40c4186433c5a59a651a62bcf822",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": false,
+      "normalization_dependency": false,
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.fuzzy-no-substitution",
+        "oracle.honest-readiness"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:minimal:v3",
+      "arm": "minimal",
+      "outcome_receipt_sha256": "08028160ba89badcf7855a4446a2d71fdbf836ac5932311ec17ed5cce0913ba1",
+      "outcome_artifact_sha256": "1b709c5829e89a824bd09b4da5fe1a197005b844106c258ee9e3977bff9c811d",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": false,
+      "normalization_dependency": false,
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.honest-readiness",
+        "oracle.setting-preservation"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v1:v3",
+      "arm": "registry_v1",
+      "outcome_receipt_sha256": "d52a26c172484f51c48c66522feaa06b526f35ddf238e9e0ac887ff391f6b532",
+      "outcome_artifact_sha256": "dfd54e2e0f15d4d48c6e7a15a9ceb1e1a5c8f21a8554166d66b16d7cf8a58595",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": false,
+      "normalization_dependency": false,
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ]
+    },
+    {
+      "run_id": "run:gaussian-pcseg2-materialization-gap:registry_v2:v3",
+      "arm": "registry_v2",
+      "outcome_receipt_sha256": "1ae2b5ec4eacac0637b5f7aceb907c8d560127c8b0763defb79ed7b5d9b81888",
+      "outcome_artifact_sha256": "9853981644d0fd2508696a857c7b5ea030da95a6a5c67091d145e7ac41611a58",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": true,
+      "normalization_dependency": true,
+      "terminal_state": "blocked",
+      "failed_oracle_ids": []
+    },
+    {
+      "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:minimal:v3",
+      "arm": "minimal",
+      "outcome_receipt_sha256": "ddc38ce774d1a40100a7b320215ee8baefe3ca73dd870c47371d7bc588fe53d2",
+      "outcome_artifact_sha256": "f9decd3e6bbbb3e3c6a926123ec517d4f70dbcb64ed387b117d4a207b2e093d1",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": false,
+      "normalization_dependency": false,
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ]
+    },
+    {
+      "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:registry_v1:v3",
+      "arm": "registry_v1",
+      "outcome_receipt_sha256": "feecd2f922ee5877f930651eba5b1c03750f759cc1bc502066ed97143814da82",
+      "outcome_artifact_sha256": "0d759eb4ee69e9867e87044d80557dc95b13db2c4fb37fa09549cff62626c2f3",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": false,
+      "normalization_dependency": false,
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ]
+    },
+    {
+      "run_id": "run:orca-aug-mcc-pv8z-materialization-gap:registry_v2:v3",
+      "arm": "registry_v2",
+      "outcome_receipt_sha256": "b28d58c81e8e6f1c9cec84ae0542ed80a2369066783290a24a47ff5c0331757e",
+      "outcome_artifact_sha256": "7c6b3398c2cf06d3362b4e57e9426c786c98c414008ca7e82e9af12c340a9742",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": true,
+      "normalization_dependency": true,
+      "terminal_state": "blocked",
+      "failed_oracle_ids": []
+    },
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v3",
+      "arm": "minimal",
+      "outcome_receipt_sha256": "5640341604855e4fcff0e84decd7b0bf2671402315d4e24580bedf04b1428a9e",
+      "outcome_artifact_sha256": "745621b723254ef2e69c8003d9c71ddb95e9aaca39da2392f346249f7b419cf7",
+      "raw_strict_oracle_passed": true,
+      "normalized_oracle_passed": true,
+      "normalization_dependency": false,
+      "terminal_state": "blocked",
+      "failed_oracle_ids": []
+    },
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v3",
+      "arm": "registry_v1",
+      "outcome_receipt_sha256": "df603710dcea1fe3e5353f9328de897dfad07df1f239b0e3cd52cd2734bfd2ac",
+      "outcome_artifact_sha256": "019a5d1241d74b5e6afa03da1aa09ee723308ac154a74f83c5debac9cdd7b6cc",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": false,
+      "normalization_dependency": false,
+      "terminal_state": "failed",
+      "failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ]
+    },
+    {
+      "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v2:v3",
+      "arm": "registry_v2",
+      "outcome_receipt_sha256": "4bab644eb6d53eaf9103227dbc459d52ffb94f385409fcb13a640eae7e32d47e",
+      "outcome_artifact_sha256": "20e672b4e84123ba5a6d72b2405b7ec74b8422a554311e18a2aaf172c0933729",
+      "raw_strict_oracle_passed": false,
+      "normalized_oracle_passed": true,
+      "normalization_dependency": true,
+      "terminal_state": "blocked",
+      "failed_oracle_ids": []
+    }
+  ],
+  "confirmed_facts": [
+    {
+      "claim": "All twelve completed runs have durable outcome, response, tool-trace, and Runtime V2 event artifacts; the thirteenth hypothesis has no completed outcome.",
+      "evidence_refs": [
+        "campaign-progress.json",
+        "8216300eea11c18ad24bf0f21f96926acb0988190c478933df5cc100575b5098",
+        "2140f0e790256bb6bc247448e037a50f81479cbc00f5ba356263c3c6c93cdc0d",
+        "b902e071b626ca271eafcabbbe9e1bf8be055aacc4e4e6885035d6a57332e94c",
+        "08028160ba89badcf7855a4446a2d71fdbf836ac5932311ec17ed5cce0913ba1",
+        "d52a26c172484f51c48c66522feaa06b526f35ddf238e9e0ac887ff391f6b532",
+        "1ae2b5ec4eacac0637b5f7aceb907c8d560127c8b0763defb79ed7b5d9b81888",
+        "ddc38ce774d1a40100a7b320215ee8baefe3ca73dd870c47371d7bc588fe53d2",
+        "feecd2f922ee5877f930651eba5b1c03750f759cc1bc502066ed97143814da82",
+        "b28d58c81e8e6f1c9cec84ae0542ed80a2369066783290a24a47ff5c0331757e",
+        "5640341604855e4fcff0e84decd7b0bf2671402315d4e24580bedf04b1428a9e",
+        "df603710dcea1fe3e5353f9328de897dfad07df1f239b0e3cd52cd2734bfd2ac",
+        "4bab644eb6d53eaf9103227dbc459d52ffb94f385409fcb13a640eae7e32d47e"
+      ]
+    },
+    {
+      "claim": "Populated Registry V2 normalized-pass occurred in three materialization-gap/cross-field cases, while the Gaussian fuzzy-typo V2 case failed.",
+      "evidence_refs": [
+        "b902e071b626ca271eafcabbbe9e1bf8be055aacc4e4e6885035d6a57332e94c",
+        "1ae2b5ec4eacac0637b5f7aceb907c8d560127c8b0763defb79ed7b5d9b81888",
+        "b28d58c81e8e6f1c9cec84ae0542ed80a2369066783290a24a47ff5c0331757e",
+        "4bab644eb6d53eaf9103227dbc459d52ffb94f385409fcb13a640eae7e32d47e"
+      ]
+    },
+    {
+      "claim": "The narrow normalizer was required for four accepted runs, including one Registry V1 fuzzy-typo run; raw strict success was one of twelve.",
+      "evidence_refs": [
+        "campaign-progress.json",
+        "2140f0e790256bb6bc247448e037a50f81479cbc00f5ba356263c3c6c93cdc0d",
+        "1ae2b5ec4eacac0637b5f7aceb907c8d560127c8b0763defb79ed7b5d9b81888",
+        "b28d58c81e8e6f1c9cec84ae0542ed80a2369066783290a24a47ff5c0331757e",
+        "4bab644eb6d53eaf9103227dbc459d52ffb94f385409fcb13a640eae7e32d47e"
+      ]
+    },
+    {
+      "claim": "The campaign stopped with JSONDecodeError before the thirteenth run produced a durable outcome.",
+      "evidence_refs": [
+        "campaign-progress.json"
+      ]
+    },
+    {
+      "claim": "No completed run invoked a chemistry engine or HPC, wrote a project, persisted a secret, or persisted private reasoning.",
+      "evidence_refs": [
+        "8216300eea11c18ad24bf0f21f96926acb0988190c478933df5cc100575b5098",
+        "2140f0e790256bb6bc247448e037a50f81479cbc00f5ba356263c3c6c93cdc0d",
+        "b902e071b626ca271eafcabbbe9e1bf8be055aacc4e4e6885035d6a57332e94c",
+        "08028160ba89badcf7855a4446a2d71fdbf836ac5932311ec17ed5cce0913ba1",
+        "d52a26c172484f51c48c66522feaa06b526f35ddf238e9e0ac887ff391f6b532",
+        "1ae2b5ec4eacac0637b5f7aceb907c8d560127c8b0763defb79ed7b5d9b81888",
+        "ddc38ce774d1a40100a7b320215ee8baefe3ca73dd870c47371d7bc588fe53d2",
+        "feecd2f922ee5877f930651eba5b1c03750f759cc1bc502066ed97143814da82",
+        "b28d58c81e8e6f1c9cec84ae0542ed80a2369066783290a24a47ff5c0331757e",
+        "5640341604855e4fcff0e84decd7b0bf2671402315d4e24580bedf04b1428a9e",
+        "df603710dcea1fe3e5353f9328de897dfad07df1f239b0e3cd52cd2734bfd2ac",
+        "4bab644eb6d53eaf9103227dbc459d52ffb94f385409fcb13a640eae7e32d47e"
+      ]
+    }
+  ],
+  "supported_interpretations": [
+    {
+      "claim": "Canonicalizing only blocking_rule_ids removes an avoidable transport failure without overwriting contradictory scientific values.",
+      "evidence_refs": [
+        "2140f0e790256bb6bc247448e037a50f81479cbc00f5ba356263c3c6c93cdc0d",
+        "1ae2b5ec4eacac0637b5f7aceb907c8d560127c8b0763defb79ed7b5d9b81888",
+        "b28d58c81e8e6f1c9cec84ae0542ed80a2369066783290a24a47ff5c0331757e",
+        "4bab644eb6d53eaf9103227dbc459d52ffb94f385409fcb13a640eae7e32d47e"
+      ]
+    },
+    {
+      "claim": "Registry V2 is not yet a safe default because its Gaussian inventory can classify known V1 literals as incompatible or unknown and it regressed on the fuzzy-typo case.",
+      "evidence_refs": [
+        "b902e071b626ca271eafcabbbe9e1bf8be055aacc4e4e6885035d6a57332e94c",
+        "1ae2b5ec4eacac0637b5f7aceb907c8d560127c8b0763defb79ed7b5d9b81888"
+      ]
+    },
+    {
+      "claim": "Malformed tool-argument JSON must become a typed fail-closed tool outcome so bounded model repair can proceed without invoking a tool.",
+      "evidence_refs": [
+        "campaign-progress.json"
+      ]
+    }
+  ],
+  "unknowns": [
+    "The exact malformed provider argument bytes and whether truncation, provider serialization, or another transport condition caused the JSONDecodeError.",
+    "Whether normalized Registry V2 performance holds beyond the four completed development cases.",
+    "An order-insensitive raw semantic grade was not recorded, so scientific gains cannot be separated numerically from schema-order repair in these artifacts.",
+    "Monetary cost was not observed."
+  ],
+  "next_hypotheses": [
+    "A provider-adapter malformed-argument request type can record a typed error, execute zero tools, and permit one bounded retry.",
+    "A completeness-aware Gaussian functional inventory will resolve B3LYP exactly without weakening unknown-value blocking.",
+    "A three-layer grade (wire contract, order-insensitive raw semantics, normalized acceptance) will prevent transport normalization from inflating scientific-effect metrics."
+  ],
+  "claim_ceiling": "Twelve development runs from four preregistered cases only; no completed campaign, held-out generalization, safe-preview, execution, reproduction, or SOTA claim.",
+  "receipt_sha256": "0970e8b9f42f52a238e941a46e7c2c089b68f1b0cad9750fc36c3ff136c09e72"
+}

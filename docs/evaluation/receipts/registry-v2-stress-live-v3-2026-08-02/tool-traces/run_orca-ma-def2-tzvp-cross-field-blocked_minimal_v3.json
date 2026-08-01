@@ -1,0 +1,172 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T220115Z-e2c00376\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: orca-ma-def2-tzvp-cross-field-blocked\nProgram: orca\nEngine version: 6.1\nTask kind: freq\nProject/registry accessor job kind: opt\n\nPlan a neutral-singlet ORCA frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly.\n\nHost-preregistered lookup targets:\n- basis: orca method.basis 'ma-def2-TZVP' for opt\n- dispersion: orca method.dispersion 'D3BJ' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"proposal\": {\"case_id\": \"orca-ma-def2-tzvp-cross-field-blocked\", \"program\": \"orca\", \"project_name\": \"orca-ma-def2-tzvp-freq\", \"readiness\": \"blocked_validation_coverage\", \"settings\": {\"functional\": \"B3LYP\", \"basis\": \"ma-def2-TZVP\", \"dispersion\": \"D3BJ\", \"integration_grid\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"light_elements_basis\": null, \"solvent_model\": null, \"solvent_id\": null, \"gfn_version\": null, \"optimization_level\": null, \"freq\": true, \"solv_freq\": null, \"ecp_intent\": null, \"ecp_elements\": []}, \"element_findings\": [], \"blocking_rule_ids\": [], \"analysis_summary\": \"Blocked proposal for an ORCA 6.1 neutral-singlet frequency project preserving the exact request literals: functional B3LYP, basis ma-def2-TZVP, dispersion D3BJ, task freq (freq=true). No molecule, solvent, heavy elements, or ECP were specified, so heavy_elements, ECP fields, and element_findings are left unset. The proposal is blocked on validation coverage (cross-field): the host-preregistered lookup targets (orca method.basis 'ma-def2-TZVP' and orca method.dispersion 'D3BJ') are registered under job kind 'opt', whereas this project is a freq task; the opt-kind coverage cannot validate the freq-kind project. No exact, request-bound deterministic receipt for the freq job kind was exposed by this arm, so the declared applicability rule for the opt-kind lookups cannot discharge the freq-kind requirements and cannot discharge any other rule. BSE discoverability of ma-def2-TZVP is advisory only and does not establish native ORCA 6.1/compiler readiness. No fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals are preserved verbatim.\", \"native_input_authored\": false, \"command_authored\": false, \"project_written\": false, \"execution_requested\": false}}",
+            "name": "submit_registry_stress_plan"
+          },
+          "id": "call_00_JW9uXVfVsKRESatfk4SZ7960",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"normalization_receipt\": {\"canonicalized_set_fields\": [], \"case_sha256\": \"19851144a8a225c3c8f2b9ed419f15d92e185a3d01326f1c04f150417b30ec01\", \"conflicting_explicit_setting_fields\": [], \"filled_explicit_setting_fields\": [], \"normalization_applied\": false, \"normalized_payload_sha256\": \"bdc5caaa0c119e47679bc889dddbc2a637fb6ec2db2aabbeb293c2a8cb0e37a2\", \"normalizer_id\": \"case-bound-explicit-settings-and-set-order\", \"normalizer_version\": \"1.0.0\", \"raw_contract_error_paths\": [], \"raw_contract_valid\": true, \"raw_payload_sha256\": \"bdc5caaa0c119e47679bc889dddbc2a637fb6ec2db2aabbeb293c2a8cb0e37a2\", \"receipt_sha256\": \"3155a716a318c8b14a8f6f13121269117b37c3fd84bfd17ab1821f57378e6e0b\", \"schema_version\": \"chemsmart.registry-stress-submission-normalization.v1\"}, \"proposal\": {\"analysis_summary\": \"Blocked proposal for an ORCA 6.1 neutral-singlet frequency project preserving the exact request literals: functional B3LYP, basis ma-def2-TZVP, dispersion D3BJ, task freq (freq=true). No molecule, solvent, heavy elements, or ECP were specified, so heavy_elements, ECP fields, and element_findings are left unset. The proposal is blocked on validation coverage (cross-field): the host-preregistered lookup targets (orca method.basis 'ma-def2-TZVP' and orca method.dispersion 'D3BJ') are registered under job kind 'opt', whereas this project is a freq task; the opt-kind coverage cannot validate the freq-kind project. No exact, request-bound deterministic receipt for the freq job kind was exposed by this arm, so the declared applicability rule for the opt-kind lookups cannot discharge the freq-kind requirements and cannot discharge any other rule. BSE discoverability of ma-def2-TZVP is advisory only and does not establish native ORCA 6.1/compiler readiness. No fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals are preserved verbatim.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-ma-def2-tzvp-cross-field-blocked\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-ma-def2-tzvp-freq\", \"project_written\": false, \"readiness\": \"blocked_validation_coverage\", \"settings\": {\"basis\": \"ma-def2-TZVP\", \"dispersion\": \"D3BJ\", \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"raw_proposal\": {\"analysis_summary\": \"Blocked proposal for an ORCA 6.1 neutral-singlet frequency project preserving the exact request literals: functional B3LYP, basis ma-def2-TZVP, dispersion D3BJ, task freq (freq=true). No molecule, solvent, heavy elements, or ECP were specified, so heavy_elements, ECP fields, and element_findings are left unset. The proposal is blocked on validation coverage (cross-field): the host-preregistered lookup targets (orca method.basis 'ma-def2-TZVP' and orca method.dispersion 'D3BJ') are registered under job kind 'opt', whereas this project is a freq task; the opt-kind coverage cannot validate the freq-kind project. No exact, request-bound deterministic receipt for the freq job kind was exposed by this arm, so the declared applicability rule for the opt-kind lookups cannot discharge the freq-kind requirements and cannot discharge any other rule. BSE discoverability of ma-def2-TZVP is advisory only and does not establish native ORCA 6.1/compiler readiness. No fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals are preserved verbatim.\", \"blocking_rule_ids\": [], \"case_id\": \"orca-ma-def2-tzvp-cross-field-blocked\", \"command_authored\": false, \"element_findings\": [], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"orca\", \"project_name\": \"orca-ma-def2-tzvp-freq\", \"project_written\": false, \"readiness\": \"blocked_validation_coverage\", \"settings\": {\"basis\": \"ma-def2-TZVP\", \"dispersion\": \"D3BJ\", \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}}",
+      "role": "tool",
+      "tool_call_id": "call_00_JW9uXVfVsKRESatfk4SZ7960"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Submission accepted. Receipt summary:\n\n- **Case**: `orca-ma-def2-tzvp-cross-field-blocked` (sha256 `19851144…c01`)\n- **Readiness**: `blocked_validation_coverage`\n- **Settings preserved verbatim**: functional `B3LYP`, basis `ma-def2-TZVP`, dispersion `D3BJ`, `freq: true`; no solvent, ECP, heavy-element, or optimization-level fields in scope; no molecule specified so `element_findings` left empty.\n- **Blocking rationale**: the preregistered lookup targets (basis `ma-def2-TZVP`, dispersion `D3BJ`) are bound to job kind **opt**, while this project is a **freq** task. No exact, request-bound receipt for the freq kind was exposed by this arm, so the opt-kind applicability cannot discharge the freq-kind requirements — and BSE discoverability is advisory only, not native/compiler readiness.\n- **Guardrails**: `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`.\n- **Normalization**: raw contract valid; no normalization applied (`normalization_applied: false`); no conflicting or filled explicit-setting fields.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:minimal:v3",
+  "tool_outcomes": [
+    {
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_JW9uXVfVsKRESatfk4SZ7960",
+      "request_id": "openai:call_00_JW9uXVfVsKRESatfk4SZ7960",
+      "result": {
+        "normalization_receipt": {
+          "canonicalized_set_fields": [],
+          "case_sha256": "19851144a8a225c3c8f2b9ed419f15d92e185a3d01326f1c04f150417b30ec01",
+          "conflicting_explicit_setting_fields": [],
+          "filled_explicit_setting_fields": [],
+          "normalization_applied": false,
+          "normalized_payload_sha256": "bdc5caaa0c119e47679bc889dddbc2a637fb6ec2db2aabbeb293c2a8cb0e37a2",
+          "normalizer_id": "case-bound-explicit-settings-and-set-order",
+          "normalizer_version": "1.0.0",
+          "raw_contract_error_paths": [],
+          "raw_contract_valid": true,
+          "raw_payload_sha256": "bdc5caaa0c119e47679bc889dddbc2a637fb6ec2db2aabbeb293c2a8cb0e37a2",
+          "receipt_sha256": "3155a716a318c8b14a8f6f13121269117b37c3fd84bfd17ab1821f57378e6e0b",
+          "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+        },
+        "proposal": {
+          "analysis_summary": "Blocked proposal for an ORCA 6.1 neutral-singlet frequency project preserving the exact request literals: functional B3LYP, basis ma-def2-TZVP, dispersion D3BJ, task freq (freq=true). No molecule, solvent, heavy elements, or ECP were specified, so heavy_elements, ECP fields, and element_findings are left unset. The proposal is blocked on validation coverage (cross-field): the host-preregistered lookup targets (orca method.basis 'ma-def2-TZVP' and orca method.dispersion 'D3BJ') are registered under job kind 'opt', whereas this project is a freq task; the opt-kind coverage cannot validate the freq-kind project. No exact, request-bound deterministic receipt for the freq job kind was exposed by this arm, so the declared applicability rule for the opt-kind lookups cannot discharge the freq-kind requirements and cannot discharge any other rule. BSE discoverability of ma-def2-TZVP is advisory only and does not establish native ORCA 6.1/compiler readiness. No fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals are preserved verbatim.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-ma-def2-tzvp-freq",
+          "project_written": false,
+          "readiness": "blocked_validation_coverage",
+          "settings": {
+            "basis": "ma-def2-TZVP",
+            "dispersion": "D3BJ",
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "raw_proposal": {
+          "analysis_summary": "Blocked proposal for an ORCA 6.1 neutral-singlet frequency project preserving the exact request literals: functional B3LYP, basis ma-def2-TZVP, dispersion D3BJ, task freq (freq=true). No molecule, solvent, heavy elements, or ECP were specified, so heavy_elements, ECP fields, and element_findings are left unset. The proposal is blocked on validation coverage (cross-field): the host-preregistered lookup targets (orca method.basis 'ma-def2-TZVP' and orca method.dispersion 'D3BJ') are registered under job kind 'opt', whereas this project is a freq task; the opt-kind coverage cannot validate the freq-kind project. No exact, request-bound deterministic receipt for the freq job kind was exposed by this arm, so the declared applicability rule for the opt-kind lookups cannot discharge the freq-kind requirements and cannot discharge any other rule. BSE discoverability of ma-def2-TZVP is advisory only and does not establish native ORCA 6.1/compiler readiness. No fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals are preserved verbatim.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-ma-def2-tzvp-freq",
+          "project_written": false,
+          "readiness": "blocked_validation_coverage",
+          "settings": {
+            "basis": "ma-def2-TZVP",
+            "dispersion": "D3BJ",
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "result_sha256": "eb813bff615b42b2e9c06a490c6ede006abb49838b1119f1755dea6b3f1ae4ca",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "proposal": {
+          "analysis_summary": "Blocked proposal for an ORCA 6.1 neutral-singlet frequency project preserving the exact request literals: functional B3LYP, basis ma-def2-TZVP, dispersion D3BJ, task freq (freq=true). No molecule, solvent, heavy elements, or ECP were specified, so heavy_elements, ECP fields, and element_findings are left unset. The proposal is blocked on validation coverage (cross-field): the host-preregistered lookup targets (orca method.basis 'ma-def2-TZVP' and orca method.dispersion 'D3BJ') are registered under job kind 'opt', whereas this project is a freq task; the opt-kind coverage cannot validate the freq-kind project. No exact, request-bound deterministic receipt for the freq job kind was exposed by this arm, so the declared applicability rule for the opt-kind lookups cannot discharge the freq-kind requirements and cannot discharge any other rule. BSE discoverability of ma-def2-TZVP is advisory only and does not establish native ORCA 6.1/compiler readiness. No fuzzy candidate was selected, no setting was silently substituted, and no native input, ChemSmart command, project write, or execution was authored or requested. Source literals are preserved verbatim.",
+          "blocking_rule_ids": [],
+          "case_id": "orca-ma-def2-tzvp-cross-field-blocked",
+          "command_authored": false,
+          "element_findings": [],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "orca",
+          "project_name": "orca-ma-def2-tzvp-freq",
+          "project_written": false,
+          "readiness": "blocked_validation_coverage",
+          "settings": {
+            "basis": "ma-def2-TZVP",
+            "dispersion": "D3BJ",
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        }
+      },
+      "arguments_sha256": "e03f4942829384a1a63c3e06d27c0ea31b571c631d2a0e2b617d9f7a275d74b3",
+      "name": "submit_registry_stress_plan",
+      "provider_call_id": "call_00_JW9uXVfVsKRESatfk4SZ7960",
+      "request_id": "openai:call_00_JW9uXVfVsKRESatfk4SZ7960"
+    }
+  ]
+}

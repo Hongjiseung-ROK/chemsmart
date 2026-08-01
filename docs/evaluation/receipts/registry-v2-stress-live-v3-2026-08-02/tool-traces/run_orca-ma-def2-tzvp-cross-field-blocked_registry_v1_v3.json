@@ -1,0 +1,391 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: diagnostics,execution,project_yaml,synthesis,wizard; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260801T220205Z-26a93dbe\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only Registry V2 stress experiment. No project writes, native input, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a controlled ChemSmart Registry V2 experiment.\n\nCase ID: orca-ma-def2-tzvp-cross-field-blocked\nProgram: orca\nEngine version: 6.1\nTask kind: freq\nProject/registry accessor job kind: opt\n\nPlan a neutral-singlet ORCA frequency project preserving B3LYP-D3BJ/ma-def2-TZVP exactly.\n\nHost-preregistered lookup targets:\n- basis: orca method.basis 'ma-def2-TZVP' for opt\n- dispersion: orca method.dispersion 'D3BJ' for opt\n\nUse only the read-only tools offered in this arm. The mandatory targets above and every explicit setting literal in the request are in case scope. A BSE-discoverable name is not automatically native/compiler-ready. Never rewrite a raw registry status. Only an exact, request-bound deterministic receipt exposed by this arm may discharge its declared applicability rule; it cannot discharge any other rule. Never select a fuzzy candidate, silently substitute a setting, author native input or a ChemSmart command, write a project, or request execution. Knowledge-pack output is advisory and cannot override a registry status or deterministic blocker. Finish with exactly one submit_registry_stress_plan call. Preserve source literals in blocked proposals and write analysis_summary in English.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"program\": \"orca\", \"setting_path\": \"method.basis\", \"value\": \"ma-def2-TZVP\", \"job_kind\": \"opt\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_00_BEOF0a63qp9IjByNuNyE8785",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"program\": \"orca\", \"setting_path\": \"method.dispersion\", \"value\": \"D3BJ\", \"job_kind\": \"opt\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_01_D4LOYo3vLc3qLgwCnmvF6751",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"program\": \"orca\", \"setting_path\": \"method.functional\", \"value\": \"B3LYP\", \"job_kind\": \"opt\"}",
+            "name": "resolve_scientific_setting_v1"
+          },
+          "id": "call_02_JrlxjBlifwqsboTNSEzz9716",
+          "index": 2,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": \"ma-def2-TZVP\", \"capability_id\": \"orca.basis.ma-def2-tzvp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"madef2tzvp\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"ma-def2-TZVP\", \"resolution_sha256\": \"2a72157cd48646dbd0619c2a56b1e137fd071810083e1007bb52a86908dff173\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.basis\", \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_BEOF0a63qp9IjByNuNyE8785"
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": \"D3BJ\", \"capability_id\": \"orca.dispersion.d3bj\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"d3bj\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"D3BJ\", \"resolution_sha256\": \"582cb3b076eed7a42cd558721e155f23fdaa039c36e4eacb4aed3106c5047be2\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.dispersion\", \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_01_D4LOYo3vLc3qLgwCnmvF6751"
+    },
+    {
+      "content": "{\"candidate_values\": [], \"canonical_value\": \"B3LYP\", \"capability_id\": \"orca.functional.b3lyp\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"job_kind\": \"opt\", \"loader_observation\": \"accepted\", \"loader_renderer_eligible\": true, \"matched_by\": \"canonical_literal\", \"normalized_requested_value\": \"b3lyp\", \"program\": \"orca\", \"reason_rule_id\": \"scientific_settings.exact_registered\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"renderer_observation\": \"preserved\", \"requested_value\": \"B3LYP\", \"resolution_sha256\": \"2362545fd206267fa8f67308174b91d051134092248ab182b8e7f861700e0078\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v1\", \"setting_path\": \"method.functional\", \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_02_JrlxjBlifwqsboTNSEzz9716"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "All three literals resolved as `exact_registered` for the `opt` accessor. Since this project is a `freq` task and the case ID flags a cross-field blocker, let me inspect the V1 setting views for the freq side to see what coverage exists there.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"program\": \"orca\", \"setting_path\": \"method.basis\", \"job_kind\": \"freq\", \"query\": \"ma-def2-TZVP\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_00_ePw1UtBHtmNsMLWsQCJh5096",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"program\": \"orca\", \"setting_path\": \"method.basis\", \"job_kind\": \"opt\", \"query\": \"ma-def2-TZVP\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_01_GPaFnp0AtFGa44DQrURa1631",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"program\": \"orca\", \"setting_path\": \"method.dispersion\", \"job_kind\": \"freq\", \"query\": \"D3BJ\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_02_EqNwA75IJLMWH6gdtLjT6840",
+          "index": 2,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"program\": \"orca\", \"setting_path\": \"method.functional\", \"job_kind\": \"freq\", \"query\": \"B3LYP\"}",
+            "name": "list_scientific_settings_v1"
+          },
+          "id": "call_03_n57DWyIjzIAGqPWAztJp7179",
+          "index": 3,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"error\": {\"message\": \"lookup job kind is outside the case scope\", \"tool\": \"list_scientific_settings_v1\", \"type\": \"ValueError\"}, \"ok\": false}",
+      "role": "tool",
+      "tool_call_id": "call_00_ePw1UtBHtmNsMLWsQCJh5096"
+    },
+    {
+      "content": "{\"inventory_count\": 864, \"matched_count\": 3, \"ok\": true, \"program\": \"orca\", \"registry_sha256\": \"ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4\", \"returned_count\": 3, \"rule_ids\": [], \"setting_path\": \"method.basis\", \"status\": \"inventory_available\", \"token_policy\": \"bounded_view_only\", \"truncated\": false, \"values\": [\"ma-def2-TZVP\", \"ma-def2-tzvp(-f)\", \"ma-def2-tzvpp\"]}",
+      "role": "tool",
+      "tool_call_id": "call_01_GPaFnp0AtFGa44DQrURa1631"
+    },
+    {
+      "content": "{\"error\": {\"message\": \"lookup job kind is outside the case scope\", \"tool\": \"list_scientific_settings_v1\", \"type\": \"ValueError\"}, \"ok\": false}",
+      "role": "tool",
+      "tool_call_id": "call_02_EqNwA75IJLMWH6gdtLjT6840"
+    },
+    {
+      "content": "{\"error\": {\"message\": \"lookup job kind is outside the case scope\", \"tool\": \"list_scientific_settings_v1\", \"type\": \"ValueError\"}, \"ok\": false}",
+      "role": "tool",
+      "tool_call_id": "call_03_n57DWyIjzIAGqPWAztJp7179"
+    }
+  ],
+  "run_id": "run:orca-ma-def2-tzvp-cross-field-blocked:registry_v1:v3",
+  "tool_outcomes": [
+    {
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_00_BEOF0a63qp9IjByNuNyE8785",
+      "request_id": "openai:call_00_BEOF0a63qp9IjByNuNyE8785",
+      "result": {
+        "candidate_values": [],
+        "canonical_value": "ma-def2-TZVP",
+        "capability_id": "orca.basis.ma-def2-tzvp",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "accepted",
+        "loader_renderer_eligible": true,
+        "matched_by": "canonical_literal",
+        "normalized_requested_value": "madef2tzvp",
+        "program": "orca",
+        "reason_rule_id": "scientific_settings.exact_registered",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "preserved",
+        "requested_value": "ma-def2-TZVP",
+        "resolution_sha256": "2a72157cd48646dbd0619c2a56b1e137fd071810083e1007bb52a86908dff173",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.basis",
+        "status": "exact_registered"
+      },
+      "result_sha256": "60e2fb956746e0ddecfba9e243bd07957f656929cd1d6105bff6098ca2d3dc86",
+      "status": "ok"
+    },
+    {
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_D4LOYo3vLc3qLgwCnmvF6751",
+      "request_id": "openai:call_01_D4LOYo3vLc3qLgwCnmvF6751",
+      "result": {
+        "candidate_values": [],
+        "canonical_value": "D3BJ",
+        "capability_id": "orca.dispersion.d3bj",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "accepted",
+        "loader_renderer_eligible": true,
+        "matched_by": "canonical_literal",
+        "normalized_requested_value": "d3bj",
+        "program": "orca",
+        "reason_rule_id": "scientific_settings.exact_registered",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "preserved",
+        "requested_value": "D3BJ",
+        "resolution_sha256": "582cb3b076eed7a42cd558721e155f23fdaa039c36e4eacb4aed3106c5047be2",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.dispersion",
+        "status": "exact_registered"
+      },
+      "result_sha256": "78c070e52db8dc7000e608586a94130b868ece103820dbb32781b76681691571",
+      "status": "ok"
+    },
+    {
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_02_JrlxjBlifwqsboTNSEzz9716",
+      "request_id": "openai:call_02_JrlxjBlifwqsboTNSEzz9716",
+      "result": {
+        "candidate_values": [],
+        "canonical_value": "B3LYP",
+        "capability_id": "orca.functional.b3lyp",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "job_kind": "opt",
+        "loader_observation": "accepted",
+        "loader_renderer_eligible": true,
+        "matched_by": "canonical_literal",
+        "normalized_requested_value": "b3lyp",
+        "program": "orca",
+        "reason_rule_id": "scientific_settings.exact_registered",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "renderer_observation": "preserved",
+        "requested_value": "B3LYP",
+        "resolution_sha256": "2362545fd206267fa8f67308174b91d051134092248ab182b8e7f861700e0078",
+        "schema_version": "chemsmart.scientific-setting-resolution.v1",
+        "setting_path": "method.functional",
+        "status": "exact_registered"
+      },
+      "result_sha256": "a235fff10f3439e4165d9c56544ef8b6afdb300b92b93a824478471d190a5522",
+      "status": "ok"
+    },
+    {
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_00_ePw1UtBHtmNsMLWsQCJh5096",
+      "request_id": "openai:call_00_ePw1UtBHtmNsMLWsQCJh5096",
+      "result": {
+        "error": {
+          "message": "lookup job kind is outside the case scope",
+          "tool": "list_scientific_settings_v1",
+          "type": "ValueError"
+        },
+        "ok": false
+      },
+      "result_sha256": "dd7829d58f636a1d0dacda1231ccf55b71eb9ee08fddc5f4315a60515e1384cb",
+      "status": "error"
+    },
+    {
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_01_GPaFnp0AtFGa44DQrURa1631",
+      "request_id": "openai:call_01_GPaFnp0AtFGa44DQrURa1631",
+      "result": {
+        "inventory_count": 864,
+        "matched_count": 3,
+        "ok": true,
+        "program": "orca",
+        "registry_sha256": "ff7ee8b9371ae00981a82d8ee4b88e6dec8bf6910ad1cecf916d6f0e6645a3d4",
+        "returned_count": 3,
+        "rule_ids": [],
+        "setting_path": "method.basis",
+        "status": "inventory_available",
+        "token_policy": "bounded_view_only",
+        "truncated": false,
+        "values": [
+          "ma-def2-TZVP",
+          "ma-def2-tzvp(-f)",
+          "ma-def2-tzvpp"
+        ]
+      },
+      "result_sha256": "f7345b7e2ac25130add6eef1120e52bbc1474fbf795ac976e710f6fa8bb693e8",
+      "status": "ok"
+    },
+    {
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_02_EqNwA75IJLMWH6gdtLjT6840",
+      "request_id": "openai:call_02_EqNwA75IJLMWH6gdtLjT6840",
+      "result": {
+        "error": {
+          "message": "lookup job kind is outside the case scope",
+          "tool": "list_scientific_settings_v1",
+          "type": "ValueError"
+        },
+        "ok": false
+      },
+      "result_sha256": "dd7829d58f636a1d0dacda1231ccf55b71eb9ee08fddc5f4315a60515e1384cb",
+      "status": "error"
+    },
+    {
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_03_n57DWyIjzIAGqPWAztJp7179",
+      "request_id": "openai:call_03_n57DWyIjzIAGqPWAztJp7179",
+      "result": {
+        "error": {
+          "message": "lookup job kind is outside the case scope",
+          "tool": "list_scientific_settings_v1",
+          "type": "ValueError"
+        },
+        "ok": false
+      },
+      "result_sha256": "dd7829d58f636a1d0dacda1231ccf55b71eb9ee08fddc5f4315a60515e1384cb",
+      "status": "error"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "orca",
+        "setting_path": "method.basis",
+        "value": "ma-def2-TZVP"
+      },
+      "arguments_sha256": "7754061da4cc12fafe9328b311c8915de021e397d5e3f1a3b291adc885c34443",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_00_BEOF0a63qp9IjByNuNyE8785",
+      "request_id": "openai:call_00_BEOF0a63qp9IjByNuNyE8785"
+    },
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "orca",
+        "setting_path": "method.dispersion",
+        "value": "D3BJ"
+      },
+      "arguments_sha256": "70ce925a7b0ecb3e8cc694c5d90e1fab5bad5dc7fe238e0cc1b9c48b563e088e",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_01_D4LOYo3vLc3qLgwCnmvF6751",
+      "request_id": "openai:call_01_D4LOYo3vLc3qLgwCnmvF6751"
+    },
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "orca",
+        "setting_path": "method.functional",
+        "value": "B3LYP"
+      },
+      "arguments_sha256": "a7d61b5556a7f7470de1117a288cb642cb2a361f6db8d983ff5c4d30300c2a44",
+      "name": "resolve_scientific_setting_v1",
+      "provider_call_id": "call_02_JrlxjBlifwqsboTNSEzz9716",
+      "request_id": "openai:call_02_JrlxjBlifwqsboTNSEzz9716"
+    },
+    {
+      "arguments": {
+        "job_kind": "freq",
+        "program": "orca",
+        "query": "ma-def2-TZVP",
+        "setting_path": "method.basis"
+      },
+      "arguments_sha256": "39883f3137ddfde5f9fba9b83664a752c9ed8252b856e18065aea65e707c79de",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_00_ePw1UtBHtmNsMLWsQCJh5096",
+      "request_id": "openai:call_00_ePw1UtBHtmNsMLWsQCJh5096"
+    },
+    {
+      "arguments": {
+        "job_kind": "opt",
+        "program": "orca",
+        "query": "ma-def2-TZVP",
+        "setting_path": "method.basis"
+      },
+      "arguments_sha256": "e78a9a78a9113dad6e6f99d203fe49a079b7e47c08e41b3114f3f8ec5efd4e6e",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_01_GPaFnp0AtFGa44DQrURa1631",
+      "request_id": "openai:call_01_GPaFnp0AtFGa44DQrURa1631"
+    },
+    {
+      "arguments": {
+        "job_kind": "freq",
+        "program": "orca",
+        "query": "D3BJ",
+        "setting_path": "method.dispersion"
+      },
+      "arguments_sha256": "ce897b923cc9ad646e098bb957f9888e1fb5e77a86a52108210503288cff8858",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_02_EqNwA75IJLMWH6gdtLjT6840",
+      "request_id": "openai:call_02_EqNwA75IJLMWH6gdtLjT6840"
+    },
+    {
+      "arguments": {
+        "job_kind": "freq",
+        "program": "orca",
+        "query": "B3LYP",
+        "setting_path": "method.functional"
+      },
+      "arguments_sha256": "7af9a1f90caa2b1bd9407fd32c54907cbd189f828d42b8699c91723bf9c69f3e",
+      "name": "list_scientific_settings_v1",
+      "provider_call_id": "call_03_n57DWyIjzIAGqPWAztJp7179",
+      "request_id": "openai:call_03_n57DWyIjzIAGqPWAztJp7179"
+    }
+  ]
+}

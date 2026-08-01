@@ -1,0 +1,174 @@
+{
+  "assistant_text": "Submitted. The proposal was accepted with no normalization applied and no conflicting or filled setting fields.\n\n**Result summary (case `gaussian-pcseg2-materialization-gap`):**\n- **Readiness:** `blocked_missing_evidence`\n- **Program / project:** gaussian / `gaussian-b3lyp-pcseg2-freq`\n- **Settings preserved as source literals:** functional `B3LYP`, basis `pcseg-2`, task freq (`freq: true`); no dispersion, solvent, ECP, heavy elements, or optimization level requested.\n- **Blocking rule:** `gaussian:method.basis:pcseg-2:opt` — the host-preregistered declared applicability rule.\n- **No writes/execution:** `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`.\n\n**Reasoning:** `pcseg-2` is BSE-discoverable as a basis-set name, but BSE discovery does not establish deterministic compiler materialization in the Gaussian 16.C01 native basis library. Discharging the declared applicability rule requires an exact, request-bound deterministic receipt exposed by this arm; this arm offers no read-only lookup/receipt tool, so no receipt could be obtained, and advisory knowledge-pack recollection cannot override the registry status. No fuzzy candidate or substitution was used, and no project/command/execution artifacts were produced.",
+  "deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "gaussian:method.basis:pcseg-2:opt"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": {
+        "canonicalized_set_fields": [],
+        "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+        "conflicting_explicit_setting_fields": [],
+        "filled_explicit_setting_fields": [],
+        "normalization_applied": false,
+        "normalized_payload_sha256": "700849e441edf7ba512191f07ef64f9369f4f7878ea87b6f5044f72b39961311",
+        "normalizer_id": "case-bound-explicit-settings-and-set-order",
+        "normalizer_version": "1.0.0",
+        "raw_contract_error_paths": [],
+        "raw_contract_valid": true,
+        "raw_payload_sha256": "700849e441edf7ba512191f07ef64f9369f4f7878ea87b6f5044f72b39961311",
+        "receipt_sha256": "82f4a346673e8c9abe5db236f048ff3b6677075cf3f8fafaa34bc6473296d318",
+        "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+      }
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "normalization_comparison": {
+    "contradiction_count": 0,
+    "newly_failed_oracle_ids": [],
+    "newly_passed_oracle_ids": [],
+    "normalization_dependency": false,
+    "normalized_oracle_passed": false,
+    "raw_oracle_passed": false
+  },
+  "private_reasoning_included": false,
+  "raw_deterministic_grade": {
+    "details": {
+      "blocking_rule_id_metric": "retired_hidden_implementation_label",
+      "blocking_rule_ids": [
+        "gaussian:method.basis:pcseg-2:opt"
+      ],
+      "render": {
+        "expected": "not_evaluated",
+        "observed": null,
+        "passed": true
+      },
+      "rule_discharge": {
+        "mode": "none",
+        "passed": false,
+        "reason": "request_bound_validation_overlay_not_implemented",
+        "receipt_sha256s": []
+      },
+      "submission_normalization": null
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.bse-vs-compiler-readiness",
+      "oracle.case-identity",
+      "oracle.command-prohibited",
+      "oracle.execution-prohibited",
+      "oracle.native-input-prohibited",
+      "oracle.program-identity"
+    ]
+  },
+  "raw_public_english_response": "Submitted. The proposal was accepted with no normalization applied and no conflicting or filled setting fields.\n\n**Result summary (case `gaussian-pcseg2-materialization-gap`):**\n- **Readiness:** `blocked_missing_evidence`\n- **Program / project:** gaussian / `gaussian-b3lyp-pcseg2-freq`\n- **Settings preserved as source literals:** functional `B3LYP`, basis `pcseg-2`, task freq (`freq: true`); no dispersion, solvent, ECP, heavy elements, or optimization level requested.\n- **Blocking rule:** `gaussian:method.basis:pcseg-2:opt` — the host-preregistered declared applicability rule.\n- **No writes/execution:** `native_input_authored`, `command_authored`, `project_written`, `execution_requested` all `false`.\n\n**Reasoning:** `pcseg-2` is BSE-discoverable as a basis-set name, but BSE discovery does not establish deterministic compiler materialization in the Gaussian 16.C01 native basis library. Discharging the declared applicability rule requires an exact, request-bound deterministic receipt exposed by this arm; this arm offers no read-only lookup/receipt tool, so no receipt could be obtained, and advisory knowledge-pack recollection cannot override the registry status. No fuzzy candidate or substitution was used, and no project/command/execution artifacts were produced.",
+  "raw_typed_proposal": {
+    "analysis_summary": "The requested project is a Gaussian (engine 16.C01) frequency (freq) job with functional B3LYP and basis 'pcseg-2'. The literal 'pcseg-2' is BSE-discoverable as a basis-set name, but BSE discovery does not establish deterministic compiler materialization in the Gaussian 16.C01 native basis library, and a BSE-discoverable name is not automatically native/compiler-ready. The host-preregistered declared applicability rule (gaussian method.basis 'pcseg-2' for opt) may be discharged only by an exact, request-bound deterministic receipt exposed by this arm; this arm exposes no read-only lookup or receipt tool, so no such receipt can be obtained and the rule remains undischarged. Knowledge-pack recollection is advisory only and cannot override a registry status or deterministic blocker. Therefore the proposal is blocked for missing evidence: source literals (program gaussian, engine 16.C01, task freq, functional B3LYP, basis pcseg-2) are preserved unmodified, no fuzzy candidate was selected and no silent substitution was made, and no native input, ChemSmart command, project write, or execution was authored.",
+    "blocking_rule_ids": [
+      "gaussian:method.basis:pcseg-2:opt"
+    ],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-pcseg2-freq",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  },
+  "run_id": "run:gaussian-pcseg2-materialization-gap:minimal:v3",
+  "submission_normalization": {
+    "canonicalized_set_fields": [],
+    "case_sha256": "af98c08b4e920e3139df4cfb8f7a1deb6c804db47675d96ccf9650b152796334",
+    "conflicting_explicit_setting_fields": [],
+    "filled_explicit_setting_fields": [],
+    "normalization_applied": false,
+    "normalized_payload_sha256": "700849e441edf7ba512191f07ef64f9369f4f7878ea87b6f5044f72b39961311",
+    "normalizer_id": "case-bound-explicit-settings-and-set-order",
+    "normalizer_version": "1.0.0",
+    "raw_contract_error_paths": [],
+    "raw_contract_valid": true,
+    "raw_payload_sha256": "700849e441edf7ba512191f07ef64f9369f4f7878ea87b6f5044f72b39961311",
+    "receipt_sha256": "82f4a346673e8c9abe5db236f048ff3b6677075cf3f8fafaa34bc6473296d318",
+    "schema_version": "chemsmart.registry-stress-submission-normalization.v1"
+  },
+  "typed_analysis_summary": "The requested project is a Gaussian (engine 16.C01) frequency (freq) job with functional B3LYP and basis 'pcseg-2'. The literal 'pcseg-2' is BSE-discoverable as a basis-set name, but BSE discovery does not establish deterministic compiler materialization in the Gaussian 16.C01 native basis library, and a BSE-discoverable name is not automatically native/compiler-ready. The host-preregistered declared applicability rule (gaussian method.basis 'pcseg-2' for opt) may be discharged only by an exact, request-bound deterministic receipt exposed by this arm; this arm exposes no read-only lookup or receipt tool, so no such receipt can be obtained and the rule remains undischarged. Knowledge-pack recollection is advisory only and cannot override a registry status or deterministic blocker. Therefore the proposal is blocked for missing evidence: source literals (program gaussian, engine 16.C01, task freq, functional B3LYP, basis pcseg-2) are preserved unmodified, no fuzzy candidate was selected and no silent substitution was made, and no native input, ChemSmart command, project write, or execution was authored.",
+  "typed_proposal": {
+    "analysis_summary": "The requested project is a Gaussian (engine 16.C01) frequency (freq) job with functional B3LYP and basis 'pcseg-2'. The literal 'pcseg-2' is BSE-discoverable as a basis-set name, but BSE discovery does not establish deterministic compiler materialization in the Gaussian 16.C01 native basis library, and a BSE-discoverable name is not automatically native/compiler-ready. The host-preregistered declared applicability rule (gaussian method.basis 'pcseg-2' for opt) may be discharged only by an exact, request-bound deterministic receipt exposed by this arm; this arm exposes no read-only lookup or receipt tool, so no such receipt can be obtained and the rule remains undischarged. Knowledge-pack recollection is advisory only and cannot override a registry status or deterministic blocker. Therefore the proposal is blocked for missing evidence: source literals (program gaussian, engine 16.C01, task freq, functional B3LYP, basis pcseg-2) are preserved unmodified, no fuzzy candidate was selected and no silent substitution was made, and no native input, ChemSmart command, project write, or execution was authored.",
+    "blocking_rule_ids": [
+      "gaussian:method.basis:pcseg-2:opt"
+    ],
+    "case_id": "gaussian-pcseg2-materialization-gap",
+    "command_authored": false,
+    "element_findings": [],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-pcseg2-freq",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "pcseg-2",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}
