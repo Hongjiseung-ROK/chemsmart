@@ -33,15 +33,17 @@ from chemsmart.agent.api_access import CredentialAccessController
 from chemsmart.agent.core import AgentSession
 from chemsmart.agent.harness.basis_sets import inspect_basis_elements
 from chemsmart.agent.harness.scientific_settings import (
+    FROZEN_REPAIR_SIDECAR_V2_SHA256,
     ScientificSettingsInventoryV2,
     ScientificSettingsRegistryV2,
     list_scientific_settings,
-    list_scientific_settings_v2,
+    list_scientific_settings_repaired_v2,
     load_scientific_settings_inventory_v2,
     load_populated_scientific_settings_registry_v2,
     load_scientific_settings_registry_v1,
+    load_scientific_settings_repair_sidecar_v2,
     resolve_scientific_setting,
-    resolve_scientific_setting_v2,
+    resolve_scientific_setting_repaired_v2,
 )
 from chemsmart.agent.loop import (
     ToolLoopBudgets,
@@ -104,10 +106,10 @@ BASE_CHECKPOINT_SHA = "ca2879b6e4aca0f2131a0470b329d4de0d6279ac"
 REQUIRED_BRANCH = "codex/frontier-agent-live-pilot"
 REQUIRED_REMOTE = "fork"
 REQUIRED_REMOTE_URL = "https://github.com/Hongjiseung-ROK/chemsmart.git"
-CAMPAIGN_ID = "registry-v2-stress-development-v3"
+CAMPAIGN_ID = "registry-v2-stress-development-v4"
 MODEL = "deepseek-v4-flash"
 PROMPT_VERSION = "registry-v2-stress-prompt.v2"
-RUN_REVISION = "v3"
+RUN_REVISION = "v4"
 MAX_OUTPUT_TOKENS = 8_192
 MAX_CONSECUTIVE_TOOL_ERRORS = 2
 _NATIVE_TEXT = re.compile(
@@ -126,6 +128,16 @@ _SHELL_TEXT = re.compile(
 class LoadedRegistryV2Bundle:
     registry: ScientificSettingsRegistryV2
     inventories: tuple[ScientificSettingsInventoryV2, ...]
+
+
+@dataclass(frozen=True)
+class CaseBoundLookupRequest:
+    lookup_id: str
+    program: str
+    setting_path: str
+    value: str
+    job_kind: str
+    expectation: StressLookupExpectationV1 | None = None
 
 
 def _lookup(
@@ -1073,6 +1085,11 @@ def prepare_campaign(
                 "submission_normalizer": (
                     "case-bound-explicit-settings-and-set-order.v1"
                 ),
+                "raw_semantic_grader": "set-order-insensitive.v1",
+                "lookup_policy_authority": "case-bound.v1",
+                "registry_repair_sidecar_sha256": (
+                    FROZEN_REPAIR_SIDECAR_V2_SHA256
+                ),
                 "safety_plane": RegistryStressSafetyPlaneV1().model_dump(
                     mode="json"
                 ),
@@ -1094,9 +1111,10 @@ def prepare_campaign(
                     "expected readiness, and passes every deterministic oracle."
                 ),
                 "novelty_rationale": (
-                    f"Unique normalized {case.case_id} observation for the "
-                    f"{arm.value} surface after the V2 live baseline isolated "
-                    "deterministic set-order and omitted-explicit-field defects."
+                    f"Unique transport-recovery {case.case_id} observation "
+                    f"for the {arm.value} surface after V3 isolated malformed "
+                    "tool JSON, metric conflation, and model-controlled lookup "
+                    "policy defects."
                 ),
                 "deterministic_oracle_ids": case.deterministic_oracle_ids,
                 "source_binding_sha256": source_binding.binding_sha256,
@@ -1145,7 +1163,7 @@ def validate_case_oracles(
     findings: list[str] = []
     for case in cases:
         for expected in case.lookup_expectations:
-            observed = resolve_scientific_setting_v2(
+            observed = resolve_scientific_setting_repaired_v2(
                 registry=bundle.registry,
                 loaded_inventories=bundle.inventories,
                 program=expected.program,
@@ -1154,19 +1172,19 @@ def validate_case_oracles(
                 job_kind=expected.job_kind,
                 allow_fuzzy_candidates=expected.allow_fuzzy_candidates,
             )
-            if observed.status.value != expected.expected_v2_status:
+            if observed.resolution.status.value != expected.expected_v2_status:
                 findings.append(f"{case.case_id}:{expected.lookup_id}:status")
             if (
                 expected.expected_canonical_value is not None
-                and observed.canonical_value
+                and observed.resolution.canonical_value
                 != expected.expected_canonical_value
             ):
                 findings.append(
                     f"{case.case_id}:{expected.lookup_id}:canonical"
                 )
             if (
-                observed.status.value == "candidate_only"
-                and observed.project_candidate_eligible
+                observed.resolution.status.value == "candidate_only"
+                and observed.resolution.project_candidate_eligible
             ):
                 findings.append(
                     f"{case.case_id}:{expected.lookup_id}:fuzzy-ready"
@@ -1211,7 +1229,7 @@ def build_case_preflight(
     resolutions = tuple(
         _resolution_with_entry_evidence(
             bundle,
-            resolve_scientific_setting_v2(
+            resolve_scientific_setting_repaired_v2(
                 registry=bundle.registry,
                 loaded_inventories=bundle.inventories,
                 program=item.program,
@@ -1708,6 +1726,10 @@ def run_campaign(
             wall_time_ms = int((time.perf_counter() - started) * 1000)
             observations = list(provider.request_observations)
             requests, tool_outcomes = _tool_observations(result)
+            tool_error_receipt = _tool_error_receipt(
+                requests,
+                tool_outcomes,
+            )
             (
                 proposal_payload,
                 submission_count,
@@ -1743,19 +1765,54 @@ def run_campaign(
                     tool_outcomes=tool_outcomes,
                 )
             )
+            raw_semantic_payload = _canonicalize_raw_semantic_payload(
+                raw_proposal_payload
+            )
+            raw_semantic_grade = (
+                RegistryStressDeterministicGradeV1.model_validate(
+                    grade_proposal(
+                        case,
+                        raw_semantic_payload,
+                        arm=run.arm,
+                        public_text=raw_public_english_response,
+                        submission_count=submission_count,
+                        tool_outcomes=tool_outcomes,
+                    )
+                )
+            )
             normalization_comparison = {
+                "raw_wire_contract_valid": (
+                    (normalization_receipt or {}).get("raw_contract_valid")
+                    if normalization_receipt is not None
+                    else False
+                ),
                 "raw_oracle_passed": raw_grade.oracle_passed,
+                "raw_semantic_oracle_passed": (
+                    raw_semantic_grade.oracle_passed
+                ),
                 "normalized_oracle_passed": grade.oracle_passed,
                 "newly_passed_oracle_ids": sorted(
                     set(grade.passed_oracle_ids)
-                    - set(raw_grade.passed_oracle_ids)
+                    - set(raw_semantic_grade.passed_oracle_ids)
                 ),
                 "newly_failed_oracle_ids": sorted(
                     set(grade.failed_oracle_ids)
-                    - set(raw_grade.failed_oracle_ids)
+                    - set(raw_semantic_grade.failed_oracle_ids)
                 ),
                 "normalization_dependency": (
                     grade.oracle_passed and not raw_grade.oracle_passed
+                ),
+                "set_order_dependency": bool(
+                    grade.oracle_passed
+                    and raw_semantic_grade.oracle_passed
+                    and not raw_grade.oracle_passed
+                ),
+                "explicit_setting_binding_dependency": bool(
+                    grade.oracle_passed
+                    and not raw_semantic_grade.oracle_passed
+                    and (normalization_receipt or {}).get(
+                        "filled_explicit_setting_fields"
+                    )
                 ),
                 "contradiction_count": len(
                     (normalization_receipt or {}).get(
@@ -1773,8 +1830,12 @@ def run_campaign(
                 "typed_proposal": proposal_payload,
                 "submission_normalization": normalization_receipt,
                 "raw_deterministic_grade": raw_grade.model_dump(mode="json"),
+                "raw_semantic_deterministic_grade": (
+                    raw_semantic_grade.model_dump(mode="json")
+                ),
                 "deterministic_grade": grade.model_dump(mode="json"),
                 "normalization_comparison": normalization_comparison,
+                "tool_error_receipt": tool_error_receipt,
                 "private_reasoning_included": False,
             }
             trace = {
@@ -1859,8 +1920,12 @@ def run_campaign(
                 "outcome": outcome.model_dump(mode="json"),
                 "grade": grade.model_dump(mode="json"),
                 "raw_grade": raw_grade.model_dump(mode="json"),
+                "raw_semantic_grade": raw_semantic_grade.model_dump(
+                    mode="json"
+                ),
                 "normalization_receipt": normalization_receipt,
                 "normalization_comparison": normalization_comparison,
+                "tool_error_receipt": tool_error_receipt,
                 "provider_observations": observations,
             }
             outcome_bytes = _json_bytes(outcome_record)
@@ -1969,52 +2034,150 @@ def _allowed_lookup_requests(
     return tuple(sorted(allowed))
 
 
-def _v1_resolve_tool(case: RegistryStressCaseV1):
-    def resolve_setting_v1(
-        program: Literal["gaussian", "orca", "xtb"],
-        setting_path: str,
-        value: str,
-        job_kind: str,
-        allow_fuzzy_candidates: bool = True,
-    ) -> dict[str, Any]:
-        _validate_lookup_scope(case, program, setting_path, job_kind, value)
-        return resolve_scientific_setting(
-            program=program,
+def _case_bound_lookup_requests(
+    case: RegistryStressCaseV1,
+) -> dict[str, CaseBoundLookupRequest]:
+    """Return the immutable lookup vocabulary exposed for one case."""
+
+    requests: dict[str, CaseBoundLookupRequest] = {}
+    bound_values: set[tuple[str, str, str, str]] = set()
+    for expectation in sorted(
+        case.lookup_expectations,
+        key=lambda item: item.lookup_id,
+    ):
+        binding = CaseBoundLookupRequest(
+            lookup_id=expectation.lookup_id,
+            program=expectation.program,
+            setting_path=expectation.setting_path,
+            value=expectation.requested_value,
+            job_kind=expectation.job_kind,
+            expectation=expectation,
+        )
+        previous = requests.get(binding.lookup_id)
+        if previous is not None and previous != binding:
+            raise ValueError(
+                f"duplicate case-bound lookup ID: {binding.lookup_id}"
+            )
+        requests[binding.lookup_id] = binding
+        bound_values.add(
+            (
+                binding.program,
+                binding.setting_path,
+                binding.job_kind,
+                binding.value,
+            )
+        )
+
+    settings = case.expected_settings.model_dump(mode="python")
+    for field, setting_path in _SETTING_FIELD_PATHS.items():
+        value = settings.get(field)
+        if not isinstance(value, str) or not value:
+            continue
+        key = (
+            case.program,
+            setting_path,
+            case.project_accessor_job_kind,
+            value,
+        )
+        if key in bound_values:
+            continue
+        lookup_id = f"expected.{field}"
+        if lookup_id in requests:
+            raise ValueError(f"duplicate case-bound lookup ID: {lookup_id}")
+        requests[lookup_id] = CaseBoundLookupRequest(
+            lookup_id=lookup_id,
+            program=case.program,
             setting_path=setting_path,
             value=value,
-            job_kind=job_kind,
-            allow_fuzzy_candidates=allow_fuzzy_candidates,
+            job_kind=case.project_accessor_job_kind,
+        )
+        bound_values.add(key)
+    return dict(sorted(requests.items()))
+
+
+def _case_bound_lookup_input_schema(
+    case: RegistryStressCaseV1,
+) -> dict[str, Any]:
+    lookup_ids = tuple(_case_bound_lookup_requests(case))
+    if not lookup_ids:
+        raise ValueError(f"case {case.case_id!r} has no resolvable settings")
+    lookup_id_schema: dict[str, Any] = {
+        "type": "string",
+        "description": "A preregistered lookup bound to this case.",
+    }
+    if len(lookup_ids) == 1:
+        lookup_id_schema["const"] = lookup_ids[0]
+    else:
+        lookup_id_schema["enum"] = list(lookup_ids)
+    return {
+        "type": "object",
+        "properties": {"lookup_id": lookup_id_schema},
+        "required": ["lookup_id"],
+        "additionalProperties": False,
+    }
+
+
+def _case_bound_lookup(
+    case: RegistryStressCaseV1,
+    lookup_id: str,
+) -> CaseBoundLookupRequest:
+    request = _case_bound_lookup_requests(case).get(lookup_id)
+    if request is None:
+        raise ValueError("lookup ID is outside the case scope")
+    _validate_lookup_scope(
+        case,
+        request.program,
+        request.setting_path,
+        request.job_kind,
+        request.value,
+    )
+    return request
+
+
+def _v1_resolve_tool(case: RegistryStressCaseV1):
+    def resolve_setting_v1(lookup_id: str) -> dict[str, Any]:
+        request = _case_bound_lookup(case, lookup_id)
+        payload = resolve_scientific_setting(
+            program=request.program,
+            setting_path=request.setting_path,
+            value=request.value,
+            job_kind=request.job_kind,
+            allow_fuzzy_candidates=(
+                request.expectation.allow_fuzzy_candidates
+                if request.expectation is not None
+                else True
+            ),
         ).model_dump(mode="json")
+        payload["lookup_id"] = request.lookup_id
+        return payload
 
     return build_tool_spec(
         resolve_setting_v1,
         registered_name="resolve_scientific_setting_v1",
-        description="Resolve one case-scoped literal against frozen V1.",
+        description="Resolve one case-bound lookup ID against frozen V1.",
         metadata=_read_only_metadata("Resolve V1 scientific setting"),
+        input_json_schema=_case_bound_lookup_input_schema(case),
     )
 
 
 def _v1_list_tool(case: RegistryStressCaseV1):
-    def list_settings_v1(
-        program: Literal["gaussian", "orca", "xtb"],
-        setting_path: str,
-        job_kind: str,
-        query: str = "",
-        limit: int = 10,
-    ) -> dict[str, Any]:
-        _validate_lookup_scope(case, program, setting_path, job_kind)
-        return list_scientific_settings(
-            program=program,
-            setting_path=setting_path,
-            query=query,
-            limit=limit,
+    def list_settings_v1(lookup_id: str) -> dict[str, Any]:
+        request = _case_bound_lookup(case, lookup_id)
+        payload = list_scientific_settings(
+            program=request.program,
+            setting_path=request.setting_path,
+            query=request.value,
+            limit=5,
         )
+        payload["lookup_id"] = request.lookup_id
+        return payload
 
     return build_tool_spec(
         list_settings_v1,
         registered_name="list_scientific_settings_v1",
         description="List a bounded case-scoped V1 setting view.",
         metadata=_read_only_metadata("List V1 scientific settings"),
+        input_json_schema=_case_bound_lookup_input_schema(case),
     )
 
 
@@ -2022,35 +2185,35 @@ def _v2_resolve_tool(
     case: RegistryStressCaseV1,
     bundle: LoadedRegistryV2Bundle,
 ):
-    def resolve_setting_v2(
-        program: Literal["gaussian", "orca", "xtb"],
-        setting_path: str,
-        value: str,
-        job_kind: str,
-        allow_fuzzy_candidates: bool = True,
-        candidate_limit: int = 5,
-    ) -> dict[str, Any]:
-        _validate_lookup_scope(case, program, setting_path, job_kind, value)
-        resolution = resolve_scientific_setting_v2(
+    def resolve_setting_v2(lookup_id: str) -> dict[str, Any]:
+        request = _case_bound_lookup(case, lookup_id)
+        resolution = resolve_scientific_setting_repaired_v2(
             registry=bundle.registry,
             loaded_inventories=bundle.inventories,
-            program=program,
-            setting_path=setting_path,
-            value=value,
-            job_kind=job_kind,
-            allow_fuzzy_candidates=allow_fuzzy_candidates,
-            candidate_limit=candidate_limit,
+            program=request.program,
+            setting_path=request.setting_path,
+            value=request.value,
+            job_kind=request.job_kind,
+            allow_fuzzy_candidates=(
+                request.expectation.allow_fuzzy_candidates
+                if request.expectation is not None
+                else True
+            ),
+            candidate_limit=5,
         )
-        return _resolution_with_entry_evidence(bundle, resolution)
+        payload = _resolution_with_entry_evidence(bundle, resolution)
+        payload["lookup_id"] = request.lookup_id
+        return payload
 
     return build_tool_spec(
         resolve_setting_v2,
         registered_name="resolve_scientific_setting_v2",
         description=(
-            "Resolve one typed literal against only the populated, "
+            "Resolve one case-bound lookup ID against only the populated, "
             "descriptor-bound V2 inventories. No V1 fallback is possible."
         ),
         metadata=_read_only_metadata("Resolve V2 scientific setting"),
+        input_json_schema=_case_bound_lookup_input_schema(case),
     )
 
 
@@ -2058,24 +2221,51 @@ def _resolution_with_entry_evidence(
     bundle: LoadedRegistryV2Bundle,
     resolution: Any,
 ) -> dict[str, Any]:
-    payload = resolution.model_dump(mode="json")
-    if resolution.entry_id is None:
+    policy_binding = None
+    if hasattr(resolution, "resolution") and hasattr(
+        resolution, "sidecar_sha256"
+    ):
+        policy_binding = {
+            "binding_sha256": resolution.binding_sha256,
+            "sidecar_sha256": resolution.sidecar_sha256,
+            "scope_completeness": resolution.scope_completeness.value,
+        }
+        resolved = resolution.resolution
+    else:
+        resolved = resolution
+    payload = resolved.model_dump(mode="json")
+    payload["repair_policy_binding"] = policy_binding
+    if resolved.entry_id is None:
         payload["entry_evidence"] = None
         payload["entry_evidence_sha256"] = None
         return payload
-    matches = tuple(
+    base_matches = tuple(
         (entry, inventory)
         for inventory in bundle.inventories
         for entry in inventory.entries
-        if entry.entry_id == resolution.entry_id
+        if entry.entry_id == resolved.entry_id
     )
-    if len(matches) != 1:
+    sidecar = load_scientific_settings_repair_sidecar_v2()
+    repair_matches = tuple(
+        entry
+        for entry in sidecar.carry_forward_entries
+        if entry.entry_id == resolved.entry_id
+    )
+    if len(base_matches) + len(repair_matches) != 1:
         raise RuntimeError("V2 resolution entry is not uniquely bound")
-    entry, inventory = matches[0]
+    if base_matches:
+        entry, inventory = base_matches[0]
+        inventory_sha256 = inventory.inventory_sha256
+        repair_sidecar_sha256 = None
+    else:
+        entry = repair_matches[0]
+        inventory_sha256 = None
+        repair_sidecar_sha256 = sidecar.sidecar_sha256
     evidence = {
         "entry_id": entry.entry_id,
         "registry_sha256": bundle.registry.registry_sha256,
-        "inventory_sha256": inventory.inventory_sha256,
+        "inventory_sha256": inventory_sha256,
+        "repair_sidecar_sha256": repair_sidecar_sha256,
         "source_ids": list(entry.source_ids),
         "observation_note": entry.observation_note,
     }
@@ -2088,23 +2278,25 @@ def _v2_list_tool(
     case: RegistryStressCaseV1,
     bundle: LoadedRegistryV2Bundle,
 ):
-    def list_settings_v2(
-        program: Literal["gaussian", "orca", "xtb"],
-        setting_path: str,
-        job_kind: str,
-        query: str = "",
-        limit: int = 10,
-    ) -> dict[str, Any]:
-        _validate_lookup_scope(case, program, setting_path, job_kind)
-        return list_scientific_settings_v2(
+    def list_settings_v2(lookup_id: str) -> dict[str, Any]:
+        request = _case_bound_lookup(case, lookup_id)
+        bound = list_scientific_settings_repaired_v2(
             registry=bundle.registry,
             loaded_inventories=bundle.inventories,
-            program=program,
-            setting_path=setting_path,
-            job_kind=job_kind,
-            query=query,
-            limit=limit,
-        ).model_dump(mode="json")
+            program=request.program,
+            setting_path=request.setting_path,
+            job_kind=request.job_kind,
+            query=request.value,
+            limit=5,
+        )
+        payload = bound.listing.model_dump(mode="json")
+        payload["lookup_id"] = request.lookup_id
+        payload["repair_policy_binding"] = {
+            "binding_sha256": bound.binding_sha256,
+            "sidecar_sha256": bound.sidecar_sha256,
+            "scope_completeness": bound.scope_completeness.value,
+        }
+        return payload
 
     return build_tool_spec(
         list_settings_v2,
@@ -2114,6 +2306,7 @@ def _v2_list_tool(
             "V2 inventories."
         ),
         metadata=_read_only_metadata("List V2 scientific settings"),
+        input_json_schema=_case_bound_lookup_input_schema(case),
     )
 
 
@@ -2283,6 +2476,26 @@ def _canonicalize_string_set(
         canonicalized.add(path)
 
 
+def _canonicalize_raw_semantic_payload(
+    proposal: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Ignore only set ordering; never fill or replace scientific values."""
+
+    if not isinstance(proposal, dict):
+        return None
+    payload = json.loads(
+        json.dumps(json_safe(proposal), ensure_ascii=False, allow_nan=False)
+    )
+    canonicalized: set[str] = set()
+    _canonicalize_string_set(
+        payload,
+        "blocking_rule_ids",
+        "blocking_rule_ids",
+        canonicalized,
+    )
+    return payload
+
+
 def _proposal_tool(case: RegistryStressCaseV1):
     def submit_case_registry_stress_plan(
         proposal: dict[str, Any],
@@ -2449,15 +2662,38 @@ def _tool_observations(
     result: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     requests = []
+    raw_arguments_by_request: dict[str, str] = {}
     for request in result.get("tool_requests") or []:
         arguments = json_safe(getattr(request, "arguments", {}))
+        arguments_error_type = getattr(
+            request,
+            "arguments_error_type",
+            None,
+        )
+        raw_arguments = getattr(request, "arguments_json", "")
+        if not isinstance(raw_arguments, str):
+            raw_arguments = ""
+        request_id = getattr(request, "request_id", "")
+        raw_arguments_by_request[request_id] = raw_arguments
         requests.append(
             {
-                "request_id": getattr(request, "request_id", ""),
+                "request_id": request_id,
                 "provider_call_id": getattr(request, "provider_call_id", ""),
                 "name": getattr(request, "name", ""),
                 "arguments": arguments,
                 "arguments_sha256": canonical_json_sha256(arguments),
+                "arguments_error_type": arguments_error_type,
+                "arguments_error_message": _public_tool_error_message(
+                    arguments_error_type,
+                    getattr(request, "arguments_error_message", None),
+                    raw_arguments=raw_arguments,
+                ),
+                "raw_arguments_present": bool(raw_arguments),
+                "raw_arguments_sha256": (
+                    content_sha256(raw_arguments.encode("utf-8"))
+                    if arguments_error_type is not None
+                    else None
+                ),
             }
         )
     outcomes = []
@@ -2469,17 +2705,105 @@ def _tool_observations(
         status = getattr(outcome, "status", "")
         if hasattr(status, "value"):
             status = status.value
+        error_type = getattr(outcome, "error_type", None)
+        matching_request = next(
+            (
+                item
+                for item in requests
+                if item["request_id"]
+                == getattr(outcome, "request_id", "")
+            ),
+            None,
+        )
+        outcome_request_id = getattr(outcome, "request_id", "")
+        raw_arguments = raw_arguments_by_request.get(outcome_request_id, "")
+        if matching_request is not None:
+            raw_arguments_sha256 = matching_request.get(
+                "raw_arguments_sha256"
+            )
+        else:
+            raw_arguments_sha256 = None
         outcomes.append(
             {
-                "request_id": getattr(outcome, "request_id", ""),
+                "request_id": outcome_request_id,
                 "provider_call_id": getattr(outcome, "provider_call_id", ""),
                 "name": getattr(outcome, "name", ""),
                 "status": str(status),
                 "result": safe,
                 "result_sha256": canonical_json_sha256(safe),
+                "error_type": error_type,
+                "error_message": _public_tool_error_message(
+                    error_type,
+                    getattr(outcome, "error_message", None),
+                    raw_arguments=raw_arguments,
+                ),
+                "request_raw_arguments_sha256": raw_arguments_sha256,
             }
         )
     return requests, outcomes
+
+
+_PUBLIC_ARGUMENT_ERROR_MESSAGES = {
+    "MalformedToolArgumentsJSON": (
+        "Tool arguments were not one complete JSON object."
+    ),
+    "ToolArgumentsNotObject": "Tool arguments did not decode to a JSON object.",
+    "ToolArgumentsNotString": (
+        "Tool arguments were not encoded as a JSON object string."
+    ),
+}
+
+
+def _public_tool_error_message(
+    error_type: str | None,
+    message: Any,
+    *,
+    raw_arguments: str,
+) -> str | None:
+    if error_type is None:
+        return None
+    if error_type in _PUBLIC_ARGUMENT_ERROR_MESSAGES:
+        return _PUBLIC_ARGUMENT_ERROR_MESSAGES[error_type]
+    if message is None:
+        return None
+    public = " ".join(str(message).split())
+    if raw_arguments:
+        public = public.replace(raw_arguments, "<redacted-malformed-arguments>")
+    return public[:500]
+
+
+def _tool_error_receipt(
+    requests: Sequence[dict[str, Any]],
+    outcomes: Sequence[dict[str, Any]],
+) -> dict[str, Any]:
+    body = {
+        "schema_version": "chemsmart.public-tool-error-receipt.v1",
+        "request_errors": [
+            {
+                "request_id": item.get("request_id"),
+                "name": item.get("name"),
+                "error_type": item.get("arguments_error_type"),
+                "raw_arguments_sha256": item.get("raw_arguments_sha256"),
+            }
+            for item in requests
+            if item.get("arguments_error_type") is not None
+        ],
+        "outcome_errors": [
+            {
+                "request_id": item.get("request_id"),
+                "name": item.get("name"),
+                "status": item.get("status"),
+                "error_type": item.get("error_type"),
+                "request_raw_arguments_sha256": item.get(
+                    "request_raw_arguments_sha256"
+                ),
+            }
+            for item in outcomes
+            if item.get("error_type") is not None
+            or item.get("status") == "error"
+        ],
+    }
+    return {**body, "receipt_sha256": canonical_json_sha256(body)}
 
 
 def _proposal_from_outcomes(

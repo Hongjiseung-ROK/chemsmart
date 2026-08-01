@@ -18,6 +18,7 @@ from chemsmart.agent.harness.scientific_settings import (
     scientific_settings_inventory_v2_sha256,
     scientific_settings_registry_v2_sha256,
 )
+from chemsmart.agent.provider_adapter import ToolOutcome, ToolRequest
 from chemsmart.agent.settings_registry_stress_receipts import (
     RegistryStressArm,
     RegistryStressCampaignPlanV1,
@@ -169,8 +170,8 @@ def test_live_runner_fails_before_credential_on_empty_v2(monkeypatch, tmp_path):
     assert credential_accessed is False
 
 
-def test_tiny_v2_fixture_builds_typed_minimal_v1_v2_arms(tmp_path):
-    bundle = _tiny_bundle(tmp_path)
+def test_populated_v2_bundle_builds_typed_minimal_v1_v2_arms():
+    bundle = stress.load_registry_v2_bundle(ROOT)
     source = stress.capture_repository_binding(ROOT)
     selected = tuple(
         _case(case_id)
@@ -213,29 +214,83 @@ def test_tiny_v2_fixture_builds_typed_minimal_v1_v2_arms(tmp_path):
 
 def test_v2_tool_schema_is_typed_and_never_exposes_v1(tmp_path):
     bundle = _tiny_bundle(tmp_path)
+    case = _case("gaussian-pcseg2-materialization-gap")
     registry = stress.build_arm_registry(
-        _case("gaussian-pcseg2-materialization-gap"),
+        case,
         RegistryStressArm.REGISTRY_V2,
         bundle,
     )
     definitions = stress.model_visible_tool_defs(registry)
     by_name = {item["function"]["name"]: item["function"] for item in definitions}
     parameters = by_name["resolve_scientific_setting_v2"]["parameters"]
+    list_parameters = by_name["list_scientific_settings_v2"]["parameters"]
 
-    assert set(parameters["properties"]) == {
-        "program",
-        "setting_path",
-        "value",
-        "job_kind",
-        "allow_fuzzy_candidates",
-        "candidate_limit",
-    }
-    assert parameters["properties"]["program"]["enum"] == [
-        "gaussian",
-        "orca",
-        "xtb",
-    ]
+    lookup_schema = parameters["properties"]["lookup_id"]
+    exposed_ids = set(
+        lookup_schema.get("enum", [lookup_schema.get("const")])
+    )
+
+    assert set(parameters["properties"]) == {"lookup_id"}
+    assert parameters["required"] == ["lookup_id"]
+    assert list_parameters == parameters
+    assert parameters["additionalProperties"] is False
+    assert exposed_ids == set(stress._case_bound_lookup_requests(case))
+    assert exposed_ids == {"basis", "expected.functional"}
     assert "resolve_scientific_setting_v1" not in by_name
+
+    rejected = registry.call(
+        "resolve_scientific_setting_v2",
+        {"lookup_id": "outside-this-case"},
+    )
+    assert rejected["ok"] is False
+    assert rejected["error"]["type"] == "ValidationError"
+
+    v1_registry = stress.build_arm_registry(
+        case,
+        RegistryStressArm.REGISTRY_V1,
+        bundle,
+    )
+    v1_definitions = stress.model_visible_tool_defs(v1_registry)
+    v1_by_name = {
+        item["function"]["name"]: item["function"]
+        for item in v1_definitions
+    }
+    v1_parameters = v1_by_name["resolve_scientific_setting_v1"][
+        "parameters"
+    ]
+    assert v1_parameters == parameters
+
+
+def test_case_bound_resolver_does_not_expose_fuzzy_policy():
+    case = _case("gaussian-fuzzy-def2-typo")
+    bundle = stress.load_registry_v2_bundle(ROOT)
+    registry = stress.build_arm_registry(
+        case,
+        RegistryStressArm.REGISTRY_V2,
+        bundle,
+    )
+
+    result = registry.call(
+        "resolve_scientific_setting_v2",
+        {"lookup_id": "basis"},
+    )
+
+    assert result["lookup_id"] == "basis"
+    assert result["status"] == "candidate_only"
+    assert result["candidates"][0]["canonical_value"] == "def2-TZVP"
+    assert result["repair_policy_binding"]["sidecar_sha256"] == (
+        stress.FROZEN_REPAIR_SIDECAR_V2_SHA256
+    )
+
+    listed = registry.call(
+        "list_scientific_settings_v2",
+        {"lookup_id": "expected.functional"},
+    )
+    assert listed["lookup_id"] == "expected.functional"
+    assert listed["items"][0]["canonical_value"] == "B3LYP"
+    assert listed["repair_policy_binding"]["sidecar_sha256"] == (
+        result["repair_policy_binding"]["sidecar_sha256"]
+    )
 
 
 def test_explicit_settings_are_case_scoped_lookup_values():
@@ -256,6 +311,53 @@ def test_explicit_settings_are_case_scoped_lookup_values():
             "opt",
             "PBE0",
         )
+
+
+def test_malformed_tool_arguments_are_digest_bound_without_raw_content():
+    malformed = '{"lookup_id":"private-malformed-fragment"'
+    request = ToolRequest(
+        request_id="request-1",
+        provider="openai",
+        provider_call_id="call-1",
+        name="resolve_scientific_setting_v2",
+        arguments_json=malformed,
+        arguments={},
+        raw={"function": {"arguments": malformed}},
+        arguments_error_type="MalformedToolArgumentsJSON",
+        arguments_error_message=f"invalid arguments: {malformed}",
+    )
+    outcome = ToolOutcome(
+        request_id="request-1",
+        provider_call_id="call-1",
+        name="resolve_scientific_setting_v2",
+        status="error",
+        error_type="MalformedToolArgumentsJSON",
+        error_message=f"invalid arguments: {malformed}",
+    )
+
+    requests, outcomes = stress._tool_observations(
+        {"tool_requests": [request], "tool_outcomes": [outcome]}
+    )
+    receipt = stress._tool_error_receipt(requests, outcomes)
+    expected_digest = hashlib.sha256(malformed.encode("utf-8")).hexdigest()
+    public_payload = json.dumps(
+        {"requests": requests, "outcomes": outcomes, "receipt": receipt}
+    )
+
+    assert requests[0]["arguments_error_type"] == (
+        "MalformedToolArgumentsJSON"
+    )
+    assert requests[0]["raw_arguments_sha256"] == expected_digest
+    assert outcomes[0]["error_type"] == "MalformedToolArgumentsJSON"
+    assert outcomes[0]["request_raw_arguments_sha256"] == expected_digest
+    assert receipt["request_errors"][0]["error_type"] == (
+        "MalformedToolArgumentsJSON"
+    )
+    assert receipt["outcome_errors"][0]["error_type"] == (
+        "MalformedToolArgumentsJSON"
+    )
+    assert malformed not in public_payload
+    assert "private-malformed-fragment" not in public_payload
 
 
 def test_advisory_tool_exists_only_in_preregistered_advisory_arm(tmp_path):
@@ -487,6 +589,47 @@ def test_submission_normalizer_fills_omission_and_sorts_sets():
     assert receipt.raw_contract_valid is False
     assert receipt.raw_contract_error_paths == ("blocking_rule_ids",)
     assert receipt.normalization_applied is True
+
+
+def test_raw_semantic_grade_ignores_only_set_order():
+    case = _case("orca-ma-def2-tzvp-cross-field-blocked")
+    payload = _proposal(case)
+    payload["blocking_rule_ids"] = list(
+        reversed(payload["blocking_rule_ids"])
+    )
+
+    strict = stress.grade_proposal(
+        case,
+        payload,
+        arm=RegistryStressArm.REGISTRY_V2,
+    )
+    semantic = stress.grade_proposal(
+        case,
+        stress._canonicalize_raw_semantic_payload(payload),
+        arm=RegistryStressArm.REGISTRY_V2,
+    )
+
+    assert strict["failed_oracle_ids"] == ["oracle.typed-proposal-valid"]
+    assert semantic["oracle_passed"] is True
+
+    payload["settings"]["freq"] = None
+    semantic_missing = stress.grade_proposal(
+        case,
+        stress._canonicalize_raw_semantic_payload(payload),
+        arm=RegistryStressArm.REGISTRY_V2,
+    )
+    normalized, receipt = stress._normalize_case_bound_submission(case, payload)
+    accepted = stress.grade_proposal(
+        case,
+        normalized,
+        arm=RegistryStressArm.REGISTRY_V2,
+        normalization_receipt=receipt.model_dump(mode="json"),
+    )
+
+    assert "oracle.setting-preservation" in (
+        semantic_missing["failed_oracle_ids"]
+    )
+    assert accepted["oracle_passed"] is True
 
 
 def test_submission_normalizer_never_overwrites_a_contradiction():
