@@ -83,6 +83,7 @@ def build_catalog() -> dict[str, Any]:
             "source": "Basis Set Exchange Python package",
             "source_package": "basis_set_exchange",
             "source_version": metadata.version("basis_set_exchange"),
+            "renderability_verification": "all_declared_elements",
             "basis_set_count": len(basis_sets),
             "schema_version": 1,
         },
@@ -107,7 +108,11 @@ def _renderable(name: str, elements: list[int], fmt: str) -> bool:
     if not elements:
         return False
     try:
-        bse.get_basis(name, elements=[elements[0]], fmt=fmt, header=False)
+        # A writer accepting one representative element does not prove that it
+        # can render the complete published element range.  Registry evidence
+        # therefore exercises every element declared for this BSE version in
+        # one deterministic serialization request.
+        bse.get_basis(name, elements=elements, fmt=fmt, header=False)
     except Exception:
         return False
     return True

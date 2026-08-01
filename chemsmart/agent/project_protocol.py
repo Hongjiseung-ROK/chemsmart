@@ -240,7 +240,7 @@ def render_method_block(
 ) -> dict[str, Any]:
     """Normalize one gas, solv, or TD method section."""
 
-    functional = _render_functional(method)
+    functional = _render_functional(method, program)
     basis = normalize_basis_if_known(string_or_none(method.get("basis")))
     if basis is None:
         if profile == "paper":
@@ -301,16 +301,25 @@ def _apply_gaussian_method(
     block["additional_route_parameters"] = route
 
 
-def _render_functional(method: dict[str, Any]) -> str | None:
+def _render_functional(
+    method: dict[str, Any],
+    program: str,
+) -> str | None:
     functional = string_or_none(method.get("functional_route"))
-    if functional is not None:
-        return functional.lower()
+    if functional is None:
+        functional = string_or_none(method.get("functional"))
     normalized_functional, normalized_dispersion = (
         normalize_functional_and_dispersion(
-            string_or_none(method.get("functional")),
+            functional,
             string_or_none(method.get("dispersion")),
         )
     )
+    if program == "orca":
+        # ORCA owns dispersion as a separate route keyword (for example
+        # ``D3BJ``).  A Gaussian ``empiricaldispersion=...`` token embedded in
+        # the functional field is syntactically wrong even when the separate
+        # ORCA dispersion field is also present.
+        return normalized_functional
     return functional_route(normalized_functional, normalized_dispersion)
 
 
@@ -349,7 +358,13 @@ def _apply_orca_method(
     *,
     profile: ProjectRenderProfile = "legacy",
 ) -> None:
-    dispersion = string_or_none(method.get("dispersion"))
+    raw_functional = string_or_none(method.get("functional_route"))
+    if raw_functional is None:
+        raw_functional = string_or_none(method.get("functional"))
+    _, dispersion = normalize_functional_and_dispersion(
+        raw_functional,
+        string_or_none(method.get("dispersion")),
+    )
     if dispersion == "d3bj":
         block["dispersion"] = "D3BJ"
     elif dispersion == "d3":
@@ -409,7 +424,7 @@ def paper_protocol_blockers(
                 "paper-mode xTB rendering requires an evidenced GFN method",
             )
     else:
-        if _render_functional(method) is None:
+        if _render_functional(method, normalized_program) is None:
             add(
                 "paper.project.functional_missing",
                 "method.functional",

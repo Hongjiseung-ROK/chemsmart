@@ -13,6 +13,10 @@ def test_bse_catalog_has_program_splits_and_known_basis_names():
 
     assert catalog["metadata"]["source_package"] == "basis_set_exchange"
     assert catalog["metadata"]["basis_set_count"] >= 700
+    assert (
+        catalog["metadata"]["renderability_verification"]
+        == "all_declared_elements"
+    )
     assert catalog["programs"]["gaussian"]["format"] == "gaussian94"
     assert catalog["programs"]["orca"]["format"] == "orca"
     assert "def2-SVP" in catalog["programs"]["gaussian"]["basis_names"]

@@ -483,7 +483,21 @@ def test_plain_d3_dispersion_is_preserved_not_dropped():
         program="orca",
     )
     parsed = yaml.safe_load(rendered["yaml_text"])
+    assert parsed["gas"]["functional"] == "pbe0"
     assert parsed["gas"]["dispersion"] == "D3"
+
+    # Gaussian route syntax must never leak into the ORCA functional field.
+    rendered = render_project_yaml(
+        {
+            "functional": "b3lyp empiricaldispersion=gd3bj",
+            "basis": "def2tzvp",
+        },
+        project_name="cat_bj",
+        program="orca",
+    )
+    parsed = yaml.safe_load(rendered["yaml_text"])
+    assert parsed["gas"]["functional"] == "b3lyp"
+    assert parsed["gas"]["dispersion"] == "D3BJ"
 
 
 def test_xtb_project_yaml_uses_real_loader_and_keeps_state_in_command():
