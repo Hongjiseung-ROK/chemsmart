@@ -53,6 +53,8 @@ READ_ONLY_TOOLS = {
     "ssh_probe",
     "scheduler_query",
     "log_tail",
+    "inspect_command_schema",
+    "inspect_command_workflow",
     "synthesize_command",
     "repair_command",
     "read_project_yaml",

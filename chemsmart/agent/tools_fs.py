@@ -79,7 +79,13 @@ def list_workspace(
     subdir: str = ".",
     max_entries: int = 200,
 ) -> dict[str, Any]:
-    """Summarize workspace files: geometries, project YAMLs, job outputs."""
+    """Summarize workspace files: geometries, project YAMLs, job outputs.
+
+    The historic path lists remain for human compatibility.  Command-compiled
+    agent turns must instead select the accompanying content-addressed
+    ``*_artifacts`` records; those records expose no host path and are the
+    only values accepted by the typed CommandWorkflowSpec compiler.
+    """
 
     from chemsmart.settings.workspace_project import (
         iter_workspace_project_yaml,
@@ -147,11 +153,30 @@ def list_workspace(
         {"program": path.parent.name, "project": path.stem}
         for path in iter_workspace_project_yaml(cwd=cwd)
     ]
+    from chemsmart.agent.workspace_bindings import discover_workspace_bindings
+
+    bindings = discover_workspace_bindings(cwd)
+    inventory = bindings.public_inventory()
+    # Keep the model-facing inventory bounded by the same explicit workspace
+    # listing budget.  A file outside this window can be requested through a
+    # narrower list call; it must never be guessed as a raw command path.
+    bounded_inventory = {
+        key: values[:entry_cap]
+        for key, values in inventory.items()
+    }
+    inventory_truncated = any(
+        len(inventory[key]) > len(bounded_inventory[key])
+        for key in inventory
+    )
+
     return {
         "root": str(root),
         "geometry_files": geometry_files,
         "project_yamls": project_yamls,
         "outputs": outputs,
+        **bounded_inventory,
+        "command_workflow_environment_digest": bindings.environment_digest,
+        "command_workflow_inventory_truncated": inventory_truncated,
         "other_file_count": other_file_count,
         "truncated": truncated,
         "workspace_rules_file": (cwd / "CHEMSMART.md").is_file(),

@@ -114,6 +114,25 @@ class ToolLoop:
         step: int,
         request: ToolRequest,
     ) -> tuple[ToolOutcome, bool]:
+        # Active Runtime V2 rejects a forged call to a hidden tool before
+        # permission resolution. This prevents legacy native-input builders
+        # and direct engine runners from consuming approval as a fallback.
+        preflight_exposure = getattr(
+            self.lifecycle, "preflight_active_exposure", None
+        )
+        if callable(preflight_exposure):
+            try:
+                preflight_exposure(tool_name=request.name)
+            except Exception as exc:
+                return (
+                    self._error_outcome(
+                        step,
+                        request,
+                        error_type=exc.__class__.__name__,
+                        error_message=str(exc),
+                    ),
+                    False,
+                )
         resolved = self.policy.resolve(request)
         if (
             request.name == "run_local"

@@ -23,6 +23,7 @@ from chemsmart.agent.runtime.events import EventKind, RuntimeEvent
 from chemsmart.agent.runtime.lifecycle import RuntimeLifecycle
 from chemsmart.agent.runtime.reducer import apply_event, reduce_events
 from chemsmart.agent.runtime.tool_catalog import (
+    LEGACY_FRONTIER_HIDDEN_TOOL_NAMES,
     PhaseToolProfile,
     ToolCatalog,
     ToolSelection,
@@ -139,14 +140,30 @@ class RuntimeController:
         events = self.store.load()
         self.state = reduce_events(events)
         self.turn_id = self.state.turn_id
-        self.catalog = ToolCatalog(registry, profile=tool_profile)
+        self.catalog = self._new_catalog(tool_profile)
         self.selection: ToolSelection | None = None
 
     def bind_tool_profile(self, tool_profile: PhaseToolProfile) -> None:
         """Replace transient tool exposure without resetting durable state."""
 
-        self.catalog = ToolCatalog(self.registry, profile=tool_profile)
+        self.catalog = self._new_catalog(tool_profile)
         self.selection = None
+
+    def _new_catalog(
+        self,
+        tool_profile: PhaseToolProfile | None,
+    ) -> ToolCatalog:
+        """Build an active-runtime catalog without native-input fallbacks."""
+
+        return ToolCatalog(
+            self.registry,
+            profile=tool_profile,
+            forbidden_direct_tools=(
+                LEGACY_FRONTIER_HIDDEN_TOOL_NAMES
+                if self.mode is RuntimeV2Mode.ACTIVE
+                else ()
+            ),
+        )
 
     def ensure_session(self, *, cwd: str) -> None:
         if self.state.session_id:
@@ -263,6 +280,27 @@ class RuntimeController:
             else self.state.phase
         )
         receipts = self.state.completed_tool_receipts
+        if (
+            self.mode is RuntimeV2Mode.ACTIVE
+            and phase
+            in {
+                TaskPhase.SYNTHESIS,
+                TaskPhase.VALIDATION,
+                TaskPhase.REPAIR,
+                TaskPhase.EXECUTION,
+            }
+            and self._active_profile_uses_typed_command_tools()
+        ):
+            typed = [
+                item
+                for item in receipts
+                if item.get("tool") in {"synthesize_command", "repair_command"}
+                and item.get("typed_receipt_status")
+            ]
+            if not typed:
+                return ("runtime.command.preview_required",)
+            if typed[-1].get("typed_receipt_status") != "previewed":
+                return ("runtime.command.preview_not_green",)
         if phase is TaskPhase.PROJECT and _project_authoring_requested(
             self.state.request
         ):
@@ -295,6 +333,25 @@ class RuntimeController:
         ):
             return ("runtime.calculation.inspection_required",)
         return ()
+
+    def _active_profile_uses_typed_command_tools(self) -> bool:
+        """Detect the new schema without constraining compatibility fixtures."""
+
+        get_tool = getattr(self.registry, "get_tool", None)
+        if not callable(get_tool):
+            return False
+        tool = get_tool("synthesize_command")
+        if tool is None:
+            return False
+        try:
+            parameters = tool.openai_tool_def()["function"]["parameters"]
+        except (AttributeError, KeyError, TypeError):
+            return False
+        properties = parameters.get("properties") if isinstance(parameters, dict) else None
+        return isinstance(properties, dict) and {
+            "scientific_task",
+            "workflow",
+        }.issubset(properties)
 
     def completion_notice(self) -> str:
         phase = (

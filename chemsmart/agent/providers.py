@@ -15,6 +15,7 @@ import time
 import warnings
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlsplit
 
 from chemsmart.agent.provider_config import (
     AgentProviderConfigError,
@@ -31,11 +32,35 @@ _PING_MESSAGES: Any = [{"role": "user", "content": "ping"}]
 DEFAULT_TIMEOUT_S = 30
 _OPENAI_USES_MCT = re.compile(r"^(gpt-5|o1|o3|o4)")
 _SENSITIVE_TRANSPORT_LOGGERS = ("openai", "httpx", "httpcore")
+_OFFICIAL_DEEPSEEK_HOST = "api.deepseek.com"
 
 
 def _openai_uses_max_completion_tokens(model: str | None) -> bool:
     """Return whether an OpenAI-family model requires max_completion_tokens."""
     return bool(_OPENAI_USES_MCT.match((model or "").strip().lower()))
+
+
+def _is_official_deepseek_endpoint(base_url: str | None) -> bool:
+    """Return whether ``base_url`` is the HTTPS DeepSeek public endpoint.
+
+    DeepSeek's tool-call protocol currently requires reasoning to be disabled
+    on the official endpoint. Do not infer that requirement from a provider
+    label or model name: other OpenAI-compatible gateways can intentionally
+    expose the same model with different request contracts.
+    """
+
+    if not isinstance(base_url, str) or not base_url.strip():
+        return False
+    try:
+        parsed = urlsplit(base_url.strip())
+        port = parsed.port
+    except ValueError:
+        return False
+    return (
+        parsed.scheme.lower() == "https"
+        and parsed.hostname == _OFFICIAL_DEEPSEEK_HOST
+        and port in {None, 443}
+    )
 
 
 def _suppress_sensitive_transport_debug_logging() -> None:
@@ -133,9 +158,13 @@ class OpenAIProvider:
 
         self.name = (provider_name or type(self).name).strip()
         self.default_model = model or type(self).default_model
+        self._base_url = base_url or self.gateway_url
+        self._official_deepseek_endpoint = _is_official_deepseek_endpoint(
+            self._base_url
+        )
         client_kwargs: dict[str, Any] = {
             "api_key": api_key,
-            "base_url": base_url or self.gateway_url,
+            "base_url": self._base_url,
         }
         if extra_headers:
             client_kwargs["default_headers"] = extra_headers
@@ -155,6 +184,12 @@ class OpenAIProvider:
         }
         if tools:
             kwargs["tools"] = tools
+            if self._official_deepseek_endpoint:
+                # The official DeepSeek endpoint rejects tool-bearing calls
+                # when reasoning is enabled. This remains scoped to the exact
+                # public endpoint so generic OpenAI-compatible providers keep
+                # their own request semantics.
+                kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
         response = self._client.chat.completions.create(**kwargs)
         return response.model_dump()
 
@@ -171,6 +206,11 @@ class OpenAIProvider:
                 kwargs["max_completion_tokens"] = 5
             else:
                 kwargs["max_tokens"] = 5
+            if self._official_deepseek_endpoint:
+                # ``agent doctor`` reaches this ping path. Keep its request
+                # compatible with the same official DeepSeek endpoint without
+                # changing non-DeepSeek provider probes.
+                kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
             response = self._client.chat.completions.create(**kwargs)
         except Exception as exc:
             raise ProviderError(f"ping failed: {exc}") from exc

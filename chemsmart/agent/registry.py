@@ -38,6 +38,8 @@ logger = logging.getLogger(__name__)
 TOOL_GROUPS: dict[str, frozenset[str]] = {
     "synthesis": frozenset(
         {
+            "inspect_command_schema",
+            "inspect_command_workflow",
             "synthesize_command",
             "repair_command",
         }
@@ -266,20 +268,38 @@ _DEFAULT_TOOL_SOURCES = (
     ),
     (
         "synthesize_command",
-        "chemsmart.agent.tools_command",
-        "Synthesize one grounded chemsmart CLI command using the CLI schema, project YAML check, adapter, and runtime semantic gate.",
+        "chemsmart.agent.command_workflow_tools",
+        "Safely preview a typed ScientificTaskSpec and CommandWorkflowSpec through the live CLI schema; raw shell commands and native inputs are not accepted.",
         RuntimeToolMetadata(
             read_only=True,
-            ui_summary_template="Synthesize chemsmart command",
+            ui_summary_template="Preview typed chemsmart workflow",
         ),
     ),
     (
         "repair_command",
-        "chemsmart.agent.tools_command",
-        "Repair a failed chemsmart CLI command and re-run runtime semantic validation.",
+        "chemsmart.agent.command_workflow_tools",
+        "Apply at most two counterexample-guided, field-scoped repairs to a typed command workflow.",
         RuntimeToolMetadata(
             read_only=True,
-            ui_summary_template="Repair chemsmart command",
+            ui_summary_template="Repair typed chemsmart workflow",
+        ),
+    ),
+    (
+        "inspect_command_schema",
+        "chemsmart.agent.command_workflow_tools",
+        "Return a request-pruned live ChemSmart Click signature and schema digest for typed workflow construction.",
+        RuntimeToolMetadata(
+            read_only=True,
+            ui_summary_template="Inspect command schema",
+        ),
+    ),
+    (
+        "inspect_command_workflow",
+        "chemsmart.agent.command_workflow_tools",
+        "Inspect typed scientific and command-workflow grounding without starting the safe preview process.",
+        RuntimeToolMetadata(
+            read_only=True,
+            ui_summary_template="Inspect typed chemsmart workflow",
         ),
     ),
     (
@@ -498,18 +518,23 @@ class ToolRegistry:
         groups: Iterable[str] | None = None,
     ) -> "ToolRegistry":
         enabled_tools = resolve_tool_groups(groups)
-        return cls(
-            [
+        specs: list[ToolSpec] = []
+        for name, module_name, description, metadata in _DEFAULT_TOOL_SOURCES:
+            if enabled_tools is not None and name not in enabled_tools:
+                continue
+            specs.append(
                 build_tool_spec(
                     _load_agent_tool(name, module_name),
                     registered_name=name,
                     description=description,
                     metadata=metadata,
+                    input_json_schema=_default_tool_input_json_schema(
+                        name,
+                        module_name,
+                    ),
                 )
-                for name, module_name, description, metadata in _DEFAULT_TOOL_SOURCES
-                if enabled_tools is None or name in enabled_tools
-            ]
-        )
+            )
+        return cls(specs)
 
     def list_tools(self) -> list[ToolSpec]:
         return list(self._tools.values())
@@ -778,3 +803,22 @@ def _schema_friendly_annotation(
 def _load_agent_tool(name: str, module_name: str) -> Any:
     module = importlib.import_module(module_name)
     return getattr(module, name)
+
+
+def _default_tool_input_json_schema(
+    name: str,
+    module_name: str,
+) -> dict[str, Any] | None:
+    """Load an explicit inlined schema when a tool module supplies one.
+
+    Nested Pydantic contracts normally use local ``$defs`` references, while
+    provider tool definitions intentionally remove those definitions for
+    compactness.  Command-workflow tools therefore provide an inlined schema
+    so a model sees the actual typed IR rather than a loose ``object``.
+    """
+
+    if module_name != "chemsmart.agent.command_workflow_tools":
+        return None
+    module = importlib.import_module(module_name)
+    provider = getattr(module, "tool_input_json_schema")
+    return provider(name)

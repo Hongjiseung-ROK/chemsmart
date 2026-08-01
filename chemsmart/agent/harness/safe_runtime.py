@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import sys
 from collections import Counter
@@ -14,6 +15,11 @@ from chemsmart.agent.harness.extractors import (
     extract_gaussian_route,
     extract_orca_route,
     extract_xtb_program_call,
+)
+from chemsmart.agent.geometry_identity import (
+    OrderedGeometryManifest,
+    native_input_geometry_manifest,
+    xyz_geometry_manifest,
 )
 
 _INPUT_SUFFIXES = (".com", ".gjf", ".inp")
@@ -177,7 +183,7 @@ def generated_inputs(
             continue
         content = path.read_text(encoding="utf-8", errors="replace")
         if software == "xtb":
-            entry = _xtb_generated_entry(path, content)
+            entry = _xtb_generated_entry(path, content, workdir=workdir)
             if entry is not None:
                 generated.append(entry)
             continue
@@ -205,6 +211,14 @@ def generated_inputs(
             ):
                 if key in state:
                     state_evidence[key] = state[key]
+        geometry_manifest = native_input_geometry_manifest(
+            content,
+            program=file_software,
+        )
+        if geometry_manifest is not None:
+            state_evidence["ordered_geometry_sha256"] = (
+                geometry_manifest.ordered_geometry_sha256
+            )
         generated.append(
             {
                 "path": str(path),
@@ -216,7 +230,12 @@ def generated_inputs(
     return generated
 
 
-def _xtb_generated_entry(path: Path, content: str) -> dict[str, Any] | None:
+def _xtb_generated_entry(
+    path: Path,
+    content: str,
+    *,
+    workdir: Path,
+) -> dict[str, Any] | None:
     """Describe one xTB output as generated evidence.
 
     The ``program call`` line is xTB's equivalent of a route line: it is the
@@ -239,7 +258,43 @@ def _xtb_generated_entry(path: Path, content: str) -> dict[str, Any] | None:
         entry["charge"] = charge
     if unpaired is not None:
         entry["multiplicity"] = unpaired + 1
+    geometry_manifest = _xtb_input_geometry_manifest(
+        program_call,
+        workdir=workdir,
+    )
+    if geometry_manifest is not None:
+        entry["ordered_geometry_sha256"] = (
+            geometry_manifest.ordered_geometry_sha256
+        )
+        entry["element_counts"] = dict(geometry_manifest.element_counts)
     return entry
+
+
+def _xtb_input_geometry_manifest(
+    program_call: str,
+    *,
+    workdir: Path,
+) -> OrderedGeometryManifest | None:
+    """Parse only a fake-preview XYZ residing beneath the isolated workspace.
+
+    xTB records its rendered geometry filename in the ``program call`` line.
+    That text is untrusted evidence, so the parser never follows a path outside
+    the safe-preview workdir and returns no geometry identity on malformed
+    output.  The public receipt receives only the derived hash/counts.
+    """
+
+    try:
+        tokens = shlex.split(program_call)
+    except ValueError:
+        return None
+    if len(tokens) < 2 or tokens[0] != "xtb":
+        return None
+    try:
+        geometry_path = Path(tokens[1]).resolve(strict=True)
+        geometry_path.relative_to(workdir.resolve(strict=True))
+        return xyz_geometry_manifest(geometry_path)
+    except (OSError, ValueError):
+        return None
 
 
 def _xtb_int_option(program_call: str, flag: str) -> int | None:

@@ -119,6 +119,12 @@ def _on_tool_finished(
             {
                 "tool": tool_name,
                 "verdict": str(payload.get("verdict") or ""),
+                "typed_command_status": str(
+                    payload.get("typed_command_status") or ""
+                ),
+                "typed_receipt_status": str(
+                    payload.get("typed_receipt_status") or ""
+                ),
             },
         ]
     else:

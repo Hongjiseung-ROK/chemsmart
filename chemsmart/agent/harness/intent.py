@@ -49,6 +49,7 @@ class IntentSpec:
     multiplicity: int | str | None = None
     execution_mode: str | None = None
     chemistry: dict[str, Any] = field(default_factory=dict)
+    resources: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "IntentSpec":
@@ -56,6 +57,10 @@ class IntentSpec:
         chemistry = value.get("chemistry")
         known["chemistry"] = (
             dict(chemistry) if isinstance(chemistry, dict) else {}
+        )
+        resources = value.get("resources")
+        known["resources"] = (
+            dict(resources) if isinstance(resources, dict) else {}
         )
         return cls(**known)
 
@@ -294,6 +299,7 @@ class ObservedIntent:
     multiplicity: str | None
     execution_mode: str | None
     chemistry: dict[str, Any] = field(default_factory=dict)
+    resources: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_command(
@@ -324,6 +330,7 @@ class ObservedIntent:
                 else None
             ),
             chemistry=chemistry,
+            resources=dict(parsed.resources),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -494,6 +501,15 @@ def evaluate_intent(
                 observed.chemistry.get(key),
                 path=key.endswith("file"),
             )
+    for key, expected_value in spec.resources.items():
+        if expected_value is None:
+            continue
+        _append_assertion(
+            rows,
+            f"intent.resource.{key}",
+            expected_value,
+            observed.resources.get(key),
+        )
     verdict: IntentVerdict = (
         "reject" if any(row.status == "fail" for row in rows) else "ok"
     )

@@ -28,6 +28,30 @@ from chemsmart.agent.runtime.contracts import ProviderRole, TaskPhase
 MAX_DIRECT_TOOLS_PER_PHASE = 10
 
 
+# Retain these in ``ToolRegistry`` for compatibility fixtures and the explicit
+# ``harness_jobs`` profile, but never let an active Frontier Runtime V2 turn
+# advertise or execute them. The command compiler is the only preparation
+# authority in that path; it must not fall back to native-input construction.
+LEGACY_HARNESS_JOB_TOOL_NAMES = frozenset(
+    {
+        "build_molecule",
+        "recommend_method",
+        "build_gaussian_settings",
+        "build_orca_settings",
+        "build_xtb_settings",
+        "build_job",
+        "dry_run_input",
+        "validate_runtime",
+        "extract_optimized_geometry",
+        "save_geometry",
+    }
+)
+LEGACY_FRONTIER_HIDDEN_TOOL_NAMES = (
+    LEGACY_HARNESS_JOB_TOOL_NAMES
+    | {"execute_chemsmart_command", "run_local", "submit_hpc"}
+)
+
+
 class ToolExposure(str, Enum):
     DIRECT = "direct"
     DEFERRED = "deferred"
@@ -45,8 +69,10 @@ class ToolSelection(BaseModel):
     hidden: tuple[str, ...]
 
 
-_PHASE_TOOLS: dict[TaskPhase, tuple[str, ...]] = {
+_FRONTIER_COMMAND_PHASE_TOOLS: dict[TaskPhase, tuple[str, ...]] = {
+    TaskPhase.ROUTE: ("list_workspace",),
     TaskPhase.PROJECT: (
+        "list_workspace",
         "extract_project_protocol",
         "read_project_yaml",
         "render_project_yaml",
@@ -54,12 +80,14 @@ _PHASE_TOOLS: dict[TaskPhase, tuple[str, ...]] = {
         "search_basis_sets",
     ),
     TaskPhase.PROJECT_READ: (
+        "list_workspace",
         "read_project_yaml",
         "validate_project_yaml",
         "critic_project_yaml",
         "search_basis_sets",
     ),
     TaskPhase.PROJECT_WRITE: (
+        "list_workspace",
         "read_project_yaml",
         "validate_project_yaml",
         "critic_project_yaml",
@@ -67,29 +95,40 @@ _PHASE_TOOLS: dict[TaskPhase, tuple[str, ...]] = {
         "update_project_yaml",
     ),
     TaskPhase.SYNTHESIS: (
+        "list_workspace",
         "read_project_yaml",
+        "inspect_command_schema",
+        "inspect_command_workflow",
         "synthesize_command",
         "repair_command",
     ),
     TaskPhase.VALIDATION: (
+        "list_workspace",
         "read_project_yaml",
         "validate_project_yaml",
         "critic_project_yaml",
+        "inspect_command_schema",
+        "inspect_command_workflow",
         "synthesize_command",
         "repair_command",
     ),
     TaskPhase.REPAIR: (
+        "list_workspace",
         "repair_command",
         "read_project_yaml",
         "validate_project_yaml",
         "search_basis_sets",
+        "inspect_command_schema",
+        "inspect_command_workflow",
         "synthesize_command",
     ),
     TaskPhase.EXECUTION: (
+        "list_workspace",
+        "read_project_yaml",
+        "inspect_command_schema",
+        "inspect_command_workflow",
         "synthesize_command",
         "repair_command",
-        "execute_chemsmart_command",
-        "read_project_yaml",
     ),
     TaskPhase.DIAGNOSTICS: (
         "inspect_calculation",
@@ -98,7 +137,12 @@ _PHASE_TOOLS: dict[TaskPhase, tuple[str, ...]] = {
         "scheduler_query",
     ),
 }
-_SPECIALIST_TOOLS = ("synthesize_command", "repair_command")
+_FRONTIER_COMMAND_SPECIALIST_TOOLS = (
+    "inspect_command_schema",
+    "inspect_command_workflow",
+    "synthesize_command",
+    "repair_command",
+)
 
 
 class PhaseToolProfile:
@@ -158,10 +202,15 @@ class PhaseToolProfile:
         return self._phases.get(phase, ())
 
 
-DEFAULT_TOOL_PROFILE = PhaseToolProfile(
-    _PHASE_TOOLS,
-    specialist_tools=_SPECIALIST_TOOLS,
+FRONTIER_COMMAND_TOOL_PROFILE = PhaseToolProfile(
+    _FRONTIER_COMMAND_PHASE_TOOLS,
+    specialist_tools=_FRONTIER_COMMAND_SPECIALIST_TOOLS,
 )
+# Backward-compatible name for hosts that rely on the implicit Runtime V2
+# profile. It is intentionally command-first rather than a compatibility
+# profile: legacy jobs remain available only by explicitly selecting their
+# registry group outside the active frontier runtime.
+DEFAULT_TOOL_PROFILE = FRONTIER_COMMAND_TOOL_PROFILE
 
 
 class ToolCatalog:
@@ -170,9 +219,11 @@ class ToolCatalog:
         registry: Any,
         *,
         profile: PhaseToolProfile | None = None,
+        forbidden_direct_tools: Iterable[str] = (),
     ) -> None:
         self.registry = registry
         self.profile = profile or DEFAULT_TOOL_PROFILE
+        self._forbidden_direct_tools = frozenset(forbidden_direct_tools)
 
     def select(
         self,
@@ -182,7 +233,11 @@ class ToolCatalog:
         program: str | None = None,
     ) -> ToolSelection:
         available = tuple(tool.name for tool in self.registry.list_tools())
-        requested = self.profile.tools_for(phase, provider_role)
+        requested = tuple(
+            name
+            for name in self.profile.tools_for(phase, provider_role)
+            if name not in self._forbidden_direct_tools
+        )
         if program and not requires_project_configuration(program):
             requested = tuple(
                 name for name in requested if name != "read_project_yaml"
@@ -197,7 +252,11 @@ class ToolCatalog:
         deferred = tuple(
             name
             for name in available
-            if name not in direct and name in phase_capabilities
+            if (
+                name not in direct
+                and name not in self._forbidden_direct_tools
+                and name in phase_capabilities
+            )
         )
         hidden = tuple(
             name
@@ -247,6 +306,9 @@ def filter_tool_names(
 
 __all__ = [
     "DEFAULT_TOOL_PROFILE",
+    "FRONTIER_COMMAND_TOOL_PROFILE",
+    "LEGACY_FRONTIER_HIDDEN_TOOL_NAMES",
+    "LEGACY_HARNESS_JOB_TOOL_NAMES",
     "PhaseToolProfile",
     "ToolCatalog",
     "ToolExposure",
