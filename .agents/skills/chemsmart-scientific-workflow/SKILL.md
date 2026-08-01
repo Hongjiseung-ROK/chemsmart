@@ -50,6 +50,31 @@ is not a chemically adequate result.
 9. Parse values with units and apply job-specific validators before supporting
    a claim. Report missing diagnostics, assumptions, and uncertainty.
 
+## Scientific settings and knowledge boundary
+
+Use `ScientificSettingsRegistryV1` to establish only frozen-source
+loader/renderer support. The active BSE 0.11 catalog contains 748 basis names
+serialized over every declared element for Gaussian and 748 for ORCA.
+Upstream BSE 0.12 is reference-only until a separate deterministic migration
+is reviewed. ORCA also has a frozen exact-native overlay; it can preserve an
+explicit ORCA literal without claiming BSE membership, engine acceptance, or
+scientific adequacy. xTB has no orbital-basis choice in this contract, so
+`method.basis` is `not_applicable`.
+
+Accept only `exact_registered` canonical literals or registered aliases for a
+settings receipt. A fuzzy result is `candidate_only`; present it only as a
+non-authoritative discovery candidate and block until the paper or user
+provides an exact selection. An unmatched literal is `unknown_unverified` and
+also blocks. Never replace either with a familiar method or basis.
+
+Activate a sourced `DomainKnowledgePack` only through the host's deterministic
+domain/program/version/task routing and a content-addressed receipt. Exposure
+to the model is explicit and read-only. A pack may apply a scoped preservation
+or prohibition rule, but it cannot fill a paper omission, change epistemic
+status, decide readiness, approve, repair, execute, or author native input.
+The source ledger and citation audit establish provenance boundaries, not
+complete full-text scientific verification of a paper.
+
 ## Validation boundary
 
 Check molecular identity, electron count, charge/multiplicity, method and
@@ -75,6 +100,12 @@ fully describes later validation and analysis.
   engine-neutral checks and Gaussian/ORCA/xTB boundaries.
 - Read [paper-research-plan-contract.md](references/paper-research-plan-contract.md)
   before converting a full paper or Supporting Information into calculations.
+- Consult the [knowledge source ledger](../../../docs/research/general-chemistry-knowledge-source-ledger.json),
+  [BibTeX](../../../docs/research/general-chemistry-knowledge.bib), and
+  [citation audit](../../../docs/research/general-chemistry-citation-audit.json)
+  before applying a sourced pack, and use the
+  [English milestone package](../../../docs/goals/general-chemistry-knowledge/README.md)
+  for staged registry and knowledge work.
 
 ## Examples
 

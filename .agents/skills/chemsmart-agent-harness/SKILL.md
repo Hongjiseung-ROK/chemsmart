@@ -57,6 +57,37 @@ authority, safety, and evidence rules.
     increase from observed rate-limit evidence only, never above four. Permit
     one concurrent request per literature provider.
 
+## Scientific settings and knowledge surface
+
+Treat `ScientificSettingsRegistryV1` as a read-only capability surface, not as
+scientific advice. Its active basis source is the frozen BSE 0.11 catalog: 748
+BSE names are serialized for all declared elements for Gaussian and the same
+748 for ORCA. Upstream BSE 0.12 is reference-only. The queryable ORCA inventory
+may additionally contain exact literals from the frozen ORCA-native overlay;
+that overlay does not claim BSE membership or engine execution. xTB
+`method.basis` returns `not_applicable`.
+
+Only a canonical literal or registered alias may be `exact_registered`.
+Fuzzy discovery is `candidate_only`, and an unrecognized value is
+`unknown_unverified`; both fail closed and block a settings-validation receipt.
+Do not let the model choose a fuzzy suggestion, substitute an ORCA-native
+basis, or turn registry availability into chemical suitability.
+
+Route `DomainKnowledgePack` activation deterministically from a
+content-addressed host request. Bind the selected and excluded packs, trigger
+rule IDs, exact source-ledger digest, critical missing-fact IDs, and the
+separate model-exposure decision. Packs are read-only and may detect, preserve,
+explain, or block; they cannot fill a missing paper fact, approve, repair,
+execute, set readiness, or author native input.
+
+Evaluate model-visible settings (`S`) and knowledge (`K`) with the four-arm
+development block `S0K0`, `S1K0`, `S0K1`, and `S1K1`. Keep the host registry,
+loaders, validators, permissions, hashes, and no-engine boundary active in all
+arms. Freeze DeepSeek V4 Flash with thinking enabled and inspect only the
+sanitized English response and public tool trace. Score exact-setting
+preservation, honest blocking, and deterministic outcomes; do not score
+fluency or provider completion as scientific success.
+
 ## Command-compiled boundary
 
 The model may return a JSON CommandWorkflowSpec or a bounded repair proposal.
@@ -124,6 +155,14 @@ constraint.
   capability fields, or replay logic.
 - Read [approval-and-evaluation.md](references/approval-and-evaluation.md)
   before changing permissions, dispatch, budgets, or benchmark gates.
+- Use the [source ledger](../../../docs/research/general-chemistry-knowledge-source-ledger.json),
+  [BibTeX](../../../docs/research/general-chemistry-knowledge.bib), and
+  [citation audit](../../../docs/research/general-chemistry-citation-audit.json)
+  for the knowledge foundation's pinned provenance. These artifacts do not
+  establish paper-level full-text scientific verification.
+- Follow the [English knowledge-foundation milestones and Goal commands](../../../docs/goals/general-chemistry-knowledge/README.md)
+  for the staged `ScientificSettingsRegistry`, `DomainKnowledgePack`, and
+  `S x K` experiment work.
 
 ## Examples
 

@@ -17,6 +17,12 @@ Persona is not scientific authority. Versioned knowledge packs, source claims,
 loaders, compilers, and validators are.
 
 The canonical contract is [Paper Research Plan v1](paper-research-plan-v1.md).
+The additive knowledge-foundation phases and copyable English Goal commands are
+indexed in the [General Chemistry Knowledge Program](../goals/general-chemistry-knowledge/README.md).
+Its pinned provenance is recorded in the
+[source ledger](../research/general-chemistry-knowledge-source-ledger.json),
+[BibTeX](../research/general-chemistry-knowledge.bib), and
+[citation audit](../research/general-chemistry-citation-audit.json).
 
 ## Target lifecycle
 
@@ -76,6 +82,39 @@ Scientific rules live in versioned `DomainKnowledgePack` records with scope,
 engine/version, literature provenance, rule IDs, allowed combinations,
 prohibited conditions, and validators. They are not unstated prompt lore.
 
+### Scientific settings and sourced-knowledge foundation
+
+`ScientificSettingsRegistryV1` separates representability from scientific
+judgment. Its active source snapshot uses the checked-in Basis Set Exchange
+0.11 catalog. That catalog records 748 BSE names with all declared elements
+serialized for Gaussian and the same 748 for ORCA. Upstream BSE 0.12 is a
+pinned migration/reference source only. It cannot redefine the active catalog
+until deterministic regeneration, drift review, and focused validation are
+completed.
+
+The ORCA setting surface is the union of the BSE-backed catalog and a frozen
+ORCA-native exact-literal overlay. An ORCA-native resolution preserves a
+program-scoped literal without claiming BSE membership, safe preview, engine
+acceptance, combination compatibility, or scientific adequacy. For xTB,
+`method.basis` is explicitly `not_applicable`. Canonical literals and
+registered aliases may resolve `exact_registered`; fuzzy matches remain
+`candidate_only`, and unmatched values remain `unknown_unverified`. The latter
+two block the settings receipt and can never be promoted by model confidence.
+
+A `DomainKnowledgePack` is activated by deterministic host routing over a
+content-addressed domain/program/version/task request. The receipt records
+positive and negative triggers, selected and excluded packs, exact source
+ledger/catalog hashes, critical missing facts, and whether read-only model
+exposure was requested. The pack may preserve, detect, explain, or prohibit a
+scoped setting. It cannot supply a missing paper fact, convert epistemic
+status, approve, repair, execute, set readiness, or author native input.
+
+The knowledge source ledger and citation audit verify revisions, licenses,
+reviewed resources, and bibliographic metadata within their declared evidence
+ceilings. They do not establish that the full text of every cited article has
+been scientifically verified. A paper reproduction plan still requires its
+own full `PaperSourceBundle`, exact content hashes, and claim locators.
+
 ### General-agent frontier
 
 Keep one scientific semantic kernel and separate provider-native envelopes.
@@ -107,7 +146,9 @@ unchanged before it can be called integrated.
 | `ProtocolClaim` | Bind typed values and units to source locators and epistemic status. |
 | `MolecularSystemSpec` | Preserve exact species, geometry, atom order, charge, multiplicity, fragments, and constraints. |
 | `ProjectConfigSpec` | Bind reusable method settings and claim provenance to validated project YAML. |
+| `ScientificSettingsRegistryV1` / `SettingResolutionV1` | Resolve frozen-source setting capability as exact, candidate-only, unknown, or incompatible without making a scientific recommendation. |
 | `DomainKnowledgePack` | Externalize sourced domain and engine/version rules with deterministic validators. |
+| `KnowledgePackActivationRequestV1` / `KnowledgePackActivationReceiptV1` | Route read-only packs deterministically and record scope, provenance, exclusions, missing facts, and model exposure. |
 | `PaperResearchPlan` | Bind source, science, project, command, validation, analysis, review, and report graphs with separate plan/run states. |
 | `SpecialistTaskPacket` / `SpecialistResultPacket` | Bound delegation by immutable input, tools, budget, owner, schema, and merge key. |
 | `ReviewPacket` / `ReviewFinding` | Provide read-only, evidence-addressed cross-examination. |
@@ -197,6 +238,26 @@ schema, artifact-hash, secret, native-input, engine, HPC, and deterministic
 safety gates remain on. The historical D/E/C `2 x 2 x 2` study remains a
 reference projection rather than the complete active plane.
 
+Before using settings or knowledge exposure as a development default, run the
+paired `S x K` four-arm experiment:
+
+| Arm | Model-visible settings registry | Model-visible domain packs |
+| --- | --- | --- |
+| `S0K0` | no | no |
+| `S1K0` | yes | no |
+| `S0K1` | no | yes, with host-only registry resolution |
+| `S1K1` | yes | yes |
+
+All four arms retain the same deterministic registry, project loaders,
+compiler, validators, permissions, artifact hashes, and no-native-input,
+no-engine, and no-HPC controls. Freeze the case/source, prompt, tool surface,
+order, budgets, registry/catalog and validator digests, and DeepSeek V4 Flash
+thinking-enabled mode. Persist and directly inspect a sanitized English
+response plus public tool trace for each arm. Grade exact-setting preservation,
+honest blocking, false-ready language, and deterministic outcomes; English
+quality and turn completion are not scientific metrics. This is development
+evidence, not a held-out generalization, full-text verification, or SOTA claim.
+
 ## Training boundary
 
 Do not train before paper-level gold tasks, accepted/rejected trajectories,
@@ -221,7 +282,7 @@ never its reward.
 | --- | --- | --- |
 | M0 | Reconcile 23 Runtime V2 streams and adaptive API contracts | Runtime terminal state is authoritative; turn/tool/scientific outcomes separated; historical evidence unchanged. |
 | M1 | Coordinate and preview custody | Exact official single-frame XYZ receipts and private exact-byte preview hashes; missing geometry blocks. |
-| M2 | Independent ablation plane | Ten switches work independently while all safety invariants remain enabled; single-agent baseline retained. |
+| M2 | Settings/knowledge foundation and independent ablation plane | Registry and read-only sourced packs remain distinct; the `S x K` block and ten switches preserve every safety invariant and the single-agent baseline. |
 | M3 | Frozen PRP-10 first-pass baseline | Ten eligible papers, frozen harness/sources/prompts/tools/graders, full plans through safe preview and three reviews. |
 | M4 | Defect-driven adaptive expansion | One-factor paired hypotheses are retained, revised, or retired by deterministic grades and independent cross-examination. |
 

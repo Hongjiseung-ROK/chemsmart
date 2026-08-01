@@ -97,6 +97,47 @@ must not contact authors or invent an unreported sensitivity calculation to
 fill it. A sensitivity calculation explicitly reported by the paper remains a
 normal workflow node.
 
+### Scientific settings and sourced knowledge
+
+Use `ScientificSettingsRegistryV1` only to answer whether the frozen ChemSmart
+source snapshot can identify and preserve a typed setting through its current
+loader/renderer path. It is not method advice, a combination validator, a safe
+preview, or engine evidence. The active basis authority is the checked-in
+Basis Set Exchange 0.11 catalog: it records 748 BSE basis names for Gaussian
+and 748 for ORCA, with every declared element serialized for each target
+program. Upstream BSE 0.12 is pinned for research and migration comparison
+only; it is not the active runtime catalog and must not be substituted without
+a separately reviewed regeneration and validation milestone.
+
+Treat the frozen ORCA native-basis list as a program-specific overlay over the
+BSE-backed inventory. An exact ORCA-native literal may be loader/renderer
+eligible even when BSE membership is not claimed. For xTB, `method.basis` is
+`not_applicable`, not an invitation to invent an orbital-basis setting. An
+exact canonical literal or registered alias may resolve as `exact_registered`.
+A fuzzy match remains `candidate_only` and blocks the settings receipt until
+an exact evidence-backed selection is supplied. No match is
+`unknown_unverified` and also blocks; neither status may be promoted by model
+confidence or customary usage.
+
+Activate a `DomainKnowledgePack` only through a content-addressed,
+host-controlled request whose domain, program/version, task kind, input and
+context hashes, critical missing facts, positive triggers, negative triggers,
+and source-ledger digest are observable. A selected pack and its model-visible
+exposure are separate decisions. Every pack is read-only and cannot fill a
+missing paper fact, approve, repair, execute, set readiness, or author native
+input. A matching rule may preserve, detect, explain, or block; it never
+converts `inferred`, `unknown`, or `conflict` into `explicit`.
+
+The [scientific source ledger](docs/research/general-chemistry-knowledge-source-ledger.json),
+[verified BibTeX](docs/research/general-chemistry-knowledge.bib), and
+[citation audit](docs/research/general-chemistry-citation-audit.json) bind the
+knowledge foundation's source revisions and metadata. They do not by
+themselves prove that every cited article's full text or every scientific
+claim has been verified. Paper-specific fidelity still requires the exact
+content-addressed `PaperSourceBundle` and claim locators. Follow the
+[English milestone and Goal-command package](docs/goals/general-chemistry-knowledge/README.md)
+for staged development.
+
 Use these mutually exclusive outcome labels precisely:
 
 - **planned**: intent is recorded, but no executable input exists;
@@ -190,7 +231,10 @@ store; commit only permitted metadata, locators, hashes, and claim mappings.
 - Keep scientific expertise in versioned `DomainKnowledgePack` artifacts, not
   persona lore. Every pack declares domain and engine/version scope, source
   locators and hashes, allowed settings, prohibited conditions, stable rule
-  IDs, and deterministic validator IDs. A pack cannot approve or execute work.
+  IDs, and deterministic validator IDs. Deterministic, content-addressed
+  routing owns activation; model visibility is an explicit read-only exposure.
+  A pack cannot fill a missing paper fact, approve, repair, execute, or set
+  readiness.
 - Treat `PaperSourceBundle`, `ProtocolClaim`, `MolecularSystemSpec`,
   `ProjectConfigSpec`, and `PaperResearchPlan` as the canonical full-paper
   state. Keep plan state separate from execution state and make a CLI
@@ -216,6 +260,14 @@ store; commit only permitted metadata, locators, hashes, and claim mappings.
   schema validation, artifact hashing, secret redaction, deterministic safety
   validation, and the native-input/engine/HPC prohibitions stay enabled in
   every condition and are not experimental factors.
+- Treat the `S x K` four-arm study (`S0K0`, `S1K0`, `S0K1`, `S1K1`) as a
+  development experiment over model-visible settings-registry and
+  domain-knowledge-pack exposure only. All deterministic settings resolution,
+  project loading, safety validation, and execution prohibitions remain on in
+  every arm. Use fixed DeepSeek V4 Flash thinking-enabled runs with sanitized
+  English responses, inspect the public response and tool trace directly, and
+  grade with deterministic oracles. English fluency, a completed turn, or a
+  plausible explanation is not scientific success or full-text verification.
 - A DeepSeek receipt obtained with thinking enabled supports only that exact
   mode. It does not establish thinking-disabled conformance or a causal benefit
   from thinking. The earlier 2026-08-01 H0 observation is stale and invalidated;

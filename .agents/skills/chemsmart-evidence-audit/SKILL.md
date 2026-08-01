@@ -46,6 +46,34 @@ evidence.
    bypass. Confirm that concurrency, per-request tokens, task wall time,
    endpoint/purpose, and credential lease stayed within the recorded envelope.
 
+## Knowledge-foundation audit
+
+Audit `ScientificSettingsRegistryV1` against its exact source snapshot and
+evidence ceiling. The active basis authority is the checked-in BSE 0.11
+catalog, with 748 BSE names serialized across all declared elements for each of
+Gaussian and ORCA; upstream BSE 0.12 is reference-only. Audit the ORCA-native
+overlay separately from BSE and require xTB `method.basis` to resolve as
+`not_applicable`. Reject readiness when fuzzy discovery is `candidate_only` or
+an unmatched literal is `unknown_unverified`. A loader/renderer observation
+does not prove a safe preview, an engine run, a compatible setting combination,
+or scientific adequacy.
+
+For every `DomainKnowledgePack` use, require a content-addressed activation
+request and receipt, exact catalog/source-ledger hashes, deterministic
+positive/negative trigger decisions, recorded critical missing facts, and
+explicit read-only model exposure. Reject any pack that fills an omitted paper
+fact, promotes epistemic status, approves, repairs, executes, authors native
+input, or determines readiness.
+
+For the `S x K` development experiment, require a complete counterbalanced
+`S0K0`/`S1K0`/`S0K1`/`S1K1` block with one fixed context and invariant safety
+plane. Inspect each sanitized DeepSeek V4 Flash English response and public
+tool trace for exact-setting preservation, unsupported substitution, honest
+blocking, and false-ready language. Bind response and trace hashes, tokens,
+latency, terminal state, and deterministic oracle results. Do not inspect or
+persist private reasoning, and do not treat English fluency or provider
+completion as correctness.
+
 ## Red-team rules
 
 Seed realistic failures: wrong charge/multiplicity, malformed geometry,
@@ -80,6 +108,13 @@ Do not rewrite or relabel them as active PRP-10 results.
   designing a critique or component evaluation.
 - Read [paper-plan-audit.md](references/paper-plan-audit.md) before judging a
   paper-to-research-plan reconstruction, active PRP-10, or historical PRP-6.
+- Verify provenance against the [source ledger](../../../docs/research/general-chemistry-knowledge-source-ledger.json),
+  [BibTeX](../../../docs/research/general-chemistry-knowledge.bib), and
+  [citation audit](../../../docs/research/general-chemistry-citation-audit.json).
+  These records verify pins and citation metadata within their stated ceiling,
+  not complete paper-level full-text scientific fidelity.
+- Use the [English milestones and Goal commands](../../../docs/goals/general-chemistry-knowledge/README.md)
+  as the phase index for registry, knowledge-pack, and `S x K` audits.
 
 ## Examples
 
