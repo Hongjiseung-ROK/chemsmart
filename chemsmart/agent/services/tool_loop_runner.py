@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import time
 from collections import Counter
@@ -60,6 +62,27 @@ class LoopHost(Protocol):
     def _skipped_outcome(
         self, step: int, request: ToolRequest, *, reason: str
     ) -> ToolOutcome: ...
+    def _error_outcome(
+        self,
+        step: int,
+        request: ToolRequest,
+        *,
+        error_type: str,
+        error_message: str,
+        raw_result: Any = None,
+    ) -> ToolOutcome: ...
+    def _rejected_outcome(
+        self,
+        step: int,
+        request: ToolRequest,
+        *,
+        error_type: str,
+        error_message: str,
+        rejection_stage: str,
+    ) -> ToolOutcome: ...
+    def _preflight_active_exposure(
+        self, request: ToolRequest
+    ) -> Exception | None: ...
 
 
 @dataclass
@@ -272,7 +295,10 @@ class ToolLoopRunner:
         asked_user = False
         for index, request in enumerate(requests):
             self._log_request(state, request, index, len(requests))
-            if request.name == ASK_USER_TOOL_NAME:
+            if (
+                request.name == ASK_USER_TOOL_NAME
+                and request.arguments_error_type is None
+            ):
                 outcome = self._ask_user(state, request)
                 outcomes.append(outcome)
                 asked_user = True
@@ -294,6 +320,39 @@ class ToolLoopRunner:
     def _process_one(
         self, state: TurnState, request: ToolRequest
     ) -> tuple[ToolOutcome, bool]:
+        if request.arguments_error_type is not None:
+            exposure_error = self.loop._preflight_active_exposure(request)
+            error_type = (
+                exposure_error.__class__.__name__
+                if exposure_error is not None
+                else request.arguments_error_type
+            )
+            error_message = (
+                str(exposure_error)
+                if exposure_error is not None
+                else (
+                    request.arguments_error_message
+                    or "Tool arguments violate the provider protocol."
+                )
+            )
+            outcome = self.loop._rejected_outcome(
+                state.model_steps,
+                request,
+                error_type=error_type,
+                error_message=error_message,
+                rejection_stage=(
+                    "exposure"
+                    if exposure_error is not None
+                    else "provider_arguments"
+                ),
+            )
+            state.consecutive_tool_errors += 1
+            should_stop = state.consecutive_tool_errors >= (
+                self.loop.budgets.max_consecutive_tool_errors
+            )
+            if should_stop:
+                state.limit_reason = "max_consecutive_errors"
+            return outcome, should_stop
         signature = (request.name, canonical_args_json(request))
         state.signature_counts[signature] += 1
         if state.signature_counts[signature] > (
@@ -338,6 +397,21 @@ class ToolLoopRunner:
         total: int,
     ) -> None:
         state.tool_requests.append(request)
+        normalized_args = (
+            {}
+            if request.arguments_error_type is not None
+            else self.loop._normalized_args(request)
+        )
+        raw_request = request.raw
+        raw_arguments_sha256 = None
+        if request.arguments_error_type is not None:
+            raw_arguments_sha256 = _request_arguments_sha256(request)
+            raw_request = {
+                "id": request.raw.get("id"),
+                "type": request.raw.get("type"),
+                "function": {"name": request.name},
+                "arguments_redacted": True,
+            }
         self.loop.decision_log.write(
             "tool_use_request",
             {
@@ -345,11 +419,14 @@ class ToolLoopRunner:
                 "provider_call_id": request.provider_call_id,
                 "tool": request.name,
                 "args": request.arguments,
-                "normalized_args": self.loop._normalized_args(request),
+                "normalized_args": normalized_args,
+                "arguments_error_type": request.arguments_error_type,
+                "arguments_error_message": request.arguments_error_message,
+                "raw_arguments_sha256": raw_arguments_sha256,
                 "description": self.loop._tool_description(request.name),
                 "queue_index": index + 1,
                 "queue_total": total,
-                "raw": request.raw,
+                "raw": raw_request,
             },
         )
 
@@ -468,8 +545,6 @@ def assistant_message(
 
 
 def canonical_args_json(request: ToolRequest) -> str:
-    import json
-
     return json.dumps(request.arguments, sort_keys=True)
 
 
@@ -505,8 +580,69 @@ def public_message_history(
         copied = deepcopy(message)
         if copied.get("role") == "assistant":
             copied = _strip_private_reasoning(copied)
+            copied = _redact_invalid_openai_tool_arguments(copied)
         public.append(copied)
     return public
+
+
+def _request_arguments_sha256(request: ToolRequest) -> str:
+    raw_function = request.raw.get("function")
+    raw_arguments = (
+        raw_function.get("arguments")
+        if isinstance(raw_function, dict)
+        else request.arguments_json
+    )
+    if isinstance(raw_arguments, str):
+        encoded = raw_arguments.encode("utf-8")
+    else:
+        encoded = json.dumps(
+            raw_arguments,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            default=str,
+        ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _redact_invalid_openai_tool_arguments(
+    message: dict[str, Any],
+) -> dict[str, Any]:
+    calls = message.get("tool_calls")
+    if not isinstance(calls, list):
+        return message
+    for call in calls:
+        if not isinstance(call, dict):
+            continue
+        function = call.get("function")
+        if not isinstance(function, dict):
+            continue
+        arguments = function.get("arguments")
+        valid_object = False
+        if isinstance(arguments, str):
+            try:
+                valid_object = isinstance(json.loads(arguments or "{}"), dict)
+            except json.JSONDecodeError:
+                valid_object = False
+        if valid_object:
+            continue
+        if isinstance(arguments, str):
+            encoded = arguments.encode("utf-8")
+        else:
+            encoded = json.dumps(
+                arguments,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                default=str,
+            ).encode("utf-8")
+        digest = hashlib.sha256(encoded).hexdigest()
+        function["arguments"] = json.dumps(
+            {"redacted_malformed_arguments_sha256": digest},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    return message
 
 
 def public_provider_response(response: dict[str, Any]) -> dict[str, Any]:

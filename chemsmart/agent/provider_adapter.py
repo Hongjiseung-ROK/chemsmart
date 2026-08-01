@@ -25,6 +25,8 @@ class ToolRequest:
     arguments_json: str
     arguments: dict[str, Any]
     raw: dict[str, Any]
+    arguments_error_type: str | None = None
+    arguments_error_message: str | None = None
 
 
 @dataclass(frozen=True)
@@ -168,16 +170,36 @@ def _normalize_openai_response(
         if not isinstance(call, dict):
             continue
         function = call.get("function") or {}
-        arguments_json = function.get("arguments") or "{}"
-        if not isinstance(arguments_json, str):
-            raise ValueError("OpenAI function arguments must be a JSON string")
-        arguments = (
-            json.loads(arguments_json) if arguments_json.strip() else {}
-        )
-        if not isinstance(arguments, dict):
-            raise ValueError(
-                "OpenAI function arguments must decode to a JSON object"
+        raw_arguments = function.get("arguments")
+        arguments_json = raw_arguments if isinstance(raw_arguments, str) else ""
+        arguments_error_type: str | None = None
+        arguments_error_message: str | None = None
+        if raw_arguments is not None and not isinstance(raw_arguments, str):
+            arguments = {}
+            arguments_error_type = "ToolArgumentsNotString"
+            arguments_error_message = (
+                "Tool arguments must be encoded as one JSON object string."
             )
+        else:
+            try:
+                arguments = (
+                    json.loads(arguments_json)
+                    if arguments_json.strip()
+                    else {}
+                )
+            except json.JSONDecodeError as exc:
+                arguments = {}
+                arguments_error_type = "MalformedToolArgumentsJSON"
+                arguments_error_message = (
+                    "Tool arguments were not valid JSON at character "
+                    f"{exc.pos}; submit one complete JSON object."
+                )
+            if arguments_error_type is None and not isinstance(arguments, dict):
+                arguments = {}
+                arguments_error_type = "ToolArgumentsNotObject"
+                arguments_error_message = (
+                    "Tool arguments must decode to one JSON object."
+                )
         provider_call_id = str(call.get("id") or f"openai-{index}")
         requests.append(
             ToolRequest(
@@ -188,6 +210,8 @@ def _normalize_openai_response(
                 arguments_json=arguments_json,
                 arguments=arguments,
                 raw=call,
+                arguments_error_type=arguments_error_type,
+                arguments_error_message=arguments_error_message,
             )
         )
     return text, requests, choice.get("finish_reason")

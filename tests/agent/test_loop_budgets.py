@@ -235,6 +235,80 @@ def test_tool_loop_stops_after_provider_error_budget(tmp_path):
     assert result["limit_reason"] == "provider_errors"
 
 
+def test_tool_loop_returns_malformed_arguments_to_model_without_execution(
+    tmp_path,
+):
+    malformed = {
+        "id": "call_bad",
+        "type": "function",
+        "function": {
+            "name": "recommend_method",
+            "arguments": '{"task": "opt',
+        },
+    }
+    provider = FakeProvider(
+        [
+            {"__raw_response__": openai_tool_call_response(malformed)},
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call(
+                        "call_repaired",
+                        "recommend_method",
+                        {"task": "opt"},
+                    )
+                )
+            },
+            {"__raw_response__": openai_final_response("Recovered.")},
+        ]
+    )
+    registry = ScriptedRegistry({"recommend_method": {"method": "b3lyp"}})
+    decision_log = DecisionLog(tmp_path / "decision_log.jsonl")
+    loop = ToolLoop(
+        provider=provider,
+        registry=registry,
+        handle_store=HandleStore(tmp_path),
+        decision_log=decision_log,
+        budgets=ToolLoopBudgets(max_consecutive_tool_errors=2),
+    )
+
+    result = loop.run_turn(
+        messages=[{"role": "user", "content": "Repair one malformed call."}],
+        tool_defs=registry.openai_tool_defs(),
+    )
+
+    assert result["assistant_text"] == "Recovered."
+    assert [item.status for item in result["tool_outcomes"]] == ["error", "ok"]
+    assert result["tool_outcomes"][0].error_type == (
+        "MalformedToolArgumentsJSON"
+    )
+    assert registry.calls == [("recommend_method", {"task": "opt"})]
+    assert result["limit_reason"] is None
+    assert result["model_steps"] == 3
+    assert len(result["provider_responses"]) == 3
+    malformed_request = next(
+        entry
+        for entry in decision_log.read_all()
+        if entry["kind"] == "tool_use_request"
+        and entry["payload"]["provider_call_id"] == "call_bad"
+    )
+    assert malformed_request["payload"]["raw_arguments_sha256"]
+    assert malformed_request["payload"]["raw"]["arguments_redacted"] is True
+    assert '{"task": "opt' not in str(malformed_request)
+    malformed_message = next(
+        message
+        for message in result["messages"]
+        if any(
+            call.get("id") == "call_bad"
+            for call in message.get("tool_calls", [])
+        )
+    )
+    public_arguments = malformed_message["tool_calls"][0]["function"][
+        "arguments"
+    ]
+    assert "redacted_malformed_arguments_sha256" in public_arguments
+    assert '{"task": "opt' not in public_arguments
+
+
 def test_adaptive_loop_has_no_request_count_cap_but_has_token_and_time_guards(
     tmp_path,
 ):

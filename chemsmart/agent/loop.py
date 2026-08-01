@@ -169,22 +169,18 @@ class ToolLoop:
         # Active Runtime V2 rejects a forged call to a hidden tool before
         # permission resolution. This prevents legacy native-input builders
         # and direct engine runners from consuming approval as a fallback.
-        preflight_exposure = getattr(
-            self.lifecycle, "preflight_active_exposure", None
-        )
-        if callable(preflight_exposure):
-            try:
-                preflight_exposure(tool_name=request.name)
-            except Exception as exc:
-                return (
-                    self._error_outcome(
-                        step,
-                        request,
-                        error_type=exc.__class__.__name__,
-                        error_message=str(exc),
-                    ),
-                    False,
-                )
+        exposure_error = self._preflight_active_exposure(request)
+        if exposure_error is not None:
+            return (
+                self._rejected_outcome(
+                    step,
+                    request,
+                    error_type=exposure_error.__class__.__name__,
+                    error_message=str(exposure_error),
+                    rejection_stage="exposure",
+                ),
+                False,
+            )
         resolved = self._resolve_permission(request)
         if (
             request.name == "run_local"
@@ -536,6 +532,68 @@ class ToolLoop:
                 "tool": request.name,
                 "status": outcome.status,
                 "description": self._tool_description(request.name),
+                "payload": {
+                    "ok": False,
+                    "error": {
+                        "type": error_type,
+                        "message": error_message,
+                        "tool": request.name,
+                    },
+                },
+                "handle_id": None,
+            },
+        )
+        return outcome
+
+    def _preflight_active_exposure(
+        self, request: ToolRequest
+    ) -> Exception | None:
+        preflight_exposure = getattr(
+            self.lifecycle, "preflight_active_exposure", None
+        )
+        if not callable(preflight_exposure):
+            return None
+        try:
+            preflight_exposure(tool_name=request.name)
+        except Exception as exc:
+            return exc
+        return None
+
+    def _rejected_outcome(
+        self,
+        step: int,
+        request: ToolRequest,
+        *,
+        error_type: str,
+        error_message: str,
+        rejection_stage: str,
+    ) -> ToolOutcome:
+        if self.lifecycle is not None:
+            self.lifecycle.tool_request_rejected(
+                request_id=request.request_id,
+                tool_name=request.name,
+                error_type=error_type,
+                error_message=error_message,
+                rejection_stage=rejection_stage,
+            )
+        outcome = ToolOutcome(
+            request_id=request.request_id,
+            provider_call_id=request.provider_call_id,
+            name=request.name,
+            status="error",
+            error_type=error_type,
+            error_message=error_message,
+        )
+        self.decision_log.write(
+            "tool_use_result",
+            {
+                "step": step,
+                "provider_call_id": request.provider_call_id,
+                "tool": request.name,
+                "status": outcome.status,
+                "description": self._tool_description(request.name),
+                "rejected_before_execution": True,
+                "rejection_stage": rejection_stage,
                 "payload": {
                     "ok": False,
                     "error": {

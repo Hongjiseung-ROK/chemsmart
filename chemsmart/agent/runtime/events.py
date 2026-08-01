@@ -16,6 +16,7 @@ class EventKind(str, Enum):
     SESSION_STARTED = "session_started"
     TURN_STARTED = "turn_started"
     EXPOSURE_PLANNED = "exposure_planned"
+    TOOL_REQUEST_REJECTED = "tool_request_rejected"
     TOOL_STARTED = "tool_started"
     TOOL_SUCCEEDED = "tool_succeeded"
     TOOL_FAILED = "tool_failed"

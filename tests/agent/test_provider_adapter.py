@@ -225,6 +225,69 @@ def test_normalize_openai_parallel_tool_calls_response():
     ]
 
 
+def test_normalize_openai_preserves_malformed_arguments_as_typed_error():
+    response = {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [
+                        {
+                            "id": "call_bad_json",
+                            "type": "function",
+                            "function": {
+                                "name": "recommend_method",
+                                "arguments": '{"task": "opt',
+                            },
+                        }
+                    ],
+                },
+                "finish_reason": "tool_calls",
+            }
+        ]
+    }
+
+    _, requests, _ = normalize_response("openai", response)
+
+    assert len(requests) == 1
+    request = requests[0]
+    assert request.arguments == {}
+    assert request.arguments_error_type == "MalformedToolArgumentsJSON"
+    assert request.arguments_error_message == (
+        "Tool arguments were not valid JSON at character 9; "
+        "submit one complete JSON object."
+    )
+
+
+def test_normalize_openai_rejects_non_object_arguments_without_raising():
+    response = {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": "call_array",
+                            "type": "function",
+                            "function": {
+                                "name": "recommend_method",
+                                "arguments": '["opt"]',
+                            },
+                        }
+                    ],
+                },
+                "finish_reason": "tool_calls",
+            }
+        ]
+    }
+
+    _, requests, _ = normalize_response("openai", response)
+
+    assert requests[0].arguments == {}
+    assert requests[0].arguments_error_type == "ToolArgumentsNotObject"
+
+
 def test_build_tool_result_messages_for_anthropic():
     outcomes = [
         ToolOutcome(

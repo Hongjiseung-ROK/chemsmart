@@ -1427,6 +1427,7 @@ _EVENT_HANDLERS = {
     EventKind.SESSION_STARTED: _on_session_started,
     EventKind.TURN_STARTED: _on_turn_started,
     EventKind.EXPOSURE_PLANNED: _on_exposure_planned,
+    EventKind.TOOL_REQUEST_REJECTED: _on_tool_finished,
     EventKind.TOOL_STARTED: _on_tool_started,
     EventKind.TOOL_SUCCEEDED: _on_tool_finished,
     EventKind.TOOL_FAILED: _on_tool_finished,

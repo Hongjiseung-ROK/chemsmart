@@ -184,6 +184,30 @@ class RuntimeLifecycle:
         )
         self._reset_calculation_context()
 
+    def tool_request_rejected(
+        self,
+        *,
+        request_id: str,
+        tool_name: str,
+        error_type: str,
+        error_message: str,
+        rejection_stage: str,
+    ) -> None:
+        """Record a provider request rejected before permission or execution."""
+
+        self.emitter.emit(
+            EventKind.TOOL_REQUEST_REJECTED,
+            {
+                "request_id": request_id,
+                "tool": tool_name,
+                "error_type": error_type,
+                "message": error_message[:500],
+                "rejection_stage": rejection_stage,
+                "rule_ids": [_runtime_error_rule(error_type)],
+            },
+            idempotency_key=f"tool-rejected:{request_id}",
+        )
+
     def _reset_calculation_context(self) -> None:
         if self._calculation_context_token is None:
             return
@@ -432,6 +456,11 @@ def _result_verdict(result: dict[str, Any]) -> str:
 def _runtime_error_rule(error_type: str) -> str:
     return {
         "ToolExposureViolation": "runtime.tool.not_exposed",
+        "MalformedToolArgumentsJSON": (
+            "runtime.provider.tool_arguments_invalid"
+        ),
+        "ToolArgumentsNotObject": "runtime.provider.tool_arguments_invalid",
+        "ToolArgumentsNotString": "runtime.provider.tool_arguments_invalid",
         "RuntimeCommandRepairViolation": "runtime.command.repair_binding",
         "UnknownHandle": "runtime.handle.unknown",
         "ValidationError": "runtime.tool.schema_validation",

@@ -243,6 +243,75 @@ def test_active_runtime_blocks_provider_call_to_hidden_tool(tmp_path):
     assert result["tool_outcomes"][0].error_type == "ToolExposureViolation"
 
 
+def test_active_runtime_rejects_malformed_hidden_tool_before_permission(
+    tmp_path,
+):
+    called = []
+    malformed_hidden_call = {
+        "id": "call-malformed-hidden",
+        "type": "function",
+        "function": {
+            "name": "build_job",
+            "arguments": '{"job":',
+        },
+    }
+    provider = FakeProvider(
+        [
+            {
+                "__raw_response__": openai_tool_call_response(
+                    malformed_hidden_call
+                )
+            },
+            {"__raw_response__": openai_final_response("Call rejected.")},
+        ]
+    )
+    registry = _registry(
+        _tool(
+            "synthesize_command",
+            lambda request: {},
+            fields={"request": (str, Field(...))},
+            read_only=True,
+        ),
+        _tool(
+            "build_job",
+            lambda: called.append(True) or {"ok": True},
+            read_only=True,
+        ),
+    )
+    session = AgentSession(
+        provider=provider,
+        registry=registry,
+        session_root=tmp_path / "sessions",
+        runtime_v2="active",
+    )
+
+    result = session.run_loop("Prepare a Gaussian optimization for water.")
+
+    assert called == []
+    assert result["tool_outcomes"][0].status == "error"
+    assert result["tool_outcomes"][0].error_type == "ToolExposureViolation"
+    assert result["runtime_v2"]["shadow_violations"] == [
+        "runtime.tool.not_exposed"
+    ]
+    assert session.session_dir is not None
+    events = [
+        json.loads(line)
+        for line in (
+            session.session_dir / "runtime_events.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+    ]
+    kinds = [event["kind"] for event in events]
+    assert "tool_request_rejected" in kinds
+    assert "tool_started" not in kinds
+    assert "tool_failed" not in kinds
+    assert "permission_resolved" not in kinds
+    rejected = next(
+        event for event in events if event["kind"] == "tool_request_rejected"
+    )
+    assert rejected["payload"]["rejection_stage"] == "exposure"
+    assert rejected["payload"]["rule_ids"] == ["runtime.tool.not_exposed"]
+
+
 def test_active_runtime_rejects_legacy_runner_before_approval(tmp_path):
     approver_calls = []
     runner_calls = []
