@@ -3,9 +3,11 @@
 ## Mission
 
 Develop ChemSmart as a CLI-first, provider-neutral computational-chemistry
-automation agent. Models may plan, ask, and explain. Deterministic ChemSmart
-code owns CLI semantics, permission policy, execution, scientific validation,
-and evidence recording.
+automation agent. A model may plan, ask, explain, and propose typed
+ScientificTaskSpec and CommandWorkflowSpec objects. It must not author,
+patch, or treat as authoritative Gaussian, ORCA, or xTB native input text.
+Deterministic ChemSmart code owns CLI semantics, command compilation,
+permission policy, execution, scientific validation, and evidence recording.
 
 Do not resume GUI, desktop-app, packaging, Studio, or visual-design work unless
 the user explicitly reopens it. Do not treat an installed tool, a valid command,
@@ -38,6 +40,11 @@ explicitly reactivates that work.
   scientific interpretation.
 - Derive CLI behavior from the current Click parser and generated schema; do
   not maintain a hand-written command inventory as ground truth.
+- Treat the command compiler as the only authority that turns a model proposal
+  into argv. It must resolve live schema options, trusted project and artifact
+  references, canonical long flags, and shell-safe rendering. A model never
+  supplies executable shell syntax, arbitrary paths, option ordering, aliases,
+  quoting, or a native-engine fallback.
 - Do not install dependencies, alter environment pins, contact external
   systems, commit, push, or publish without authority for that action.
 
@@ -53,8 +60,11 @@ Make these facts explicit before a calculation is treated as specified:
 - required evidence, diagnostics, and limitations.
 
 Ask instead of inventing a scientifically consequential missing fact. Never
-infer geometry identity from a filename alone. Preflight through the real
-parser and generated-input checks before execution.
+infer geometry identity from a filename alone. Compile the typed intent through
+the live schema, trusted project/artifact resolver, safe CLI preview, and
+independent parser observation before an action can be called previewed.
+Generated native inputs are downstream evidence produced by ChemSmart, not a
+model-editable interface.
 
 Use these mutually exclusive outcome labels precisely:
 
@@ -85,12 +95,43 @@ Bind approval to the exact command, inputs, project, executable/environment,
 and artifact hashes. Invalidate it when any bound value changes. Keep secrets
 out of prompts, logs, commits, and evidence bundles.
 
+Use a paid DeepSeek model call or literature lookup only through an existing
+user-owned quota and a short-lived standard Keychain lease. Never print,
+persist, transmit in a prompt, or infer a secret. Record only the provider,
+endpoint class, key-validation outcome, quota-sufficiency outcome, and
+non-secret error class. Do not top up a quota, change a billing plan, or turn a
+provider credential into general network authority. Once a user has authorized
+the current development phase, lease-bound calls within its recorded quota may
+proceed without per-call reapproval; a new provider, target, quota expansion,
+or billing change needs new authority.
+
 ## Agent architecture
 
 - Keep provider-specific wire protocols and continuation state inside adapters.
   Persist only observable actions, concise public summaries, tool calls,
   artifacts, approvals, and outcomes. Never request, store, or use hidden
   chain-of-thought as scientific evidence.
+- Expose the frontier calculation-preparation surface only as typed project
+  operations plus synthesize, repair, inspect, and explain command workflow
+  operations. Legacy molecule/settings/job/input/execution builders may remain
+  in an explicit compatibility profile, but must be absent and fail closed from
+  the command-compiled frontier profile.
+- Treat raw legacy direct-string synthesis and compact-v8 conversion as
+  baseline or migration inputs only. They are not Frontier Runtime V2
+  model-surface authorities and may not bypass typed compilation, preview, or
+  evidence gates.
+- Let a CommandWorkflowSpec bind a workflow ID, task-spec ID, live CLI-schema
+  digest, and ordered immutable command nodes. Nodes contain only trusted
+  artifact IDs/hashes, project references, declared intent, dependencies,
+  constraint IDs, and expected artifact classes. The compiler performs DAG checking, schema
+  resolution, canonical argv rendering, safe preview, parser observation, and
+  intent round-trip comparison. A structured counterexample may support at
+  most two constrained repairs; it must not silently change an explicit
+  program, geometry, charge, multiplicity, method, or constraint.
+- Bind every repair to the immediately preceding ScientificTaskSpec and
+  preflight-receipt digests. In the active command profile, a terminal success
+  requires a deterministic `previewed` receipt; a model assertion, command
+  string, or proposed repair is never a completion substitute.
 - Give each task the smallest relevant tool surface and explicit token, tool,
   wall-time, and compute budgets.
 - Use subagents only for bounded, independently verifiable work with declared
@@ -101,6 +142,9 @@ out of prompts, logs, commits, and evidence bundles.
   computation arbitrate disagreements.
 - End every run as complete, failed, blocked, or waiting for approval; do not
   loop indefinitely.
+- When the current CLI or scientific validator cannot express a requested
+  task, return `needs_clarification` or `infeasible` with a structured reason.
+  Neither state permits a native-input fallback.
 
 ## Evidence and reporting
 
@@ -127,8 +171,13 @@ Use the smallest matching skill set:
 
 ## Validation and reporting discipline
 
-- Run focused checks before broad suites and report the exact command and
-  result.
+- During a milestone, prefer source inspection, schema/receipt checks, and
+  narrowly scoped deterministic probes. Do not repeatedly run pytest, Ruff, or
+  broad checks after each edit. Run one focused suite when a material milestone
+  is complete; allow at most one evidence-driven rerun for that milestone.
+- Run full agent tests, read-only Ruff, schema/link/citation/secret checks, and
+  diff checks only at the preregistered integration/freeze gate. Do not
+  autofix, format, or regenerate snapshots unless separately authorized.
 - Keep product, runtime, scientific, and release readiness separate. A focused
   green check is not proof of product or scientific readiness.
 - Report green checks, blockers, retired metrics, and unverified claims

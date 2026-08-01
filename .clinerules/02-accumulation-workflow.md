@@ -1,4 +1,8 @@
-# Accumulation Workflow (collection -> audit -> session export -> report)
+# Accumulation Workflow (historical collection -> audit -> session export -> report)
+
+> Historical snapshot. Do not run, update, or reactivate SFT collection unless
+> the user explicitly authorizes it. `AGENTS.md` and the command-compiled
+> frontier roadmap govern active work; hidden reasoning is never collected.
 
 Python interpreter: `/opt/anaconda3/envs/chemsmart/bin/python`. Run all
 commands from the repo root `/Users/hongjiseung/developer/chemsmart`.

@@ -10,7 +10,12 @@ syntax. Do not universalize an engine default or a literature example.
 - Confirm that method, basis/ECP, dispersion, solvent, and constraints are
   explicit or deliberately inherited from a versioned project artifact.
 - Confirm the requested task is compatible with the selected program and job
-  kind through the live CLI schema.
+  kind through the live CLI schema. Resolve commands from typed
+  CommandWorkflowSpec data through the deterministic compiler; do not accept a
+  model-written shell command or a native-input fallback.
+- Require the compiler to reject shell operators, redirects, environment
+  assignments, unknown or out-of-scope options, untrusted paths, stale artifact
+  hashes, and mismatched project settings before safe preview.
 
 ## Universal postflight
 

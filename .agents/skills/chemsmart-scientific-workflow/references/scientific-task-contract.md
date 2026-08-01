@@ -12,9 +12,19 @@ record:
   standard-state convention, and resource target;
 - expected artifacts, validation rules, uncertainties, and decision boundary.
 
-Use the native input and output files as authoritative engine records. A
-QCSchema-compatible structured record should point to those artifacts rather
-than erase code-specific settings.
+Derive a CommandWorkflowSpec from the task specification. It identifies the
+CLI-schema digest and immutable command nodes with a Click path, canonical
+parameter map, trusted project reference, ArtifactBinding IDs/hashes,
+charge/multiplicity, execution intent, dependencies, and expected artifact
+classes. The model must not select a filesystem path, shell spelling, option
+order, or native-engine input text.
+
+Use ChemSmart-generated native input and output files as authoritative engine
+records after safe preview or execution. A QCSchema-compatible structured
+record should point to those artifacts rather than erase code-specific
+settings. A CommandPreflightReceipt links the typed IR, canonical argv, parser
+observation, intent comparison, resolved project/input/environment, and
+safe-preview artifact hash.
 
 ## Receipt minimum
 

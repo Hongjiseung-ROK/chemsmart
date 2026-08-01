@@ -1,4 +1,8 @@
-# Progress Dashboard (numbers must come from a real audit/export run)
+# Progress Dashboard (historical numbers from a real audit/export run)
+
+> Historical snapshot, not an active dashboard. Do not update or resume this
+> SFT collection without explicit user authorization. `AGENTS.md` and the
+> command-compiled frontier roadmap govern current work.
 
 _Last measured: 2026-07-12, from `audit_dataset.py`, `export_sft.py`, and
 `build_split_manifest.py`, all run with `--training-dir var/agent-training

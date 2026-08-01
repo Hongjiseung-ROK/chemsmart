@@ -2,6 +2,10 @@
 
 `AGENTS.md` is the authoritative repository contract. Read it first, then use
 the current checkout, parser, runtime contracts, and tests as ground truth.
+For the active command-compiled frontier roadmap, also read
+`docs/goals/frontier-agent-command-refinement/README.md` and the current phase
+document. Models propose typed command workflows; they do not write native
+Gaussian, ORCA, or xTB inputs.
 
 This document preserves a 2026-07-10 SFT-collection snapshot for historical
 context. It is **not** the current ChemSmart mission, does not authorize live

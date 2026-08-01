@@ -14,6 +14,29 @@ verbose transcript for better science:
 2. structured, reproducible documentation generation;
 3. adversarial, independent critique.
 
+## Prerequisite command-front-end comparison
+
+Before the factorial study, compare paired fixed-fixture command front ends:
+
+| Front end | Definition |
+| --- | --- |
+| A0 | Current direct command-string model proposal, retained only as a baseline. |
+| A1 | Typed CommandWorkflowSpec proposal compiled through live schema resolution, trusted project/artifact grounding, canonical rendering, safe preview, independent parser observation, and semantic round-trip checks. |
+
+The compiler remains the safety authority for all later configurations.
+Do not describe A1 as more effective unless the paired results show all of:
+
+- 100% schema-valid rendering, parser acceptance, and render determinism;
+- zero raw native-input authoring, hallucinated options, and shell injection;
+- semantic-preview success no more than two percentage points below A0;
+- explicit-intent preservation at least as high as A0; and
+- token/cost no more than 1.25x A0, or a statistically supported reduction in
+  bounded repair attempts.
+
+This comparison evaluates command compilation, not engine execution or
+scientific correctness. Failure to meet its thresholds leaves A1 as a safety
+mechanism under refinement and blocks claims of efficacy.
+
 ## Experimental design
 
 Use a preregistered `2 × 2 × 2` factorial design:
@@ -22,7 +45,12 @@ Use a preregistered `2 × 2 × 2` factorial design:
 | --- | --- | --- |
 | Decomposition | single agent executes the task graph | coordinator dispatches only predeclared independent task nodes and uses deterministic joins |
 | Documentation | ordinary session summary | typed evidence manifest plus reproducible report rendering |
-| Critique | deterministic validators only | fresh read-only critic cross-examines artifacts and assumptions before terminal status |
+| Critique | deterministic validators only | exactly one predeclared fresh read-only cross-examination before terminal status |
+
+Both documentation conditions retain immutable raw command, artifact, approval,
+and event recording. Only the evidence composer and regenerated report view are
+toggled. The critic may identify defects but cannot repair, approve, execute,
+or alter the deterministic terminal decision.
 
 Freeze before the first run:
 

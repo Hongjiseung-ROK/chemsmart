@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-08-01T03:18:23Z",
+  "reverified_at": "2026-08-01T04:04:05Z",
+  "reverification": "Crossref metadata retrieval passed for the four cited DOI records; official ACL and NeurIPS source retrieval passed. No bibliographic field was silently changed by the repeat check.",
+  "scope": "Entries in command-compiled-design-references.bib only",
+  "method": {
+    "metadata": "Crossref REST works endpoint, ACL Anthology, or official NeurIPS proceedings",
+    "bibtex": "DOI content negotiation, ACL Anthology BibTeX, or official NeurIPS BibTeX",
+    "correction_check": "Crossref update-to relation when a DOI is available"
+  },
+  "provenance_policy": "Each bibliography key must have a non-BibTeX metadata source and a retrievable bibliographic source. Field disagreements are recorded rather than silently normalized.",
+  "records": [
+    {
+      "bibkey": "Lin_2018",
+      "doi": null,
+      "title": "NL2Bash: A Corpus and Semantic Parser for Natural Language Interface to the Linux Operating System",
+      "venue": "Proceedings of the Eleventh International Conference on Language Resources and Evaluation",
+      "year": 2018,
+      "metadata_source": "ACL Anthology",
+      "bibtex_source": "ACL Anthology BibTeX",
+      "metadata_url": "https://aclanthology.org/L18-1491/",
+      "bibtex_url": "https://aclanthology.org/L18-1491.bib",
+      "checked_at": "2026-08-01T03:18:23Z",
+      "update_to": "not applicable: no DOI",
+      "status": "verified"
+    },
+    {
+      "bibkey": "Scholak_2021",
+      "doi": "10.18653/v1/2021.emnlp-main.779",
+      "title": "PICARD: Parsing Incrementally for Constrained Auto-Regressive Decoding from Language Models",
+      "venue": "Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing",
+      "year": 2021,
+      "metadata_source": "Crossref and ACL Anthology",
+      "bibtex_source": "ACL Anthology BibTeX",
+      "metadata_url": "https://api.crossref.org/works/10.18653/v1/2021.emnlp-main.779",
+      "bibtex_url": "https://aclanthology.org/2021.emnlp-main.779.bib",
+      "checked_at": "2026-08-01T03:18:23Z",
+      "update_to": null,
+      "status": "verified"
+    },
+    {
+      "bibkey": "Gupta_2020",
+      "doi": null,
+      "title": "Synthesize, Execute and Debug: Learning to Repair for Neural Program Synthesis",
+      "venue": "Advances in Neural Information Processing Systems",
+      "year": 2020,
+      "metadata_source": "Official NeurIPS proceedings",
+      "bibtex_source": "Official NeurIPS BibTeX",
+      "metadata_url": "https://proceedings.neurips.cc/paper_files/paper/2020/hash/cd0f74b5955dc87fd0605745c4b49ee8-Abstract.html",
+      "bibtex_url": "https://proceedings.neurips.cc/paper_files/paper/11208-/bibtex",
+      "checked_at": "2026-08-01T03:18:23Z",
+      "update_to": "not applicable: no DOI",
+      "status": "verified"
+    },
+    {
+      "bibkey": "Claessen_2000",
+      "doi": "10.1145/357766.351266",
+      "title": "QuickCheck: a lightweight tool for random testing of Haskell programs",
+      "venue": "ACM SIGPLAN Notices",
+      "year": 2000,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "metadata_url": "https://api.crossref.org/works/10.1145/357766.351266",
+      "bibtex_url": "https://doi.org/10.1145/357766.351266",
+      "checked_at": "2026-08-01T03:18:23Z",
+      "field_provenance": {
+        "title": {
+          "accepted_value": "QuickCheck: a lightweight tool for random testing of Haskell programs",
+          "sources": [
+            {
+              "source": "Crossref REST",
+              "value": "QuickCheck"
+            },
+            {
+              "source": "DOI content negotiation BibTeX",
+              "value": "QuickCheck: a lightweight tool for random testing of Haskell programs"
+            }
+          ],
+          "resolution": "Retain the DOI BibTeX title in the bibliography and preserve the Crossref short-title discrepancy here."
+        }
+      },
+      "update_to": null,
+      "status": "verified"
+    },
+    {
+      "bibkey": "MacIver_2019",
+      "doi": "10.21105/joss.01891",
+      "title": "Hypothesis: A new approach to property-based testing",
+      "venue": "Journal of Open Source Software",
+      "year": 2019,
+      "metadata_source": "Crossref",
+      "bibtex_source": "DOI content negotiation",
+      "metadata_url": "https://api.crossref.org/works/10.21105/joss.01891",
+      "bibtex_url": "https://doi.org/10.21105/joss.01891",
+      "checked_at": "2026-08-01T03:18:23Z",
+      "update_to": null,
+      "status": "verified"
+    }
+  ],
+  "unresolved": [],
+  "retracted_or_corrected": []
+}

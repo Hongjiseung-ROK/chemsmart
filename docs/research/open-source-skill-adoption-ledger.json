@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "scope": "Pinned-source, clean-room concept review for project-local ChemSmart skills. No source package is installed, vendored, executed, or granted ChemSmart credentials by this ledger.",
+  "records": [
+    {
+      "source_id": "openai-cli-creator",
+      "source_url": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/cli-creator",
+      "source_revision": "49f948faa9258a0c61caceaf225e179651397431",
+      "license": {
+        "user-specified-plan": "Apache-2.0",
+        "repository-metadata-at-foundation-retrieval": "NOASSERTION",
+        "decision": "Do not vendor or copy text until the discrepancy is independently resolved."
+      },
+      "reviewed_files": [
+        "skills/.curated/cli-creator/SKILL.md"
+      ],
+      "executable_dependency_surface": {
+        "reviewed": "Instruction-only CLI authoring concepts",
+        "executed": false,
+        "dependencies_imported": []
+      },
+      "decision": "clean_room_concept_reference_only",
+      "attribution": "Conceptual influence is recorded in ChemSmart skill authoring; no upstream text or implementation is copied.",
+      "rejection_rationale": "License status is contradictory and a broad upstream skill must not replace ChemSmart CLI-schema, approval, or evidence contracts."
+    },
+    {
+      "source_id": "kdense-scientific-agent-skills",
+      "source_url": "https://github.com/K-Dense-AI/scientific-agent-skills/tree/ab2f84ab10597c59fac186ecda6d5edd5dcc8b92",
+      "source_revision": "ab2f84ab10597c59fac186ecda6d5edd5dcc8b92",
+      "license": {
+        "declared": "MIT",
+        "verification_source": "Pinned repository LICENSE.md"
+      },
+      "reviewed_files": [
+        "skills/scientific-writing/SKILL.md",
+        "skills/scientific-critical-thinking/SKILL.md",
+        "skills/peer-review/SKILL.md"
+      ],
+      "executable_dependency_surface": {
+        "reviewed": "Writing, falsification, and review instructions",
+        "executed": false,
+        "dependencies_imported": []
+      },
+      "decision": "clean_room_concept_reference_only",
+      "attribution": "Claim-to-evidence, falsification, and independent-review concepts informed ChemSmart's evidence-audit skill.",
+      "rejection_rationale": "The collection is not installed wholesale because its broad behavior and tool surface are not audited against ChemSmart's scoped approval and provenance rules."
+    },
+    {
+      "source_id": "atomisticskills",
+      "source_url": "https://github.com/learningmatter-mit/AtomisticSkills/tree/e4a1ba1c1e6657b09d7dfd69286fd3a8af411035",
+      "source_revision": "e4a1ba1c1e6657b09d7dfd69286fd3a8af411035",
+      "license": {
+        "declared": "MIT",
+        "verification_source": "Pinned repository LICENSE"
+      },
+      "reviewed_files": [
+        ".agents/skills/general-property-units/SKILL.md",
+        ".agents/skills/general-fair-data-review/SKILL.md",
+        "ORCA workflow examples (reference-only candidate)"
+      ],
+      "executable_dependency_surface": {
+        "reviewed": "Units, FAIR-data review, and direct ORCA workflow examples",
+        "executed": false,
+        "dependencies_imported": []
+      },
+      "decision": "clean_room_concept_reference_only",
+      "attribution": "Unit normalization and FAIR review concepts informed ChemSmart scientific/evidence skill references.",
+      "rejection_rationale": "Direct ORCA workflow execution, installation, and dependency handling could bypass ChemSmart command compilation, approval, and evidence receipts."
+    },
+    {
+      "source_id": "dpdispatcher-dpdisp-submit",
+      "source_url": "https://github.com/deepmodeling/dpdispatcher/tree/92be874aca92f5506534122b308e10a00b10f03b/skills/dpdisp-submit",
+      "source_revision": "92be874aca92f5506534122b308e10a00b10f03b",
+      "license": {
+        "declared": "LGPL-3.0-or-later",
+        "verification_source": "Pinned repository LICENSE"
+      },
+      "reviewed_files": [
+        "skills/dpdisp-submit/SKILL.md"
+      ],
+      "executable_dependency_surface": {
+        "reviewed": "Shell-capable remote scheduler submission workflow",
+        "executed": false,
+        "dependencies_imported": []
+      },
+      "decision": "reference_only_future_adapter_candidate",
+      "attribution": "The need for explicit scheduler adapters is recorded as a future design consideration.",
+      "rejection_rationale": "Current shell, network, dependency, licensing, and secret-handling assumptions bypass ChemSmart's approval-bound command and evidence contracts."
+    }
+  ]
+}

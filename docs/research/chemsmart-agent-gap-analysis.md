@@ -1,5 +1,10 @@
 # ChemSmart API-Agent Gap Analysis
 
+> Historical pinned-baseline analysis. It describes
+> `cf986251077b7ee65f8afa951ee76052146c7613`, not the command-refinement
+> implementation on top of it. The active boundary is
+> [CommandWorkflowSpec v1](../design/command-workflow-spec-v1.md).
+
 ## Scope and evidence boundary
 
 This is a source-grounded snapshot of

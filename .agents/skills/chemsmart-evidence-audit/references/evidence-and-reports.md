@@ -4,7 +4,10 @@
 
 Keep a structured manifest with stable IDs and SHA-256 digests for:
 
-- scientific task specification and geometry artifacts;
+- scientific task specification, CommandWorkflowSpec, and geometry artifacts;
+- CLI schema, canonical argv/display command, trusted project/artifact
+  bindings, safe-preview output, independent parser observation, intent
+  comparison, and structured counterexamples;
 - native inputs, outputs, logs, parsed values, and units;
 - program, executable, environment, and container/version information;
 - commands, working directory, timestamps, exit status, and approvals;
@@ -26,3 +29,9 @@ regenerable from the manifest.
 | Unresolved uncertainty | explicit missing evidence or conflicting result |
 
 Never collapse these labels in a conclusion.
+
+For command preparation, call the state `previewed` only when every compiler
+gate and the safe CLI preview are green. An archived artifact can be
+`validated` only when the named deterministic receipt is complete. A report
+must not imply engine execution, reproduction, or SOTA status from a command
+or input file alone.

@@ -1,4 +1,8 @@
-# Project Brief — chemsmart agent v17 reasoning SFT
+# Project Brief — historical chemsmart agent v17 reasoning SFT
+
+> Historical snapshot, not an active instruction. Do not update or resume this
+> SFT collection without explicit user authorization. `AGENTS.md` and the
+> command-compiled frontier roadmap govern current work.
 
 ## One paragraph
 

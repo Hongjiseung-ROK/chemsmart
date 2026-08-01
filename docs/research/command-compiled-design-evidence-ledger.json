@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "retrieved_at": "2026-08-01T03:18:23Z",
+  "scope": "Reference-only evidence for command-compiled ChemSmart design; no source is vendored, executed, or treated as proof of ChemSmart efficacy.",
+  "claims": [
+    {
+      "claim_id": "ccmd-001",
+      "document": "docs/research/command-compiled-design-evidence.md",
+      "locator": "Design evidence and bounded inferences / NL2Bash",
+      "source_ids": ["nl2bash"],
+      "bounded_inference": "Treat natural-language command generation as semantic parsing, not as permission for model-authored shell."
+    },
+    {
+      "claim_id": "ccmd-002",
+      "document": "docs/research/command-compiled-design-evidence.md",
+      "locator": "Design evidence and bounded inferences / PICARD",
+      "source_ids": ["picard"],
+      "bounded_inference": "Use typed IR and deterministic compiler checks when token-level constrained decoding is unavailable."
+    },
+    {
+      "claim_id": "ccmd-003",
+      "document": "docs/research/command-compiled-design-evidence.md",
+      "locator": "Design evidence and bounded inferences / Synthesize, Execute and Debug",
+      "source_ids": ["synthesize-execute-debug"],
+      "bounded_inference": "Return structured counterexamples for bounded repair; do not permit free-form regeneration."
+    },
+    {
+      "claim_id": "ccmd-004",
+      "document": "docs/research/command-compiled-design-evidence.md",
+      "locator": "Design evidence and bounded inferences / QuickCheck and Hypothesis",
+      "source_ids": ["quickcheck", "hypothesis"],
+      "bounded_inference": "Use property tests to strengthen implementation oracles, never as a chemical-validity oracle."
+    },
+    {
+      "claim_id": "ccmd-005",
+      "document": "docs/research/command-compiled-design-evidence.md",
+      "locator": "Design evidence and bounded inferences / Csmith",
+      "source_ids": ["csmith"],
+      "bounded_inference": "Treat independent implementation disagreement as a defect signal."
+    },
+    {
+      "claim_id": "ccmd-006",
+      "document": "docs/research/command-compiled-design-evidence.md",
+      "locator": "Design evidence and bounded inferences / ChemGraph",
+      "source_ids": ["chemgraph"],
+      "bounded_inference": "Limit decomposition to independently computable, deterministically joined chemistry nodes."
+    }
+  ],
+  "sources": [
+    {
+      "id": "nl2bash",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "NL2Bash: A Corpus and Semantic Parser for Natural Language Interface to the Linux Operating System",
+      "url": "https://aclanthology.org/L18-1491/",
+      "bibkey": "Lin_2018",
+      "repository": "https://github.com/TellinaTool/nl2bash",
+      "repository_revision": "d6b9f5bdff45621d190134e31ab63b7bf7002190",
+      "repository_license": "GPL-3.0 reported by GitHub repository metadata at retrieval.",
+      "metadata_source": "ACL Anthology page and BibTeX; GitHub repository metadata",
+      "bibtex_source": "https://aclanthology.org/L18-1491.bib",
+      "metadata_checked_at": "2026-08-01T03:18:23Z",
+      "adoption": "semantic-parsing-reference-only",
+      "supports": [
+        "Natural-language command generation as a semantic parsing problem"
+      ],
+      "limitations": [
+        "Linux shell corpus rather than computational chemistry",
+        "No safety or scientific-validity guarantee",
+        "GPL repository is not a vendoring candidate"
+      ]
+    },
+    {
+      "id": "picard",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "PICARD: Parsing Incrementally for Constrained Auto-Regressive Decoding from Language Models",
+      "doi": "10.18653/v1/2021.emnlp-main.779",
+      "url": "https://aclanthology.org/2021.emnlp-main.779/",
+      "bibkey": "Scholak_2021",
+      "repository": "https://github.com/ServiceNow/picard",
+      "repository_revision": "6a252386bed6d4233f0f13f4562d8ae8608e7445",
+      "repository_license": "Apache-2.0 reported by GitHub repository metadata at retrieval.",
+      "metadata_source": "Crossref REST, ACL Anthology page/BibTeX, and GitHub repository metadata",
+      "bibtex_source": "https://aclanthology.org/2021.emnlp-main.779.bib",
+      "metadata_checked_at": "2026-08-01T03:18:23Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "parser-constrained-generation-reference-only",
+      "supports": [
+        "Formal syntax constraints during structured generation"
+      ],
+      "limitations": [
+        "Token-level decoding integration is unavailable through the target API",
+        "Syntactic validity does not establish command semantics or chemistry"
+      ]
+    },
+    {
+      "id": "synthesize-execute-debug",
+      "kind": "peer_reviewed_article",
+      "status": "peer_reviewed",
+      "title": "Synthesize, Execute and Debug: Learning to Repair for Neural Program Synthesis",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2020/hash/cd0f74b5955dc87fd0605745c4b49ee8-Abstract.html",
+      "bibkey": "Gupta_2020",
+      "metadata_source": "Official NeurIPS proceedings page and BibTeX",
+      "bibtex_source": "https://proceedings.neurips.cc/paper_files/paper/11208-/bibtex",
+      "metadata_checked_at": "2026-08-01T03:18:23Z",
+      "adoption": "bounded-repair-reference-only",
+      "supports": [
+        "Execution feedback as an input to repair"
+      ],
+      "limitations": [
+        "Program-synthesis benchmark, not a chemistry or shell-safety study",
+        "Does not justify unbounded command regeneration"
+      ]
+    },
+    {
+      "id": "quickcheck",
+      "kind": "peer_reviewed_article",
+      "status": "peer_reviewed",
+      "title": "QuickCheck: a lightweight tool for random testing of Haskell programs",
+      "doi": "10.1145/357766.351266",
+      "url": "https://doi.org/10.1145/357766.351266",
+      "bibkey": "Claessen_2000",
+      "metadata_source": "Crossref REST and DOI content negotiation",
+      "bibtex_source": "DOI content negotiation",
+      "metadata_checked_at": "2026-08-01T03:18:23Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "property-testing-reference-only",
+      "supports": [
+        "Invariant and equivalence-case generation"
+      ],
+      "limitations": [
+        "Does not provide a domain-specific scientific oracle"
+      ]
+    },
+    {
+      "id": "hypothesis",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "Hypothesis: A new approach to property-based testing",
+      "doi": "10.21105/joss.01891",
+      "url": "https://doi.org/10.21105/joss.01891",
+      "bibkey": "MacIver_2019",
+      "repository": "https://github.com/HypothesisWorks/hypothesis",
+      "repository_revision": "4b8467b2e33864d3a71fa297d5f9be3e8fc9120d",
+      "repository_license": "NOASSERTION reported by GitHub repository metadata at retrieval; inspect a pinned LICENSE before any dependency decision.",
+      "metadata_source": "Crossref REST, DOI content negotiation, and GitHub repository metadata",
+      "bibtex_source": "DOI content negotiation",
+      "metadata_checked_at": "2026-08-01T03:18:23Z",
+      "correction_status": "Crossref reported no update-to relation at retrieval.",
+      "adoption": "property-testing-reference-only",
+      "supports": [
+        "Property-based testing practice for implementation invariants"
+      ],
+      "limitations": [
+        "No dependency or license adoption decision is made here",
+        "Does not establish chemistry validity"
+      ]
+    },
+    {
+      "id": "csmith",
+      "kind": "open_repository",
+      "status": "reference_only",
+      "title": "Csmith",
+      "url": "https://github.com/csmith-project/csmith",
+      "repository_revision": "0cdc710315cfee9035e22ef4363ca479270d1934",
+      "repository_license": "NOASSERTION reported by GitHub repository metadata at retrieval; inspect a pinned LICENSE before any dependency decision.",
+      "metadata_source": "GitHub repository and commit metadata",
+      "metadata_checked_at": "2026-08-01T03:18:23Z",
+      "adoption": "differential-testing-reference-only",
+      "supports": [
+        "Independent-implementation disagreement as a test signal"
+      ],
+      "limitations": [
+        "Not a chemistry test oracle",
+        "No code or generator is adopted"
+      ]
+    },
+    {
+      "id": "chemgraph",
+      "kind": "peer_reviewed_article_and_repository",
+      "status": "peer_reviewed",
+      "title": "ChemGraph as an agentic framework for computational chemistry workflows",
+      "doi": "10.1038/s42004-025-01776-9",
+      "url": "https://doi.org/10.1038/s42004-025-01776-9",
+      "cross_ledger": {
+        "path": "docs/research/frontier-agent-evidence-ledger.json",
+        "source_id": "chemgraph"
+      },
+      "metadata_source": "Existing verified frontier-agent evidence ledger",
+      "metadata_checked_at": "2026-07-31T16:38:33Z",
+      "adoption": "conditional-decomposition-reference",
+      "supports": [
+        "Limited task decomposition for independently computable components"
+      ],
+      "limitations": [
+        "Does not justify a fixed large agent hierarchy or universal multi-agent gain"
+      ]
+    }
+  ]
+}

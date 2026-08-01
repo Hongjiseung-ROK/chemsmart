@@ -11,6 +11,11 @@ paths:
 These conventions remain useful when touching code, but dated architecture
 claims must be checked against the current source and tests.
 
+For the command-compiled frontier milestones, do not run pytest, Ruff, or
+broad checks after each edit. Use inspection and deterministic receipts during
+implementation, then run one focused suite after a material milestone and the
+preregistered full gate only after the freeze milestone.
+
 ## Identity & scope
 
 chemsmart: open-source computational chemistry planning & HPC automation
@@ -30,8 +35,10 @@ Apple Silicon) and cloud providers (OpenAI-compatible/Anthropic) both exist.
 
 - `pytest --strict-markers --disable-warnings`; agent tests in
   `tests/agent/`; markers: `slow`, `agent`, `integration`.
-- Every behavior change ships with a test. Run the touched test files
-  first, then the full `tests/agent/` suite before declaring done.
+- Every behavior change ships with a test. For M0–M4, run the focused suite
+  once only after the material milestone is complete, with at most one
+  evidence-driven rerun. Reserve the full `tests/agent/` suite for the M5
+  freeze gate.
 - Some legacy LLM execution surfaces and their tests have historical
   compatibility constraints. Inspect the active runtime and focused tests
   before changing them; do not infer that a live execution interface is
@@ -44,7 +51,8 @@ Apple Silicon) and cloud providers (OpenAI-compatible/Anthropic) both exist.
   `loop.py` (ToolLoop) + `registry.py` (ToolRegistry, TOOL_GROUPS).
 - Command synthesis: `chemsmart/agent/synthesis.py` (SynthesisSession;
   captures `_last_reasoning`); schema pruning `schema_prune.py`.
-- Command tools: `tools_command.py` (synthesize/repair/execute + gate cache).
+- Command tools: `command_workflow_tools.py` is the active typed frontier
+  surface; `tools_command.py` is legacy host/baseline compatibility only.
 - Training capture: `training_log.py` writes append-only turn snapshots to
   `var/agent-training/` and model-specific `runs/<model>/` stores. The
   exporter reconstructs positive/review session chains and separate repair

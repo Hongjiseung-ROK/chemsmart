@@ -9,16 +9,20 @@ an unrestricted chat wrapper around engines or a claim that autonomous science
 is already reliable.
 
 This document reserves an additive design for later implementation. The
-Foundation branch changes no runtime, provider, parser, permission, or engine
-behavior.
+historical Foundation branch changed documentation and skills only. The active
+command-compiled refinement roadmap now adds a typed preparation boundary, but
+does not authorize engine execution, scheduler submission, training, or an
+efficacy/SOTA claim. It is in
+[docs/goals/frontier-agent-command-refinement](../goals/frontier-agent-command-refinement/README.md)
+and must preserve the foundation's replay and approval boundaries.
 
 ## Target lifecycle
 
 ```text
-goal
-  → clarified scientific specification
-  → task graph and resource budget
-  → method, geometry, and execution preflight
+research goal
+  → clarified ScientificTaskSpec
+  → CommandWorkflowSpec task graph and resource budget
+  → canonical ChemSmart command compilation and safe CLI preview
   → approval checkpoint
   → isolated execution
   → parser and deterministic scientific validation
@@ -53,6 +57,17 @@ Permission, budget enforcement, parser checks, input invariants, artifact
 identity, unit checks, and terminal-state rules belong in deterministic code.
 Prompts may explain policy but must not be the sole enforcement layer.
 
+### Command compilation is the model boundary
+
+A model proposes typed scientific intent and CommandWorkflowSpec data. It does
+not author Gaussian, ORCA, or xTB native input, free-form executable shell
+syntax, arbitrary paths, aliases, quoting, or option placement. The
+deterministic compiler resolves the live Click schema, trusted project/artifact
+bindings, canonical long-flag argv, safe preview, independent parser
+observation, and semantic round-trip. Raw legacy direct-string synthesis and
+compact-v8 conversion are baseline/migration inputs, not Frontier Runtime V2
+model-surface authorities.
+
 ### Bounded autonomy
 
 Autonomy is adaptive operation inside an approved envelope. A task graph
@@ -69,6 +84,9 @@ foundation:
 | --- | --- |
 | `ProviderCapabilities` | Declare protocol, structured-output support, opaque continuation mode, context/tool limits, and parallel capability. |
 | `ScientificTaskSpec` | Bind molecule/geometry artifact, charge, multiplicity, program/job kind, method settings, constraints, requested observable, units, assumptions, and required evidence. |
+| `CommandWorkflowSpec` / `CommandNode` | Bind the schema digest, typed command path/parameters, project and artifact references, dependencies, execution intent, and expected artifact classes without model-selected shell syntax or paths. |
+| `ArtifactBinding` / `CanonicalCommandInvocation` / `CommandPreflightReceipt` | Bind stable artifact IDs/hashes and the compiler's canonical argv, safe-preview, parser observation, and semantic comparison. |
+| `CommandCounterexample` | Carry the minimal rule/field/evidence observation for at most two constrained repairs. |
 | `TaskNode` and `TaskGraph` | Define immutable inputs, dependencies, role, allowed tools, expected outputs, verifier, budget, approval scope, and deterministic join policy. |
 | `ResourceBudget` | Cap model calls, tokens, cost, tool calls, wall time, and local/HPC compute. |
 | `ApprovalRequest` / `ApprovalResolution` | Bind a one-shot decision to exact command, input, project, executable/environment, resource, and artifact hashes. |
@@ -81,6 +99,8 @@ Future event kinds include scientific specification, task-graph creation,
 dispatch/join, approval request/resolution/invalidation, validation, claim,
 review, report, budget exhaustion, pause/resume, and terminal state. Every
 event payload carries a version. Existing event logs must replay unchanged.
+Command-workflow, command-preflight, safe-preview, and counterexample events
+are additive extensions of the same stream.
 
 ## Scientific and reproducibility contract
 
@@ -165,3 +185,6 @@ one scaffold.
 
 The preregistered acceptance criteria are specified in
 [frontier-agent-ablation-protocol.md](../evaluation/frontier-agent-ablation-protocol.md).
+The bounded evidence for typed command compilation, constrained repair,
+property/differential testing, and conditional decomposition is summarized in
+[command-compiled-design-evidence.md](../research/command-compiled-design-evidence.md).

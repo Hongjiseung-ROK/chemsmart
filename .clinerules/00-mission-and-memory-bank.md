@@ -4,6 +4,12 @@
 provider-neutral computational-chemistry automation agent with explicit
 approval and evidence gates.
 
+The active implementation roadmap is
+`docs/goals/frontier-agent-command-refinement/README.md`. Models propose
+typed scientific and command-workflow intent; deterministic code compiles,
+previews, validates, and evidences canonical ChemSmart commands. Do not let a
+model write or repair native Gaussian, ORCA, or xTB input text.
+
 The former v17 SFT-accumulation mission and mandatory memory-bank update loop
 are historical. Do not run teacher-model collection, capture hidden reasoning,
 or treat dated corpus metrics as live status unless the user explicitly

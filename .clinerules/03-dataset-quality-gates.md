@@ -1,4 +1,8 @@
-# Dataset Quality Gates (what makes a row trainable)
+# Dataset Quality Gates (historical: what made a row trainable)
+
+> Historical snapshot. Do not run, update, or reactivate SFT collection unless
+> the user explicitly authorizes it. `AGENTS.md` and the command-compiled
+> frontier roadmap govern active work; hidden reasoning is never collected.
 
 ## Trusted `tool_loop_sft` session chain - ALL must hold
 

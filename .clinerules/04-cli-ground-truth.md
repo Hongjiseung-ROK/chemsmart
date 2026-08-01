@@ -5,6 +5,13 @@ source. Regenerate and inspect the schema when command coverage matters; this
 document is not an exhaustive command inventory. Trust the real parser and
 semantic gate over any model output or prose.
 
+For active frontier work, a model proposes typed CommandWorkflowSpec data, not
+a free-form shell command or native-engine input. The deterministic compiler
+resolves trusted project/artifact bindings and canonical long flags from the
+live schema, then performs safe preview and independent intent observation.
+This legacy corpus supplement may describe historical command rows but cannot
+override the compiler, approval, or evidence contract in `AGENTS.md`.
+
 ## Command shape
 
 ```
@@ -24,7 +31,9 @@ chemsmart {run|sub} [group opts] {gaussian|orca|xtb} [-p PROJECT] -f FILE \
 - gaussian: `com crest dias irc link modred nci opt qrc resp scan sp td
   traj ts userjob wbi` (TDDFT's CLI name is `td`, not `tddft`)
 - orca: `inp irc modred neb opt qmmm qrc scan sp ts`
-- `qmmm` is a NESTED child under each gaussian jobkind (`… opt qmmm`).
+- `qmmm` is a NESTED child under selected Gaussian/ORCA parent job groups
+  (`… opt qmmm`); inspect the live schema rather than assuming a static parent
+  list.
 - There is NO `freq` subcommand. Frequency on/off is project-YAML-owned.
 
 ## Runtime-owned fields — must NOT appear as CLI flags in trusted rows
@@ -36,20 +45,22 @@ solvent model/id, freq. These come from the workspace project YAML
 (`-r '... freq ...'`, `--freq`, `freq=`) is a CANONICAL VIOLATION — the
 exporter auto-skips it (`canonical_*` skip reasons); never hand-approve one.
 
-## Structural options the model MAY emit
+## Structural options in legacy direct-string fixtures
 
-`-f/--filename`, `-c/--charge`, `-m/--multiplicity`, `-p/--project`,
-`-l/--label`, and job-specific structure: scan/modred coordinate lists
-(comma/range strings like `"1,2"` — never space-separated), `-s` step size,
-`-n` step count, td `-n` nstates, dias fragment-1 indices (flat list),
-neb end-file. `additional_route_parameters` must be a STRING when present.
+These spellings describe historical direct-string fixtures, not the active
+Frontier Runtime V2 model surface. The compiler maps typed canonical parameter
+names to the current live schema. In a legacy fixture, structural data may
+include `-f/--filename`, `-c/--charge`, `-m/--multiplicity`, `-p/--project`,
+`-l/--label`, scan/modred coordinate lists, step size/count, TD states, DIAS
+fragment indices, or a NEB end-file; validate each current scope before use.
 
 ## Project (`-p`) rule
 
-If a workspace project YAML is loaded, the runtime injects the default
-project when the model omits `-p`. A command referencing a project that
-does not exist in the workspace will be gate-rejected — the fix is the
-workspace, not inventing a name.
+For a legacy fixture, a workspace project default may be injected when a
+direct string omits `-p`. In the active command-compiled path, the model
+references a trusted project artifact and the compiler resolves the actual
+project flag. A missing project becomes a project-workflow/approval issue, not
+a model-invented name.
 
 ## Known model failure patterns (watch for these in WRONG rows)
 
