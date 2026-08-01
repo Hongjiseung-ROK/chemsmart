@@ -27,7 +27,7 @@ from chemsmart.agent.provider_adapter import (
 )
 from chemsmart.agent.registry import ToolRegistry
 from chemsmart.agent.services.tool_loop_runner import ToolLoopRunner
-from chemsmart.agent.tool_protocol import is_terminal
+from chemsmart.agent.tool_protocol import RuntimeToolMetadata, is_terminal
 
 ASK_USER_TOOL_NAME = "ask_user"
 ASK_USER_TOOL_DEF: dict[str, Any] = {
@@ -185,7 +185,7 @@ class ToolLoop:
                     ),
                     False,
                 )
-        resolved = self.policy.resolve(request)
+        resolved = self._resolve_permission(request)
         if (
             request.name == "run_local"
             and resolved.reason == "always_require_approval"
@@ -374,6 +374,36 @@ class ToolLoop:
                 result=result,
             )
         return outcome
+
+    def _resolve_permission(self, request: ToolRequest) -> ResolvedPermission:
+        """Honor registered runtime metadata without weakening hard gates."""
+
+        resolved = self.policy.resolve(request)
+        if (
+            resolved.decision is not ResolvedDecision.NEEDS_USER
+            or resolved.reason != "needs_user"
+            or not isinstance(self.policy.mode, RuntimePermissionMode)
+        ):
+            return resolved
+        get_tool = getattr(self.registry, "get_tool", None)
+        spec = get_tool(request.name) if callable(get_tool) else None
+        metadata = getattr(spec, "metadata", None)
+        if not isinstance(metadata, RuntimeToolMetadata):
+            return resolved
+        mode = self.policy.mode
+        if mode is RuntimePermissionMode.READ_ONLY and metadata.read_only:
+            return ResolvedPermission(
+                decision=ResolvedDecision.AUTO_ALLOW,
+                reason="registered_read_only_tool",
+            )
+        if mode is RuntimePermissionMode.ACCEPT_EDITS and (
+            metadata.read_only or metadata.edit_safe
+        ):
+            return ResolvedPermission(
+                decision=ResolvedDecision.AUTO_ALLOW,
+                reason="registered_edit_safe_tool",
+            )
+        return resolved
 
     def _xtb_run_policy_override(
         self,

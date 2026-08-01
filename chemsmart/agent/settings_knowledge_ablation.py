@@ -95,6 +95,12 @@ class SettingsKnowledgeFixedContextV2(_Contract):
     scientific_settings_registry_sha256: str = Field(pattern=_SHA256)
     domain_knowledge_catalog_sha256: str = Field(pattern=_SHA256)
     project_schema_sha256: str = Field(pattern=_SHA256)
+    expected_project_yaml_sha256: str | None = Field(
+        default=None, pattern=_SHA256
+    )
+    expected_project_semantics_sha256: str | None = Field(
+        default=None, pattern=_SHA256
+    )
     cli_schema_sha256: str = Field(pattern=_SHA256)
     validator_registry_sha256: str = Field(pattern=_SHA256)
     task_order_sha256: str = Field(pattern=_SHA256)
@@ -162,8 +168,9 @@ class SettingsKnowledgeRunOutcomeV2(_Contract):
     )
     run_id: str = Field(pattern=_IDENTIFIER)
     run_spec_sha256: str = Field(pattern=_SHA256)
-    observed_model: Literal["deepseek-v4-flash"] = "deepseek-v4-flash"
-    response_language: Literal["en"] = "en"
+    requested_model: Literal["deepseek-v4-flash"] = "deepseek-v4-flash"
+    observed_model: str | None = Field(default=None, pattern=_IDENTIFIER)
+    response_language: Literal["en", "non_en", "unknown"] = "unknown"
     sanitized_response_path: str = Field(min_length=1, max_length=1024)
     sanitized_response_sha256: str = Field(pattern=_SHA256)
     public_tool_trace_sha256: str = Field(pattern=_SHA256)
@@ -177,7 +184,7 @@ class SettingsKnowledgeRunOutcomeV2(_Contract):
     safety_rule_ids: tuple[str, ...] = ()
     engine_calls: Literal[0] = 0
     hpc_calls: Literal[0] = 0
-    native_input_authored: Literal[False] = False
+    native_input_authored: bool = False
     secret_material_persisted: Literal[False] = False
     private_reasoning_persisted: Literal[False] = False
     receipt_sha256: str = Field(pattern=_SHA256)

@@ -5,7 +5,7 @@ from pydantic import create_model
 from chemsmart.agent.core import DecisionLog
 from chemsmart.agent.handles import HandleStore
 from chemsmart.agent.loop import ToolLoop
-from chemsmart.agent.permissions import RuntimePermissionMode
+from chemsmart.agent.permissions import PermissionPolicy, RuntimePermissionMode
 from chemsmart.agent.registry import ToolInputModel, ToolRegistry, ToolSpec
 from chemsmart.agent.tool_protocol import RuntimeToolMetadata
 
@@ -134,6 +134,42 @@ def test_tool_loop_read_only_mode_filters_to_read_safe_tools(tmp_path):
         tool_def["function"]["name"] for tool_def in provider.calls[0]["tools"]
     ]
     assert tool_names == ["read_only_tool", "ask_user"]
+
+
+def test_runtime_read_only_mode_executes_registered_read_only_tool(tmp_path):
+    provider = FakeProvider(
+        [
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call("call_read", "read_only_tool", {})
+                )
+            },
+            {"__raw_response__": openai_final_response("Inspected.")},
+        ]
+    )
+    registry = ToolRegistry(
+        [
+            _make_tool_spec(
+                "read_only_tool",
+                metadata=RuntimeToolMetadata(read_only=True),
+            )
+        ]
+    )
+    loop = ToolLoop(
+        provider=provider,
+        registry=registry,
+        handle_store=HandleStore(tmp_path),
+        decision_log=DecisionLog(tmp_path / "decision_log.jsonl"),
+        policy=PermissionPolicy(mode=RuntimePermissionMode.READ_ONLY),
+    )
+
+    result = loop.run_turn(
+        messages=[{"role": "user", "content": "Inspect safely."}],
+        mode=RuntimePermissionMode.READ_ONLY,
+    )
+
+    assert [outcome.status for outcome in result["tool_outcomes"]] == ["ok"]
+    assert result["assistant_text"] == "Inspected."
 
 
 def _make_tool_spec(

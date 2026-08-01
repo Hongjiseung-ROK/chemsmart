@@ -1,5 +1,9 @@
 """Read-only, evidence-bound DomainKnowledgePack catalog and router."""
 
+from chemsmart.agent.domain_knowledge import (
+    KNOWLEDGE_AUTHORITY_CEILING_SCHEMA_VERSION,
+    KnowledgeAuthorityCeilingV1,
+)
 from chemsmart.agent.knowledge_packs.builtin import (
     AUTHORITATIVE_CATALOG,
     ORCA_EXPLICIT_NATIVE_BASIS_PACK,
@@ -61,6 +65,8 @@ __all__ = [
     "KNOWLEDGE_PACK_ACTIVATION_RECEIPT_SCHEMA_VERSION",
     "KNOWLEDGE_PACK_ACTIVATION_REQUEST_SCHEMA_VERSION",
     "KNOWLEDGE_PACK_REGISTRATION_SCHEMA_VERSION",
+    "KNOWLEDGE_AUTHORITY_CEILING_SCHEMA_VERSION",
+    "KnowledgeAuthorityCeilingV1",
     "KnowledgePackActivationReceiptV1",
     "KnowledgePackActivationRequestV1",
     "KnowledgePackConsiderationV1",

@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from chemsmart.agent.domain_knowledge import (
     DomainKnowledgePack,
     EngineScope,
+    KnowledgeAuthorityCeilingV1,
     KnowledgeProgram,
     ScientificDomain,
     domain_knowledge_pack_sha256,
@@ -51,6 +52,7 @@ _PACK_VERSION = (
     r"(?:-[0-9A-Za-z.-]+)?$"
 )
 _ENGINE_VERSION = r"^(0|[1-9][0-9]*)(?:\.(0|[1-9][0-9]*)){0,2}$"
+_ADDITIVE_IDENTITY_NEUTRAL_FIELDS = frozenset({"authority_ceiling"})
 _CONSTRAINT_CLAUSE = re.compile(
     r"^(>=|<=|==|!=|>|<|=)?"
     r"((?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){0,2})$"
@@ -126,6 +128,9 @@ class KnowledgePackRegistrationV1(_Contract):
     negative_triggers: tuple[KnowledgePackTriggerV1, ...] = ()
     source_ledger_state: Literal["verified"] = "verified"
     model_visible_read_only: Literal[True] = True
+    authority_ceiling: KnowledgeAuthorityCeilingV1 = Field(
+        default_factory=KnowledgeAuthorityCeilingV1
+    )
     can_approve: Literal[False] = False
     can_repair: Literal[False] = False
     can_execute: Literal[False] = False
@@ -314,6 +319,9 @@ class KnowledgePackActivationReceiptV1(_Contract):
     model_visible_exposure: bool
     model_visible_pack_ids: tuple[str, ...] = ()
     read_only: Literal[True] = True
+    authority_ceiling: KnowledgeAuthorityCeilingV1 = Field(
+        default_factory=KnowledgeAuthorityCeilingV1
+    )
     can_approve: Literal[False] = False
     can_repair: Literal[False] = False
     can_execute: Literal[False] = False
@@ -847,11 +855,15 @@ def _sha256_json(value: object) -> str:
 
 def _jsonable(value: object) -> object:
     if isinstance(value, BaseModel):
-        return value.model_dump(mode="json")
+        return _jsonable(value.model_dump(mode="json"))
     if isinstance(value, Enum):
         return value.value
     if isinstance(value, Mapping):
-        return {str(key): _jsonable(item) for key, item in value.items()}
+        return {
+            str(key): _jsonable(item)
+            for key, item in value.items()
+            if str(key) not in _ADDITIVE_IDENTITY_NEUTRAL_FIELDS
+        }
     if isinstance(value, (tuple, list)):
         return [_jsonable(item) for item in value]
     return value

@@ -194,6 +194,14 @@ class AdaptiveLeaseBoundDeepSeekProvider:
         attempt_ordinal = self._transport_attempts + 1
         binding_error = self._request_binding_error(messages, tools or [])
         if binding_error is not None:
+            observed_user_prompt_sha256s = sorted(
+                hashlib.sha256(message["content"].encode("utf-8")).hexdigest()
+                for message in messages
+                if isinstance(message, dict)
+                and message.get("role") == "user"
+                and isinstance(message.get("content"), str)
+            )
+            observed_tool_schema_sha256 = _sha256_json(tools or [])
             self._request_observations.append(
                 {
                     "hypothesis_id": self._hypothesis.hypothesis_id,
@@ -206,6 +214,22 @@ class AdaptiveLeaseBoundDeepSeekProvider:
                         else None
                     ),
                     "request_binding_verified": False,
+                    "expected_initial_user_prompt_sha256": (
+                        self._request_binding.initial_user_prompt_sha256
+                        if self._request_binding is not None
+                        else None
+                    ),
+                    "observed_user_prompt_sha256s": (
+                        observed_user_prompt_sha256s
+                    ),
+                    "expected_tool_schema_sha256": (
+                        self._request_binding.tool_schema_sha256
+                        if self._request_binding is not None
+                        else None
+                    ),
+                    "observed_tool_schema_sha256": (
+                        observed_tool_schema_sha256
+                    ),
                     "status": "rejected_before_transport",
                     "error_class": binding_error,
                     "latency_ms": 0,

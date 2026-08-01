@@ -538,6 +538,28 @@ def test_orca_native_ma_def2_tzvp_is_not_rejected_as_missing_from_bse():
     assert gaussian["validation"]["verdict"] == "reject"
 
 
+def test_orca_canonical_uppercase_dispersion_is_preserved():
+    rendered = render_project_yaml(
+        {
+            "program": "orca",
+            "method": {
+                "functional": "B3LYP",
+                "dispersion": "D3BJ",
+                "basis": "ma-def2-TZVP",
+                "freq": True,
+            },
+        },
+        project_name="orca_uppercase_dispersion",
+        program="orca",
+        profile="paper",
+    )
+
+    parsed = yaml.safe_load(rendered["yaml_text"])
+    assert rendered["validation"]["verdict"] == "ok"
+    assert parsed["gas"]["functional"] == "b3lyp"
+    assert parsed["gas"]["dispersion"] == "D3BJ"
+
+
 def test_xtb_project_yaml_uses_real_loader_and_keeps_state_in_command():
     protocol = extract_project_protocol(
         "Use GFN2-xTB with opt=vtight and ALPB(water) for conformer refinement.",

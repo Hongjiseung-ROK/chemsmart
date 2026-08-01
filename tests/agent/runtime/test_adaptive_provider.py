@@ -196,3 +196,10 @@ def test_request_binding_rejects_drift_before_transport() -> None:
     assert provider.request_observations[0]["status"] == (
         "rejected_before_transport"
     )
+    observation = provider.request_observations[0]
+    assert observation["expected_initial_user_prompt_sha256"] == _digest(prompt)
+    assert observation["observed_user_prompt_sha256s"] == [
+        _digest("changed prompt")
+    ]
+    assert observation["expected_tool_schema_sha256"] == tool_sha256
+    assert observation["observed_tool_schema_sha256"] == tool_sha256

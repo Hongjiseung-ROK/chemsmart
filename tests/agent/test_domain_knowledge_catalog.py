@@ -22,6 +22,8 @@ from chemsmart.agent.knowledge_packs import (
     PINNED_SOURCE_AUDIT_MANIFEST,
     SCIENTIFIC_SOURCE_LEDGER_SHA256,
     DomainKnowledgeCatalogRouter,
+    KnowledgeAuthorityCeilingV1,
+    KnowledgePackActivationReceiptV1,
     KnowledgePackSelectionStatus,
     SourceAuditDecision,
     build_domain_knowledge_catalog_v1,
@@ -153,6 +155,13 @@ def test_builtin_catalog_is_sourced_content_addressed_and_read_only() -> None:
         "xtb-explicit-method-semantics",
     ]
     assert domain_knowledge_catalog_sha256(catalog) == catalog.catalog_sha256
+    assert catalog.catalog_sha256 == (
+        "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4"
+    )
+    assert all(
+        item.authority_ceiling == KnowledgeAuthorityCeilingV1()
+        for item in catalog.registrations
+    )
 
     receipt = DomainKnowledgeCatalogRouter(catalog).activate(
         _request(engine_version="6.1")
@@ -172,6 +181,8 @@ def test_builtin_catalog_is_sourced_content_addressed_and_read_only() -> None:
     )
     assert receipt.can_fill_missing_paper_facts is False
     assert receipt.can_author_native_input is False
+    assert receipt.authority_ceiling.can_certify_registry_validity is False
+    assert receipt.authority_ceiling.can_set_readiness is False
 
 
 def test_matching_pack_is_selected_but_exposure_remains_explicit() -> None:
@@ -194,15 +205,46 @@ def test_matching_pack_is_selected_but_exposure_remains_explicit() -> None:
         "fixture-transition-metal-orca",
     )
     assert len(router.resolve(visible_receipt, for_model=True)) == 1
+    model_pack = router.resolve(visible_receipt, for_model=True)[0]
+    model_payload = model_pack.model_dump(mode="json")
+    assert model_payload["authority_ceiling"] == {
+        "schema_version": "chemsmart.knowledge-authority-ceiling.v1",
+        "advisory_only": True,
+        "can_certify_registry_validity": False,
+        "can_set_readiness": False,
+        "registry_authority": (
+            "chemsmart.scientific-settings-validation-receipt.v1"
+        ),
+        "readiness_authority": "deterministic_host_gate",
+    }
     assert visible_receipt.critical_missing_fact_ids == ("paper.charge",)
     assert visible_receipt.can_approve is False
     assert visible_receipt.can_repair is False
     assert visible_receipt.can_execute is False
     assert visible_receipt.can_fill_missing_paper_facts is False
     assert visible_receipt.can_author_native_input is False
+    assert visible_receipt.authority_ceiling == KnowledgeAuthorityCeilingV1()
     assert knowledge_pack_activation_receipt_sha256(visible_receipt) == (
         visible_receipt.receipt_sha256
     )
+
+    legacy_payload = visible_receipt.model_dump(
+        mode="python", exclude={"authority_ceiling"}
+    )
+    restored = KnowledgePackActivationReceiptV1.model_validate(legacy_payload)
+    assert restored.receipt_sha256 == visible_receipt.receipt_sha256
+    assert restored.authority_ceiling == KnowledgeAuthorityCeilingV1()
+
+    expanded_ceiling = visible_receipt.authority_ceiling.model_copy(
+        update={"can_certify_registry_validity": True}
+    )
+    unchecked_receipt = visible_receipt.model_copy(
+        update={"authority_ceiling": expanded_ceiling}
+    )
+    with pytest.raises(
+        ValidationError, match="can_certify_registry_validity"
+    ):
+        knowledge_pack_activation_receipt_sha256(unchecked_receipt)
 
 
 @pytest.mark.parametrize(

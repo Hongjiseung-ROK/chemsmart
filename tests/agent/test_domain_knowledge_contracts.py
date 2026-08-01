@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from chemsmart.agent.domain_knowledge import (
     DomainKnowledgePack,
     EngineScope,
+    KnowledgeAuthorityCeilingV1,
     KnowledgeRule,
     KnowledgeSourceRef,
     ScientificDomain,
@@ -64,6 +65,32 @@ def test_pack_is_stable_and_explicitly_non_authoritative() -> None:
     assert pack.can_approve is False
     assert pack.can_execute is False
     assert pack.model_persona_authoritative is False
+    assert pack.authority_ceiling == KnowledgeAuthorityCeilingV1()
+    assert pack.authority_ceiling.advisory_only is True
+    assert pack.authority_ceiling.can_certify_registry_validity is False
+    assert pack.authority_ceiling.can_set_readiness is False
+
+
+def test_authority_ceiling_is_additive_and_cannot_expand() -> None:
+    pack = _pack()
+    legacy_payload = pack.model_dump(
+        mode="python", exclude={"authority_ceiling"}
+    )
+    restored = DomainKnowledgePack.model_validate(legacy_payload)
+
+    assert restored.authority_ceiling == KnowledgeAuthorityCeilingV1()
+    assert domain_knowledge_pack_sha256(restored) == (
+        domain_knowledge_pack_sha256(pack)
+    )
+
+    expanded_ceiling = pack.authority_ceiling.model_copy(
+        update={"can_set_readiness": True}
+    )
+    unchecked_pack = pack.model_copy(
+        update={"authority_ceiling": expanded_ceiling}
+    )
+    with pytest.raises(ValidationError, match="can_set_readiness"):
+        domain_knowledge_pack_sha256(unchecked_pack)
 
 
 def test_pack_digest_canonicalizes_set_like_scopes_and_references() -> None:

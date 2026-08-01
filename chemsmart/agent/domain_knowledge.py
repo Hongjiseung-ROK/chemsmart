@@ -19,6 +19,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 
 DOMAIN_KNOWLEDGE_PACK_SCHEMA_VERSION = "chemsmart.domain-knowledge-pack.v1"
+KNOWLEDGE_AUTHORITY_CEILING_SCHEMA_VERSION = (
+    "chemsmart.knowledge-authority-ceiling.v1"
+)
 
 _IDENTIFIER = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
 _RULE_ID = r"^knowledge\.[a-z0-9_.-]+$"
@@ -78,6 +81,28 @@ class KnowledgeSourceRef(_Contract):
 class EngineScope(_Contract):
     program: KnowledgeProgram
     version_constraint: str = Field(pattern=_VERSION_RANGE)
+
+
+class KnowledgeAuthorityCeilingV1(_Contract):
+    """Invariant ceiling carried with every model-visible knowledge pack.
+
+    Knowledge routing establishes only that a sourced advisory pack matched a
+    host-owned request.  Registry validity and workflow readiness remain the
+    authority of their independent deterministic receipts and gates.
+    """
+
+    schema_version: Literal[KNOWLEDGE_AUTHORITY_CEILING_SCHEMA_VERSION] = (
+        KNOWLEDGE_AUTHORITY_CEILING_SCHEMA_VERSION
+    )
+    advisory_only: Literal[True] = True
+    can_certify_registry_validity: Literal[False] = False
+    can_set_readiness: Literal[False] = False
+    registry_authority: Literal[
+        "chemsmart.scientific-settings-validation-receipt.v1"
+    ] = "chemsmart.scientific-settings-validation-receipt.v1"
+    readiness_authority: Literal["deterministic_host_gate"] = (
+        "deterministic_host_gate"
+    )
 
 
 class KnowledgeRule(_Contract):
@@ -149,6 +174,9 @@ class DomainKnowledgePack(_Contract):
     sources: tuple[KnowledgeSourceRef, ...] = Field(min_length=1)
     rules: tuple[KnowledgeRule, ...] = Field(min_length=1)
     validator_registry_sha256: str = Field(pattern=_SHA256)
+    authority_ceiling: KnowledgeAuthorityCeilingV1 = Field(
+        default_factory=KnowledgeAuthorityCeilingV1
+    )
     can_approve: Literal[False] = False
     can_execute: Literal[False] = False
     model_persona_authoritative: Literal[False] = False
@@ -222,7 +250,10 @@ def domain_knowledge_pack_sha256(pack: DomainKnowledgePack) -> str:
     validated = DomainKnowledgePack.model_validate(
         pack.model_dump(mode="python")
     )
-    payload = validated.model_dump(mode="json")
+    # ``authority_ceiling`` is an additive invariant.  Excluding it preserves
+    # the content identity of historical v1 packs while Literal fields still
+    # reject any attempted authority expansion during revalidation.
+    payload = validated.model_dump(mode="json", exclude={"authority_ceiling"})
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -238,6 +269,8 @@ __all__ = [
     "DOMAIN_KNOWLEDGE_PACK_SCHEMA_VERSION",
     "DomainKnowledgePack",
     "EngineScope",
+    "KNOWLEDGE_AUTHORITY_CEILING_SCHEMA_VERSION",
+    "KnowledgeAuthorityCeilingV1",
     "KnowledgeProgram",
     "KnowledgeRule",
     "KnowledgeSourceRef",

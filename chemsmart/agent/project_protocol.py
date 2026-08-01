@@ -570,9 +570,9 @@ def normalize_functional_and_dispersion(
     dispersion: str | None,
 ) -> tuple[str | None, str | None]:
     if functional is None:
-        return None, dispersion
+        return None, _normalize_explicit_dispersion(dispersion)
     lowered = functional.lower().replace("_", "-")
-    inferred_dispersion = dispersion
+    inferred_dispersion = _normalize_explicit_dispersion(dispersion)
     if any(alias in lowered for alias in _D3BJ_ALIASES):
         inferred_dispersion = "d3bj"
     elif re.search(
@@ -586,6 +586,18 @@ def normalize_functional_and_dispersion(
         or lowered.replace("-d3bj", "").replace("-d3", "").strip("- "),
         inferred_dispersion,
     )
+
+
+def _normalize_explicit_dispersion(dispersion: str | None) -> str | None:
+    if dispersion is None:
+        return None
+    lowered = dispersion.strip().lower().replace("_", "-")
+    compact = re.sub(r"[^a-z0-9]+", "", lowered)
+    if compact in {"d3bj", "gd3bj", "empiricaldispersiongd3bj"}:
+        return "d3bj"
+    if compact in {"d3", "gd3", "empiricaldispersiongd3"}:
+        return "d3"
+    return lowered
 
 
 def _extract_functional(lowered: str) -> str | None:
