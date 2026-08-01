@@ -294,7 +294,7 @@ def _discover_projects(
     max_file_bytes: int,
 ) -> dict[str, WorkspaceProjectBinding]:
     projects: dict[str, WorkspaceProjectBinding] = {}
-    for program in ("gaussian", "orca"):
+    for program in ("gaussian", "orca", "xtb"):
         directory = root / ".chemsmart" / program
         if not directory.is_dir():
             continue

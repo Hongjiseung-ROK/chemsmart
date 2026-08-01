@@ -27,6 +27,24 @@ class EventKind(str, Enum):
     SHADOW_VIOLATION = "shadow_violation"
     TURN_COMPLETED = "turn_completed"
     TURN_BLOCKED = "turn_blocked"
+    RESEARCH_STAGE_CHANGED = "research_stage_changed"
+    PLAN_REVISION_ADOPTED = "plan_revision_adopted"
+    PAPER_SOURCE_FROZEN = "paper_source_frozen"
+    PROTOCOL_CLAIM_RECORDED = "protocol_claim_recorded"
+    MOLECULAR_SYSTEM_SPECIFIED = "molecular_system_specified"
+    PROJECT_CONFIG_SPECIFIED = "project_config_specified"
+    DOMAIN_KNOWLEDGE_BOUND = "domain_knowledge_bound"
+    PAPER_PLAN_VALIDATED = "paper_plan_validated"
+    SPECIALIST_TASK_DISPATCHED = "specialist_task_dispatched"
+    SPECIALIST_TASKS_JOINED = "specialist_tasks_joined"
+    COMMAND_WORKFLOW_PREVIEWED = "command_workflow_previewed"
+    REVIEW_FINDING_RECORDED = "review_finding_recorded"
+    REVIEW_GATE_RECORDED = "review_gate_recorded"
+    REPORT_GRAPH_RECORDED = "report_graph_recorded"
+    RESEARCH_BUDGET_RECORDED = "research_budget_recorded"
+    RESEARCH_PAUSED = "research_paused"
+    RESEARCH_RESUMED = "research_resumed"
+    RESEARCH_TERMINATED = "research_terminated"
 
 
 class RuntimeEvent(BaseModel):
@@ -56,6 +74,13 @@ class RuntimeEvent(BaseModel):
         previous_hash: str,
         idempotency_key: str = "",
     ) -> "RuntimeEvent":
+        # Import lazily to keep the legacy envelope independent while ensuring
+        # every newly constructed research event is canonical and reducible.
+        from chemsmart.agent.runtime.research_events import (
+            validate_research_event_payload,
+        )
+
+        normalized_payload = validate_research_event_payload(kind, payload)
         body = {
             "schema_version": 1,
             "sequence": sequence,
@@ -64,7 +89,7 @@ class RuntimeEvent(BaseModel):
             "turn_id": turn_id,
             "kind": kind.value,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "payload": payload,
+            "payload": normalized_payload,
             "idempotency_key": idempotency_key,
             "previous_hash": previous_hash,
         }

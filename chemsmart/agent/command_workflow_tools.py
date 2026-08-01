@@ -132,8 +132,8 @@ def repair_command(
         prior = CommandWorkflowSpec.model_validate(prior_workflow)
         candidate = CommandWorkflowSpec.model_validate(candidate_workflow)
         finding = CommandCounterexample.model_validate(counterexample)
-    except ValidationError:
-        return _invalid_contract_result()
+    except ValidationError as exc:
+        return _invalid_contract_result(exc)
     if prior_task_spec_sha256 != task_spec_sha256(task):
         return _repair_blocked("cmd.repair.scientific_task_changed", "scientific_task")
     prior_ids = {str(item) for item in (prior_rule_ids or [])}
@@ -165,8 +165,8 @@ def _prepare_workflow(
     try:
         task = ScientificTaskSpec.model_validate(scientific_task)
         typed_workflow = CommandWorkflowSpec.model_validate(workflow)
-    except ValidationError:
-        return _invalid_contract_result()
+    except ValidationError as exc:
+        return _invalid_contract_result(exc)
 
     workspace = Path.cwd().resolve()
     try:
@@ -469,15 +469,55 @@ def _repair_blocked(rule_id: str, field: str) -> dict[str, Any]:
     }
 
 
-def _invalid_contract_result() -> dict[str, Any]:
+def _invalid_contract_result(
+    validation_error: ValidationError | None = None,
+) -> dict[str, Any]:
     finding = _tool_finding("cmd.ir.invalid_typed_contract", "typed_payload")
+    details = _validation_error_findings(validation_error)
+    findings = [finding, *details]
     return {
         "ok": False,
         "status": "needs_clarification",
         "cli_grounded": False,
-        "counterexamples": [finding.model_dump(mode="json")],
-        "rule_ids": [finding.rule_id],
+        "counterexamples": [item.model_dump(mode="json") for item in findings],
+        "rule_ids": [item.rule_id for item in findings],
     }
+
+
+def _validation_error_findings(
+    validation_error: ValidationError | None,
+) -> list[CommandCounterexample]:
+    """Expose bounded field-local repair evidence without echoing model input."""
+
+    if validation_error is None:
+        return []
+    findings: list[CommandCounterexample] = []
+    for error in validation_error.errors(include_url=False)[:5]:
+        error_type = str(error.get("type") or "invalid").lower()
+        normalized_type = "".join(
+            character if character.isalnum() or character in "_.-" else "-"
+            for character in error_type
+        ).strip("-.") or "invalid"
+        location = error.get("loc") or ("typed_payload",)
+        field = ".".join(str(item) for item in location)[:255]
+        if not field:
+            field = "typed_payload"
+        rule_id = f"cmd.ir.contract.{normalized_type}"[:196].rstrip("-.")
+        message = str(error.get("msg") or "typed field accepted")[:200]
+        evidence = hashlib.sha256(
+            f"{rule_id}:{field}:{message}".encode("utf-8")
+        ).hexdigest()
+        findings.append(
+            CommandCounterexample(
+                rule_id=rule_id,
+                node_id=None,
+                failed_field=field,
+                expected=message,
+                observed=f"rejected:{normalized_type}",
+                evidence_id=f"ce-{evidence[:20]}",
+            )
+        )
+    return findings
 
 
 def _tool_finding(rule_id: str, field: str) -> CommandCounterexample:
@@ -698,9 +738,12 @@ def _scientific_task_schema() -> dict[str, Any]:
                         "settings_source": {"type": "string", "enum": ["project", "xtb_command"]},
                         "method": {"type": "string", "minLength": 1, "maxLength": 160},
                         "basis_or_ecp": {"type": ["string", "null"], "maxLength": 200},
+                        "optimization_level": {"type": ["string", "null"], "maxLength": 80},
                         "solvent_model": {"type": ["string", "null"], "maxLength": 80},
                         "solvent_id": {"type": ["string", "null"], "maxLength": 120},
+                        "integration_grid": {"type": ["string", "null"], "maxLength": 80},
                         "frequency_required": {"type": ["boolean", "null"]},
+                        "gradient_required": {"type": ["boolean", "null"]},
                         "constraints_sha256": {"type": ["string", "null"], "pattern": _SHA256},
                     },
                 },
@@ -729,6 +772,14 @@ def _scientific_task_schema() -> dict[str, Any]:
                 },
             },
             "required_evidence": {"type": "array", "items": {"type": "string", "maxLength": 160}},
+            "post_execution_validation_obligations": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{0,127}$",
+                },
+                "uniqueItems": True,
+            },
             "unresolved_facts": {"type": "array", "items": {"type": "string", "maxLength": 160}},
         },
     }

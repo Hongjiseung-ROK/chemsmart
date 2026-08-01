@@ -62,12 +62,64 @@ ASK_USER_TOOL_DEF: dict[str, Any] = {
 
 @dataclass(frozen=True)
 class ToolLoopBudgets:
-    max_model_steps_per_turn: int = 12
+    # ``None`` is reserved for adaptive API experiments and is legal only
+    # when wall-time and per-request token guards are all present. Production
+    # callers retain the historical finite default.
+    max_model_steps_per_turn: int | None = 12
     max_total_tool_calls_per_turn: int = 32
     max_consecutive_tool_errors: int = 4
     max_same_signature_retries: int = 2
     max_provider_errors_per_turn: int = 2
+    provider_timeout_s: float = 30.0
+    max_wall_time_s: float | None = None
+    max_request_input_tokens: int | None = None
+    max_request_output_tokens: int | None = None
     log_provider_turn_raw: bool = False
+
+    def __post_init__(self) -> None:
+        if self.max_model_steps_per_turn is not None and (
+            not isinstance(self.max_model_steps_per_turn, int)
+            or isinstance(self.max_model_steps_per_turn, bool)
+            or self.max_model_steps_per_turn <= 0
+        ):
+            raise ValueError("max_model_steps_per_turn must be positive or None")
+        if (
+            not isinstance(self.provider_timeout_s, (int, float))
+            or isinstance(self.provider_timeout_s, bool)
+            or self.provider_timeout_s <= 0
+            or self.provider_timeout_s > 300
+        ):
+            raise ValueError("provider_timeout_s must be in the range (0, 300]")
+        for field_name in (
+            "max_request_input_tokens",
+            "max_request_output_tokens",
+        ):
+            value = getattr(self, field_name)
+            if value is not None and (
+                not isinstance(value, int)
+                or isinstance(value, bool)
+                or value <= 0
+            ):
+                raise ValueError(f"{field_name} must be positive or None")
+        if self.max_wall_time_s is not None and (
+            not isinstance(self.max_wall_time_s, (int, float))
+            or isinstance(self.max_wall_time_s, bool)
+            or self.max_wall_time_s <= 0
+            or self.max_wall_time_s > 86_400
+        ):
+            raise ValueError("max_wall_time_s must be in the range (0, 86400]")
+        if self.max_model_steps_per_turn is None and any(
+            value is None
+            for value in (
+                self.max_wall_time_s,
+                self.max_request_input_tokens,
+                self.max_request_output_tokens,
+            )
+        ):
+            raise ValueError(
+                "adaptive no-step-cap mode requires wall-time and per-request "
+                "input/output token bounds"
+            )
 
 
 class ToolLoop:

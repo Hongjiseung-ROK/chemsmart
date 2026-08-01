@@ -48,6 +48,9 @@ def test_get_provider_prefers_yaml_config(monkeypatch):
         "base_url": "https://example.test/v1",
         "extra_headers": {"X-Test": "value"},
         "provider_name": "main",
+        "thinking_mode": "disabled",
+        "reasoning_effort": "high",
+        "max_output_tokens": None,
     }
 
 
@@ -68,6 +71,30 @@ def test_get_provider_preserves_openai_compatible_provider_name(monkeypatch):
     provider = providers.get_provider()
 
     assert provider.kwargs["provider_name"] == "deepseek"
+
+
+def test_get_provider_forwards_deepseek_thinking_controls(monkeypatch):
+    config = AgentProviderConfig(
+        name="deepseek",
+        type="openai",
+        api_key="deepseek-key",
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com",
+        extra_headers={},
+        thinking_mode="enabled",
+        reasoning_effort="max",
+        max_output_tokens=4096,
+    )
+    monkeypatch.setattr(
+        providers, "load_active_provider_config", lambda: config
+    )
+    monkeypatch.setattr(providers, "OpenAIProvider", DummyOpenAIProvider)
+
+    provider = providers.get_provider()
+
+    assert provider.kwargs["thinking_mode"] == "enabled"
+    assert provider.kwargs["reasoning_effort"] == "max"
+    assert provider.kwargs["max_output_tokens"] == 4096
 
 
 def test_get_provider_builds_mlx_local_provider(monkeypatch):

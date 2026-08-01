@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-KNOWN_PROGRAMS = {"gaussian", "orca"}
+KNOWN_PROGRAMS = {"gaussian", "orca", "xtb"}
 DEF2_BASIS_PATTERN = (
     r"def2[- ]?(?:svp|svpd|tzvp|tzvpd|tzvpp|tzvppd|qzvp|qzvpd)"
 )

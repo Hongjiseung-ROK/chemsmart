@@ -484,3 +484,240 @@ def test_plain_d3_dispersion_is_preserved_not_dropped():
     )
     parsed = yaml.safe_load(rendered["yaml_text"])
     assert parsed["gas"]["dispersion"] == "D3"
+
+
+def test_xtb_project_yaml_uses_real_loader_and_keeps_state_in_command():
+    protocol = extract_project_protocol(
+        "Use GFN2-xTB with opt=vtight and ALPB(water) for conformer refinement.",
+        project_name="ensemble",
+        program="xtb",
+    )
+
+    rendered = render_project_yaml(protocol, program="xtb")
+    parsed = yaml.safe_load(rendered["yaml_text"])
+
+    assert protocol["method"] == {
+        "gfn_version": "gfn2",
+        "optimization_level": "vtight",
+        "solvent_model": "alpb",
+        "solvent_id": "water",
+    }
+    assert set(parsed) == {"sp", "opt", "hess"}
+    assert parsed["opt"]["gfn_version"] == "gfn2"
+    assert parsed["opt"]["optimization_level"] == "vtight"
+    assert "charge" not in parsed["opt"]
+    assert "multiplicity" not in parsed["opt"]
+    assert rendered["validation"]["verdict"] == "ok"
+    assert rendered["validation"]["runtime_summary"]["opt"] == {
+        "jobtype": "opt",
+        "gfn_version": "gfn2",
+        "optimization_level": "vtight",
+        "functional": None,
+        "basis": None,
+        "freq": None,
+        "solvent_model": "alpb",
+        "solvent_id": "water",
+        "heavy_elements": None,
+        "heavy_elements_basis": None,
+        "light_elements_basis": None,
+    }
+
+
+def test_xtb_project_yaml_rejects_missing_gfn_and_molecular_state():
+    rendered = render_project_yaml(
+        {"optimization_level": "tight"},
+        project_name="incomplete",
+        program="xtb",
+    )
+    assert rendered["validation"]["verdict"] == "reject"
+    assert any(
+        issue["rule_id"] == "yaml.xtb.gfn_invalid"
+        for issue in rendered["validation"]["issues"]
+    )
+
+    invalid = validate_project_yaml(
+        "opt:\n  gfn_version: gfn2\n  charge: 1\n  multiplicity: 2\n",
+        program="xtb",
+    )
+    assert invalid["verdict"] == "reject"
+    assert any(
+        issue["rule_id"] == "yaml.xtb.molecular_state_forbidden"
+        for issue in invalid["issues"]
+    )
+
+
+def test_xtb_project_yaml_rejects_every_undeclared_job_key():
+    counterexamples = (
+        ("sp", "optimization_level", "tight"),
+        ("sp", "jobtype", "opt"),
+        ("opt", "grad", True),
+        ("opt", "multiplicity", 2),
+        ("hess", "charge", -1),
+        ("hess", "unrecognized_setting", "value"),
+    )
+
+    for job, key, value in counterexamples:
+        yaml_text = yaml.safe_dump(
+            {job: {"gfn_version": "gfn2", key: value}},
+            sort_keys=False,
+        )
+        validation = validate_project_yaml(yaml_text, program="xtb")
+
+        assert validation["verdict"] == "reject", (job, key)
+        assert any(
+            issue["rule_id"] == "yaml.xtb.undeclared_job_key"
+            and key in issue["message"]
+            for issue in validation["issues"]
+        ), (job, key)
+
+
+def test_xtb_project_yaml_rejects_effective_job_family_drift(monkeypatch):
+    import chemsmart.agent.project_yaml as project_yaml
+
+    project_yaml._VALIDATION_CACHE.clear()
+
+    def mismatched_loader(**_kwargs):
+        return {
+            "sp": {"jobtype": "opt"},
+            "opt": {"jobtype": "opt"},
+            "hess": {"jobtype": "hess"},
+        }
+
+    monkeypatch.setattr(
+        project_yaml,
+        "_load_project_yaml_via_runtime",
+        mismatched_loader,
+    )
+    validation = validate_project_yaml(
+        "sp:\n  gfn_version: gfn2\n",
+        program="xtb",
+        project_name="effective-job-family-drift",
+    )
+
+    assert validation["verdict"] == "reject"
+    assert any(
+        issue["rule_id"] == "yaml.xtb.effective_jobtype_mismatch"
+        and "sp" in issue["message"]
+        and "opt" in issue["message"]
+        for issue in validation["issues"]
+    )
+    project_yaml._VALIDATION_CACHE.clear()
+
+
+def test_paper_profile_blocks_missing_basis_and_frequency_evidence():
+    protocol = extract_project_protocol(
+        "ORCA calculations used the B3LYP functional.",
+        project_name="paper_incomplete",
+        program="orca",
+        profile="paper",
+    )
+
+    blocked = render_project_yaml(
+        protocol,
+        program="orca",
+        profile="paper",
+    )
+    legacy = render_project_yaml(protocol, program="orca")
+
+    assert blocked["ok"] is False
+    assert blocked["status"] == "blocked_missing_evidence"
+    assert blocked["yaml_text"] is None
+    assert {
+        issue["rule_id"] for issue in blocked["blocking_issues"]
+    } == {
+        "paper.project.basis_missing",
+        "paper.project.frequency_missing",
+    }
+    assert legacy["yaml_text"] is not None
+
+
+def test_paper_profile_preserves_explicit_negative_frequency_setting():
+    protocol = extract_project_protocol(
+        (
+            "ORCA calculations used B3LYP/def2-SVP. Harmonic frequency "
+            "calculations were not performed."
+        ),
+        project_name="paper_no_frequency",
+        program="orca",
+        profile="paper",
+    )
+    rendered = render_project_yaml(
+        protocol,
+        program="orca",
+        profile="paper",
+    )
+
+    assert protocol["method"]["freq"] is False
+    assert rendered["validation"]["verdict"] == "ok"
+    assert yaml.safe_load(rendered["yaml_text"])["gas"]["freq"] is False
+
+
+def test_paper_profile_rejects_incomplete_mixed_basis_mapping():
+    blocked = render_project_yaml(
+        {
+            "program": "gaussian",
+            "method": {
+                "functional": "b3lyp",
+                "basis": "gen",
+                "freq": True,
+                "heavy_elements": ["Br"],
+                "heavy_elements_basis": "def2svpd",
+            },
+        },
+        project_name="mixed_basis_gap",
+        program="gaussian",
+        profile="paper",
+    )
+
+    assert blocked["status"] == "blocked_missing_evidence"
+    assert "paper.project.mixed_basis_incomplete" in {
+        issue["rule_id"] for issue in blocked["blocking_issues"]
+    }
+
+
+def test_paper_xtb_profile_distinguishes_method_from_crest_workflow():
+    protocol = extract_project_protocol(
+        "Use GFN2-xTB with opt=vtight and ALPB(water).",
+        project_name="xtb_paper",
+        program="xtb",
+        profile="paper",
+    )
+    rendered = render_project_yaml(
+        protocol,
+        program="xtb",
+        profile="paper",
+        required_job_kinds=("opt",),
+    )
+
+    assert protocol["unsupported_yaml_features"] == []
+    assert rendered["validation"]["verdict"] == "ok"
+
+    crest_protocol = extract_project_protocol(
+        "Use CREST metadynamics at GFN2-xTB.",
+        project_name="crest_paper",
+        program="xtb",
+        profile="paper",
+    )
+    blocked = render_project_yaml(
+        crest_protocol,
+        program="xtb",
+        profile="paper",
+    )
+    assert blocked["status"] == "blocked_missing_evidence"
+    assert "paper.project.unsupported_protocol_feature" in {
+        issue["rule_id"] for issue in blocked["blocking_issues"]
+    }
+
+
+def test_xtb_validation_binds_every_used_command_job_block():
+    validation = validate_project_yaml(
+        "sp:\n  gfn_version: gfn2\n",
+        program="xtb",
+        project_name="partial_xtb",
+        required_job_kinds=("opt",),
+    )
+
+    assert validation["verdict"] == "reject"
+    assert "yaml.xtb.required_job_block_missing" in {
+        issue["rule_id"] for issue in validation["issues"]
+    }

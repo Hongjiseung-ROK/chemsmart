@@ -302,6 +302,7 @@ class UnifiedSessionRunner:
             max_consecutive_tool_errors=budgets.max_consecutive_tool_errors,
             max_same_signature_retries=budgets.max_same_signature_retries,
             max_provider_errors_per_turn=budgets.max_provider_errors_per_turn,
+            provider_timeout_s=budgets.provider_timeout_s,
             log_provider_turn_raw=True,
         )
 
@@ -510,6 +511,7 @@ class UnifiedSessionRunner:
             "preview_submit": None,
             "results": projection.results,
             "assistant_output": loop_result["assistant_text"],
+            "messages": deepcopy(loop_result["messages"]),
             "provider_responses": loop_result["provider_responses"],
             "tool_requests": projection.tool_requests,
             "tool_outcomes": projection.tool_outcomes,

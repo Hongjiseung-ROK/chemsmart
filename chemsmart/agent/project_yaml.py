@@ -16,12 +16,16 @@ from chemsmart.agent.harness.workflow_state import (
     select_workspace_project,
 )
 from chemsmart.agent.project_protocol import (
+    ProjectRenderProfile,
     extract_project_protocol,
     render_project_document,
 )
 from chemsmart.agent.project_yaml_rules import issue as _issue
 from chemsmart.agent.project_yaml_rules import (
     protocol_alignment_issues as _protocol_alignment_issues,
+)
+from chemsmart.agent.project_yaml_rules import (
+    runtime_project_yaml_issues as _runtime_project_yaml_issues,
 )
 from chemsmart.agent.project_yaml_rules import (
     static_project_yaml_issues as _static_project_yaml_issues,
@@ -40,24 +44,154 @@ from chemsmart.settings.workspace_project import (
     workspace_project_path,
 )
 
-ProjectProgram = Literal["gaussian", "orca"]
+ProjectProgram = Literal["gaussian", "orca", "xtb"]
+
+
+def tool_input_json_schema(name: str) -> dict[str, Any] | None:
+    """Return provider-facing typed schemas for paper project rendering.
+
+    ``protocol`` used to appear as an unconstrained JSON object.  A live
+    DeepSeek V4 Flash pilot consequently emitted ``basis_set`` beside
+    ``method`` and needed a repair that the one-call envelope could not
+    express.  This inlined schema makes the nested evidence contract visible
+    without allowing a model to supply arbitrary Gaussian route text.
+    """
+
+    if name != "render_project_yaml":
+        return None
+    nullable_string = {"type": ["string", "null"]}
+    method_properties: dict[str, Any] = {
+        "functional": nullable_string,
+        "functional_route": nullable_string,
+        "basis": nullable_string,
+        "dispersion": nullable_string,
+        "freq": {"type": ["boolean", "null"]},
+        "integration_grid": {
+            "type": ["string", "null"],
+            "description": (
+                "Typed grid label such as ultrafine; never a raw engine route."
+            ),
+        },
+        "heavy_elements": {
+            "type": ["array", "null"],
+            "items": {"type": "string"},
+            "uniqueItems": True,
+        },
+        "heavy_elements_basis": nullable_string,
+        "light_elements_basis": nullable_string,
+        "solvent_model": nullable_string,
+        "solvent_id": nullable_string,
+        "gfn_version": nullable_string,
+        "optimization_level": nullable_string,
+    }
+    protocol_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["method"],
+        "properties": {
+            "project_name": {"type": "string"},
+            "program": {"type": "string", "enum": ["gaussian", "orca", "xtb"]},
+            "method": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": method_properties,
+            },
+            "td": {
+                "type": ["object", "null"],
+                "additionalProperties": False,
+                "properties": method_properties,
+            },
+            "source_excerpt": {"type": "string"},
+            "protocol_notes": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "unsupported_yaml_features": {
+                "type": "array",
+                "items": {"type": "string"},
+                "uniqueItems": True,
+            },
+            "status": {"type": "string"},
+            "ambiguities": {"type": "array", "items": {"type": "object"}},
+            "method_candidates": {"type": "object"},
+            "ok": {"type": "boolean"},
+        },
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["protocol"],
+        "properties": {
+            "protocol": protocol_schema,
+            "project_name": {"type": ["string", "null"]},
+            "program": {
+                "type": "string",
+                "enum": ["gaussian", "orca", "xtb"],
+                "default": "gaussian",
+            },
+            "profile": {
+                "type": "string",
+                "enum": ["legacy", "paper"],
+                "default": "legacy",
+            },
+            "required_job_kinds": {
+                "type": "array",
+                "items": {"type": "string"},
+                "uniqueItems": True,
+                "default": [],
+            },
+        },
+    }
 
 
 def render_project_yaml(
     protocol: dict[str, Any],
     project_name: str | None = None,
     program: ProjectProgram = "gaussian",
+    profile: ProjectRenderProfile = "legacy",
+    required_job_kinds: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Render a chemsmart project YAML candidate from extracted protocol facts."""
 
-    candidate = render_project_document(protocol, project_name, program)
+    required_jobs = _normalize_required_job_kinds(required_job_kinds)
+    candidate = render_project_document(
+        protocol,
+        project_name,
+        program,
+        profile=profile,
+    )
     normalized_program = str(candidate["program"])
     name = str(candidate["project_name"])
-    yaml_text = str(candidate["yaml_text"])
+    yaml_text = candidate["yaml_text"]
+    if yaml_text is None:
+        blocking_issues = tuple(candidate.get("blocking_issues") or ())
+        return {
+            "ok": False,
+            "status": "blocked_missing_evidence",
+            "project_name": name,
+            "program": normalized_program,
+            "yaml_text": None,
+            "validation": {
+                "ok": False,
+                "verdict": "reject",
+                "program": normalized_program,
+                "project_name": name,
+                "required_job_kinds": list(required_jobs),
+                "issues": [
+                    {**issue, "severity": "reject"}
+                    for issue in blocking_issues
+                ],
+            },
+            "blocking_issues": blocking_issues,
+            "unsupported_yaml_features": candidate[
+                "unsupported_yaml_features"
+            ],
+        }
     validation = validate_project_yaml(
         yaml_text,
         program=normalized_program,
         project_name=name,
+        required_job_kinds=required_jobs,
     )
     return {
         "ok": validation["verdict"] in {"ok", "warn"},
@@ -91,25 +225,30 @@ def _coerce_yaml_text(value: Any) -> str:
     )
 
 
-_VALIDATION_CACHE: dict[tuple[str, str, str], dict[str, Any]] = {}
+_VALIDATION_CACHE: dict[
+    tuple[str, str, str, tuple[str, ...]],
+    dict[str, Any],
+] = {}
 
 
 def validate_project_yaml(
     yaml_text: str | dict[str, Any],
     program: ProjectProgram = "gaussian",
     project_name: str = "candidate",
+    required_job_kinds: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Validate project YAML by loading it through chemsmart project settings.
 
-    Results are memoized per (yaml_text, program, project_name) so the build-mode
-    tool loop can re-request validation of an unchanged candidate without
-    repeating the runtime loader work (dedup guard against re-validation loops).
+    Results are memoized per YAML, program, project, and required job set so the
+    build-mode tool loop can re-request an unchanged candidate without repeating
+    runtime loader work (dedup guard against re-validation loops).
     """
 
     yaml_text = _coerce_yaml_text(yaml_text)
     normalized_program = _normalize_program(program)
     name = _normalize_project_name(project_name)
-    cache_key = (yaml_text, normalized_program, name)
+    required_jobs = _normalize_required_job_kinds(required_job_kinds)
+    cache_key = (yaml_text, normalized_program, name, required_jobs)
     cached = _VALIDATION_CACHE.get(cache_key)
     if cached is not None:
         repeat = deepcopy(cached)
@@ -118,7 +257,10 @@ def validate_project_yaml(
         repeat["revalidation_skipped"] = True
         return repeat
     result = _validate_project_yaml_uncached(
-        yaml_text, normalized_program, name
+        yaml_text,
+        normalized_program,
+        name,
+        required_jobs,
     )
     if len(_VALIDATION_CACHE) >= 256:
         _VALIDATION_CACHE.clear()
@@ -130,6 +272,7 @@ def _validate_project_yaml_uncached(
     yaml_text: str,
     normalized_program: str,
     name: str,
+    required_job_kinds: tuple[str, ...],
 ) -> dict[str, Any]:
     issues: list[dict[str, Any]] = []
     try:
@@ -147,13 +290,20 @@ def _validate_project_yaml_uncached(
                     f"YAML could not be parsed: {exc}",
                 )
             ],
+            required_job_kinds=required_job_kinds,
         )
     if not isinstance(parsed, dict):
         issues.append(
             _issue("yaml.root", "reject", "project YAML must be a mapping")
         )
     else:
-        issues.extend(_static_project_yaml_issues(parsed, normalized_program))
+        issues.extend(
+            _static_project_yaml_issues(
+                parsed,
+                normalized_program,
+                required_job_kinds,
+            )
+        )
 
     if any(issue["severity"] == "reject" for issue in issues):
         return _validation_result(
@@ -163,6 +313,7 @@ def _validate_project_yaml_uncached(
             project_name=name,
             parsed=parsed,
             issues=issues,
+            required_job_kinds=required_job_kinds,
         )
 
     try:
@@ -186,6 +337,20 @@ def _validate_project_yaml_uncached(
             project_name=name,
             parsed=parsed,
             issues=issues,
+            required_job_kinds=required_job_kinds,
+        )
+
+    issues.extend(_runtime_project_yaml_issues(summary, normalized_program))
+    if any(issue["severity"] == "reject" for issue in issues):
+        return _validation_result(
+            ok=False,
+            verdict="reject",
+            program=normalized_program,
+            project_name=name,
+            parsed=parsed,
+            runtime_summary=summary,
+            issues=issues,
+            required_job_kinds=required_job_kinds,
         )
 
     verdict = "warn" if issues else "ok"
@@ -197,6 +362,7 @@ def _validate_project_yaml_uncached(
         parsed=parsed,
         runtime_summary=summary,
         issues=issues,
+        required_job_kinds=required_job_kinds,
     )
 
 
@@ -226,7 +392,10 @@ def critic_project_yaml(
                 _issue(
                     "protocol.unsupported_yaml_feature",
                     "warn",
-                    f"{feature} is part of the reported protocol but is not a chemsmart project-YAML field.",
+                    (
+                        f"{feature} is part of the reported protocol but is "
+                        "not a chemsmart project-YAML field."
+                    ),
                 )
             )
 
@@ -597,23 +766,30 @@ def _load_project_yaml_via_runtime(
             )
 
             settings = YamlGaussianProjectSettings.from_yaml(str(path))
-        else:
+        elif program == "orca":
             from chemsmart.settings.orca import YamlORCAProjectSettings
 
             settings = YamlORCAProjectSettings.from_yaml(str(path))
+        else:
+            from chemsmart.settings.xtb import YamlXTBProjectSettings
+
+            settings = YamlXTBProjectSettings.from_yaml(str(path))
         return _settings_summary(settings)
 
 
 def _settings_summary(settings: Any) -> dict[str, Any]:
     summary: dict[str, Any] = {}
-    for name in ("opt", "ts", "sp", "td", "qmmm"):
+    for name in ("opt", "ts", "sp", "hess", "td", "qmmm"):
         method = getattr(settings, f"{name}_settings", None)
         if not callable(method):
             continue
         item = method()
         if item is None:
             continue
-        summary[name] = {
+        item_summary = {
+            "jobtype": getattr(item, "jobtype", None),
+            "gfn_version": getattr(item, "gfn_version", None),
+            "optimization_level": getattr(item, "optimization_level", None),
             "functional": getattr(item, "functional", None),
             "basis": getattr(item, "basis", None),
             "freq": getattr(item, "freq", None),
@@ -627,6 +803,11 @@ def _settings_summary(settings: Any) -> dict[str, Any]:
                 item, "light_elements_basis", None
             ),
         }
+        if hasattr(item, "additional_route_parameters"):
+            item_summary["additional_route_parameters"] = getattr(
+                item, "additional_route_parameters", None
+            )
+        summary[name] = item_summary
     return summary
 
 
@@ -639,6 +820,7 @@ def _validation_result(
     issues: list[dict[str, Any]],
     parsed: Any | None = None,
     runtime_summary: dict[str, Any] | None = None,
+    required_job_kinds: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     return {
         "ok": ok,
@@ -648,7 +830,22 @@ def _validation_result(
         "issues": issues,
         "parsed": parsed,
         "runtime_summary": runtime_summary or {},
+        "required_job_kinds": list(required_job_kinds),
     }
+
+
+def _normalize_required_job_kinds(
+    value: tuple[str, ...],
+) -> tuple[str, ...]:
+    jobs = tuple(str(item).strip().lower() for item in value)
+    if any(
+        not item or not item.replace("_", "").replace("-", "").isalnum()
+        for item in jobs
+    ):
+        raise ValueError("required_job_kinds contains an invalid job name")
+    if len(jobs) != len(set(jobs)):
+        raise ValueError("required_job_kinds must be unique")
+    return tuple(sorted(jobs))
 
 
 def _critic_summary(verdict: str, issues: list[dict[str, Any]]) -> str:

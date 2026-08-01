@@ -3,9 +3,12 @@ from __future__ import annotations
 import hashlib
 import shlex
 
+import pytest
+
 from chemsmart.agent.cli_schema import build_chemsmart_cli_schema
 from chemsmart.agent.command_workflow import (
     ArtifactBinding,
+    CanonicalCommandInvocation,
     CommandNode,
     CommandWorkflowCompiler,
     CommandWorkflowSpec,
@@ -69,6 +72,94 @@ def _workflow(schema_digest: str, *nodes: CommandNode) -> CommandWorkflowSpec:
 
 def _rule_ids(compilation) -> set[str]:
     return {item.rule_id for item in compilation.counterexamples}
+
+
+def test_model_facing_command_maps_are_deeply_immutable_and_canonical() -> None:
+    first = CommandNode(
+        node_id="xtb-opt",
+        command_path="run/xtb/opt",
+        parameters={
+            "solvent_id": "water",
+            "metadata": {"selectors": ["a", "b"]},
+            "gfn_version": "gfn2",
+        },
+        charge=0,
+        multiplicity=1,
+    )
+    second = CommandNode(
+        node_id="xtb-opt",
+        command_path="run/xtb/opt",
+        parameters={
+            "gfn_version": "gfn2",
+            "metadata": {"selectors": ["a", "b"]},
+            "solvent_id": "water",
+        },
+        charge=0,
+        multiplicity=1,
+    )
+
+    assert first.model_dump(mode="json") == second.model_dump(mode="json")
+    with pytest.raises(TypeError, match="immutable"):
+        first.parameters["gfn_version"] = "gfn1"
+    with pytest.raises(TypeError, match="immutable"):
+        first.parameters["metadata"]["selectors"] = ("changed",)
+    with pytest.raises((TypeError, AttributeError)):
+        first.parameters["metadata"]["selectors"].append("changed")
+
+    empty = CommandNode(node_id="xtb-sp", command_path="run/xtb/sp")
+    with pytest.raises(TypeError, match="immutable"):
+        empty.parameters["grad"] = True
+    empty_invocation = CanonicalCommandInvocation(
+        workflow_id="workflow-command-ir",
+        node_id="xtb-sp",
+        command_path=("run", "xtb", "sp"),
+        argv=("chemsmart", "run", "xtb", "sp"),
+        display_command="chemsmart run xtb sp",
+        command_sha256="a" * 64,
+        cli_schema_digest="b" * 64,
+        environment_digest="c" * 64,
+    )
+    with pytest.raises(TypeError, match="immutable"):
+        empty_invocation.intent_projection["program"] = "xtb"
+
+
+def test_compiler_revalidates_unchecked_model_copy_updates(tmp_path) -> None:
+    schema, schema_digest = _schema_and_digest()
+    binding, artifact = _water_binding(tmp_path)
+    workflow = _workflow(
+        schema_digest,
+        CommandNode(
+            node_id="xtb-sp",
+            command_path="run/xtb/sp",
+            input_artifacts=(binding,),
+            charge=0,
+            multiplicity=1,
+        ),
+    )
+    copied_node = workflow.nodes[0].model_copy(
+        update={"parameters": {"gfn_version": "gfn2"}}
+    )
+    assert type(copied_node.parameters) is dict
+    unchecked = workflow.model_copy(update={"nodes": (copied_node,)})
+
+    compilation = CommandWorkflowCompiler(schema).compile(
+        unchecked,
+        _context(tmp_path, artifact),
+    )
+
+    assert compilation.status == "previewable"
+    with pytest.raises(TypeError, match="immutable"):
+        compilation.invocations[0].intent_projection["program"] = "gaussian"
+
+
+def test_compiler_snapshots_nested_cli_schema() -> None:
+    schema, original_digest = _schema_and_digest()
+    compiler = CommandWorkflowCompiler(schema)
+
+    schema["subcommands"].clear()
+
+    assert compiler.schema_digest == original_digest
+    assert compiler.schema_digest == cli_schema_digest(compiler._schema)
 
 
 def test_compiler_uses_live_schema_and_renders_canonical_long_flags(

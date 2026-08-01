@@ -45,6 +45,62 @@ providers:
     )
 
 
+def test_load_active_provider_config_accepts_deepseek_thinking_controls(
+    tmp_path,
+):
+    yaml_path = _write_agent_yaml(
+        tmp_path / "agent.yaml",
+        """
+active: deepseek-flash
+providers:
+  deepseek-flash:
+    type: openai
+    api_key: test-key
+    model: deepseek-v4-flash
+    base_url: https://api.deepseek.com
+    thinking_mode: enabled
+    reasoning_effort: high
+    max_output_tokens: 4096
+""",
+    )
+
+    config = load_active_provider_config(yaml_path)
+
+    assert config is not None
+    assert config.thinking_mode == "enabled"
+    assert config.reasoning_effort == "high"
+    assert config.max_output_tokens == 4096
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("thinking_mode", "sometimes"),
+        ("reasoning_effort", "medium"),
+        ("max_output_tokens", 0),
+    ],
+)
+def test_load_active_provider_config_rejects_invalid_thinking_controls(
+    tmp_path, field, value
+):
+    yaml_path = _write_agent_yaml(
+        tmp_path / "agent.yaml",
+        f"""
+active: deepseek
+providers:
+  deepseek:
+    type: openai
+    api_key: test-key
+    model: deepseek-v4-flash
+    base_url: https://api.deepseek.com
+    {field}: {value}
+""",
+    )
+
+    with pytest.raises(AgentProviderConfigError):
+        load_active_provider_config(yaml_path)
+
+
 def test_load_active_provider_config_missing_yaml_returns_none(tmp_path):
     assert load_active_provider_config(tmp_path / "missing.yaml") is None
 

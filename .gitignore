@@ -148,6 +148,10 @@ agent_qa_report*.md
 benchmarks/
 api.env
 
+# Local paper/API pilot sources and raw provider turns; only sanitized,
+# content-addressed receipts under docs/evaluation/receipts are versioned.
+tmp/
+
 # Generated Gaussian/ORCA input files at repo root (agent dry-run artifacts)
 /*.com
 /*.inp

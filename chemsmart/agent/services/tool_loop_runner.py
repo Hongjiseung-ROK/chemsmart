@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import time
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -16,7 +17,6 @@ from chemsmart.agent.provider_adapter import (
     response_payload,
 )
 from chemsmart.agent.providers import (
-    DEFAULT_TIMEOUT_S,
     extract_response_metadata,
     extract_response_usage,
 )
@@ -100,13 +100,30 @@ class ToolLoopRunner:
             protocol, tool_defs, mode, allowed_tool_names
         )
         state = TurnState(history=[deepcopy(item) for item in messages])
-        while state.model_steps < self.loop.budgets.max_model_steps_per_turn:
+        started = time.monotonic()
+        while True:
+            max_steps = self.loop.budgets.max_model_steps_per_turn
+            if max_steps is not None and state.model_steps >= max_steps:
+                state.limit_reason = "max_model_steps"
+                break
+            max_wall_time = self.loop.budgets.max_wall_time_s
+            if (
+                max_wall_time is not None
+                and time.monotonic() - started >= max_wall_time
+            ):
+                state.limit_reason = "max_wall_time"
+                break
             response = self._provider_turn(state, definitions)
             if response is None:
                 if state.limit_reason is not None:
                     break
                 continue
             requests = self._record_assistant_turn(state, protocol, response)
+            if state.limit_reason in {
+                "max_request_input_tokens",
+                "max_request_output_tokens",
+            }:
+                break
             if not requests:
                 if self._studio_result_is_required(state, definitions):
                     if state.studio_result_reminders >= 1:
@@ -126,8 +143,6 @@ class ToolLoopRunner:
             )
             if should_stop or asked_user:
                 break
-        else:
-            state.limit_reason = "max_model_steps"
         self._log_limit(state)
         return _result(state)
 
@@ -178,7 +193,7 @@ class ToolLoopRunner:
             response = self.loop.provider.chat(
                 state.history,
                 tools=tool_defs,
-                timeout_s=DEFAULT_TIMEOUT_S,
+                timeout_s=self.loop.budgets.provider_timeout_s,
             )
         except Exception as exc:
             state.provider_errors += 1
@@ -227,6 +242,12 @@ class ToolLoopRunner:
         state.stop_reason = stop_reason
         state.total_input_tokens += int(usage["input_tokens"] or 0)
         state.total_output_tokens += int(usage["output_tokens"] or 0)
+        max_input = self.loop.budgets.max_request_input_tokens
+        max_output = self.loop.budgets.max_request_output_tokens
+        if max_input is not None and int(usage["input_tokens"] or 0) > max_input:
+            state.limit_reason = "max_request_input_tokens"
+        if max_output is not None and int(usage["output_tokens"] or 0) > max_output:
+            state.limit_reason = "max_request_output_tokens"
         self.loop.decision_log.write(
             "assistant_turn",
             {

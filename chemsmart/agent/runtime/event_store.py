@@ -14,6 +14,10 @@ from chemsmart.agent.private_io import (
     ensure_private_file,
 )
 from chemsmart.agent.runtime.events import EventKind, RuntimeEvent
+from chemsmart.agent.runtime.research_events import (
+    is_research_event_kind,
+    validate_research_event_payload,
+)
 
 if os.name == "nt":  # Windows has no fcntl; use byte-range locks instead.
     import msvcrt
@@ -44,6 +48,14 @@ class EventStoreCorruptionError(RuntimeError):
     pass
 
 
+class EventStoreIdempotencyConflictError(RuntimeError):
+    pass
+
+
+class EventStoreTransitionError(RuntimeError):
+    pass
+
+
 class RuntimeEventStore:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -59,6 +71,10 @@ class RuntimeEventStore:
         payload: dict[str, Any] | None = None,
         idempotency_key: str = "",
     ) -> RuntimeEvent:
+        normalized_payload = validate_research_event_payload(
+            kind,
+            dict(payload or {}),
+        )
         descriptor = os.open(
             self.path,
             os.O_RDWR
@@ -80,16 +96,34 @@ class RuntimeEventStore:
                 if idempotency_key:
                     for event in events:
                         if event.idempotency_key == idempotency_key:
+                            if (
+                                event.session_id != session_id
+                                or event.turn_id != turn_id
+                                or event.kind is not kind
+                                or event.payload != normalized_payload
+                            ):
+                                raise EventStoreIdempotencyConflictError(
+                                    "runtime-event idempotency key is bound to "
+                                    "a different canonical event"
+                                )
                             return event
                 event = RuntimeEvent.create(
                     sequence=len(events) + 1,
                     session_id=session_id,
                     turn_id=turn_id,
                     kind=kind,
-                    payload=dict(payload or {}),
+                    payload=normalized_payload,
                     previous_hash=events[-1].event_hash if events else "",
                     idempotency_key=idempotency_key,
                 )
+                try:
+                    from chemsmart.agent.runtime.reducer import reduce_events
+
+                    reduce_events([*events, event])
+                except Exception as exc:
+                    raise EventStoreTransitionError(
+                        f"research/runtime event transition rejected: {exc}"
+                    ) from exc
                 handle.seek(0, os.SEEK_END)
                 handle.write(event.model_dump_json() + "\n")
                 handle.flush()
@@ -158,7 +192,33 @@ class RuntimeEventStore:
                 raise EventStoreCorruptionError(
                     f"runtime event {event.event_id} has an invalid hash"
                 )
+            try:
+                canonical = validate_research_event_payload(
+                    event.kind,
+                    event.payload,
+                )
+            except Exception as exc:
+                raise EventStoreCorruptionError(
+                    f"runtime event {event.event_id} has an invalid research payload"
+                ) from exc
+            if is_research_event_kind(event.kind) and canonical != event.payload:
+                raise EventStoreCorruptionError(
+                    f"runtime event {event.event_id} has a noncanonical research payload"
+                )
             previous_hash = event.event_hash
+        try:
+            from chemsmart.agent.runtime.reducer import reduce_events
+
+            reduce_events(events)
+        except Exception as exc:
+            raise EventStoreCorruptionError(
+                f"runtime event stream has an invalid state transition: {exc}"
+            ) from exc
 
 
-__all__ = ["EventStoreCorruptionError", "RuntimeEventStore"]
+__all__ = [
+    "EventStoreCorruptionError",
+    "EventStoreIdempotencyConflictError",
+    "EventStoreTransitionError",
+    "RuntimeEventStore",
+]

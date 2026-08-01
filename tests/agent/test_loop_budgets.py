@@ -235,6 +235,88 @@ def test_tool_loop_stops_after_provider_error_budget(tmp_path):
     assert result["limit_reason"] == "provider_errors"
 
 
+def test_adaptive_loop_has_no_request_count_cap_but_has_token_and_time_guards(
+    tmp_path,
+):
+    provider = FakeProvider(
+        [
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call(
+                        f"call_{index}",
+                        "recommend_method",
+                        {"task": f"task-{index}"},
+                    )
+                )
+            }
+            for index in range(1, 5)
+        ]
+        + [{"__raw_response__": openai_final_response("Completed.")}]
+    )
+    registry = ScriptedRegistry({"recommend_method": {"method": "b3lyp"}})
+    budgets = ToolLoopBudgets(
+        max_model_steps_per_turn=None,
+        max_wall_time_s=5,
+        max_request_input_tokens=1_000,
+        max_request_output_tokens=1_000,
+    )
+    loop = ToolLoop(
+        provider=provider,
+        registry=registry,
+        handle_store=HandleStore(tmp_path),
+        decision_log=DecisionLog(tmp_path / "decision_log.jsonl"),
+        budgets=budgets,
+    )
+
+    result = loop.run_turn(
+        messages=[{"role": "user", "content": "Use each unique tool call."}],
+        tool_defs=registry.openai_tool_defs(),
+    )
+
+    assert result["assistant_text"] == "Completed."
+    assert result["model_steps"] == 5
+    assert result["limit_reason"] is None
+
+
+def test_adaptive_loop_rejects_unbounded_mode_without_non_count_guards() -> None:
+    with pytest.raises(ValueError, match="requires wall-time"):
+        ToolLoopBudgets(max_model_steps_per_turn=None)
+
+
+def test_request_token_guard_stops_before_tool_execution(tmp_path) -> None:
+    provider = FakeProvider(
+        [
+            {
+                "__raw_response__": openai_tool_call_response(
+                    tool_call("call_1", "recommend_method", {"task": "opt"})
+                )
+            }
+        ]
+    )
+    registry = ScriptedRegistry({"recommend_method": {"method": "b3lyp"}})
+    loop = ToolLoop(
+        provider=provider,
+        registry=registry,
+        handle_store=HandleStore(tmp_path),
+        decision_log=DecisionLog(tmp_path / "decision_log.jsonl"),
+        budgets=ToolLoopBudgets(
+            max_model_steps_per_turn=None,
+            max_wall_time_s=5,
+            max_request_input_tokens=9,
+            max_request_output_tokens=100,
+        ),
+    )
+
+    result = loop.run_turn(
+        messages=[{"role": "user", "content": "Run."}],
+        tool_defs=registry.openai_tool_defs(),
+    )
+
+    assert result["limit_reason"] == "max_request_input_tokens"
+    assert result["tool_outcomes"] == []
+    assert registry.calls == []
+
+
 def test_tool_loop_separates_provider_identity_from_wire_protocol(tmp_path):
     provider = OpenAICompatibleProvider(
         [

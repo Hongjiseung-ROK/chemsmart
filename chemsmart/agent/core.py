@@ -126,11 +126,13 @@ class AgentSession:
         runtime_v2: str | bool | None = None,
         tool_profile: PhaseToolProfile | None = None,
         training_capture: TrainingCapturePolicy | str | bool | None = None,
+        behavior_rules_text: str | None = None,
     ) -> None:
         self._provider = provider
         self.registry = registry or ToolRegistry.default()
         self.transport = transport
         self._stage_prompt = stage_prompt
+        self._behavior_rules_text = behavior_rules_text
         self.session_root = Path(session_root or _default_session_root())
         ensure_private_directory(self.session_root)
         self.state: SessionState | None = None
@@ -526,7 +528,11 @@ class AgentSession:
                 current_turn_index=current_turn_index
             ),
             request=request,
-            behavior_rules=load_behavior_rules().text,
+            behavior_rules=(
+                self._behavior_rules_text
+                if self._behavior_rules_text is not None
+                else load_behavior_rules().text
+            ),
             max_chars=4096,
         )
 

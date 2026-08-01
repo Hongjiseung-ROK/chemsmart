@@ -43,10 +43,10 @@ def _openai_uses_max_completion_tokens(model: str | None) -> bool:
 def _is_official_deepseek_endpoint(base_url: str | None) -> bool:
     """Return whether ``base_url`` is the HTTPS DeepSeek public endpoint.
 
-    DeepSeek's tool-call protocol currently requires reasoning to be disabled
-    on the official endpoint. Do not infer that requirement from a provider
-    label or model name: other OpenAI-compatible gateways can intentionally
-    expose the same model with different request contracts.
+    DeepSeek-specific thinking controls are valid only on the official
+    endpoint. Do not infer that request contract from a provider label or
+    model name: other OpenAI-compatible gateways can intentionally expose the
+    same model with different semantics.
     """
 
     if not isinstance(base_url, str) or not base_url.strip():
@@ -152,6 +152,10 @@ class OpenAIProvider:
         base_url: str | None = None,
         extra_headers: dict[str, str] | None = None,
         provider_name: str | None = None,
+        thinking_mode: str = "disabled",
+        reasoning_effort: str = "high",
+        max_output_tokens: int | None = None,
+        max_retries: int | None = None,
     ) -> None:
         _suppress_sensitive_transport_debug_logging()
         import openai
@@ -162,12 +166,48 @@ class OpenAIProvider:
         self._official_deepseek_endpoint = _is_official_deepseek_endpoint(
             self._base_url
         )
+        if thinking_mode not in {"enabled", "disabled"}:
+            raise ValueError(
+                "thinking_mode must be 'enabled' or 'disabled'"
+            )
+        if reasoning_effort not in {"low", "high", "max"}:
+            raise ValueError(
+                "reasoning_effort must be 'low', 'high', or 'max'"
+            )
+        if (
+            max_output_tokens is not None
+            and (
+                not isinstance(max_output_tokens, int)
+                or isinstance(max_output_tokens, bool)
+                or max_output_tokens <= 0
+            )
+        ):
+            raise ValueError("max_output_tokens must be a positive integer")
+        if (
+            max_retries is not None
+            and (
+                not isinstance(max_retries, int)
+                or isinstance(max_retries, bool)
+                or max_retries < 0
+            )
+        ):
+            raise ValueError("max_retries must be a non-negative integer")
+        if thinking_mode == "enabled" and not self._official_deepseek_endpoint:
+            raise ValueError(
+                "thinking_mode='enabled' is supported only for the official "
+                "DeepSeek endpoint"
+            )
+        self._thinking_mode = thinking_mode
+        self._reasoning_effort = reasoning_effort
+        self._max_output_tokens = max_output_tokens
         client_kwargs: dict[str, Any] = {
             "api_key": api_key,
             "base_url": self._base_url,
         }
         if extra_headers:
             client_kwargs["default_headers"] = extra_headers
+        if max_retries is not None:
+            client_kwargs["max_retries"] = max_retries
         self._client = openai.OpenAI(**client_kwargs)
 
     def chat(
@@ -184,12 +224,22 @@ class OpenAIProvider:
         }
         if tools:
             kwargs["tools"] = tools
-            if self._official_deepseek_endpoint:
-                # The official DeepSeek endpoint rejects tool-bearing calls
-                # when reasoning is enabled. This remains scoped to the exact
-                # public endpoint so generic OpenAI-compatible providers keep
-                # their own request semantics.
-                kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+        if self._max_output_tokens is not None:
+            token_field = (
+                "max_completion_tokens"
+                if _openai_uses_max_completion_tokens(self.default_model)
+                else "max_tokens"
+            )
+            kwargs[token_field] = self._max_output_tokens
+        if self._official_deepseek_endpoint:
+            kwargs["extra_body"] = {
+                "thinking": {"type": self._thinking_mode}
+            }
+            if self._thinking_mode == "enabled":
+                # The ToolLoop retains reasoning_content only in its ephemeral
+                # provider history, which DeepSeek requires between tool-call
+                # subturns. Public messages and receipts strip that field.
+                kwargs["reasoning_effort"] = self._reasoning_effort
         response = self._client.chat.completions.create(**kwargs)
         return response.model_dump()
 
@@ -207,9 +257,9 @@ class OpenAIProvider:
             else:
                 kwargs["max_tokens"] = 5
             if self._official_deepseek_endpoint:
-                # ``agent doctor`` reaches this ping path. Keep its request
-                # compatible with the same official DeepSeek endpoint without
-                # changing non-DeepSeek provider probes.
+                # A liveness probe does not evaluate reasoning quality. Keep
+                # it short and deterministic even when experiment turns use
+                # thinking mode.
                 kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
             response = self._client.chat.completions.create(**kwargs)
         except Exception as exc:
@@ -450,6 +500,9 @@ def get_provider(
                 base_url=config.base_url or None,
                 extra_headers=config.extra_headers,
                 provider_name=config.name,
+                thinking_mode=config.thinking_mode,
+                reasoning_effort=config.reasoning_effort,
+                max_output_tokens=config.max_output_tokens,
             )
         if config.type == "local":
             return LocalProvider(

@@ -6,9 +6,9 @@ they make an explicitly requested network call.  A caller must provide its own
 single-use permit, caller label, purpose, and finite request budget; this
 module never tops up a quota or starts a network request itself.
 
-When a caller reserves a probe, the chosen secret is held only in a short-lived
-in-memory lease bound to that one permit.  The lease is not serializable and is
-discarded before any public receipt is returned.
+When a caller reserves a probe, only its public source locator is retained.
+The secret is reacquired from that exact locator immediately before the
+single authorized callback and is never stored in the pending-permit table.
 
 The canonical macOS Keychain locations are intentionally stable and public:
 
@@ -29,14 +29,17 @@ contain no key material, key length, digest, endpoint URL, or remote response.
 
 from __future__ import annotations
 
+import math
 import os
 import subprocess
 import threading
+import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from types import MappingProxyType
 from typing import Callable, Mapping
+from urllib.parse import urlsplit
 
 
 CANONICAL_KEYCHAIN_SERVICE = "com.chemsmart.agent.credentials"
@@ -49,6 +52,14 @@ class ApiProvider(str, Enum):
     ELSEVIER = "elsevier"
     SERPAPI = "serpapi"
     TAVILY = "tavily"
+
+
+CANONICAL_API_ORIGINS = MappingProxyType({
+    ApiProvider.DEEPSEEK: "https://api.deepseek.com",
+    ApiProvider.ELSEVIER: "https://api.elsevier.com",
+    ApiProvider.SERPAPI: "https://serpapi.com",
+    ApiProvider.TAVILY: "https://api.tavily.com",
+})
 
 
 class ApiEndpointClass(str, Enum):
@@ -116,6 +127,7 @@ CREDENTIAL_LOCATORS: Mapping[ApiProvider, CredentialLocator] = MappingProxyType(
         environment_aliases=(
             "CHEMSMART_DEEPSEEK_API_KEY",
             "DEEPSEEK_API_KEY",
+            "DEEPSEEK-api-key",
         ),
     ),
     ApiProvider.ELSEVIER: CredentialLocator(
@@ -146,6 +158,7 @@ CREDENTIAL_LOCATORS: Mapping[ApiProvider, CredentialLocator] = MappingProxyType(
         environment_aliases=(
             "CHEMSMART_SERPAPI_API_KEY",
             "SERPAPI_API_KEY",
+            "SerpApi_api_key",
         ),
     ),
     ApiProvider.TAVILY: CredentialLocator(
@@ -160,6 +173,7 @@ CREDENTIAL_LOCATORS: Mapping[ApiProvider, CredentialLocator] = MappingProxyType(
         environment_aliases=(
             "CHEMSMART_TAVILY_API_KEY",
             "TAVILY_API_KEY",
+            "Tavily_api_key",
         ),
     ),
 })
@@ -309,16 +323,17 @@ class CredentialProbePermit:
     permit_id: str
     provider: ApiProvider
     endpoint_class: ApiEndpointClass
+    target_origin: str
     caller: str
     purpose: str
+    expires_at_monotonic: float
     reserved_requests: int = 1
 
 
 @dataclass(frozen=True, slots=True)
-class _CredentialLease:
-    """Private one-permit credential state; never serialized or logged."""
+class _CredentialReference:
+    """Secret-free source reference retained by one pending permit."""
 
-    secret: str = field(repr=False)
     source: CredentialSource
     locator: str
 
@@ -338,11 +353,27 @@ class CredentialAccessController:
         *,
         keychain_reader: KeychainReader = read_macos_keychain,
         environment: Mapping[str, str] | None = None,
+        permit_ttl_seconds: float = 60.0,
+        monotonic_clock: Callable[[], float] = time.monotonic,
     ) -> None:
+        if (
+            not isinstance(permit_ttl_seconds, (int, float))
+            or isinstance(permit_ttl_seconds, bool)
+            or not math.isfinite(permit_ttl_seconds)
+            or permit_ttl_seconds <= 0
+            or permit_ttl_seconds > 300
+        ):
+            raise ValueError(
+                "permit_ttl_seconds must be finite and in the range (0, 300]"
+            )
+        if not callable(monotonic_clock):
+            raise TypeError("monotonic_clock must be callable")
         self._keychain_reader = keychain_reader
         self._environment = os.environ if environment is None else environment
+        self._permit_ttl_seconds = float(permit_ttl_seconds)
+        self._monotonic_clock = monotonic_clock
         self._permits: dict[
-            str, tuple[CredentialProbePermit, _CredentialLease]
+            str, tuple[CredentialProbePermit, _CredentialReference]
         ] = {}
         self._used_permits: set[str] = set()
         self._lock = threading.Lock()
@@ -355,7 +386,7 @@ class CredentialAccessController:
     def credential_status(self, provider: ApiProvider) -> CredentialStatusReceipt:
         """Report local availability only; this method never probes a provider."""
 
-        resolved = self._resolve(provider)
+        resolved = self._resolve_reference(provider)
         if resolved is None:
             return CredentialStatusReceipt(
                 provider=provider,
@@ -379,6 +410,7 @@ class CredentialAccessController:
         caller: str,
         purpose: str,
         budget: ApiUsageBudget,
+        target_origin: str | None = None,
     ) -> CredentialProbePermit:
         """Reserve one explicit network request without making it.
 
@@ -388,8 +420,9 @@ class CredentialAccessController:
 
         caller = _require_label(caller, "caller")
         purpose = _require_label(purpose, "purpose")
-        resolved = self._resolve(provider)
-        if resolved is None:
+        origin = _require_provider_origin(provider, target_origin)
+        reference = self._resolve_reference(provider)
+        if reference is None:
             raise CredentialUnavailableError(
                 f"No local credential is available for {provider.value}."
             )
@@ -399,17 +432,21 @@ class CredentialAccessController:
             permit_id=uuid.uuid4().hex,
             provider=provider,
             endpoint_class=locator.endpoint_class,
+            target_origin=origin,
             caller=caller,
             purpose=purpose,
+            expires_at_monotonic=(
+                self._monotonic_clock() + self._permit_ttl_seconds
+            ),
         )
         with self._lock:
-            self._permits[permit.permit_id] = (permit, resolved)
+            self._permits[permit.permit_id] = (permit, reference)
         return permit
 
     def invoke_authorized_probe(
         self,
         permit: CredentialProbePermit,
-        operation: Callable[[str], CredentialProbeObservation],
+        operation: Callable[[str, str], CredentialProbeObservation],
     ) -> CredentialStatusReceipt:
         """Invoke a caller-owned probe once and return only a safe receipt.
 
@@ -428,17 +465,25 @@ class CredentialAccessController:
             stored = self._permits.pop(permit.permit_id, None)
             if stored is None:
                 raise CredentialProbeError("Unknown credential probe permit.")
-            stored_permit, resolved = stored
+            stored_permit, reference = stored
             if permit != stored_permit:
+                self._used_permits.add(permit.permit_id)
                 raise CredentialProbeError("Credential probe permit was altered.")
             self._used_permits.add(permit.permit_id)
+            if self._monotonic_clock() >= permit.expires_at_monotonic:
+                raise CredentialProbeError("Credential probe permit expired.")
 
         try:
-            observation = operation(resolved.secret)
+            secret = self._read_reference(permit.provider, reference)
+            if not secret:
+                raise CredentialUnavailableError
+            observation = operation(secret, permit.target_origin)
         except Exception:
             raise CredentialProbeError(
                 "The credential probe did not return an allowed status."
             ) from None
+        finally:
+            secret = None
         if not isinstance(observation, CredentialProbeObservation):
             raise CredentialProbeError(
                 "The credential probe must return CredentialProbeObservation."
@@ -446,28 +491,78 @@ class CredentialAccessController:
         return CredentialStatusReceipt(
             provider=permit.provider,
             status=observation.status,
-            source=resolved.source,
-            credential_locator=resolved.locator,
+            source=reference.source,
+            credential_locator=reference.locator,
         )
 
-    def _resolve(self, provider: ApiProvider) -> _CredentialLease | None:
+    def cancel_probe(self, permit: CredentialProbePermit) -> bool:
+        """Cancel an exact pending permit without refunding its budget."""
+
+        with self._lock:
+            if permit.permit_id in self._used_permits:
+                return False
+            stored = self._permits.pop(permit.permit_id, None)
+            if stored is None:
+                return False
+            stored_permit, _ = stored
+            self._used_permits.add(permit.permit_id)
+            if permit != stored_permit:
+                raise CredentialProbeError("Credential probe permit was altered.")
+            return True
+
+    def cleanup_expired(self) -> int:
+        """Invalidate expired pending permits and return the removal count."""
+
+        now = self._monotonic_clock()
+        with self._lock:
+            expired = [
+                permit_id
+                for permit_id, (permit, _) in self._permits.items()
+                if now >= permit.expires_at_monotonic
+            ]
+            for permit_id in expired:
+                self._permits.pop(permit_id, None)
+                self._used_permits.add(permit_id)
+        return len(expired)
+
+    def _resolve_reference(
+        self, provider: ApiProvider
+    ) -> _CredentialReference | None:
         locator = CREDENTIAL_LOCATORS[provider]
         for location in locator.keychain_locations:
             secret = self._keychain_reader(location.service, location.account)
             if secret:
-                return _CredentialLease(
-                    secret=secret,
+                return _CredentialReference(
                     source=CredentialSource.KEYCHAIN,
                     locator=location.account,
                 )
         for alias in locator.environment_aliases:
             secret = self._environment.get(alias, "")
             if secret:
-                return _CredentialLease(
-                    secret=secret,
+                return _CredentialReference(
                     source=CredentialSource.ENVIRONMENT,
                     locator=alias,
                 )
+        return None
+
+    def _read_reference(
+        self,
+        provider: ApiProvider,
+        reference: _CredentialReference,
+    ) -> str | None:
+        locator = CREDENTIAL_LOCATORS[provider]
+        if reference.source is CredentialSource.KEYCHAIN:
+            for location in locator.keychain_locations:
+                if location.account == reference.locator:
+                    return self._keychain_reader(
+                        location.service, location.account
+                    )
+            return None
+        if (
+            reference.source is CredentialSource.ENVIRONMENT
+            and reference.locator in locator.environment_aliases
+        ):
+            return self._environment.get(reference.locator) or None
         return None
 
 
@@ -475,3 +570,37 @@ def _require_label(value: str, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field_name} must be a non-empty text label")
     return value.strip()
+
+
+def _require_provider_origin(
+    provider: ApiProvider,
+    value: str | None,
+) -> str:
+    expected = CANONICAL_API_ORIGINS[provider]
+    candidate = expected if value is None else value
+    if not isinstance(candidate, str) or not candidate.strip():
+        raise ValueError("target_origin must be a non-empty HTTPS origin")
+    try:
+        parsed = urlsplit(candidate.strip())
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("target_origin must be a valid HTTPS origin") from exc
+    if (
+        parsed.scheme.lower() != "https"
+        or parsed.username is not None
+        or parsed.password is not None
+        or not parsed.hostname
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("target_origin must be an exact HTTPS origin")
+    host = parsed.hostname.lower()
+    normalized = f"https://{host}"
+    if port not in {None, 443}:
+        normalized = f"{normalized}:{port}"
+    if normalized != expected:
+        raise ValueError(
+            f"target_origin is not authorized for {provider.value}"
+        )
+    return normalized

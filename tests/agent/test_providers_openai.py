@@ -4,6 +4,8 @@ import logging
 import sys
 from unittest.mock import MagicMock
 
+import pytest
+
 from chemsmart.agent.providers import OpenAIProvider
 
 
@@ -69,8 +71,8 @@ def test_openai_provider_chat_returns_dict_and_forwards_tools(monkeypatch):
     )
 
 
-def test_official_deepseek_tool_call_disables_thinking(monkeypatch):
-    """Only the official DeepSeek endpoint receives its tool-call override."""
+def test_official_deepseek_tool_call_defaults_to_disabled_thinking(monkeypatch):
+    """Existing callers keep the non-thinking request contract by default."""
     response = MagicMock()
     response.model_dump.return_value = {"id": "chatcmpl_test"}
     completions = MagicMock()
@@ -99,6 +101,90 @@ def test_official_deepseek_tool_call_disables_thinking(monkeypatch):
         timeout=30,
         extra_body={"thinking": {"type": "disabled"}},
     )
+
+
+def test_official_deepseek_flash_enables_thinking_with_bounded_output(
+    monkeypatch,
+):
+    response = MagicMock()
+    response.model_dump.return_value = {"id": "chatcmpl_test"}
+    completions = MagicMock()
+    completions.create.return_value = response
+    client = MagicMock()
+    client.chat.completions = completions
+    openai_module = MagicMock()
+    openai_module.OpenAI.return_value = client
+    monkeypatch.setitem(sys.modules, "openai", openai_module)
+
+    provider = OpenAIProvider(
+        "test-key",
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com",
+        provider_name="deepseek",
+        thinking_mode="enabled",
+        reasoning_effort="high",
+        max_output_tokens=4096,
+    )
+    provider.chat(
+        [{"role": "user", "content": "Prepare a typed command workflow."}],
+        tools=[{"type": "function", "function": {"name": "demo"}}],
+    )
+
+    completions.create.assert_called_once_with(
+        model="deepseek-v4-flash",
+        messages=[
+            {"role": "user", "content": "Prepare a typed command workflow."}
+        ],
+        tools=[{"type": "function", "function": {"name": "demo"}}],
+        max_tokens=4096,
+        timeout=30,
+        extra_body={"thinking": {"type": "enabled"}},
+        reasoning_effort="high",
+    )
+
+
+def test_official_deepseek_probe_can_disable_sdk_retries(monkeypatch):
+    client = MagicMock()
+    openai_module = MagicMock()
+    openai_module.OpenAI.return_value = client
+    monkeypatch.setitem(sys.modules, "openai", openai_module)
+
+    OpenAIProvider(
+        "test-key",
+        model="deepseek-v4-flash",
+        base_url="https://api.deepseek.com",
+        provider_name="deepseek",
+        thinking_mode="enabled",
+        max_retries=0,
+    )
+
+    openai_module.OpenAI.assert_called_once_with(
+        api_key="test-key",
+        base_url="https://api.deepseek.com",
+        max_retries=0,
+    )
+
+
+def test_openai_provider_rejects_invalid_retry_budget(monkeypatch):
+    openai_module = MagicMock()
+    monkeypatch.setitem(sys.modules, "openai", openai_module)
+
+    with pytest.raises(ValueError, match="max_retries"):
+        OpenAIProvider("test-key", max_retries=-1)
+
+
+def test_thinking_mode_rejects_nonofficial_gateway(monkeypatch):
+    openai_module = MagicMock()
+    monkeypatch.setitem(sys.modules, "openai", openai_module)
+
+    with pytest.raises(ValueError, match="official DeepSeek endpoint"):
+        OpenAIProvider(
+            "test-key",
+            model="deepseek-v4-flash",
+            base_url="https://gateway.example/v1",
+            provider_name="deepseek",
+            thinking_mode="enabled",
+        )
 
 
 def test_deepseek_named_gateway_keeps_its_native_tool_contract(monkeypatch):

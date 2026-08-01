@@ -18,11 +18,19 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shlex
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Mapping, TYPE_CHECKING
+from typing import Annotated, Any, Literal, Mapping, TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictInt,
+    field_validator,
+    model_validator,
+)
 
 from chemsmart.agent.command_workflow import (
     CommandCounterexample,
@@ -32,6 +40,7 @@ from chemsmart.agent.command_workflow import (
 )
 from chemsmart.agent.geometry_identity import xyz_geometry_manifest
 from chemsmart.agent.harness.command_semantics import CommandSemanticResult
+from chemsmart.io.xtb import XTB_ALL_SOLVENT_MODELS
 
 if TYPE_CHECKING:  # pragma: no cover - imports only guide static checkers
     from chemsmart.agent.workspace_bindings import WorkspaceBindings
@@ -39,6 +48,7 @@ if TYPE_CHECKING:  # pragma: no cover - imports only guide static checkers
 
 SCIENTIFIC_TASK_SCHEMA_VERSION = "chemsmart.scientific-task.v1"
 _IDENTIFIER = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+_VALIDATION_OBLIGATION_IDENTIFIER = r"^[a-z][a-z0-9_]{0,127}$"
 _SHA256 = r"^[0-9a-f]{64}$"
 _PROGRAMS = frozenset({"gaussian", "orca", "xtb"})
 _SUPPORTED_JOBS = {
@@ -59,6 +69,12 @@ _M2_EVIDENCE_CLASSES = frozenset(
 
 class _Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+PostExecutionValidationObligation = Annotated[
+    str,
+    Field(pattern=_VALIDATION_OBLIGATION_IDENTIFIER),
+]
 
 
 class GeometryIdentity(_Contract):
@@ -96,9 +112,12 @@ class NodeScientificRequirement(_Contract):
     settings_source: Literal["project", "xtb_command"]
     method: str = Field(min_length=1, max_length=160)
     basis_or_ecp: str | None = Field(default=None, max_length=200)
+    optimization_level: str | None = Field(default=None, max_length=80)
     solvent_model: str | None = Field(default=None, max_length=80)
     solvent_id: str | None = Field(default=None, max_length=120)
+    integration_grid: str | None = Field(default=None, max_length=80)
     frequency_required: bool | None = None
+    gradient_required: bool | None = None
     constraints_sha256: str | None = Field(default=None, pattern=_SHA256)
 
     @model_validator(mode="after")
@@ -112,10 +131,22 @@ class NodeScientificRequirement(_Contract):
                 raise ValueError("Gaussian/ORCA methods must come from project YAML")
             if not self.basis_or_ecp:
                 raise ValueError("Gaussian/ORCA requirements need basis_or_ecp")
-        elif self.settings_source != "xtb_command":
-            raise ValueError("xTB method must come from a typed command field")
+            if self.optimization_level is not None:
+                raise ValueError(
+                    "optimization_level is only defined for xTB optimization"
+                )
+            if self.gradient_required is not None:
+                raise ValueError("gradient_required is only defined for xTB")
         elif self.basis_or_ecp is not None:
             raise ValueError("xTB requirement must not contain basis_or_ecp")
+        elif self.optimization_level is not None and self.job_kind != "opt":
+            raise ValueError(
+                "xTB optimization_level is only valid for the opt job family"
+            )
+        if self.integration_grid is not None and self.program != "gaussian":
+            raise ValueError(
+                "integration_grid is currently validated only for Gaussian"
+            )
         return self
 
 
@@ -133,7 +164,35 @@ class ScientificTaskSpec(_Contract):
     node_requirements: tuple[NodeScientificRequirement, ...] = Field(min_length=1)
     constraints: tuple[ConstraintBinding, ...] = ()
     required_evidence: tuple[str, ...] = ()
+    post_execution_validation_obligations: tuple[
+        PostExecutionValidationObligation, ...
+    ] = ()
     unresolved_facts: tuple[str, ...] = ()
+
+    @field_validator("node_requirements")
+    @classmethod
+    def _canonical_node_requirements(
+        cls, value: tuple[NodeScientificRequirement, ...]
+    ) -> tuple[NodeScientificRequirement, ...]:
+        return tuple(sorted(value, key=lambda item: item.node_id))
+
+    @field_validator("constraints")
+    @classmethod
+    def _canonical_constraints(
+        cls, value: tuple[ConstraintBinding, ...]
+    ) -> tuple[ConstraintBinding, ...]:
+        return tuple(sorted(value, key=lambda item: item.constraint_id))
+
+    @field_validator(
+        "required_evidence",
+        "post_execution_validation_obligations",
+        "unresolved_facts",
+    )
+    @classmethod
+    def _canonical_string_sets(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if len(value) != len(set(value)):
+            raise ValueError("set-like scientific task fields must be unique")
+        return tuple(sorted(value))
 
     @model_validator(mode="after")
     def _unique_references(self) -> "ScientificTaskSpec":
@@ -155,6 +214,7 @@ class ScientificTaskValidation:
     molecule_id: str
     requested_observable: str
     required_evidence: tuple[str, ...]
+    post_execution_validation_obligations: tuple[str, ...]
     findings: tuple[CommandCounterexample, ...]
 
     @property
@@ -169,6 +229,17 @@ class ScientificTaskValidation:
                 "molecule_id": self.molecule_id,
                 "requested_observable": self.requested_observable,
                 "required_evidence": list(self.required_evidence),
+                "post_execution_validation_obligations": list(
+                    self.post_execution_validation_obligations
+                ),
+            },
+            "post_execution_validation": {
+                "status": (
+                    "pending_execution"
+                    if self.post_execution_validation_obligations
+                    else "not_required"
+                ),
+                "satisfied_obligations": [],
             },
             "findings": [item.model_dump(mode="json") for item in self.findings],
         }
@@ -177,7 +248,8 @@ class ScientificTaskValidation:
 def task_spec_sha256(task: ScientificTaskSpec) -> str:
     """Return a stable identity for the complete typed scientific task."""
 
-    return _sha256_json(task.model_dump(mode="json"))
+    canonical = ScientificTaskSpec.model_validate(task.model_dump(mode="json"))
+    return _sha256_json(canonical.model_dump(mode="json"))
 
 
 def validate_scientific_task_workflow(
@@ -186,6 +258,13 @@ def validate_scientific_task_workflow(
     bindings: "WorkspaceBindings",
 ) -> ScientificTaskValidation:
     """Validate scientific intent before command compilation or preview."""
+
+    # Reject unchecked ``model_copy(update=...)`` mutations and restore every
+    # set-like tuple to the contract's canonical order before validation.
+    task = ScientificTaskSpec.model_validate(task.model_dump(mode="json"))
+    workflow = CommandWorkflowSpec.model_validate(
+        workflow.model_dump(mode="json")
+    )
 
     findings: list[CommandCounterexample] = []
     if task.task_spec_id != workflow.task_spec_id:
@@ -326,6 +405,10 @@ def validate_scientific_preview(
     Gaussian/ORCA native inputs.
     """
 
+    task = ScientificTaskSpec.model_validate(task.model_dump(mode="json"))
+    workflow = CommandWorkflowSpec.model_validate(
+        workflow.model_dump(mode="json")
+    )
     preflight = validate_scientific_task_workflow(task, workflow, bindings)
     findings = list(preflight.findings)
     if compilation.status != "previewable":
@@ -494,10 +577,14 @@ def _validate_node_requirement(
             )
         )
     _validate_node_geometry(task, node, findings)
-    if program in {"gaussian", "orca"}:
+    if program in {"gaussian", "orca"} or (
+        program == "xtb" and requirement.settings_source == "project"
+    ):
         _validate_project_settings(node, requirement, program, bindings, findings)
     elif program == "xtb":
         _validate_xtb_settings(node, requirement, findings)
+    if program == "xtb":
+        _validate_xtb_job_controls(node, requirement, findings)
 
 
 def _validate_node_geometry(
@@ -509,6 +596,16 @@ def _validate_node_geometry(
         item for item in node.input_artifacts if item.producer_node_id is None
     ]
     if not root_bindings:
+        if any(item.producer_node_id is not None for item in node.input_artifacts):
+            findings.append(
+                _finding(
+                    "cmd.science.geometry.handoff_unverifiable",
+                    node.node_id,
+                    "input_artifacts",
+                    "a producer receipt with an ordered geometry digest",
+                    "content hash without ordered-geometry handoff receipt",
+                )
+            )
         return
     if len(root_bindings) != 1:
         findings.append(
@@ -608,6 +705,7 @@ def _validate_project_settings(
         yaml_text=yaml_text,
         program=program,  # type: ignore[arg-type]
         project_name=project.command_value,
+        required_job_kinds=(requirement.job_kind,),
     )
     if validation.get("verdict") != "ok":
         findings.append(
@@ -634,22 +732,76 @@ def _validate_project_settings(
             )
         )
         return
-    _compare_setting(
-        findings,
-        node.node_id,
-        "functional",
-        requirement.method,
-        settings.get("functional"),
-        "cmd.science.method.functional_mismatch",
-    )
-    _compare_setting(
-        findings,
-        node.node_id,
-        "basis",
-        requirement.basis_or_ecp,
-        settings.get("basis"),
-        "cmd.science.method.basis_mismatch",
-    )
+    if program == "xtb":
+        _compare_setting(
+            findings,
+            node.node_id,
+            "gfn_version",
+            requirement.method,
+            settings.get("gfn_version"),
+            "cmd.science.xtb.gfn_mismatch",
+        )
+        if requirement.job_kind == "opt":
+            parsed = validation.get("parsed") or {}
+            parsed_block = (
+                parsed.get("opt") if isinstance(parsed, Mapping) else None
+            )
+            observed_optimization = (
+                parsed_block.get("optimization_level")
+                if requirement.optimization_level is None
+                and isinstance(parsed_block, Mapping)
+                else settings.get("optimization_level")
+            )
+            _compare_setting(
+                findings,
+                node.node_id,
+                "optimization_level",
+                requirement.optimization_level,
+                observed_optimization,
+                "cmd.science.xtb.optimization_level_mismatch",
+            )
+    else:
+        if _normalized(requirement.basis_or_ecp) in {"gen", "genecp"}:
+            findings.append(
+                _finding(
+                    "cmd.science.basis_mapping_unverifiable",
+                    node.node_id,
+                    "basis_or_ecp",
+                    "an element-resolved basis/ECP mapping validator",
+                    requirement.basis_or_ecp,
+                )
+            )
+        _compare_setting(
+            findings,
+            node.node_id,
+            "functional",
+            requirement.method,
+            settings.get("functional"),
+            "cmd.science.method.functional_mismatch",
+        )
+        _compare_setting(
+            findings,
+            node.node_id,
+            "basis",
+            requirement.basis_or_ecp,
+            settings.get("basis"),
+            "cmd.science.method.basis_mismatch",
+        )
+        if program == "gaussian" and requirement.integration_grid is not None:
+            normalized_grid = _normalized(requirement.integration_grid)
+            expected_route = (
+                "Int=UltraFine"
+                if normalized_grid in {"ultrafine", "99590"}
+                else requirement.integration_grid
+            )
+            _compare_setting(
+                findings,
+                node.node_id,
+                "integration_grid",
+                expected_route,
+                settings.get("additional_route_parameters"),
+                "cmd.science.method.integration_grid_mismatch",
+            )
     _compare_setting(
         findings,
         node.node_id,
@@ -666,14 +818,18 @@ def _validate_project_settings(
         settings.get("solvent_id"),
         "cmd.science.method.solvent_mismatch",
     )
-    if requirement.frequency_required is not None and bool(settings.get("freq")) != requirement.frequency_required:
+    observed_frequency = bool(settings.get("freq"))
+    if program != "xtb" and (
+        requirement.frequency_required is not None
+        and observed_frequency != requirement.frequency_required
+    ):
         findings.append(
             _finding(
                 "cmd.science.method.frequency_mismatch",
                 node.node_id,
                 "frequency_required",
                 requirement.frequency_required,
-                bool(settings.get("freq")),
+                observed_frequency,
             )
         )
 
@@ -695,6 +851,14 @@ def _validate_xtb_settings(
                 observed_method,
             )
         )
+    _compare_setting(
+        findings,
+        node.node_id,
+        "optimization_level",
+        requirement.optimization_level,
+        values.get("optimization_level"),
+        "cmd.science.xtb.optimization_level_mismatch",
+    )
     observed_model = values.get("solvent_model")
     observed_solvent = values.get("solvent_id")
     if (observed_model is None) != (observed_solvent is None):
@@ -725,6 +889,46 @@ def _validate_xtb_settings(
     )
 
 
+def _validate_xtb_job_controls(
+    node: CommandNode,
+    requirement: NodeScientificRequirement,
+    findings: list[CommandCounterexample],
+) -> None:
+    values = {_parameter_name(key): value for key, value in node.parameters.items()}
+    if requirement.gradient_required is None:
+        if "grad" in values:
+            findings.append(
+                _finding(
+                    "cmd.science.xtb.gradient_mismatch",
+                    node.node_id,
+                    "gradient_required",
+                    "not explicitly requested",
+                    values["grad"],
+                )
+            )
+    else:
+        _compare_setting(
+            findings,
+            node.node_id,
+            "gradient_required",
+            requirement.gradient_required,
+            values.get("grad", False),
+            "cmd.science.xtb.gradient_mismatch",
+        )
+    if requirement.frequency_required is not None:
+        observed_frequency = requirement.job_kind == "hess"
+        if observed_frequency != requirement.frequency_required:
+            findings.append(
+                _finding(
+                    "cmd.science.method.frequency_mismatch",
+                    node.node_id,
+                    "frequency_required",
+                    requirement.frequency_required,
+                    observed_frequency,
+                )
+            )
+
+
 def _validate_generated_preview(
     task: ScientificTaskSpec,
     node_id: str,
@@ -744,6 +948,16 @@ def _validate_generated_preview(
             )
         )
         return
+    if len(generated) != 1:
+        findings.append(
+            _finding(
+                "cmd.science.preview.generated_input_cardinality",
+                node_id,
+                "generated_inputs",
+                "exactly one generated artifact for the M2 single-frame slice",
+                len(generated),
+            )
+        )
     matching_state = [
         item
         for item in generated
@@ -760,6 +974,8 @@ def _validate_generated_preview(
                 "mismatch",
             )
         )
+    matching_geometry: list[Mapping[str, Any]] = []
+    identity_records = matching_state
     if requirement.program in {"gaussian", "orca", "xtb"}:
         matching_geometry = [
             item
@@ -777,8 +993,36 @@ def _validate_generated_preview(
                     "not_observed",
                 )
             )
+        identity_records = [
+            item
+            for item in matching_state
+            if item.get("ordered_geometry_sha256")
+            == task.geometry.ordered_geometry_sha256
+        ]
+        if matching_state and matching_geometry and not identity_records:
+            findings.append(
+                _finding(
+                    "cmd.science.preview.identity_split_across_artifacts",
+                    node_id,
+                    "generated_inputs",
+                    "one generated artifact with matching state and geometry",
+                    "evidence split across artifacts",
+                )
+            )
     if requirement.program in {"gaussian", "orca"}:
-        _validate_preview_route(node_id, requirement, generated, findings)
+        _validate_preview_route(
+            node_id,
+            requirement,
+            identity_records,
+            findings,
+        )
+    elif requirement.program == "xtb":
+        _validate_preview_xtb_route(
+            node_id,
+            requirement,
+            identity_records,
+            findings,
+        )
 
 
 def _validate_preview_route(
@@ -787,18 +1031,53 @@ def _validate_preview_route(
     generated: list[Mapping[str, Any]],
     findings: list[CommandCounterexample],
 ) -> None:
-    route_text = "\n".join(
-        str(item.get("route") or "") + "\n" + str(item.get("content_tail") or "")
+    if not generated:
+        findings.append(
+            _finding(
+                "cmd.science.preview.route_identity_unbound",
+                node_id,
+                "generated_inputs",
+                "one identity-matched generated artifact",
+                "missing",
+            )
+        )
+        return
+    route_candidate_sets = tuple(
+        _route_setting_candidates(str(item.get("route") or ""))
         for item in generated
     )
-    for field, expected in (
-        ("method", requirement.method),
-        ("basis_or_ecp", requirement.basis_or_ecp),
-        ("solvent_id", requirement.solvent_id),
+    required_settings = tuple(
+        (field, _normalized(expected), expected)
+        for field, expected in (
+            ("method", requirement.method),
+            ("basis_or_ecp", requirement.basis_or_ecp),
+            ("solvent_model", requirement.solvent_model),
+            ("solvent_id", requirement.solvent_id),
+            ("integration_grid", requirement.integration_grid),
+        )
+        if expected is not None
+    )
+    def _frequency_matches(candidates: frozenset[str]) -> bool:
+        if requirement.frequency_required is None:
+            return True
+        observed = bool(
+            candidates.intersection({"freq", "frequency", "numfreq", "anfreq"})
+        )
+        return observed == requirement.frequency_required
+
+    if any(
+        all(normalized in candidates for _, normalized, _ in required_settings)
+        and _frequency_matches(candidates)
+        for candidates in route_candidate_sets
     ):
-        if expected is None:
-            continue
-        if _normalized(expected) not in _normalized(route_text):
+        return
+    individually_observed = True
+    for field, normalized_expected, expected in required_settings:
+        if not any(
+            normalized_expected in candidates
+            for candidates in route_candidate_sets
+        ):
+            individually_observed = False
             findings.append(
                 _finding(
                     "cmd.science.preview.route_setting_mismatch",
@@ -808,6 +1087,188 @@ def _validate_preview_route(
                     "not_observed",
                 )
             )
+    if requirement.frequency_required is not None and not any(
+        _frequency_matches(candidates) for candidates in route_candidate_sets
+    ):
+        individually_observed = False
+        findings.append(
+            _finding(
+                "cmd.science.preview.route_setting_mismatch",
+                node_id,
+                "frequency_required",
+                requirement.frequency_required,
+                "not_observed",
+            )
+        )
+    if individually_observed:
+        findings.append(
+            _finding(
+                "cmd.science.preview.route_semantics_split_across_artifacts",
+                node_id,
+                "generated_inputs",
+                "one generated artifact containing every required route setting",
+                "settings split across artifacts",
+            )
+        )
+
+
+def _validate_preview_xtb_route(
+    node_id: str,
+    requirement: NodeScientificRequirement,
+    generated: list[Mapping[str, Any]],
+    findings: list[CommandCounterexample],
+) -> None:
+    """Bind xTB's generated program call to the typed scientific request."""
+
+    if not generated:
+        findings.append(
+            _finding(
+                "cmd.science.preview.route_identity_unbound",
+                node_id,
+                "generated_inputs",
+                "one identity-matched xTB program call",
+                "missing",
+            )
+        )
+        return
+    observations = tuple(
+        _xtb_route_observation(str(item.get("route") or ""), requirement)
+        for item in generated
+    )
+    required_fields = tuple(observations[0])
+    if any(all(observation.values()) for observation in observations):
+        return
+    individually_observed = True
+    for field in required_fields:
+        if any(observation[field] for observation in observations):
+            continue
+        individually_observed = False
+        findings.append(
+            _finding(
+                "cmd.science.preview.xtb_route_setting_mismatch",
+                node_id,
+                field,
+                _xtb_expected_value(requirement, field),
+                "not_observed",
+            )
+        )
+    if individually_observed:
+        findings.append(
+            _finding(
+                "cmd.science.preview.route_semantics_split_across_artifacts",
+                node_id,
+                "generated_inputs",
+                "one generated artifact containing every required xTB setting",
+                "settings split across artifacts",
+            )
+        )
+
+
+def _xtb_route_observation(
+    route: str,
+    requirement: NodeScientificRequirement,
+) -> dict[str, bool]:
+    try:
+        tokens = tuple(token.lower() for token in shlex.split(route))
+    except ValueError:
+        tokens = ()
+
+    def _value_after(flag: str) -> str | None:
+        try:
+            index = tokens.index(flag)
+        except ValueError:
+            return None
+        return tokens[index + 1] if index + 1 < len(tokens) else None
+
+    method = requirement.method.lower()
+    if method == "gfnff":
+        method_matches = "--gfnff" in tokens
+    elif method.startswith("gfn") and method[-1:].isdigit():
+        method_matches = _value_after("--gfn") == method[-1]
+    else:
+        method_matches = f"--{method}" in tokens
+
+    if requirement.job_kind == "opt":
+        job_matches = "--opt" in tokens and "--hess" not in tokens
+    elif requirement.job_kind == "hess":
+        job_matches = "--hess" in tokens and "--opt" not in tokens
+    else:
+        job_matches = "--opt" not in tokens and "--hess" not in tokens
+
+    observation = {
+        "method": method_matches,
+        "job_kind": job_matches,
+    }
+    if requirement.optimization_level is not None:
+        observation["optimization_level"] = (
+            _value_after("--opt") == requirement.optimization_level.lower()
+        )
+    if requirement.solvent_model is None:
+        observation["solvent"] = not any(
+            f"--{model}" in tokens for model in XTB_ALL_SOLVENT_MODELS
+        )
+    else:
+        solvent_flag = f"--{requirement.solvent_model.lower()}"
+        observation["solvent"] = (
+            _value_after(solvent_flag) == str(requirement.solvent_id).lower()
+        )
+    if requirement.gradient_required is not None:
+        observation["gradient_required"] = (
+            ("--grad" in tokens) == requirement.gradient_required
+        )
+    if requirement.frequency_required is not None:
+        observation["frequency_required"] = (
+            ("--hess" in tokens) == requirement.frequency_required
+        )
+    return observation
+
+
+def _xtb_expected_value(
+    requirement: NodeScientificRequirement,
+    field: str,
+) -> Any:
+    if field == "job_kind":
+        return requirement.job_kind
+    if field == "method":
+        return requirement.method
+    if field == "solvent":
+        return {
+            "model": requirement.solvent_model,
+            "id": requirement.solvent_id,
+        }
+    return getattr(requirement, field)
+
+
+def _route_setting_candidates(route: str) -> frozenset[str]:
+    """Return exact normalized route atoms, never substring matches."""
+
+    candidates: set[str] = set()
+    # Preserve the complete method/basis atoms before collecting generic route
+    # words.  The basis grammar commonly contains a comma-bearing polarization
+    # suffix (for example ``6-31+G(d,p)``), which a plain word tokenizer would
+    # otherwise split and silently reject.
+    for match in re.finditer(
+        r"(?P<method>[A-Za-z0-9][A-Za-z0-9+*._-]*)/"
+        r"(?P<basis>[A-Za-z0-9][A-Za-z0-9+*._-]*(?:\([^)]*\))?)",
+        route,
+    ):
+        candidates.add(_normalized(match.group("method")))
+        candidates.add(_normalized(match.group("basis")))
+
+    # Assignment values cover Gaussian constructs such as
+    # ``SCRF=(SMD,Solvent=Water)`` without accepting a substring (PBE is still
+    # distinct from PBE0).
+    for value in re.findall(r"=\s*([A-Za-z0-9][A-Za-z0-9+*._-]*)", route):
+        candidates.add(_normalized(value))
+
+    for token in re.findall(
+        r"[A-Za-z0-9][A-Za-z0-9+*._-]*(?:\([^()]*\))?",
+        route,
+    ):
+        normalized = _normalized(token)
+        if normalized:
+            candidates.add(normalized)
+    return frozenset(candidates)
 
 
 def _compare_setting(
@@ -862,6 +1323,8 @@ def _validation(
     infeasible_rules = {
         "cmd.science.job_unverifiable",
         "cmd.science.constraint.unverifiable",
+        "cmd.science.geometry.handoff_unverifiable",
+        "cmd.science.basis_mapping_unverifiable",
     }
     if not findings:
         status: Literal["ok", "needs_clarification", "infeasible", "blocked"] = "ok"
@@ -877,6 +1340,9 @@ def _validation(
         molecule_id=task.molecule_id,
         requested_observable=task.requested_observable,
         required_evidence=task.required_evidence,
+        post_execution_validation_obligations=(
+            task.post_execution_validation_obligations
+        ),
         findings=tuple(findings),
     )
 
@@ -935,6 +1401,7 @@ __all__ = [
     "ElectronicState",
     "GeometryIdentity",
     "NodeScientificRequirement",
+    "PostExecutionValidationObligation",
     "SCIENTIFIC_TASK_SCHEMA_VERSION",
     "ScientificTaskSpec",
     "ScientificTaskValidation",

@@ -185,7 +185,7 @@ _DEFAULT_TOOL_SOURCES = (
     (
         "render_project_yaml",
         "chemsmart.agent.project_yaml",
-        "Render a chemsmart Gaussian/ORCA project YAML candidate from extracted method facts.",
+        "Render a chemsmart Gaussian/ORCA/xTB project YAML candidate from extracted method facts.",
         RuntimeToolMetadata(
             read_only=True,
             ui_summary_template="Render project YAML {project_name}",
@@ -817,8 +817,8 @@ def _default_tool_input_json_schema(
     so a model sees the actual typed IR rather than a loose ``object``.
     """
 
-    if module_name != "chemsmart.agent.command_workflow_tools":
-        return None
     module = importlib.import_module(module_name)
-    provider = getattr(module, "tool_input_json_schema")
+    provider = getattr(module, "tool_input_json_schema", None)
+    if not callable(provider):
+        return None
     return provider(name)

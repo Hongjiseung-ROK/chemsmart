@@ -1,0 +1,261 @@
+"""Lease-bound DeepSeek adapter for adaptive, non-count-capped experiments."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import time
+from collections.abc import Callable
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from chemsmart.agent.adaptive_api_campaign import AdaptiveNetworkBudgetV1
+from chemsmart.agent.api_access import (
+    ApiProvider,
+    ApiUsageBudget,
+    CredentialAccessController,
+    CredentialProbeError,
+    CredentialProbeObservation,
+    CredentialStatus,
+    CredentialUnavailableError,
+)
+from chemsmart.agent.providers import OpenAIProvider
+
+
+_MODEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
+_PRIVATE_REASONING_KEYS = frozenset({"reasoning_content", "thinking"})
+
+
+class AdaptiveDeepSeekProviderConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    model: Literal["deepseek-v4-flash"] = "deepseek-v4-flash"
+    endpoint: Literal["https://api.deepseek.com"] = "https://api.deepseek.com"
+    thinking_mode: Literal["enabled"] = "enabled"
+    reasoning_effort: Literal["high", "max"] = "high"
+    max_output_tokens: int = Field(default=8_192, ge=1, le=65_536)
+    sdk_max_retries: Literal[0] = 0
+    raw_provider_turn_logging: Literal[False] = False
+    training_capture: Literal[False] = False
+    engine_calls: Literal[0] = 0
+    hpc_calls: Literal[0] = 0
+
+
+class AdaptiveProviderTurnError(RuntimeError):
+    """Provider failure carrying only a stable public error class."""
+
+    def __init__(self, error_class: str) -> None:
+        self.error_class = error_class
+        super().__init__(error_class)
+
+
+class _LeaseFailure(RuntimeError):
+    pass
+
+
+class AdaptiveLeaseBoundDeepSeekProvider:
+    """Official DeepSeek provider bounded by time/tokens, never call count.
+
+    Every transport call gets a new one-request credential lease.  The
+    aggregate request count is observable but is not consulted to authorize or
+    terminate the turn.  The surrounding ToolLoop must use adaptive mode with
+    a wall-time bound and per-request input/output token guards.
+    """
+
+    name = "deepseek"
+    wire_protocol = "openai"
+
+    def __init__(
+        self,
+        *,
+        controller: CredentialAccessController,
+        network_budget: AdaptiveNetworkBudgetV1,
+        config: AdaptiveDeepSeekProviderConfig | None = None,
+        provider_factory: Callable[..., Any] | None = None,
+        monotonic_clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.config = config or AdaptiveDeepSeekProviderConfig()
+        if self.config.max_output_tokens > (
+            network_budget.max_output_tokens_per_request
+        ):
+            raise ValueError("provider output bound exceeds adaptive network budget")
+        self.default_model = self.config.model
+        self._controller = controller
+        self._network_budget = network_budget
+        self._provider_factory = provider_factory or OpenAIProvider
+        self._clock = monotonic_clock
+        self._started = self._clock()
+        self._requests_used = 0
+        self._transport_attempts = 0
+        self._observed_model_id = ""
+        self._reasoning_continuation_observed = False
+        self._request_observations: list[dict[str, Any]] = []
+
+    @property
+    def requests_used(self) -> int:
+        return self._requests_used
+
+    @property
+    def transport_attempts(self) -> int:
+        return self._transport_attempts
+
+    @property
+    def observed_model_id(self) -> str:
+        return self._observed_model_id
+
+    @property
+    def reasoning_continuation_observed(self) -> bool:
+        return self._reasoning_continuation_observed
+
+    @property
+    def request_observations(self) -> tuple[dict[str, Any], ...]:
+        return tuple(dict(item) for item in self._request_observations)
+
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        timeout_s: float = 30,
+    ) -> dict[str, Any]:
+        elapsed = self._clock() - self._started
+        if elapsed >= self._network_budget.task_wall_time_seconds:
+            raise AdaptiveProviderTurnError("provider.stop.task_wall_time")
+        self._observe_reasoning_continuation(messages)
+        request_sha256 = _sha256_json(
+            {"messages": messages, "tools": tools or []}
+        )
+        try:
+            permit = self._controller.prepare_status_probe(
+                ApiProvider.DEEPSEEK,
+                caller="chemsmart-adaptive-deepseek",
+                purpose=f"adaptive-turn-{request_sha256[:24]}",
+                budget=ApiUsageBudget(1),
+                target_origin=self.config.endpoint,
+            )
+        except CredentialUnavailableError:
+            raise AdaptiveProviderTurnError(
+                "provider.stop.credential_missing"
+            ) from None
+
+        captured: dict[str, Any] = {}
+        started = self._clock()
+
+        def operation(secret: str, target_origin: str) -> CredentialProbeObservation:
+            try:
+                provider = self._provider_factory(
+                    api_key=secret,
+                    model=self.config.model,
+                    base_url=target_origin,
+                    provider_name="deepseek",
+                    thinking_mode=self.config.thinking_mode,
+                    reasoning_effort=self.config.reasoning_effort,
+                    max_output_tokens=self.config.max_output_tokens,
+                    max_retries=0,
+                )
+                self._transport_attempts += 1
+                captured["response"] = provider.chat(
+                    messages,
+                    tools=tools,
+                    timeout_s=min(
+                        timeout_s,
+                        self._network_budget.task_wall_time_seconds - elapsed,
+                    ),
+                )
+            except Exception as exc:
+                captured["error_class"] = _safe_error_class(exc)
+                raise _LeaseFailure from None
+            return CredentialProbeObservation(CredentialStatus.VALID)
+
+        try:
+            status = self._controller.invoke_authorized_probe(permit, operation)
+        except CredentialProbeError:
+            error_class = str(captured.get("error_class") or "provider.fail.unknown")
+            self._request_observations.append(
+                {
+                    "request_sha256": request_sha256,
+                    "status": "failed",
+                    "error_class": error_class,
+                    "latency_ms": int((self._clock() - started) * 1000),
+                }
+            )
+            raise AdaptiveProviderTurnError(error_class) from None
+
+        response = captured.get("response")
+        if not isinstance(response, dict):
+            raise AdaptiveProviderTurnError("provider.fail.protocol")
+        model = response.get("model")
+        if not isinstance(model, str) or _MODEL.fullmatch(model) is None:
+            raise AdaptiveProviderTurnError("provider.fail.model_identity")
+        if self._observed_model_id and self._observed_model_id != model:
+            raise AdaptiveProviderTurnError("provider.fail.model_identity_changed")
+        self._observed_model_id = model
+        self._requests_used += 1
+        usage = response.get("usage") if isinstance(response.get("usage"), dict) else {}
+        self._request_observations.append(
+            {
+                "request_sha256": request_sha256,
+                "status": "observed",
+                "credential_status": status.status.value,
+                "observed_model": model,
+                "input_tokens": int(
+                    usage.get("prompt_tokens", usage.get("input_tokens", 0)) or 0
+                ),
+                "output_tokens": int(
+                    usage.get("completion_tokens", usage.get("output_tokens", 0)) or 0
+                ),
+                "latency_ms": int((self._clock() - started) * 1000),
+            }
+        )
+        return response
+
+    def _observe_reasoning_continuation(
+        self, messages: list[dict[str, Any]]
+    ) -> None:
+        for message in messages:
+            if not isinstance(message, dict) or message.get("role") != "assistant":
+                continue
+            if any(key in message for key in _PRIVATE_REASONING_KEYS):
+                self._reasoning_continuation_observed = True
+
+
+def _safe_error_class(exc: Exception) -> str:
+    status = getattr(exc, "status_code", None)
+    response = getattr(exc, "response", None)
+    if status is None and response is not None:
+        status = getattr(response, "status_code", None)
+    text = str(exc).lower()
+    if "insufficient balance" in text or "quota exceeded" in text:
+        return "provider.stop.explicit_quota_exhausted"
+    if status == 401:
+        return "provider.stop.authentication_401"
+    if status == 429:
+        return "provider.fail.rate_limited_429"
+    if isinstance(status, int) and 500 <= status <= 599:
+        return "provider.fail.server_5xx"
+    name = exc.__class__.__name__.lower()
+    if "timeout" in name or "timeout" in text:
+        return "provider.fail.timeout"
+    if "connection" in name:
+        return "provider.fail.connection"
+    return "provider.fail.other"
+
+
+def _sha256_json(value: object) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+__all__ = [
+    "AdaptiveDeepSeekProviderConfig",
+    "AdaptiveLeaseBoundDeepSeekProvider",
+    "AdaptiveProviderTurnError",
+]

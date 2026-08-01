@@ -16,6 +16,7 @@ import hashlib
 import json
 import re
 import shlex
+from copy import deepcopy
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -99,7 +100,46 @@ _RUNTIME_CONTROL_PARAMETERS = frozenset(
 class _Contract(BaseModel):
     """Strict, immutable public contracts returned by model-facing tools."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, validate_default=True)
+
+
+class _FrozenDict(dict):
+    """JSON-serializable mapping which rejects post-validation mutation."""
+
+    @staticmethod
+    def _blocked(*_args: Any, **_kwargs: Any) -> None:
+        raise TypeError("command contract mappings are immutable")
+
+    __setitem__ = _blocked
+    __delitem__ = _blocked
+    __ior__ = _blocked
+    clear = _blocked
+    pop = _blocked
+    popitem = _blocked
+    setdefault = _blocked
+    update = _blocked
+
+
+def _deep_freeze(value: Any) -> Any:
+    """Copy JSON-like model input into recursively immutable containers."""
+
+    if isinstance(value, Mapping):
+        return _FrozenDict(
+            {
+                str(key): _deep_freeze(item)
+                for key, item in sorted(value.items(), key=lambda pair: str(pair[0]))
+            }
+        )
+    if isinstance(value, (list, tuple)):
+        return tuple(_deep_freeze(item) for item in value)
+    if isinstance(value, (set, frozenset)):
+        return tuple(
+            sorted(
+                (_deep_freeze(item) for item in value),
+                key=lambda item: json.dumps(item, sort_keys=True, default=str),
+            )
+        )
+    return value
 
 
 class ArtifactBinding(_Contract):
@@ -174,7 +214,7 @@ class CommandNode(_Contract):
         for key in value:
             _validate_parameter_key(key)
             _parameter_name_from_key(key)
-        return dict(value)
+        return _deep_freeze(value)
 
     @field_validator("dependencies")
     @classmethod
@@ -184,7 +224,7 @@ class CommandNode(_Contract):
         for dependency in value:
             if not re.fullmatch(_IDENTIFIER_PATTERN, dependency):
                 raise ValueError("dependency is not a stable node identifier")
-        return value
+        return tuple(sorted(value))
 
     @field_validator("expected_artifact_classes")
     @classmethod
@@ -196,7 +236,7 @@ class CommandNode(_Contract):
         for artifact_class in value:
             if not re.fullmatch(r"^[a-z][a-z0-9_.-]*$", artifact_class):
                 raise ValueError("expected artifact class is invalid")
-        return value
+        return tuple(sorted(value))
 
     @field_validator("constraint_ids")
     @classmethod
@@ -206,7 +246,7 @@ class CommandNode(_Contract):
         for constraint_id in value:
             if not re.fullmatch(_IDENTIFIER_PATTERN, constraint_id):
                 raise ValueError("constraint_ids must use stable identifiers")
-        return value
+        return tuple(sorted(value))
 
 
 class CommandWorkflowSpec(_Contract):
@@ -253,7 +293,7 @@ class ResolvedProject(_Contract):
 
     project_id: str = Field(pattern=_IDENTIFIER_PATTERN)
     sha256: str = Field(pattern=_SHA256_PATTERN)
-    program: Literal["gaussian", "orca"]
+    program: Literal["gaussian", "orca", "xtb"]
     command_value: str = Field(
         min_length=1,
         max_length=128,
@@ -305,6 +345,13 @@ class CanonicalCommandInvocation(_Contract):
     environment_digest: str = Field(pattern=_SHA256_PATTERN)
     intent_projection: dict[str, Any] = Field(default_factory=dict)
 
+    @field_validator("intent_projection")
+    @classmethod
+    def _immutable_intent_projection(
+        cls, value: dict[str, Any]
+    ) -> dict[str, Any]:
+        return _deep_freeze(value)
+
 
 class CommandCounterexample(_Contract):
     """Minimal structured compiler evidence supplied to a bounded repair."""
@@ -315,6 +362,11 @@ class CommandCounterexample(_Contract):
     expected: Any = None
     observed: Any = None
     evidence_id: str = Field(min_length=1, max_length=128)
+
+    @field_validator("expected", "observed")
+    @classmethod
+    def _immutable_evidence_values(cls, value: Any) -> Any:
+        return _deep_freeze(value)
 
 
 class CommandWorkflowCompilation(_Contract):
@@ -388,7 +440,10 @@ class CommandWorkflowCompiler:
     """Compile typed workflow intent against a live Click-schema snapshot."""
 
     def __init__(self, schema: Mapping[str, Any] | None = None) -> None:
-        self._schema = dict(schema or build_chemsmart_cli_schema())
+        # The Click schema is part of every invocation identity.  Take a full
+        # snapshot so a caller retaining the source mapping cannot mutate the
+        # compiler's behavior after ``schema_digest`` has been computed.
+        self._schema = deepcopy(schema or build_chemsmart_cli_schema())
         self.schema_digest = cli_schema_digest(self._schema)
 
     def compile(
@@ -397,6 +452,14 @@ class CommandWorkflowCompiler:
         context: CompilationContext,
     ) -> CommandWorkflowCompilation:
         """Compile a workflow without spawning a process or writing files."""
+
+        # ``model_copy(update=...)`` is intentionally unchecked by Pydantic.
+        # Re-enter through the public schema at this trust boundary so copied
+        # mappings cannot bypass key validation, canonical ordering, or deep
+        # immutability before they influence argv rendering and digests.
+        workflow = CommandWorkflowSpec.model_validate(
+            workflow.model_dump(mode="json")
+        )
 
         errors: list[CommandCounterexample] = []
         if workflow.cli_schema_digest != self.schema_digest:
@@ -508,7 +571,11 @@ class CommandWorkflowCompiler:
                     )
                 )
                 continue
-            if _project_owns_parameter(program, option.name):
+            if _project_owns_parameter(
+                program,
+                option.name,
+                project_bound=node.project_ref is not None,
+            ):
                 errors.append(
                     _counterexample(
                         "cmd.ir.project_owned_setting",
@@ -1482,7 +1549,7 @@ def _ground_project(
             )
         )
         return
-    if program in {"gaussian", "orca"} and project.program != program:
+    if program in _COMPUTATIONAL_PROGRAMS and project.program != program:
         errors.append(
             _counterexample(
                 "cmd.project.program_mismatch",
@@ -2038,8 +2105,25 @@ def _is_geometry_artifact_kind(kind: str) -> bool:
     }
 
 
-def _project_owns_parameter(program: str | None, parameter: str) -> bool:
-    return program in {"gaussian", "orca"} and parameter in _PROJECT_OWNED_PARAMETERS
+def _project_owns_parameter(
+    program: str | None,
+    parameter: str,
+    *,
+    project_bound: bool = False,
+) -> bool:
+    if program in {"gaussian", "orca"}:
+        return parameter in _PROJECT_OWNED_PARAMETERS
+    return bool(
+        program == "xtb"
+        and project_bound
+        and parameter
+        in {
+            "gfn_version",
+            "optimization_level",
+            "solvent_model",
+            "solvent_id",
+        }
+    )
 
 
 def _program_from_path(command_path: tuple[str, ...]) -> str | None:

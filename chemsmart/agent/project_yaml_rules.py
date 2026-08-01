@@ -7,13 +7,22 @@ from typing import Any
 from chemsmart.agent.harness.basis_sets import resolve_basis_name
 from chemsmart.agent.project_protocol import render_method_block
 from chemsmart.agent.project_yaml_values import string_list, string_or_none
+from chemsmart.io.xtb import (
+    XTB_ALL_METHODS,
+    XTB_ALL_OPT_LEVELS,
+    XTB_ALL_SOLVENT_IDS,
+    XTB_ALL_SOLVENT_MODELS,
+)
 
 
 def static_project_yaml_issues(
     parsed: dict[str, Any],
     program: str,
+    required_job_kinds: tuple[str, ...] = (),
 ) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
+    if program == "xtb":
+        return _xtb_static_issues(parsed, required_job_kinds)
     if "gas" not in parsed and "solv" not in parsed:
         issues.append(
             issue(
@@ -51,6 +60,170 @@ def static_project_yaml_issues(
     return issues
 
 
+def _xtb_static_issues(
+    parsed: dict[str, Any],
+    required_job_kinds: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    allowed_top = {"sp", "opt", "hess"}
+    common_keys = {"gfn_version", "solvent_model", "solvent_id"}
+    unknown = sorted(set(parsed) - allowed_top)
+    for key in unknown:
+        issues.append(
+            issue(
+                "yaml.xtb.unknown_job_block",
+                "reject",
+                f"xTB project YAML does not support top-level block {key!r}.",
+            )
+        )
+    if not set(parsed).intersection(allowed_top):
+        issues.append(
+            issue(
+                "yaml.xtb.job_block_missing",
+                "reject",
+                "xTB project YAML must define sp, opt, or hess settings.",
+            )
+        )
+    for job in required_job_kinds:
+        if job not in allowed_top:
+            issues.append(
+                issue(
+                    "yaml.xtb.required_job_unsupported",
+                    "reject",
+                    f"xTB project validation cannot bind job {job!r}.",
+                )
+            )
+        elif job not in parsed:
+            issues.append(
+                issue(
+                    "yaml.xtb.required_job_block_missing",
+                    "reject",
+                    (
+                        f"xTB {job} is used by the command workflow but its "
+                        "settings are absent from the project YAML; loader "
+                        "defaults are not paper evidence."
+                    ),
+                )
+            )
+    for job in sorted(set(parsed).intersection(allowed_top)):
+        block = parsed[job]
+        if not isinstance(block, dict):
+            issues.append(
+                issue(
+                    "yaml.xtb.job_block_not_mapping",
+                    "reject",
+                    f"{job} must be a mapping.",
+                )
+            )
+            continue
+        allowed_keys = common_keys | (
+            {"optimization_level"} if job == "opt" else set()
+        )
+        undeclared = sorted(set(block).difference(allowed_keys))
+        if undeclared:
+            issues.append(
+                issue(
+                    "yaml.xtb.undeclared_job_key",
+                    "reject",
+                    (
+                        f"{job} contains non-reusable or unsupported keys: "
+                        f"{', '.join(undeclared)}."
+                    ),
+                )
+            )
+        method = string_or_none(block.get("gfn_version"))
+        if method not in XTB_ALL_METHODS:
+            issues.append(
+                issue(
+                    "yaml.xtb.gfn_invalid",
+                    "reject",
+                    f"{job}.gfn_version must be one of {XTB_ALL_METHODS!r}.",
+                )
+            )
+        opt_level = (
+            string_or_none(block.get("optimization_level"))
+            if job == "opt"
+            else None
+        )
+        if opt_level is not None and opt_level not in XTB_ALL_OPT_LEVELS:
+            issues.append(
+                issue(
+                    "yaml.xtb.optimization_level_invalid",
+                    "reject",
+                    f"{job}.optimization_level must be one of {XTB_ALL_OPT_LEVELS!r}.",
+                )
+            )
+        model = string_or_none(block.get("solvent_model"))
+        solvent = string_or_none(block.get("solvent_id"))
+        if (model is None) != (solvent is None):
+            issues.append(
+                issue(
+                    "yaml.xtb.solvent_pair_incomplete",
+                    "reject",
+                    f"{job} must define both solvent_model and solvent_id or neither.",
+                )
+            )
+        if model is not None and model not in XTB_ALL_SOLVENT_MODELS:
+            issues.append(
+                issue(
+                    "yaml.xtb.solvent_model_invalid",
+                    "reject",
+                    f"{job}.solvent_model must be one of {XTB_ALL_SOLVENT_MODELS!r}.",
+                )
+            )
+        if solvent is not None and solvent not in XTB_ALL_SOLVENT_IDS:
+            issues.append(
+                issue(
+                    "yaml.xtb.solvent_id_invalid",
+                    "reject",
+                    f"{job}.solvent_id must be one of the supported xTB solvent IDs.",
+                )
+            )
+        forbidden = sorted(set(block).intersection({"charge", "multiplicity"}))
+        if forbidden:
+            issues.append(
+                issue(
+                    "yaml.xtb.molecular_state_forbidden",
+                    "reject",
+                    (
+                        "xTB charge and multiplicity belong to each command "
+                        "node, not reusable project YAML."
+                    ),
+                )
+            )
+    return issues
+
+
+def runtime_project_yaml_issues(
+    runtime_summary: dict[str, Any],
+    program: str,
+) -> list[dict[str, Any]]:
+    """Reject a runtime loader that changes an xTB job-family identity."""
+
+    if program != "xtb":
+        return []
+    issues: list[dict[str, Any]] = []
+    for requested_job in ("sp", "opt", "hess"):
+        loaded = runtime_summary.get(requested_job)
+        effective_job = (
+            string_or_none(loaded.get("jobtype"))
+            if isinstance(loaded, dict)
+            else None
+        )
+        if effective_job != requested_job:
+            issues.append(
+                issue(
+                    "yaml.xtb.effective_jobtype_mismatch",
+                    "reject",
+                    (
+                        f"xTB {requested_job} settings loaded with effective "
+                        f"jobtype {effective_job!r}."
+                    ),
+                )
+            )
+    return issues
+
+
 def protocol_alignment_issues(
     parsed: Any,
     protocol: dict[str, Any],
@@ -60,11 +233,47 @@ def protocol_alignment_issues(
     method = protocol.get("method")
     if not isinstance(method, dict):
         return []
+    if protocol.get("program") == "xtb":
+        return _xtb_alignment_issues(parsed, method)
     block = parsed.get("gas") if isinstance(parsed.get("gas"), dict) else {}
     issues = _method_alignment_issues(block, method)
     td_method = protocol.get("td")
     if isinstance(td_method, dict):
         issues.extend(_td_alignment_issues(parsed, td_method))
+    return issues
+
+
+def _xtb_alignment_issues(
+    parsed: dict[str, Any], method: dict[str, Any]
+) -> list[dict[str, Any]]:
+    issues: list[dict[str, Any]] = []
+    for job in ("sp", "opt", "hess"):
+        block = parsed.get(job)
+        if not isinstance(block, dict):
+            continue
+        for key in ("gfn_version", "solvent_model", "solvent_id"):
+            expected = string_or_none(method.get(key))
+            if expected is not None and block.get(key) != expected:
+                issues.append(
+                    issue(
+                        f"critic.xtb.{key}_mismatch",
+                        "reject",
+                        f"{job}.{key} should be {expected!r} for the reported method.",
+                    )
+                )
+        expected_opt = string_or_none(method.get("optimization_level"))
+        if (
+            job == "opt"
+            and expected_opt is not None
+            and block.get("optimization_level") != expected_opt
+        ):
+            issues.append(
+                issue(
+                    "critic.xtb.optimization_level_mismatch",
+                    "reject",
+                    f"opt.optimization_level should be {expected_opt!r}.",
+                )
+            )
     return issues
 
 
@@ -244,6 +453,37 @@ def _method_alignment_issues(
                 ),
             )
         )
+    expected_grid = string_or_none(method.get("integration_grid"))
+    if expected_grid is not None:
+        normalized_grid = "".join(
+            character
+            for character in expected_grid.lower()
+            if character.isalnum()
+        )
+        expected_route = (
+            "Int=UltraFine"
+            if normalized_grid in {"ultrafine", "99590"}
+            else None
+        )
+        if expected_route is None:
+            issues.append(
+                issue(
+                    "critic.integration_grid_unsupported",
+                    "reject",
+                    f"reported integration grid {expected_grid!r} is unsupported.",
+                )
+            )
+        elif block.get("additional_route_parameters") != expected_route:
+            issues.append(
+                issue(
+                    "critic.integration_grid_mismatch",
+                    "reject",
+                    (
+                        "gas.additional_route_parameters should be "
+                        f"{expected_route!r} for the reported integration grid."
+                    ),
+                )
+            )
     return issues
 
 

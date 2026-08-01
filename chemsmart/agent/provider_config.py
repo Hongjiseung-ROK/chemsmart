@@ -29,6 +29,9 @@ class AgentProviderConfig:
     hf_token: str = ""
     runtime: str = ""
     project: str = ""
+    thinking_mode: str = "disabled"
+    reasoning_effort: str = "high"
+    max_output_tokens: int | None = None
 
 
 class AgentProviderConfigError(Exception):
@@ -147,6 +150,11 @@ def load_active_provider_config(
         )
     runtime = _optional_string_field(provider_entry, "runtime")
     project = _optional_string_field(provider_entry, "project")
+    thinking_mode = _thinking_mode(provider_entry)
+    reasoning_effort = _reasoning_effort(provider_entry)
+    max_output_tokens = _optional_positive_int_field(
+        provider_entry, "max_output_tokens"
+    )
 
     if provider_type == "local":
         api_key = _resolve_local_hf_token(provider_entry)
@@ -169,6 +177,9 @@ def load_active_provider_config(
         hf_token=api_key if provider_type == "local" else "",
         runtime=runtime,
         project=project,
+        thinking_mode=thinking_mode,
+        reasoning_effort=reasoning_effort,
+        max_output_tokens=max_output_tokens,
     )
 
 
@@ -201,6 +212,37 @@ def _optional_string_field(entry: dict[str, Any], key: str) -> str:
     if not isinstance(value, str):
         raise AgentProviderConfigError(f"provider field {key!r} must be text")
     return value.strip()
+
+
+def _thinking_mode(entry: dict[str, Any]) -> str:
+    value = _optional_string_field(entry, "thinking_mode") or "disabled"
+    if value not in {"enabled", "disabled"}:
+        raise AgentProviderConfigError(
+            "provider field 'thinking_mode' must be 'enabled' or 'disabled'"
+        )
+    return value
+
+
+def _reasoning_effort(entry: dict[str, Any]) -> str:
+    value = _optional_string_field(entry, "reasoning_effort") or "high"
+    if value not in {"low", "high", "max"}:
+        raise AgentProviderConfigError(
+            "provider field 'reasoning_effort' must be 'low', 'high', or 'max'"
+        )
+    return value
+
+
+def _optional_positive_int_field(
+    entry: dict[str, Any], key: str
+) -> int | None:
+    value = entry.get(key)
+    if value is None or value == "":
+        return None
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise AgentProviderConfigError(
+            f"provider field {key!r} must be a positive integer"
+        )
+    return value
 
 
 def _resolve_api_key(entry: dict[str, Any], provider_name: str) -> str:
