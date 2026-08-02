@@ -884,6 +884,7 @@ _REQUIRED_JOB_SEMANTIC_FIELDS = (
     "freq",
     "numfreq",
     "optimization_level",
+    "additional_route_parameters",
 )
 
 
