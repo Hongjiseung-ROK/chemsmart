@@ -252,6 +252,11 @@ def test_exact_observed_acknowledgement_is_host_compiled_and_accepted(
     assert proposal["command_authored"] is False
     assert proposal["project_written"] is False
     assert proposal["execution_requested"] is False
+    assert proposal["analysis_summary"] == (
+        v5r2.render_authoritative_public_report(binding)
+    )
+    assert "scientific suitability" in proposal["analysis_summary"]
+    assert "are not verified" in proposal["analysis_summary"]
 
 
 def test_structured_counterexamples_allow_a_field_local_repair(
@@ -401,4 +406,46 @@ def test_archived_comparator_manifest_rejects_exact_byte_tampering(
     with pytest.raises(ValueError, match="manifest|replay"):
         v5r2.load_archived_v5r1_comparator(
             copied_root, "orca-def2-tzvp-fe-no-ecp"
+        )
+
+
+def test_private_campaign_manifest_binds_bytes_and_rejects_secrets(
+    tmp_path: Path,
+) -> None:
+    private_root = tmp_path / "private"
+    session = private_root / "session"
+    session.mkdir(parents=True)
+    (session / "runtime_state.json").write_text(
+        json.dumps({"phase": "synthesis"}) + "\n",
+        encoding="utf-8",
+    )
+    receipt, manifest, receipt_bytes, manifest_bytes = (
+        v5r2.seal_private_campaign_evidence(
+            run_root=private_root,
+            campaign_plan_sha256="1" * 64,
+            source_binding_sha256="2" * 64,
+            secret_values=("private-test-secret",),
+        )
+    )
+    assert receipt.private_manifest_sha256 == manifest.manifest_sha256
+    assert v5r2.content_sha256(receipt_bytes) == v5r2.content_sha256(
+        (private_root / "campaign-receipt.json").read_bytes()
+    )
+    assert v5r2.content_sha256(manifest_bytes) == v5r2.content_sha256(
+        (private_root / "artifact-manifest.json").read_bytes()
+    )
+    v5r2.verify_evidence_artifact_manifest_v2(private_root, manifest)
+
+    unsafe = tmp_path / "unsafe-private"
+    unsafe.mkdir()
+    (unsafe / "state.json").write_text(
+        json.dumps({"credential": "private-test-secret"}) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="secret material"):
+        v5r2.seal_private_campaign_evidence(
+            run_root=unsafe,
+            campaign_plan_sha256="1" * 64,
+            source_binding_sha256="2" * 64,
+            secret_values=("private-test-secret",),
         )

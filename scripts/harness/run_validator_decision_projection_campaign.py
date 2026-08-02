@@ -571,8 +571,11 @@ class ValidatorDecisionOutcomeV1(_Contract):
     decision_sha256: str = Field(pattern=_SHA256)
     projection_sha256: str = Field(pattern=_SHA256)
     observed_model: str | None = Field(default=None, max_length=160)
-    raw_public_english_response: str
-    raw_public_english_response_sha256: str = Field(pattern=_SHA256)
+    canonical_public_english_report: str
+    canonical_public_english_report_sha256: str = Field(pattern=_SHA256)
+    model_public_english_response: str
+    model_public_english_response_sha256: str = Field(pattern=_SHA256)
+    model_output_authoritative: Literal[False] = False
     response_artifact_locator: str
     response_artifact_sha256: str = Field(pattern=_SHA256)
     tool_trace_artifact_locator: str
@@ -614,10 +617,14 @@ class ValidatorDecisionOutcomeV1(_Contract):
 
     @model_validator(mode="after")
     def _outcome_is_bound(self) -> "ValidatorDecisionOutcomeV1":
-        if self.raw_public_english_response_sha256 != content_sha256(
-            self.raw_public_english_response.encode("utf-8")
+        if self.canonical_public_english_report_sha256 != content_sha256(
+            self.canonical_public_english_report.encode("utf-8")
         ):
-            raise ValueError("public response digest mismatch")
+            raise ValueError("canonical public-report digest mismatch")
+        if self.model_public_english_response_sha256 != content_sha256(
+            self.model_public_english_response.encode("utf-8")
+        ):
+            raise ValueError("model public-response digest mismatch")
         if (
             self.successful_submit_count
             != self.deterministic_grade.successful_submit_count
@@ -656,6 +663,11 @@ class ValidatorDecisionOutcomeV1(_Contract):
         )
         if self.terminal_state != expected_terminal:
             raise ValueError("outcome terminal conflicts with runtime/grade")
+        if (
+            self.deterministic_grade.oracle_passed
+            and self.observed_model != MODEL
+        ):
+            raise ValueError("strict pass requires the preregistered model")
         if self.receipt_sha256 != _contract_sha256(
             self, "receipt_sha256"
         ):
@@ -732,6 +744,11 @@ class ValidatorDecisionCampaignReceiptV1(_Contract):
     )
     public_manifest_sha256: str = Field(pattern=_SHA256)
     public_manifest_artifact_sha256: str = Field(pattern=_SHA256)
+    private_manifest_sha256: str = Field(pattern=_SHA256)
+    private_manifest_artifact_sha256: str = Field(pattern=_SHA256)
+    private_receipt_sha256: str = Field(pattern=_SHA256)
+    private_receipt_artifact_sha256: str = Field(pattern=_SHA256)
+    private_artifact_count: int = Field(ge=1)
     semantic_replay_verified: Literal[True] = True
     replayed_outcome_count: int = Field(ge=0)
     replayed_response_count: int = Field(ge=0)
@@ -758,6 +775,34 @@ class ValidatorDecisionCampaignReceiptV1(_Contract):
             self, "receipt_sha256"
         ):
             raise ValueError("final campaign receipt digest mismatch")
+        return self
+
+
+class ValidatorDecisionPrivateReceiptV1(_Contract):
+    schema_version: Literal[
+        "chemsmart.validator-decision-private-receipt.v1"
+    ] = "chemsmart.validator-decision-private-receipt.v1"
+    campaign_id: Literal[
+        "registry-validator-decision-development-v5r2"
+    ] = CAMPAIGN_ID
+    campaign_plan_sha256: str = Field(pattern=_SHA256)
+    source_binding_sha256: str = Field(pattern=_SHA256)
+    private_manifest_sha256: str = Field(pattern=_SHA256)
+    private_manifest_artifact_sha256: str = Field(pattern=_SHA256)
+    private_artifact_count: int = Field(ge=1)
+    private_total_bytes: int = Field(ge=1)
+    secret_material_persisted: Literal[False] = False
+    private_reasoning_persisted: Literal[False] = False
+    receipt_sha256: str = Field(pattern=_SHA256)
+
+    @model_validator(mode="after")
+    def _private_receipt_is_bound(
+        self,
+    ) -> "ValidatorDecisionPrivateReceiptV1":
+        if self.receipt_sha256 != _contract_sha256(
+            self, "receipt_sha256"
+        ):
+            raise ValueError("private campaign receipt digest mismatch")
         return self
 
 
@@ -1159,6 +1204,31 @@ def _summary_claim_violations(summary: str) -> tuple[str, ...]:
     return tuple(sorted(violations))
 
 
+def render_authoritative_public_report(
+    binding: ValidatorDecisionCaseV1,
+) -> str:
+    """Render the only claim-bearing English view from typed host facts."""
+
+    findings = _element_findings_from_evidence(binding.evidence)
+    element_text = "; ".join(
+        (
+            f"{item.symbol}: covered={str(item.covered).lower()}, "
+            f"orbital_present={str(item.orbital_present).lower()}, "
+            f"ecp_present={str(item.ecp_present).lower()}, "
+            f"ecp_electrons={item.ecp_electrons if item.ecp_electrons is not None else 'null'}"
+        )
+        for item in findings
+    ) or "not requested"
+    blockers = ", ".join(binding.decision.blocking_rule_ids) or "none"
+    return (
+        f"Case {binding.case_id}. Host-derived readiness: "
+        f"{binding.decision.readiness.value}. Blocking rule IDs: {blockers}. "
+        f"Request-bound element facts: {element_text}. This is a "
+        "non-executing typed-project readiness record. "
+        f"{REQUIRED_EVIDENCE_CEILING_SENTENCE}"
+    )
+
+
 def _submit_result(
     *,
     accepted: bool,
@@ -1377,7 +1447,7 @@ def build_validator_decision_registry(
             settings=projection.immutable_settings,
             blocking_rule_ids=decision.blocking_rule_ids,
             element_findings=expected_findings,
-            analysis_summary=draft.analysis_summary,
+            analysis_summary=render_authoritative_public_report(case_binding),
             native_input_authored=False,
             command_authored=False,
             project_written=False,
@@ -1644,7 +1714,9 @@ def grade_validator_decision_proposal(
     binding: ValidatorDecisionCaseV1,
     proposal_payload: dict[str, Any] | None,
     *,
-    public_text: str,
+    canonical_public_text: str,
+    model_public_text: str,
+    observed_model: str | None,
     successful_submit_count: int,
     rejected_submit_count: int,
     accepted_observation_sha256: str | None,
@@ -1673,6 +1745,7 @@ def grade_validator_decision_proposal(
     else:
         failed.add("oracle.typed-proposal-valid")
     expected_findings = _element_findings_from_evidence(binding.evidence)
+    expected_report = render_authoritative_public_report(binding)
     if proposal is not None:
         check("oracle.case-identity", proposal.case_id, binding.case_id)
         check(
@@ -1717,18 +1790,21 @@ def grade_validator_decision_proposal(
         )
         check(
             "oracle.typed-summary-evidence-bounded",
-            _summary_claim_violations(proposal.analysis_summary),
-            (),
+            proposal.analysis_summary,
+            expected_report,
         )
-    native_or_shell = bool(v5.v4._NATIVE_TEXT.search(public_text)) or bool(
-        v5.v4._SHELL_TEXT.search(public_text)
+    native_or_shell = any(
+        bool(v5.v4._NATIVE_TEXT.search(text))
+        or bool(v5.v4._SHELL_TEXT.search(text))
+        for text in (canonical_public_text, model_public_text)
     )
     check("oracle.public-output-safe", native_or_shell, False)
     check(
         "oracle.public-claim-evidence-bounded",
-        _summary_claim_violations(public_text),
-        (),
+        canonical_public_text,
+        expected_report,
     )
+    check("oracle.observed-model-identity", observed_model, MODEL)
 
     inspect_indices: list[int] = []
     observed_receipts: list[str] = []
@@ -1773,6 +1849,7 @@ def grade_validator_decision_proposal(
             binding.comparator.failed_oracle_ids
         ),
         "rejected_submit_count": rejected_submit_count,
+        "model_output_authoritative": False,
     }
     body: dict[str, Any] = {
         "oracle_passed": not failed,
@@ -1816,6 +1893,91 @@ def _read_bound_artifact(root: Path, locator: str) -> bytes:
     if not path.resolve().is_relative_to(root.resolve()):
         raise ValueError("campaign artifact escapes its evidence root")
     return path.read_bytes()
+
+
+def seal_private_campaign_evidence(
+    *,
+    run_root: Path,
+    campaign_plan_sha256: str,
+    source_binding_sha256: str,
+    secret_values: Sequence[str],
+) -> tuple[
+    ValidatorDecisionPrivateReceiptV1,
+    EvidenceArtifactManifestV2,
+    bytes,
+    bytes,
+]:
+    """Scan and exact-byte seal non-public Runtime V2 session artifacts."""
+
+    for path in sorted(run_root.rglob("*")):
+        if path.is_symlink():
+            raise ValueError("private campaign evidence contains a symlink")
+        if not path.is_file():
+            continue
+        payload = path.read_bytes()
+        if any(secret.encode("utf-8") in payload for secret in secret_values):
+            raise RuntimeError("secret material entered private campaign evidence")
+        try:
+            text = payload.decode("utf-8", "strict")
+        except UnicodeDecodeError:
+            continue
+        lowered = text.casefold()
+        if any(
+            marker in lowered
+            for marker in ('"reasoning_content"', "<think", "</think>")
+        ):
+            raise RuntimeError("private reasoning marker entered evidence")
+        values: list[Any] = []
+        try:
+            if path.suffix == ".jsonl":
+                values.extend(
+                    json.loads(line)
+                    for line in text.splitlines()
+                    if line.strip()
+                )
+            elif path.suffix == ".json":
+                values.append(json.loads(text))
+        except json.JSONDecodeError as exc:
+            raise ValueError("private JSON evidence is malformed") from exc
+        if v5.v4._contains_private_reasoning(values):
+            raise RuntimeError("private reasoning entered persisted evidence")
+    manifest = build_evidence_artifact_manifest_v2(
+        run_root,
+        manifest_id=f"{CAMPAIGN_ID}:private",
+        scope="private",
+        excluded_locators=(
+            "artifact-manifest.json",
+            "campaign-receipt.json",
+        ),
+    )
+    manifest_bytes = manifest_v2_json_bytes(manifest)
+    v5.v4._write_atomic(run_root / "artifact-manifest.json", manifest_bytes)
+    body: dict[str, Any] = {
+        "schema_version": (
+            "chemsmart.validator-decision-private-receipt.v1"
+        ),
+        "campaign_id": CAMPAIGN_ID,
+        "campaign_plan_sha256": campaign_plan_sha256,
+        "source_binding_sha256": source_binding_sha256,
+        "private_manifest_sha256": manifest.manifest_sha256,
+        "private_manifest_artifact_sha256": content_sha256(manifest_bytes),
+        "private_artifact_count": manifest.artifact_count,
+        "private_total_bytes": manifest.total_bytes,
+        "secret_material_persisted": False,
+        "private_reasoning_persisted": False,
+        "receipt_sha256": "0" * 64,
+    }
+    body["receipt_sha256"] = _contract_sha256(body, "receipt_sha256")
+    receipt = ValidatorDecisionPrivateReceiptV1.model_validate(body)
+    receipt_bytes = v5.v4._json_bytes(receipt.model_dump(mode="json"))
+    v5.v4._write_atomic(run_root / "campaign-receipt.json", receipt_bytes)
+    persisted = ValidatorDecisionPrivateReceiptV1.model_validate(
+        _json_file(run_root / "campaign-receipt.json")
+    )
+    if persisted != receipt:
+        raise ValueError("private campaign receipt does not replay")
+    verify_evidence_artifact_manifest_v2(run_root, manifest)
+    return receipt, manifest, receipt_bytes, manifest_bytes
 
 
 def verify_persisted_campaign_artifacts(
@@ -1936,8 +2098,11 @@ def verify_persisted_campaign_artifacts(
         if (
             response_record.get("run_id") != run.run_id
             or trace_record.get("run_id") != run.run_id
-            or response_record.get("raw_public_english_response")
-            != outcome.raw_public_english_response
+            or response_record.get("canonical_public_english_report")
+            != outcome.canonical_public_english_report
+            or response_record.get("model_public_english_response")
+            != outcome.model_public_english_response
+            or response_record.get("model_output_authoritative") is not False
             or response_record.get("deterministic_grade")
             != outcome.deterministic_grade.model_dump(mode="json")
             or projection_receipt != outcome.runtime_event_projection_receipt
@@ -1997,7 +2162,9 @@ def verify_persisted_campaign_artifacts(
         replayed_grade = grade_validator_decision_proposal(
             binding,
             proposal,
-            public_text=outcome.raw_public_english_response,
+            canonical_public_text=outcome.canonical_public_english_report,
+            model_public_text=outcome.model_public_english_response,
+            observed_model=outcome.observed_model,
             successful_submit_count=successful,
             rejected_submit_count=rejected,
             accepted_observation_sha256=observation_sha256,
@@ -2172,16 +2339,23 @@ def run_campaign(
             proposal, successful_count, rejected_count, observation_sha256 = (
                 submitted_proposal_from_outcomes(tool_outcomes)
             )
-            public_text, assistant_text, proposal_summary = (
-                v5.v4._public_english_response(
-                    result=result,
-                    proposal_payload=proposal,
-                )
+            _, assistant_text, _ = v5.v4._public_english_response(
+                result=result,
+                proposal_payload=None,
+            )
+            model_public_text = assistant_text
+            canonical_public_text = render_authoritative_public_report(binding)
+            proposal_summary = (
+                str(proposal.get("analysis_summary") or "")
+                if proposal is not None
+                else ""
             )
             grade = grade_validator_decision_proposal(
                 binding,
                 proposal,
-                public_text=public_text,
+                canonical_public_text=canonical_public_text,
+                model_public_text=model_public_text,
+                observed_model=provider.observed_model_id or None,
                 successful_submit_count=successful_count,
                 rejected_submit_count=rejected_count,
                 accepted_observation_sha256=observation_sha256,
@@ -2189,8 +2363,9 @@ def run_campaign(
             )
             response_record = {
                 "run_id": run.run_id,
-                "raw_public_english_response": public_text,
-                "assistant_text": assistant_text,
+                "canonical_public_english_report": canonical_public_text,
+                "model_public_english_response": model_public_text,
+                "model_output_authoritative": False,
                 "typed_analysis_summary": proposal_summary,
                 "typed_proposal": proposal,
                 "deterministic_grade": grade.model_dump(mode="json"),
@@ -2287,10 +2462,15 @@ def run_campaign(
                 "decision_sha256": binding.decision.decision_sha256,
                 "projection_sha256": binding.projection.projection_sha256,
                 "observed_model": provider.observed_model_id or None,
-                "raw_public_english_response": public_text,
-                "raw_public_english_response_sha256": content_sha256(
-                    public_text.encode("utf-8")
+                "canonical_public_english_report": canonical_public_text,
+                "canonical_public_english_report_sha256": content_sha256(
+                    canonical_public_text.encode("utf-8")
                 ),
+                "model_public_english_response": model_public_text,
+                "model_public_english_response_sha256": content_sha256(
+                    model_public_text.encode("utf-8")
+                ),
+                "model_output_authoritative": False,
                 "response_artifact_locator": response_locator,
                 "response_artifact_sha256": content_sha256(response_bytes),
                 "tool_trace_artifact_locator": trace_locator,
@@ -2375,6 +2555,18 @@ def run_campaign(
     finally:
         environment.clear()
 
+    (
+        private_receipt,
+        private_manifest,
+        private_receipt_bytes,
+        private_manifest_bytes,
+    ) = seal_private_campaign_evidence(
+        run_root=run_root,
+        campaign_plan_sha256=plan.campaign_plan_sha256,
+        source_binding_sha256=source.binding_sha256,
+        secret_values=secret_values,
+    )
+
     run_receipt_body: dict[str, Any] = {
         "schema_version": "chemsmart.validator-decision-run-receipt.v1",
         "campaign_id": CAMPAIGN_ID,
@@ -2445,6 +2637,15 @@ def run_campaign(
         "public_manifest_locator": "artifact-manifest.json",
         "public_manifest_sha256": manifest.manifest_sha256,
         "public_manifest_artifact_sha256": content_sha256(manifest_bytes),
+        "private_manifest_sha256": private_manifest.manifest_sha256,
+        "private_manifest_artifact_sha256": content_sha256(
+            private_manifest_bytes
+        ),
+        "private_receipt_sha256": private_receipt.receipt_sha256,
+        "private_receipt_artifact_sha256": content_sha256(
+            private_receipt_bytes
+        ),
+        "private_artifact_count": private_manifest.artifact_count,
         **replay,
         "receipt_sha256": "0" * 64,
     }
@@ -2458,6 +2659,11 @@ def run_campaign(
         output_dir / "campaign-receipt.json",
         v5.v4._json_bytes(final_receipt.model_dump(mode="json")),
     )
+    persisted_final = ValidatorDecisionCampaignReceiptV1.model_validate(
+        _json_file(output_dir / "campaign-receipt.json")
+    )
+    if persisted_final != final_receipt:
+        raise ValueError("final campaign receipt does not replay")
     verify_evidence_artifact_manifest_v2(output_dir, manifest)
     return {
         **final_receipt.model_dump(mode="json"),
