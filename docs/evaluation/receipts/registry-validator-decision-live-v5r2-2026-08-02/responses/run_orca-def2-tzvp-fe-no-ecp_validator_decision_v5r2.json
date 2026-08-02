@@ -1,0 +1,94 @@
+{
+  "canonical_public_english_report": "Case orca-def2-tzvp-fe-no-ecp. Host-derived readiness: project_candidate. Blocking rule IDs: none. Request-bound element facts: Cl: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null; Fe: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "deterministic_grade": {
+    "details": {
+      "comparator_failed_oracle_ids": [
+        "oracle.setting-preservation"
+      ],
+      "comparator_terminal_state": "failed",
+      "decision_sha256": "4d40477fc9f79ed301077230f507da4f4f461d7ddaac98097bba4559d5282065",
+      "model_output_authoritative": false,
+      "projection_sha256": "0ada2cac065e7bd437eb82627a81766b7b598c038c74f562e977ecbc4d82499c",
+      "receipt_derived_blocking_rule_ids": [],
+      "receipt_derived_readiness": "project_candidate",
+      "rejected_submit_count": 0
+    },
+    "failed_oracle_ids": [],
+    "grade_sha256": "8573293ea8477ea89a0792d9898a44c3f0123b699b33b1166ee275b093589115",
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.causal-decision-observation",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.host-setting-preservation",
+      "oracle.observed-model-identity",
+      "oracle.program-identity",
+      "oracle.public-claim-evidence-bounded",
+      "oracle.public-output-safe",
+      "oracle.receipt-derived-blockers",
+      "oracle.receipt-derived-element-findings",
+      "oracle.receipt-derived-readiness",
+      "oracle.required-green-submit",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid",
+      "oracle.typed-summary-evidence-bounded"
+    ],
+    "rejected_submit_count": 0,
+    "successful_submit_count": 1
+  },
+  "model_output_authoritative": false,
+  "model_public_english_response": "Validator decision plan accepted (`accepted=true`, `verdict=ok`, no counterexamples, 0 repairs used).\n\nSummary of the controlled experiment for **orca-def2-tzvp-fe-no-ecp**:\n\n- **Readiness (host-derived):** `project_candidate` — blocking rule IDs: none; scope limited to typed-project support only (no suitability, preview, engine, or execution verification).\n- **Pinned BSE definition answer:** The def2-TZVP BSE element definition embeds **no Fe ECP**. Element facts: Cl (covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null); Fe (covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null). Immutable settings confirm `ecp_elements=[]` and `ecp_intent=null`.\n- **Evidence bounds:** zero project writes, zero native input previews, zero engine calls, zero HPC calls; scientific suitability and engine acceptance unverified.\n- **Decision SHA-256:** `4d40477fc9f79ed301077230f507da4f4f461d7ddaac98097bba4559d5282065`; observation receipt `observation:validator-decision:cf24e8f44b478ab4dc093fc72e971de6`.\n\nEvidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "private_reasoning_included": false,
+  "run_id": "run:orca-def2-tzvp-fe-no-ecp:validator_decision:v5r2",
+  "typed_analysis_summary": "Case orca-def2-tzvp-fe-no-ecp. Host-derived readiness: project_candidate. Blocking rule IDs: none. Request-bound element facts: Cl: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null; Fe: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "typed_proposal": {
+    "analysis_summary": "Case orca-def2-tzvp-fe-no-ecp. Host-derived readiness: project_candidate. Blocking rule IDs: none. Request-bound element facts: Cl: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null; Fe: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-def2-tzvp-fe-no-ecp",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": true,
+        "symbol": "Cl"
+      },
+      {
+        "covered": true,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": true,
+        "symbol": "Fe"
+      }
+    ],
+    "evidence_ref_sha256s": [
+      "000bc51e68dbd53bd091de4b7322e9e09cfd22551ebeff15a110826a4bf26a7c",
+      "02190de4e87f225c05f799716670f3b1e6ad40fa63f55bc164734842bcb5da90"
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "validator-orca-def2-tzvp-fe-no-ecp",
+    "project_written": false,
+    "readiness": "project_candidate",
+    "settings": {
+      "basis": "def2-TZVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

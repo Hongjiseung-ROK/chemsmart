@@ -1,0 +1,39 @@
+{
+  "campaign_id": "registry-validator-decision-development-v5r2",
+  "campaign_plan_sha256": "7f0f3ede26f18b791d48b574380b041f38bfb3a39ee6b4b9db02ba2c22b29b99",
+  "comparator_interpretation": "composite_engineering_recovery_not_causal_ablation",
+  "final_campaign_receipt_sha256": "d946be673a6364aadd57d0b61efbd6ab8b9544bb8a496338df38e9029491be9b",
+  "live_run_count": 5,
+  "model_english_responses_inspected": 5,
+  "observed_model_ids": [
+    "deepseek-v4-flash"
+  ],
+  "private_artifact_count": 30,
+  "private_manifest_sha256": "219a831ca3f42ac4d6dd775a7b34253c63dd6f64cf23f34e30944888a5755d95",
+  "private_receipt_sha256": "dd2de1d52fccea5e3ddb97a1c13700befa6338bae8bce1c631815cb90c4472e7",
+  "public_artifact_count": 32,
+  "public_manifest_sha256": "a4681c190448e03e8d81a36dea62e9495cb41087f254186e1d2b04cd4b2974e2",
+  "replay_checks": {
+    "campaign_envelope": true,
+    "cegis_lineage": true,
+    "deterministic_grade": true,
+    "outer_outcome_exact_bytes": true,
+    "private_exact_byte_manifest": true,
+    "provider_observations": true,
+    "public_exact_byte_manifest": true,
+    "runtime_event_chain_and_state": true,
+    "tool_and_response_semantics": true
+  },
+  "safety": {
+    "chemistry_engine_calls": 0,
+    "hpc_calls": 0,
+    "native_inputs_authored": 0,
+    "private_reasoning_persisted": false,
+    "project_writes": 0,
+    "secret_material_persisted": false
+  },
+  "source_commit": "6a033a37f025ff4274c5aad39c06aa16a7fc6341",
+  "strict_pass_count": 5,
+  "transport_attempts": 15,
+  "receipt_sha256": "fa356ead0d5960ed62e4bde5f8ff8670f2530e948f7e9712f9131047ec0d5c55"
+}

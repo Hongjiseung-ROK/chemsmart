@@ -1,0 +1,99 @@
+{
+  "canonical_public_english_report": "Case gaussian-def2-tzvppd-missing-ce. Host-derived readiness: blocked_missing_evidence. Blocking rule IDs: basis.request.element_coverage_conflict. Request-bound element facts: Pd: covered=true, orbital_present=true, ecp_present=true, ecp_electrons=28; Ce: covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "deterministic_grade": {
+    "details": {
+      "comparator_failed_oracle_ids": [
+        "oracle.honest-readiness",
+        "oracle.setting-preservation"
+      ],
+      "comparator_terminal_state": "failed",
+      "decision_sha256": "f42faab83a4aedee04e573f44e3a20a7ff5f41ccd18d4ca6e509f3737a4a3dba",
+      "model_output_authoritative": false,
+      "projection_sha256": "e6d494a088511341970d04e776ed2e3f47dae7802f164169d10067adb553efac",
+      "receipt_derived_blocking_rule_ids": [
+        "basis.request.element_coverage_conflict"
+      ],
+      "receipt_derived_readiness": "blocked_missing_evidence",
+      "rejected_submit_count": 0
+    },
+    "failed_oracle_ids": [],
+    "grade_sha256": "ba628ffd42741e707e00c76db1332a0f9e733061a4ef0ccfc6ad3fc438b44c05",
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.causal-decision-observation",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.host-setting-preservation",
+      "oracle.observed-model-identity",
+      "oracle.program-identity",
+      "oracle.public-claim-evidence-bounded",
+      "oracle.public-output-safe",
+      "oracle.receipt-derived-blockers",
+      "oracle.receipt-derived-element-findings",
+      "oracle.receipt-derived-readiness",
+      "oracle.required-green-submit",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid",
+      "oracle.typed-summary-evidence-bounded"
+    ],
+    "rejected_submit_count": 0,
+    "successful_submit_count": 1
+  },
+  "model_output_authoritative": false,
+  "model_public_english_response": "Submission accepted with verdict **ok** on the first attempt — no repairs required.\n\n**Case `gaussian-def2-tzvppd-missing-ce` — acknowledgment summary**\n\n- **Readiness:** `blocked_missing_evidence` (blocking rule: `basis.request.element_coverage_conflict`)\n- **Decision SHA-256:** `f42faab83a4aedee04e573f44e3a20a7ff5f41ccd18d4ca6e509f3737a4a3dba`\n- **Element facts (from host-derived projection):**\n  - Pd (Z=46): covered, orbital functions present, ECP present (28 ECP electrons)\n  - Ce (Z=58): not covered, no orbital functions, no ECP\n- The pinned def2-TZVPPD definition lacks Ce, so the B3LYP/def2-TZVPPD assessment is blocked on evidence grounds; no native inputs, commands, projects, or engine/HPC execution were authored or requested.\n\nEvidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "private_reasoning_included": false,
+  "run_id": "run:gaussian-def2-tzvppd-missing-ce:validator_decision:v5r2",
+  "typed_analysis_summary": "Case gaussian-def2-tzvppd-missing-ce. Host-derived readiness: blocked_missing_evidence. Blocking rule IDs: basis.request.element_coverage_conflict. Request-bound element facts: Pd: covered=true, orbital_present=true, ecp_present=true, ecp_electrons=28; Ce: covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "typed_proposal": {
+    "analysis_summary": "Case gaussian-def2-tzvppd-missing-ce. Host-derived readiness: blocked_missing_evidence. Blocking rule IDs: basis.request.element_coverage_conflict. Request-bound element facts: Pd: covered=true, orbital_present=true, ecp_present=true, ecp_electrons=28; Ce: covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+    "blocking_rule_ids": [
+      "basis.request.element_coverage_conflict"
+    ],
+    "case_id": "gaussian-def2-tzvppd-missing-ce",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": 28,
+        "ecp_present": true,
+        "orbital_present": true,
+        "symbol": "Pd"
+      },
+      {
+        "covered": false,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": false,
+        "symbol": "Ce"
+      }
+    ],
+    "evidence_ref_sha256s": [
+      "194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363",
+      "a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552"
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "validator-gaussian-def2-tzvppd-missing-ce",
+    "project_written": false,
+    "readiness": "blocked_missing_evidence",
+    "settings": {
+      "basis": "def2-TZVPPD",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

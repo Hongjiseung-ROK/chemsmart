@@ -1,0 +1,82 @@
+{
+  "canonical_public_english_report": "Case gaussian-raw-route-functional-invalid. Host-derived readiness: blocked_invalid_specification. Blocking rule IDs: paper.project.functional_not_atomic. Request-bound element facts: not requested. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "deterministic_grade": {
+    "details": {
+      "comparator_failed_oracle_ids": [
+        "oracle.setting-preservation"
+      ],
+      "comparator_terminal_state": "failed",
+      "decision_sha256": "d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b",
+      "model_output_authoritative": false,
+      "projection_sha256": "c4840a2dc84efb7d084b1d63d3fd88a59b674fcfb7302604b5b52f3a4a93808f",
+      "receipt_derived_blocking_rule_ids": [
+        "paper.project.functional_not_atomic"
+      ],
+      "receipt_derived_readiness": "blocked_invalid_specification",
+      "rejected_submit_count": 0
+    },
+    "failed_oracle_ids": [],
+    "grade_sha256": "6b8c5d677170c9d804dc92030d6a974358ce39b4bb5929ee11e3c468d5a61159",
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.causal-decision-observation",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.host-setting-preservation",
+      "oracle.observed-model-identity",
+      "oracle.program-identity",
+      "oracle.public-claim-evidence-bounded",
+      "oracle.public-output-safe",
+      "oracle.receipt-derived-blockers",
+      "oracle.receipt-derived-element-findings",
+      "oracle.receipt-derived-readiness",
+      "oracle.required-green-submit",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid",
+      "oracle.typed-summary-evidence-bounded"
+    ],
+    "rejected_submit_count": 0,
+    "successful_submit_count": 1
+  },
+  "model_output_authoritative": false,
+  "model_public_english_response": "Submission accepted with verdict `ok` on the first attempt — no repairs required.\n\n**Case: gaussian-raw-route-functional-invalid**\n- **Readiness (host-derived):** `blocked_invalid_specification`\n- **Decision SHA-256:** `d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b`\n- **Blocking rule:** `paper.project.functional_not_atomic` — the typed functional field holds `B3LYP nosymm`, a non-atomic literal that mixes the B3LYP functional with the native Gaussian route directive `nosymm`. The presence of basis `def2-SVP` does not repair the functional field.\n- **Element facts:** none provided; no ECP intent was inferred from the absent evidence (findings submitted as an empty list).\n\nEvidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "private_reasoning_included": false,
+  "run_id": "run:gaussian-raw-route-functional-invalid:validator_decision:v5r2",
+  "typed_analysis_summary": "Case gaussian-raw-route-functional-invalid. Host-derived readiness: blocked_invalid_specification. Blocking rule IDs: paper.project.functional_not_atomic. Request-bound element facts: not requested. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "typed_proposal": {
+    "analysis_summary": "Case gaussian-raw-route-functional-invalid. Host-derived readiness: blocked_invalid_specification. Blocking rule IDs: paper.project.functional_not_atomic. Request-bound element facts: not requested. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+    "blocking_rule_ids": [
+      "paper.project.functional_not_atomic"
+    ],
+    "case_id": "gaussian-raw-route-functional-invalid",
+    "command_authored": false,
+    "element_findings": [],
+    "evidence_ref_sha256s": [
+      "f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c"
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "validator-gaussian-raw-route-functional-invalid",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP nosymm",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

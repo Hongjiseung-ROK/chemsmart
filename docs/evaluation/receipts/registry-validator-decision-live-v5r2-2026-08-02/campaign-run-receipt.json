@@ -1,0 +1,48 @@
+{
+  "campaign_id": "registry-validator-decision-development-v5r2",
+  "campaign_plan_artifact_sha256": "09eab2a9a33a93cc64f621b1fd9b5235508c810e6ad2cfd17141415ff3f27013",
+  "campaign_plan_sha256": "7f0f3ede26f18b791d48b574380b041f38bfb3a39ee6b4b9db02ba2c22b29b99",
+  "duplicate_comparator_api_calls": 0,
+  "engine_calls": 0,
+  "hpc_calls": 0,
+  "live_run_count": 5,
+  "native_inputs_authored": 0,
+  "outcome_artifacts": [
+    {
+      "artifact_sha256": "816bb75f22339d0054307051b6fedda318901dafe929df3667068d612cd6fcb5",
+      "locator": "outcomes/run_gaussian-def2-tzvppd-missing-ce_validator_decision_v5r2.json",
+      "size_bytes": 11206
+    },
+    {
+      "artifact_sha256": "79d98d110e16c54b6fb98124c26d84c6dcaf233d65cba52cda7f969cba49bca5",
+      "locator": "outcomes/run_gaussian-raw-route-functional-invalid_validator_decision_v5r2.json",
+      "size_bytes": 11023
+    },
+    {
+      "artifact_sha256": "f67766a5442cb06d14e2587541eecbaaf231442bfb818be3bc0e76e966ae2d6a",
+      "locator": "outcomes/run_orca-def2-ecp-orbital-missing_validator_decision_v5r2.json",
+      "size_bytes": 11238
+    },
+    {
+      "artifact_sha256": "4372034ca387d0e74a070bf1f559961b4c4b85469875ca5300cc5acc456b67e1",
+      "locator": "outcomes/run_orca-def2-tzvp-fe-no-ecp_validator_decision_v5r2.json",
+      "size_bytes": 11230
+    },
+    {
+      "artifact_sha256": "17dba095ce0d7eba6c6a76e83eaa38f131db1bf70d3911d6ab46fc95efc7b5ec",
+      "locator": "outcomes/run_orca-def2-tzvp-pd-28e-ecp_validator_decision_v5r2.json",
+      "size_bytes": 11186
+    }
+  ],
+  "outcome_receipt_sha256s": [
+    "0a65e711bd46c2df0b831e5965d65bf82e13ad313d192bddeaf7d39b4e931666",
+    "2c6657bdd4643958df113ae36e073e0090222d9ec15eb2c6b46f33c957bec63f",
+    "5e0cd0e95243e56e09ddc688581694920c42820ab740f4c5eed54e1d9bd73673",
+    "9ae87c575c92d22ecb417d814624dfd36793c972d0b63a8ba868831e63e9152f",
+    "b040693b454dbc9216b979e037a502838c13d0e3e9566d19048a16b42e76b0e2"
+  ],
+  "project_writes": 0,
+  "receipt_sha256": "5b7db8ce97689c5fa440f641bdf7553966a6c85f13fea4d4ab356796072a8430",
+  "schema_version": "chemsmart.validator-decision-run-receipt.v1",
+  "strict_pass_count": 5
+}
