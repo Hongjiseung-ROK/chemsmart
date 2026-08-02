@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+
 import pytest
 from pydantic import ValidationError
 
@@ -17,6 +20,25 @@ from chemsmart.agent.harness.scientific_settings.readiness_gate import (
     scientific_settings_readiness_input_sha256,
 )
 from chemsmart.agent.project_readiness import assess_typed_project_readiness
+
+
+def test_project_readiness_direct_import_has_no_order_dependent_cycle():
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from chemsmart.agent.project_readiness import "
+                "assess_typed_project_readiness; "
+                "assert callable(assess_typed_project_readiness)"
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
 
 
 @pytest.fixture(scope="module")
