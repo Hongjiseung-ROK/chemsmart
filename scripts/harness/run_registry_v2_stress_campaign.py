@@ -2814,10 +2814,19 @@ def _proposal_from_outcomes(
     dict[str, Any] | None,
     dict[str, Any] | None,
 ]:
+    """Return the sole successful typed proposal, excluding rejected calls.
+
+    Tool-loop validation failures and malformed-argument rejections are
+    observable repair attempts, not successful submissions.  Counting them as
+    submissions makes a correctly repaired turn fail the exactly-one oracle.
+    """
+
     matches = [
         item.get("result")
         for item in outcomes
         if item.get("name") == "submit_registry_stress_plan"
+        and item.get("status") == "ok"
+        and item.get("error_type") is None
     ]
     if len(matches) != 1:
         return None, len(matches), None, None

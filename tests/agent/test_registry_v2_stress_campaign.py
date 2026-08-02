@@ -570,6 +570,26 @@ def test_exactly_one_successful_typed_submission_is_required():
     )
 
 
+def test_rejected_submit_attempt_is_not_a_successful_submission():
+    payload = _proposal(_case("orca-b97m-d4-exact-compound"))
+    rejected = {
+        "name": "submit_registry_stress_plan",
+        "status": "error",
+        "result": {"error": {"type": "ValidationError"}},
+        "error_type": "ValidationError",
+    }
+
+    assert stress._proposal_from_outcomes(
+        (rejected, _outcome("submit_registry_stress_plan", payload))
+    ) == (payload, 1, None, payload)
+    assert stress._proposal_from_outcomes((rejected,)) == (
+        None,
+        0,
+        None,
+        None,
+    )
+
+
 def test_submission_normalizer_fills_omission_and_sorts_sets():
     case = _case("orca-ma-def2-tzvp-cross-field-blocked")
     payload = _proposal(case)
