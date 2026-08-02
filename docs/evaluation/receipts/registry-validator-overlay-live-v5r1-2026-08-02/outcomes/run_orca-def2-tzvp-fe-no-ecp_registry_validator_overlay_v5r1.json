@@ -1,0 +1,202 @@
+{
+  "comparator": {
+    "arm": "registry_v2",
+    "campaign_id": "registry-v2-stress-development-v4",
+    "campaign_plan_artifact_sha256": "c1db75b9b513967cc5cfa0d82d877c2a0ad714268c39bfa406958a5809b1a4fc",
+    "campaign_plan_sha256": "23353fa15348bcbdeee5dde1a4f92d6ddd72efb7744bee5e901e3b59878a6b87",
+    "case_id": "orca-def2-tzvp-fe-no-ecp",
+    "comparator_sha256": "c5b4d360f31567194aeecfcaf6f9cbf5a482628271e58c233d6672f6f851d488",
+    "failed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.project-render",
+      "oracle.setting-preservation"
+    ],
+    "oracle_passed": false,
+    "outcome_artifact_locator": "docs/evaluation/receipts/registry-v2-stress-live-v4-2026-08-02/outcomes/run_orca-def2-tzvp-fe-no-ecp_registry_v2_v4.json",
+    "outcome_artifact_sha256": "c6a8016f54f7563895f0c4282143b3418ac2650929ac8d6f88c44b086cccdf54",
+    "outcome_receipt_sha256": "de814075a508bbc231acf4c9c896a9e5bf331cc3e5caa0cf10e9325078aa0ec2",
+    "run_id": "run:orca-def2-tzvp-fe-no-ecp:registry_v2:v4",
+    "run_spec_sha256": "8522c8725b600956654c736c71219902f8d3412e3a814f86648d1a92b0778972",
+    "schema_version": "chemsmart.archived-registry-v2-comparator.v1",
+    "terminal_state": "failed"
+  },
+  "outcome": {
+    "comparator_outcome_receipt_sha256": "de814075a508bbc231acf4c9c896a9e5bf331cc3e5caa0cf10e9325078aa0ec2",
+    "comparator_sha256": "c5b4d360f31567194aeecfcaf6f9cbf5a482628271e58c233d6672f6f851d488",
+    "deterministic_grade": {
+      "details": {
+        "basis_evidence_state": "verified",
+        "comparator_failed_oracle_ids": [
+          "oracle.basis-element-semantics",
+          "oracle.project-render",
+          "oracle.setting-preservation"
+        ],
+        "evidence_ref_sha256s": [
+          "000bc51e68dbd53bd091de4b7322e9e09cfd22551ebeff15a110826a4bf26a7c",
+          "02190de4e87f225c05f799716670f3b1e6ad40fa63f55bc164734842bcb5da90"
+        ],
+        "expected_readiness": "project_candidate",
+        "project_support_status": "typed_project_supported"
+      },
+      "failed_oracle_ids": [
+        "oracle.setting-preservation"
+      ],
+      "grade_sha256": "d6ed637b11e79b960dfe26549667e36d2ac930f83eac5292e350be4ddbb3195e",
+      "oracle_passed": false,
+      "passed_oracle_ids": [
+        "oracle.basis-element-semantics",
+        "oracle.basis-evidence-observed",
+        "oracle.case-identity",
+        "oracle.causal-evidence-observation",
+        "oracle.evidence-derived-blockers",
+        "oracle.evidence-ref-binding",
+        "oracle.execution-prohibited",
+        "oracle.honest-readiness",
+        "oracle.program-identity",
+        "oracle.project-readiness-observed",
+        "oracle.public-output-safe",
+        "oracle.typed-proposal-exactly-one",
+        "oracle.typed-proposal-valid"
+      ],
+      "rejected_submit_count": 1,
+      "successful_submit_count": 1
+    },
+    "duplicate_baseline_api_calls": 0,
+    "engine_calls": 0,
+    "evidence_ref_sha256s": [
+      "000bc51e68dbd53bd091de4b7322e9e09cfd22551ebeff15a110826a4bf26a7c",
+      "02190de4e87f225c05f799716670f3b1e6ad40fa63f55bc164734842bcb5da90"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 50014,
+    "native_inputs_authored": 0,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 9094,
+    "private_reasoning_persisted": false,
+    "private_runtime_event_log_sha256": "40a2604939242f11b1cd463551f57b706dd80fbad578687ad737d54008b8e2fc",
+    "project_writes": 0,
+    "raw_public_english_response": "Submission accepted. Public summary:\n\n**Plan: B3LYP/def2-TZVP (freq) for a Cl/Fe system — case `orca-def2-tzvp-fe-no-ecp`**\n\n- **Fe ECP answer: No.** The pinned BSE 0.11 def2-TZVP orbital definition (receipt `observation:request_bound_basis_evidence:c412f8adf15e6dcf3eca6533d2dcfa7b`) verifies Cl (Z=17) and Fe (Z=26) as covered with orbital functions only — for Fe: `ecp_present=false`, `ecp_electrons=null`, `ecp_potential_count=0`. No Fe ECP is embedded.\n- **Typed-project support: confirmed.** The readiness receipt (`observation:typed_project_readiness:a5caf818c85f4ad6568ea51da6952d3c`) reports `typed_project_supported` for the required opt job, with b3lyp/def2tzvp/freq preserved through render/load and validation verdict `ok`, and no blocking rule IDs.\n- **Readiness: `project_candidate`** with `blocking_rule_ids: []` — the verified case-bound element coverage and typed-project support resolve the archived V4 failures (basis-element-semantics, project-render, setting-preservation) with no remaining conflict; `ecp_intent=not_applicable`, `ecp_elements=[]`.\n- **Scope:** non-executing proposal only — no native input, command, project write, or engine/HPC execution was authored or requested. No scientific adequacy or engine-level verification is claimed beyond the receipts.",
+    "raw_public_english_response_sha256": "5bb8fdd49c3248f847558edb1980629aefe6e7f7b55f7afe118ac5c077c0f09b",
+    "receipt_sha256": "79455ede9bd2f9bf7f1390bd8522980b7f47737621494bbeb152aae570df9cf4",
+    "rejected_submit_count": 1,
+    "response_artifact_locator": "responses/run_orca-def2-tzvp-fe-no-ecp_registry_validator_overlay_v5r1.json",
+    "response_artifact_sha256": "30123174056ef636541885946a615629815e932fbd92c9e1c95027968a905679",
+    "run_id": "run:orca-def2-tzvp-fe-no-ecp:registry_validator_overlay:v5r1",
+    "run_spec_sha256": "92f32f4bccc9af6bf2314ad6568ffedc558f1a3c1e13d92e9426dd9aea27d47a",
+    "runtime_event_log_locator": "runtime-events/run_orca-def2-tzvp-fe-no-ecp_registry_validator_overlay_v5r1.jsonl",
+    "runtime_event_log_sha256": "355af56e380537e15d9bc91035c52daca6050f9d9346bad377693baa6c0ed79c",
+    "runtime_event_projection_receipt": {
+      "event_count": 22,
+      "private_exact_jsonl_sha256": "40a2604939242f11b1cd463551f57b706dd80fbad578687ad737d54008b8e2fc",
+      "projected_jsonl_sha256": "355af56e380537e15d9bc91035c52daca6050f9d9346bad377693baa6c0ed79c",
+      "projected_state_sha256": "bf58e5a4d555d5c9575980f05215c1fba36b1973a81dcbb86e401d91580e7d69",
+      "projection_rule_id": "runtime.public_event_projection.session_cwd_repository_identity.v1",
+      "receipt_sha256": "32dc24bc0e320135993f2b4e40301987d5545c840f7bfc636231da51f0fb6cc7",
+      "replacement_count": 1,
+      "replacement_field": "session_started.payload.cwd",
+      "repository_identity": "repo://chemsmart",
+      "schema_version": "chemsmart.runtime-public-event-projection-receipt.v1"
+    },
+    "runtime_event_projection_receipt_artifact_sha256": "8ece914b098b857c2bede933c6620c02b681f4e6d7ddd802d1b35b4b414520e4",
+    "runtime_event_projection_receipt_locator": "runtime-events/run_orca-def2-tzvp-fe-no-ecp_registry_validator_overlay_v5r1.projection-receipt.json",
+    "runtime_replay_state_sha256": "bf58e5a4d555d5c9575980f05215c1fba36b1973a81dcbb86e401d91580e7d69",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "complete",
+    "schema_version": "chemsmart.registry-validator-overlay-outcome.v1",
+    "secret_material_persisted": false,
+    "successful_submit_count": 1,
+    "terminal_state": "failed",
+    "tool_trace_artifact_locator": "tool-traces/run_orca-def2-tzvp-fe-no-ecp_registry_validator_overlay_v5r1.json",
+    "tool_trace_artifact_sha256": "f2466bd346de36274f8ad0692ac38ad11ced659a7c31e14d948dfdddf4b5378a",
+    "transport_attempts": 4,
+    "wall_time_ms": 65755
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-tzvp-fe-no-ecp:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "e6b184dbe5a8a3e68a76344cb1f0d727f5ddb33e784fa6d666cb74e095293ba6",
+      "input_tokens": 3573,
+      "latency_ms": 4430,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 554,
+      "request_binding_sha256": "9610274148cb95d5c7fe03e5a1538248bf91c3796a89ac26d01fe220d5e5d8c7",
+      "request_binding_verified": true,
+      "request_sha256": "f30eaba4fe4da9ec527b033d0c484a5f97b702c69b2c39bc2086a285b8409190",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 2,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-tzvp-fe-no-ecp:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "e6b184dbe5a8a3e68a76344cb1f0d727f5ddb33e784fa6d666cb74e095293ba6",
+      "input_tokens": 9881,
+      "latency_ms": 51188,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 7160,
+      "request_binding_sha256": "9610274148cb95d5c7fe03e5a1538248bf91c3796a89ac26d01fe220d5e5d8c7",
+      "request_binding_verified": true,
+      "request_sha256": "2969814ae9e02ac066458fecb2b8892a2838494ca0d44228746904ef8bea5716",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 3,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-tzvp-fe-no-ecp:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "e6b184dbe5a8a3e68a76344cb1f0d727f5ddb33e784fa6d666cb74e095293ba6",
+      "input_tokens": 17181,
+      "latency_ms": 5828,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 979,
+      "request_binding_sha256": "9610274148cb95d5c7fe03e5a1538248bf91c3796a89ac26d01fe220d5e5d8c7",
+      "request_binding_verified": true,
+      "request_sha256": "9a62ec63e0c9e8208d039332141bc8218671ec4de1c1227ebbbc8eb325662bef",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 4,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-tzvp-fe-no-ecp:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "e6b184dbe5a8a3e68a76344cb1f0d727f5ddb33e784fa6d666cb74e095293ba6",
+      "input_tokens": 19379,
+      "latency_ms": 3954,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 401,
+      "request_binding_sha256": "9610274148cb95d5c7fe03e5a1538248bf91c3796a89ac26d01fe220d5e5d8c7",
+      "request_binding_verified": true,
+      "request_sha256": "915e6d3282ef8043fb6db9503a2fe7295bbec6073d125ef8c8fc052240204950",
+      "status": "observed"
+    }
+  ],
+  "run_spec": {
+    "case_binding_sha256": "40c779e2954b4dd05a86353e657373812819f8b00a35188db72a072b487f65ea",
+    "case_id": "orca-def2-tzvp-fe-no-ecp",
+    "case_sha256": "0ae36cf18dd3345a28c78488fd99f84d3a5bcd3c2ab281be815cc12b13ab645f",
+    "changed_factor": "request_bound_basis_and_typed_project_evidence_overlay",
+    "comparator_sha256": "c5b4d360f31567194aeecfcaf6f9cbf5a482628271e58c233d6672f6f851d488",
+    "comparator_source": "archived_v4_registry_v2",
+    "configuration_sha256": "c391bf604ba514de7d111e71a32f382e55454d8f68efaf0fd9fc953a76fdea39",
+    "duplicate_baseline_api_calls": 0,
+    "evidence_bundle_sha256": "7942ea1c0f479498c68f45ddd00289a47aa2208f2d0df92e7c70c173a7de3a8d",
+    "evidence_ref_sha256s": [
+      "000bc51e68dbd53bd091de4b7322e9e09cfd22551ebeff15a110826a4bf26a7c",
+      "02190de4e87f225c05f799716670f3b1e6ad40fa63f55bc164734842bcb5da90"
+    ],
+    "expected_outcome": "One evidence-bound typed proposal preserves the case intent, uses readiness project_candidate, and makes no project, native-input, command, engine, or HPC action.",
+    "hypothesis_id": "hypothesis:orca-def2-tzvp-fe-no-ecp:registry_validator_overlay:v5r1",
+    "model": "deepseek-v4-flash",
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "prompt_sha256": "dfe82ae12b529381b41584566cc1fc561021739c4ebbe31399e3020a8be34714",
+    "prompt_version": "registry-validator-overlay-prompt.v1",
+    "public_path_guard_version": "public-path-fragment.v2",
+    "reasoning_mode": "thinking_enabled_high",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "run_id": "run:orca-def2-tzvp-fe-no-ecp:registry_validator_overlay:v5r1",
+    "run_spec_sha256": "92f32f4bccc9af6bf2314ad6568ffedc558f1a3c1e13d92e9426dd9aea27d47a",
+    "runtime": "agent_session_runtime_v2_active",
+    "schema_version": "chemsmart.registry-validator-overlay-run.v1",
+    "source_binding_sha256": "f2f5c6adfd3e6651b3422c354fe640ec74d70220d02496b9782d56ccf3d78397",
+    "tool_schema_sha256": "6f2bbd54570ba702ee18dac11cc825ccfdd9dcd60c801d07d70be8ef65fed51e"
+  }
+}

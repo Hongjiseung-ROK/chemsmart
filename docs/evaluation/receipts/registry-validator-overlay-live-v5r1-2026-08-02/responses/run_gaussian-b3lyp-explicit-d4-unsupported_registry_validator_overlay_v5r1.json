@@ -1,0 +1,76 @@
+{
+  "assistant_text": "Submission accepted. Public summary:\n\n**Case `gaussian-b3lyp-explicit-d4-unsupported` (Gaussian, freq): readiness = `blocked_unsupported_setting`.**\n\n- **V2 resolution:** B3LYP functional → `exact_registered` (loader accepted, renderer preserved); def2-SVP basis → `blocked_validation_coverage` (no basis EvidenceRef for this project-only case); D4 dispersion → `unknown_unverified` with no inventory entry.\n- **Deciding evidence:** the single typed-project-readiness receipt (`16f96283…`, observation `…d06b8e39…`) reports the Gaussian project compiler does not preserve dispersion `'D4'` (only D3 and D3BJ are supported), validation verdict reject.\n- **Decision:** D4 is kept explicit — not silently dropped — and the plan retains the evidence-derived blocker `paper.project.dispersion_unsupported`; no `project_candidate` is claimed.\n- **Preserved settings:** B3LYP, def2-SVP, D4, freq=true; no ECP/element findings; no native input, commands, project writes, or engine/HPC execution (all const-false).",
+  "deterministic_grade": {
+    "details": {
+      "basis_evidence_state": "not_requested",
+      "comparator_failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ],
+      "evidence_ref_sha256s": [
+        "16f96283c6e5d074e97f221ffada929d9e22548c6f9f01f1d35efcf83aaa1c02"
+      ],
+      "expected_readiness": "blocked_unsupported_setting",
+      "project_support_status": "blocked_unsupported_setting"
+    },
+    "failed_oracle_ids": [],
+    "grade_sha256": "6310b0f7b94a02d4ac9287a446d7d5bb8f184b15300472e19d3c32235418c994",
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.basis-evidence-not-applicable",
+      "oracle.case-identity",
+      "oracle.causal-evidence-observation",
+      "oracle.evidence-derived-blockers",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.program-identity",
+      "oracle.project-readiness-observed",
+      "oracle.public-output-safe",
+      "oracle.setting-preservation",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid"
+    ],
+    "rejected_submit_count": 0,
+    "successful_submit_count": 1
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Submission accepted. Public summary:\n\n**Case `gaussian-b3lyp-explicit-d4-unsupported` (Gaussian, freq): readiness = `blocked_unsupported_setting`.**\n\n- **V2 resolution:** B3LYP functional → `exact_registered` (loader accepted, renderer preserved); def2-SVP basis → `blocked_validation_coverage` (no basis EvidenceRef for this project-only case); D4 dispersion → `unknown_unverified` with no inventory entry.\n- **Deciding evidence:** the single typed-project-readiness receipt (`16f96283…`, observation `…d06b8e39…`) reports the Gaussian project compiler does not preserve dispersion `'D4'` (only D3 and D3BJ are supported), validation verdict reject.\n- **Decision:** D4 is kept explicit — not silently dropped — and the plan retains the evidence-derived blocker `paper.project.dispersion_unsupported`; no `project_candidate` is claimed.\n- **Preserved settings:** B3LYP, def2-SVP, D4, freq=true; no ECP/element findings; no native input, commands, project writes, or engine/HPC execution (all const-false).",
+  "run_id": "run:gaussian-b3lyp-explicit-d4-unsupported:registry_validator_overlay:v5r1",
+  "typed_analysis_summary": "Project-only readiness assessment for Gaussian B3LYP + explicit D4 + def2-SVP (freq). V2 resolution: functional B3LYP exact_registered (loader accepted, renderer preserved); basis def2-SVP blocked_validation_coverage (no basis EvidenceRef in this project-only case); dispersion D4 unknown_unverified. The typed-project readiness receipt is the sole new factor: status blocked_unsupported_setting, renderer_status blocked_unsupported_setting, blocker paper.project.dispersion_unsupported (Gaussian project compiler does not preserve dispersion 'D4'; supported values are D3 and D3BJ; validation verdict reject). D4 is preserved explicitly, not silently dropped; no element/ECP findings (basis_ecp not_requested); no native input, commands, project writes, or engine/HPC execution.",
+  "typed_proposal": {
+    "analysis_summary": "Project-only readiness assessment for Gaussian B3LYP + explicit D4 + def2-SVP (freq). V2 resolution: functional B3LYP exact_registered (loader accepted, renderer preserved); basis def2-SVP blocked_validation_coverage (no basis EvidenceRef in this project-only case); dispersion D4 unknown_unverified. The typed-project readiness receipt is the sole new factor: status blocked_unsupported_setting, renderer_status blocked_unsupported_setting, blocker paper.project.dispersion_unsupported (Gaussian project compiler does not preserve dispersion 'D4'; supported values are D3 and D3BJ; validation verdict reject). D4 is preserved explicitly, not silently dropped; no element/ECP findings (basis_ecp not_requested); no native input, commands, project writes, or engine/HPC execution.",
+    "blocking_rule_ids": [
+      "paper.project.dispersion_unsupported"
+    ],
+    "case_id": "gaussian-b3lyp-explicit-d4-unsupported",
+    "command_authored": false,
+    "element_findings": [],
+    "evidence_ref_sha256s": [
+      "16f96283c6e5d074e97f221ffada929d9e22548c6f9f01f1d35efcf83aaa1c02"
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-b3lyp-explicit-d4-unsupported",
+    "project_written": false,
+    "readiness": "blocked_unsupported_setting",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": "D4",
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

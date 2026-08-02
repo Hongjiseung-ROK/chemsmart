@@ -1,0 +1,198 @@
+{
+  "comparator": {
+    "arm": "registry_v2",
+    "campaign_id": "registry-v2-stress-development-v4",
+    "campaign_plan_artifact_sha256": "c1db75b9b513967cc5cfa0d82d877c2a0ad714268c39bfa406958a5809b1a4fc",
+    "campaign_plan_sha256": "23353fa15348bcbdeee5dde1a4f92d6ddd72efb7744bee5e901e3b59878a6b87",
+    "case_id": "orca-def2-ecp-orbital-missing",
+    "comparator_sha256": "7406b3dddabc3fac56fe34a003c2dbbf529d28f7a0e742416ea74da0b66427a7",
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "outcome_artifact_locator": "docs/evaluation/receipts/registry-v2-stress-live-v4-2026-08-02/outcomes/run_orca-def2-ecp-orbital-missing_registry_v2_v4.json",
+    "outcome_artifact_sha256": "6dab45d467dff0e0d3a3455839456e4ea2e462b93e17e4043e4676d9efb2c827",
+    "outcome_receipt_sha256": "54d4fd57349feb97aa2c7b8d3e4a2979df2a0ea3c8b28310d5d6bf68e260082d",
+    "run_id": "run:orca-def2-ecp-orbital-missing:registry_v2:v4",
+    "run_spec_sha256": "1d0ab2f61a2368daefa6088feb48cec596979b71c00c3e5d23f53e16e007b37b",
+    "schema_version": "chemsmart.archived-registry-v2-comparator.v1",
+    "terminal_state": "failed"
+  },
+  "outcome": {
+    "comparator_outcome_receipt_sha256": "54d4fd57349feb97aa2c7b8d3e4a2979df2a0ea3c8b28310d5d6bf68e260082d",
+    "comparator_sha256": "7406b3dddabc3fac56fe34a003c2dbbf529d28f7a0e742416ea74da0b66427a7",
+    "deterministic_grade": {
+      "details": {
+        "basis_evidence_state": "conflict",
+        "comparator_failed_oracle_ids": [
+          "oracle.typed-proposal-exactly-one"
+        ],
+        "evidence_ref_sha256s": [
+          "0ea3fa7fad55458b2c5278de89456893ce86106bf1ac326fe913db3ac1883528",
+          "164728bbb5ef3f4af4b45e8b3dbbaa4799d4c1df3b90da6c6315497c51f3859f"
+        ],
+        "expected_readiness": "blocked_validation_coverage",
+        "project_support_status": "typed_project_supported"
+      },
+      "failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ],
+      "grade_sha256": "2132464e8c1df63f54724010fc132e4736b9b2652f7521d14a258a458a81d7ef",
+      "oracle_passed": false,
+      "passed_oracle_ids": [
+        "oracle.basis-element-semantics",
+        "oracle.basis-evidence-observed",
+        "oracle.case-identity",
+        "oracle.causal-evidence-observation",
+        "oracle.evidence-derived-blockers",
+        "oracle.evidence-ref-binding",
+        "oracle.execution-prohibited",
+        "oracle.program-identity",
+        "oracle.project-readiness-observed",
+        "oracle.public-output-safe",
+        "oracle.setting-preservation",
+        "oracle.typed-proposal-exactly-one",
+        "oracle.typed-proposal-valid"
+      ],
+      "rejected_submit_count": 1,
+      "successful_submit_count": 1
+    },
+    "duplicate_baseline_api_calls": 0,
+    "engine_calls": 0,
+    "evidence_ref_sha256s": [
+      "0ea3fa7fad55458b2c5278de89456893ce86106bf1ac326fe913db3ac1883528",
+      "164728bbb5ef3f4af4b45e8b3dbbaa4799d4c1df3b90da6c6315497c51f3859f"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 36491,
+    "native_inputs_authored": 0,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 5395,
+    "private_reasoning_persisted": false,
+    "private_runtime_event_log_sha256": "8e16c0c14e5a47975cb746b624e002641d56259eaa7381ffb7e218bcb46c41cb",
+    "project_writes": 0,
+    "raw_public_english_response": "Proposal submitted successfully.\n\n**Public summary**\n\nCase `orca-def2-ecp-orbital-missing` (ORCA, sp): the sole reported Pd basis, **def2-ECP**, was assessed against the case-bound evidence and **rejected as an ECP-only definition with no orbital functions**.\n\n- Basis evidence (`ref_sha256 164728bb…`): the BSE def2-ecp entry for Pd (Z=46) carries only scalar ECP terms (28 ECP electrons, 4 potentials), with **zero electron shells** and `orbital_present: false` → `orbital_functions_missing`, state **conflict**, `scientific_suitability_verified: false`, blocker `basis.request.orbital_function_conflict`.\n- Project readiness (`ref_sha256 0ea3fa7f…`): the typed ORCA sp project (B3LYP / def2-ECP / freq=false) renders with no project-level blockers, but its basis-ECP assessment was `not_requested` and does **not** establish basis support, so it cannot cure the basis conflict.\n\nOutcome: **blocked_invalid_specification** with `blocking_rule_ids = [\"basis.request.orbital_function_conflict\"]`, element finding Pd {covered: true, orbital_present: false, ecp_present: true, ecp_electrons: 28}, all explicit settings preserved, and no native input, command, project write, or execution requested.",
+    "raw_public_english_response_sha256": "93eea319e66642230268283da03c6b12d60ac442924e42aaf5002297311da1d4",
+    "receipt_sha256": "2c33245bdb71c692bc0c2d40ed72c2c784449d9977a8c7e41451ab9d748d5d31",
+    "rejected_submit_count": 1,
+    "response_artifact_locator": "responses/run_orca-def2-ecp-orbital-missing_registry_validator_overlay_v5r1.json",
+    "response_artifact_sha256": "c738a8ad90fe86bc9d24ea2ebf18576bbf263c4b96ee3f8a8136da815303e794",
+    "run_id": "run:orca-def2-ecp-orbital-missing:registry_validator_overlay:v5r1",
+    "run_spec_sha256": "7a357b30774f6077a028d577da83843dcd9e27e5548e7e665b5de7f0c3ace234",
+    "runtime_event_log_locator": "runtime-events/run_orca-def2-ecp-orbital-missing_registry_validator_overlay_v5r1.jsonl",
+    "runtime_event_log_sha256": "a90b7f9ee02ee98268b7abd26eb8ba69988bdd026afb54796b094487fe91a217",
+    "runtime_event_projection_receipt": {
+      "event_count": 16,
+      "private_exact_jsonl_sha256": "8e16c0c14e5a47975cb746b624e002641d56259eaa7381ffb7e218bcb46c41cb",
+      "projected_jsonl_sha256": "a90b7f9ee02ee98268b7abd26eb8ba69988bdd026afb54796b094487fe91a217",
+      "projected_state_sha256": "8ebeb84414f9413a1929d5952e9957262c65f313f29e8b42a0576e768e3ea8dd",
+      "projection_rule_id": "runtime.public_event_projection.session_cwd_repository_identity.v1",
+      "receipt_sha256": "7a81def9e4d47cb625cf8818c62a4d84b2d34213024389d16919f0483ee68031",
+      "replacement_count": 1,
+      "replacement_field": "session_started.payload.cwd",
+      "repository_identity": "repo://chemsmart",
+      "schema_version": "chemsmart.runtime-public-event-projection-receipt.v1"
+    },
+    "runtime_event_projection_receipt_artifact_sha256": "7bbef204dbeac976e326ed4203b61f54ca2aac3777e95501095c7f74292a66e1",
+    "runtime_event_projection_receipt_locator": "runtime-events/run_orca-def2-ecp-orbital-missing_registry_validator_overlay_v5r1.projection-receipt.json",
+    "runtime_replay_state_sha256": "8ebeb84414f9413a1929d5952e9957262c65f313f29e8b42a0576e768e3ea8dd",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "complete",
+    "schema_version": "chemsmart.registry-validator-overlay-outcome.v1",
+    "secret_material_persisted": false,
+    "successful_submit_count": 1,
+    "terminal_state": "failed",
+    "tool_trace_artifact_locator": "tool-traces/run_orca-def2-ecp-orbital-missing_registry_validator_overlay_v5r1.json",
+    "tool_trace_artifact_sha256": "1af9f5acc6e88aedafc2ca4bf74896e4790919e596a61c66f03a02d8527642dc",
+    "transport_attempts": 4,
+    "wall_time_ms": 39263
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-ecp-orbital-missing:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "c8ab18f496c33465e3172ec2ce42cfab98f9a802205a43460346e2a09dd9c929",
+      "input_tokens": 3560,
+      "latency_ms": 1578,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 79,
+      "request_binding_sha256": "7b7859633352dea8028d0d3d18111fc2f42b347da32c55c429f5c65e90d7e41a",
+      "request_binding_verified": true,
+      "request_sha256": "9e4e99b6782947a8fc62a0402750a64652e2598e55d76ec05efeecd7a141624f",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 2,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-ecp-orbital-missing:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "c8ab18f496c33465e3172ec2ce42cfab98f9a802205a43460346e2a09dd9c929",
+      "input_tokens": 7458,
+      "latency_ms": 28776,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 4154,
+      "request_binding_sha256": "7b7859633352dea8028d0d3d18111fc2f42b347da32c55c429f5c65e90d7e41a",
+      "request_binding_verified": true,
+      "request_sha256": "3ccf92665587ce0becd3fbff844f3e3ba6efc9482ea23a2f7615fb54054f223f",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 3,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-ecp-orbital-missing:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "c8ab18f496c33465e3172ec2ce42cfab98f9a802205a43460346e2a09dd9c929",
+      "input_tokens": 11750,
+      "latency_ms": 5388,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 830,
+      "request_binding_sha256": "7b7859633352dea8028d0d3d18111fc2f42b347da32c55c429f5c65e90d7e41a",
+      "request_binding_verified": true,
+      "request_sha256": "3aba1ad326b4270021625400ddbf7d4b98c9161d182fdd1a0b2123a50a4251f7",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 4,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-ecp-orbital-missing:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "c8ab18f496c33465e3172ec2ce42cfab98f9a802205a43460346e2a09dd9c929",
+      "input_tokens": 13723,
+      "latency_ms": 3403,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 332,
+      "request_binding_sha256": "7b7859633352dea8028d0d3d18111fc2f42b347da32c55c429f5c65e90d7e41a",
+      "request_binding_verified": true,
+      "request_sha256": "beb939152d805465375ed9c014e266e27ff27f8dd79fffa0824f9661b62f678f",
+      "status": "observed"
+    }
+  ],
+  "run_spec": {
+    "case_binding_sha256": "39cd909821504874e82ed1e42204c86766748033af791f10b2b6cf697e256003",
+    "case_id": "orca-def2-ecp-orbital-missing",
+    "case_sha256": "e5b5619f32032ae977150326d4f930ae00700ff8a521c2b138f6f987d2a33a20",
+    "changed_factor": "request_bound_basis_and_typed_project_evidence_overlay",
+    "comparator_sha256": "7406b3dddabc3fac56fe34a003c2dbbf529d28f7a0e742416ea74da0b66427a7",
+    "comparator_source": "archived_v4_registry_v2",
+    "configuration_sha256": "c391bf604ba514de7d111e71a32f382e55454d8f68efaf0fd9fc953a76fdea39",
+    "duplicate_baseline_api_calls": 0,
+    "evidence_bundle_sha256": "049ee9468d6a10dbc87b56454aa978a298adbef183b4e887278fd0dfbbd697b4",
+    "evidence_ref_sha256s": [
+      "0ea3fa7fad55458b2c5278de89456893ce86106bf1ac326fe913db3ac1883528",
+      "164728bbb5ef3f4af4b45e8b3dbbaa4799d4c1df3b90da6c6315497c51f3859f"
+    ],
+    "expected_outcome": "One evidence-bound typed proposal preserves the case intent, uses readiness blocked_validation_coverage, and makes no project, native-input, command, engine, or HPC action.",
+    "hypothesis_id": "hypothesis:orca-def2-ecp-orbital-missing:registry_validator_overlay:v5r1",
+    "model": "deepseek-v4-flash",
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "prompt_sha256": "2a8f8b9141dbe022c5665014683ee1318e16d71bf729b145655d391f1631c0c9",
+    "prompt_version": "registry-validator-overlay-prompt.v1",
+    "public_path_guard_version": "public-path-fragment.v2",
+    "reasoning_mode": "thinking_enabled_high",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "run_id": "run:orca-def2-ecp-orbital-missing:registry_validator_overlay:v5r1",
+    "run_spec_sha256": "7a357b30774f6077a028d577da83843dcd9e27e5548e7e665b5de7f0c3ace234",
+    "runtime": "agent_session_runtime_v2_active",
+    "schema_version": "chemsmart.registry-validator-overlay-run.v1",
+    "source_binding_sha256": "f2f5c6adfd3e6651b3422c354fe640ec74d70220d02496b9782d56ccf3d78397",
+    "tool_schema_sha256": "6f2bbd54570ba702ee18dac11cc825ccfdd9dcd60c801d07d70be8ef65fed51e"
+  }
+}

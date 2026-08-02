@@ -1,0 +1,12 @@
+{
+  "event_count": 16,
+  "private_exact_jsonl_sha256": "75132a164ead42210d4cd6be9248ae2f5f544b937dd76f4866dad3b8aa16da69",
+  "projected_jsonl_sha256": "45bbb34ca8a70f63a78a82c2f2e391403c9b4e3b140c95c29eafc3dea5015869",
+  "projected_state_sha256": "55b86be4d34c2d4e1a99893a10c7437853cb9454c122bd4acba183042e45a91c",
+  "projection_rule_id": "runtime.public_event_projection.session_cwd_repository_identity.v1",
+  "receipt_sha256": "5c0902dfc90c2bc2b36c1d8e3f282f134ccffe455ecc823d0da28b26312157d9",
+  "replacement_count": 1,
+  "replacement_field": "session_started.payload.cwd",
+  "repository_identity": "repo://chemsmart",
+  "schema_version": "chemsmart.runtime-public-event-projection-receipt.v1"
+}

@@ -1,0 +1,35 @@
+{
+  "assistant_text": "",
+  "deterministic_grade": {
+    "details": {
+      "basis_evidence_state": "verified",
+      "comparator_failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "evidence_ref_sha256s": [
+        "b62216911bf69513a0dff6a44692fd6027fd8aa61d971d21187cb5dbb0289575",
+        "ebdbdb4c35776a5cecf01b70afa110b6d4bf3321f982b8de4507f642cf67f05f"
+      ],
+      "expected_readiness": "project_candidate",
+      "project_support_status": "typed_project_supported"
+    },
+    "failed_oracle_ids": [
+      "oracle.causal-evidence-observation",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid"
+    ],
+    "grade_sha256": "5d414f2b198829f2c0ea9cb62bc9ad58ce6068c9e34358135a02b06d37f9c5bf",
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.basis-evidence-observed",
+      "oracle.project-readiness-observed"
+    ],
+    "rejected_submit_count": 0,
+    "successful_submit_count": 0
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "",
+  "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_validator_overlay:v5r1",
+  "typed_analysis_summary": "",
+  "typed_proposal": null
+}

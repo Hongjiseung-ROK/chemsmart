@@ -1,0 +1,161 @@
+{
+  "comparator": {
+    "arm": "registry_v2",
+    "campaign_id": "registry-v2-stress-development-v4",
+    "campaign_plan_artifact_sha256": "c1db75b9b513967cc5cfa0d82d877c2a0ad714268c39bfa406958a5809b1a4fc",
+    "campaign_plan_sha256": "23353fa15348bcbdeee5dde1a4f92d6ddd72efb7744bee5e901e3b59878a6b87",
+    "case_id": "orca-def2-tzvp-pd-28e-ecp",
+    "comparator_sha256": "07f90167885619ed9f4b6598436622c349c0ba63046d0fc22a476a767dce0310",
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "outcome_artifact_locator": "docs/evaluation/receipts/registry-v2-stress-live-v4-2026-08-02/outcomes/run_orca-def2-tzvp-pd-28e-ecp_registry_v2_v4.json",
+    "outcome_artifact_sha256": "ee4d647f8eb94cdc89654a3274788aa4ae30dc7b7852d558183e5c06301c32c8",
+    "outcome_receipt_sha256": "a2f6f5d4c78d7334037501ecf7c2fa5cd1fecf7464329cf3658a78315748a852",
+    "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_v2:v4",
+    "run_spec_sha256": "343bcd42eb905a63ac4380ef1d7e81236d65d61e72c70213a4080aa76c2ea023",
+    "schema_version": "chemsmart.archived-registry-v2-comparator.v1",
+    "terminal_state": "failed"
+  },
+  "outcome": {
+    "comparator_outcome_receipt_sha256": "a2f6f5d4c78d7334037501ecf7c2fa5cd1fecf7464329cf3658a78315748a852",
+    "comparator_sha256": "07f90167885619ed9f4b6598436622c349c0ba63046d0fc22a476a767dce0310",
+    "deterministic_grade": {
+      "details": {
+        "basis_evidence_state": "verified",
+        "comparator_failed_oracle_ids": [
+          "oracle.typed-proposal-exactly-one"
+        ],
+        "evidence_ref_sha256s": [
+          "b62216911bf69513a0dff6a44692fd6027fd8aa61d971d21187cb5dbb0289575",
+          "ebdbdb4c35776a5cecf01b70afa110b6d4bf3321f982b8de4507f642cf67f05f"
+        ],
+        "expected_readiness": "project_candidate",
+        "project_support_status": "typed_project_supported"
+      },
+      "failed_oracle_ids": [
+        "oracle.causal-evidence-observation",
+        "oracle.typed-proposal-exactly-one",
+        "oracle.typed-proposal-valid"
+      ],
+      "grade_sha256": "5d414f2b198829f2c0ea9cb62bc9ad58ce6068c9e34358135a02b06d37f9c5bf",
+      "oracle_passed": false,
+      "passed_oracle_ids": [
+        "oracle.basis-evidence-observed",
+        "oracle.project-readiness-observed"
+      ],
+      "rejected_submit_count": 0,
+      "successful_submit_count": 0
+    },
+    "duplicate_baseline_api_calls": 0,
+    "engine_calls": 0,
+    "evidence_ref_sha256s": [
+      "b62216911bf69513a0dff6a44692fd6027fd8aa61d971d21187cb5dbb0289575",
+      "ebdbdb4c35776a5cecf01b70afa110b6d4bf3321f982b8de4507f642cf67f05f"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 13421,
+    "native_inputs_authored": 0,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 8723,
+    "private_reasoning_persisted": false,
+    "private_runtime_event_log_sha256": "75132a164ead42210d4cd6be9248ae2f5f544b937dd76f4866dad3b8aa16da69",
+    "project_writes": 0,
+    "raw_public_english_response": "",
+    "raw_public_english_response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "receipt_sha256": "8201c139f302f557b59ec559adc30452fd89ebb50246e5bc19dd012e0fe89192",
+    "rejected_submit_count": 0,
+    "response_artifact_locator": "responses/run_orca-def2-tzvp-pd-28e-ecp_registry_validator_overlay_v5r1.json",
+    "response_artifact_sha256": "a5e915c8a9944f646e5a7ce0993699ca457a071c3e2ba7c2accff11b5a1709d7",
+    "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_validator_overlay:v5r1",
+    "run_spec_sha256": "722f85ee025175b16f23b651bf1f8461c85e6d62844d5ac6188f58c5b59ce8e2",
+    "runtime_event_log_locator": "runtime-events/run_orca-def2-tzvp-pd-28e-ecp_registry_validator_overlay_v5r1.jsonl",
+    "runtime_event_log_sha256": "45bbb34ca8a70f63a78a82c2f2e391403c9b4e3b140c95c29eafc3dea5015869",
+    "runtime_event_projection_receipt": {
+      "event_count": 16,
+      "private_exact_jsonl_sha256": "75132a164ead42210d4cd6be9248ae2f5f544b937dd76f4866dad3b8aa16da69",
+      "projected_jsonl_sha256": "45bbb34ca8a70f63a78a82c2f2e391403c9b4e3b140c95c29eafc3dea5015869",
+      "projected_state_sha256": "55b86be4d34c2d4e1a99893a10c7437853cb9454c122bd4acba183042e45a91c",
+      "projection_rule_id": "runtime.public_event_projection.session_cwd_repository_identity.v1",
+      "receipt_sha256": "5c0902dfc90c2bc2b36c1d8e3f282f134ccffe455ecc823d0da28b26312157d9",
+      "replacement_count": 1,
+      "replacement_field": "session_started.payload.cwd",
+      "repository_identity": "repo://chemsmart",
+      "schema_version": "chemsmart.runtime-public-event-projection-receipt.v1"
+    },
+    "runtime_event_projection_receipt_artifact_sha256": "8c27c5493350963442c67c1cb0c892e715d85ab521a5c7a1a4f8e62feef2b4b9",
+    "runtime_event_projection_receipt_locator": "runtime-events/run_orca-def2-tzvp-pd-28e-ecp_registry_validator_overlay_v5r1.projection-receipt.json",
+    "runtime_replay_state_sha256": "55b86be4d34c2d4e1a99893a10c7437853cb9454c122bd4acba183042e45a91c",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "complete",
+    "schema_version": "chemsmart.registry-validator-overlay-outcome.v1",
+    "secret_material_persisted": false,
+    "successful_submit_count": 0,
+    "terminal_state": "failed",
+    "tool_trace_artifact_locator": "tool-traces/run_orca-def2-tzvp-pd-28e-ecp_registry_validator_overlay_v5r1.json",
+    "tool_trace_artifact_sha256": "e89234109a89cd639776edbbf0ba3a8d85c22ef9a652bf0ca4f952699388a1d7",
+    "transport_attempts": 2,
+    "wall_time_ms": 67753
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-tzvp-pd-28e-ecp:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "753e1f480c70f90024894bbbf61f806ebf533c8ed188a55827c9871a5a4a4156",
+      "input_tokens": 3569,
+      "latency_ms": 3934,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 531,
+      "request_binding_sha256": "a5f3961bee77e303aebaa525e55b1cd13c1fbd120ea6efd5d6e5504b1ca26860",
+      "request_binding_verified": true,
+      "request_sha256": "1ee3aaf94d49ad9fdb0bbd8324a216c320750061ed6bd816df1729009ae1801d",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 2,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:orca-def2-tzvp-pd-28e-ecp:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "753e1f480c70f90024894bbbf61f806ebf533c8ed188a55827c9871a5a4a4156",
+      "input_tokens": 9852,
+      "latency_ms": 63504,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 8192,
+      "request_binding_sha256": "a5f3961bee77e303aebaa525e55b1cd13c1fbd120ea6efd5d6e5504b1ca26860",
+      "request_binding_verified": true,
+      "request_sha256": "8caff9c0716185e6ef4fa55d74ca80f68b50f28dcc6dcc8baa20eede0813e23f",
+      "status": "observed"
+    }
+  ],
+  "run_spec": {
+    "case_binding_sha256": "21f4f31b215d8a16f752862c158f5354332fd6fc53fd280f4570f3508b841213",
+    "case_id": "orca-def2-tzvp-pd-28e-ecp",
+    "case_sha256": "1a0517f311c1abf2d9e81ec63401c9313dea4b82490140e94e38b2c2e109c460",
+    "changed_factor": "request_bound_basis_and_typed_project_evidence_overlay",
+    "comparator_sha256": "07f90167885619ed9f4b6598436622c349c0ba63046d0fc22a476a767dce0310",
+    "comparator_source": "archived_v4_registry_v2",
+    "configuration_sha256": "c391bf604ba514de7d111e71a32f382e55454d8f68efaf0fd9fc953a76fdea39",
+    "duplicate_baseline_api_calls": 0,
+    "evidence_bundle_sha256": "c46b562a838281af364d700a0611bb1ad447df10bcd6c58e4cbd8cc74ee58fad",
+    "evidence_ref_sha256s": [
+      "b62216911bf69513a0dff6a44692fd6027fd8aa61d971d21187cb5dbb0289575",
+      "ebdbdb4c35776a5cecf01b70afa110b6d4bf3321f982b8de4507f642cf67f05f"
+    ],
+    "expected_outcome": "One evidence-bound typed proposal preserves the case intent, uses readiness project_candidate, and makes no project, native-input, command, engine, or HPC action.",
+    "hypothesis_id": "hypothesis:orca-def2-tzvp-pd-28e-ecp:registry_validator_overlay:v5r1",
+    "model": "deepseek-v4-flash",
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "prompt_sha256": "369f243e006cb134f6f6e776d3152b949ae592cd8eab2c9606c708196220a93d",
+    "prompt_version": "registry-validator-overlay-prompt.v1",
+    "public_path_guard_version": "public-path-fragment.v2",
+    "reasoning_mode": "thinking_enabled_high",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_validator_overlay:v5r1",
+    "run_spec_sha256": "722f85ee025175b16f23b651bf1f8461c85e6d62844d5ac6188f58c5b59ce8e2",
+    "runtime": "agent_session_runtime_v2_active",
+    "schema_version": "chemsmart.registry-validator-overlay-run.v1",
+    "source_binding_sha256": "f2f5c6adfd3e6651b3422c354fe640ec74d70220d02496b9782d56ccf3d78397",
+    "tool_schema_sha256": "6f2bbd54570ba702ee18dac11cc825ccfdd9dcd60c801d07d70be8ef65fed51e"
+  }
+}

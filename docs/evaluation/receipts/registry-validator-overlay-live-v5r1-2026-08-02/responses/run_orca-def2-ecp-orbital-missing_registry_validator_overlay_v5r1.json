@@ -1,0 +1,87 @@
+{
+  "assistant_text": "Proposal submitted successfully.\n\n**Public summary**\n\nCase `orca-def2-ecp-orbital-missing` (ORCA, sp): the sole reported Pd basis, **def2-ECP**, was assessed against the case-bound evidence and **rejected as an ECP-only definition with no orbital functions**.\n\n- Basis evidence (`ref_sha256 164728bb…`): the BSE def2-ecp entry for Pd (Z=46) carries only scalar ECP terms (28 ECP electrons, 4 potentials), with **zero electron shells** and `orbital_present: false` → `orbital_functions_missing`, state **conflict**, `scientific_suitability_verified: false`, blocker `basis.request.orbital_function_conflict`.\n- Project readiness (`ref_sha256 0ea3fa7f…`): the typed ORCA sp project (B3LYP / def2-ECP / freq=false) renders with no project-level blockers, but its basis-ECP assessment was `not_requested` and does **not** establish basis support, so it cannot cure the basis conflict.\n\nOutcome: **blocked_invalid_specification** with `blocking_rule_ids = [\"basis.request.orbital_function_conflict\"]`, element finding Pd {covered: true, orbital_present: false, ecp_present: true, ecp_electrons: 28}, all explicit settings preserved, and no native input, command, project write, or execution requested.",
+  "deterministic_grade": {
+    "details": {
+      "basis_evidence_state": "conflict",
+      "comparator_failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "evidence_ref_sha256s": [
+        "0ea3fa7fad55458b2c5278de89456893ce86106bf1ac326fe913db3ac1883528",
+        "164728bbb5ef3f4af4b45e8b3dbbaa4799d4c1df3b90da6c6315497c51f3859f"
+      ],
+      "expected_readiness": "blocked_validation_coverage",
+      "project_support_status": "typed_project_supported"
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness"
+    ],
+    "grade_sha256": "2132464e8c1df63f54724010fc132e4736b9b2652f7521d14a258a458a81d7ef",
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.basis-evidence-observed",
+      "oracle.case-identity",
+      "oracle.causal-evidence-observation",
+      "oracle.evidence-derived-blockers",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.program-identity",
+      "oracle.project-readiness-observed",
+      "oracle.public-output-safe",
+      "oracle.setting-preservation",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid"
+    ],
+    "rejected_submit_count": 1,
+    "successful_submit_count": 1
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Proposal submitted successfully.\n\n**Public summary**\n\nCase `orca-def2-ecp-orbital-missing` (ORCA, sp): the sole reported Pd basis, **def2-ECP**, was assessed against the case-bound evidence and **rejected as an ECP-only definition with no orbital functions**.\n\n- Basis evidence (`ref_sha256 164728bb…`): the BSE def2-ecp entry for Pd (Z=46) carries only scalar ECP terms (28 ECP electrons, 4 potentials), with **zero electron shells** and `orbital_present: false` → `orbital_functions_missing`, state **conflict**, `scientific_suitability_verified: false`, blocker `basis.request.orbital_function_conflict`.\n- Project readiness (`ref_sha256 0ea3fa7f…`): the typed ORCA sp project (B3LYP / def2-ECP / freq=false) renders with no project-level blockers, but its basis-ECP assessment was `not_requested` and does **not** establish basis support, so it cannot cure the basis conflict.\n\nOutcome: **blocked_invalid_specification** with `blocking_rule_ids = [\"basis.request.orbital_function_conflict\"]`, element finding Pd {covered: true, orbital_present: false, ecp_present: true, ecp_electrons: 28}, all explicit settings preserved, and no native input, command, project write, or execution requested.",
+  "run_id": "run:orca-def2-ecp-orbital-missing:registry_validator_overlay:v5r1",
+  "typed_analysis_summary": "Case-bound evidence shows def2-ECP as the only reported Pd basis is an ECP-only definition: BSE catalog entry def2-ecp for Pd (Z=46) has ecp_present=true (28 ECP electrons, 4 potentials) but zero electron shells and orbital_present=false, so inspection_status=orbital_functions_missing and state=conflict with blocking rule basis.request.orbital_function_conflict; scientific_suitability_verified=false. The typed-project readiness receipt renders the ORCA sp project (functional B3LYP, basis def2-ECP, freq false) with no project-level blockers, but its basis_ecp assessment was not_requested and establishes_typed_project_support=false, so it does not cure the basis conflict. An ECP-only definition without orbital functions is rejected; plan stays blocked with the evidence-derived blocker.",
+  "typed_proposal": {
+    "analysis_summary": "Case-bound evidence shows def2-ECP as the only reported Pd basis is an ECP-only definition: BSE catalog entry def2-ecp for Pd (Z=46) has ecp_present=true (28 ECP electrons, 4 potentials) but zero electron shells and orbital_present=false, so inspection_status=orbital_functions_missing and state=conflict with blocking rule basis.request.orbital_function_conflict; scientific_suitability_verified=false. The typed-project readiness receipt renders the ORCA sp project (functional B3LYP, basis def2-ECP, freq false) with no project-level blockers, but its basis_ecp assessment was not_requested and establishes_typed_project_support=false, so it does not cure the basis conflict. An ECP-only definition without orbital functions is rejected; plan stays blocked with the evidence-derived blocker.",
+    "blocking_rule_ids": [
+      "basis.request.orbital_function_conflict"
+    ],
+    "case_id": "orca-def2-ecp-orbital-missing",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": 28,
+        "ecp_present": true,
+        "orbital_present": false,
+        "symbol": "Pd"
+      }
+    ],
+    "evidence_ref_sha256s": [
+      "0ea3fa7fad55458b2c5278de89456893ce86106bf1ac326fe913db3ac1883528",
+      "164728bbb5ef3f4af4b45e8b3dbbaa4799d4c1df3b90da6c6315497c51f3859f"
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-ecp-orbital-missing",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-ECP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": null,
+      "freq": false,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

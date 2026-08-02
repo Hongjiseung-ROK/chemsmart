@@ -1,0 +1,46 @@
+{
+  "schema_version": "chemsmart.registry-validator-overlay-audit-reconciliation.v1",
+  "campaign_id": "registry-validator-overlay-development-v5",
+  "run_revision": "v5r1",
+  "source_commit": "61bbdf6dd776c6a10020c09026a26dc50851920a",
+  "campaign_plan_artifact_sha256": "51c007464de721532511a8bef94a991959f285da3f1bd694bf7ea7aac3cf6e50",
+  "campaign_plan_sha256": "a9c24e19b34658f8b7008c5fd3c431578083d520168dfa2a5cdddf1e03afd524",
+  "campaign_receipt_artifact_sha256": "2f2f79c6387c04c9f4ef6e82ac0c61135a92b8beb01ea00d5efec9f764a6dc86",
+  "campaign_receipt_sha256": "232be0e16b656504729df634142ccaf951467874b7f043d824615a5a9c001de5",
+  "public_artifact_manifest_sha256": "45837d5f390752ac3cc61a29a5f50ac836e2b250843b133dee75e76a341b828b",
+  "private_artifact_manifest_sha256": "bf4757bf48fc92dc398f5f7072004c51216adcbdce95cfc34cdf391714ebfc1f",
+  "private_artifact_locator": "private://chemsmart/registry-validator-overlay-live-v5r1-2026-08-02",
+  "audit": {
+    "artifact_hashes_verified": true,
+    "runtime_replay_verified": true,
+    "public_projection_verified": true,
+    "absolute_path_scan_passed": true,
+    "credential_scan_passed": true,
+    "private_reasoning_key_scan_passed": true,
+    "outer_outcomes_bound_by_added_manifest": true
+  },
+  "totals": {
+    "runs": 6,
+    "transport_attempts": 21,
+    "input_tokens": 192787,
+    "output_tokens": 37443,
+    "wall_time_ms": 283680,
+    "accepted_submissions": 5,
+    "rejected_submissions": 3,
+    "deterministic_proposal_passes": 1,
+    "strict_end_to_end_passes": 0,
+    "engine_calls": 0,
+    "hpc_calls": 0,
+    "project_writes": 0,
+    "native_inputs_authored": 0
+  },
+  "known_defect_ids": [
+    "overlay.canonicalization.delegated_to_model",
+    "overlay.intent.unspecified_ecp_inferred",
+    "overlay.provenance.provider_observations_outside_inner_receipt",
+    "overlay.readiness.model_inferred",
+    "provider.output_truncated_empty_completion",
+    "runtime.phase.free_text_misroute"
+  ],
+  "receipt_sha256": "4132d9a2911ebdf92e51ba3cf6a3349d1da7e6fbd27fa5728bf4f894cbda57ac"
+}

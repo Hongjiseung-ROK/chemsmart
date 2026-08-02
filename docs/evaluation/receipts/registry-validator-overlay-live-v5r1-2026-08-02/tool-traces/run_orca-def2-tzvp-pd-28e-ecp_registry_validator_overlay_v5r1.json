@@ -1,0 +1,533 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: execution,project_yaml,synthesis; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260802T004647Z-89a19f92\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only V5 validator-overlay experiment. No project writes, native input, commands, chemistry engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are a computational-chemistry project-settings planner in a\ncontrolled ChemSmart V5 validator-overlay experiment.\n\nCase ID: orca-def2-tzvp-pd-28e-ecp\nProgram: orca\nTask kind: freq\nArchived comparator: run:orca-def2-tzvp-pd-28e-ecp:registry_v2:v4\nArchived comparator terminal: failed\nArchived comparator oracle pass: false\nArchived failed oracles: oracle.typed-proposal-exactly-one\n\nPlan B3LYP/def2-TZVP for a Cl/Pd system and report the exact pinned BSE Pd ECP electron count.\n\nResolve the case-bound V2 targets:\n- basis: method.basis = 'def2-TZVP'\n\nCall both no-argument evidence tools and wait for their results. Treat the returned receipt or receipts, not model\nconfidence, as the only new factor relative to the archived V4 comparator.\nCite exactly the EvidenceRef digests returned by those tools and pass every\nreturned observation_receipt_id to the submit tool. The submit tool will reject\na same-turn guess or any proposal made before the evidence is observed.\n\nPreserve every explicit setting. A verified basis definition and typed-project\nsupport can justify project_candidate; a conflict must remain blocked. Do not\ninfer scientific suitability beyond the receipts. Set blocking_rule_ids to\nexactly the blockers stated by the returned basis/project receipts: an accepted\nproject_candidate has none, while a blocked plan retains its evidence-derived\nblockers. Do not author a native\nGaussian, ORCA, or xTB input, a ChemSmart command, or shell text. Do not write\na project or request engine/HPC execution. Finish with exactly one successful\nsubmit_registry_validator_overlay_plan call and provide only a concise English\npublic summary.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"basis\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_00_KUiLTaginYnil3svWB9l8595",
+          "index": 0,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{\"lookup_id\": \"expected.functional\"}",
+            "name": "resolve_scientific_setting_v2"
+          },
+          "id": "call_01_InYN7Ox0pphjEFia9vxt4815",
+          "index": 1,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{}",
+            "name": "inspect_case_basis_evidence"
+          },
+          "id": "call_02_OCaOnkNGojV0zP3JxSHq0816",
+          "index": 2,
+          "type": "function"
+        },
+        {
+          "function": {
+            "arguments": "{}",
+            "name": "inspect_case_project_readiness"
+          },
+          "id": "call_03_0IWBZQr7tgV8jurYgysN0708",
+          "index": 3,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [\"scientific_settings.basis.ecp_applicability_required\", \"scientific_settings.basis.request_element_coverage_required\"], \"applicability_rules_present\": true, \"candidates\": [], \"canonical_value\": \"def2-TZVP\", \"deterministic_validator_enforced\": false, \"entry_evidence\": {\"entry_id\": \"setting.orca.method_basis.a6d92a427e69b3a7c59a\", \"inventory_sha256\": \"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\", \"observation_note\": \"Observed allowed transform paper_project.basis_literal_normalization: input='def2-TZVP' -> rendered=('def2tzvp',) -> loaded=('def2tzvp',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_sidecar_sha256\": null, \"source_ids\": [\"bse-catalog-0.11\", \"orca-job-settings-125f2878\", \"orca-project-loader-125f2878\", \"orca-reference-125f2878\", \"project-protocol-125f2878\"]}, \"entry_evidence_sha256\": \"b615fe40b0c987866cfc41c73ca500dfed540a911ba6c48e74c6d0ce189fdfa9\", \"entry_id\": \"setting.orca.method_basis.a6d92a427e69b3a7c59a\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"lookup_id\": \"basis\", \"matched_by\": \"canonical_literal\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"def2tzvp\", \"program\": \"orca\", \"project_candidate_eligible\": false, \"reason_rule_id\": \"scientific_settings.v2.validation_coverage_gap\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"repair_policy_binding\": {\"binding_sha256\": \"4474b697bd58b38312fd23d87246c627e93cc655b79eb9447369fa11951f2774\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"def2-TZVP\", \"resolution_sha256\": \"84839c44b1319b060b3ed0a54d4a23e1174beafb95914d7edf86d775e3c03071\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.basis\", \"source_registered\": true, \"status\": \"blocked_validation_coverage\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_KUiLTaginYnil3svWB9l8595"
+    },
+    {
+      "content": "{\"applicability_rule_ids\": [], \"applicability_rules_present\": false, \"candidates\": [], \"canonical_value\": \"b3lyp\", \"deterministic_validator_enforced\": false, \"entry_evidence\": {\"entry_id\": \"setting.orca.method_functional.d34018d588c050ffd3c5\", \"inventory_sha256\": \"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\", \"observation_note\": \"Observed allowed transform paper_project.functional_literal_normalization: input='b3lyp' -> rendered=('b3lyp',) -> loaded=('b3lyp',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"repair_sidecar_sha256\": null, \"source_ids\": [\"orca-job-settings-125f2878\", \"orca-project-loader-125f2878\", \"orca-reference-125f2878\", \"project-protocol-125f2878\"]}, \"entry_evidence_sha256\": \"fd2a6fe1a4685fd1ca1066817bfd241c804a7d2d5ce6aaa1e40a48b7dfcac22a\", \"entry_id\": \"setting.orca.method_functional.d34018d588c050ffd3c5\", \"evidence_ceiling\": {\"engine_executed\": false, \"maximum_claim\": \"loader_renderer_verification_only\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.scientific-settings-evidence-ceiling.v1\", \"scientific_adequacy_verified\": false, \"setting_combination_verified\": false}, \"inventory_sha256s\": [\"cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe\"], \"job_kind\": \"opt\", \"job_scope_compatible\": true, \"loader_accepted\": true, \"loader_observation\": \"accepted\", \"lookup_id\": \"expected.functional\", \"matched_by\": \"canonical_literal\", \"normalization_version\": \"chemsmart.scientific-setting-literal.v2\", \"normalized_requested_value\": \"b3lyp\", \"program\": \"orca\", \"project_candidate_eligible\": true, \"reason_rule_id\": \"scientific_settings.v2.exact_registered\", \"registry_sha256\": \"3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f\", \"renderer_observation\": \"preserved\", \"renderer_preserved\": true, \"repair_policy_binding\": {\"binding_sha256\": \"3c2db34e859dccd83d074ad3078af5136210abc1d1342a8e8212877c8f049f66\", \"scope_completeness\": \"enumerated_non_exhaustive\", \"sidecar_sha256\": \"c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7\"}, \"requested_value\": \"B3LYP\", \"resolution_sha256\": \"cab035dfcb4a1b41dee307ac97287d9e8a2215e56c26f516247169b73f4c3e81\", \"schema_version\": \"chemsmart.scientific-setting-resolution.v2\", \"setting_path\": \"method.functional\", \"source_registered\": true, \"status\": \"exact_registered\"}",
+      "role": "tool",
+      "tool_call_id": "call_01_InYN7Ox0pphjEFia9vxt4815"
+    },
+    {
+      "content": "{\"evidence_ref\": {\"artifact_sha256\": \"a7e2c2cff2cc166b9cdd318b1400586e3911fa5998744128fb624c3c078c142a\", \"evidence_id\": \"basis-evidence:orca-def2-tzvp-pd-28e-ecp:orbital\", \"kind\": \"request_bound_basis_evidence\", \"media_type\": \"application/json\", \"receipt_id\": \"basis-evidence-receipt:orca-def2-tzvp-pd-28e-ecp:orbital\", \"ref_sha256\": \"ebdbdb4c35776a5cecf01b70afa110b6d4bf3321f982b8de4507f642cf67f05f\", \"request_sha256\": \"93ab5e7e581058417f985ed50186e183173db753ae1491ed60f3e29597139e7e\", \"schema_version\": \"chemsmart.request-bound-basis-evidence-ref.v1\"}, \"observation_receipt\": {\"artifact_sha256\": \"a7e2c2cff2cc166b9cdd318b1400586e3911fa5998744128fb624c3c078c142a\", \"kind\": \"request_bound_basis_evidence\", \"observation_receipt_id\": \"observation:request_bound_basis_evidence:3c2e4fd29ae7078dcd50da5705c5e2cd\", \"ref_sha256\": \"ebdbdb4c35776a5cecf01b70afa110b6d4bf3321f982b8de4507f642cf67f05f\"}, \"receipt\": {\"canonical_basis_identity\": \"def2tzvp\", \"canonical_basis_name\": \"def2-TZVP\", \"catalog_artifact_sha256\": \"ed4ef918fb80e8ad3c2396c237d2120c31892cfaa2a61fb61af52965dc723c0b\", \"catalog_content_sha256\": \"a4c39327851ed653ec849c2109549cad4f0ee4e4207ea20143a368d25b2e2732\", \"catalog_key\": \"def2-tzvp\", \"catalog_role\": \"orbital\", \"catalog_source_version\": \"0.11\", \"definition_sha256\": \"f5fbd0f114cbe9709bb114f5e4e26dfc7822e72c3617e75e65dc3a81668a7f55\", \"elements\": [{\"atomic_number\": 17, \"covered\": true, \"ecp_electrons\": null, \"ecp_potential_count\": 0, \"ecp_present\": false, \"electron_shell_count\": 13, \"orbital_present\": true, \"reason_rule_ids\": [\"basis.request.orbital_functions_observed\"], \"state\": \"verified\", \"symbol\": \"Cl\"}, {\"atomic_number\": 46, \"covered\": true, \"ecp_electrons\": 28, \"ecp_potential_count\": 4, \"ecp_present\": true, \"electron_shell_count\": 14, \"orbital_present\": true, \"reason_rule_ids\": [\"basis.request.orbital_functions_observed\"], \"state\": \"verified\", \"symbol\": \"Pd\"}], \"engine_executed\": false, \"error_class\": null, \"evidence_scope\": \"bse_local_element_definition_only\", \"function_types\": [\"gto\", \"gto_spherical\", \"scalar_ecp\"], \"inspection_receipt_sha256\": \"239e7ed2e53b911cadaddf5812d5e7b1a3e19658e7e659d3d991cbbaabce8f45\", \"inspection_status\": \"all_elements_covered\", \"local_data_only\": true, \"model_confidence_used\": false, \"native_engine_verified\": false, \"network_accessed\": false, \"reason_rule_ids\": [\"basis.request.exact_local_bse_evidence\"], \"receipt_id\": \"basis-evidence-receipt:orca-def2-tzvp-pd-28e-ecp:orbital\", \"receipt_sha256\": \"a7e2c2cff2cc166b9cdd318b1400586e3911fa5998744128fb624c3c078c142a\", \"request\": {\"atomic_numbers\": [17, 46], \"basis_literal\": \"def2-TZVP\", \"model_confidence_used\": false, \"network_allowed\": false, \"program\": \"orca\", \"request_id\": \"orca-def2-tzvp-pd-28e-ecp:orbital\", \"request_sha256\": \"93ab5e7e581058417f985ed50186e183173db753ae1491ed60f3e29597139e7e\", \"role\": \"orbital\", \"schema_version\": \"chemsmart.request-bound-basis-evidence-request.v1\", \"substitution_allowed\": false}, \"requested_basis_identity\": \"def2tzvp\", \"safe_preview_executed\": false, \"schema_version\": \"chemsmart.request-bound-basis-evidence-receipt.v1\", \"scientific_suitability_verified\": false, \"source_package\": \"basis_set_exchange\", \"source_version\": \"0.11\", \"source_version_matches_catalog\": true, \"state\": \"verified\", \"substitution_performed\": false}, \"request\": {\"atomic_numbers\": [17, 46], \"basis_literal\": \"def2-TZVP\", \"model_confidence_used\": false, \"network_allowed\": false, \"program\": \"orca\", \"request_id\": \"orca-def2-tzvp-pd-28e-ecp:orbital\", \"request_sha256\": \"93ab5e7e581058417f985ed50186e183173db753ae1491ed60f3e29597139e7e\", \"role\": \"orbital\", \"schema_version\": \"chemsmart.request-bound-basis-evidence-request.v1\", \"substitution_allowed\": false}}",
+      "role": "tool",
+      "tool_call_id": "call_02_OCaOnkNGojV0zP3JxSHq0816"
+    },
+    {
+      "content": "{\"evidence_ref\": {\"artifact_sha256\": \"95f505c2d6c4c226944a816d431267bad9760a3bcf0991bed7bf542cb8b999dd\", \"evidence_id\": \"project-readiness:orca-def2-tzvp-pd-28e-ecp\", \"kind\": \"typed_project_readiness\", \"media_type\": \"application/json\", \"ref_sha256\": \"b62216911bf69513a0dff6a44692fd6027fd8aa61d971d21187cb5dbb0289575\", \"request_sha256\": \"9d493c5a3fab59227b75ddc3d5c3e126cb87934f49c3961eaac8b94efb8b3cc5\", \"schema_version\": \"chemsmart.project-readiness-evidence-ref.v1\"}, \"observation_receipt\": {\"artifact_sha256\": \"95f505c2d6c4c226944a816d431267bad9760a3bcf0991bed7bf542cb8b999dd\", \"kind\": \"typed_project_readiness\", \"observation_receipt_id\": \"observation:typed_project_readiness:a97d098526f25f68d1e11e1e53dee418\", \"ref_sha256\": \"b62216911bf69513a0dff6a44692fd6027fd8aa61d971d21187cb5dbb0289575\"}, \"receipt\": {\"authority_id\": \"chemsmart.paper-project-renderer-loader-required-job\", \"authority_version\": \"1.0.0\", \"basis_ecp\": {\"assessment\": \"not_requested\", \"basis\": null, \"basis_element_receipt_sha256\": null, \"establishes_typed_project_support\": false, \"evidence_role\": \"basis_definition_only\", \"observed_ecp_elements\": [], \"required_elements\": [], \"rule_ids\": [], \"status\": \"not_requested\", \"verdict\": \"not_checked\"}, \"receipt_sha256\": \"95f505c2d6c4c226944a816d431267bad9760a3bcf0991bed7bf542cb8b999dd\", \"registry_discovery\": {\"establishes_typed_project_support\": false, \"evidence_role\": \"registry_discovery_only\", \"resolution_sha256s\": [\"84839c44b1319b060b3ed0a54d4a23e1174beafb95914d7edf86d775e3c03071\", \"b615fe40b0c987866cfc41c73ca500dfed540a911ba6c48e74c6d0ce189fdfa9\"]}, \"request\": {\"case_id\": \"orca-def2-tzvp-pd-28e-ecp\", \"job_kind\": \"opt\", \"method\": {\"basis\": \"def2-TZVP\", \"dispersion\": null, \"ecp_binding\": \"not_requested\", \"freq\": true, \"functional\": \"B3LYP\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"required_ecp_elements\": [], \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}, \"program\": \"orca\", \"request_sha256\": \"9d493c5a3fab59227b75ddc3d5c3e126cb87934f49c3961eaac8b94efb8b3cc5\", \"schema_version\": \"chemsmart.typed-project-readiness-request.v1\"}, \"safety\": {\"chemistry_engine_calls\": 0, \"hpc_calls\": 0, \"native_input_previews\": 0, \"registry_discovery_grants_support\": false, \"workspace_project_writes\": 0}, \"schema_version\": \"chemsmart.typed-project-readiness.v1\", \"typed_project_support\": {\"blocking_rule_ids\": [], \"finding_rule_ids\": [], \"project_yaml_sha256\": \"14701d581e474978b46375e0d650d805a4e94b093f3cddfc967da2c842aec195\", \"project_yaml_text\": \"gas:\\n  functional: b3lyp\\n  basis: def2tzvp\\n  freq: true\\nsolv:\\n  functional: b3lyp\\n  basis: def2tzvp\\n  freq: false\\n\", \"renderer_status\": \"rendered\", \"required_job\": \"opt\", \"required_job_observation\": {\"ab_initio\": null, \"additional_route_parameters\": null, \"basis\": \"def2tzvp\", \"custom_solvent\": null, \"dispersion\": null, \"freq\": true, \"functional\": \"b3lyp\", \"gen_genecp_file\": null, \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"jobtype\": \"opt\", \"light_elements_basis\": null, \"numfreq\": false, \"optimization_level\": null, \"origin\": \"derived\", \"semiempirical\": null, \"solvent_id\": null, \"solvent_model\": null, \"source_block\": \"gas\"}, \"runtime_summary_json\": \"{\\\"opt\\\":{\\\"ab_initio\\\":null,\\\"additional_route_parameters\\\":null,\\\"basis\\\":\\\"def2tzvp\\\",\\\"custom_solvent\\\":null,\\\"dispersion\\\":null,\\\"freq\\\":true,\\\"functional\\\":\\\"b3lyp\\\",\\\"gen_genecp_file\\\":null,\\\"gfn_version\\\":null,\\\"heavy_elements\\\":null,\\\"heavy_elements_basis\\\":null,\\\"jobtype\\\":\\\"opt\\\",\\\"jobtype_observation\\\":{\\\"kind\\\":\\\"loader_jobtype\\\",\\\"observed\\\":\\\"opt\\\",\\\"origin\\\":\\\"derived\\\",\\\"setting_origins\\\":{\\\"ab_initio\\\":\\\"default\\\",\\\"additional_route_parameters\\\":\\\"default\\\",\\\"basis\\\":\\\"derived\\\",\\\"custom_solvent\\\":\\\"default\\\",\\\"dispersion\\\":\\\"default\\\",\\\"freq\\\":\\\"derived\\\",\\\"functional\\\":\\\"derived\\\",\\\"gen_genecp_file\\\":\\\"default\\\",\\\"gfn_version\\\":\\\"default\\\",\\\"heavy_elements\\\":\\\"default\\\",\\\"heavy_elements_basis\\\":\\\"default\\\",\\\"light_elements_basis\\\":\\\"default\\\",\\\"numfreq\\\":\\\"default\\\",\\\"optimization_level\\\":\\\"default\\\",\\\"semiempirical\\\":\\\"default\\\",\\\"solvent_id\\\":\\\"default\\\",\\\"solvent_model\\\":\\\"default\\\"},\\\"source_block\\\":\\\"gas\\\"},\\\"light_elements_basis\\\":null,\\\"numfreq\\\":false,\\\"optimization_level\\\":null,\\\"semiempirical\\\":null,\\\"solvent_id\\\":null,\\\"solvent_model\\\":null},\\\"sp\\\":{\\\"additional_route_parameters\\\":null,\\\"basis\\\":\\\"def2tzvp\\\",\\\"freq\\\":false,\\\"functional\\\":\\\"b3lyp\\\",\\\"gfn_version\\\":null,\\\"heavy_elements\\\":null,\\\"heavy_elements_basis\\\":null,\\\"jobtype\\\":\\\"sp\\\",\\\"light_elements_basis\\\":null,\\\"optimization_level\\\":null,\\\"solvent_id\\\":null,\\\"solvent_model\\\":null},\\\"ts\\\":{\\\"additional_route_parameters\\\":null,\\\"basis\\\":\\\"def2tzvp\\\",\\\"freq\\\":true,\\\"functional\\\":\\\"b3lyp\\\",\\\"gfn_version\\\":null,\\\"heavy_elements\\\":null,\\\"heavy_elements_basis\\\":null,\\\"jobtype\\\":\\\"ts\\\",\\\"light_elements_basis\\\":null,\\\"optimization_level\\\":null,\\\"solvent_id\\\":null,\\\"solvent_model\\\":null}}\", \"runtime_summary_sha256\": \"3bfd4c1096c177ab8350b60f3922727a614ff4751ade87661f7a717fc600b99c\", \"status\": \"typed_project_supported\", \"support_scope\": \"paper_renderer_loader_required_job_only\", \"validation_record_json\": \"{\\\"issues\\\":[],\\\"ok\\\":true,\\\"parsed\\\":{\\\"gas\\\":{\\\"basis\\\":\\\"def2tzvp\\\",\\\"freq\\\":true,\\\"functional\\\":\\\"b3lyp\\\"},\\\"solv\\\":{\\\"basis\\\":\\\"def2tzvp\\\",\\\"freq\\\":false,\\\"functional\\\":\\\"b3lyp\\\"}},\\\"program\\\":\\\"orca\\\",\\\"project_name\\\":\\\"readiness-9d493c5a3fab5922\\\",\\\"required_job_kinds\\\":[\\\"opt\\\"],\\\"runtime_summary\\\":{\\\"opt\\\":{\\\"ab_initio\\\":null,\\\"additional_route_parameters\\\":null,\\\"basis\\\":\\\"def2tzvp\\\",\\\"custom_solvent\\\":null,\\\"dispersion\\\":null,\\\"freq\\\":true,\\\"functional\\\":\\\"b3lyp\\\",\\\"gen_genecp_file\\\":null,\\\"gfn_version\\\":null,\\\"heavy_elements\\\":null,\\\"heavy_elements_basis\\\":null,\\\"jobtype\\\":\\\"opt\\\",\\\"jobtype_observation\\\":{\\\"kind\\\":\\\"loader_jobtype\\\",\\\"observed\\\":\\\"opt\\\",\\\"origin\\\":\\\"derived\\\",\\\"setting_origins\\\":{\\\"ab_initio\\\":\\\"default\\\",\\\"additional_route_parameters\\\":\\\"default\\\",\\\"basis\\\":\\\"derived\\\",\\\"custom_solvent\\\":\\\"default\\\",\\\"dispersion\\\":\\\"default\\\",\\\"freq\\\":\\\"derived\\\",\\\"functional\\\":\\\"derived\\\",\\\"gen_genecp_file\\\":\\\"default\\\",\\\"gfn_version\\\":\\\"default\\\",\\\"heavy_elements\\\":\\\"default\\\",\\\"heavy_elements_basis\\\":\\\"default\\\",\\\"light_elements_basis\\\":\\\"default\\\",\\\"numfreq\\\":\\\"default\\\",\\\"optimization_level\\\":\\\"default\\\",\\\"semiempirical\\\":\\\"default\\\",\\\"solvent_id\\\":\\\"default\\\",\\\"solvent_model\\\":\\\"default\\\"},\\\"source_block\\\":\\\"gas\\\"},\\\"light_elements_basis\\\":null,\\\"numfreq\\\":false,\\\"optimization_level\\\":null,\\\"semiempirical\\\":null,\\\"solvent_id\\\":null,\\\"solvent_model\\\":null},\\\"sp\\\":{\\\"additional_route_parameters\\\":null,\\\"basis\\\":\\\"def2tzvp\\\",\\\"freq\\\":false,\\\"functional\\\":\\\"b3lyp\\\",\\\"gfn_version\\\":null,\\\"heavy_elements\\\":null,\\\"heavy_elements_basis\\\":null,\\\"jobtype\\\":\\\"sp\\\",\\\"light_elements_basis\\\":null,\\\"optimization_level\\\":null,\\\"solvent_id\\\":null,\\\"solvent_model\\\":null},\\\"ts\\\":{\\\"additional_route_parameters\\\":null,\\\"basis\\\":\\\"def2tzvp\\\",\\\"freq\\\":true,\\\"functional\\\":\\\"b3lyp\\\",\\\"gfn_version\\\":null,\\\"heavy_elements\\\":null,\\\"heavy_elements_basis\\\":null,\\\"jobtype\\\":\\\"ts\\\",\\\"light_elements_basis\\\":null,\\\"optimization_level\\\":null,\\\"solvent_id\\\":null,\\\"solvent_model\\\":null}},\\\"verdict\\\":\\\"ok\\\"}\", \"validation_sha256\": \"13b71bdff08c56ac1af68e185d26c2d0a384c822fec4c22950326ab943ae3ccd\", \"validation_verdict\": \"ok\"}}}",
+      "role": "tool",
+      "tool_call_id": "call_03_0IWBZQr7tgV8jurYgysN0708"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_validator_overlay:v5r1",
+  "tool_error_receipt": {
+    "outcome_errors": [],
+    "receipt_sha256": "5f634a6193657779cd72c582e3780ccce69318d3c8e2f9a3064993e92eb4466a",
+    "request_errors": [],
+    "schema_version": "chemsmart.public-tool-error-receipt.v1"
+  },
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_00_KUiLTaginYnil3svWB9l8595",
+      "request_id": "openai:call_00_KUiLTaginYnil3svWB9l8595",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [
+          "scientific_settings.basis.ecp_applicability_required",
+          "scientific_settings.basis.request_element_coverage_required"
+        ],
+        "applicability_rules_present": true,
+        "candidates": [],
+        "canonical_value": "def2-TZVP",
+        "deterministic_validator_enforced": false,
+        "entry_evidence": {
+          "entry_id": "setting.orca.method_basis.a6d92a427e69b3a7c59a",
+          "inventory_sha256": "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe",
+          "observation_note": "Observed allowed transform paper_project.basis_literal_normalization: input='def2-TZVP' -> rendered=('def2tzvp',) -> loaded=('def2tzvp',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.",
+          "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+          "repair_sidecar_sha256": null,
+          "source_ids": [
+            "bse-catalog-0.11",
+            "orca-job-settings-125f2878",
+            "orca-project-loader-125f2878",
+            "orca-reference-125f2878",
+            "project-protocol-125f2878"
+          ]
+        },
+        "entry_evidence_sha256": "b615fe40b0c987866cfc41c73ca500dfed540a911ba6c48e74c6d0ce189fdfa9",
+        "entry_id": "setting.orca.method_basis.a6d92a427e69b3a7c59a",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": true,
+        "loader_accepted": true,
+        "loader_observation": "accepted",
+        "lookup_id": "basis",
+        "matched_by": "canonical_literal",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "def2tzvp",
+        "program": "orca",
+        "project_candidate_eligible": false,
+        "reason_rule_id": "scientific_settings.v2.validation_coverage_gap",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "preserved",
+        "renderer_preserved": true,
+        "repair_policy_binding": {
+          "binding_sha256": "4474b697bd58b38312fd23d87246c627e93cc655b79eb9447369fa11951f2774",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "def2-TZVP",
+        "resolution_sha256": "84839c44b1319b060b3ed0a54d4a23e1174beafb95914d7edf86d775e3c03071",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.basis",
+        "source_registered": true,
+        "status": "blocked_validation_coverage"
+      },
+      "result_sha256": "b4119de762b83dcea9ea01697971277dd5de5eceaa65474b4dec9a7d10809483",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_01_InYN7Ox0pphjEFia9vxt4815",
+      "request_id": "openai:call_01_InYN7Ox0pphjEFia9vxt4815",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "applicability_rule_ids": [],
+        "applicability_rules_present": false,
+        "candidates": [],
+        "canonical_value": "b3lyp",
+        "deterministic_validator_enforced": false,
+        "entry_evidence": {
+          "entry_id": "setting.orca.method_functional.d34018d588c050ffd3c5",
+          "inventory_sha256": "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe",
+          "observation_note": "Observed allowed transform paper_project.functional_literal_normalization: input='b3lyp' -> rendered=('b3lyp',) -> loaded=('b3lyp',); jobs=('opt',). Rendered and loaded literals matched. No safe preview or engine execution.",
+          "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+          "repair_sidecar_sha256": null,
+          "source_ids": [
+            "orca-job-settings-125f2878",
+            "orca-project-loader-125f2878",
+            "orca-reference-125f2878",
+            "project-protocol-125f2878"
+          ]
+        },
+        "entry_evidence_sha256": "fd2a6fe1a4685fd1ca1066817bfd241c804a7d2d5ce6aaa1e40a48b7dfcac22a",
+        "entry_id": "setting.orca.method_functional.d34018d588c050ffd3c5",
+        "evidence_ceiling": {
+          "engine_executed": false,
+          "maximum_claim": "loader_renderer_verification_only",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.scientific-settings-evidence-ceiling.v1",
+          "scientific_adequacy_verified": false,
+          "setting_combination_verified": false
+        },
+        "inventory_sha256s": [
+          "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe"
+        ],
+        "job_kind": "opt",
+        "job_scope_compatible": true,
+        "loader_accepted": true,
+        "loader_observation": "accepted",
+        "lookup_id": "expected.functional",
+        "matched_by": "canonical_literal",
+        "normalization_version": "chemsmart.scientific-setting-literal.v2",
+        "normalized_requested_value": "b3lyp",
+        "program": "orca",
+        "project_candidate_eligible": true,
+        "reason_rule_id": "scientific_settings.v2.exact_registered",
+        "registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+        "renderer_observation": "preserved",
+        "renderer_preserved": true,
+        "repair_policy_binding": {
+          "binding_sha256": "3c2db34e859dccd83d074ad3078af5136210abc1d1342a8e8212877c8f049f66",
+          "scope_completeness": "enumerated_non_exhaustive",
+          "sidecar_sha256": "c20cc93e5fa734524beb610d44c53b641167d202e74f9155f99ec7af42ff1ca7"
+        },
+        "requested_value": "B3LYP",
+        "resolution_sha256": "cab035dfcb4a1b41dee307ac97287d9e8a2215e56c26f516247169b73f4c3e81",
+        "schema_version": "chemsmart.scientific-setting-resolution.v2",
+        "setting_path": "method.functional",
+        "source_registered": true,
+        "status": "exact_registered"
+      },
+      "result_sha256": "63565c5693a1f90638044ae3ab2877eb455329a3f4f4ad71754abde04e6cfb04",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "inspect_case_basis_evidence",
+      "provider_call_id": "call_02_OCaOnkNGojV0zP3JxSHq0816",
+      "request_id": "openai:call_02_OCaOnkNGojV0zP3JxSHq0816",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ref": {
+          "artifact_sha256": "a7e2c2cff2cc166b9cdd318b1400586e3911fa5998744128fb624c3c078c142a",
+          "evidence_id": "basis-evidence:orca-def2-tzvp-pd-28e-ecp:orbital",
+          "kind": "request_bound_basis_evidence",
+          "media_type": "application/json",
+          "receipt_id": "basis-evidence-receipt:orca-def2-tzvp-pd-28e-ecp:orbital",
+          "ref_sha256": "ebdbdb4c35776a5cecf01b70afa110b6d4bf3321f982b8de4507f642cf67f05f",
+          "request_sha256": "93ab5e7e581058417f985ed50186e183173db753ae1491ed60f3e29597139e7e",
+          "schema_version": "chemsmart.request-bound-basis-evidence-ref.v1"
+        },
+        "observation_receipt": {
+          "artifact_sha256": "a7e2c2cff2cc166b9cdd318b1400586e3911fa5998744128fb624c3c078c142a",
+          "kind": "request_bound_basis_evidence",
+          "observation_receipt_id": "observation:request_bound_basis_evidence:3c2e4fd29ae7078dcd50da5705c5e2cd",
+          "ref_sha256": "ebdbdb4c35776a5cecf01b70afa110b6d4bf3321f982b8de4507f642cf67f05f"
+        },
+        "receipt": {
+          "canonical_basis_identity": "def2tzvp",
+          "canonical_basis_name": "def2-TZVP",
+          "catalog_artifact_sha256": "ed4ef918fb80e8ad3c2396c237d2120c31892cfaa2a61fb61af52965dc723c0b",
+          "catalog_content_sha256": "a4c39327851ed653ec849c2109549cad4f0ee4e4207ea20143a368d25b2e2732",
+          "catalog_key": "def2-tzvp",
+          "catalog_role": "orbital",
+          "catalog_source_version": "0.11",
+          "definition_sha256": "f5fbd0f114cbe9709bb114f5e4e26dfc7822e72c3617e75e65dc3a81668a7f55",
+          "elements": [
+            {
+              "atomic_number": 17,
+              "covered": true,
+              "ecp_electrons": null,
+              "ecp_potential_count": 0,
+              "ecp_present": false,
+              "electron_shell_count": 13,
+              "orbital_present": true,
+              "reason_rule_ids": [
+                "basis.request.orbital_functions_observed"
+              ],
+              "state": "verified",
+              "symbol": "Cl"
+            },
+            {
+              "atomic_number": 46,
+              "covered": true,
+              "ecp_electrons": 28,
+              "ecp_potential_count": 4,
+              "ecp_present": true,
+              "electron_shell_count": 14,
+              "orbital_present": true,
+              "reason_rule_ids": [
+                "basis.request.orbital_functions_observed"
+              ],
+              "state": "verified",
+              "symbol": "Pd"
+            }
+          ],
+          "engine_executed": false,
+          "error_class": null,
+          "evidence_scope": "bse_local_element_definition_only",
+          "function_types": [
+            "gto",
+            "gto_spherical",
+            "scalar_ecp"
+          ],
+          "inspection_receipt_sha256": "239e7ed2e53b911cadaddf5812d5e7b1a3e19658e7e659d3d991cbbaabce8f45",
+          "inspection_status": "all_elements_covered",
+          "local_data_only": true,
+          "model_confidence_used": false,
+          "native_engine_verified": false,
+          "network_accessed": false,
+          "reason_rule_ids": [
+            "basis.request.exact_local_bse_evidence"
+          ],
+          "receipt_id": "basis-evidence-receipt:orca-def2-tzvp-pd-28e-ecp:orbital",
+          "receipt_sha256": "a7e2c2cff2cc166b9cdd318b1400586e3911fa5998744128fb624c3c078c142a",
+          "request": {
+            "atomic_numbers": [
+              17,
+              46
+            ],
+            "basis_literal": "def2-TZVP",
+            "model_confidence_used": false,
+            "network_allowed": false,
+            "program": "orca",
+            "request_id": "orca-def2-tzvp-pd-28e-ecp:orbital",
+            "request_sha256": "93ab5e7e581058417f985ed50186e183173db753ae1491ed60f3e29597139e7e",
+            "role": "orbital",
+            "schema_version": "chemsmart.request-bound-basis-evidence-request.v1",
+            "substitution_allowed": false
+          },
+          "requested_basis_identity": "def2tzvp",
+          "safe_preview_executed": false,
+          "schema_version": "chemsmart.request-bound-basis-evidence-receipt.v1",
+          "scientific_suitability_verified": false,
+          "source_package": "basis_set_exchange",
+          "source_version": "0.11",
+          "source_version_matches_catalog": true,
+          "state": "verified",
+          "substitution_performed": false
+        },
+        "request": {
+          "atomic_numbers": [
+            17,
+            46
+          ],
+          "basis_literal": "def2-TZVP",
+          "model_confidence_used": false,
+          "network_allowed": false,
+          "program": "orca",
+          "request_id": "orca-def2-tzvp-pd-28e-ecp:orbital",
+          "request_sha256": "93ab5e7e581058417f985ed50186e183173db753ae1491ed60f3e29597139e7e",
+          "role": "orbital",
+          "schema_version": "chemsmart.request-bound-basis-evidence-request.v1",
+          "substitution_allowed": false
+        }
+      },
+      "result_sha256": "db50dcc3071e3f946dc9b09cea803d62a93500fdc5f9e404aa26ccbfff77c224",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "inspect_case_project_readiness",
+      "provider_call_id": "call_03_0IWBZQr7tgV8jurYgysN0708",
+      "request_id": "openai:call_03_0IWBZQr7tgV8jurYgysN0708",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ref": {
+          "artifact_sha256": "95f505c2d6c4c226944a816d431267bad9760a3bcf0991bed7bf542cb8b999dd",
+          "evidence_id": "project-readiness:orca-def2-tzvp-pd-28e-ecp",
+          "kind": "typed_project_readiness",
+          "media_type": "application/json",
+          "ref_sha256": "b62216911bf69513a0dff6a44692fd6027fd8aa61d971d21187cb5dbb0289575",
+          "request_sha256": "9d493c5a3fab59227b75ddc3d5c3e126cb87934f49c3961eaac8b94efb8b3cc5",
+          "schema_version": "chemsmart.project-readiness-evidence-ref.v1"
+        },
+        "observation_receipt": {
+          "artifact_sha256": "95f505c2d6c4c226944a816d431267bad9760a3bcf0991bed7bf542cb8b999dd",
+          "kind": "typed_project_readiness",
+          "observation_receipt_id": "observation:typed_project_readiness:a97d098526f25f68d1e11e1e53dee418",
+          "ref_sha256": "b62216911bf69513a0dff6a44692fd6027fd8aa61d971d21187cb5dbb0289575"
+        },
+        "receipt": {
+          "authority_id": "chemsmart.paper-project-renderer-loader-required-job",
+          "authority_version": "1.0.0",
+          "basis_ecp": {
+            "assessment": "not_requested",
+            "basis": null,
+            "basis_element_receipt_sha256": null,
+            "establishes_typed_project_support": false,
+            "evidence_role": "basis_definition_only",
+            "observed_ecp_elements": [],
+            "required_elements": [],
+            "rule_ids": [],
+            "status": "not_requested",
+            "verdict": "not_checked"
+          },
+          "receipt_sha256": "95f505c2d6c4c226944a816d431267bad9760a3bcf0991bed7bf542cb8b999dd",
+          "registry_discovery": {
+            "establishes_typed_project_support": false,
+            "evidence_role": "registry_discovery_only",
+            "resolution_sha256s": [
+              "84839c44b1319b060b3ed0a54d4a23e1174beafb95914d7edf86d775e3c03071",
+              "b615fe40b0c987866cfc41c73ca500dfed540a911ba6c48e74c6d0ce189fdfa9"
+            ]
+          },
+          "request": {
+            "case_id": "orca-def2-tzvp-pd-28e-ecp",
+            "job_kind": "opt",
+            "method": {
+              "basis": "def2-TZVP",
+              "dispersion": null,
+              "ecp_binding": "not_requested",
+              "freq": true,
+              "functional": "B3LYP",
+              "gfn_version": null,
+              "heavy_elements": [],
+              "heavy_elements_basis": null,
+              "integration_grid": null,
+              "light_elements_basis": null,
+              "optimization_level": null,
+              "required_ecp_elements": [],
+              "solv_freq": null,
+              "solvent_id": null,
+              "solvent_model": null
+            },
+            "program": "orca",
+            "request_sha256": "9d493c5a3fab59227b75ddc3d5c3e126cb87934f49c3961eaac8b94efb8b3cc5",
+            "schema_version": "chemsmart.typed-project-readiness-request.v1"
+          },
+          "safety": {
+            "chemistry_engine_calls": 0,
+            "hpc_calls": 0,
+            "native_input_previews": 0,
+            "registry_discovery_grants_support": false,
+            "workspace_project_writes": 0
+          },
+          "schema_version": "chemsmart.typed-project-readiness.v1",
+          "typed_project_support": {
+            "blocking_rule_ids": [],
+            "finding_rule_ids": [],
+            "project_yaml_sha256": "14701d581e474978b46375e0d650d805a4e94b093f3cddfc967da2c842aec195",
+            "project_yaml_text": "gas:\n  functional: b3lyp\n  basis: def2tzvp\n  freq: true\nsolv:\n  functional: b3lyp\n  basis: def2tzvp\n  freq: false\n",
+            "renderer_status": "rendered",
+            "required_job": "opt",
+            "required_job_observation": {
+              "ab_initio": null,
+              "additional_route_parameters": null,
+              "basis": "def2tzvp",
+              "custom_solvent": null,
+              "dispersion": null,
+              "freq": true,
+              "functional": "b3lyp",
+              "gen_genecp_file": null,
+              "gfn_version": null,
+              "heavy_elements": [],
+              "heavy_elements_basis": null,
+              "jobtype": "opt",
+              "light_elements_basis": null,
+              "numfreq": false,
+              "optimization_level": null,
+              "origin": "derived",
+              "semiempirical": null,
+              "solvent_id": null,
+              "solvent_model": null,
+              "source_block": "gas"
+            },
+            "runtime_summary_json": "{\"opt\":{\"ab_initio\":null,\"additional_route_parameters\":null,\"basis\":\"def2tzvp\",\"custom_solvent\":null,\"dispersion\":null,\"freq\":true,\"functional\":\"b3lyp\",\"gen_genecp_file\":null,\"gfn_version\":null,\"heavy_elements\":null,\"heavy_elements_basis\":null,\"jobtype\":\"opt\",\"jobtype_observation\":{\"kind\":\"loader_jobtype\",\"observed\":\"opt\",\"origin\":\"derived\",\"setting_origins\":{\"ab_initio\":\"default\",\"additional_route_parameters\":\"default\",\"basis\":\"derived\",\"custom_solvent\":\"default\",\"dispersion\":\"default\",\"freq\":\"derived\",\"functional\":\"derived\",\"gen_genecp_file\":\"default\",\"gfn_version\":\"default\",\"heavy_elements\":\"default\",\"heavy_elements_basis\":\"default\",\"light_elements_basis\":\"default\",\"numfreq\":\"default\",\"optimization_level\":\"default\",\"semiempirical\":\"default\",\"solvent_id\":\"default\",\"solvent_model\":\"default\"},\"source_block\":\"gas\"},\"light_elements_basis\":null,\"numfreq\":false,\"optimization_level\":null,\"semiempirical\":null,\"solvent_id\":null,\"solvent_model\":null},\"sp\":{\"additional_route_parameters\":null,\"basis\":\"def2tzvp\",\"freq\":false,\"functional\":\"b3lyp\",\"gfn_version\":null,\"heavy_elements\":null,\"heavy_elements_basis\":null,\"jobtype\":\"sp\",\"light_elements_basis\":null,\"optimization_level\":null,\"solvent_id\":null,\"solvent_model\":null},\"ts\":{\"additional_route_parameters\":null,\"basis\":\"def2tzvp\",\"freq\":true,\"functional\":\"b3lyp\",\"gfn_version\":null,\"heavy_elements\":null,\"heavy_elements_basis\":null,\"jobtype\":\"ts\",\"light_elements_basis\":null,\"optimization_level\":null,\"solvent_id\":null,\"solvent_model\":null}}",
+            "runtime_summary_sha256": "3bfd4c1096c177ab8350b60f3922727a614ff4751ade87661f7a717fc600b99c",
+            "status": "typed_project_supported",
+            "support_scope": "paper_renderer_loader_required_job_only",
+            "validation_record_json": "{\"issues\":[],\"ok\":true,\"parsed\":{\"gas\":{\"basis\":\"def2tzvp\",\"freq\":true,\"functional\":\"b3lyp\"},\"solv\":{\"basis\":\"def2tzvp\",\"freq\":false,\"functional\":\"b3lyp\"}},\"program\":\"orca\",\"project_name\":\"readiness-9d493c5a3fab5922\",\"required_job_kinds\":[\"opt\"],\"runtime_summary\":{\"opt\":{\"ab_initio\":null,\"additional_route_parameters\":null,\"basis\":\"def2tzvp\",\"custom_solvent\":null,\"dispersion\":null,\"freq\":true,\"functional\":\"b3lyp\",\"gen_genecp_file\":null,\"gfn_version\":null,\"heavy_elements\":null,\"heavy_elements_basis\":null,\"jobtype\":\"opt\",\"jobtype_observation\":{\"kind\":\"loader_jobtype\",\"observed\":\"opt\",\"origin\":\"derived\",\"setting_origins\":{\"ab_initio\":\"default\",\"additional_route_parameters\":\"default\",\"basis\":\"derived\",\"custom_solvent\":\"default\",\"dispersion\":\"default\",\"freq\":\"derived\",\"functional\":\"derived\",\"gen_genecp_file\":\"default\",\"gfn_version\":\"default\",\"heavy_elements\":\"default\",\"heavy_elements_basis\":\"default\",\"light_elements_basis\":\"default\",\"numfreq\":\"default\",\"optimization_level\":\"default\",\"semiempirical\":\"default\",\"solvent_id\":\"default\",\"solvent_model\":\"default\"},\"source_block\":\"gas\"},\"light_elements_basis\":null,\"numfreq\":false,\"optimization_level\":null,\"semiempirical\":null,\"solvent_id\":null,\"solvent_model\":null},\"sp\":{\"additional_route_parameters\":null,\"basis\":\"def2tzvp\",\"freq\":false,\"functional\":\"b3lyp\",\"gfn_version\":null,\"heavy_elements\":null,\"heavy_elements_basis\":null,\"jobtype\":\"sp\",\"light_elements_basis\":null,\"optimization_level\":null,\"solvent_id\":null,\"solvent_model\":null},\"ts\":{\"additional_route_parameters\":null,\"basis\":\"def2tzvp\",\"freq\":true,\"functional\":\"b3lyp\",\"gfn_version\":null,\"heavy_elements\":null,\"heavy_elements_basis\":null,\"jobtype\":\"ts\",\"light_elements_basis\":null,\"optimization_level\":null,\"solvent_id\":null,\"solvent_model\":null}},\"verdict\":\"ok\"}",
+            "validation_sha256": "13b71bdff08c56ac1af68e185d26c2d0a384c822fec4c22950326ab943ae3ccd",
+            "validation_verdict": "ok"
+          }
+        }
+      },
+      "result_sha256": "df860f373e64011a1c57cd6a345ec5b18dc5adc4c3428edc4c2840ab01258872",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {
+        "lookup_id": "basis"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "8ea389d274d1b1f52481e34ab43d0ab471bd2dc90cfca4bc13ff22f094c3a179",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_00_KUiLTaginYnil3svWB9l8595",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_KUiLTaginYnil3svWB9l8595"
+    },
+    {
+      "arguments": {
+        "lookup_id": "expected.functional"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "3e6329d3d1e062d3b9fb95e94c517a968f301f73ce9b2f485fafa7d9a94f6b16",
+      "name": "resolve_scientific_setting_v2",
+      "provider_call_id": "call_01_InYN7Ox0pphjEFia9vxt4815",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_01_InYN7Ox0pphjEFia9vxt4815"
+    },
+    {
+      "arguments": {},
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "name": "inspect_case_basis_evidence",
+      "provider_call_id": "call_02_OCaOnkNGojV0zP3JxSHq0816",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_02_OCaOnkNGojV0zP3JxSHq0816"
+    },
+    {
+      "arguments": {},
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "name": "inspect_case_project_readiness",
+      "provider_call_id": "call_03_0IWBZQr7tgV8jurYgysN0708",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_03_0IWBZQr7tgV8jurYgysN0708"
+    }
+  ]
+}

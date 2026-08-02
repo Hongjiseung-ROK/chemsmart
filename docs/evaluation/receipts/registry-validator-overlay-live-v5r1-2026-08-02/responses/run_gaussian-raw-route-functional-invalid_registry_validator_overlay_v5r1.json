@@ -1,0 +1,75 @@
+{
+  "assistant_text": "Submission accepted. Public summary:\n\n**Case `gaussian-raw-route-functional-invalid` (gaussian, freq) — result: `blocked_invalid_specification`**\n\n- **Functional `B3LYP nosymm`**: the expected-functional V2 resolution found no candidate and reported `unknown_unverified` — `nosymm` is native route content, not an atomic functional name.\n- **Basis `def2-SVP`**: resolved canonically with loader acceptance, but only at `blocked_validation_coverage` (validation-coverage gap).\n- **Typed-project readiness receipt** (the sole new factor vs. the archived V4 comparator) returned status `blocked_invalid_specification` with exactly one blocker, `paper.project.functional_not_atomic` (\"functional must be one atomic functional name; route keywords and native syntax are forbidden\", severity reject).\n- **Plan**: `readiness = blocked_invalid_specification`, `blocking_rule_ids = [\"paper.project.functional_not_atomic\"]`, all explicit settings preserved (`functional: \"B3LYP nosymm\"`, `basis: \"def2-SVP\"`, `freq: true`, ECP not requested), no element findings, no native input/command/project write/execution. EvidenceRef `f1e84ec3...` and observation receipt `observation:typed_project_readiness:96a9f325...` cited exactly as returned. This is consistent with the archived comparator terminal (`blocked`) and oracle pass.\n\nThe typed functional remains invalid; the plan stays blocked and no project candidate status is warranted.",
+  "deterministic_grade": {
+    "details": {
+      "basis_evidence_state": "not_requested",
+      "comparator_failed_oracle_ids": [],
+      "evidence_ref_sha256s": [
+        "f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c"
+      ],
+      "expected_readiness": "blocked_invalid_specification",
+      "project_support_status": "blocked_invalid_specification"
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "grade_sha256": "2bfb2bdfe4fb1ec2bfb5196709944b9e91b545ef21b3d8a8cde3d28d3d84e22e",
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.basis-evidence-not-applicable",
+      "oracle.case-identity",
+      "oracle.causal-evidence-observation",
+      "oracle.evidence-derived-blockers",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.program-identity",
+      "oracle.project-readiness-observed",
+      "oracle.public-output-safe",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid"
+    ],
+    "rejected_submit_count": 0,
+    "successful_submit_count": 1
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Submission accepted. Public summary:\n\n**Case `gaussian-raw-route-functional-invalid` (gaussian, freq) — result: `blocked_invalid_specification`**\n\n- **Functional `B3LYP nosymm`**: the expected-functional V2 resolution found no candidate and reported `unknown_unverified` — `nosymm` is native route content, not an atomic functional name.\n- **Basis `def2-SVP`**: resolved canonically with loader acceptance, but only at `blocked_validation_coverage` (validation-coverage gap).\n- **Typed-project readiness receipt** (the sole new factor vs. the archived V4 comparator) returned status `blocked_invalid_specification` with exactly one blocker, `paper.project.functional_not_atomic` (\"functional must be one atomic functional name; route keywords and native syntax are forbidden\", severity reject).\n- **Plan**: `readiness = blocked_invalid_specification`, `blocking_rule_ids = [\"paper.project.functional_not_atomic\"]`, all explicit settings preserved (`functional: \"B3LYP nosymm\"`, `basis: \"def2-SVP\"`, `freq: true`, ECP not requested), no element findings, no native input/command/project write/execution. EvidenceRef `f1e84ec3...` and observation receipt `observation:typed_project_readiness:96a9f325...` cited exactly as returned. This is consistent with the archived comparator terminal (`blocked`) and oracle pass.\n\nThe typed functional remains invalid; the plan stays blocked and no project candidate status is warranted.",
+  "run_id": "run:gaussian-raw-route-functional-invalid:registry_validator_overlay:v5r1",
+  "typed_analysis_summary": "Case gaussian-raw-route-functional-invalid (gaussian, freq): requested functional 'B3LYP nosymm' with def2-SVP. expected.functional resolution found no candidate and returned unknown_unverified (non-exhaustive scope), while expected.basis resolved def2-SVP with loader acceptance but status blocked_validation_coverage. The typed-project readiness receipt is the sole new factor: renderer_status/status blocked_invalid_specification with blocking rule paper.project.functional_not_atomic, because the functional contains the native route keyword 'nosymm' and is not one atomic functional name. Therefore the typed functional is invalid, the plan is blocked_invalid_specification, and no project candidate status is warranted. No native input, command, project write, or execution was authored or requested.",
+  "typed_proposal": {
+    "analysis_summary": "Case gaussian-raw-route-functional-invalid (gaussian, freq): requested functional 'B3LYP nosymm' with def2-SVP. expected.functional resolution found no candidate and returned unknown_unverified (non-exhaustive scope), while expected.basis resolved def2-SVP with loader acceptance but status blocked_validation_coverage. The typed-project readiness receipt is the sole new factor: renderer_status/status blocked_invalid_specification with blocking rule paper.project.functional_not_atomic, because the functional contains the native route keyword 'nosymm' and is not one atomic functional name. Therefore the typed functional is invalid, the plan is blocked_invalid_specification, and no project candidate status is warranted. No native input, command, project write, or execution was authored or requested.",
+    "blocking_rule_ids": [
+      "paper.project.functional_not_atomic"
+    ],
+    "case_id": "gaussian-raw-route-functional-invalid",
+    "command_authored": false,
+    "element_findings": [],
+    "evidence_ref_sha256s": [
+      "f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c"
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-raw-route-functional-invalid",
+    "project_written": false,
+    "readiness": "blocked_invalid_specification",
+    "settings": {
+      "basis": "def2-SVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP nosymm",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

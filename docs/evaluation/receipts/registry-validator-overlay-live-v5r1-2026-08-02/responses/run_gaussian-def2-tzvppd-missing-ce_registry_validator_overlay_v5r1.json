@@ -1,0 +1,94 @@
+{
+  "assistant_text": "Submitted successfully.\n\n**Public summary**\n\nPlan for **gaussian / B3LYP / def2-TZVPPD (freq, Pd + Ce)**: **blocked_validation_coverage**.\n\n- **Basis evidence** (BSE 0.11, local-only): def2-TZVPPD covers **Pd** (Z=46, orbital present, 28-electron ECP, verified) but **lacks Ce** (Z=58, no orbital, no ECP → `basis.request.element_coverage_conflict`, inspection status `element_coverage_missing`).\n- **Project-readiness evidence**: typed-project support is present (opt required job, B3LYP/def2-TZVPPD, freq true; ECP binding not requested; no project-level blockers).\n- **Verdict**: Because the pinned basis definition fails element coverage for Ce, the plan remains blocked; typed-project support alone cannot justify `project_candidate`. All explicit settings preserved (functional B3LYP, basis def2-TZVPPD, freq true); ECP intent `not_applicable` per the request. No native input, command, project write, or execution was authored or requested.\n\nEvidenceRefs cited: `194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363` (project readiness), `a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552` (basis evidence); both observation receipts passed to the submit tool.",
+  "deterministic_grade": {
+    "details": {
+      "basis_evidence_state": "conflict",
+      "comparator_failed_oracle_ids": [
+        "oracle.typed-proposal-exactly-one"
+      ],
+      "evidence_ref_sha256s": [
+        "194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363",
+        "a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552"
+      ],
+      "expected_readiness": "blocked_missing_evidence",
+      "project_support_status": "typed_project_supported"
+    },
+    "failed_oracle_ids": [
+      "oracle.honest-readiness",
+      "oracle.setting-preservation"
+    ],
+    "grade_sha256": "82277310b4fe2962c89c73aeebfd7fad877b9625d4eda3a7497d73b37324dfee",
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.basis-evidence-observed",
+      "oracle.case-identity",
+      "oracle.causal-evidence-observation",
+      "oracle.evidence-derived-blockers",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.program-identity",
+      "oracle.project-readiness-observed",
+      "oracle.public-output-safe",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid"
+    ],
+    "rejected_submit_count": 1,
+    "successful_submit_count": 1
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Submitted successfully.\n\n**Public summary**\n\nPlan for **gaussian / B3LYP / def2-TZVPPD (freq, Pd + Ce)**: **blocked_validation_coverage**.\n\n- **Basis evidence** (BSE 0.11, local-only): def2-TZVPPD covers **Pd** (Z=46, orbital present, 28-electron ECP, verified) but **lacks Ce** (Z=58, no orbital, no ECP → `basis.request.element_coverage_conflict`, inspection status `element_coverage_missing`).\n- **Project-readiness evidence**: typed-project support is present (opt required job, B3LYP/def2-TZVPPD, freq true; ECP binding not requested; no project-level blockers).\n- **Verdict**: Because the pinned basis definition fails element coverage for Ce, the plan remains blocked; typed-project support alone cannot justify `project_candidate`. All explicit settings preserved (functional B3LYP, basis def2-TZVPPD, freq true); ECP intent `not_applicable` per the request. No native input, command, project write, or execution was authored or requested.\n\nEvidenceRefs cited: `194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363` (project readiness), `a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552` (basis evidence); both observation receipts passed to the submit tool.",
+  "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+  "typed_analysis_summary": "B3LYP/def2-TZVPPD freq plan for Pd and Ce. Basis evidence (BSE 0.11, local, no engine/network): def2-TZVPPD covers Pd (Z=46, orbital present, 28-electron ECP, verified) but does NOT cover Ce (Z=58, no orbital, no ECP, state=conflict, reason basis.request.element_coverage_conflict; inspection_status=element_coverage_missing). The pinned basis definition therefore lacks Ce, so the setting cannot be validated for this case; project_candidate_eligible=false per resolution (blocked_validation_coverage, scientific_settings.v2.validation_coverage_gap). Typed-project readiness itself is supported (opt required job, gas/solv B3LYP def2-TZVPPD, freq true gas / false solv, basis_ecp not_requested, no project blockers), but the basis element-coverage conflict keeps the plan blocked. No native input, command, project write, or execution requested.",
+  "typed_proposal": {
+    "analysis_summary": "B3LYP/def2-TZVPPD freq plan for Pd and Ce. Basis evidence (BSE 0.11, local, no engine/network): def2-TZVPPD covers Pd (Z=46, orbital present, 28-electron ECP, verified) but does NOT cover Ce (Z=58, no orbital, no ECP, state=conflict, reason basis.request.element_coverage_conflict; inspection_status=element_coverage_missing). The pinned basis definition therefore lacks Ce, so the setting cannot be validated for this case; project_candidate_eligible=false per resolution (blocked_validation_coverage, scientific_settings.v2.validation_coverage_gap). Typed-project readiness itself is supported (opt required job, gas/solv B3LYP def2-TZVPPD, freq true gas / false solv, basis_ecp not_requested, no project blockers), but the basis element-coverage conflict keeps the plan blocked. No native input, command, project write, or execution requested.",
+    "blocking_rule_ids": [
+      "basis.request.element_coverage_conflict"
+    ],
+    "case_id": "gaussian-def2-tzvppd-missing-ce",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": 28,
+        "ecp_present": true,
+        "orbital_present": true,
+        "symbol": "Pd"
+      },
+      {
+        "covered": false,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": false,
+        "symbol": "Ce"
+      }
+    ],
+    "evidence_ref_sha256s": [
+      "194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363",
+      "a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552"
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "gaussian",
+    "project_name": "gaussian-def2-tzvppd-missing-ce",
+    "project_written": false,
+    "readiness": "blocked_validation_coverage",
+    "settings": {
+      "basis": "def2-TZVPPD",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "B3LYP",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

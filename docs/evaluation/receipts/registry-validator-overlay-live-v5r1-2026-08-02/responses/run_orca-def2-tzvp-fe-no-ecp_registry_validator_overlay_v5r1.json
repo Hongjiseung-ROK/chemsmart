@@ -1,0 +1,94 @@
+{
+  "assistant_text": "Submission accepted. Public summary:\n\n**Plan: B3LYP/def2-TZVP (freq) for a Cl/Fe system — case `orca-def2-tzvp-fe-no-ecp`**\n\n- **Fe ECP answer: No.** The pinned BSE 0.11 def2-TZVP orbital definition (receipt `observation:request_bound_basis_evidence:c412f8adf15e6dcf3eca6533d2dcfa7b`) verifies Cl (Z=17) and Fe (Z=26) as covered with orbital functions only — for Fe: `ecp_present=false`, `ecp_electrons=null`, `ecp_potential_count=0`. No Fe ECP is embedded.\n- **Typed-project support: confirmed.** The readiness receipt (`observation:typed_project_readiness:a5caf818c85f4ad6568ea51da6952d3c`) reports `typed_project_supported` for the required opt job, with b3lyp/def2tzvp/freq preserved through render/load and validation verdict `ok`, and no blocking rule IDs.\n- **Readiness: `project_candidate`** with `blocking_rule_ids: []` — the verified case-bound element coverage and typed-project support resolve the archived V4 failures (basis-element-semantics, project-render, setting-preservation) with no remaining conflict; `ecp_intent=not_applicable`, `ecp_elements=[]`.\n- **Scope:** non-executing proposal only — no native input, command, project write, or engine/HPC execution was authored or requested. No scientific adequacy or engine-level verification is claimed beyond the receipts.",
+  "deterministic_grade": {
+    "details": {
+      "basis_evidence_state": "verified",
+      "comparator_failed_oracle_ids": [
+        "oracle.basis-element-semantics",
+        "oracle.project-render",
+        "oracle.setting-preservation"
+      ],
+      "evidence_ref_sha256s": [
+        "000bc51e68dbd53bd091de4b7322e9e09cfd22551ebeff15a110826a4bf26a7c",
+        "02190de4e87f225c05f799716670f3b1e6ad40fa63f55bc164734842bcb5da90"
+      ],
+      "expected_readiness": "project_candidate",
+      "project_support_status": "typed_project_supported"
+    },
+    "failed_oracle_ids": [
+      "oracle.setting-preservation"
+    ],
+    "grade_sha256": "d6ed637b11e79b960dfe26549667e36d2ac930f83eac5292e350be4ddbb3195e",
+    "oracle_passed": false,
+    "passed_oracle_ids": [
+      "oracle.basis-element-semantics",
+      "oracle.basis-evidence-observed",
+      "oracle.case-identity",
+      "oracle.causal-evidence-observation",
+      "oracle.evidence-derived-blockers",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.honest-readiness",
+      "oracle.program-identity",
+      "oracle.project-readiness-observed",
+      "oracle.public-output-safe",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid"
+    ],
+    "rejected_submit_count": 1,
+    "successful_submit_count": 1
+  },
+  "private_reasoning_included": false,
+  "raw_public_english_response": "Submission accepted. Public summary:\n\n**Plan: B3LYP/def2-TZVP (freq) for a Cl/Fe system — case `orca-def2-tzvp-fe-no-ecp`**\n\n- **Fe ECP answer: No.** The pinned BSE 0.11 def2-TZVP orbital definition (receipt `observation:request_bound_basis_evidence:c412f8adf15e6dcf3eca6533d2dcfa7b`) verifies Cl (Z=17) and Fe (Z=26) as covered with orbital functions only — for Fe: `ecp_present=false`, `ecp_electrons=null`, `ecp_potential_count=0`. No Fe ECP is embedded.\n- **Typed-project support: confirmed.** The readiness receipt (`observation:typed_project_readiness:a5caf818c85f4ad6568ea51da6952d3c`) reports `typed_project_supported` for the required opt job, with b3lyp/def2tzvp/freq preserved through render/load and validation verdict `ok`, and no blocking rule IDs.\n- **Readiness: `project_candidate`** with `blocking_rule_ids: []` — the verified case-bound element coverage and typed-project support resolve the archived V4 failures (basis-element-semantics, project-render, setting-preservation) with no remaining conflict; `ecp_intent=not_applicable`, `ecp_elements=[]`.\n- **Scope:** non-executing proposal only — no native input, command, project write, or engine/HPC execution was authored or requested. No scientific adequacy or engine-level verification is claimed beyond the receipts.",
+  "run_id": "run:orca-def2-tzvp-fe-no-ecp:registry_validator_overlay:v5r1",
+  "typed_analysis_summary": "B3LYP/def2-TZVP frequency plan for a Cl/Fe system (case orca-def2-tzvp-fe-no-ecp). Case-bound BSE 0.11 basis evidence verifies the pinned def2-TZVP orbital definition covers Cl (Z=17) and Fe (Z=26): both orbital_present=true, ecp_present=false, ecp_electrons=null, ecp_potential_count=0 — the pinned definition embeds NO Fe ECP, consistent with the no-ECP intent (ecp_intent=not_applicable, ecp_elements=[]). Typed-project readiness receipt confirms paper renderer/loader support for the required opt job with b3lyp/def2tzvp/freq preserved (renderer preserved, validation verdict ok) and reports no blocking rule IDs. Registry-level basis resolution alone was blocked_validation_coverage (scientific_settings.v2.validation_coverage_gap), but the verified case-bound element coverage plus typed-project support justify project_candidate with no blockers; no scientific adequacy or engine execution is claimed beyond the receipts.",
+  "typed_proposal": {
+    "analysis_summary": "B3LYP/def2-TZVP frequency plan for a Cl/Fe system (case orca-def2-tzvp-fe-no-ecp). Case-bound BSE 0.11 basis evidence verifies the pinned def2-TZVP orbital definition covers Cl (Z=17) and Fe (Z=26): both orbital_present=true, ecp_present=false, ecp_electrons=null, ecp_potential_count=0 — the pinned definition embeds NO Fe ECP, consistent with the no-ECP intent (ecp_intent=not_applicable, ecp_elements=[]). Typed-project readiness receipt confirms paper renderer/loader support for the required opt job with b3lyp/def2tzvp/freq preserved (renderer preserved, validation verdict ok) and reports no blocking rule IDs. Registry-level basis resolution alone was blocked_validation_coverage (scientific_settings.v2.validation_coverage_gap), but the verified case-bound element coverage plus typed-project support justify project_candidate with no blockers; no scientific adequacy or engine execution is claimed beyond the receipts.",
+    "blocking_rule_ids": [],
+    "case_id": "orca-def2-tzvp-fe-no-ecp",
+    "command_authored": false,
+    "element_findings": [
+      {
+        "covered": true,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": true,
+        "symbol": "Cl"
+      },
+      {
+        "covered": true,
+        "ecp_electrons": null,
+        "ecp_present": false,
+        "orbital_present": true,
+        "symbol": "Fe"
+      }
+    ],
+    "evidence_ref_sha256s": [
+      "000bc51e68dbd53bd091de4b7322e9e09cfd22551ebeff15a110826a4bf26a7c",
+      "02190de4e87f225c05f799716670f3b1e6ad40fa63f55bc164734842bcb5da90"
+    ],
+    "execution_requested": false,
+    "native_input_authored": false,
+    "program": "orca",
+    "project_name": "orca-def2-tzvp-fe-no-ecp",
+    "project_written": false,
+    "readiness": "project_candidate",
+    "settings": {
+      "basis": "def2-TZVP",
+      "dispersion": null,
+      "ecp_elements": [],
+      "ecp_intent": "not_applicable",
+      "freq": true,
+      "functional": "b3lyp",
+      "gfn_version": null,
+      "heavy_elements": [],
+      "heavy_elements_basis": null,
+      "integration_grid": null,
+      "light_elements_basis": null,
+      "optimization_level": null,
+      "solv_freq": null,
+      "solvent_id": null,
+      "solvent_model": null
+    }
+  }
+}

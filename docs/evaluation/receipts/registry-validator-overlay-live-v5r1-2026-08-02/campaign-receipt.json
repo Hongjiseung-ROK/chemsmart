@@ -1,0 +1,20 @@
+{
+  "campaign_id": "registry-validator-overlay-development-v5",
+  "campaign_plan_sha256": "a9c24e19b34658f8b7008c5fd3c431578083d520168dfa2a5cdddf1e03afd524",
+  "duplicate_baseline_api_calls": 0,
+  "engine_calls": 0,
+  "hpc_calls": 0,
+  "live_overlay_run_count": 6,
+  "native_inputs_authored": 0,
+  "outcome_receipt_sha256s": [
+    "abb32df924ae85397bdfaae7d0aff587242179671ec5dc08ef53610064bff2d3",
+    "f0f9057075066b5103466a0a68f18b9a5443db8d53b70692b02e04cdafa521a4",
+    "1452bc5df43fb3f8da63bfc2133c65a0fc3151f28fc4cc7850e65cbffb45feba",
+    "2c33245bdb71c692bc0c2d40ed72c2c784449d9977a8c7e41451ab9d748d5d31",
+    "79455ede9bd2f9bf7f1390bd8522980b7f47737621494bbeb152aae570df9cf4",
+    "8201c139f302f557b59ec559adc30452fd89ebb50246e5bc19dd012e0fe89192"
+  ],
+  "project_writes": 0,
+  "receipt_sha256": "232be0e16b656504729df634142ccaf951467874b7f043d824615a5a9c001de5",
+  "schema_version": "chemsmart.registry-validator-overlay-receipt.v1"
+}

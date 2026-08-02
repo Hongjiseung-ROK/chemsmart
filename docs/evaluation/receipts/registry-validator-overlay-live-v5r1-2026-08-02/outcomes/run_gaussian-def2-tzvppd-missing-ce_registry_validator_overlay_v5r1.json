@@ -1,0 +1,212 @@
+{
+  "comparator": {
+    "arm": "registry_v2",
+    "campaign_id": "registry-v2-stress-development-v4",
+    "campaign_plan_artifact_sha256": "c1db75b9b513967cc5cfa0d82d877c2a0ad714268c39bfa406958a5809b1a4fc",
+    "campaign_plan_sha256": "23353fa15348bcbdeee5dde1a4f92d6ddd72efb7744bee5e901e3b59878a6b87",
+    "case_id": "gaussian-def2-tzvppd-missing-ce",
+    "comparator_sha256": "bc70db2efaa933e7253b40e3e96b5212d24920caeb5df95d4ac8e6ebc046f6a4",
+    "failed_oracle_ids": [
+      "oracle.typed-proposal-exactly-one"
+    ],
+    "oracle_passed": false,
+    "outcome_artifact_locator": "docs/evaluation/receipts/registry-v2-stress-live-v4-2026-08-02/outcomes/run_gaussian-def2-tzvppd-missing-ce_registry_v2_v4.json",
+    "outcome_artifact_sha256": "0de3df7f4e6dfd6481ce55366eb574d4e835b47c34480cf0f018da48d91e631f",
+    "outcome_receipt_sha256": "90f6eb7a1563db8ba51ced5fb9432ab066d2a2d23fdb09a296cd1416938f86d3",
+    "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_v2:v4",
+    "run_spec_sha256": "ee926f801a3e5b20e6ab49b424f560f4fbb58baf85f561ca7904d3165380dd86",
+    "schema_version": "chemsmart.archived-registry-v2-comparator.v1",
+    "terminal_state": "failed"
+  },
+  "outcome": {
+    "comparator_outcome_receipt_sha256": "90f6eb7a1563db8ba51ced5fb9432ab066d2a2d23fdb09a296cd1416938f86d3",
+    "comparator_sha256": "bc70db2efaa933e7253b40e3e96b5212d24920caeb5df95d4ac8e6ebc046f6a4",
+    "deterministic_grade": {
+      "details": {
+        "basis_evidence_state": "conflict",
+        "comparator_failed_oracle_ids": [
+          "oracle.typed-proposal-exactly-one"
+        ],
+        "evidence_ref_sha256s": [
+          "194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363",
+          "a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552"
+        ],
+        "expected_readiness": "blocked_missing_evidence",
+        "project_support_status": "typed_project_supported"
+      },
+      "failed_oracle_ids": [
+        "oracle.honest-readiness",
+        "oracle.setting-preservation"
+      ],
+      "grade_sha256": "82277310b4fe2962c89c73aeebfd7fad877b9625d4eda3a7497d73b37324dfee",
+      "oracle_passed": false,
+      "passed_oracle_ids": [
+        "oracle.basis-element-semantics",
+        "oracle.basis-evidence-observed",
+        "oracle.case-identity",
+        "oracle.causal-evidence-observation",
+        "oracle.evidence-derived-blockers",
+        "oracle.evidence-ref-binding",
+        "oracle.execution-prohibited",
+        "oracle.program-identity",
+        "oracle.project-readiness-observed",
+        "oracle.public-output-safe",
+        "oracle.typed-proposal-exactly-one",
+        "oracle.typed-proposal-valid"
+      ],
+      "rejected_submit_count": 1,
+      "successful_submit_count": 1
+    },
+    "duplicate_baseline_api_calls": 0,
+    "engine_calls": 0,
+    "evidence_ref_sha256s": [
+      "194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363",
+      "a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552"
+    ],
+    "hpc_calls": 0,
+    "input_tokens": 47848,
+    "native_inputs_authored": 0,
+    "observed_model": "deepseek-v4-flash",
+    "output_tokens": 5451,
+    "private_reasoning_persisted": false,
+    "private_runtime_event_log_sha256": "c7f24bc5c0afb729ae24ef11c994097a08367cfe7c18208fd66ebf5ddfe1dbb2",
+    "project_writes": 0,
+    "raw_public_english_response": "Submitted successfully.\n\n**Public summary**\n\nPlan for **gaussian / B3LYP / def2-TZVPPD (freq, Pd + Ce)**: **blocked_validation_coverage**.\n\n- **Basis evidence** (BSE 0.11, local-only): def2-TZVPPD covers **Pd** (Z=46, orbital present, 28-electron ECP, verified) but **lacks Ce** (Z=58, no orbital, no ECP → `basis.request.element_coverage_conflict`, inspection status `element_coverage_missing`).\n- **Project-readiness evidence**: typed-project support is present (opt required job, B3LYP/def2-TZVPPD, freq true; ECP binding not requested; no project-level blockers).\n- **Verdict**: Because the pinned basis definition fails element coverage for Ce, the plan remains blocked; typed-project support alone cannot justify `project_candidate`. All explicit settings preserved (functional B3LYP, basis def2-TZVPPD, freq true); ECP intent `not_applicable` per the request. No native input, command, project write, or execution was authored or requested.\n\nEvidenceRefs cited: `194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363` (project readiness), `a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552` (basis evidence); both observation receipts passed to the submit tool.",
+    "raw_public_english_response_sha256": "8f95d6f31e7ec38572c8a0f11fdaadb89f7ba7dcec3bd6c40bf0e5edfb93fee8",
+    "receipt_sha256": "f0f9057075066b5103466a0a68f18b9a5443db8d53b70692b02e04cdafa521a4",
+    "rejected_submit_count": 1,
+    "response_artifact_locator": "responses/run_gaussian-def2-tzvppd-missing-ce_registry_validator_overlay_v5r1.json",
+    "response_artifact_sha256": "d2f1ea9f329d0dabcfb9938e0d9a37217819fd9b19c451577ce71d9c35c61d02",
+    "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+    "run_spec_sha256": "de338620fcf47f99bf835712bee071ec716b78dd40ed9a2c949ffa3d2bf3e2a7",
+    "runtime_event_log_locator": "runtime-events/run_gaussian-def2-tzvppd-missing-ce_registry_validator_overlay_v5r1.jsonl",
+    "runtime_event_log_sha256": "5e03785b36933b474599f30e10d0bcf78190d5acb197b91c8a67610f6b6e9863",
+    "runtime_event_projection_receipt": {
+      "event_count": 22,
+      "private_exact_jsonl_sha256": "c7f24bc5c0afb729ae24ef11c994097a08367cfe7c18208fd66ebf5ddfe1dbb2",
+      "projected_jsonl_sha256": "5e03785b36933b474599f30e10d0bcf78190d5acb197b91c8a67610f6b6e9863",
+      "projected_state_sha256": "94f787c875cd29d4bf46af223f91f75c9e882c14587bd0349e6579b222d5e9d4",
+      "projection_rule_id": "runtime.public_event_projection.session_cwd_repository_identity.v1",
+      "receipt_sha256": "34fc3d30b81ad623f3e1bb0de566cc9b8c3f29665ae51de4ebb49f7b17a106f6",
+      "replacement_count": 1,
+      "replacement_field": "session_started.payload.cwd",
+      "repository_identity": "repo://chemsmart",
+      "schema_version": "chemsmart.runtime-public-event-projection-receipt.v1"
+    },
+    "runtime_event_projection_receipt_artifact_sha256": "e7cd6448089889ce9c8312e07f8b1408af5ce4617719199ba9a8d57868859b78",
+    "runtime_event_projection_receipt_locator": "runtime-events/run_gaussian-def2-tzvppd-missing-ce_registry_validator_overlay_v5r1.projection-receipt.json",
+    "runtime_replay_state_sha256": "94f787c875cd29d4bf46af223f91f75c9e882c14587bd0349e6579b222d5e9d4",
+    "runtime_replay_verified": true,
+    "runtime_terminal_state": "complete",
+    "schema_version": "chemsmart.registry-validator-overlay-outcome.v1",
+    "secret_material_persisted": false,
+    "successful_submit_count": 1,
+    "terminal_state": "failed",
+    "tool_trace_artifact_locator": "tool-traces/run_gaussian-def2-tzvppd-missing-ce_registry_validator_overlay_v5r1.json",
+    "tool_trace_artifact_sha256": "1e04c184288ed9f0e47598676ef2d4a8b8503abd9fa49154721929d6f866f4ad",
+    "transport_attempts": 5,
+    "wall_time_ms": 42556
+  },
+  "provider_observations": [
+    {
+      "attempt_ordinal": 1,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "0bc0fbd59aa9281d7f6d2e797e67047e91b4807d6d0b35d4fc7817e47cda0217",
+      "input_tokens": 3559,
+      "latency_ms": 2562,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 283,
+      "request_binding_sha256": "a048bdb37fe2d9c832b7dc39e2dc3ebfdab944888159fce7fd3c81c2fe915022",
+      "request_binding_verified": true,
+      "request_sha256": "646490ef4abbf34e1c03c561fa7cb9525246534f707aefb36778d1f1d40e2cef",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 2,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "0bc0fbd59aa9281d7f6d2e797e67047e91b4807d6d0b35d4fc7817e47cda0217",
+      "input_tokens": 7444,
+      "latency_ms": 1952,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 101,
+      "request_binding_sha256": "a048bdb37fe2d9c832b7dc39e2dc3ebfdab944888159fce7fd3c81c2fe915022",
+      "request_binding_verified": true,
+      "request_sha256": "10acc701ea231bb8d1da074e14749107d3dac242e7b464a654bf017f47990627",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 3,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "0bc0fbd59aa9281d7f6d2e797e67047e91b4807d6d0b35d4fc7817e47cda0217",
+      "input_tokens": 8943,
+      "latency_ms": 28630,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 3835,
+      "request_binding_sha256": "a048bdb37fe2d9c832b7dc39e2dc3ebfdab944888159fce7fd3c81c2fe915022",
+      "request_binding_verified": true,
+      "request_sha256": "756bda30d6218fb8c38394b6e367c68268c954d21997acc1d5900e16a2da56ad",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 4,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "0bc0fbd59aa9281d7f6d2e797e67047e91b4807d6d0b35d4fc7817e47cda0217",
+      "input_tokens": 12916,
+      "latency_ms": 5252,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 875,
+      "request_binding_sha256": "a048bdb37fe2d9c832b7dc39e2dc3ebfdab944888159fce7fd3c81c2fe915022",
+      "request_binding_verified": true,
+      "request_sha256": "30b7e2ddfb35dbd56513dcb78febd6d16591f51e2a2b4e798814831dad7108d1",
+      "status": "observed"
+    },
+    {
+      "attempt_ordinal": 5,
+      "credential_status": "valid",
+      "hypothesis_id": "hypothesis:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+      "hypothesis_sha256": "0bc0fbd59aa9281d7f6d2e797e67047e91b4807d6d0b35d4fc7817e47cda0217",
+      "input_tokens": 14986,
+      "latency_ms": 3948,
+      "observed_model": "deepseek-v4-flash",
+      "output_tokens": 357,
+      "request_binding_sha256": "a048bdb37fe2d9c832b7dc39e2dc3ebfdab944888159fce7fd3c81c2fe915022",
+      "request_binding_verified": true,
+      "request_sha256": "3d0ab497b68653ec4991373fe00072db9be53b15f1d21d967847020290bed850",
+      "status": "observed"
+    }
+  ],
+  "run_spec": {
+    "case_binding_sha256": "21883e38c52bc7cfc44d1bf262d68d443321ec2bb196ae73362f9f47394de580",
+    "case_id": "gaussian-def2-tzvppd-missing-ce",
+    "case_sha256": "6cc93af1f39faa27baaa85274e91e7768d0a754fd00eeebba9db3781c0229e9e",
+    "changed_factor": "request_bound_basis_and_typed_project_evidence_overlay",
+    "comparator_sha256": "bc70db2efaa933e7253b40e3e96b5212d24920caeb5df95d4ac8e6ebc046f6a4",
+    "comparator_source": "archived_v4_registry_v2",
+    "configuration_sha256": "c391bf604ba514de7d111e71a32f382e55454d8f68efaf0fd9fc953a76fdea39",
+    "duplicate_baseline_api_calls": 0,
+    "evidence_bundle_sha256": "9c844cf920dc4287bb586ecae74d274d2ad6c1b66fa27046296cd0211b1cbbf3",
+    "evidence_ref_sha256s": [
+      "194238238fd2988a58e1cb11721a3504eaecdcbd38808d4580501d61744b4363",
+      "a484bdf61d943b44dd4da9965cdc38a97c499d01a626f8f8b04d76d4c0724552"
+    ],
+    "expected_outcome": "One evidence-bound typed proposal preserves the case intent, uses readiness blocked_missing_evidence, and makes no project, native-input, command, engine, or HPC action.",
+    "hypothesis_id": "hypothesis:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+    "model": "deepseek-v4-flash",
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "prompt_sha256": "7f324cc6d8096f1d00ffca376a6db022c080708bf51e5c9ad4d0522a94a18a5c",
+    "prompt_version": "registry-validator-overlay-prompt.v1",
+    "public_path_guard_version": "public-path-fragment.v2",
+    "reasoning_mode": "thinking_enabled_high",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_validator_overlay:v5r1",
+    "run_spec_sha256": "de338620fcf47f99bf835712bee071ec716b78dd40ed9a2c949ffa3d2bf3e2a7",
+    "runtime": "agent_session_runtime_v2_active",
+    "schema_version": "chemsmart.registry-validator-overlay-run.v1",
+    "source_binding_sha256": "f2f5c6adfd3e6651b3422c354fe640ec74d70220d02496b9782d56ccf3d78397",
+    "tool_schema_sha256": "6f2bbd54570ba702ee18dac11cc825ccfdd9dcd60c801d07d70be8ef65fed51e"
+  }
+}
