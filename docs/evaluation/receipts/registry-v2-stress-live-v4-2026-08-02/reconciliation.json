@@ -1,7 +1,7 @@
 {
   "schema_version": "chemsmart.registry-stress-live-reconciliation.v3",
   "reconciliation_id": "registry-v2-stress-live-v4-2026-08-02",
-  "reconciliation_sha256": "e32eb88155ddc96060a39298073a1078f651ecab1641598c0e066ab0f6114c73",
+  "reconciliation_sha256": "dcb157a9a712e2a547b86ada24c6c8ed1d7c0425c5b5f677e0e3c587b1c1b6f6",
   "digest_method": "sha256(canonical_json(document excluding reconciliation_sha256))",
   "campaign": {
     "campaign_id": "registry-v2-stress-development-v4",
@@ -36,6 +36,8 @@
     "campaign_receipt_digest_valid": true,
     "outcome_contracts_valid": 44,
     "artifact_hashes_valid": 132,
+    "response_trace_event_artifact_hashes_valid": 132,
+    "outcome_artifact_hashes_valid": 44,
     "runtime_streams_replayed": 44,
     "runtime_replay_failures": 0,
     "secret_value_hits": 0,
@@ -46,7 +48,9 @@
     "engine_calls": 0,
     "hpc_calls": 0,
     "project_writes": 0,
-    "native_input_authoring": false
+    "native_input_authoring": false,
+    "campaign_progress_manifest_bound": false,
+    "campaign_progress_classification": "operational checkpoint copied without a self-hash or exact-byte manifest binding"
   },
   "aggregate_by_arm": {
     "minimal": {
@@ -163,7 +167,30 @@
     "runs_with_one_rejected_then_one_successful_submission": 2,
     "runs_with_only_rejected_submissions": 1,
     "accepted_passes_changed_by_success_only_regrade": 0,
-    "evidence_class": "posthoc_reconciliation_not_preregistered_metric"
+    "evidence_class": "posthoc_reconciliation_not_preregistered_metric",
+    "affected_run_evidence": [
+      {
+        "run_id": "run:gaussian-def2-tzvppd-missing-ce:registry_v2:v4",
+        "outcome_artifact_sha256": "0de3df7f4e6dfd6481ce55366eb574d4e835b47c34480cf0f018da48d91e631f",
+        "outcome_receipt_sha256": "90f6eb7a1563db8ba51ced5fb9432ab066d2a2d23fdb09a296cd1416938f86d3",
+        "frozen_submit_count": 2,
+        "successful_typed_submit_count": 1
+      },
+      {
+        "run_id": "run:orca-def2-ecp-orbital-missing:registry_v2:v4",
+        "outcome_artifact_sha256": "6dab45d467dff0e0d3a3455839456e4ea2e462b93e17e4043e4676d9efb2c827",
+        "outcome_receipt_sha256": "54d4fd57349feb97aa2c7b8d3e4a2979df2a0ea3c8b28310d5d6bf68e260082d",
+        "frozen_submit_count": 2,
+        "successful_typed_submit_count": 0
+      },
+      {
+        "run_id": "run:orca-def2-tzvp-pd-28e-ecp:registry_v2_advisory:v4",
+        "outcome_artifact_sha256": "464bcd8e4d8c95a5d2ea19cd93de9d1d13f5693efe895bc0a4dcddb5ce6f7e87",
+        "outcome_receipt_sha256": "21ee8318503a82c05a2a2ad113c2c8d752ddb3a2d7597d4cd01defa84d430096",
+        "frozen_submit_count": 2,
+        "successful_typed_submit_count": 1
+      }
+    ]
   },
   "retired_or_prohibited_interpretations": [
     "accepted_pass is model-only success",

@@ -1,0 +1,11 @@
+{
+  "schema_version": "chemsmart.goal-command-length-receipt.v1",
+  "measured_on": "2026-08-02",
+  "path": "goal-command.md",
+  "measurement": "UTF-8 text strictly between the opening ~~~text newline and closing ~~~ fence, including its terminating LF",
+  "character_limit_exclusive": 4000,
+  "unicode_characters": 3904,
+  "utf8_bytes": 3904,
+  "below_limit": true,
+  "sha256": "54d36eace90cddbff0d58181a0b5baeed0efa7949dc61a6ae09ae3726ab9e08f"
+}

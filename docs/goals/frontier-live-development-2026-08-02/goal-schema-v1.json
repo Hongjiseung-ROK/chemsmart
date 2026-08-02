@@ -1,0 +1,116 @@
+{
+  "schema_version": "chemsmart.frontier-live-development-goal.v1",
+  "goal_id": "chemsmart-frontier-live-development-2026-08-02",
+  "language": "en",
+  "deadline": "2026-08-02T23:59:00+09:00",
+  "ultimate_goal": "Develop a general, scientifically reliable ChemSmart agent that converts paper and Supporting Information evidence into typed scientific specifications, validated project YAML, canonical ChemSmart command DAGs, safe previews, deterministic validation, independent review, and a reproducible research plan.",
+  "persona": "An integrity-first computational-chemistry researcher and professional ChemSmart agent developer who states facts and unknowns transparently, treats failed validation as evidence, collaborates through bounded specialist and critic tasks, and seeks publication-quality discoveries without making unsupported SOTA claims.",
+  "lifecycle": [
+    "paper_and_si_evidence",
+    "scientific_specification",
+    "validated_project_yaml",
+    "canonical_chemsmart_command_dag",
+    "safe_preview",
+    "deterministic_validation",
+    "independent_review",
+    "reproducible_research_plan"
+  ],
+  "authorities": {
+    "model": [
+      "plan",
+      "extract_evidence",
+      "propose_typed_state",
+      "explain",
+      "request_clarification"
+    ],
+    "deterministic_host": [
+      "scientific_settings_registry",
+      "request_bound_basis_and_ecp_evidence",
+      "project_renderer_and_loader",
+      "cli_schema_and_command_compiler",
+      "safe_preview",
+      "artifact_hashing",
+      "readiness_and_terminal_state"
+    ]
+  },
+  "authorization": {
+    "deepseek_model": "deepseek-v4-flash",
+    "thinking": "enabled",
+    "model_provider": "deepseek_only",
+    "literature_providers": [
+      "elsevier",
+      "serpapi",
+      "tavily",
+      "crossref",
+      "publisher_and_repository_sources"
+    ],
+    "per_call_reapproval": false,
+    "transport_attempt_limit": null,
+    "quota": "all remaining current user-owned quota",
+    "top_up_allowed": false,
+    "every_call_requires_unique_hypothesis_and_deterministic_oracle": true
+  },
+  "safety_ceiling": {
+    "chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "native_input_authoring": false,
+    "project_write_during_development_experiments": false,
+    "maximum_calculation_state": "safe_previewed",
+    "secrets_in_artifacts": false
+  },
+  "current_evidence": {
+    "v4_campaign_receipt_sha256": "edadd44587cb0e4006a98fd6a12ae0631e55222d55209115d5306994ba4e3ba1",
+    "v4_reconciliation_sha256": "dcb157a9a712e2a547b86ada24c6c8ed1d7c0425c5b5f677e0e3c587b1c1b6f6",
+    "runs": 44,
+    "transport_attempts": 121,
+    "registry_v2_raw_passes": 2,
+    "registry_v2_accepted_passes": 9,
+    "registry_v2_normalizer_dependent_passes": 7,
+    "claim_boundary": "development evidence only"
+  },
+  "milestones": [
+    {
+      "id": "G1",
+      "state": "completed",
+      "objective": "Seal and independently replay V4 evidence."
+    },
+    {
+      "id": "G2",
+      "state": "in_progress",
+      "objective": "Implement content-addressed request-bound basis/ECP and typed-project readiness authorities."
+    },
+    {
+      "id": "G3",
+      "state": "pending",
+      "objective": "Run a V5 paired DeepSeek experiment on failed element and project-support cases without repeating archived controls."
+    },
+    {
+      "id": "G4",
+      "state": "pending",
+      "objective": "Freeze the smallest supported harness profile and begin one source-complete paper slice after coordinate identity approval."
+    },
+    {
+      "id": "G5",
+      "state": "pending",
+      "objective": "Update contracts, skills, evaluation documents, phase goals, validation evidence, commits, and non-force remote checkpoints."
+    }
+  ],
+  "experiment_rule": "Each API request or retry has a unique case and hypothesis, one changed factor, comparator, expected observation, deterministic oracle, source/prompt/tool/configuration/budget hashes, and novelty rationale. Duplicate quota-burning calls are prohibited.",
+  "testing_rule": "Use deterministic inspection during implementation, one focused suite after each substantial milestone, at most one evidence-driven rerun, and broad gates only after harness freeze.",
+  "claim_gate": "Do not claim execution, reproduction, generalization, SOTA, or paper readiness without preregistered held-out evidence that directly supports the claim.",
+  "termination_conditions": [
+    "deadline_reached",
+    "deepseek_quota_exhausted",
+    "no_unique_verifiable_hypothesis_remains",
+    "credential_revoked",
+    "safety_red_line"
+  ],
+  "required_documents": [
+    "AGENTS.md",
+    "docs/design/chemsmart-agent-ultimate-goal.md",
+    "docs/design/paper-research-plan-v1.md",
+    "docs/evaluation/frontier-agent-ablation-protocol.md",
+    "docs/evaluation/registry-v2-stress-live-v4-2026-08-02-report.md",
+    "docs/goals/general-chemistry-knowledge/M4-defect-driven-expansion.md"
+  ]
+}
