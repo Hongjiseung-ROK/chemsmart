@@ -1,0 +1,6 @@
+{
+  "canonical_public_english_report": "Case orca-def2-ecp-orbital-missing. Host-derived readiness: blocked_validation_coverage. Blocking rule IDs: basis.request.orbital_function_conflict. Request-bound element facts: Pd: covered=true, orbital_present=false, ecp_present=true, ecp_electrons=28. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "model_output_authoritative": false,
+  "model_public_english_response": "Case orca-def2-ecp-orbital-missing. Host-derived readiness: blocked_validation_coverage. Blocking rule IDs: basis.request.orbital_function_conflict. Request-bound element facts: Pd: covered=true, orbital_present=false, ecp_present=true, ecp_electrons=28. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "run_id": "run:orca-def2-ecp-orbital-missing:seed.element_findings.pd_orbital_true:v5r3"
+}

@@ -1,0 +1,15 @@
+{
+  "campaign_id": "validator-decision-seeded-repair-development-v5r3",
+  "campaign_plan_sha256": "e707984b17e91990de7ba2e53174174118eaedbbe7c6936339ba1378f7797117",
+  "engine_calls": 0,
+  "hpc_calls": 0,
+  "native_inputs_authored": 0,
+  "project_writes": 0,
+  "public_semantic_replay": true,
+  "receipt_sha256": "abda13e07be4917b51638d2444b965c401c9dd855cb56476186b7d04aed9fca5",
+  "replayed_run_count": 4,
+  "run_receipt_sha256": "f6e5722a4c964e7c6a852d1e193ce413e408b9e0d076fcf3a3a7914e22bf6982",
+  "schema_version": "chemsmart.seeded-repair-semantic-audit.v1",
+  "strict_pass_count": 4,
+  "transport_attempts": 16
+}

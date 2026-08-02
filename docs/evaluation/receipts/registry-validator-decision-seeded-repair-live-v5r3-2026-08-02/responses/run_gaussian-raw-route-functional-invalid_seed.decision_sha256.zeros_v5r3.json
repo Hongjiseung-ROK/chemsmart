@@ -1,0 +1,6 @@
+{
+  "canonical_public_english_report": "Case gaussian-raw-route-functional-invalid. Host-derived readiness: blocked_invalid_specification. Blocking rule IDs: paper.project.functional_not_atomic. Request-bound element facts: not requested. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "model_output_authoritative": false,
+  "model_public_english_response": "Case gaussian-raw-route-functional-invalid. Host-derived readiness: blocked_invalid_specification. Blocking rule IDs: paper.project.functional_not_atomic. Request-bound element facts: not requested. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "run_id": "run:gaussian-raw-route-functional-invalid:seed.decision_sha256.zeros:v5r3"
+}

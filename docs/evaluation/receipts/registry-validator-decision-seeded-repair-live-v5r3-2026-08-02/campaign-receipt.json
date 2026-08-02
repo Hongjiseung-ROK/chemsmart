@@ -1,0 +1,23 @@
+{
+  "campaign_id": "validator-decision-seeded-repair-development-v5r3",
+  "campaign_plan_sha256": "e707984b17e91990de7ba2e53174174118eaedbbe7c6936339ba1378f7797117",
+  "engine_calls": 0,
+  "hpc_calls": 0,
+  "native_inputs_authored": 0,
+  "private_manifest_artifact_sha256": "3970cc30300f8d26ba76b7cbd6edb4204a219bbf401bc205f1234566918e5de4",
+  "private_manifest_sha256": "2b40acc8b1e77cf022d690f94f25579bd426d3385225509a4098de005628dcbf",
+  "private_receipt_artifact_sha256": "c0577de54ab18a86bc12a13e31ced3fc0648ceac226caf33a7d44aa9f2fe195b",
+  "private_receipt_sha256": "42078b7d318cc15449f6d424ed15b0e13e4a0857e83689c06d6decac5b900a23",
+  "project_writes": 0,
+  "public_manifest_artifact_sha256": "f5886abf1cdbe965351620caa12b5288c1d988bc8d200c29a10331c90d9329f2",
+  "public_manifest_sha256": "bc4972fb21fd9b3c409603bb49a5fff5e8b162522f3c80d48dd1f4219a114953",
+  "receipt_sha256": "223b639d2224ee05c08de9c7d312974671136d390ea70bedfcfdf01d4383853d",
+  "run_count": 4,
+  "run_receipt_artifact_sha256": "6cbaf40fddb2ab76aa91efb86bd3d211faf69a42eb57919f5f687db6ff690413",
+  "run_receipt_sha256": "f6e5722a4c964e7c6a852d1e193ce413e408b9e0d076fcf3a3a7914e22bf6982",
+  "schema_version": "chemsmart.seeded-repair-campaign-receipt.v1",
+  "semantic_audit_artifact_sha256": "21654497497c6b33133b74f0b428064638397abb04944126e7e6f7343859c711",
+  "semantic_audit_sha256": "abda13e07be4917b51638d2444b965c401c9dd855cb56476186b7d04aed9fca5",
+  "strict_pass_count": 4,
+  "transport_attempts": 16
+}

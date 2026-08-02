@@ -1,0 +1,149 @@
+{
+  "artifact_count": 27,
+  "artifacts": [
+    {
+      "artifact_sha256": "fe79942b9a57eac3cf0f0f7bc9a9d3c496f1ea07a5201665bf70e87e4839f3ce",
+      "locator": "campaign-plan.json",
+      "size_bytes": 10182
+    },
+    {
+      "artifact_sha256": "6cbaf40fddb2ab76aa91efb86bd3d211faf69a42eb57919f5f687db6ff690413",
+      "locator": "campaign-run-receipt.json",
+      "size_bytes": 1934
+    },
+    {
+      "artifact_sha256": "21654497497c6b33133b74f0b428064638397abb04944126e7e6f7343859c711",
+      "locator": "campaign-semantic-audit.json",
+      "size_bytes": 620
+    },
+    {
+      "artifact_sha256": "73f4f84472cbf9064ff660aa98a705163351bc248ff66195048694a192a91ce5",
+      "locator": "outcomes/run_gaussian-def2-tzvppd-missing-ce_seed.readiness.project_candidate_v5r3.json",
+      "size_bytes": 6750
+    },
+    {
+      "artifact_sha256": "843d9a616389ec95d9b1735b84899d4fbb7211cf04f1bf2fd0f03d3c9162698e",
+      "locator": "outcomes/run_gaussian-raw-route-functional-invalid_seed.decision_sha256.zeros_v5r3.json",
+      "size_bytes": 6729
+    },
+    {
+      "artifact_sha256": "725d187906f13812bd4e278e7852657b2e507c2c8df4872e5028d6358480dac8",
+      "locator": "outcomes/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.json",
+      "size_bytes": 6752
+    },
+    {
+      "artifact_sha256": "23fe741d247eff01ef4c9426ef0b382176733cdfbcfae20504d98f91d1996ffa",
+      "locator": "outcomes/run_orca-def2-tzvp-fe-no-ecp_seed.analysis_summary.false_ready_v5r3.json",
+      "size_bytes": 6616
+    },
+    {
+      "artifact_sha256": "e84b446640b0ec3cf2613bb375af5ee96133f01448760e8728cb0066f38b911e",
+      "locator": "provider-observations/run_gaussian-def2-tzvppd-missing-ce_seed.readiness.project_candidate_v5r3.json",
+      "size_bytes": 3145
+    },
+    {
+      "artifact_sha256": "acd13df0373279d6a839cc1c7db657b181754102fcd8f5ae8d724f92862cda62",
+      "locator": "provider-observations/run_gaussian-raw-route-functional-invalid_seed.decision_sha256.zeros_v5r3.json",
+      "size_bytes": 3145
+    },
+    {
+      "artifact_sha256": "cb1d6a23a8499ae42f1cf1840bf119c3d190c8f7f234faaa40dd81f46175bcaa",
+      "locator": "provider-observations/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.json",
+      "size_bytes": 3157
+    },
+    {
+      "artifact_sha256": "c5ec1c355a9bcc68c4e4f4c2ee3a75cade1233f60dfa72533dc5e1d5067ac629",
+      "locator": "provider-observations/run_orca-def2-tzvp-fe-no-ecp_seed.analysis_summary.false_ready_v5r3.json",
+      "size_bytes": 3121
+    },
+    {
+      "artifact_sha256": "4e49e2f96167331cd66f96245f5f77772799af409302d068993c9ade18c89e86",
+      "locator": "responses/run_gaussian-def2-tzvppd-missing-ce_seed.readiness.project_candidate_v5r3.json",
+      "size_bytes": 1203
+    },
+    {
+      "artifact_sha256": "5babc3b9f354916ff7e59fc4a3f111bec81212659a83bc60b0c8030d462eb179",
+      "locator": "responses/run_gaussian-raw-route-functional-invalid_seed.decision_sha256.zeros_v5r3.json",
+      "size_bytes": 933
+    },
+    {
+      "artifact_sha256": "dcb330d9740d32a4a218c13aac87f3f3d655ad1abb66244beb3bd8c2ea0bf6a5",
+      "locator": "responses/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.json",
+      "size_bytes": 1048
+    },
+    {
+      "artifact_sha256": "dd3d4b67a86801ef209bfc2bb51bd2538dbcff1e406dfae9407754640de015d9",
+      "locator": "responses/run_orca-def2-tzvp-fe-no-ecp_seed.analysis_summary.false_ready_v5r3.json",
+      "size_bytes": 1101
+    },
+    {
+      "artifact_sha256": "fffc8a6bea1cae4cb6943d492413d5fcb8e1eff16934bd7b9f5422e437649c9d",
+      "locator": "runtime-events/run_gaussian-def2-tzvppd-missing-ce_seed.readiness.project_candidate_v5r3.jsonl",
+      "size_bytes": 10615
+    },
+    {
+      "artifact_sha256": "056819e76167108214c3a42e06c03c803d453ee9e7ebd6b0ebc555f49dcaf328",
+      "locator": "runtime-events/run_gaussian-def2-tzvppd-missing-ce_seed.readiness.project_candidate_v5r3.projection-receipt.json",
+      "size_bytes": 699
+    },
+    {
+      "artifact_sha256": "18bd342023d07a3fce4f362fdf46a85c6a56e00437e511e9fbe08198f09b9515",
+      "locator": "runtime-events/run_gaussian-raw-route-functional-invalid_seed.decision_sha256.zeros_v5r3.jsonl",
+      "size_bytes": 10663
+    },
+    {
+      "artifact_sha256": "b93e98d926536196ef8ea113ce142ed68ad270f5f325fb51ffddc899d9e894ab",
+      "locator": "runtime-events/run_gaussian-raw-route-functional-invalid_seed.decision_sha256.zeros_v5r3.projection-receipt.json",
+      "size_bytes": 699
+    },
+    {
+      "artifact_sha256": "126f5fd65719afe0a51369ba2fa46ae3cf820fcf14c07a9c881f6f1c2b45d338",
+      "locator": "runtime-events/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.jsonl",
+      "size_bytes": 10699
+    },
+    {
+      "artifact_sha256": "f098e74f7d4fe43a119ebe50ed50cc690c1c5064b05796123152f0627fc0eeed",
+      "locator": "runtime-events/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.projection-receipt.json",
+      "size_bytes": 699
+    },
+    {
+      "artifact_sha256": "5ddf6c37ff603e640d686a72a4eb49b278871975230041f8c095b61316b5d441",
+      "locator": "runtime-events/run_orca-def2-tzvp-fe-no-ecp_seed.analysis_summary.false_ready_v5r3.jsonl",
+      "size_bytes": 10683
+    },
+    {
+      "artifact_sha256": "2ffe698b6b026f44686549778fbcfc602c8c72b6d63900baf784518c7ec2ab89",
+      "locator": "runtime-events/run_orca-def2-tzvp-fe-no-ecp_seed.analysis_summary.false_ready_v5r3.projection-receipt.json",
+      "size_bytes": 699
+    },
+    {
+      "artifact_sha256": "b0d80ad775edbffe3ecc01d15b78eaf3663c68abf2780b9914ce18c4e7be4b26",
+      "locator": "tool-traces/run_gaussian-def2-tzvppd-missing-ce_seed.readiness.project_candidate_v5r3.json",
+      "size_bytes": 32321
+    },
+    {
+      "artifact_sha256": "089e9fc4f54cf5b01e367e0f07020d77cb85dc691c14891cfad6488045f02809",
+      "locator": "tool-traces/run_gaussian-raw-route-functional-invalid_seed.decision_sha256.zeros_v5r3.json",
+      "size_bytes": 27114
+    },
+    {
+      "artifact_sha256": "c14c1c403c9af130b607cd0f643ed118e6db7e655f1c426fc5809572b4641169",
+      "locator": "tool-traces/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.json",
+      "size_bytes": 31351
+    },
+    {
+      "artifact_sha256": "910bc77ea766f9b60d4c45602630cf009bc48e015b8c10c843e614e62c2762b5",
+      "locator": "tool-traces/run_orca-def2-tzvp-fe-no-ecp_seed.analysis_summary.false_ready_v5r3.json",
+      "size_bytes": 32097
+    }
+  ],
+  "excluded_locators": [
+    "artifact-manifest.json",
+    "campaign-receipt.json"
+  ],
+  "manifest_id": "validator-decision-seeded-repair-development-v5r3:public",
+  "manifest_sha256": "bc4972fb21fd9b3c409603bb49a5fff5e8b162522f3c80d48dd1f4219a114953",
+  "schema_version": "chemsmart.evidence-artifact-manifest.v2",
+  "scope": "public",
+  "total_bytes": 224775
+}

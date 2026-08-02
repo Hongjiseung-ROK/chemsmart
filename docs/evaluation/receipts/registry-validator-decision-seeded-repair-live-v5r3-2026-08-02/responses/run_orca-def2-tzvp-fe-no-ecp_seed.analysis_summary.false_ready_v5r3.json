@@ -1,0 +1,6 @@
+{
+  "canonical_public_english_report": "Case orca-def2-tzvp-fe-no-ecp. Host-derived readiness: project_candidate. Blocking rule IDs: none. Request-bound element facts: Cl: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null; Fe: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "model_output_authoritative": false,
+  "model_public_english_response": "Case orca-def2-tzvp-fe-no-ecp. Host-derived readiness: project_candidate. Blocking rule IDs: none. Request-bound element facts: Cl: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null; Fe: covered=true, orbital_present=true, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "run_id": "run:orca-def2-tzvp-fe-no-ecp:seed.analysis_summary.false_ready:v5r3"
+}

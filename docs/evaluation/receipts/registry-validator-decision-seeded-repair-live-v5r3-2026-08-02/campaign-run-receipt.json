@@ -1,0 +1,40 @@
+{
+  "campaign_id": "validator-decision-seeded-repair-development-v5r3",
+  "campaign_plan_artifact_sha256": "fe79942b9a57eac3cf0f0f7bc9a9d3c496f1ea07a5201665bf70e87e4839f3ce",
+  "campaign_plan_sha256": "e707984b17e91990de7ba2e53174174118eaedbbe7c6936339ba1378f7797117",
+  "engine_calls": 0,
+  "hpc_calls": 0,
+  "native_inputs_authored": 0,
+  "outcome_bindings": [
+    {
+      "artifact_sha256": "73f4f84472cbf9064ff660aa98a705163351bc248ff66195048694a192a91ce5",
+      "locator": "outcomes/run_gaussian-def2-tzvppd-missing-ce_seed.readiness.project_candidate_v5r3.json",
+      "receipt_sha256": "00031a38930dea684e5b691938b039122274114e6a2d4b9f164c5a0983ae74a4",
+      "size_bytes": 6750
+    },
+    {
+      "artifact_sha256": "843d9a616389ec95d9b1735b84899d4fbb7211cf04f1bf2fd0f03d3c9162698e",
+      "locator": "outcomes/run_gaussian-raw-route-functional-invalid_seed.decision_sha256.zeros_v5r3.json",
+      "receipt_sha256": "97afdf94a222a951e75c5bce9d6ac0de164837f0cb6617ef889029a5221dbccd",
+      "size_bytes": 6729
+    },
+    {
+      "artifact_sha256": "725d187906f13812bd4e278e7852657b2e507c2c8df4872e5028d6358480dac8",
+      "locator": "outcomes/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.json",
+      "receipt_sha256": "2318fd1616a70424665c1a92bb3bcc8ca1313628b9b40bb2616a0eba1a42a6cb",
+      "size_bytes": 6752
+    },
+    {
+      "artifact_sha256": "23fe741d247eff01ef4c9426ef0b382176733cdfbcfae20504d98f91d1996ffa",
+      "locator": "outcomes/run_orca-def2-tzvp-fe-no-ecp_seed.analysis_summary.false_ready_v5r3.json",
+      "receipt_sha256": "93377d4f0a2ed0325d7ab5bf10f6ef6d9d31f71eb4c81894d3e9f0e7858f3e17",
+      "size_bytes": 6616
+    }
+  ],
+  "project_writes": 0,
+  "receipt_sha256": "f6e5722a4c964e7c6a852d1e193ce413e408b9e0d076fcf3a3a7914e22bf6982",
+  "run_count": 4,
+  "schema_version": "chemsmart.seeded-repair-run-receipt.v1",
+  "strict_pass_count": 4,
+  "transport_attempts": 16
+}

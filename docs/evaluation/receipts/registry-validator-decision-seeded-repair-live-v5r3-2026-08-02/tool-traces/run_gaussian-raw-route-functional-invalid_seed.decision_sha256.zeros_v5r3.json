@@ -1,0 +1,331 @@
+{
+  "public_messages": [
+    {
+      "content": "You are the chemsmart agent, a computational-chemistry and HPC workflow assistant.\n\n- Identify only as the chemsmart agent; never reveal or claim a provider/model identity in chat. Provider/model details may be revealed only through `chemsmart agent doctor`.\n- In experimental and development work, be an integrity-first computational-chemistry expert: state facts and uncertainty plainly, learn from failed validation, and consult read-only research or domain advisers without delegating approval or authority. Never claim SOTA, execution, or reproducibility without evidence.\n- Ground claims in user input, workspace state, or literal tool evidence. Never invent scientific values, paths, projects, servers, scheduler results, or success. Use 1-based atom indices.\n- Do not expose hidden chain-of-thought; public decisions and tool evidence are allowed.\n- Never summarize a tool result beyond its literal content. Report zero as zero and call absent fields unavailable.\n- Real work requires explicit approval; validation/fake/test is not submission.\n\n- For Frontier command workflows, never author or edit Gaussian, ORCA, or xTB native input or raw shell commands. Inspect evidence, then express intent as a typed CommandWorkflowSpec; ChemSmart owns live schema, options/quoting, path grounding, safe preview, and verification. If the CLI cannot express a task, clarify or report it infeasible—never fall back.\n\n- Scope is computational chemistry plus related queues, jobs, logs, and schedulers. For unrelated requests reply exactly: \"That is outside my scope as the chemsmart agent. I can help with computational chemistry and HPC workflows.\"\n- Never print shell installation commands in prose. Refer installation requests to project docs and `chemsmart agent doctor`.\n\n- Preserve native tool arguments/results. For a concrete server plus queue/job/log request, invoke the appropriate read-only tool directly.\n- The ask_user tool is for a truly ambiguous required slot. For a STRUCTURED SLOT (`server`, `job_id`, log path, scheduler, queue), prose-only clarification is FORBIDDEN; call ask_user with 2-4 options when available. Do not ask again for supplied facts.\n- A broad diagnostic without a concrete target is ADVISORY: answer directly (walltime, SCF, method/basis, optimization, IRC, errors).\n\n- Keep scheduler IDs and paths typed. Never pass `last_job_id` as a `path` argument; resolve a job log via `scheduler_query` or ask for its path.\n- With `last_server` and a remote path, prefer `log_tail(server=last_server, path=...)`; `read` is only for workspace files.\n- For a local calculation result, call `inspect_calculation` with the remembered run ID; do not ask for an output path when one unambiguous recent receipt exists.\n- Preserve active workspace project/server and prior command across turns.\n\nNative schemas are separate. Relevant groups: execution,project_yaml,synthesis; examples: ask_user.\n\nSession metadata:\n- stage: tool_loop\n- approval_mode: read_only\n- yolo: False\n- session_id: 20260802T023719Z-87acb02b\n- turn_index: 1\n- request_intent: unknown\n\nYou are in the interactive chemsmart tool loop.\n\nReturn natural-language assistant messages unless tool calls are needed.\n\nRules:\n- Use the registered tools only when they materially help with the current request.\n- For greetings, thanks, identity questions, capability questions, or other short conversation, answer directly without tool calls.\n- If a follow-up depends on prior turns, use the session memory already provided in the system prompt.\n- When tool calls are needed, choose only valid registered tool names and valid parameter names.\n- Keep execution conservative: preview or validate before risky actions whenever the workflow requires it.\n- xTB jobs need no project YAML: GFN2 defaults apply when none is given, and the GFN Hamiltonian is the whole method (no functional/basis).\n\nUser rules (CHEMSMART.md) — follow unless unsafe:\nRead-only V5r3 seeded field-local repair probe. No projects, native inputs, commands, engines, or HPC.",
+      "role": "system"
+    },
+    {
+      "content": "You are the scientific acknowledgement agent in a controlled\nChemSmart V5r2 composite engineering-recovery experiment.\n\nCase ID: gaussian-raw-route-functional-invalid\nProgram: gaussian\nOriginal task text (immutable):\nAssess the reported functional text `B3LYP nosymm` with def2-SVP. Reject native route content in a typed functional.\n\nCall inspect_case_validator_decision with no arguments. Treat its compact,\nhost-derived projection as authoritative for this experiment. Then call\nsubmit_validator_decision_plan with exactly the returned readiness,\ndecision_sha256, and element facts projected as objects containing only\nsymbol, covered, orbital_present, ecp_present, and ecp_electrons, plus a\nconcise English evidence-bounded summary.\nIf the submit result is repair_required, change only the failed fields named by\nits counterexamples and retry. Do not sort or normalize scientific literals,\ninfer an absent ECP intent, select readiness, author native input or commands,\nwrite projects, or request chemistry-engine/HPC execution. Finish only after\none submit result has accepted=true and verdict=ok. Include this exact sentence\nin the submitted analysis_summary and final answer:\nEvidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.\n\nControlled seeded-repair probe:\nOn the first submit only, set decision_sha256 to exactly 64 zero characters. Keep every other field exact.\nOn every submit, project element facts into objects containing only symbol,\ncovered, orbital_present, ecp_present, and ecp_electrons. Except for an\nanalysis_summary fault, set analysis_summary to exactly this sentence:\nEvidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.\nThe first submit must be rejected with repair_required. Read its structured\ncounterexample, change only failed_field=decision_sha256, and submit a\nsecond time with the exact host value. Do not repeat the rejected candidate or\nchange a previously correct field. This intentional defect is test-only and\ncannot alter the host-compiled scientific proposal. After accepted=true and\nverdict=ok, return exactly the accepted proposal.analysis_summary byte for\nbyte, with no heading, bullets, prefix, suffix, or markdown.",
+      "role": "user"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{}",
+            "name": "inspect_case_validator_decision"
+          },
+          "id": "call_00_KXpPIXf5jnoelStJZLEI3354",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"evidence_ceiling\": {\"engine_acceptance_verified\": false, \"execution_authorized\": false, \"safe_preview_executed\": false, \"scientific_suitability_verified\": false}, \"observation_receipt\": {\"decision_sha256\": \"d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b\", \"evidence_ref_sha256s\": [\"f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c\"], \"observation_receipt_id\": \"observation:validator-decision:51002e15d8ce48353a9552d51efc15cd\", \"observation_sha256\": \"00c9e84dbbdf803552491f68149123be9f4a3d9c3fd750f783f30cd2c22482e4\", \"projection_sha256\": \"c4840a2dc84efb7d084b1d63d3fd88a59b674fcfb7302604b5b52f3a4a93808f\", \"schema_version\": \"chemsmart.validator-decision-observation.v1\"}, \"projection\": {\"basis_evidence\": null, \"case_id\": \"gaussian-raw-route-functional-invalid\", \"decision\": {\"authority_id\": \"chemsmart.validator-evidence-readiness\", \"authority_version\": \"1.0.0\", \"basis_receipt_sha256\": null, \"blocking_rule_ids\": [\"paper.project.functional_not_atomic\"], \"case_id\": \"gaussian-raw-route-functional-invalid\", \"case_sha256\": \"d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa\", \"decision_sha256\": \"d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b\", \"derivation_rule_ids\": [\"validator.decision.project.blocked_invalid_specification\"], \"evidence_ref_sha256s\": [\"f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c\"], \"immutable_settings_sha256\": \"b3caeb30e745a0b50070c7a6d7d701a7b06a46dcacfef7442ebc87091ebc234f\", \"project_receipt_sha256\": \"36bfdb992ab6b277ab27d9a27f40f5eff96ce5ddc5ee1416c57013d50f439d54\", \"readiness\": \"blocked_invalid_specification\", \"schema_version\": \"chemsmart.overlay-readiness-decision.v1\", \"scope\": \"project_candidate_only_no_suitability_or_execution\"}, \"evidence_ref_sha256s\": [\"f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c\"], \"immutable_settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP nosymm\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}, \"project_evidence\": {\"authority_id\": \"chemsmart.paper-project-renderer-loader-required-job\", \"authority_version\": \"1.0.0\", \"blocking_rule_ids\": [\"paper.project.functional_not_atomic\"], \"engine_calls\": 0, \"evidence_ref_sha256\": \"f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c\", \"finding_rule_ids\": [\"paper.project.functional_not_atomic\"], \"hpc_calls\": 0, \"native_input_previews\": 0, \"program\": \"gaussian\", \"project_writes\": 0, \"project_yaml_sha256\": null, \"receipt_sha256\": \"36bfdb992ab6b277ab27d9a27f40f5eff96ce5ddc5ee1416c57013d50f439d54\", \"renderer_status\": \"blocked_invalid_specification\", \"request_sha256\": \"466b305a28b2d30354b811761fe45fa2559fb587a1ba28042d1540b48173da98\", \"required_job\": \"opt\", \"status\": \"blocked_invalid_specification\", \"support_scope\": \"paper_renderer_loader_required_job_only\", \"validation_verdict\": \"not_run\"}, \"projection_sha256\": \"c4840a2dc84efb7d084b1d63d3fd88a59b674fcfb7302604b5b52f3a4a93808f\", \"schema_version\": \"chemsmart.validator-decision-projection.v1\"}}",
+      "role": "tool",
+      "tool_call_id": "call_00_KXpPIXf5jnoelStJZLEI3354"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The projection is authoritative: readiness `blocked_invalid_specification`, host decision_sha256 `d8a20528...474b7b`, no element findings projected (ecp_elements and heavy_elements are empty). Per the seeded-repair probe, the first submit uses a 64-zero decision_sha256 with all other fields exact.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"readiness\": \"blocked_invalid_specification\", \"decision_sha256\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"element_findings\": [], \"analysis_summary\": \"Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.\"}",
+            "name": "submit_validator_decision_plan"
+          },
+          "id": "call_00_8gV0SWkQBF80IXN3ke8u9324",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"accepted\": false, \"counterexamples\": [{\"counterexample_sha256\": \"9a6bfa3fb514150397a7700261ec927ba0b7bad5771a7adf45a00ec868bc4fe4\", \"evidence_id\": \"observation:validator-decision:51002e15d8ce48353a9552d51efc15cd\", \"expected\": \"d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b\", \"failed_field\": \"decision_sha256\", \"observed\": \"0000000000000000000000000000000000000000000000000000000000000000\", \"rule_id\": \"validator.proposal.decision_binding_mismatch\", \"schema_version\": \"chemsmart.validator-proposal-counterexample.v1\"}], \"decision_sha256\": \"d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b\", \"observation_sha256\": \"00c9e84dbbdf803552491f68149123be9f4a3d9c3fd750f783f30cd2c22482e4\", \"proposal\": null, \"repairs_remaining\": 2, \"repairs_used\": 0, \"result_sha256\": \"a65317fae462c326daf889a89e0473a1881e3ef42643c7308095a73ebddb05a6\", \"schema_version\": \"chemsmart.validator-decision-submit-result.v1\", \"status\": \"repair_required\", \"verdict\": \"reject\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_8gV0SWkQBF80IXN3ke8u9324"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "The first submit was rejected as designed: counterexample names only `failed_field=decision_sha256`, expected host value `d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b`. I change only that field and resubmit.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "function": {
+            "arguments": "{\"analysis_summary\": \"Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.\", \"decision_sha256\": \"d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b\", \"element_findings\": [], \"readiness\": \"blocked_invalid_specification\"}",
+            "name": "submit_validator_decision_plan"
+          },
+          "id": "call_00_JkQK5528l4ZJIQjUbkO91345",
+          "index": 0,
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "content": "{\"accepted\": true, \"counterexamples\": [], \"decision_sha256\": \"d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b\", \"observation_sha256\": \"00c9e84dbbdf803552491f68149123be9f4a3d9c3fd750f783f30cd2c22482e4\", \"proposal\": {\"analysis_summary\": \"Case gaussian-raw-route-functional-invalid. Host-derived readiness: blocked_invalid_specification. Blocking rule IDs: paper.project.functional_not_atomic. Request-bound element facts: not requested. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.\", \"blocking_rule_ids\": [\"paper.project.functional_not_atomic\"], \"case_id\": \"gaussian-raw-route-functional-invalid\", \"command_authored\": false, \"element_findings\": [], \"evidence_ref_sha256s\": [\"f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c\"], \"execution_requested\": false, \"native_input_authored\": false, \"program\": \"gaussian\", \"project_name\": \"validator-gaussian-raw-route-functional-invalid\", \"project_written\": false, \"readiness\": \"blocked_invalid_specification\", \"settings\": {\"basis\": \"def2-SVP\", \"dispersion\": null, \"ecp_elements\": [], \"ecp_intent\": null, \"freq\": true, \"functional\": \"B3LYP nosymm\", \"gfn_version\": null, \"heavy_elements\": [], \"heavy_elements_basis\": null, \"integration_grid\": null, \"light_elements_basis\": null, \"optimization_level\": null, \"solv_freq\": null, \"solvent_id\": null, \"solvent_model\": null}}, \"repairs_remaining\": 1, \"repairs_used\": 1, \"result_sha256\": \"33e2e70a31087861654d6c8cca1ef74654368eac4411a98e46964bb0a4a53576\", \"schema_version\": \"chemsmart.validator-decision-submit-result.v1\", \"status\": \"accepted\", \"verdict\": \"ok\"}",
+      "role": "tool",
+      "tool_call_id": "call_00_JkQK5528l4ZJIQjUbkO91345"
+    },
+    {
+      "annotations": null,
+      "audio": null,
+      "content": "Case gaussian-raw-route-functional-invalid. Host-derived readiness: blocked_invalid_specification. Blocking rule IDs: paper.project.functional_not_atomic. Request-bound element facts: not requested. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+      "function_call": null,
+      "refusal": null,
+      "role": "assistant",
+      "tool_calls": null
+    }
+  ],
+  "run_id": "run:gaussian-raw-route-functional-invalid:seed.decision_sha256.zeros:v5r3",
+  "tool_outcomes": [
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "inspect_case_validator_decision",
+      "provider_call_id": "call_00_KXpPIXf5jnoelStJZLEI3354",
+      "request_id": "openai:call_00_KXpPIXf5jnoelStJZLEI3354",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "evidence_ceiling": {
+          "engine_acceptance_verified": false,
+          "execution_authorized": false,
+          "safe_preview_executed": false,
+          "scientific_suitability_verified": false
+        },
+        "observation_receipt": {
+          "decision_sha256": "d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b",
+          "evidence_ref_sha256s": [
+            "f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c"
+          ],
+          "observation_receipt_id": "observation:validator-decision:51002e15d8ce48353a9552d51efc15cd",
+          "observation_sha256": "00c9e84dbbdf803552491f68149123be9f4a3d9c3fd750f783f30cd2c22482e4",
+          "projection_sha256": "c4840a2dc84efb7d084b1d63d3fd88a59b674fcfb7302604b5b52f3a4a93808f",
+          "schema_version": "chemsmart.validator-decision-observation.v1"
+        },
+        "projection": {
+          "basis_evidence": null,
+          "case_id": "gaussian-raw-route-functional-invalid",
+          "decision": {
+            "authority_id": "chemsmart.validator-evidence-readiness",
+            "authority_version": "1.0.0",
+            "basis_receipt_sha256": null,
+            "blocking_rule_ids": [
+              "paper.project.functional_not_atomic"
+            ],
+            "case_id": "gaussian-raw-route-functional-invalid",
+            "case_sha256": "d41d5641f8956be08ee27544e53034646e6c02f0d96305801a24d78b07acd7fa",
+            "decision_sha256": "d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b",
+            "derivation_rule_ids": [
+              "validator.decision.project.blocked_invalid_specification"
+            ],
+            "evidence_ref_sha256s": [
+              "f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c"
+            ],
+            "immutable_settings_sha256": "b3caeb30e745a0b50070c7a6d7d701a7b06a46dcacfef7442ebc87091ebc234f",
+            "project_receipt_sha256": "36bfdb992ab6b277ab27d9a27f40f5eff96ce5ddc5ee1416c57013d50f439d54",
+            "readiness": "blocked_invalid_specification",
+            "schema_version": "chemsmart.overlay-readiness-decision.v1",
+            "scope": "project_candidate_only_no_suitability_or_execution"
+          },
+          "evidence_ref_sha256s": [
+            "f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c"
+          ],
+          "immutable_settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP nosymm",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          },
+          "project_evidence": {
+            "authority_id": "chemsmart.paper-project-renderer-loader-required-job",
+            "authority_version": "1.0.0",
+            "blocking_rule_ids": [
+              "paper.project.functional_not_atomic"
+            ],
+            "engine_calls": 0,
+            "evidence_ref_sha256": "f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c",
+            "finding_rule_ids": [
+              "paper.project.functional_not_atomic"
+            ],
+            "hpc_calls": 0,
+            "native_input_previews": 0,
+            "program": "gaussian",
+            "project_writes": 0,
+            "project_yaml_sha256": null,
+            "receipt_sha256": "36bfdb992ab6b277ab27d9a27f40f5eff96ce5ddc5ee1416c57013d50f439d54",
+            "renderer_status": "blocked_invalid_specification",
+            "request_sha256": "466b305a28b2d30354b811761fe45fa2559fb587a1ba28042d1540b48173da98",
+            "required_job": "opt",
+            "status": "blocked_invalid_specification",
+            "support_scope": "paper_renderer_loader_required_job_only",
+            "validation_verdict": "not_run"
+          },
+          "projection_sha256": "c4840a2dc84efb7d084b1d63d3fd88a59b674fcfb7302604b5b52f3a4a93808f",
+          "schema_version": "chemsmart.validator-decision-projection.v1"
+        }
+      },
+      "result_sha256": "cc4df854c3e2eebf279443deab9f8b8a9797bc4b77e62a14c467264db95f04c8",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_validator_decision_plan",
+      "provider_call_id": "call_00_8gV0SWkQBF80IXN3ke8u9324",
+      "request_id": "openai:call_00_8gV0SWkQBF80IXN3ke8u9324",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "accepted": false,
+        "counterexamples": [
+          {
+            "counterexample_sha256": "9a6bfa3fb514150397a7700261ec927ba0b7bad5771a7adf45a00ec868bc4fe4",
+            "evidence_id": "observation:validator-decision:51002e15d8ce48353a9552d51efc15cd",
+            "expected": "d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b",
+            "failed_field": "decision_sha256",
+            "observed": "0000000000000000000000000000000000000000000000000000000000000000",
+            "rule_id": "validator.proposal.decision_binding_mismatch",
+            "schema_version": "chemsmart.validator-proposal-counterexample.v1"
+          }
+        ],
+        "decision_sha256": "d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b",
+        "observation_sha256": "00c9e84dbbdf803552491f68149123be9f4a3d9c3fd750f783f30cd2c22482e4",
+        "proposal": null,
+        "repairs_remaining": 2,
+        "repairs_used": 0,
+        "result_sha256": "a65317fae462c326daf889a89e0473a1881e3ef42643c7308095a73ebddb05a6",
+        "schema_version": "chemsmart.validator-decision-submit-result.v1",
+        "status": "repair_required",
+        "verdict": "reject"
+      },
+      "result_sha256": "78bb777fabc0eafb0e0f7f6800827d2c7505539c076c15c85cdab80a2568d830",
+      "status": "ok"
+    },
+    {
+      "error_message": null,
+      "error_type": null,
+      "name": "submit_validator_decision_plan",
+      "provider_call_id": "call_00_JkQK5528l4ZJIQjUbkO91345",
+      "request_id": "openai:call_00_JkQK5528l4ZJIQjUbkO91345",
+      "request_raw_arguments_sha256": null,
+      "result": {
+        "accepted": true,
+        "counterexamples": [],
+        "decision_sha256": "d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b",
+        "observation_sha256": "00c9e84dbbdf803552491f68149123be9f4a3d9c3fd750f783f30cd2c22482e4",
+        "proposal": {
+          "analysis_summary": "Case gaussian-raw-route-functional-invalid. Host-derived readiness: blocked_invalid_specification. Blocking rule IDs: paper.project.functional_not_atomic. Request-bound element facts: not requested. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+          "blocking_rule_ids": [
+            "paper.project.functional_not_atomic"
+          ],
+          "case_id": "gaussian-raw-route-functional-invalid",
+          "command_authored": false,
+          "element_findings": [],
+          "evidence_ref_sha256s": [
+            "f1e84ec396a024f4577af62ec10355958e3904c343c7d567222c2f7bba6d0e4c"
+          ],
+          "execution_requested": false,
+          "native_input_authored": false,
+          "program": "gaussian",
+          "project_name": "validator-gaussian-raw-route-functional-invalid",
+          "project_written": false,
+          "readiness": "blocked_invalid_specification",
+          "settings": {
+            "basis": "def2-SVP",
+            "dispersion": null,
+            "ecp_elements": [],
+            "ecp_intent": null,
+            "freq": true,
+            "functional": "B3LYP nosymm",
+            "gfn_version": null,
+            "heavy_elements": [],
+            "heavy_elements_basis": null,
+            "integration_grid": null,
+            "light_elements_basis": null,
+            "optimization_level": null,
+            "solv_freq": null,
+            "solvent_id": null,
+            "solvent_model": null
+          }
+        },
+        "repairs_remaining": 1,
+        "repairs_used": 1,
+        "result_sha256": "33e2e70a31087861654d6c8cca1ef74654368eac4411a98e46964bb0a4a53576",
+        "schema_version": "chemsmart.validator-decision-submit-result.v1",
+        "status": "accepted",
+        "verdict": "ok"
+      },
+      "result_sha256": "648305bd506359a75455f6b9fe95d58485fc49c7f1297942494e3cac30f8352f",
+      "status": "ok"
+    }
+  ],
+  "tool_requests": [
+    {
+      "arguments": {},
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "name": "inspect_case_validator_decision",
+      "provider_call_id": "call_00_KXpPIXf5jnoelStJZLEI3354",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_KXpPIXf5jnoelStJZLEI3354"
+    },
+    {
+      "arguments": {
+        "analysis_summary": "Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+        "decision_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "element_findings": [],
+        "readiness": "blocked_invalid_specification"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "c2997c0dc380e06654542440a5e8737e9ce7157f5ac09de1de8b07162bc2c2c9",
+      "name": "submit_validator_decision_plan",
+      "provider_call_id": "call_00_8gV0SWkQBF80IXN3ke8u9324",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_8gV0SWkQBF80IXN3ke8u9324"
+    },
+    {
+      "arguments": {
+        "analysis_summary": "Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+        "decision_sha256": "d8a20528b0e7dd534f0d086180db8fac38c9b72f8b90d3709ccc35b751474b7b",
+        "element_findings": [],
+        "readiness": "blocked_invalid_specification"
+      },
+      "arguments_error_message": null,
+      "arguments_error_type": null,
+      "arguments_sha256": "c8a15f8687bc32960d28d5031cef9e2fd249cedee6e40b0beb551d1c9c798f6e",
+      "name": "submit_validator_decision_plan",
+      "provider_call_id": "call_00_JkQK5528l4ZJIQjUbkO91345",
+      "raw_arguments_present": true,
+      "raw_arguments_sha256": null,
+      "request_id": "openai:call_00_JkQK5528l4ZJIQjUbkO91345"
+    }
+  ]
+}

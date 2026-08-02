@@ -1,0 +1,6 @@
+{
+  "canonical_public_english_report": "Case gaussian-def2-tzvppd-missing-ce. Host-derived readiness: blocked_missing_evidence. Blocking rule IDs: basis.request.element_coverage_conflict. Request-bound element facts: Pd: covered=true, orbital_present=true, ecp_present=true, ecp_electrons=28; Ce: covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "model_output_authoritative": false,
+  "model_public_english_response": "Case gaussian-def2-tzvppd-missing-ce. Host-derived readiness: blocked_missing_evidence. Blocking rule IDs: basis.request.element_coverage_conflict. Request-bound element facts: Pd: covered=true, orbital_present=true, ecp_present=true, ecp_electrons=28; Ce: covered=false, orbital_present=false, ecp_present=false, ecp_electrons=null. This is a non-executing typed-project readiness record. Evidence ceiling: scientific suitability, safe preview, engine acceptance, and execution are not verified.",
+  "run_id": "run:gaussian-def2-tzvppd-missing-ce:seed.readiness.project_candidate:v5r3"
+}

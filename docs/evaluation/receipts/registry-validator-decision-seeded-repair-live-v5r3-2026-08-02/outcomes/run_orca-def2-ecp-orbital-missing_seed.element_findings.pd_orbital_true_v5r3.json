@@ -1,0 +1,138 @@
+{
+  "artifact_sha256s": {
+    "provider-observations/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.json": "cb1d6a23a8499ae42f1cf1840bf119c3d190c8f7f234faaa40dd81f46175bcaa",
+    "responses/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.json": "dcb330d9740d32a4a218c13aac87f3f3d655ad1abb66244beb3bd8c2ea0bf6a5",
+    "runtime-events/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.jsonl": "126f5fd65719afe0a51369ba2fa46ae3cf820fcf14c07a9c881f6f1c2b45d338",
+    "runtime-events/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.projection-receipt.json": "f098e74f7d4fe43a119ebe50ed50cc690c1c5064b05796123152f0627fc0eeed",
+    "tool-traces/run_orca-def2-ecp-orbital-missing_seed.element_findings.pd_orbital_true_v5r3.json": "c14c1c403c9af130b607cd0f643ed118e6db7e655f1c426fc5809572b4641169"
+  },
+  "deterministic_grade": {
+    "details": {
+      "comparator_failed_oracle_ids": [
+        "oracle.honest-readiness"
+      ],
+      "comparator_terminal_state": "failed",
+      "decision_sha256": "404f980e2c45b09968f09d96eb3c16c7610f6ee4f2d08215f252c2a873f42fab",
+      "model_output_authoritative": false,
+      "projection_sha256": "39f25de346672b03c772a1e188fafef8df9a962d1d9af80223df6f5319e904d2",
+      "receipt_derived_blocking_rule_ids": [
+        "basis.request.orbital_function_conflict"
+      ],
+      "receipt_derived_readiness": "blocked_validation_coverage",
+      "rejected_submit_count": 1
+    },
+    "failed_oracle_ids": [],
+    "grade_sha256": "a2a85a32fe22c61e781ea4b37c79623ef06bcca2ac316348c3d31d3eab8d7a28",
+    "oracle_passed": true,
+    "passed_oracle_ids": [
+      "oracle.case-identity",
+      "oracle.causal-decision-observation",
+      "oracle.evidence-ref-binding",
+      "oracle.execution-prohibited",
+      "oracle.host-setting-preservation",
+      "oracle.observed-model-identity",
+      "oracle.program-identity",
+      "oracle.public-claim-evidence-bounded",
+      "oracle.public-output-safe",
+      "oracle.receipt-derived-blockers",
+      "oracle.receipt-derived-element-findings",
+      "oracle.receipt-derived-readiness",
+      "oracle.required-green-submit",
+      "oracle.typed-proposal-exactly-one",
+      "oracle.typed-proposal-valid",
+      "oracle.typed-summary-evidence-bounded"
+    ],
+    "rejected_submit_count": 1,
+    "successful_submit_count": 1
+  },
+  "engine_calls": 0,
+  "hpc_calls": 0,
+  "input_tokens": 17826,
+  "model_response_claim_violations": [],
+  "model_response_exact_canonical": true,
+  "native_inputs_authored": 0,
+  "observed_model": "deepseek-v4-flash",
+  "output_tokens": 1258,
+  "private_runtime_event_log_sha256": "de8faf3e881ec5f704de41848d6d3ae886a00978a718e2bc8c1bf3af2edc533a",
+  "project_writes": 0,
+  "provider_observations_green": true,
+  "provider_observations_sha256": "0eb87ff8e254dfd309315cfd5b2cbcf6dbecb2829912552cf31fe0462e06123e",
+  "reasoning_tokens": 680,
+  "receipt_sha256": "2318fd1616a70424665c1a92bb3bcc8ca1313628b9b40bb2616a0eba1a42a6cb",
+  "repair_oracle": {
+    "attempts": [
+      {
+        "accepted": false,
+        "arguments_sha256": "5148decf93115efd166e00816bd6ddc0e228d8d21c37f36b0ba5f92eb27bc968",
+        "counterexample_sha256s": [
+          "f6306d0c50614a2693e1299101df769029eb6121ab79a0a5c32a6999daf11f39"
+        ],
+        "ordinal": 1,
+        "request_id": "openai:call_00_eRi7JEX7sQJ82AQSzqiL7530",
+        "result_sha256": "28978f20439e060c618f4009cb9f68b0b165c85ddd9e4e7849ed2189b0072ab5",
+        "status": "repair_required",
+        "verdict": "reject"
+      },
+      {
+        "accepted": true,
+        "arguments_sha256": "8a823f402c156de3275a58512958abbf7769c9c06fe1e53727ca0363ea599bb1",
+        "counterexample_sha256s": [],
+        "ordinal": 2,
+        "request_id": "openai:call_00_AVY8EI1RIGk1tOP85KFB1508",
+        "result_sha256": "97466d0ae777636411c9677c25b1f182d49517f55dadb4c067e8de16f8b69d8d",
+        "status": "accepted",
+        "verdict": "ok"
+      }
+    ],
+    "checks": {
+      "all_submit_results_well_formed": true,
+      "exact_field_local_delta": true,
+      "exact_reject_then_accept": true,
+      "exact_tool_sequence": true,
+      "first_arguments_exact_seed": true,
+      "first_counterexample_digest_valid": true,
+      "first_counterexample_evidence_binding": true,
+      "first_counterexample_expected_value": true,
+      "first_counterexample_observed_value": true,
+      "first_counterexample_rule": true,
+      "first_failed_field": true,
+      "first_rejected_without_proposal": true,
+      "latest_verdict_green": true,
+      "observation_binding_preserved": true,
+      "one_repair_used": true,
+      "second_arguments_exact_repair": true
+    },
+    "oracle_sha256": "42f35ef4cf1837b67e1e42d10292b0c687540948d8fe89ae2f1a12118483385c",
+    "passed": true
+  },
+  "run_spec": {
+    "case_binding_sha256": "fa784a419acde364b9e8c1945795b3ba757efc0c327ee0f0ab42a4d17ab463f5",
+    "case_id": "orca-def2-ecp-orbital-missing",
+    "configuration_sha256": "264f6046afd14ced780597a884b3bba0b121755188e4cfed87f9ae82455e6c3f",
+    "correct_submit_sha256": "8a823f402c156de3275a58512958abbf7769c9c06fe1e53727ca0363ea599bb1",
+    "counterexample_rule_id": "validator.proposal.element_findings_mismatch",
+    "decision_sha256": "404f980e2c45b09968f09d96eb3c16c7610f6ee4f2d08215f252c2a873f42fab",
+    "expected_sequence": [
+      "repair_required",
+      "accepted"
+    ],
+    "failed_field": "element_findings",
+    "fault_id": "seed.element_findings.pd_orbital_true",
+    "hypothesis_id": "hypothesis:orca-def2-ecp-orbital-missing:seed.element_findings.pd_orbital_true:v5r3",
+    "network_budget_sha256": "05bd9de3feed042336ebf092181c5b42ab4d1c1ab6713ad5580a463d32fa74f1",
+    "projection_sha256": "39f25de346672b03c772a1e188fafef8df9a962d1d9af80223df6f5319e904d2",
+    "prompt_sha256": "30264435290817de3a9111f3a157c09d40c4ac68a5c6659710819c5434ba238c",
+    "registry_binding_sha256": "d7bfb46b5109d2d5b82b1b772a1ec402afb5f6b39bd408d9d4d4294b39d9bd9c",
+    "run_id": "run:orca-def2-ecp-orbital-missing:seed.element_findings.pd_orbital_true:v5r3",
+    "run_spec_sha256": "89d776536636ae2dc8b758f9bc056d7c0669cbb3bffd899e9f82862e9ea75130",
+    "seeded_submit_sha256": "5148decf93115efd166e00816bd6ddc0e228d8d21c37f36b0ba5f92eb27bc968",
+    "source_binding_sha256": "46d35ba8814e25123e9d199730a933df2aaa226bf44da34f12fbbbaf147a14f1",
+    "tool_schema_sha256": "653d53189e82415ce73a8a81d5a65d3b7b7098264dbfe0abcf241a74dc3527ba"
+  },
+  "runtime_event_log_sha256": "126f5fd65719afe0a51369ba2fa46ae3cf820fcf14c07a9c881f6f1c2b45d338",
+  "runtime_terminal_state": "complete",
+  "schema_version": "chemsmart.seeded-repair-outcome.v1",
+  "strict_pass": true,
+  "transport_attempts": 4,
+  "wall_time_ms": 12239
+}
