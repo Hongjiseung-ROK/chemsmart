@@ -50,6 +50,7 @@ def test_plan_reuses_exact_v4_comparators_without_live_baselines(prepared):
         and run.changed_factor == v5.CHANGED_FACTOR
         and run.runtime == "agent_session_runtime_v2_active"
         and run.reasoning_mode == "thinking_enabled_high"
+        and run.public_path_guard_version == v5.PUBLIC_PATH_GUARD_VERSION
         for run in plan.runs
     )
     assert len({run.run_id for run in plan.runs}) == len(plan.runs)
@@ -477,6 +478,9 @@ def test_public_path_guard_and_runtime_projection_remove_absolute_cwd():
     assert b"/Users/researcher" not in projection.projected_jsonl_bytes
     assert b"repo://chemsmart" in projection.projected_jsonl_bytes
     assert projection.receipt.replacement_count == 1
+    v5._reject_absolute_paths(
+        {"message": "Supported alternatives are `D3`/`D3BJ` and Gaussian/ORCA."}
+    )
 
 
 def _proposal(case, overlay) -> v5.RegistryValidatorOverlayProposalV1:

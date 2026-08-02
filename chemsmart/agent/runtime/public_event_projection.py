@@ -39,7 +39,7 @@ _REPOSITORY_IDENTITY = re.compile(
     r"^repo://[A-Za-z0-9](?:[A-Za-z0-9._-]{0,126}[A-Za-z0-9])?$"
 )
 _POSIX_ABSOLUTE_FRAGMENT = re.compile(
-    r"(?<![A-Za-z0-9_+.:/])/(?:[^\s\"'<>]+)"
+    r"(?<![A-Za-z0-9_+.:/])/(?:[A-Za-z0-9._~%-]+/)+(?:[^\s\"'<>]*)"
 )
 _WINDOWS_ABSOLUTE_FRAGMENT = re.compile(
     r"(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\\\\[^\\\s]+[\\/])"

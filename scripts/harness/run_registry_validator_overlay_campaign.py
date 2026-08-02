@@ -17,7 +17,7 @@ import re
 import secrets
 import time
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Literal, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -70,8 +70,9 @@ from scripts.harness import run_registry_v2_stress_campaign as v4
 
 
 CAMPAIGN_ID = "registry-validator-overlay-development-v5"
-RUN_REVISION = "v5"
+RUN_REVISION = "v5r1"
 PROMPT_VERSION = "registry-validator-overlay-prompt.v1"
+PUBLIC_PATH_GUARD_VERSION = "public-path-fragment.v2"
 MODEL = "deepseek-v4-flash"
 MAX_OUTPUT_TOKENS = 8_192
 ARCHIVED_V4_RELATIVE = Path(
@@ -91,7 +92,7 @@ _SHA256 = r"^[0-9a-f]{64}$"
 _IDENTIFIER = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$"
 _SAFE_LOCATOR = re.compile(r"^[A-Za-z0-9._/-]+$")
 _POSIX_ABSOLUTE_FRAGMENT = re.compile(
-    r"(?<![A-Za-z0-9_+.:/])/(?:[^\s\"'<>]+)"
+    r"(?<![A-Za-z0-9_+.:/])/(?:[A-Za-z0-9._~%-]+/)+(?:[^\s\"'<>]*)"
 )
 _WINDOWS_ABSOLUTE_FRAGMENT = re.compile(
     r"(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\\\\[^\\\s]+[\\/])"
@@ -347,6 +348,9 @@ class RegistryValidatorOverlayRunSpecV1(_Contract):
     )
     prompt_version: Literal["registry-validator-overlay-prompt.v1"] = (
         PROMPT_VERSION
+    )
+    public_path_guard_version: Literal["public-path-fragment.v2"] = (
+        PUBLIC_PATH_GUARD_VERSION
     )
     expected_outcome: str = Field(min_length=1, max_length=1000)
     run_spec_sha256: str = Field(pattern=_SHA256)
@@ -1032,6 +1036,7 @@ def _configuration_sha256() -> str:
             "runtime": "AgentSession Runtime V2 active",
             "permission": "read_only",
             "prompt_version": PROMPT_VERSION,
+            "public_path_guard_version": PUBLIC_PATH_GUARD_VERSION,
             "max_output_tokens": MAX_OUTPUT_TOKENS,
             "changed_factor": CHANGED_FACTOR,
             "duplicate_baseline_api_calls": 0,
@@ -1055,7 +1060,9 @@ def _reject_absolute_paths(value: Any, *, location: str = "public") -> None:
             _reject_absolute_paths(item, location=f"{location}[{index}]")
         return
     if isinstance(value, str) and (
-        value.startswith("file://")
+        "file://" in value.casefold()
+        or PurePosixPath(value).is_absolute()
+        or PureWindowsPath(value).is_absolute()
         or _POSIX_ABSOLUTE_FRAGMENT.search(value)
         or _WINDOWS_ABSOLUTE_FRAGMENT.search(value)
     ):
@@ -1113,6 +1120,7 @@ def prepare_campaign(
             "reasoning_mode": "thinking_enabled_high",
             "runtime": "agent_session_runtime_v2_active",
             "prompt_version": PROMPT_VERSION,
+            "public_path_guard_version": PUBLIC_PATH_GUARD_VERSION,
             "expected_outcome": (
                 "One evidence-bound typed proposal preserves the case intent, "
                 f"uses readiness {overlay.expected_readiness.value}, and makes "

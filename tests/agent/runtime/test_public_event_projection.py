@@ -119,6 +119,19 @@ def test_projection_rejects_other_absolute_paths_in_public_payloads(
         )
 
 
+def test_projection_accepts_scientific_slash_notation():
+    projection = project_runtime_events_for_public(
+        _events(
+            request_text=(
+                "Compare `D3`/`D3BJ` and Gaussian/ORCA without host paths."
+            )
+        ),
+        repository_identity="repo://chemsmart",
+    )
+
+    assert b"D3BJ" in projection.projected_jsonl_bytes
+
+
 def test_projection_rejects_a_broken_private_hash_chain():
     first, second = _events()
     broken = second.model_copy(update={"previous_hash": "0" * 64})
