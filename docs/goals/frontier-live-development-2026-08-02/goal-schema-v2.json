@@ -1,0 +1,112 @@
+{
+  "schema_version": "chemsmart.frontier-live-development-goal.v2",
+  "goal_id": "chemsmart-frontier-live-development-2026-08-02",
+  "language": "en",
+  "deadline": "2026-08-02T23:59:00+09:00",
+  "ultimate_goal": "Develop a general, scientifically reliable ChemSmart agent that converts paper and SI evidence into typed scientific specifications, validated project YAML, canonical ChemSmart command DAGs, safe previews, deterministic validation, independent review, and reproducible research plans.",
+  "persona": "An integrity-first computational-chemistry researcher and professional ChemSmart agent developer who reports facts and unknowns transparently, treats failed validation as evidence, delegates only bounded verifiable work, and seeks publication-quality discoveries without unsupported frontier or SOTA claims.",
+  "lifecycle": [
+    "paper_and_si_evidence",
+    "scientific_specification",
+    "validated_project_yaml",
+    "canonical_chemsmart_command_dag",
+    "safe_preview",
+    "deterministic_validation",
+    "independent_review",
+    "reproducible_research_plan"
+  ],
+  "authority": {
+    "model": [
+      "extract_evidence",
+      "propose_typed_state",
+      "plan",
+      "explain",
+      "request_clarification"
+    ],
+    "deterministic_host": [
+      "settings_resolution",
+      "basis_and_ecp_evidence",
+      "project_render_load_and_semantic_validation",
+      "command_compilation",
+      "safe_preview",
+      "artifact_hashing",
+      "readiness",
+      "approval",
+      "terminal_state"
+    ]
+  },
+  "authorization": {
+    "model_provider": "deepseek_only",
+    "model": "deepseek-v4-flash",
+    "thinking": "enabled",
+    "literature_providers": [
+      "crossref",
+      "elsevier",
+      "serpapi",
+      "tavily",
+      "official_publishers_and_repositories"
+    ],
+    "per_call_reapproval": false,
+    "transport_attempt_limit": null,
+    "quota": "all remaining current user-owned quota",
+    "top_up_allowed": false,
+    "call_eligibility": "unique preregistered hypothesis with deterministic oracle"
+  },
+  "safety_ceiling": {
+    "chemistry_engine_calls": 0,
+    "scheduler_or_hpc_calls": 0,
+    "native_input_authoring": false,
+    "coordinate_generation": false,
+    "maximum_calculation_state": "safe_previewed",
+    "secrets_or_private_reasoning_in_artifacts": false
+  },
+  "confirmed_development_evidence": {
+    "settings_registry_v2_entries": 1771,
+    "settings_knowledge_ablation": "registry exposure retained as a development candidate; knowledge packs remain scoped and opt-in",
+    "v5r2": "5 of 5 archived validator failures recovered under deterministic readiness authority",
+    "v5r3": "4 of 4 seeded defects completed inspect-reject-one-field-repair-accept with exact replay",
+    "claim_ceiling": "harness reliability on development cases; unseen chemistry and paper-level generalization remain unverified"
+  },
+  "milestones": [
+    {
+      "id": "L0",
+      "state": "completed",
+      "objective": "Seal V5r2 decision recovery and V5r3 bounded-repair evidence."
+    },
+    {
+      "id": "L1",
+      "state": "in_progress",
+      "objective": "Run an external content-addressed unseen Gaussian, ORCA, and xTB settings challenge and repair demonstrated false-ready or routing defects."
+    },
+    {
+      "id": "L2",
+      "state": "in_progress",
+      "objective": "Run a coordinate-independent full-text literature evidence-localization and bibliographic-concordance campaign."
+    },
+    {
+      "id": "L3",
+      "state": "pending",
+      "objective": "Retain only causally supported registry, knowledge, critic, and repair components and freeze the smallest safe harness profile."
+    },
+    {
+      "id": "L4",
+      "state": "blocked_user_coordinate_contract",
+      "objective": "Begin a coordinate-bound paper-to-project and command-DAG slice only after explicit coordinate source, format, identity, units, charge, multiplicity, and import rules are resolved."
+    },
+    {
+      "id": "L5",
+      "state": "pending",
+      "objective": "Reconcile guidance, verified citations, experiment reports, phase status, focused validation, commits, and non-force remote checkpoints."
+    }
+  ],
+  "experiment_rule": "Every API request or retry has a unique case and hypothesis, comparator, one changed factor, expected observation, deterministic oracle, source/prompt/tool/configuration/budget hashes, and novelty rationale. Calls are observations, never a quota-burning target.",
+  "testing_rule": "Prefer implementation-level English model-response inspection and deterministic receipts. Run one focused suite after a substantial milestone, at most one evidence-driven rerun, and broad gates only after harness freeze.",
+  "claim_gate": "Do not claim execution, reproduction, generalization, paper completeness, frontier performance, or SOTA without preregistered held-out evidence that directly supports the claim.",
+  "termination_conditions": [
+    "deadline_reached",
+    "deepseek_quota_exhausted",
+    "no_unique_verifiable_hypothesis_remains",
+    "credential_revoked",
+    "safety_red_line"
+  ]
+}
