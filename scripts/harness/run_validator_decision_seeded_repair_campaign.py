@@ -276,10 +276,25 @@ def _seal_private_campaign_evidence(
     receipt_bytes = _write(run_root / "campaign-receipt.json", receipt)
     manifest_path.chmod(0o600)
     (run_root / "campaign-receipt.json").chmod(0o600)
+    persisted_manifest_bytes = v5r2._read_bound_artifact(
+        run_root, "artifact-manifest.json"
+    )
+    persisted_receipt_bytes = v5r2._read_bound_artifact(
+        run_root, "campaign-receipt.json"
+    )
+    if persisted_manifest_bytes != manifest_bytes:
+        raise ValueError("private V5r3 manifest byte readback failed")
+    if persisted_receipt_bytes != receipt_bytes:
+        raise ValueError("private V5r3 receipt byte readback failed")
     verify_evidence_artifact_manifest_v2(run_root, manifest)
-    if json.loads(receipt_bytes) != receipt:
+    if json.loads(persisted_receipt_bytes) != receipt:
         raise ValueError("private V5r3 receipt does not replay")
-    return receipt, manifest, receipt_bytes, manifest_bytes
+    return (
+        receipt,
+        manifest,
+        persisted_receipt_bytes,
+        persisted_manifest_bytes,
+    )
 
 
 def _fault_prompt(
@@ -1198,6 +1213,12 @@ def run_campaign(
     v5r2.v5.v4._write_atomic(
         output_dir / "artifact-manifest.json", manifest_bytes
     )
+    persisted_manifest_bytes = v5r2._read_bound_artifact(
+        output_dir, "artifact-manifest.json"
+    )
+    if persisted_manifest_bytes != manifest_bytes:
+        raise ValueError("public V5r3 manifest byte readback failed")
+    manifest_bytes = persisted_manifest_bytes
     verify_evidence_artifact_manifest_v2(output_dir, manifest)
     manifested_locators = {item.locator for item in manifest.artifacts}
     required_manifested = {
