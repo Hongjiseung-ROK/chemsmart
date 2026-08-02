@@ -39,6 +39,9 @@ ADAPTIVE_NETWORK_BUDGET_SCHEMA_VERSION = (
 ADAPTIVE_PROVIDER_STATUS_SCHEMA_VERSION = (
     "chemsmart.adaptive-provider-status.v1"
 )
+ADAPTIVE_PUBLIC_LITERATURE_HYPOTHESIS_SCHEMA_VERSION = (
+    "chemsmart.adaptive-public-literature-hypothesis.v1"
+)
 
 _IDENTIFIER = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$"
 _RULE_ID = r"^[a-z][a-z0-9_.-]{0,191}$"
@@ -198,6 +201,49 @@ class AdaptiveHypothesisV1(_Contract):
             raise ValueError("hypothesis preconditions must be sorted")
         if self.hypothesis_sha256 != adaptive_hypothesis_sha256(self):
             raise ValueError("hypothesis SHA-256 does not match frozen inputs")
+        return self
+
+
+class AdaptivePublicLiteratureHypothesisV1(_Contract):
+    """Public Crossref hypothesis outside credentialed provider scopes.
+
+    This additive sidecar deliberately does not alter the four-provider V1
+    campaign hash or invent a credential lease for a public metadata endpoint.
+    """
+
+    schema_version: Literal[
+        "chemsmart.adaptive-public-literature-hypothesis.v1"
+    ] = ADAPTIVE_PUBLIC_LITERATURE_HYPOTHESIS_SCHEMA_VERSION
+    hypothesis_id: str = Field(pattern=_IDENTIFIER)
+    hypothesis_sha256: str = Field(pattern=_SHA256)
+    provider: Literal["crossref"] = "crossref"
+    endpoint: Literal["https://api.crossref.org"] = "https://api.crossref.org"
+    purpose: Literal["article_metadata"] = "article_metadata"
+    representation: Literal["bibtex", "json"]
+    prompt_sha256: str = Field(pattern=_SHA256)
+    input_state_sha256: str = Field(pattern=_SHA256)
+    expected_observation_sha256: str = Field(pattern=_SHA256)
+    precondition_sha256s: tuple[str, ...] = Field(min_length=1)
+    transport_attempt_limit: None = None
+    concurrency: Literal[1] = 1
+    credential_lease_required: Literal[False] = False
+    top_up_allowed: Literal[False] = False
+
+    @model_validator(mode="after")
+    def _public_hypothesis_is_exact(
+        self,
+    ) -> "AdaptivePublicLiteratureHypothesisV1":
+        if (
+            len(self.precondition_sha256s)
+            != len(set(self.precondition_sha256s))
+            or tuple(sorted(self.precondition_sha256s))
+            != self.precondition_sha256s
+        ):
+            raise ValueError("public hypothesis preconditions must be unique and sorted")
+        if self.hypothesis_sha256 != adaptive_public_literature_hypothesis_sha256(
+            self
+        ):
+            raise ValueError("public literature hypothesis SHA-256 mismatch")
         return self
 
 
@@ -501,6 +547,43 @@ def build_adaptive_hypothesis_v1(
     )
 
 
+def build_adaptive_public_literature_hypothesis_v1(
+    *,
+    hypothesis_id: str,
+    representation: Literal["bibtex", "json"],
+    prompt_sha256: str,
+    input_state_sha256: str,
+    expected_observation_sha256: str,
+    precondition_sha256s: Sequence[str],
+) -> AdaptivePublicLiteratureHypothesisV1:
+    """Build a no-credential, hypothesis-bound public metadata request basis."""
+
+    body = {
+        "schema_version": ADAPTIVE_PUBLIC_LITERATURE_HYPOTHESIS_SCHEMA_VERSION,
+        "hypothesis_id": hypothesis_id,
+        "provider": "crossref",
+        "endpoint": "https://api.crossref.org",
+        "purpose": "article_metadata",
+        "representation": representation,
+        "prompt_sha256": prompt_sha256,
+        "input_state_sha256": input_state_sha256,
+        "expected_observation_sha256": expected_observation_sha256,
+        "precondition_sha256s": tuple(sorted(precondition_sha256s)),
+        "transport_attempt_limit": None,
+        "concurrency": 1,
+        "credential_lease_required": False,
+        "top_up_allowed": False,
+    }
+    return AdaptivePublicLiteratureHypothesisV1.model_validate(
+        {
+            **body,
+            "hypothesis_sha256": adaptive_public_literature_hypothesis_sha256(
+                body
+            ),
+        }
+    )
+
+
 def build_adaptive_network_budget_v1(
     *,
     deepseek_initial_concurrency: int = 1,
@@ -573,6 +656,13 @@ def build_adaptive_api_campaign_policy_v1(
 
 def adaptive_hypothesis_sha256(
     hypothesis: AdaptiveHypothesisV1 | Mapping[str, object],
+) -> str:
+    payload = _without_identity(hypothesis, "hypothesis_sha256")
+    return _sha256_json(payload)
+
+
+def adaptive_public_literature_hypothesis_sha256(
+    hypothesis: AdaptivePublicLiteratureHypothesisV1 | Mapping[str, object],
 ) -> str:
     payload = _without_identity(hypothesis, "hypothesis_sha256")
     return _sha256_json(payload)
@@ -906,6 +996,7 @@ __all__ = [
     "ADAPTIVE_API_CAMPAIGN_POLICY_SCHEMA_VERSION",
     "ADAPTIVE_NETWORK_BUDGET_SCHEMA_VERSION",
     "ADAPTIVE_PROVIDER_STATUS_SCHEMA_VERSION",
+    "ADAPTIVE_PUBLIC_LITERATURE_HYPOTHESIS_SCHEMA_VERSION",
     "AdaptiveApiCampaignPolicyV1",
     "AdaptiveAttemptMetricsV1",
     "AdaptiveCampaignStopDecisionV1",
@@ -916,15 +1007,18 @@ __all__ = [
     "AdaptiveProviderErrorClass",
     "AdaptiveProviderErrorDecisionV1",
     "AdaptiveProviderPurpose",
+    "AdaptivePublicLiteratureHypothesisV1",
     "AdaptiveProviderScopeV1",
     "AdaptiveProviderStatusV1",
     "AdaptiveQuotaStatus",
     "adaptive_api_campaign_policy_sha256",
     "adaptive_hypothesis_sha256",
     "adaptive_network_budget_sha256",
+    "adaptive_public_literature_hypothesis_sha256",
     "build_adaptive_api_campaign_policy_v1",
     "build_adaptive_hypothesis_v1",
     "build_adaptive_network_budget_v1",
+    "build_adaptive_public_literature_hypothesis_v1",
     "classify_adaptive_provider_error",
     "default_adaptive_provider_scopes_v1",
     "evaluate_adaptive_campaign_stop",

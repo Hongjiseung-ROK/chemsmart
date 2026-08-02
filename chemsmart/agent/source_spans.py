@@ -9,13 +9,17 @@ canonical paper evidence.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any
+from typing import Any, Literal
+from urllib.parse import quote
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from chemsmart.agent.project_protocol import (
     ProjectProgram,
@@ -27,10 +31,174 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_SPANS = 8
 _MAX_LINES_PER_SPAN = 200
 
+EVIDENCE_CHARACTER_RANGE_V2_SCHEMA_VERSION = (
+    "chemsmart.evidence-character-range.v2"
+)
+
 RULE_REGISTRY_MISSING = "paper.source.registry_missing"
 RULE_SOURCE_MISSING = "paper.source.not_registered"
 RULE_HASH_MISMATCH = "paper.source.sha256_mismatch"
 RULE_RANGE_INVALID = "paper.source.line_range_invalid"
+
+
+class EvidenceCharacterRangeV2(BaseModel):
+    """Exact Unicode range inside a string selected by RFC 6901 pointer.
+
+    Offsets are zero-based Unicode code-point offsets with a half-open
+    ``[start, end)`` interval.  The artifact hash binds exact JSON bytes; the
+    selected-text hash binds the exact UTF-8 bytes of the selected substring.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        str_strip_whitespace=False,
+        allow_inf_nan=False,
+    )
+
+    schema_version: Literal[
+        "chemsmart.evidence-character-range.v2"
+    ] = EVIDENCE_CHARACTER_RANGE_V2_SCHEMA_VERSION
+    artifact_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    json_pointer: str = Field(max_length=2048)
+    unicode_start: int = Field(ge=0)
+    unicode_end: int = Field(gt=0)
+    selected_text_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    rendered_locator: str = Field(min_length=1, max_length=2300)
+    range_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @field_validator("json_pointer")
+    @classmethod
+    def _pointer_is_canonical(cls, value: str) -> str:
+        _decode_json_pointer(value)
+        return value
+
+    @model_validator(mode="after")
+    def _range_is_exact(self) -> "EvidenceCharacterRangeV2":
+        if self.unicode_end <= self.unicode_start:
+            raise ValueError("Unicode offsets must form a non-empty half-open range")
+        expected_locator = render_evidence_character_locator_v2(
+            artifact_sha256=self.artifact_sha256,
+            json_pointer=self.json_pointer,
+            unicode_start=self.unicode_start,
+            unicode_end=self.unicode_end,
+        )
+        if self.rendered_locator != expected_locator:
+            raise ValueError("evidence character locator is not canonical")
+        if self.range_sha256 != evidence_character_range_v2_sha256(self):
+            raise ValueError("evidence character range digest mismatch")
+        return self
+
+
+def build_evidence_character_range_v2(
+    artifact_bytes: bytes,
+    *,
+    json_pointer: str,
+    unicode_start: int,
+    unicode_end: int,
+) -> EvidenceCharacterRangeV2:
+    """Build a content-addressed locator from exact JSON artifact bytes."""
+
+    artifact, artifact_sha256 = _load_exact_json_artifact(artifact_bytes)
+    selected_field = _resolve_json_pointer(artifact, json_pointer)
+    if not isinstance(selected_field, str):
+        raise ValueError("evidence JSON Pointer must resolve to a string")
+    if (
+        isinstance(unicode_start, bool)
+        or isinstance(unicode_end, bool)
+        or not isinstance(unicode_start, int)
+        or not isinstance(unicode_end, int)
+        or unicode_start < 0
+        or unicode_end <= unicode_start
+        or unicode_end > len(selected_field)
+    ):
+        raise ValueError("Unicode offsets are outside the selected JSON string")
+    selected_text = selected_field[unicode_start:unicode_end]
+    body = {
+        "schema_version": EVIDENCE_CHARACTER_RANGE_V2_SCHEMA_VERSION,
+        "artifact_sha256": artifact_sha256,
+        "json_pointer": json_pointer,
+        "unicode_start": unicode_start,
+        "unicode_end": unicode_end,
+        "selected_text_sha256": hashlib.sha256(
+            selected_text.encode("utf-8", errors="strict")
+        ).hexdigest(),
+        "rendered_locator": render_evidence_character_locator_v2(
+            artifact_sha256=artifact_sha256,
+            json_pointer=json_pointer,
+            unicode_start=unicode_start,
+            unicode_end=unicode_end,
+        ),
+    }
+    return EvidenceCharacterRangeV2.model_validate(
+        {**body, "range_sha256": evidence_character_range_v2_sha256(body)}
+    )
+
+
+def verify_evidence_character_range_v2(
+    artifact_bytes: bytes,
+    evidence_range: EvidenceCharacterRangeV2,
+) -> None:
+    """Replay artifact, pointer, offsets, substring hash, and rendered locator."""
+
+    evidence_range = EvidenceCharacterRangeV2.model_validate(
+        evidence_range.model_dump(mode="json")
+    )
+    replayed = build_evidence_character_range_v2(
+        artifact_bytes,
+        json_pointer=evidence_range.json_pointer,
+        unicode_start=evidence_range.unicode_start,
+        unicode_end=evidence_range.unicode_end,
+    )
+    if replayed != evidence_range:
+        raise ValueError("evidence character range does not replay")
+
+
+def render_evidence_character_locator_v2(
+    *,
+    artifact_sha256: str,
+    json_pointer: str,
+    unicode_start: int,
+    unicode_end: int,
+) -> str:
+    """Render a path-free locator with stable percent-encoding."""
+
+    if _SHA256_RE.fullmatch(artifact_sha256) is None:
+        raise ValueError("artifact SHA-256 is invalid")
+    _decode_json_pointer(json_pointer)
+    if (
+        isinstance(unicode_start, bool)
+        or isinstance(unicode_end, bool)
+        or not isinstance(unicode_start, int)
+        or not isinstance(unicode_end, int)
+        or unicode_start < 0
+        or unicode_end <= unicode_start
+    ):
+        raise ValueError("Unicode offsets are invalid")
+    pointer = quote(json_pointer, safe="")
+    return (
+        f"sha256:{artifact_sha256}#json-pointer={pointer}"
+        f"&unicode={unicode_start}:{unicode_end}"
+    )
+
+
+def evidence_character_range_v2_sha256(
+    value: EvidenceCharacterRangeV2 | Mapping[str, Any],
+) -> str:
+    if isinstance(value, EvidenceCharacterRangeV2):
+        body = value.model_dump(mode="json", exclude={"range_sha256"})
+    else:
+        body = dict(value)
+        body.pop("range_sha256", None)
+    return hashlib.sha256(
+        json.dumps(
+            body,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _text_sha256(text: str) -> str:
@@ -686,6 +854,72 @@ def _validated_spans(
     return normalized, None
 
 
+def _load_exact_json_artifact(artifact_bytes: bytes) -> tuple[Any, str]:
+    if not isinstance(artifact_bytes, bytes):
+        raise TypeError("evidence artifact must be exact bytes")
+    try:
+        text = artifact_bytes.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError("evidence artifact must be valid UTF-8 JSON") from exc
+
+    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError("evidence JSON contains duplicate object keys")
+            value[key] = item
+        return value
+
+    try:
+        parsed = json.loads(text, object_pairs_hook=reject_duplicate_keys)
+    except json.JSONDecodeError as exc:
+        raise ValueError("evidence artifact must be valid JSON") from exc
+    return parsed, hashlib.sha256(artifact_bytes).hexdigest()
+
+
+def _decode_json_pointer(value: str) -> tuple[str, ...]:
+    if not isinstance(value, str):
+        raise TypeError("JSON Pointer must be text")
+    if value == "":
+        return ()
+    if not value.startswith("/"):
+        raise ValueError("JSON Pointer must be empty or start with slash")
+    decoded: list[str] = []
+    for token in value[1:].split("/"):
+        index = 0
+        output: list[str] = []
+        while index < len(token):
+            if token[index] != "~":
+                output.append(token[index])
+                index += 1
+                continue
+            if index + 1 >= len(token) or token[index + 1] not in {"0", "1"}:
+                raise ValueError("JSON Pointer contains a non-canonical escape")
+            output.append("~" if token[index + 1] == "0" else "/")
+            index += 2
+        decoded.append("".join(output))
+    return tuple(decoded)
+
+
+def _resolve_json_pointer(value: Any, pointer: str) -> Any:
+    current = value
+    for token in _decode_json_pointer(pointer):
+        if isinstance(current, Mapping):
+            if token not in current:
+                raise ValueError("JSON Pointer object member does not exist")
+            current = current[token]
+        elif isinstance(current, list):
+            if token == "-" or re.fullmatch(r"0|[1-9][0-9]*", token) is None:
+                raise ValueError("JSON Pointer array index is invalid")
+            index = int(token)
+            if index >= len(current):
+                raise ValueError("JSON Pointer array index is outside the artifact")
+            current = current[index]
+        else:
+            raise ValueError("JSON Pointer traverses a scalar value")
+    return current
+
+
 def _blocked(
     rule_id: str,
     message: str,
@@ -705,17 +939,23 @@ def _blocked(
 
 
 __all__ = [
+    "EVIDENCE_CHARACTER_RANGE_V2_SCHEMA_VERSION",
+    "EvidenceCharacterRangeV2",
     "EvidenceSelectionBinding",
     "ImmutableSourceDocument",
     "RULE_HASH_MISMATCH",
     "RULE_RANGE_INVALID",
     "RULE_REGISTRY_MISSING",
     "RULE_SOURCE_MISSING",
+    "build_evidence_character_range_v2",
+    "evidence_character_range_v2_sha256",
     "evidence_selection_scope",
     "extract_project_protocol_spans",
+    "render_evidence_character_locator_v2",
     "report_bound_evidence_gap",
     "select_bound_evidence_spans",
     "select_evidence_spans",
     "source_document_scope",
     "tool_input_json_schema",
+    "verify_evidence_character_range_v2",
 ]

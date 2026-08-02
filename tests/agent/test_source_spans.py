@@ -6,14 +6,17 @@ import json
 import pytest
 
 from chemsmart.agent.source_spans import (
+    EvidenceCharacterRangeV2,
     ImmutableSourceDocument,
     RULE_HASH_MISMATCH,
     RULE_RANGE_INVALID,
     RULE_REGISTRY_MISSING,
     RULE_SOURCE_MISSING,
+    build_evidence_character_range_v2,
     extract_project_protocol_spans,
     source_document_scope,
     tool_input_json_schema,
+    verify_evidence_character_range_v2,
 )
 
 
@@ -243,3 +246,91 @@ def test_scope_is_removed_after_context_exit() -> None:
     assert _extract(document)["blocking_issues"][0]["rule_id"] == (
         RULE_REGISTRY_MISSING
     )
+
+
+def test_character_range_binds_json_pointer_unicode_offsets_and_exact_bytes() -> None:
+    artifact = json.dumps(
+        {"article": {"sections": ["alpha β 🧪 omega"]}},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    target = "alpha β 🧪 omega"
+    selected = "β 🧪"
+    start = target.index(selected)
+
+    evidence_range = build_evidence_character_range_v2(
+        artifact,
+        json_pointer="/article/sections/0",
+        unicode_start=start,
+        unicode_end=start + len(selected),
+    )
+
+    assert evidence_range.artifact_sha256 == hashlib.sha256(artifact).hexdigest()
+    assert evidence_range.selected_text_sha256 == hashlib.sha256(
+        selected.encode("utf-8")
+    ).hexdigest()
+    assert evidence_range.rendered_locator == (
+        f"sha256:{evidence_range.artifact_sha256}"
+        "#json-pointer=%2Farticle%2Fsections%2F0&unicode=6:9"
+    )
+    verify_evidence_character_range_v2(artifact, evidence_range)
+
+
+def test_character_range_supports_canonical_json_pointer_escapes() -> None:
+    artifact = b'{"a/b":{"~key":"exact evidence"}}'
+
+    evidence_range = build_evidence_character_range_v2(
+        artifact,
+        json_pointer="/a~1b/~0key",
+        unicode_start=0,
+        unicode_end=5,
+    )
+
+    assert evidence_range.json_pointer == "/a~1b/~0key"
+    verify_evidence_character_range_v2(artifact, evidence_range)
+
+
+def test_character_range_rejects_artifact_and_receipt_tampering() -> None:
+    artifact = b'{"text":"selected evidence"}'
+    evidence_range = build_evidence_character_range_v2(
+        artifact,
+        json_pointer="/text",
+        unicode_start=0,
+        unicode_end=8,
+    )
+
+    with pytest.raises(ValueError, match="does not replay"):
+        verify_evidence_character_range_v2(
+            b'{"text":"selected Evidence"}',
+            evidence_range,
+        )
+
+    tampered = evidence_range.model_dump(mode="python")
+    tampered["selected_text_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="digest mismatch"):
+        EvidenceCharacterRangeV2.model_validate(tampered)
+
+
+@pytest.mark.parametrize(
+    ("artifact", "pointer", "start", "end", "message"),
+    (
+        (b'{"text":"abc"}', "/missing", 0, 1, "does not exist"),
+        (b'{"text":"abc"}', "/bad~2escape", 0, 1, "non-canonical escape"),
+        (b'{"text":"abc"}', "/text", 0, 4, "outside"),
+        (b'{"text":"abc","text":"def"}', "/text", 0, 1, "duplicate"),
+    ),
+)
+def test_character_range_fails_closed_on_ambiguous_or_invalid_selection(
+    artifact: bytes,
+    pointer: str,
+    start: int,
+    end: int,
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        build_evidence_character_range_v2(
+            artifact,
+            json_pointer=pointer,
+            unicode_start=start,
+            unicode_end=end,
+        )

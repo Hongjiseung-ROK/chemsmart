@@ -94,6 +94,14 @@ from chemsmart.agent.harness.scientific_settings.repair_v2 import (
     build_gaussian_b3lyp_carry_forward_probe_v2,
     load_scientific_settings_repair_sidecar_v2,
 )
+from chemsmart.agent.harness.scientific_settings.readiness_gate import (
+    SCIENTIFIC_SETTINGS_READINESS_GATE_V1_SCHEMA_VERSION,
+    ScientificSettingsReadinessGateV1,
+    ScientificSettingsReadinessStatusV1,
+    assess_scientific_settings_readiness,
+    scientific_settings_readiness_gate_v1_sha256,
+    scientific_settings_readiness_input_sha256,
+)
 
 __all__ = [
     "EvidenceCeilingV1",
@@ -110,6 +118,7 @@ __all__ = [
     "SCIENTIFIC_SETTINGS_INVENTORY_V2_SCHEMA_VERSION",
     "SCIENTIFIC_SETTINGS_REGISTRY_REF_V2_SCHEMA_VERSION",
     "SCIENTIFIC_SETTINGS_REGISTRY_V2_SCHEMA_VERSION",
+    "SCIENTIFIC_SETTINGS_READINESS_GATE_V1_SCHEMA_VERSION",
     "SETTING_RESOLUTION_V2_SCHEMA_VERSION",
     "ScientificProgram",
     "ScientificSettingsRepairSidecarV2",
@@ -127,6 +136,8 @@ __all__ = [
     "ScientificSettingsRegistryRefV2",
     "ScientificSettingsRegistrySnapshot",
     "ScientificSettingsRegistryV2",
+    "ScientificSettingsReadinessGateV1",
+    "ScientificSettingsReadinessStatusV1",
     "ScientificSettingsValidationReceiptV1",
     "SettingCapabilityV1",
     "SettingCandidateV2",
@@ -143,6 +154,7 @@ __all__ = [
     "ScopeCompletenessV2",
     "build_scientific_settings_validation_receipt",
     "build_gaussian_b3lyp_carry_forward_probe_v2",
+    "assess_scientific_settings_readiness",
     "canonical_contract_json",
     "content_sha256",
     "load_scientific_settings_inventory_v2",
@@ -169,6 +181,8 @@ __all__ = [
     "scientific_settings_inventory_v2_sha256",
     "scientific_settings_list_v2_sha256",
     "scientific_settings_receipt_sha256",
+    "scientific_settings_readiness_gate_v1_sha256",
+    "scientific_settings_readiness_input_sha256",
     "scientific_settings_registry_sha256",
     "scientific_settings_registry_v2_sha256",
     "validate_scientific_settings_source_snapshot",

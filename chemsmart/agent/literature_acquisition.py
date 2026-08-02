@@ -27,6 +27,24 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from chemsmart.agent.api_access import ApiProvider
+from chemsmart.agent.bibliographic_evidence import (
+    CROSSREF_ORIGIN,
+    BibliographicAuthorV1,
+    BibliographicConcordanceReceiptV1,
+    BibliographicConcordanceStatus,
+    BibliographicCorrectionRelationV1,
+    BibliographicObservationV1,
+    CrossrefMetadataRequestV1,
+    CrossrefRepresentation,
+    CrossrefResponseReceiptV1,
+    CrossrefResponseStatus,
+    NormalizedBibliographicRecordV1,
+    build_bibliographic_concordance_receipt_v1,
+    build_bibliographic_observation_v1,
+    build_crossref_metadata_request_v1,
+    build_crossref_response_receipt_v1,
+    crossref_request_path,
+)
 
 
 LITERATURE_REQUEST_SCHEMA_VERSION = "chemsmart.literature-request.v1"
@@ -1293,8 +1311,18 @@ def _sha256_json(value: object) -> str:
 
 
 __all__ = [
+    "CROSSREF_ORIGIN",
     "LITERATURE_PROVIDER_ORIGINS",
     "LITERATURE_PROVIDERS",
+    "BibliographicAuthorV1",
+    "BibliographicConcordanceReceiptV1",
+    "BibliographicConcordanceStatus",
+    "BibliographicCorrectionRelationV1",
+    "BibliographicObservationV1",
+    "CrossrefMetadataRequestV1",
+    "CrossrefRepresentation",
+    "CrossrefResponseReceiptV1",
+    "CrossrefResponseStatus",
     "LiteratureAcquisitionAction",
     "LiteratureAcquisitionClient",
     "LiteratureAcquisitionError",
@@ -1315,10 +1343,16 @@ __all__ = [
     "LiteratureTransportBudget",
     "LiteratureTransportRequest",
     "LiteratureTransportResponse",
+    "NormalizedBibliographicRecordV1",
     "PrivateEvidenceStore",
     "PrivateStoreWriteReceipt",
     "TransportSourceObservation",
+    "build_bibliographic_concordance_receipt_v1",
+    "build_bibliographic_observation_v1",
+    "build_crossref_metadata_request_v1",
+    "build_crossref_response_receipt_v1",
     "canonicalize_source_locator",
+    "crossref_request_path",
     "literature_merge_receipt_sha256",
     "literature_request_receipt_sha256",
     "literature_response_receipt_sha256",

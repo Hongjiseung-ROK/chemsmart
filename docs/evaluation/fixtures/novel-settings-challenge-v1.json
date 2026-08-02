@@ -1,0 +1,971 @@
+{
+  "schema_version": "chemsmart.novel-settings-challenge.v1",
+  "challenge_id": "chemsmart-novel-settings-challenge-v1",
+  "challenge_version": "1.0.0",
+  "purpose": "Preregister eight settings cases that are external to Python CASES tables and separate registry, request-bound basis evidence, typed project loading, domain-knowledge routing, and host readiness outcomes without coordinates, preview, model transport, or chemistry execution.",
+  "bindings": {
+    "schema_version": "chemsmart.novel-settings-challenge-bindings.v1",
+    "baseline_source_commit_sha1": "83a5e379555529abeef7adfaf730f77a058cbc73",
+    "settings_registry_source_revision_sha1": "125f2878d46b948e20cd1fba5baeaaa65f08f8d0",
+    "cli_schema_sha256": "0cc218099762f0dd3f5bc0dabecbd29dab5c29666c8691dbc5d0f9b633850ebb",
+    "settings_registry_sha256": "3331cd8a74b1343e31da2b7df4530f50fcbaa9bf4894aad7abf9b7257f36ee7f",
+    "settings_inventory_sha256": "cb6eaa89f210eb82743045472d5fcd16e3935d0abbe218468c90d33a8523a1fe",
+    "settings_inventory_artifact_sha256": "c684b1da7f338aab6738b5dcb19d6dd4176847fddc57fc2d91fd2e587673edd4",
+    "bse_catalog_artifact_sha256": "ed4ef918fb80e8ad3c2396c237d2120c31892cfaa2a61fb61af52965dc723c0b",
+    "bse_catalog_content_sha256": "a4c39327851ed653ec849c2109549cad4f0ee4e4207ea20143a368d25b2e2732",
+    "settings_registry_schema_sha256": "841b79ebfb3dc04c232af75c60841abed6c96e979a1c57696eb0152d37c3f968",
+    "settings_resolution_schema_sha256": "4e2a30990190c1d4cbb5cbdab1e0c85ef93dd3410529661ca87fe7703191ee8f",
+    "project_readiness_schema_sha256": "ba75a5b6c5709921f05c04cd25987eb6428c4632e49f39442655328335f4e931",
+    "knowledge_activation_schema_sha256": "206ce4b6c5c9b99274be0a622dd914f9f5272a827bd725cc87a6c0692eaeb786",
+    "knowledge_catalog_sha256": "eb045558dd6e9aeff1020c668b13aaafeb2bbf3f4e510559f3d1ad48646c82c4",
+    "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+    "binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1"
+  },
+  "cases": [
+    {
+      "schema_version": "chemsmart.novel-settings-challenge-case.v1",
+      "case_id": "g16-jkfit-as-orbital-reject",
+      "hypothesis": {
+        "hypothesis_id": "hypothesis.g16-jkfit-role",
+        "baseline_condition_id": "basis-role-check.absent",
+        "intervention_condition_id": "basis-role-check.request-bound",
+        "changed_factor_id": "basis.role_validation",
+        "held_constant_dimensions": ["engine_version", "functional", "job_kind", "program", "requested_basis_literal"],
+        "expected_effect": "Request-bound BSE evidence must reject an auxiliary JKFIT basis when the immutable request asks for an orbital basis, even though the current role-blind project loader accepts the literal."
+      },
+      "immutable_input": {
+        "program": "gaussian",
+        "engine_version": "16.C01",
+        "task_kind": "geometry_optimization",
+        "project_job_kind": "opt",
+        "settings": {
+          "functional": "pbe",
+          "basis": "def2-universal-JKFIT",
+          "dispersion": null,
+          "integration_grid": null,
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "light_elements_basis": null,
+          "solvent_model": null,
+          "solvent_id": null,
+          "gfn_version": null,
+          "optimization_level": null,
+          "freq": false,
+          "solv_freq": null
+        },
+        "setting_lookups": [
+          {
+            "lookup_id": "lookup.basis",
+            "setting_path": "method.basis",
+            "requested_value": "def2-universal-JKFIT",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "unknown_unverified",
+            "expected_match_kind": "none",
+            "expected_canonical_value": null,
+            "expected_reason_rule_ids": ["scientific_settings.v2.unknown_unverified"]
+          },
+          {
+            "lookup_id": "lookup.functional",
+            "setting_path": "method.functional",
+            "requested_value": "pbe",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "pbe",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          }
+        ],
+        "basis_evidence": [
+          {
+            "basis_literal": "def2-universal-JKFIT",
+            "role": "orbital",
+            "elements": ["C", "H", "O"],
+            "expected_state": "conflict",
+            "expected_catalog_role": "jkfit",
+            "expected_reason_rule_ids": ["basis.request.role_conflict"]
+          }
+        ],
+        "coordinate_artifact_ids": []
+      },
+      "expected_outcome": {
+        "loader": {
+          "expected_status": "typed_project_supported",
+          "expected_rule_ids": [],
+          "semantic_fields_to_preserve": ["method.basis", "method.freq", "method.functional"],
+          "final_readiness_authority": false
+        },
+        "knowledge": {
+          "expected_status": "no_match",
+          "selected_pack_ids": [],
+          "expected_rule_ids": ["knowledge.catalog.exclude.program_mismatch"],
+          "model_visible_exposure_requested": false,
+          "model_visible_exposure_expected": false,
+          "can_certify_registry_validity": false,
+          "can_set_readiness": false
+        },
+        "readiness": "blocked_validation_coverage",
+        "blocking_rule_ids": ["basis.request.role_conflict", "scientific_settings.v2.unknown_unverified"],
+        "deterministic_host_is_final_authority": true
+      },
+      "deterministic_oracle_ids": ["oracle.basis.request.v1", "oracle.knowledge.router.v1", "oracle.project.loader.static.v1", "oracle.readiness.host.v1", "oracle.registry.resolve.v2"],
+      "novelty_reason": "Existing stress tables do not bind an exact auxiliary-basis catalog role to an explicitly orbital request while separately recording the role-blind loader observation.",
+      "evidence_binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1",
+      "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+      "safety_ceiling": {
+        "maximum_lifecycle_state": "planned",
+        "coordinates_present": false,
+        "project_writes_allowed": false,
+        "safe_preview_allowed": false,
+        "native_input_authoring_allowed": false,
+        "chemistry_engine_execution_allowed": false,
+        "hpc_execution_allowed": false,
+        "live_model_transport_in_fixture_loader": false
+      },
+      "case_sha256": "203684010d58afe8e0972b22466eaf328573ec5775a483441115d0f7da933252"
+    },
+    {
+      "schema_version": "chemsmart.novel-settings-challenge-case.v1",
+      "case_id": "g16-mn15-multifield-positive",
+      "hypothesis": {
+        "hypothesis_id": "hypothesis.g16-mn15-multifield",
+        "baseline_condition_id": "registry.multifield.hidden",
+        "intervention_condition_id": "registry.multifield.exposed",
+        "changed_factor_id": "registry.multifield_exposure",
+        "held_constant_dimensions": ["engine_version", "job_kind", "paper_settings", "program", "request_bound_basis_evidence"],
+        "expected_effect": "Exposing exact and conservative registry outcomes should retain every reported field and permit the host to keep the independently verified orbital-basis project candidate without silent substitution."
+      },
+      "immutable_input": {
+        "program": "gaussian",
+        "engine_version": "16.C01",
+        "task_kind": "frequency",
+        "project_job_kind": "opt",
+        "settings": {
+          "functional": "mn15",
+          "basis": "aug-cc-pVTZ",
+          "dispersion": "D3BJ",
+          "integration_grid": "UltraFine",
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "light_elements_basis": null,
+          "solvent_model": "SMD",
+          "solvent_id": "acetonitrile",
+          "gfn_version": null,
+          "optimization_level": null,
+          "freq": true,
+          "solv_freq": null
+        },
+        "setting_lookups": [
+          {
+            "lookup_id": "lookup.basis",
+            "setting_path": "method.basis",
+            "requested_value": "aug-cc-pVTZ",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "aug-cc-pVTZ",
+            "expected_reason_rule_ids": ["scientific_settings.basis.bse_materialization_required", "scientific_settings.basis.request_element_coverage_required", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.dispersion",
+            "setting_path": "method.dispersion",
+            "requested_value": "D3BJ",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "D3BJ",
+            "expected_reason_rule_ids": ["scientific_settings.dispersion.functional_conflict_guard", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.functional",
+            "setting_path": "method.functional",
+            "requested_value": "mn15",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "mn15",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          },
+          {
+            "lookup_id": "lookup.grid",
+            "setting_path": "method.integration_grid",
+            "requested_value": "UltraFine",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "UltraFine",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          },
+          {
+            "lookup_id": "lookup.solvent_id",
+            "setting_path": "solvent.id",
+            "requested_value": "acetonitrile",
+            "job_kind": "sp",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "acetonitrile",
+            "expected_reason_rule_ids": ["scientific_settings.solvent.pair_required", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.solvent_model",
+            "setting_path": "solvent.model",
+            "requested_value": "SMD",
+            "job_kind": "sp",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "smd",
+            "expected_reason_rule_ids": ["scientific_settings.solvent.pair_required", "scientific_settings.v2.validation_coverage_gap"]
+          }
+        ],
+        "basis_evidence": [
+          {
+            "basis_literal": "aug-cc-pVTZ",
+            "role": "orbital",
+            "elements": ["C", "H", "N", "O"],
+            "expected_state": "verified",
+            "expected_catalog_role": "orbital",
+            "expected_reason_rule_ids": ["basis.request.exact_local_bse_evidence"]
+          }
+        ],
+        "coordinate_artifact_ids": []
+      },
+      "expected_outcome": {
+        "loader": {
+          "expected_status": "typed_project_supported",
+          "expected_rule_ids": [],
+          "semantic_fields_to_preserve": ["method.basis", "method.dispersion", "method.freq", "method.functional", "method.integration_grid", "solvent.id", "solvent.model"],
+          "final_readiness_authority": false
+        },
+        "knowledge": {
+          "expected_status": "no_match",
+          "selected_pack_ids": [],
+          "expected_rule_ids": ["knowledge.catalog.exclude.program_mismatch"],
+          "model_visible_exposure_requested": false,
+          "model_visible_exposure_expected": false,
+          "can_certify_registry_validity": false,
+          "can_set_readiness": false
+        },
+        "readiness": "project_candidate",
+        "blocking_rule_ids": [],
+        "deterministic_host_is_final_authority": true
+      },
+      "deterministic_oracle_ids": ["oracle.basis.request.v1", "oracle.knowledge.router.v1", "oracle.project.loader.static.v1", "oracle.readiness.host.v1", "oracle.registry.resolve.v2"],
+      "novelty_reason": "The existing tables do not combine MN15, an augmented triple-zeta basis, separate D3BJ, UltraFine, SMD acetonitrile, and frequency intent in one immutable multi-field Gaussian challenge.",
+      "evidence_binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1",
+      "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+      "safety_ceiling": {
+        "maximum_lifecycle_state": "planned",
+        "coordinates_present": false,
+        "project_writes_allowed": false,
+        "safe_preview_allowed": false,
+        "native_input_authoring_allowed": false,
+        "chemistry_engine_execution_allowed": false,
+        "hpc_execution_allowed": false,
+        "live_model_transport_in_fixture_loader": false
+      },
+      "case_sha256": "e0cab78e4d51ab87952b7faaf17060a27a46fedec6a56baa3e2d97ee277c7998"
+    },
+    {
+      "schema_version": "chemsmart.novel-settings-challenge-case.v1",
+      "case_id": "g16-wb97xd-reference-gap",
+      "hypothesis": {
+        "hypothesis_id": "hypothesis.g16-wb97xd-reference-gap",
+        "baseline_condition_id": "registry.functional-gap.unobserved",
+        "intervention_condition_id": "registry.functional-gap.exposed",
+        "changed_factor_id": "registry.functional_coverage",
+        "held_constant_dimensions": ["engine_version", "job_kind", "paper_settings", "program", "substitution_policy"],
+        "expected_effect": "The exact literature literal wB97X-D must be exposed as unknown and block readiness instead of being silently normalized to a different registered functional."
+      },
+      "immutable_input": {
+        "program": "gaussian",
+        "engine_version": "16.C01",
+        "task_kind": "frequency",
+        "project_job_kind": "opt",
+        "settings": {
+          "functional": "wB97X-D",
+          "basis": "aug-cc-pVDZ",
+          "dispersion": null,
+          "integration_grid": "UltraFine",
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "light_elements_basis": null,
+          "solvent_model": "SMD",
+          "solvent_id": "dichloromethane",
+          "gfn_version": null,
+          "optimization_level": null,
+          "freq": true,
+          "solv_freq": null
+        },
+        "setting_lookups": [
+          {
+            "lookup_id": "lookup.basis",
+            "setting_path": "method.basis",
+            "requested_value": "aug-cc-pVDZ",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "aug-cc-pVDZ",
+            "expected_reason_rule_ids": ["scientific_settings.basis.bse_materialization_required", "scientific_settings.basis.request_element_coverage_required", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.functional",
+            "setting_path": "method.functional",
+            "requested_value": "wB97X-D",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "unknown_unverified",
+            "expected_match_kind": "none",
+            "expected_canonical_value": null,
+            "expected_reason_rule_ids": ["scientific_settings.v2.unknown_unverified"]
+          },
+          {
+            "lookup_id": "lookup.grid",
+            "setting_path": "method.integration_grid",
+            "requested_value": "UltraFine",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "UltraFine",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          },
+          {
+            "lookup_id": "lookup.solvent_id",
+            "setting_path": "solvent.id",
+            "requested_value": "dichloromethane",
+            "job_kind": "sp",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "dichloromethane",
+            "expected_reason_rule_ids": ["scientific_settings.solvent.pair_required", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.solvent_model",
+            "setting_path": "solvent.model",
+            "requested_value": "SMD",
+            "job_kind": "sp",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "smd",
+            "expected_reason_rule_ids": ["scientific_settings.solvent.pair_required", "scientific_settings.v2.validation_coverage_gap"]
+          }
+        ],
+        "basis_evidence": [],
+        "coordinate_artifact_ids": []
+      },
+      "expected_outcome": {
+        "loader": {
+          "expected_status": "typed_project_supported",
+          "expected_rule_ids": [],
+          "semantic_fields_to_preserve": ["method.basis", "method.freq", "method.functional", "method.integration_grid", "solvent.id", "solvent.model"],
+          "final_readiness_authority": false
+        },
+        "knowledge": {
+          "expected_status": "no_match",
+          "selected_pack_ids": [],
+          "expected_rule_ids": ["knowledge.catalog.exclude.program_mismatch"],
+          "model_visible_exposure_requested": false,
+          "model_visible_exposure_expected": false,
+          "can_certify_registry_validity": false,
+          "can_set_readiness": false
+        },
+        "readiness": "blocked_unverified_setting",
+        "blocking_rule_ids": ["scientific_settings.v2.unknown_unverified"],
+        "deterministic_host_is_final_authority": true
+      },
+      "deterministic_oracle_ids": ["oracle.knowledge.router.v1", "oracle.project.loader.static.v1", "oracle.readiness.host.v1", "oracle.registry.resolve.v2"],
+      "novelty_reason": "The case distinguishes a common Gaussian reference spelling absent from the frozen functional registry from a valid registered basis and solvent configuration; fuzzy substitution remains explicitly disabled.",
+      "evidence_binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1",
+      "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+      "safety_ceiling": {
+        "maximum_lifecycle_state": "planned",
+        "coordinates_present": false,
+        "project_writes_allowed": false,
+        "safe_preview_allowed": false,
+        "native_input_authoring_allowed": false,
+        "chemistry_engine_execution_allowed": false,
+        "hpc_execution_allowed": false,
+        "live_model_transport_in_fixture_loader": false
+      },
+      "case_sha256": "a5cb581fba270646eda1d7d7e7764f1e67c57ce75896235783707296c05edc18"
+    },
+    {
+      "schema_version": "chemsmart.novel-settings-challenge-case.v1",
+      "case_id": "orca61-b97m-d4-double-dispersion",
+      "hypothesis": {
+        "hypothesis_id": "hypothesis.orca61-double-dispersion",
+        "baseline_condition_id": "dispersion.explicit-second-term.absent",
+        "intervention_condition_id": "dispersion.explicit-second-term.present",
+        "changed_factor_id": "project.dispersion_conflict_gate",
+        "held_constant_dimensions": ["basis", "engine_version", "functional", "job_kind", "program"],
+        "expected_effect": "The typed project path must reject the separate D3BJ request because B97M-D4 already encodes its dispersion family; registry membership of both literals is not combination validity."
+      },
+      "immutable_input": {
+        "program": "orca",
+        "engine_version": "6.1",
+        "task_kind": "frequency",
+        "project_job_kind": "opt",
+        "settings": {
+          "functional": "B97M-D4",
+          "basis": "def2-TZVPP",
+          "dispersion": "D3BJ",
+          "integration_grid": null,
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "light_elements_basis": null,
+          "solvent_model": null,
+          "solvent_id": null,
+          "gfn_version": null,
+          "optimization_level": null,
+          "freq": true,
+          "solv_freq": null
+        },
+        "setting_lookups": [
+          {
+            "lookup_id": "lookup.basis",
+            "setting_path": "method.basis",
+            "requested_value": "def2-TZVPP",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "def2-TZVPP",
+            "expected_reason_rule_ids": ["scientific_settings.basis.ecp_applicability_required", "scientific_settings.basis.request_element_coverage_required", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.dispersion",
+            "setting_path": "method.dispersion",
+            "requested_value": "D3BJ",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "D3BJ",
+            "expected_reason_rule_ids": ["scientific_settings.dispersion.functional_conflict_guard", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.functional",
+            "setting_path": "method.functional",
+            "requested_value": "B97M-D4",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "b97m-d4",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          }
+        ],
+        "basis_evidence": [
+          {
+            "basis_literal": "def2-TZVPP",
+            "role": "orbital",
+            "elements": ["C", "H", "N", "O"],
+            "expected_state": "verified",
+            "expected_catalog_role": "orbital",
+            "expected_reason_rule_ids": ["basis.request.exact_local_bse_evidence"]
+          }
+        ],
+        "coordinate_artifact_ids": []
+      },
+      "expected_outcome": {
+        "loader": {
+          "expected_status": "blocked_unsupported_setting",
+          "expected_rule_ids": ["paper.project.dispersion_conflict"],
+          "semantic_fields_to_preserve": ["method.basis", "method.dispersion", "method.freq", "method.functional"],
+          "final_readiness_authority": false
+        },
+        "knowledge": {
+          "expected_status": "no_match",
+          "selected_pack_ids": [],
+          "expected_rule_ids": ["knowledge.challenge.native_basis_context_required"],
+          "model_visible_exposure_requested": true,
+          "model_visible_exposure_expected": false,
+          "can_certify_registry_validity": false,
+          "can_set_readiness": false
+        },
+        "readiness": "blocked_unsupported_setting",
+        "blocking_rule_ids": ["paper.project.dispersion_conflict"],
+        "deterministic_host_is_final_authority": true
+      },
+      "deterministic_oracle_ids": ["oracle.basis.request.v1", "oracle.knowledge.router.v1", "oracle.project.loader.static.v1", "oracle.readiness.host.v1", "oracle.registry.resolve.v2"],
+      "novelty_reason": "This is a cross-field combination counterexample: each literal is registered or locally evidenced, but the functional plus separate empirical-dispersion pair must fail as a double-dispersion configuration.",
+      "evidence_binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1",
+      "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+      "safety_ceiling": {
+        "maximum_lifecycle_state": "planned",
+        "coordinates_present": false,
+        "project_writes_allowed": false,
+        "safe_preview_allowed": false,
+        "native_input_authoring_allowed": false,
+        "chemistry_engine_execution_allowed": false,
+        "hpc_execution_allowed": false,
+        "live_model_transport_in_fixture_loader": false
+      },
+      "case_sha256": "79f7f377c741eafeeebec2eef6a3bce55abc454aa74d0a8b158801a31f2a4036"
+    },
+    {
+      "schema_version": "chemsmart.novel-settings-challenge-case.v1",
+      "case_id": "orca61-bse-basis-pack-negative-control",
+      "hypothesis": {
+        "hypothesis_id": "hypothesis.orca61-bse-pack-negative-control",
+        "baseline_condition_id": "knowledge.exposure.disabled",
+        "intervention_condition_id": "knowledge.exposure.enabled",
+        "changed_factor_id": "knowledge.pack_exposure",
+        "held_constant_dimensions": ["basis", "engine_version", "functional", "job_kind", "program", "registry_and_loader_oracles"],
+        "expected_effect": "Enabling knowledge exposure must not activate the ORCA-native-basis pack for a BSE orbital basis and must not alter deterministic project readiness."
+      },
+      "immutable_input": {
+        "program": "orca",
+        "engine_version": "6.1",
+        "task_kind": "geometry_optimization",
+        "project_job_kind": "opt",
+        "settings": {
+          "functional": "pbe0",
+          "basis": "aug-cc-pVDZ",
+          "dispersion": null,
+          "integration_grid": null,
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "light_elements_basis": null,
+          "solvent_model": null,
+          "solvent_id": null,
+          "gfn_version": null,
+          "optimization_level": null,
+          "freq": false,
+          "solv_freq": null
+        },
+        "setting_lookups": [
+          {
+            "lookup_id": "lookup.basis",
+            "setting_path": "method.basis",
+            "requested_value": "aug-cc-pVDZ",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "aug-cc-pVDZ",
+            "expected_reason_rule_ids": ["scientific_settings.basis.request_element_coverage_required", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.functional",
+            "setting_path": "method.functional",
+            "requested_value": "pbe0",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "pbe0",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          }
+        ],
+        "basis_evidence": [
+          {
+            "basis_literal": "aug-cc-pVDZ",
+            "role": "orbital",
+            "elements": ["C", "H", "N", "O"],
+            "expected_state": "verified",
+            "expected_catalog_role": "orbital",
+            "expected_reason_rule_ids": ["basis.request.exact_local_bse_evidence"]
+          }
+        ],
+        "coordinate_artifact_ids": []
+      },
+      "expected_outcome": {
+        "loader": {
+          "expected_status": "typed_project_supported",
+          "expected_rule_ids": [],
+          "semantic_fields_to_preserve": ["method.basis", "method.freq", "method.functional"],
+          "final_readiness_authority": false
+        },
+        "knowledge": {
+          "expected_status": "no_match",
+          "selected_pack_ids": [],
+          "expected_rule_ids": ["knowledge.challenge.native_basis_context_required"],
+          "model_visible_exposure_requested": true,
+          "model_visible_exposure_expected": false,
+          "can_certify_registry_validity": false,
+          "can_set_readiness": false
+        },
+        "readiness": "project_candidate",
+        "blocking_rule_ids": [],
+        "deterministic_host_is_final_authority": true
+      },
+      "deterministic_oracle_ids": ["oracle.basis.request.v1", "oracle.knowledge.router.v1", "oracle.project.loader.static.v1", "oracle.readiness.host.v1", "oracle.registry.resolve.v2"],
+      "novelty_reason": "This is an explicit knowledge-routing precision control: an ordinary BSE orbital basis should not activate advice narrowly intended for explicit ORCA-native basis preservation.",
+      "evidence_binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1",
+      "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+      "safety_ceiling": {
+        "maximum_lifecycle_state": "planned",
+        "coordinates_present": false,
+        "project_writes_allowed": false,
+        "safe_preview_allowed": false,
+        "native_input_authoring_allowed": false,
+        "chemistry_engine_execution_allowed": false,
+        "hpc_execution_allowed": false,
+        "live_model_transport_in_fixture_loader": false
+      },
+      "case_sha256": "0ac9215f9ebdd52ab38c394057f7d48b18aceb2ba4f8fc5b4e0a05c145589576"
+    },
+    {
+      "schema_version": "chemsmart.novel-settings-challenge-case.v1",
+      "case_id": "orca61-r2scan-ma-zora-native",
+      "hypothesis": {
+        "hypothesis_id": "hypothesis.orca61-native-basis-pack",
+        "baseline_condition_id": "knowledge.exposure.disabled",
+        "intervention_condition_id": "knowledge.exposure.enabled",
+        "changed_factor_id": "knowledge.pack_exposure",
+        "held_constant_dimensions": ["engine_version", "job_kind", "paper_settings", "program", "registry_and_loader_oracles"],
+        "expected_effect": "Read-only ORCA-native-basis knowledge should be selected and exposed without changing the exact ma-ZORA literal or independently setting project readiness."
+      },
+      "immutable_input": {
+        "program": "orca",
+        "engine_version": "6.1",
+        "task_kind": "geometry_optimization",
+        "project_job_kind": "opt",
+        "settings": {
+          "functional": "r2scan",
+          "basis": "ma-ZORA-def2-TZVPP",
+          "dispersion": null,
+          "integration_grid": null,
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "light_elements_basis": null,
+          "solvent_model": "CPCM",
+          "solvent_id": "dichloromethane",
+          "gfn_version": null,
+          "optimization_level": null,
+          "freq": false,
+          "solv_freq": null
+        },
+        "setting_lookups": [
+          {
+            "lookup_id": "lookup.basis",
+            "setting_path": "method.basis",
+            "requested_value": "ma-ZORA-def2-TZVPP",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "ma-ZORA-def2-tzvpp",
+            "expected_reason_rule_ids": ["scientific_settings.basis.registry_validator_integration_required", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.functional",
+            "setting_path": "method.functional",
+            "requested_value": "r2scan",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "r2scan",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          },
+          {
+            "lookup_id": "lookup.solvent_id",
+            "setting_path": "solvent.id",
+            "requested_value": "dichloromethane",
+            "job_kind": "sp",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "dichloromethane",
+            "expected_reason_rule_ids": ["scientific_settings.solvent.pair_required", "scientific_settings.v2.validation_coverage_gap"]
+          },
+          {
+            "lookup_id": "lookup.solvent_model",
+            "setting_path": "solvent.model",
+            "requested_value": "CPCM",
+            "job_kind": "sp",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "cpcm",
+            "expected_reason_rule_ids": ["scientific_settings.solvent.pair_required", "scientific_settings.v2.validation_coverage_gap"]
+          }
+        ],
+        "basis_evidence": [],
+        "coordinate_artifact_ids": []
+      },
+      "expected_outcome": {
+        "loader": {
+          "expected_status": "typed_project_supported",
+          "expected_rule_ids": [],
+          "semantic_fields_to_preserve": ["method.basis", "method.freq", "method.functional", "solvent.id", "solvent.model"],
+          "final_readiness_authority": false
+        },
+        "knowledge": {
+          "expected_status": "selected",
+          "selected_pack_ids": ["orca-explicit-native-basis-preservation"],
+          "expected_rule_ids": ["knowledge.trigger.orca.native_basis"],
+          "model_visible_exposure_requested": true,
+          "model_visible_exposure_expected": true,
+          "can_certify_registry_validity": false,
+          "can_set_readiness": false
+        },
+        "readiness": "project_candidate",
+        "blocking_rule_ids": [],
+        "deterministic_host_is_final_authority": true
+      },
+      "deterministic_oracle_ids": ["oracle.knowledge.router.v1", "oracle.project.loader.static.v1", "oracle.readiness.host.v1", "oracle.registry.resolve.v2"],
+      "novelty_reason": "This positive knowledge case uses a documented ORCA-native minimally augmented ZORA basis absent from the request-bound BSE path and checks advisory preservation without readiness escalation.",
+      "evidence_binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1",
+      "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+      "safety_ceiling": {
+        "maximum_lifecycle_state": "planned",
+        "coordinates_present": false,
+        "project_writes_allowed": false,
+        "safe_preview_allowed": false,
+        "native_input_authoring_allowed": false,
+        "chemistry_engine_execution_allowed": false,
+        "hpc_execution_allowed": false,
+        "live_model_transport_in_fixture_loader": false
+      },
+      "case_sha256": "f29341b7830b57fdbf9c8fa0a180ffe73a53ef575e9d9318834b79e5c19e5067"
+    },
+    {
+      "schema_version": "chemsmart.novel-settings-challenge-case.v1",
+      "case_id": "xtb671-gfn0-gbsa-extreme",
+      "hypothesis": {
+        "hypothesis_id": "hypothesis.xtb671-solvent-compatibility",
+        "baseline_condition_id": "validator.xtb-solvent-compatibility.absent",
+        "intervention_condition_id": "validator.xtb-solvent-compatibility.present",
+        "changed_factor_id": "validator.xtb_solvent_compatibility",
+        "held_constant_dimensions": ["engine_version", "gfn_method", "job_kind", "optimization_level", "program", "solvent_pair"],
+        "expected_effect": "A recognized GFN0 alias and loader-valid GBSA water pair must remain blocked from readiness until a deterministic method-solvent compatibility validator exists."
+      },
+      "immutable_input": {
+        "program": "xtb",
+        "engine_version": "6.7.1",
+        "task_kind": "geometry_optimization",
+        "project_job_kind": "opt",
+        "settings": {
+          "functional": null,
+          "basis": null,
+          "dispersion": null,
+          "integration_grid": null,
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "light_elements_basis": null,
+          "solvent_model": "GBSA",
+          "solvent_id": "water",
+          "gfn_version": "GFN0-xTB",
+          "optimization_level": "extreme",
+          "freq": null,
+          "solv_freq": null
+        },
+        "setting_lookups": [
+          {
+            "lookup_id": "lookup.gfn",
+            "setting_path": "method.gfn_version",
+            "requested_value": "GFN0-xTB",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "registered_alias",
+            "expected_canonical_value": "gfn0",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          },
+          {
+            "lookup_id": "lookup.optimization",
+            "setting_path": "optimization.level",
+            "requested_value": "extreme",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "extreme",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          },
+          {
+            "lookup_id": "lookup.solvent_id",
+            "setting_path": "solvent.id",
+            "requested_value": "water",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "water",
+            "expected_reason_rule_ids": ["scientific_settings.v2.validation_coverage_gap", "scientific_settings.xtb.solvent_compatibility_required"]
+          },
+          {
+            "lookup_id": "lookup.solvent_model",
+            "setting_path": "solvent.model",
+            "requested_value": "GBSA",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "gbsa",
+            "expected_reason_rule_ids": ["scientific_settings.v2.validation_coverage_gap", "scientific_settings.xtb.solvent_compatibility_required"]
+          }
+        ],
+        "basis_evidence": [],
+        "coordinate_artifact_ids": []
+      },
+      "expected_outcome": {
+        "loader": {
+          "expected_status": "typed_project_supported",
+          "expected_rule_ids": [],
+          "semantic_fields_to_preserve": ["method.gfn_version", "optimization.level", "solvent.id", "solvent.model"],
+          "final_readiness_authority": false
+        },
+        "knowledge": {
+          "expected_status": "selected",
+          "selected_pack_ids": ["xtb-explicit-method-semantics"],
+          "expected_rule_ids": ["knowledge.trigger.xtb.explicit_method"],
+          "model_visible_exposure_requested": true,
+          "model_visible_exposure_expected": true,
+          "can_certify_registry_validity": false,
+          "can_set_readiness": false
+        },
+        "readiness": "blocked_validation_coverage",
+        "blocking_rule_ids": ["scientific_settings.xtb.solvent_compatibility_required"],
+        "deterministic_host_is_final_authority": true
+      },
+      "deterministic_oracle_ids": ["oracle.knowledge.router.v1", "oracle.project.loader.static.v1", "oracle.readiness.host.v1", "oracle.registry.resolve.v2"],
+      "novelty_reason": "The case separates literal membership and loader acceptance from a missing xTB GFN-solvent compatibility oracle, preventing a recognized alias from becoming false-ready.",
+      "evidence_binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1",
+      "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+      "safety_ceiling": {
+        "maximum_lifecycle_state": "planned",
+        "coordinates_present": false,
+        "project_writes_allowed": false,
+        "safe_preview_allowed": false,
+        "native_input_authoring_allowed": false,
+        "chemistry_engine_execution_allowed": false,
+        "hpc_execution_allowed": false,
+        "live_model_transport_in_fixture_loader": false
+      },
+      "case_sha256": "08b848461e4c47bcc1f7ec37a77ba25acb60adc9378bf81628384b3959e993f1"
+    },
+    {
+      "schema_version": "chemsmart.novel-settings-challenge-case.v1",
+      "case_id": "xtb671-gfn3-no-substitution",
+      "hypothesis": {
+        "hypothesis_id": "hypothesis.xtb671-gfn3-no-substitution",
+        "baseline_condition_id": "knowledge.exposure.disabled",
+        "intervention_condition_id": "knowledge.exposure.enabled",
+        "changed_factor_id": "knowledge.pack_exposure",
+        "held_constant_dimensions": ["engine_version", "job_kind", "optimization_level", "program", "requested_gfn_literal", "solvent_pair"],
+        "expected_effect": "Knowledge exposure must preserve the explicit but unsupported GFN3-xTB literal, prohibit substitution to a registered GFN method, and leave readiness blocked."
+      },
+      "immutable_input": {
+        "program": "xtb",
+        "engine_version": "6.7.1",
+        "task_kind": "geometry_optimization",
+        "project_job_kind": "opt",
+        "settings": {
+          "functional": null,
+          "basis": null,
+          "dispersion": null,
+          "integration_grid": null,
+          "heavy_elements": [],
+          "heavy_elements_basis": null,
+          "light_elements_basis": null,
+          "solvent_model": "ALPB",
+          "solvent_id": "water",
+          "gfn_version": "GFN3-xTB",
+          "optimization_level": "normal",
+          "freq": null,
+          "solv_freq": null
+        },
+        "setting_lookups": [
+          {
+            "lookup_id": "lookup.gfn",
+            "setting_path": "method.gfn_version",
+            "requested_value": "GFN3-xTB",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "unknown_unverified",
+            "expected_match_kind": "none",
+            "expected_canonical_value": null,
+            "expected_reason_rule_ids": ["scientific_settings.v2.unknown_unverified"]
+          },
+          {
+            "lookup_id": "lookup.optimization",
+            "setting_path": "optimization.level",
+            "requested_value": "normal",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "exact_registered",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "normal",
+            "expected_reason_rule_ids": ["scientific_settings.v2.exact_registered"]
+          },
+          {
+            "lookup_id": "lookup.solvent_id",
+            "setting_path": "solvent.id",
+            "requested_value": "water",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "water",
+            "expected_reason_rule_ids": ["scientific_settings.v2.validation_coverage_gap", "scientific_settings.xtb.solvent_compatibility_required"]
+          },
+          {
+            "lookup_id": "lookup.solvent_model",
+            "setting_path": "solvent.model",
+            "requested_value": "ALPB",
+            "job_kind": "opt",
+            "allow_fuzzy_candidates": false,
+            "expected_status": "blocked_validation_coverage",
+            "expected_match_kind": "canonical_literal",
+            "expected_canonical_value": "alpb",
+            "expected_reason_rule_ids": ["scientific_settings.v2.validation_coverage_gap", "scientific_settings.xtb.solvent_compatibility_required"]
+          }
+        ],
+        "basis_evidence": [],
+        "coordinate_artifact_ids": []
+      },
+      "expected_outcome": {
+        "loader": {
+          "expected_status": "blocked_required_job_validation",
+          "expected_rule_ids": ["yaml.xtb.gfn_invalid"],
+          "semantic_fields_to_preserve": ["method.gfn_version", "optimization.level", "solvent.id", "solvent.model"],
+          "final_readiness_authority": false
+        },
+        "knowledge": {
+          "expected_status": "selected",
+          "selected_pack_ids": ["xtb-explicit-method-semantics"],
+          "expected_rule_ids": ["knowledge.trigger.xtb.explicit_method"],
+          "model_visible_exposure_requested": true,
+          "model_visible_exposure_expected": true,
+          "can_certify_registry_validity": false,
+          "can_set_readiness": false
+        },
+        "readiness": "blocked_unverified_setting",
+        "blocking_rule_ids": ["scientific_settings.v2.unknown_unverified", "yaml.xtb.gfn_invalid"],
+        "deterministic_host_is_final_authority": true
+      },
+      "deterministic_oracle_ids": ["oracle.knowledge.router.v1", "oracle.project.loader.static.v1", "oracle.readiness.host.v1", "oracle.registry.resolve.v2"],
+      "novelty_reason": "The case tests an explicit future-looking GFN literal that is close to valid method syntax while requiring exact no-substitution behavior across registry, knowledge, and loader boundaries.",
+      "evidence_binding_sha256": "2f97dd1e0419b157e6339f356d7db4c49e800f301577c9d297558484b0664fa1",
+      "contract_schema_sha256": "c3b393145d2d48bb9bcfa612ac588a01f5c4e337b6e83e966f3d648a0a80de84",
+      "safety_ceiling": {
+        "maximum_lifecycle_state": "planned",
+        "coordinates_present": false,
+        "project_writes_allowed": false,
+        "safe_preview_allowed": false,
+        "native_input_authoring_allowed": false,
+        "chemistry_engine_execution_allowed": false,
+        "hpc_execution_allowed": false,
+        "live_model_transport_in_fixture_loader": false
+      },
+      "case_sha256": "5cead277579c84a36ac675fb02148a7b78499d3df5e72143d3978eb322eef7db"
+    }
+  ],
+  "case_set_sha256": "70b78e51ce25994e6f68a6c7dfd8abbcff2bad971560fde683d3ec9f80fefe07",
+  "maximum_lifecycle_state": "planned",
+  "challenge_sha256": "877458799d05b3a83b05ee8f908ccf8a43e1ce05540f7b6085ff7a0ec6ab649d"
+}
