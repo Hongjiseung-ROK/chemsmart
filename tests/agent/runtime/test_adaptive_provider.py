@@ -43,6 +43,42 @@ class _FailingProvider(_Provider):
         raise TimeoutError("private transport detail")
 
 
+class _TruncatedProvider(_Provider):
+    def chat(self, messages, tools=None, timeout_s=30):
+        return {
+            "model": "deepseek-v4-flash",
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "",
+                        "tool_calls": None,
+                    },
+                    "finish_reason": "length",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 9852,
+                "completion_tokens": 8192,
+                "completion_tokens_details": {"reasoning_tokens": 8192},
+            },
+        }
+
+
+class _EmptyProvider(_Provider):
+    def chat(self, messages, tools=None, timeout_s=30):
+        return {
+            "model": "deepseek-v4-flash",
+            "choices": [
+                {
+                    "message": {"role": "assistant", "content": ""},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 1},
+        }
+
+
 def _controller():
     return CredentialAccessController(
         keychain_reader=lambda _service, _account: None,
@@ -122,6 +158,87 @@ def test_provider_failure_is_sanitized() -> None:
     assert "private transport detail" not in str(exc_info.value)
     assert provider.request_observations[0]["hypothesis_sha256"] == (
         _hypothesis("failure").hypothesis_sha256
+    )
+
+
+def test_output_truncation_is_observable_and_fails_closed() -> None:
+    provider = AdaptiveLeaseBoundDeepSeekProvider(
+        controller=_controller(),
+        network_budget=build_adaptive_network_budget_v1(),
+        hypothesis=_hypothesis("truncated"),
+        provider_factory=_TruncatedProvider,
+    )
+
+    with pytest.raises(AdaptiveProviderTurnError) as exc_info:
+        provider.chat([{"role": "user", "content": "compact decision"}])
+
+    assert exc_info.value.error_class == "provider.stop.output_truncated"
+    observation = provider.request_observations[0]
+    assert observation["status"] == "rejected"
+    assert observation["error_class"] == "provider.stop.output_truncated"
+    assert observation["finish_reason"] == "length"
+    assert observation["output_tokens"] == 8192
+    assert observation["reasoning_tokens"] == 8192
+    assert observation["content_present"] is False
+    assert observation["tool_calls_present"] is False
+
+
+def test_empty_completion_is_rejected_instead_of_completing() -> None:
+    provider = AdaptiveLeaseBoundDeepSeekProvider(
+        controller=_controller(),
+        network_budget=build_adaptive_network_budget_v1(),
+        hypothesis=_hypothesis("empty"),
+        provider_factory=_EmptyProvider,
+    )
+
+    with pytest.raises(AdaptiveProviderTurnError) as exc_info:
+        provider.chat([{"role": "user", "content": "submit a typed decision"}])
+
+    assert exc_info.value.error_class == "provider.stop.empty_completion"
+    assert provider.request_observations[0]["status"] == "rejected"
+    assert provider.request_observations[0]["finish_reason"] == "stop"
+
+
+def test_missing_credential_stop_is_observable_before_transport() -> None:
+    provider = AdaptiveLeaseBoundDeepSeekProvider(
+        controller=CredentialAccessController(
+            keychain_reader=lambda _service, _account: None,
+            environment={},
+        ),
+        network_budget=build_adaptive_network_budget_v1(),
+        hypothesis=_hypothesis("missing-credential"),
+        provider_factory=_Provider,
+    )
+
+    with pytest.raises(AdaptiveProviderTurnError) as exc_info:
+        provider.chat([{"role": "user", "content": "bound request"}])
+
+    assert exc_info.value.error_class == "provider.stop.credential_missing"
+    assert provider.transport_attempts == 0
+    assert provider.request_observations[0]["status"] == (
+        "rejected_before_transport"
+    )
+
+
+def test_wall_time_stop_is_observable_before_transport() -> None:
+    ticks = iter((0.0, 2.0))
+    provider = AdaptiveLeaseBoundDeepSeekProvider(
+        controller=_controller(),
+        network_budget=build_adaptive_network_budget_v1(
+            task_wall_time_seconds=1,
+        ),
+        hypothesis=_hypothesis("wall-time"),
+        provider_factory=_Provider,
+        monotonic_clock=lambda: next(ticks),
+    )
+
+    with pytest.raises(AdaptiveProviderTurnError) as exc_info:
+        provider.chat([{"role": "user", "content": "bound request"}])
+
+    assert exc_info.value.error_class == "provider.stop.task_wall_time"
+    assert provider.transport_attempts == 0
+    assert provider.request_observations[0]["status"] == (
+        "rejected_before_transport"
     )
 
 

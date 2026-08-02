@@ -153,6 +153,10 @@ class PhaseToolProfile:
         phases: Mapping[TaskPhase | str, Iterable[str]],
         *,
         specialist_tools: Iterable[str] = (),
+        required_completion_tools: Mapping[
+            TaskPhase | str, Iterable[str]
+        ] | None = None,
+        trusted_initial_phase: TaskPhase | str | None = None,
     ) -> None:
         normalized: dict[TaskPhase, tuple[str, ...]] = {}
         for phase_value, names_value in phases.items():
@@ -162,8 +166,33 @@ class PhaseToolProfile:
             normalized[phase] = names
         specialist = tuple(specialist_tools)
         self._validate_names(specialist, context="synthesis_specialist")
+        required: dict[TaskPhase, tuple[str, ...]] = {}
+        for phase_value, names_value in (
+            required_completion_tools or {}
+        ).items():
+            phase = TaskPhase(phase_value)
+            names = tuple(names_value)
+            self._validate_names(names, context=f"{phase.value}:completion")
+            if not set(names).issubset(set(normalized.get(phase, ()))):
+                raise ValueError(
+                    "required completion tools must be exposed in their phase"
+                )
+            required[phase] = names
         self._phases = MappingProxyType(normalized)
         self._specialist_tools = specialist
+        self._required_completion_tools = MappingProxyType(required)
+        self._trusted_initial_phase = (
+            TaskPhase(trusted_initial_phase)
+            if trusted_initial_phase is not None
+            else None
+        )
+        if (
+            self._trusted_initial_phase is not None
+            and self._trusted_initial_phase not in self._phases
+        ):
+            raise ValueError(
+                "trusted initial phase must have an explicit tool profile"
+            )
 
     @staticmethod
     def _validate_names(names: tuple[str, ...], *, context: str) -> None:
@@ -200,6 +229,20 @@ class PhaseToolProfile:
         ):
             return self._specialist_tools
         return self._phases.get(phase, ())
+
+    def required_completion_tools_for(
+        self,
+        phase: TaskPhase,
+    ) -> tuple[str, ...]:
+        """Return host-declared green receipts required to finish a phase."""
+
+        return self._required_completion_tools.get(phase, ())
+
+    @property
+    def trusted_initial_phase(self) -> TaskPhase | None:
+        """Return a host-bound phase override, never a model-provided value."""
+
+        return self._trusted_initial_phase
 
 
 FRONTIER_COMMAND_TOOL_PROFILE = PhaseToolProfile(

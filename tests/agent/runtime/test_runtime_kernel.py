@@ -20,6 +20,7 @@ from chemsmart.agent.runtime.contracts import (
 )
 from chemsmart.agent.runtime.event_store import (
     EventStoreCorruptionError,
+    EventStoreIdempotencyConflictError,
     RuntimeEventStore,
 )
 from chemsmart.agent.runtime.events import EventKind
@@ -99,9 +100,17 @@ def test_event_store_is_idempotent_and_replayable(tmp_path):
         session_id="s1",
         turn_id="bootstrap",
         kind=EventKind.SESSION_STARTED,
-        payload={"cwd": "ignored"},
+        payload={"cwd": str(tmp_path)},
         idempotency_key="session-start",
     )
+    with pytest.raises(EventStoreIdempotencyConflictError):
+        store.append(
+            session_id="s1",
+            turn_id="bootstrap",
+            kind=EventKind.SESSION_STARTED,
+            payload={"cwd": "conflicting"},
+            idempotency_key="session-start",
+        )
     store.append(
         session_id="s1",
         turn_id="turn_0001",
@@ -352,6 +361,68 @@ def test_active_typed_command_profile_requires_a_green_preview_receipt(tmp_path)
     )
 
     assert controller.completion_rule_ids() == ()
+
+
+def test_custom_profile_requires_its_designated_green_terminal_tool(tmp_path):
+    registry = ToolRegistry.default(groups=["synthesis"])
+    profile = PhaseToolProfile(
+        {TaskPhase.SYNTHESIS: ("synthesize_command",)},
+        required_completion_tools={
+            TaskPhase.SYNTHESIS: ("synthesize_command",),
+        },
+        trusted_initial_phase=TaskPhase.SYNTHESIS,
+    )
+    controller = RuntimeController(
+        session_dir=tmp_path,
+        session_id="s1",
+        registry=registry,
+        mode=RuntimeV2Mode.ACTIVE,
+        tool_profile=profile,
+    )
+    controller.selection = ToolSelection(
+        phase=TaskPhase.SYNTHESIS,
+        provider_role=ProviderRole.CONTROLLER,
+        direct=("synthesize_command",),
+        deferred=(),
+        hidden=(),
+    )
+    controller.state = controller.state.model_copy(
+        update={"phase": TaskPhase.SYNTHESIS, "completed_tool_receipts": []}
+    )
+
+    assert controller.completion_rule_ids() == (
+        "runtime.tool.required.synthesize_command",
+    )
+
+    controller.state = controller.state.model_copy(
+        update={
+            "completed_tool_receipts": [
+                {
+                    "tool": "synthesize_command",
+                    "verdict": "warn",
+                    "typed_command_status": "",
+                    "typed_receipt_status": "",
+                }
+            ]
+        }
+    )
+    assert controller.completion_rule_ids() == (
+        "runtime.tool.required_not_green.synthesize_command",
+    )
+
+    controller.start_turn(
+        request="Inspect project-readiness before execution.",
+        turn_index=1,
+        provider_name="openai",
+        cwd=str(tmp_path),
+    )
+    assert controller.selection is not None
+    assert controller.selection.phase is TaskPhase.SYNTHESIS
+    events = controller.store.load()
+    turn_started = next(
+        event for event in events if event.kind is EventKind.TURN_STARTED
+    )
+    assert turn_started.payload["phase_source"] == "trusted_profile"
 
 
 def test_rejected_typed_repair_invalidates_prior_preview_for_this_turn(tmp_path):

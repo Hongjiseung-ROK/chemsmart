@@ -187,13 +187,18 @@ class RuntimeController:
         self.ensure_session(cwd=cwd)
         role = provider_role(provider_name)
         intent = IntentSpec.from_request(request)
-        phase = route_initial_phase(request, role=role, intent=intent)
+        trusted_phase = self.catalog.profile.trusted_initial_phase
+        phase = trusted_phase or route_initial_phase(
+            request, role=role, intent=intent
+        )
+        phase_source = "trusted_profile" if trusted_phase else "request_router"
         self.turn_id = f"turn_{turn_index:04d}"
         self.emit(
             EventKind.TURN_STARTED,
             {
                 "request": request,
                 "phase": phase.value,
+                "phase_source": phase_source,
                 "provider_role": role.value,
             },
             idempotency_key=f"turn-start:{self.turn_id}",
@@ -207,6 +212,7 @@ class RuntimeController:
             EventKind.EXPOSURE_PLANNED,
             {
                 "phase": phase.value,
+                "phase_source": phase_source,
                 "tools": list(self.selection.direct),
                 "deferred_count": len(self.selection.deferred),
                 "hidden_count": len(self.selection.hidden),
@@ -280,6 +286,17 @@ class RuntimeController:
             else self.state.phase
         )
         receipts = self.state.completed_tool_receipts
+        required_completion_tools = (
+            self.catalog.profile.required_completion_tools_for(phase)
+        )
+        for tool_name in required_completion_tools:
+            matching = [
+                item for item in receipts if item.get("tool") == tool_name
+            ]
+            if not matching:
+                return (f"runtime.tool.required.{tool_name}",)
+            if matching[-1].get("verdict") != "ok":
+                return (f"runtime.tool.required_not_green.{tool_name}",)
         if (
             self.mode is RuntimeV2Mode.ACTIVE
             and phase

@@ -185,13 +185,24 @@ class AdaptiveLeaseBoundDeepSeekProvider:
         timeout_s: float = 30,
     ) -> dict[str, Any]:
         elapsed = self._clock() - self._started
-        if elapsed >= self._network_budget.task_wall_time_seconds:
-            raise AdaptiveProviderTurnError("provider.stop.task_wall_time")
         self._observe_reasoning_continuation(messages)
         request_sha256 = _sha256_json(
             {"messages": messages, "tools": tools or []}
         )
-        attempt_ordinal = self._transport_attempts + 1
+        attempt_ordinal = len(self._request_observations) + 1
+        if elapsed >= self._network_budget.task_wall_time_seconds:
+            self._request_observations.append(
+                {
+                    "hypothesis_id": self._hypothesis.hypothesis_id,
+                    "hypothesis_sha256": self._hypothesis.hypothesis_sha256,
+                    "attempt_ordinal": attempt_ordinal,
+                    "request_sha256": request_sha256,
+                    "status": "rejected_before_transport",
+                    "error_class": "provider.stop.task_wall_time",
+                    "latency_ms": 0,
+                }
+            )
+            raise AdaptiveProviderTurnError("provider.stop.task_wall_time")
         binding_error = self._request_binding_error(messages, tools or [])
         if binding_error is not None:
             observed_user_prompt_sha256s = sorted(
@@ -249,6 +260,17 @@ class AdaptiveLeaseBoundDeepSeekProvider:
                 target_origin=self.config.endpoint,
             )
         except CredentialUnavailableError:
+            self._request_observations.append(
+                {
+                    "hypothesis_id": self._hypothesis.hypothesis_id,
+                    "hypothesis_sha256": self._hypothesis.hypothesis_sha256,
+                    "attempt_ordinal": attempt_ordinal,
+                    "request_sha256": request_sha256,
+                    "status": "rejected_before_transport",
+                    "error_class": "provider.stop.credential_missing",
+                    "latency_ms": 0,
+                }
+            )
             raise AdaptiveProviderTurnError(
                 "provider.stop.credential_missing"
             ) from None
@@ -328,6 +350,20 @@ class AdaptiveLeaseBoundDeepSeekProvider:
         self._observed_model_id = model
         self._requests_used += 1
         usage = response.get("usage") if isinstance(response.get("usage"), dict) else {}
+        finish_reason, content_present, tool_calls_present = (
+            _public_completion_observation(response)
+        )
+        completion_details = usage.get("completion_tokens_details")
+        if not isinstance(completion_details, dict):
+            completion_details = {}
+        reasoning_tokens = int(
+            completion_details.get("reasoning_tokens", 0) or 0
+        )
+        completion_error = None
+        if finish_reason == "length":
+            completion_error = "provider.stop.output_truncated"
+        elif not content_present and not tool_calls_present:
+            completion_error = "provider.stop.empty_completion"
         self._request_observations.append(
             {
                 "hypothesis_id": self._hypothesis.hypothesis_id,
@@ -340,7 +376,8 @@ class AdaptiveLeaseBoundDeepSeekProvider:
                     else None
                 ),
                 "request_binding_verified": self._request_binding is not None,
-                "status": "observed",
+                "status": "rejected" if completion_error else "observed",
+                "error_class": completion_error,
                 "credential_status": status.status.value,
                 "observed_model": model,
                 "input_tokens": int(
@@ -349,9 +386,15 @@ class AdaptiveLeaseBoundDeepSeekProvider:
                 "output_tokens": int(
                     usage.get("completion_tokens", usage.get("output_tokens", 0)) or 0
                 ),
+                "reasoning_tokens": reasoning_tokens,
+                "finish_reason": finish_reason,
+                "content_present": content_present,
+                "tool_calls_present": tool_calls_present,
                 "latency_ms": int((self._clock() - started) * 1000),
             }
         )
+        if completion_error is not None:
+            raise AdaptiveProviderTurnError(completion_error)
         return response
 
     def _request_binding_error(
@@ -402,6 +445,30 @@ class AdaptiveLeaseBoundDeepSeekProvider:
                 continue
             if any(key in message for key in _PRIVATE_REASONING_KEYS):
                 self._reasoning_continuation_observed = True
+
+
+def _public_completion_observation(
+    response: dict[str, Any],
+) -> tuple[str | None, bool, bool]:
+    """Expose truncation and output shape without exposing reasoning content."""
+
+    choices = response.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return None, False, False
+    choice = choices[0]
+    if not isinstance(choice, dict):
+        return None, False, False
+    finish_reason = choice.get("finish_reason")
+    if not isinstance(finish_reason, str):
+        finish_reason = None
+    message = choice.get("message")
+    if not isinstance(message, dict):
+        return finish_reason, False, False
+    content = message.get("content")
+    content_present = isinstance(content, str) and bool(content.strip())
+    tool_calls = message.get("tool_calls")
+    tool_calls_present = isinstance(tool_calls, list) and bool(tool_calls)
+    return finish_reason, content_present, tool_calls_present
 
 
 def _safe_error_class(exc: Exception) -> str:
