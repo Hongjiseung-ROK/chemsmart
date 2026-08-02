@@ -1349,7 +1349,12 @@ def build_validator_decision_registry(
             previous = invalid_drafts[-1].model_dump(mode="json")
             changed = {
                 field
-                for field in ("readiness", "element_findings", "decision_sha256")
+                for field in (
+                    "readiness",
+                    "element_findings",
+                    "decision_sha256",
+                    "analysis_summary",
+                )
                 if previous[field] != current[field]
             }
             unrelated = changed - prior_failed_fields
@@ -1517,8 +1522,10 @@ Original task text (immutable):
 
 Call inspect_case_validator_decision with no arguments. Treat its compact,
 host-derived projection as authoritative for this experiment. Then call
-submit_validator_decision_plan with exactly the returned readiness, element
-facts, and decision_sha256 plus a concise English evidence-bounded summary.
+submit_validator_decision_plan with exactly the returned readiness,
+decision_sha256, and element facts projected as objects containing only
+symbol, covered, orbital_present, ecp_present, and ecp_electrons, plus a
+concise English evidence-bounded summary.
 If the submit result is repair_required, change only the failed fields named by
 its counterexamples and retry. Do not sort or normalize scientific literals,
 infer an absent ECP intent, select readiness, author native input or commands,
@@ -1685,6 +1692,11 @@ def cegis_attempt_receipts(
         request_id = str(outcome.get("request_id") or "")
         request = by_request.get(request_id)
         if not isinstance(result, Mapping) or request is None:
+            continue
+        if not all(
+            isinstance(result.get(field), str) and result.get(field)
+            for field in ("status", "verdict", "result_sha256")
+        ):
             continue
         counterexamples = result.get("counterexamples")
         if not isinstance(counterexamples, list):

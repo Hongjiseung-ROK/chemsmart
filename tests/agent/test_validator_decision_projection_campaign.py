@@ -287,10 +287,7 @@ def test_structured_counterexamples_allow_a_field_local_repair(
         "submit_validator_decision_plan",
         _correct_submit_args(
             binding,
-            analysis_summary=(
-                "All named fields repaired. "
-                + v5r2.REQUIRED_EVIDENCE_CEILING_SENTENCE
-            ),
+            analysis_summary=v5r2.REQUIRED_EVIDENCE_CEILING_SENTENCE,
         ),
     )
     assert repaired["accepted"] is True
@@ -316,6 +313,29 @@ def test_false_scientific_claim_requires_field_local_repair(
         "submit_validator_decision_plan", _correct_submit_args(binding)
     )
     assert accepted["accepted"] is True
+
+
+def test_repair_rejects_an_unrelated_summary_mutation(
+    campaign_plan: v5r2.ValidatorDecisionCampaignPlanV1,
+) -> None:
+    binding = _bindings(campaign_plan)["gaussian-def2-tzvppd-missing-ce"]
+    registry = v5r2.build_validator_decision_registry(binding)
+    registry.call("inspect_case_validator_decision", {})
+    faulty = _correct_submit_args(binding)
+    faulty["readiness"] = RegistryStressReadiness.PROJECT_CANDIDATE.value
+    rejected = registry.call("submit_validator_decision_plan", faulty)
+    assert rejected["status"] == "repair_required"
+    unrelated = _correct_submit_args(binding)
+    unrelated["analysis_summary"] = (
+        "A different but evidence-bounded summary. "
+        + v5r2.REQUIRED_EVIDENCE_CEILING_SENTENCE
+    )
+    blocked = registry.call("submit_validator_decision_plan", unrelated)
+    assert blocked["status"] == "blocked"
+    assert blocked["verdict"] == "reject"
+    assert [item["rule_id"] for item in blocked["counterexamples"]] == [
+        "validator.repair.unrelated_field_mutation"
+    ]
 
 
 def test_repeated_rejected_candidate_blocks(
