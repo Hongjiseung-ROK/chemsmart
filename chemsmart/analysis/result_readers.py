@@ -1220,6 +1220,45 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 ),
             ),
             (
+                # A relaxed scan is a surface, and the surface is what the job
+                # was run to establish, so the scan family is declared here
+                # rather than left unknown -- the one job type whose whole
+                # purpose is producing a profile could not promise it.  The
+                # scalars below are the last converged point rather than a
+                # stationary state; frequencies and thermochemistry do not
+                # appear because ChemSmart runs no frequency step in a scan.
+                "scan",
+                (
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "beta_homo",
+                    "beta_lumo",
+                    "charge",
+                    "connectivity",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "dispersion_energy",
+                    "effective_multiplicity",
+                    "energies",
+                    "energy",
+                    "gap",
+                    "homo",
+                    "lumo",
+                    "multiplicity",
+                    "positions",
+                    "reference_energy",
+                    "scan_coordinate_values",
+                    "scan_energies",
+                    "scan_point_indices",
+                    "scf_energy",
+                    "solvation_model",
+                    "spin_square",
+                    "spin_square_deviation",
+                    "spin_square_target",
+                    "symbols",
+                ),
+            ),
+            (
                 "sp",
                 (
                     "alpha_homo",
@@ -1416,35 +1455,44 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "hess",
                 (
+                    "connectivity",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "energy",
                     "gap",
                     "homo",
                     "lumo",
+                    "positions",
+                    "symbols",
                     "vibrational_frequencies",
                 ),
             ),
             (
                 "opt",
                 (
+                    "connectivity",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "energy",
                     "gap",
                     "homo",
                     "lumo",
+                    "positions",
+                    "symbols",
                 ),
             ),
             (
                 "sp",
                 (
+                    "connectivity",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "energy",
                     "gap",
                     "homo",
                     "lumo",
+                    "positions",
+                    "symbols",
                 ),
             ),
         ),

@@ -633,6 +633,64 @@ def test_orca_declares_frontier_coverage_only_where_a_reference_converges():
     assert not (family & set(declared["td"]))
 
 
+def test_orca_scan_declares_the_surface_it_was_run_to_produce():
+    """A relaxed scan could execute and promise nothing about its own profile.
+
+    ORCA's reader has carried the scan accessors since the scan family was
+    added, but no ``scan`` job type was declared, so coverage read *unknown*
+    for the one job type whose entire purpose is producing a surface.
+    """
+
+    reader = reader_for("orca")
+    declared = dict(reader.jobtype_selectors)
+    surface = {"scan_coordinate_values", "scan_energies", "scan_point_indices"}
+    assert surface <= set(declared["scan"])
+    # A scan runs no frequency step, so nothing derived from a Hessian is
+    # promised for it.
+    assert not (
+        {"vibrational_frequencies", "gibbs_free_energy"}
+        & set(declared["scan"])
+    )
+
+    output = reader.open_output(
+        Path("tests/data/ORCATests/outputs/hooh_relaxed_scan_excerpt.out")
+    )
+    coordinates, _ = reader.read(output, "scan_coordinate_values")
+    energies, _ = reader.read(output, "scan_energies")
+    assert list(coordinates) == [0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0]
+    assert len(energies) == len(coordinates)
+    # The barrier is the spread of the surface, which is why the profile is
+    # exposed as two parallel vectors rather than one opaque record list.
+    spread_kcal = (max(energies) - min(energies)) * 627.5094740631
+    assert spread_kcal == pytest.approx(8.257, abs=0.01)
+
+
+@pytest.mark.parametrize("jobtype", ("hess", "opt", "sp"))
+def test_xtb_declares_the_geometry_its_reader_already_establishes(jobtype):
+    # XTBOutput has always exposed the molecule, so an xTB optimisation could
+    # run and still not promise that it yields a geometry.
+    declared = dict(reader_for("xtb").jobtype_selectors)
+    assert {"connectivity", "positions", "symbols"} <= set(declared[jobtype])
+
+
+def test_xtb_optimised_geometry_enters_the_shared_quantity_plane():
+    path = "tests/data/XTBTests/outputs/co2_ohess/co2_ohess.out"
+    receipt = extract_trusted_result_quantities(
+        artifact=_artifact(path, "xtb", "geometry"),
+        program="xtb",
+        selectors=(
+            QuantitySelectorV1(quantity_id="r", selector="positions"),
+            QuantitySelectorV1(quantity_id="z", selector="symbols"),
+            QuantitySelectorV1(quantity_id="c", selector="connectivity"),
+        ),
+    )
+    values = {item.quantity_id: item.value for item in receipt.quantities}
+    assert values["z"] == ("O", "O", "C")
+    # Linear CO2: both oxygens bond the carbon and neither bonds the other.
+    assert values["c"] == ((0, 0, 1), (0, 0, 1), (1, 1, 0))
+    assert values["r"][0][0] == pytest.approx(-values["r"][1][0])
+
+
 def test_gaussian_does_not_infer_multiplicity_from_open_shell_td_labels():
     output = reader_for("gaussian").open_output(Path(_GAUSSIAN_TD_LOG))
     labels, _ = reader_for("gaussian").read(output, "excited_state_labels")
