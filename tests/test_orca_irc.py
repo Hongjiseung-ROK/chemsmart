@@ -106,3 +106,35 @@ def test_orca_output_exposes_explicit_irc_direction_to_typed_reader(tmp_path):
 
     assert output.irc_direction == "both"
     assert reader_for("orca").read(output, "irc_direction") == ("both", "")
+
+
+def test_orca_irc_block_survives_unlexable_prose_in_the_output(tmp_path):
+    """A real ORCA log is not shell-lexable, and the %irc block still parses.
+
+    ORCA 6.1.1 opens every output with ASCII-art apostrophes and credits an
+    author for "Wick's Theorem for AUTO-CI".  Both raise "No closing
+    quotation" from ``shlex``, which used to abort the whole ``%irc`` scan --
+    so a completed IRC run could not report the direction it had just been
+    told to follow.  The quoted Hessian filename must still lex correctly.
+    """
+
+    output_path = tmp_path / "reaction_path.out"
+    output_path.write_text(
+        "        ' ,,\n"
+        "        '                                            ''''\n"
+        "  Riya Kayal        : Wick's Theorem for AUTO-CI, AUTO-CI UHF-CCSDT\n"
+        "|  1> ! IRC B3LYP def2-SVP\n"
+        "|  2> %irc\n"
+        "|  3>   inithess read\n"
+        '|  4>   Hess_Filename "hcn hnc ts.hess"  # Hessian file\n'
+        "|  5>   direction both\n"
+        "|  6> end\n"
+        "****ORCA TERMINATED NORMALLY****\n",
+        encoding="utf-8",
+    )
+
+    output = ORCAOutput(str(output_path))
+
+    assert output.irc_direction == "both"
+    assert output.irc_inithess == "read"
+    assert output.irc_hess_filename == "hcn hnc ts.hess"

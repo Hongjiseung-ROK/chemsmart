@@ -1670,7 +1670,18 @@ class ORCAFileMixin(FileMixin):
             stripped = stripped.split("#", 1)[0].strip()
             if not stripped:
                 continue
-            fields = shlex.split(stripped)
+            try:
+                fields = shlex.split(stripped)
+            except ValueError:
+                # Every line of a completed output passes through here, and an
+                # ORCA log is full of prose that is not shell-lexable: the
+                # startup banner's ASCII art and an author credit reading
+                # "Wick's Theorem for AUTO-CI" both raise "No closing
+                # quotation".  A quoted Hess_Filename is the only reason this
+                # block needs a lexer at all, so a line the lexer rejects
+                # falls back to whitespace fields rather than taking the whole
+                # %irc block down with it.
+                fields = stripped.split()
             if fields[0].casefold() == "%irc":
                 current = []
                 blocks.append(current)
