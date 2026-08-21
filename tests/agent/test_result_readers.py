@@ -562,6 +562,77 @@ def test_xtb_frontier_orbitals_enter_the_shared_quantity_plane(
     assert quantity.unit == "hartree"
 
 
+@pytest.mark.parametrize(
+    ("selector", "expected"),
+    (("homo", -12.077619), ("lumo", 2.453142), ("gap", 14.530761)),
+)
+def test_orca_frontier_orbitals_enter_the_shared_quantity_plane(
+    selector, expected
+):
+    # ORCAOutput parsed these eigenvalues all along and no selector reached
+    # them, so a session could run ORCA for a HOMO-LUMO gap, complete the
+    # calculation, and bind nothing from it.
+    path = "tests/data/ORCATests/outputs/CO2.out"
+    quantity = _extract(path, "orca", selector, selector).quantities[0]
+    assert quantity.source_value == pytest.approx(expected, abs=1e-4)
+    assert quantity.source_unit == "eV"
+    assert quantity.unit == "hartree"
+
+
+def test_orca_frontier_orbitals_span_both_spin_channels():
+    """An unrestricted frontier pair need not live in the alpha channel.
+
+    This Fe(II) triplet keeps both frontier orbitals in beta.  Reading the
+    alpha channel alone would report a 11.30 eV gap for a system whose real
+    frontier separation is 9.25 eV, so the cross-channel extremum is the
+    definition, and the spin-resolved selectors stay available for a question
+    that is genuinely about one channel.
+    """
+
+    reader = reader_for("orca")
+    output = reader.open_output(
+        Path("tests/data/ORCATests/outputs/fe2_triplet.out")
+    )
+    assert output.is_unrestricted is True
+    frontier = {
+        selector: reader.read(output, selector)[0]
+        for selector in (
+            "homo",
+            "lumo",
+            "gap",
+            "alpha_homo",
+            "alpha_lumo",
+            "beta_homo",
+            "beta_lumo",
+        )
+    }
+    assert frontier["homo"] == pytest.approx(frontier["beta_homo"])
+    assert frontier["lumo"] == pytest.approx(frontier["beta_lumo"])
+    assert frontier["alpha_homo"] < frontier["homo"]
+    assert frontier["alpha_lumo"] > frontier["lumo"]
+    assert frontier["gap"] == pytest.approx(
+        frontier["lumo"] - frontier["homo"]
+    )
+
+
+def test_orca_declares_frontier_coverage_only_where_a_reference_converges():
+    declared = dict(reader_for("orca").jobtype_selectors)
+    family = {
+        "alpha_homo",
+        "alpha_lumo",
+        "beta_homo",
+        "beta_lumo",
+        "gap",
+        "homo",
+        "lumo",
+    }
+    for jobtype in ("sp", "opt", "ts"):
+        assert family <= set(declared[jobtype]), jobtype
+    # A TD job's answer is its excited states; its ground-state orbitals are
+    # not what it was run to establish, so the family stays undeclared there.
+    assert not (family & set(declared["td"]))
+
+
 def test_gaussian_does_not_infer_multiplicity_from_open_shell_td_labels():
     output = reader_for("gaussian").open_output(Path(_GAUSSIAN_TD_LOG))
     labels, _ = reader_for("gaussian").read(output, "excited_state_labels")

@@ -95,6 +95,13 @@ SELECTOR_UNITS = {
     "homo": "eV",
     "lumo": "eV",
     "gap": "eV",
+    # An unrestricted reference has two frontier pairs, and which one answers
+    # the question is a scientific choice rather than a parser detail, so the
+    # channels stay separately nameable instead of being collapsed.
+    "alpha_homo": "eV",
+    "alpha_lumo": "eV",
+    "beta_homo": "eV",
+    "beta_lumo": "eV",
     "spin_square": "",
     "spin_square_after_annihilation": "",
     "spin_square_target": "",
@@ -684,6 +691,75 @@ def _orca_symbols(output: Any) -> list[str]:
     ]
 
 
+def _orca_channel_eigenvalues(
+    output: Any, channel: str
+) -> tuple[list[float], list[float]]:
+    """Return one spin channel's occupied and virtual energies, both in eV.
+
+    ORCA prints either a single restricted block or a spin-up/spin-down pair,
+    and ``ORCAOutput`` already normalises both to eV.  For a restricted
+    reference the two channels are the same doubly-occupied set, which is why
+    the alpha accessors answer it unchanged.
+    """
+
+    if channel == "beta":
+        occupied = output.beta_occ_eigenvalues
+        virtual = output.beta_virtual_eigenvalues
+    else:
+        occupied = output.alpha_occ_eigenvalues
+        virtual = output.alpha_virtual_eigenvalues
+    return (
+        [float(item) for item in occupied or ()],
+        [float(item) for item in virtual or ()],
+    )
+
+
+def _orca_frontier_pair(output: Any) -> tuple[float, float]:
+    """Return (HOMO, LUMO) in eV as extrema over every occupied channel.
+
+    For an unrestricted reference the frontier orbitals need not share a spin
+    channel -- the highest occupied level can be alpha while the lowest
+    virtual is beta -- so the extremum over both channels is the definition
+    that survives that case.  A question about one channel specifically is
+    asked through the spin-resolved selectors instead.
+    """
+
+    channels = (
+        ("alpha", "beta")
+        if bool(getattr(output, "is_unrestricted", False))
+        else ("alpha",)
+    )
+    occupied: list[float] = []
+    virtual: list[float] = []
+    for channel in channels:
+        channel_occupied, channel_virtual = _orca_channel_eigenvalues(
+            output, channel
+        )
+        occupied.extend(channel_occupied)
+        virtual.extend(channel_virtual)
+    if not occupied or not virtual:
+        raise MissingQuantityError(
+            "ORCA result establishes no occupied and virtual orbital pair; "
+            "orbital energies are printed alongside the population analysis"
+        )
+    return max(occupied), min(virtual)
+
+
+def _orca_frontier_gap(output: Any) -> float:
+    homo, lumo = _orca_frontier_pair(output)
+    return lumo - homo
+
+
+def _orca_channel_frontier(output: Any, channel: str, occupied: bool) -> float:
+    values = _orca_channel_eigenvalues(output, channel)[0 if occupied else 1]
+    if not values:
+        raise MissingQuantityError(
+            f"ORCA result establishes no {'occupied' if occupied else 'virtual'}"
+            f" {channel} orbital"
+        )
+    return max(values) if occupied else min(values)
+
+
 def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
     accessors = _text_output_accessors()
     accessors.update(
@@ -776,6 +852,25 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             ],
             "dipole_moment_magnitude": lambda output: float(
                 output.dipole_moment_magnitude_in_debye
+            ),
+            # Frontier orbital energies were already parsed into eV by
+            # ORCAOutput and were reachable through no selector, so a session
+            # that ran ORCA for a HOMO-LUMO gap executed the calculation and
+            # could bind nothing from it.  Nothing new is parsed here.
+            "homo": lambda output: _orca_frontier_pair(output)[0],
+            "lumo": lambda output: _orca_frontier_pair(output)[1],
+            "gap": _orca_frontier_gap,
+            "alpha_homo": lambda output: _orca_channel_frontier(
+                output, "alpha", True
+            ),
+            "alpha_lumo": lambda output: _orca_channel_frontier(
+                output, "alpha", False
+            ),
+            "beta_homo": lambda output: _orca_channel_frontier(
+                output, "beta", True
+            ),
+            "beta_lumo": lambda output: _orca_channel_frontier(
+                output, "beta", False
             ),
             "vpt2_harmonic_frequencies": lambda output: [
                 float(item) for item in output.vpt2_harmonic_frequencies
@@ -1086,11 +1181,19 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # thermochemistry derived from them appear only where ChemSmart lets a
         # frequency step run: ``sp`` and ``td`` force ``freq`` off, while
         # ``opt`` and ``ts`` inherit the project's setting.  Job types without
-        # a declaration stay unknown rather than guessed.
+        # a declaration stay unknown rather than guessed.  The frontier-orbital
+        # family follows the converged reference, so it is declared wherever an
+        # SCF converges -- ``sp``, ``opt``, ``ts`` -- and deliberately not on
+        # ``td``, where the ground-state orbitals are not what the job was run
+        # to answer.
         jobtype_selectors=(
             (
                 "opt",
                 (
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "beta_homo",
+                    "beta_lumo",
                     "charge",
                     "connectivity",
                     "dipole_moment",
@@ -1100,7 +1203,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "entropy_times_temperature",
+                    "gap",
                     "gibbs_free_energy",
+                    "homo",
+                    "lumo",
                     "multiplicity",
                     "positions",
                     "reference_energy",
@@ -1116,6 +1222,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "sp",
                 (
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "beta_homo",
+                    "beta_lumo",
                     "charge",
                     "connectivity",
                     "dipole_moment",
@@ -1124,6 +1234,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "effective_multiplicity",
                     "energies",
                     "energy",
+                    "gap",
+                    "homo",
+                    "lumo",
                     "multiplicity",
                     "positions",
                     "reference_energy",
@@ -1169,6 +1282,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "ts",
                 (
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "beta_homo",
+                    "beta_lumo",
                     "charge",
                     "connectivity",
                     "dipole_moment",
@@ -1178,7 +1295,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "entropy_times_temperature",
+                    "gap",
                     "gibbs_free_energy",
+                    "homo",
+                    "lumo",
                     "multiplicity",
                     "positions",
                     "reference_energy",
@@ -1381,6 +1501,10 @@ _SELECTOR_DIMENSIONS = {
     "homo": "ENERGY",
     "lumo": "ENERGY",
     "gap": "ENERGY",
+    "alpha_homo": "ENERGY",
+    "alpha_lumo": "ENERGY",
+    "beta_homo": "ENERGY",
+    "beta_lumo": "ENERGY",
     "spin_square": "DIMENSIONLESS",
     "spin_square_after_annihilation": "DIMENSIONLESS",
     "spin_square_target": "DIMENSIONLESS",
