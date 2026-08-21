@@ -21,7 +21,10 @@ else
     # (e.g. in CI via `conda-incubator/setup-miniconda`'s activate-environment):
     # some conda versions fail to propagate the wrapped command's exit code,
     # which let a failing test suite report as a passing CI step.
-    ENV_PREFIX := $(shell if [ "$$CONDA_DEFAULT_ENV" = "chemsmart" ]; then echo ""; elif conda env list | grep -q chemsmart; then echo "conda run -n chemsmart --no-capture-output "; fi)
+    # Match the env name exactly: a substring test also matches neighbours
+    # such as `chemsmart-controller`, and then every target is wrapped in
+    # `conda run -n chemsmart` for an environment that does not exist.
+    ENV_PREFIX := $(shell if [ "$$CONDA_DEFAULT_ENV" = "chemsmart" ]; then echo ""; elif conda env list 2>/dev/null | awk '{print $$1}' | grep -qx chemsmart; then echo "conda run -n chemsmart --no-capture-output "; fi)
     SEP := /
     RM := rm -f
     RMDIR := rm -rf
