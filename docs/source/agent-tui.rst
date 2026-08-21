@@ -186,8 +186,8 @@ a terminal transcript.
 
 Release-qualified Agent execution includes PySCF CPU ``sp``, ``opt``, and ``hess``; xTB CPU ``sp``, ``opt``, and
 ``hess``; and ORCA CPU single-point, optimization/frequency, transition-state, excited-state, relaxed coordinate scans,
-and serial DAG workflows. ORCA ``irc``, ``neb``, and constrained optimisation (``modred``) remain planning and preview
-paths until the selected target is qualified.
+intrinsic reaction coordinates, and serial DAG workflows. ORCA ``neb`` and constrained optimisation (``modred``) remain
+planning and preview paths until the selected target is qualified.
 
 Gaussian ``sp``, ``opt``, ``ts``, ``irc``, ``td``, ``link``, ``scan``, and ``modred`` are supported for project YAML,
 native-input generation, safe preview, and analysis of user-supplied completed outputs; this release does not claim

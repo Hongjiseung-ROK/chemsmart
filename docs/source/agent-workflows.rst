@@ -37,7 +37,9 @@ either. A completed scan's surface is read into typed quantities through the ord
 The first constrained optimisation of a scan imposes the driven coordinate on the geometry supplied, so a range
 beginning far from that geometry's current value may be refused by the program before any optimisation runs.
 
-ORCA ``irc``, ``neb``, and ``modred`` remain planning and preview paths until the selected target is qualified. Gaussian
+ORCA ``irc`` is release-qualified for approved execution on a qualified target: it consumes the transition state's own
+analytic Hessian, and the reaction path it writes is read from the trajectory artifact rather than inferred from the job
+type. ORCA ``neb`` and ``modred`` remain planning and preview paths until the selected target is qualified. Gaussian
 Agent execution is not claimed in this release; Gaussian support covers project YAML, generated native input, safe
 preview, and typed analysis of user-supplied completed outputs. GPU4PySCF remains a configuration and preview path until
 a compatible GPU target is qualified.

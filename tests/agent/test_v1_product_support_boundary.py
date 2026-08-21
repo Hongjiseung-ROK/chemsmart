@@ -33,12 +33,20 @@ def test_v1_agent_programs_exclude_human_only_programs_and_gpu_execution():
     assert "nciplot" in PROGRAM_CAPABILITIES
     assert records["gaussian"].execution_engine_job_pairs == ()
     assert records["orca"].execution_engine_job_pairs == (
+        ("cpu", "irc"),
         ("cpu", "opt"),
         ("cpu", "scan"),
         ("cpu", "sp"),
         ("cpu", "td"),
         ("cpu", "ts"),
     )
+    # `irc` was qualified by a real run on this target; `neb` and `modred`
+    # have had no such run, so the two must not move together.
+    assert {
+        pair[1]
+        for pair in records["orca"].preview_engine_job_pairs
+        if pair not in records["orca"].execution_engine_job_pairs
+    } == {"modred", "neb"}
     assert records["pyscf"].execution_engine_job_pairs == (
         ("cpu", "hess"),
         ("cpu", "opt"),

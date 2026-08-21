@@ -23,8 +23,8 @@ The production Agent supports:
 - inspection and typed analysis of supported results; and
 - explicitly approved execution on release-qualified CPU paths: ORCA
   single-points, optimization/frequency, transition-state, excited-state,
-  relaxed coordinate scans, and serial DAG workflows; PySCF ``sp/opt/hess``;
-  and xTB ``sp/opt/hess``.
+  relaxed coordinate scans, intrinsic reaction coordinates, and serial DAG
+  workflows; PySCF ``sp/opt/hess``; and xTB ``sp/opt/hess``.
 
 ORCA ``scan`` is qualified for approved execution: a relaxed torsional profile
 ran through the ordinary plan, preview, single human approval, and provider-free
@@ -32,6 +32,16 @@ execution path, and its surface is read into typed quantities by the same
 analysis layer as any other result. A scan's driven coordinate is carried on the
 workflow node, not in project YAML, because it is a fact about this molecule in
 this calculation rather than reusable method rationale.
+
+ORCA ``irc`` is qualified for approved execution: a 1,2-hydrogen shift ran
+through the ChemSmart CLI on a qualification target, consuming the transition
+state's own analytic Hessian through the native ``%irc InitHess read`` route.
+ORCA writes the reaction path to an XYZ sidecar rather than into the log, so
+an IRC result declares the endpoint it converged to and the direction its
+input explicitly stated, while the path itself is read from the registered
+trajectory artifact. Whether a saddle connects two particular minima is
+therefore an observation about that trajectory, never an inference from the
+job type.
 
 ORCA ``modred`` is declared for planning, preview, and native-input generation
 only. Constrained optimisation is expressible and previewable, and no
@@ -63,8 +73,8 @@ native-input generation, safe preview, and parsing of user-supplied completed
 results; this release does not claim Gaussian Agent execution. GPU4PySCF
 ``sp/opt/hess`` is a PySCF-engine configuration and preview surface, not a
 release-qualified Agent execution path. PySCF CPU ``td`` is likewise
-preview-only. ORCA ``irc`` and ``neb`` may be planned and previewed, but require
-target-specific qualification before they are described as completed execution.
+preview-only. ORCA ``neb`` may be planned and previewed, but requires
+target-specific qualification before it is described as completed execution.
 NCIPLOT and additional human CLI families without an Agent declaration remain
 outside the version-3.1.4 Agent execution surface.
 

@@ -7,9 +7,14 @@ list.
 
 The current Agent release can plan and safely preview ORCA ``sp``, ``opt``, ``ts``, ``irc``, ``td``, ``neb``, ``scan``,
 and ``modred`` workflows. Release-qualified CPU execution covers single-points, optimization/frequency,
-transition-state, excited-state, relaxed coordinate scans, and serial producer-to-consumer DAGs. ``irc``, ``neb``, and
-constrained optimisation still require qualification on the selected target before being described as a completed Agent
-execution path.
+transition-state, excited-state, relaxed coordinate scans, intrinsic reaction coordinates, and serial
+producer-to-consumer DAGs. ``neb`` and constrained optimisation still require qualification on the selected target
+before being described as a completed Agent execution path.
+
+An ``irc`` job reads its starting Hessian through ``--inithess read`` with ``--hess-filename`` naming the ``.hess`` its
+transition-state job wrote, and ``--direction`` states which branch of the path to follow. ORCA writes the path to an
+XYZ trajectory sidecar beside the output, so whether a saddle connects two particular minima is read from that
+trajectory rather than assumed from the job type.
 
 *************************
  Basic Command Structure

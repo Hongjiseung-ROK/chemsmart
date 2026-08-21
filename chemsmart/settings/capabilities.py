@@ -499,11 +499,23 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
             project_owned_parameters=_ORCA_PROJECT_PARAMETERS,
             engines=("cpu",),
             engine_job_capabilities=(
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="irc",
-                    execution_supported=False,
-                ),
+                # Qualified by a real run rather than by inspection: an
+                # HCN -> HNC 1,2-hydrogen shift executed on this host through
+                # the ChemSmart CLI at B3LYP/def2-SVP.  The transition state
+                # carried exactly one imaginary mode (-1121.7 cm^-1) and its
+                # analytic Hessian fed the IRC through `%irc InitHess read`;
+                # the 41-frame path ORCA wrote to its own _IRC_Full_trj.xyz
+                # sidecar starts at H-C 1.078 / H-N 2.202 angstrom and ends at
+                # H-C 2.142 / H-N 1.005, so the saddle demonstrably connects
+                # the two minima and the connectivity change is observable
+                # rather than asserted.
+                #
+                # As for `scan`, the declaration necessarily precedes the
+                # first approved Agent execution because it is what admits a
+                # node to approval at all.  It is withdrawn if that run does
+                # not hold.  `neb` and `modred` stay preview-only: neither has
+                # had such a run.
+                EngineJobCapability(engine="cpu", jobtype="irc"),
                 EngineJobCapability(
                     engine="cpu",
                     jobtype="modred",

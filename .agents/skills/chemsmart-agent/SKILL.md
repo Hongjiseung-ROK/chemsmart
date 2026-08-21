@@ -48,9 +48,10 @@ visible.
   Agent execution in this release.
 - ORCA CPU planning covers ``sp/opt/ts/irc/td/neb/scan/modred``.
   Release-qualified execution covers single-points, optimization/frequency,
-  transition-state, excited-state, relaxed coordinate scans, and serial DAG
-  workflows. Treat ``irc``, ``neb``, and constrained optimisation
-  (``modred``) as preview paths until the selected target is qualified.
+  transition-state, excited-state, relaxed coordinate scans, intrinsic
+  reaction coordinates, and serial DAG workflows. Treat ``neb`` and
+  constrained optimisation (``modred``) as preview paths until the selected
+  target is qualified.
 - PySCF CPU ``sp/opt/hess`` and xTB CPU ``sp/opt/hess`` have approved real
   execution paths. PySCF CPU ``td`` is preview-only.
 - GPU4PySCF ``sp/opt/hess`` is a PySCF-engine configuration and preview

@@ -1188,6 +1188,43 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # to answer.
         jobtype_selectors=(
             (
+                # ORCA writes the reaction path to XYZ sidecars rather than
+                # into the log, so the ``trajectory_*`` family is deliberately
+                # absent here: an IRC log parses to a single structure, and
+                # the path is read from the registered ``_IRC_Full_trj.xyz``
+                # artifact through the ``xyz`` reader.  What the log itself
+                # establishes is the endpoint it converged to and the
+                # direction the ``%irc`` block explicitly declared.
+                "irc",
+                (
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "beta_homo",
+                    "beta_lumo",
+                    "charge",
+                    "connectivity",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "dispersion_energy",
+                    "effective_multiplicity",
+                    "energies",
+                    "energy",
+                    "gap",
+                    "homo",
+                    "irc_direction",
+                    "lumo",
+                    "multiplicity",
+                    "positions",
+                    "reference_energy",
+                    "scf_energy",
+                    "solvation_model",
+                    "spin_square",
+                    "spin_square_deviation",
+                    "spin_square_target",
+                    "symbols",
+                ),
+            ),
+            (
                 "opt",
                 (
                     "alpha_homo",

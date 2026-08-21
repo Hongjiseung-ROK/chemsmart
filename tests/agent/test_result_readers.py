@@ -633,6 +633,27 @@ def test_orca_declares_frontier_coverage_only_where_a_reference_converges():
     assert not (family & set(declared["td"]))
 
 
+def test_orca_irc_declares_its_endpoint_but_not_a_log_trajectory():
+    """The path lives in a sidecar, so the log must not promise it.
+
+    ORCA writes the reaction path to `_IRC_Full_trj.xyz` and leaves a single
+    structure in the log, so the ORCA reader declares the endpoint it
+    converged to plus the explicitly declared direction, and the trajectory
+    family stays with the `xyz` reader that can actually answer it.
+    """
+
+    declared = dict(reader_for("orca").jobtype_selectors)
+    assert "irc_direction" in declared["irc"]
+    assert not [
+        selector
+        for selector in declared["irc"]
+        if selector.startswith("trajectory_")
+    ]
+    assert {"trajectory_connectivity_changed", "trajectory_frame_count"} <= (
+        reader_for("xyz").selectors
+    )
+
+
 def test_orca_scan_declares_the_surface_it_was_run_to_produce():
     """A relaxed scan could execute and promise nothing about its own profile.
 
