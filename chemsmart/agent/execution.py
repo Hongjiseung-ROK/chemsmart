@@ -576,6 +576,211 @@ def compose_trusted_molecular_arrangement(
     )
 
 
+@dataclass(frozen=True)
+class MolecularDerivationReceiptV1:
+    """Host-owned lineage of one species derived from a single parent.
+
+    The mirror image of composition.  Composition joins two identity-bound
+    fragments; derivation takes an ordered subset of one parent's atoms, which
+    is the single operation underneath homolysis, deprotonation and fragment
+    extraction alike.  The host owns the selection arithmetic and the bytes;
+    the model owns which atoms and why.  Derivation never infers an electronic
+    state -- removing a hydrogen makes a radical or an anion depending on
+    where its electron went, and that is the model's chemistry to declare --
+    so charge and multiplicity are bound separately and explicitly, and the
+    stage that consumes the derived geometry is a new workflow for review.
+    """
+
+    schema_version: str
+    derived_artifact_id: str
+    derived_artifact_sha256: str
+    parent_artifact_id: str
+    parent_sha256: str
+    parent_identity_sha256: str
+    parent_atom_count: int
+    parent_formula: str
+    selection_mode: str
+    kept_atoms: tuple[int, ...]
+    removed_atoms: tuple[int, ...]
+    atom_count: int
+    formula: str
+    fragment_count: int
+    atom_order_note: str
+    status: str
+    receipt_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "chemsmart.molecular-derivation.v1":
+            raise ContractError("unsupported molecular derivation receipt")
+        for name, digest in (
+            ("derived_artifact_sha256", self.derived_artifact_sha256),
+            ("parent_sha256", self.parent_sha256),
+            ("parent_identity_sha256", self.parent_identity_sha256),
+        ):
+            require_sha256(digest, name)
+        if self.selection_mode not in {"kept", "removed"}:
+            raise ContractError("derivation selection mode must be declared")
+        if self.atom_count < 1:
+            raise ContractError("a derived species carries at least one atom")
+        if not self.removed_atoms:
+            raise ContractError(
+                "a derivation must remove at least one parent atom"
+            )
+        if self.status != "derived":
+            raise ContractError("molecular derivation must be derived")
+        body = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key != "receipt_sha256"
+        }
+        if self.receipt_sha256 != canonical_sha256(body):
+            raise ContractError("molecular derivation digest mismatch")
+
+
+def derive_trusted_molecular_species(
+    *,
+    approved_workspace: str | Path,
+    derived_artifact_id: str,
+    parent: TrustedArtifactRefV1,
+    parent_identity_sha256: str,
+    kept_atoms: Sequence[int] | None = None,
+    removed_atoms: Sequence[int] | None = None,
+) -> tuple[TrustedArtifactRefV1, MolecularDerivationReceiptV1]:
+    """Write the parent's chosen atoms out as a new host-owned geometry.
+
+    Exactly one of ``kept_atoms`` and ``removed_atoms`` is given.  Naming what
+    to remove is natural for homolysis and deprotonation, where one atom
+    leaves a large molecule; naming what to keep is natural for extracting a
+    fragment, and fixes its atom order deliberately.  Both resolve to the same
+    receipt, which records the kept order, the removed set, and the parent's
+    atom count, so the evidence does not depend on which way the question was
+    asked.
+
+    Coordinates are copied unchanged: this operation selects atoms, it does
+    not move them.  The derived geometry is therefore the parent's geometry
+    minus atoms, which is a starting structure rather than a relaxed one, and
+    the consuming stage is where it gets optimised.
+    """
+
+    import networkx as nx
+
+    # The connectivity buffer, not the placement clash buffer composition
+    # uses: this asks which atoms are bonded, not how close two fragments may
+    # sit.  They happen to share a value today.
+    from chemsmart.io.molecules import DEFAULT_BUFFER as CONNECTIVITY_BUFFER
+    from chemsmart.io.molecules.structure import Molecule
+
+    if parent.kind != "geometry_xyz":
+        raise ContractError("derivation consumes one geometry_xyz artifact")
+    if (kept_atoms is None) == (removed_atoms is None):
+        raise ContractError(
+            "derivation requires exactly one of kept_atoms or removed_atoms"
+        )
+    path = _require_current_artifact(parent, "derivation parent")
+    molecule = Molecule.from_filepath(str(path))
+    symbols = list(molecule.chemical_symbols)
+    positions = molecule.positions
+    count = len(symbols)
+
+    selection_mode = "kept" if kept_atoms is not None else "removed"
+    requested = list(kept_atoms if kept_atoms is not None else removed_atoms)
+    normalized = [int(index) for index in requested]
+    if len(set(normalized)) != len(normalized):
+        raise ContractError(
+            f"{selection_mode}_atoms names the same atom twice: {normalized}"
+        )
+    out_of_range = [index for index in normalized if not 1 <= index <= count]
+    if out_of_range:
+        raise ContractError(
+            f"{selection_mode}_atoms must lie in 1..{count}; got "
+            f"{sorted(out_of_range)}"
+        )
+    if selection_mode == "kept":
+        kept = tuple(normalized)
+        removed = tuple(
+            index for index in range(1, count + 1) if index not in set(kept)
+        )
+    else:
+        removed = tuple(sorted(normalized))
+        kept = tuple(
+            index for index in range(1, count + 1) if index not in set(removed)
+        )
+    if not kept:
+        raise ContractError(
+            "a derivation must keep at least one atom; removing every atom "
+            "leaves no species"
+        )
+    if not removed:
+        raise ContractError(
+            "a derivation must remove at least one parent atom; keeping all "
+            f"{count} would copy the parent rather than derive from it"
+        )
+
+    derived = Molecule(
+        symbols=[symbols[index - 1] for index in kept],
+        positions=[list(positions[index - 1]) for index in kept],
+    )
+    kept_text = ",".join(str(index) for index in kept)
+    removed_text = ",".join(str(index) for index in removed)
+    lines = [
+        str(len(kept)),
+        (
+            "ChemSmart derived species; parent atoms kept "
+            f"{kept_text} of {count}, removed {removed_text}; coordinates "
+            "unchanged from the parent; electronic state deliberately unbound"
+        ),
+    ]
+    for symbol, position in zip(derived.chemical_symbols, derived.positions):
+        lines.append(
+            f"{symbol:<3} {position[0]:.10f} {position[1]:.10f} "
+            f"{position[2]:.10f}"
+        )
+    payload = ("\n".join(lines) + "\n").encode("utf-8")
+    target = _target_below(
+        _absolute_workspace(approved_workspace),
+        "artifacts",
+        f"{require_identifier(derived_artifact_id, 'artifact_id')}.xyz",
+    )
+    _write_exact_once(target, payload)
+    artifact = TrustedArtifactRefV1(
+        artifact_id=derived_artifact_id,
+        kind="geometry_xyz",
+        sha256=file_sha256(target),
+        size_bytes=target.stat().st_size,
+        path=str(target),
+        cli_value=str(target),
+    )
+    body = {
+        "schema_version": "chemsmart.molecular-derivation.v1",
+        "derived_artifact_id": artifact.artifact_id,
+        "derived_artifact_sha256": artifact.sha256,
+        "parent_artifact_id": parent.artifact_id,
+        "parent_sha256": parent.sha256,
+        "parent_identity_sha256": parent_identity_sha256,
+        "parent_atom_count": count,
+        "parent_formula": molecule.get_chemical_formula(),
+        "selection_mode": selection_mode,
+        "kept_atoms": kept,
+        "removed_atoms": removed,
+        "atom_count": len(kept),
+        "formula": derived.get_chemical_formula(),
+        # Observed, never judged: taking atoms out of a molecule can leave two
+        # separated pieces, which is right for extracting a fragment pair and
+        # wrong for making a radical.  Recording the count puts that fact in
+        # front of the human review instead of deciding it here.
+        "fragment_count": nx.number_connected_components(
+            derived.to_graph(
+                bond_cutoff_buffer=CONNECTIVITY_BUFFER, adjust_H=True
+            )
+        ),
+        "atom_order_note": "parent order preserved among the kept atoms",
+        "status": "derived",
+    }
+    return artifact, MolecularDerivationReceiptV1(
+        **body, receipt_sha256=canonical_sha256(body)
+    )
+
+
 def promote_project_candidate(
     render_receipt: ProjectRenderReceiptV1,
     *,

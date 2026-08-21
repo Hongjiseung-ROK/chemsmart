@@ -82,6 +82,7 @@ from chemsmart.agent.execution import (
     ExecutionResourceSpecV1,
     FrozenWorkflowApprovalV1,
     MolecularCompositionReceiptV1,
+    MolecularDerivationReceiptV1,
     OptimizedGeometryHandoffV1,
     ORCAHessianHandoffV1,
     ProgramExecutionReceiptV1,
@@ -109,6 +110,7 @@ from chemsmart.agent.execution import (
     build_workflow_execution_review,
     compose_trusted_molecular_arrangement,
     derive_ready_node_ids,
+    derive_trusted_molecular_species,
     environment_review_summary,
     execution_path_placeholder,
     execution_server_profile_sha256,
@@ -1391,6 +1393,9 @@ class CommandCompiledToolHostV1:
         self.molecular_compositions: dict[
             str, MolecularCompositionReceiptV1
         ] = {}
+        self.molecular_derivations: dict[str, MolecularDerivationReceiptV1] = (
+            {}
+        )
         self.invocations: dict[str, CanonicalCommandInvocationV1] = {}
         self.command_inspections: dict[str, CommandInspectionReceiptV1] = {}
         self.safe_previews: dict[str, SafePreviewReceiptV1] = {}
@@ -1702,6 +1707,7 @@ class CommandCompiledToolHostV1:
             "compose_molecular_arrangement": (
                 self._compose_molecular_arrangement
             ),
+            "derive_molecular_species": self._derive_molecular_species,
             "read_project_yaml": self._read_project_yaml,
             "validate_project_yaml": self._validate_project_yaml,
             "plan_command_workflow": self._plan_command_workflow,
@@ -1969,6 +1975,90 @@ class CommandCompiledToolHostV1:
                 "bind_scientific_identity -- composition does not infer "
                 "electronic state; the stage that consumes this geometry "
                 "is a new workflow needing its own review"
+            ),
+        }
+
+    def _derive_molecular_species(self, turn_id: str, values: dict) -> Any:
+        """Take an ordered subset of one identity-bound parent's atoms.
+
+        Composition could join two fragments and nothing could derive one, so
+        every route that makes a new species from an old one -- homolysis,
+        deprotonation, extracting a fragment -- ended uncomputable from a
+        single parent geometry. Observed three times in one campaign: a
+        methanol bond-dissociation session planned all four species correctly,
+        previewed the parent green, and then declined because no tool could
+        remove the hydrogen and it is not permitted to edit the geometry
+        itself.
+
+        The separation is composition's, mirrored. The host owns the selection
+        arithmetic, the bytes and the lineage; the model owns which atoms and
+        why, and must bind the new charge and multiplicity explicitly --
+        removing a hydrogen makes a radical or an anion depending on where its
+        electron went, and only the model's chemistry says which. The stage
+        that consumes the derived geometry is a new workflow for review.
+        """
+
+        if self.approved_workspace is None:
+            raise ContractError(
+                "derivation requires an approved workspace to write into"
+            )
+        derived_artifact_id = str(values["derived_artifact_id"])
+        if derived_artifact_id in self.artifacts:
+            taken = sorted(self.artifacts)
+            raise ContractError(
+                f"artifact ID {derived_artifact_id!r} is already "
+                f"registered; choose one not in {taken}"
+            )
+        parent = self._artifact(values["parent_artifact_id"])
+        identities = {
+            binding.geometry_artifact_sha256: binding
+            for binding in self.scientific_identities.values()
+        }
+        if parent.sha256 not in identities:
+            raise ContractError(
+                f"parent ({parent.artifact_id!r}) carries no scientific "
+                "identity; derivation requires an identity-bound parent -- "
+                "call bind_scientific_identity for it first"
+            )
+        kept = values.get("kept_atoms")
+        removed = values.get("removed_atoms")
+        artifact, receipt = derive_trusted_molecular_species(
+            approved_workspace=self.approved_workspace,
+            derived_artifact_id=derived_artifact_id,
+            parent=parent,
+            parent_identity_sha256=(identities[parent.sha256].binding_sha256),
+            kept_atoms=None if kept is None else [int(x) for x in kept],
+            removed_atoms=(
+                None if removed is None else [int(x) for x in removed]
+            ),
+        )
+        self.artifacts[artifact.artifact_id] = artifact
+        self.molecular_derivations[artifact.sha256] = receipt
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.MOLECULAR_SPECIES_DERIVED.value,
+            payload={
+                "receipt_sha256": receipt.receipt_sha256,
+                "derived_artifact_id": artifact.artifact_id,
+                "derived_artifact_sha256": artifact.sha256,
+                "parent_sha256": parent.sha256,
+                "selection_mode": receipt.selection_mode,
+                "kept_atoms": list(receipt.kept_atoms),
+                "removed_atoms": list(receipt.removed_atoms),
+                "formula": receipt.formula,
+                "fragment_count": receipt.fragment_count,
+            },
+            idempotency_key=("molecular-derivation:" + receipt.receipt_sha256),
+        )
+        return {
+            "derivation": receipt,
+            "artifact": artifact,
+            "next_action": (
+                "bind charge and multiplicity explicitly with "
+                "bind_scientific_identity -- derivation does not infer "
+                "electronic state, and removing an atom decides neither; the "
+                "stage that consumes this geometry is a new workflow needing "
+                "its own review"
             ),
         }
 

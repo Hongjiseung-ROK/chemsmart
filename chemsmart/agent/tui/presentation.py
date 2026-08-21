@@ -38,6 +38,7 @@ _VISIBLE_TOOLS = frozenset(
         "promote_project_yaml",
         "bind_scientific_identity",
         "compose_molecular_arrangement",
+        "derive_molecular_species",
         "read_project_yaml",
         "validate_project_yaml",
         # Calculation and analysis DAG construction and repair.

@@ -113,6 +113,22 @@ def _compose(record: Mapping[str, Any]) -> str:
     return label
 
 
+def _derive(record: Mapping[str, Any]) -> str:
+    receipt = record.get("derivation") or record
+    label = f"derived species {record.get('artifact_id') or ''}".strip()
+    formula = receipt.get("formula")
+    if formula:
+        label += f" {formula}"
+    removed = receipt.get("removed_atoms")
+    if isinstance(removed, (list, tuple)) and removed:
+        atoms = ", ".join(str(index) for index in removed)
+        label += f" without parent atom(s) {atoms}"
+    fragments = receipt.get("fragment_count")
+    if isinstance(fragments, int) and fragments > 1:
+        label += f" in {fragments} separated pieces"
+    return label
+
+
 def _plan_workflow(record: Mapping[str, Any]) -> str:
     plan = record.get("calculation_plan") or record
     workflow = (
@@ -276,6 +292,11 @@ _REGISTRY: dict[str, tuple[str, str, Summarizer]] = {
         "⚛",
         "composing a molecular arrangement",
         _compose,
+    ),
+    "derive_molecular_species": (
+        "⚛",
+        "deriving a species from its parent",
+        _derive,
     ),
     "plan_command_workflow": (
         "✱",

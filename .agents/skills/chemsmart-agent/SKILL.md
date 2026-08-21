@@ -88,8 +88,11 @@ approval: after every approved calculation node validates, the executor runs
 the chain provider-free and renders a completed-analysis report, while
 scientific interpretation and the recorded decision remain a session act. A
 composed molecular arrangement (compose_molecular_arrangement) is host-built
-from two identity-bound parents with its lineage displayed at review;
-composition never infers an electronic state, and its consuming stage is a
+from two identity-bound parents, and a derived species
+(derive_molecular_species) is host-built from an ordered subset of one
+identity-bound parent's atoms -- homolysis, deprotonation, and fragment
+extraction are that one operation. Both display their lineage at review,
+neither infers an electronic state, and the consuming stage of either is a
 new workflow.
 
 Never create an approval on the model's behalf. Never offer permanent,

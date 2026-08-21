@@ -355,9 +355,14 @@ execution failure. Scientific interpretation and the recorded decision remain a 
 request over the completed result workspace to record them; this does not rerun the engine or extend the earlier
 execution decision. A workflow approved without an analysis chain executes exactly as before.
 
-Two further affordances round out multi-stage work. ``compose_molecular_arrangement`` places two identity-bound
+Three further affordances round out multi-stage work. ``compose_molecular_arrangement`` places two identity-bound
 geometries into one arrangement at an explicit atomic contact; the host owns the placement mathematics and the composed
 bytes with full parent lineage, the electronic state is bound explicitly afterwards, and the consuming stage is a new
-workflow. A validated frequency-bearing ORCA producer may feed its Hessian to an ORCA transition-state search through
-the live ``--inhess-filename`` option (selection rule ``validated_producer_orca_hessian``); the starting Hessian may
-carry any imaginary-mode count, and the observed count is recorded in the handoff receipt.
+workflow. ``derive_molecular_species`` is its mirror, taking an ordered subset of one identity-bound parent's atoms --
+the operation underneath homolysis, deprotonation, and fragment extraction. Name either the atoms to remove or the atoms
+to keep; the host records both, copies the parent's coordinates unchanged so the result is a starting structure rather
+than a relaxed one, and reports whether the result is one species or several separated pieces. Derivation never infers
+an electronic state, because removing a hydrogen gives a radical or an anion depending on where its electron went. A
+validated frequency-bearing ORCA producer may feed its Hessian to an ORCA transition-state search through the live
+``--inhess-filename`` option (selection rule ``validated_producer_orca_hessian``); the starting Hessian may carry any
+imaginary-mode count, and the observed count is recorded in the handoff receipt.

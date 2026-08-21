@@ -62,6 +62,18 @@ the model owns the fragment, contact, and distance choices, must bind the
 arrangement's charge and multiplicity explicitly, and the consuming stage is
 a new workflow for review.
 
+``derive_molecular_species`` is its mirror: it takes an ordered subset of one
+identity-bound parent's atoms, which is the single operation underneath
+homolysis, deprotonation, and fragment extraction. The model names either the
+atoms to remove or the atoms to keep and the host records both, copies the
+parent's coordinates unchanged, and owns the derived bytes with full parent
+lineage; the derived geometry is therefore a starting structure rather than a
+relaxed one. Derivation never infers an electronic state — removing a
+hydrogen gives a radical or an anion depending on where its electron went —
+so charge and multiplicity are bound explicitly afterwards and the consuming
+stage is a new workflow for review. Whether the result is one species or
+several separated pieces is recorded as an observation, not judged.
+
 A validated frequency-bearing ORCA producer may feed its Hessian to an ORCA
 transition-state search through the live ``--inhess-filename`` option under
 the third producer selection rule (``validated_producer_orca_hessian``); the

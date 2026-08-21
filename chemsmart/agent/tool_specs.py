@@ -321,6 +321,62 @@ def build_command_compiled_tool_surface(
             ),
         ),
         _tool(
+            "derive_molecular_species",
+            (
+                "Make a new geometry from one identity-bound parent by "
+                "keeping an ordered subset of its atoms -- the operation "
+                "underneath homolysis, deprotonation and pulling a fragment "
+                "out of a larger structure. Give exactly one of "
+                "removed_atoms (natural when one atom leaves a large "
+                "molecule) or kept_atoms (natural when extracting a "
+                "fragment, and it fixes the new atom order); the host records "
+                "both either way. Coordinates are copied unchanged, so the "
+                "result is a starting structure and not a relaxed one -- "
+                "optimise it in the consuming stage. Derivation never infers "
+                "an electronic state: removing a hydrogen gives a radical or "
+                "an anion depending on where its electron went, so bind the "
+                "new charge and multiplicity explicitly afterwards, and the "
+                "stage that consumes this geometry is a new workflow needing "
+                "its own review. The parent must already carry a scientific "
+                "identity."
+            ),
+            {
+                "derived_artifact_id": {
+                    **_public_identifier(),
+                    "description": (
+                        "Workspace-unique identifier for the derived "
+                        "geometry artifact."
+                    ),
+                },
+                "parent_artifact_id": {
+                    **_string(),
+                    "description": (
+                        "Identity-bound geometry_xyz artifact to derive from."
+                    ),
+                },
+                "removed_atoms": {
+                    "type": "array",
+                    "items": {"type": "integer", "minimum": 1},
+                    "minItems": 1,
+                    "description": (
+                        "1-based parent atoms to leave out. Mutually "
+                        "exclusive with kept_atoms."
+                    ),
+                },
+                "kept_atoms": {
+                    "type": "array",
+                    "items": {"type": "integer", "minimum": 1},
+                    "minItems": 1,
+                    "description": (
+                        "1-based parent atoms to keep, in the order they "
+                        "should appear in the new geometry. Mutually "
+                        "exclusive with removed_atoms."
+                    ),
+                },
+            },
+            ("derived_artifact_id", "parent_artifact_id"),
+        ),
+        _tool(
             "read_project_yaml",
             "Read an already host-bound project artifact by stable ID.",
             {"program": program, "project_artifact_id": _string()},

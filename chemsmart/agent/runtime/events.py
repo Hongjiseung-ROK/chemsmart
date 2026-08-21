@@ -58,6 +58,7 @@ class EventKind(str, Enum):
     ANALYSIS_COMPLETION_EVALUATED = "analysis_completion_evaluated"
     WORKFLOW_ANALYSIS_NODE_SETTLED = "workflow_analysis_node_settled"
     MOLECULAR_ARRANGEMENT_COMPOSED = "molecular_arrangement_composed"
+    MOLECULAR_SPECIES_DERIVED = "molecular_species_derived"
     WORKFLOW_ANALYSIS_REPORT_RENDERED = "workflow_analysis_report_rendered"
     TASK_DEPENDENCY_CONTEXT_SELECTED = "task_dependency_context_selected"
     PROGRAM_EXECUTED = "program_execution_observed"
