@@ -977,6 +977,103 @@ def test_all_non_executable_plan_is_preview_only_not_approvable():
     assert "no release-executable stage" in reason
 
 
+def test_ineligibility_is_reported_not_raised_when_context_refuses():
+    """Saying why a node cannot run must not itself be able to crash.
+
+    A benchmark run planned a reactant/TS/product profile, exited 0 from
+    every earlier stage, and then died with exit 1 inside
+    ``execution_review_ineligibility_reason`` -- the method whose whole job is
+    to explain why a node cannot be reviewed.  ``live_session`` calls it once
+    per node to build the ineligible-node list, so one unresolvable input
+    discarded the plan, the previews and the session report for every other
+    node too, and an honest refusal was recorded as a crash.
+    """
+
+    plan = build_scientific_workflow_plan(
+        workflow_id="ts-with-unresolvable-input",
+        task_spec_sha256="a" * 64,
+        scientific_identity_sha256="b" * 64,
+        nodes=(
+            ScientificWorkflowNodeV2(
+                node_id="ts-search",
+                stage="ts",
+                requested_program="orca",
+                program="orca",
+                engine="cpu",
+                project_role="project.ts",
+                unresolved_fields=(),
+            ),
+        ),
+        edges=(),
+    )
+    host = object.__new__(CommandCompiledToolHostV1)
+    host.registry = {
+        "orca": SimpleNamespace(
+            execution_engine_job_pairs=frozenset({("cpu", "ts")})
+        )
+    }
+    host.bounded_execution_envelope = SimpleNamespace(
+        allows=lambda *_args, **_kwargs: True
+    )
+    refusal = (
+        "future bounded node requires one filename/geometry_xyz input; "
+        "an ORCA TS may consume one inhess_filename/orca_hessian input"
+    )
+
+    def _refuse(**_kwargs):
+        raise ContractError(refusal)
+
+    host._bounded_node_context = _refuse
+
+    assert (
+        host.execution_review_ineligibility_reason(
+            plan=plan, planned_node=plan.nodes[0]
+        )
+        == refusal
+    )
+
+
+def test_ineligibility_still_surfaces_a_programming_fault():
+    """A code defect must not be able to disguise itself as a refusal."""
+
+    plan = build_scientific_workflow_plan(
+        workflow_id="ts-with-broken-context",
+        task_spec_sha256="a" * 64,
+        scientific_identity_sha256="b" * 64,
+        nodes=(
+            ScientificWorkflowNodeV2(
+                node_id="ts-search",
+                stage="ts",
+                requested_program="orca",
+                program="orca",
+                engine="cpu",
+                project_role="project.ts",
+                unresolved_fields=(),
+            ),
+        ),
+        edges=(),
+    )
+    host = object.__new__(CommandCompiledToolHostV1)
+    host.registry = {
+        "orca": SimpleNamespace(
+            execution_engine_job_pairs=frozenset({("cpu", "ts")})
+        )
+    }
+    host.bounded_execution_envelope = SimpleNamespace(
+        allows=lambda *_args, **_kwargs: True
+    )
+
+    def _bug(**_kwargs):
+        raise AttributeError("context builder has a bug")
+
+    host._bounded_node_context = _bug
+
+    with pytest.raises(AttributeError, match="has a bug"):
+        host.execution_review_ineligibility_reason(
+            plan=plan, planned_node=plan.nodes[0]
+        )
+
+
 def test_validated_geometry_handoff_clears_only_stale_input_markers(tmp_path):
     path = tmp_path / "optimized.xyz"
     path.write_text("1\noptimized\nH 0 0 0\n", encoding="utf-8")

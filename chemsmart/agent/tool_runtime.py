@@ -7495,8 +7495,32 @@ class CommandCompiledToolHostV1:
 
         A stage this release declares preview-only is deferred rather than
         ineligible: see ``_release_non_executable_node_ids``.
+
+        This method answers a question; it never raises to ask it.  A
+        ``ContractError`` is ChemSmart's refusal mechanism and its message
+        already names the boundary that was hit, so here it *is* the answer.
+        Letting one escape turned a stated refusal into exit 1: the caller in
+        ``live_session`` builds its ineligible-node list by asking this for
+        every node, so a single unresolvable input discarded the report for
+        the whole session -- plan, previews and all -- and the run looked like
+        a crash rather than the honest "this cannot run because ..." it was.
+        Other exception types still propagate, because a programming fault
+        must not be able to disguise itself as a scientific reason.
         """
 
+        try:
+            return self._execution_review_ineligibility_reason(
+                plan=plan, planned_node=planned_node
+            )
+        except ContractError as exc:
+            return str(exc)
+
+    def _execution_review_ineligibility_reason(
+        self,
+        *,
+        plan: ScientificWorkflowPlanV2,
+        planned_node: ScientificWorkflowNodeV2,
+    ) -> str:
         non_executable = self._release_non_executable_node_ids(plan)
         if planned_node.node_id in non_executable:
             if non_executable == {node.node_id for node in plan.nodes}:
@@ -7535,9 +7559,7 @@ class CommandCompiledToolHostV1:
                 data_target_ids=data_target_ids,
             )
             if context.project_validation is None:
-                raise ContractError(
-                    "ORCA transition-state review lacks validated project settings"
-                )
+                return "ORCA transition-state review lacks validated project"
             settings = dict(context.project_validation.settings)
             if not bool(settings.get("freq") or settings.get("numfreq")):
                 return (
