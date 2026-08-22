@@ -261,7 +261,40 @@ class AnalysisNodeIntentV1:
             raise ScientificToolchainContractError(
                 "analysis intent must preserve at least one output"
             )
-        if self.analysis_kind != "result_extraction":
+        if self.analysis_kind == "result_extraction":
+            # The executor already refuses an extraction output that names no
+            # selector, and it is right to: with more than one selector the
+            # mapping from outputs to quantities is genuinely ambiguous. But
+            # it refused *after* the workflow was approved and the engine had
+            # finished. Observed four times in one campaign, and the cost is
+            # the whole point -- one session ran an optimisation, a minimum
+            # check, RRHO thermochemistry at 298.15 K and a kcal/mol
+            # conversion, and then lost every number to an output it had
+            # called `homo-e` instead of `homo`. The run exited 0 and reported
+            # nothing.
+            #
+            # Both facts the rule needs are here at planning time: the
+            # declared outputs, and the selectors on this same node. So the
+            # rule belongs here, where the session can still fix it, and the
+            # message names the selectors it could have used.
+            selector_ids = sorted(
+                {selector.quantity_id for selector in self.selectors}
+            )
+            if len(selector_ids) > 1:
+                unmatched = [
+                    output.output_id
+                    for output in self.outputs
+                    if output.output_id not in set(selector_ids)
+                ]
+                if unmatched:
+                    raise ScientificToolchainContractError(
+                        f"extraction output(s) {unmatched} name no selector "
+                        f"quantity on node {self.node_id!r}; with "
+                        f"{len(selector_ids)} selectors the mapping is "
+                        "ambiguous, so name each output after the selector "
+                        f"it carries -- available here: {selector_ids}"
+                    )
+        else:
             for output in self.outputs:
                 if not str(output.unit).strip():
                     raise ScientificToolchainContractError(
