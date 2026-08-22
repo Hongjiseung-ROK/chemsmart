@@ -10402,8 +10402,19 @@ class CommandCompiledToolHostV1:
                 if quantity.quantity_id == quantity_id
             )
             if len(matches) != 1:
+                # Naming neither the quantity nor the alternatives made this
+                # refusal unactionable: a campaign lost four analysis chains
+                # to it and the logs could not say why without opening the
+                # receipts by hand. Every other ChemSmart refusal names the
+                # boundary it hit; this one now does too.
+                available = sorted(
+                    str(quantity.quantity_id) for quantity in quantities
+                )
+                trouble = "is ambiguous" if matches else "is absent"
                 raise ContractError(
-                    "analysis claim quantity is absent or ambiguous"
+                    f"analysis claim quantity {quantity_id!r} {trouble} in "
+                    f"the cited {source_kind} receipt; it carries "
+                    f"{available}"
                 )
             quantity = matches[0]
             if quantity.data_kind in {"text", "text_vector"}:
