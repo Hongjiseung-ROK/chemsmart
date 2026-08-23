@@ -1480,6 +1480,11 @@ def test_xtb_optimized_geometry_handoff_preserves_identity_and_state(tmp_path):
         "3\noptimized\nO 0.0 0.0 0.12\nH -0.76 0.0 -0.47\nH 0.76 0.0 -0.47\n",
         encoding="utf-8",
     )
+    from tests.agent.test_cross_state_geometry_handoff import (
+        _write_xtb_state_record,
+    )
+
+    _write_xtb_state_record(tmp_path, charge=1, multiplicity=2)
     input_artifact = _artifact(
         input_path, artifact_id="geometry.initial", kind="geometry_xyz"
     )
@@ -1524,6 +1529,11 @@ def test_xtb_optimized_geometry_handoff_rejects_atom_reordering(tmp_path):
         "3\nwater\nO 0 0 0.1\nH -0.7 0 -0.4\nH 0.7 0 -0.4\n",
         encoding="utf-8",
     )
+    from tests.agent.test_cross_state_geometry_handoff import (
+        _write_xtb_state_record,
+    )
+
+    _write_xtb_state_record(tmp_path, charge=0, multiplicity=1)
     result_path = tmp_path / "xtbopt.xyz"
     result_path.write_text(
         "3\nreordered\nH -0.7 0 -0.4\nO 0 0 0.1\nH 0.7 0 -0.4\n",

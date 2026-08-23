@@ -64,6 +64,27 @@ def _resources():
     )
 
 
+def _write_xtb_state_record(folder, *, charge, multiplicity):
+    """Minimal real-shaped xtb main output so the handoff can verify state.
+
+    The handoff now reads the electronic state from the program's own
+    record (parity with the ORCA handoff) instead of asserting the
+    approval's numbers; a fixture folder must therefore carry what a real
+    xtb run folder always carries.
+    """
+
+    (folder / "job.out").write_text(
+        "      * xtb version 6.7.1\n"
+        "          :                      SETUP                      :\n"
+        "          :.................................................:\n"
+        f"          :  net charge                    {charge:>8}          :\n"
+        f"          :  unpaired electrons            {multiplicity - 1:>8}          :\n"
+        "\n"
+        "normal termination of xtb\n",
+        encoding="utf-8",
+    )
+
+
 @pytest.mark.parametrize(
     ("producer_state", "consumer_state"),
     (
@@ -88,6 +109,9 @@ def test_cross_state_handoff_preserves_geometry_and_admits_vertical_energy(
         "C -1.01 0.02 0.0\nO -2.24 -0.01 0.0\n"
         "C 1.01 -0.02 0.0\nO 2.24 0.01 0.0\n",
         encoding="utf-8",
+    )
+    _write_xtb_state_record(
+        tmp_path, charge=producer_state[0], multiplicity=producer_state[1]
     )
     project_path = tmp_path / "vertical.yaml"
     project_path.write_text("sp: {}\n", encoding="utf-8")
