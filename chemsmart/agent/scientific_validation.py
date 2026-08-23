@@ -310,6 +310,16 @@ def _evaluate_rule(
         reference = flattened[0]
         observed = max(abs(value - reference) for value in flattened)
         passed = observed == 0.0
+    elif predicate == "integer_equals":
+        if len(quantities) != 1:
+            raise ContractError("integer_equals requires one scalar integer")
+        values = _numeric_values(quantities[0], target_unit="1")
+        if len(values) != 1 or not float(values[0]).is_integer():
+            raise ContractError(
+                "integer_equals input must be an integer scalar"
+            )
+        observed = int(values[0])
+        passed = observed == rule.expected_count
     elif predicate == "all_equal_text":
         # Method-identity discipline: "the same functional and basis across
         # the series" was previously a hope -- text identities were parsed

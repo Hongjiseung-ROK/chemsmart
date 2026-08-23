@@ -47,6 +47,7 @@ ANALYSIS_VALIDATION_PREDICATES = (
     "all_equal_text",
     "all_finite",
     "count_equals",
+    "integer_equals",
     "maximum_absolute_less_equal",
     "minimum_greater_equal",
     "symmetric_within",
@@ -165,6 +166,19 @@ class AnalysisValidationRuleIntentV1:
             if self.threshold is not None or self.unit:
                 raise ScientificToolchainContractError(
                     "count_equals does not accept threshold or unit"
+                )
+        elif self.predicate == "integer_equals":
+            # A count is non-negative by definition; an integer state label
+            # is not -- an anion's charge of -1 was uncertifiable because
+            # the only integer predicate refused negatives.
+            if self.expected_count is None:
+                raise ScientificToolchainContractError(
+                    "integer_equals requires expected_count as the "
+                    "expected integer"
+                )
+            if self.threshold is not None or self.unit:
+                raise ScientificToolchainContractError(
+                    "integer_equals does not accept threshold or unit"
                 )
         elif self.predicate in {
             "maximum_absolute_less_equal",

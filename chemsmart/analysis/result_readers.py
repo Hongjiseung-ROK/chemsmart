@@ -631,15 +631,22 @@ def _orca_solvation_context(output: Any) -> tuple[str, str | None]:
     # Simple-input keywords are whitespace-delimited route tokens.  Match a
     # complete token so a different model such as ``CPCM-X(water)`` cannot be
     # silently shortened to CPCM.
+    # The leading boundary admits the route's own "!" prefix: "!SMD(water)"
+    # with no space after the bang is the common ORCA idiom, and requiring
+    # preceding whitespace made exactly that input report as gas phase --
+    # the unrecognized-treatment guard below never fired either, because
+    # "smd" contains none of its substrings.  Found on review, not in a run:
+    # hub-written inputs always space the bang; user-supplied results need
+    # not.
     match = re.search(
-        r"(?<!\S)(?P<model>smd|cpcmc|cpcm|cosmors)"
+        r"(?<![a-z0-9_-])(?P<model>smd|cpcmc|cpcm|cosmors)"
         r"(?:\((?P<solvent>[^)]+)\))?(?!\S)",
         final_route,
     )
     if match is None:
         if re.search(
             r"(?i)(?:"
-            r"\b\S*pcm\S*|\b\S*solv\S*|\b\S*cosmo\S*|"
+            r"\b\S*pcm\S*|\b\S*solv\S*|\b\S*cosmo\S*|\bsmd\b|"
             r"\b(?:alpb|ddcosmo|cpcmx|gbsa|tmcosmo)(?:\([^)]*\))?"
             r")",
             final_route,

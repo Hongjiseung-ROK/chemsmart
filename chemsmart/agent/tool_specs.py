@@ -1930,6 +1930,7 @@ def _analysis_intent_node_schema() -> dict:
                                 "all_equal_text",
                                 "all_finite",
                                 "count_equals",
+                                "integer_equals",
                                 "maximum_absolute_less_equal",
                                 "minimum_greater_equal",
                                 "symmetric_within",
