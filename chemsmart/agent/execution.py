@@ -4531,6 +4531,11 @@ class WorkflowExecutionReviewV1:
     #: nothing to walk, so every validation rule a session wrote remained
     #: intent.  Present, it is digest-bound with the rest of the review.
     scientific_toolchain_plan: ScientificToolchainPlanV1 | None = None
+    #: Advisory domain knowledge the planning session consulted -- skill id,
+    #: version, and digests, nothing else.  Pure provenance for the human
+    #: reviewer: it carries no readiness or accuracy authority, and no gate
+    #: consumes it.  Empty consultations keep the original canonical body.
+    consulted_domain_knowledge: tuple[dict[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.workflow-execution-review.v1":
@@ -4561,6 +4566,14 @@ class WorkflowExecutionReviewV1:
             self, "environment_bindings", tuple(self.environment_bindings)
         )
         object.__setattr__(self, "node_reviews", tuple(self.node_reviews))
+        object.__setattr__(
+            self,
+            "consulted_domain_knowledge",
+            tuple(
+                canonical_data(dict(item))
+                for item in self.consulted_domain_knowledge
+            ),
+        )
         if self.request.workflow_id != self.scientific_plan.workflow_id:
             raise ContractError("review request belongs to another workflow")
         if self.request.workflow_sha256 != self.scientific_plan.plan_sha256:
@@ -4750,6 +4763,8 @@ class WorkflowExecutionReviewV1:
             body.pop("non_executable_node_ids", None)
         if self.scientific_toolchain_plan is None:
             body.pop("scientific_toolchain_plan", None)
+        if not self.consulted_domain_knowledge:
+            body.pop("consulted_domain_knowledge", None)
         return body
 
 
@@ -4765,6 +4780,7 @@ def build_workflow_execution_review(
     stationary_point_policy: StationaryPointValidationPolicyV1 | None = None,
     non_executable_node_ids: Sequence[str] = (),
     scientific_toolchain_plan: ScientificToolchainPlanV1 | None = None,
+    consulted_domain_knowledge: Sequence[Mapping[str, Any]] = (),
 ) -> WorkflowExecutionReviewV1:
     """Assemble one self-verifying review packet without granting authority.
 
@@ -4792,6 +4808,11 @@ def build_workflow_execution_review(
         body["non_executable_node_ids"] = non_executable
     if scientific_toolchain_plan is not None:
         body["scientific_toolchain_plan"] = scientific_toolchain_plan
+    consulted = tuple(
+        canonical_data(dict(item)) for item in consulted_domain_knowledge
+    )
+    if consulted:
+        body["consulted_domain_knowledge"] = consulted
     return WorkflowExecutionReviewV1(
         **body, review_sha256=canonical_sha256(body)
     )

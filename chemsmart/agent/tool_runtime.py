@@ -1307,6 +1307,11 @@ class CommandCompiledToolHostV1:
         #: Advisory skill documents the model read this session, keyed by
         #: document digest so replay can reconstruct the exact text.
         self.consulted_skills = {}
+        #: Durable provenance of those consultations -- id, version, and
+        #: digests only, rehydrated from events so a review built later can
+        #: display what the session read without re-reading transcripts.
+        #: Pure provenance: nothing gates on it and it grants no authority.
+        self.consulted_skill_records = {}
         self.approved_molecular_identities = dict(
             approved_molecular_identities
         )
@@ -1619,6 +1624,23 @@ class CommandCompiledToolHostV1:
                     **values, receipt_sha256=receipt_sha256
                 )
                 self.analysis_completion_receipts[receipt_sha256] = receipt
+            elif event.kind == EventKind.DOMAIN_SKILL_CONSULTED.value:
+                values = {
+                    key: str(record.get(key) or "")
+                    for key in (
+                        "skill_id",
+                        "skill_version",
+                        "origin",
+                        "body_sha256",
+                        "document_sha256",
+                    )
+                }
+                require_sha256(
+                    values["document_sha256"], "consulted skill digest"
+                )
+                self.consulted_skill_records[values["document_sha256"]] = (
+                    values
+                )
             elif event.kind == EventKind.SCIENTIFIC_DECISION_RECORDED.value:
                 values = dict(record)
                 for field in (
@@ -1783,12 +1805,27 @@ class CommandCompiledToolHostV1:
         says so plainly while every status flag stays exactly as it was.
         """
 
-        del turn_id
         skill_id = require_identifier(values["skill_id"], "skill_id")
         document = resolve_skill(skill_id)
         if document is None:
             raise ContractError(f"unknown domain skill: {skill_id}")
         self.consulted_skills[document.document_sha256] = document
+        record = {
+            "skill_id": document.skill_id,
+            "skill_version": document.skill_version,
+            "origin": document.origin,
+            "body_sha256": document.body_sha256,
+            "document_sha256": document.document_sha256,
+        }
+        self.consulted_skill_records[document.document_sha256] = record
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.DOMAIN_SKILL_CONSULTED.value,
+            payload={"record": record},
+            idempotency_key=(
+                "domain-skill:" + turn_id + ":" + document.document_sha256
+            ),
+        )
         return {
             "schema_version": "chemsmart.domain-skill-consultation.v1",
             "skill_id": document.skill_id,
@@ -8243,6 +8280,15 @@ class CommandCompiledToolHostV1:
             stationary_point_policy=self.stationary_point_policy,
             non_executable_node_ids=tuple(sorted(non_executable_ids)),
             scientific_toolchain_plan=self._toolchain_plan_for_review(plan),
+            consulted_domain_knowledge=tuple(
+                sorted(
+                    self.consulted_skill_records.values(),
+                    key=lambda item: (
+                        str(item.get("skill_id", "")),
+                        str(item.get("document_sha256", "")),
+                    ),
+                )
+            ),
         )
 
     def _toolchain_plan_for_review(

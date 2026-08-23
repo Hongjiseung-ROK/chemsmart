@@ -325,6 +325,28 @@ def _decision_panel(review: "WorkflowExecutionReviewV1") -> Panel:
     return Panel(decision, title="Human decision", border_style="yellow")
 
 
+def _advisory_knowledge_panel(
+    review: "WorkflowExecutionReviewV1",
+) -> Any | None:
+    """Provenance of consulted skills; never a gate, never authority."""
+
+    records = getattr(review, "consulted_domain_knowledge", ())
+    if not records:
+        return None
+    lines = [
+        f"{item.get('skill_id', '?')} {item.get('skill_version', '')}".strip()
+        + f" ({item.get('origin', 'builtin')})"
+        for item in records
+    ]
+    return Panel(
+        Text("\n".join(lines)),
+        title=(
+            "Advisory domain knowledge consulted "
+            "(carries no readiness or accuracy authority)"
+        ),
+    )
+
+
 def render_review_blocks(
     review: "WorkflowExecutionReviewV1",
     *,
@@ -339,6 +361,9 @@ def render_review_blocks(
         blocks.append(_edges_table(review))
     blocks.extend(_composition_panels(review))
     blocks.append(_analysis_chain_renderable(review))
+    knowledge_panel = _advisory_knowledge_panel(review)
+    if knowledge_panel is not None:
+        blocks.append(knowledge_panel)
     for item in review.node_reviews:
         yaml_text = yaml_texts.get(item.node_id)
         if yaml_text:

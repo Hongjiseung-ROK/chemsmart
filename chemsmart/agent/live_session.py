@@ -3755,6 +3755,9 @@ def load_workflow_execution_review(
                     raw.get("scientific_toolchain_plan")
                 )
             )
+        raw["consulted_domain_knowledge"] = tuple(
+            dict(item) for item in raw.get("consulted_domain_knowledge") or ()
+        )
         return WorkflowExecutionReviewV1(**raw)
     except ContractError:
         raise
