@@ -773,7 +773,12 @@ def derive_trusted_molecular_species(
                 bond_cutoff_buffer=CONNECTIVITY_BUFFER, adjust_H=True
             )
         ),
-        "atom_order_note": "parent order preserved among the kept atoms",
+        "atom_order_note": (
+            "parent order preserved among the kept atoms"
+            if kept == tuple(sorted(kept))
+            else "model-specified order overrides parent order among the "
+            "kept atoms"
+        ),
         "status": "derived",
     }
     return artifact, MolecularDerivationReceiptV1(

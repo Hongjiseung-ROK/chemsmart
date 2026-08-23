@@ -447,7 +447,7 @@ def test_an_absent_quantity_settles_the_node_instead_of_crashing(tmp_path):
     # claims heading appears because nothing reached claim standing.
     assert report_path.endswith("partial-analysis-report.md")
     report = Path(report_path).read_text()
-    assert "Partial analysis: 0 of 2" in report
+    assert "Partial analysis: 2 finding(s) over 2 analysis nodes" in report
     assert "no <S^2>" in report
     assert "Recovery:" in report
     from chemsmart.agent.report_format import CLAIMS_HEADING

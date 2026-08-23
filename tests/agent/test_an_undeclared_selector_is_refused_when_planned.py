@@ -244,3 +244,55 @@ def test_irc_convergence_is_a_typed_quantity_pinned_to_observed_phrasings():
 
     with pytest.raises(Exception, match="no IRC convergence marker"):
         reader.read(_Log("nothing relevant"), "irc_converged")
+
+
+def test_integer_equals_reaches_negative_state_labels_end_to_end():
+    """The predicate's motivating case must survive every layer.
+
+    A cloud review found the JSON schema's minimum on expected_count
+    refusing -1 at the tool surface before the predicate's own contract
+    could accept it -- the same repair-did-not-bind class this campaign
+    keeps finding. The intent contract accepts a negative; count_equals
+    still refuses one in its own branch.
+    """
+
+    from chemsmart.agent.scientific_toolchain import (
+        AnalysisValidationRuleIntentV1,
+        ScientificToolchainContractError,
+    )
+
+    rule = AnalysisValidationRuleIntentV1(
+        rule_id="anion-charge",
+        predicate="integer_equals",
+        input_ids=("charge",),
+        expected_count=-1,
+    )
+    assert rule.expected_count == -1
+
+    import pytest
+
+    with pytest.raises(ScientificToolchainContractError):
+        AnalysisValidationRuleIntentV1(
+            rule_id="bad-count",
+            predicate="count_equals",
+            input_ids=("modes",),
+            expected_count=-1,
+        )
+
+    from chemsmart.agent.tool_specs import _analysis_intent_node_schema
+
+    def _find_expected_count(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "expected_count" and isinstance(value, dict):
+                    yield value
+                else:
+                    yield from _find_expected_count(value)
+        elif isinstance(node, list):
+            for item in node:
+                yield from _find_expected_count(item)
+
+    found = list(_find_expected_count(_analysis_intent_node_schema()))
+    assert found, "expected_count absent from the analysis intent schema"
+    for subschema in found:
+        assert "minimum" not in subschema

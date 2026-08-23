@@ -1942,7 +1942,13 @@ def _analysis_intent_node_schema() -> dict:
                             "items": _public_identifier(),
                         },
                         "threshold": {"type": "number"},
-                        "expected_count": {"type": "integer", "minimum": 0},
+                        # No schema-level minimum: count_equals enforces
+                        # non-negativity in its own contract, while
+                        # integer_equals exists precisely for negative
+                        # state labels (an anion's charge of -1) -- a bound
+                        # here made that case unreachable at the tool
+                        # surface.
+                        "expected_count": {"type": "integer"},
                         "unit": _string(),
                     },
                     "required": ["rule_id", "predicate", "input_ids"],

@@ -6693,15 +6693,17 @@ class CommandCompiledToolHostV1:
             f"{TOOLCHAIN_PLAN_LABEL}: `{toolchain.plan_sha256}`",
         ]
         if completion.status == "partial":
-            total = len(toolchain.analysis_nodes)
-            unexecuted = len(completion.findings)
+            # The renderer cannot know how many nodes executed -- a finding
+            # may describe an unexecuted node or a post-execution refusal --
+            # so the header states only what the receipt actually carries
+            # and the findings lines name each state.
             lines.extend(
                 (
                     "",
                     f"{PARTIAL_STATUS_PREFIX}: "
-                    f"{max(total - unexecuted, 0)} of {total} analysis "
-                    f"nodes executed; {len(claim_records)} claim record(s) "
-                    "rendered.",
+                    f"{len(completion.findings)} finding(s) over "
+                    f"{len(toolchain.analysis_nodes)} analysis nodes; "
+                    f"{len(claim_records)} claim record(s) rendered.",
                     "",
                     FINDINGS_HEADING,
                     "",
