@@ -3227,6 +3227,7 @@ class CommandCompiledToolHostV1:
             outputs = list(node.outputs)
             selectors = list(node.selectors)
             inputs = list(node.inputs)
+            local_renames: dict[str, str] = {}
 
             for item in repair.get("outputs") or ():
                 target = str(item["output_id"])
@@ -3251,6 +3252,7 @@ class CommandCompiledToolHostV1:
                     # each declare an output called the same thing, and a
                     # rename of one must not follow the other's consumers.
                     renames[(node.node_id, target)] = renamed
+                    local_renames[target] = renamed
                 outputs[index] = AnalysisOutputIntentV1(
                     output_id=renamed,
                     quantity_kind=str(
@@ -3311,6 +3313,32 @@ class CommandCompiledToolHostV1:
                     producer_output_id=str(item["producer_output_id"]),
                 )
 
+            expression_nodes = node.expression_nodes
+            expression_output_node_ids = node.expression_output_node_ids
+            if node.analysis_kind == "quantity_expression" and local_renames:
+                # The execution receipt keys produced quantities by
+                # expression node id and the node contract requires the
+                # declared outputs to name the exported expression nodes,
+                # so an output rename follows into the expression DAG
+                # rather than orphaning it.
+                expression_output_node_ids = tuple(
+                    local_renames.get(item, item)
+                    for item in node.expression_output_node_ids
+                )
+                followed_nodes = []
+                for item in node.expression_nodes:
+                    entry = dict(item)
+                    identifier = str(entry.get("node_id", ""))
+                    if identifier in local_renames:
+                        entry["node_id"] = local_renames[identifier]
+                    for key in ("operand_ids", "input_ids"):
+                        if key in entry:
+                            entry[key] = tuple(
+                                local_renames.get(str(value), str(value))
+                                for value in entry[key]
+                            )
+                    followed_nodes.append(entry)
+                expression_nodes = tuple(followed_nodes)
             revised[node.node_id] = replace(
                 node,
                 outputs=tuple(
@@ -3325,6 +3353,8 @@ class CommandCompiledToolHostV1:
                         key=lambda value: getattr(value, "input_id", ""),
                     )
                 ),
+                expression_nodes=expression_nodes,
+                expression_output_node_ids=expression_output_node_ids,
             )
 
         # A renamed output is still read by whoever consumed it under the old

@@ -343,9 +343,13 @@ def _consumer_node(node_id, *, producer, producer_output, output_id):
             ),
         ),
         expression_nodes=(
-            {"node_id": "abs1", "operation": "abs", "input_ids": ("lhs",)},
+            {
+                "node_id": output_id,
+                "operation": "abs",
+                "input_ids": ("lhs",),
+            },
         ),
-        expression_output_node_ids=("abs1",),
+        expression_output_node_ids=(output_id,),
         temperature_k=None,
         pressure_atm=None,
         support_state="planned",
@@ -424,3 +428,40 @@ def test_renaming_a_consumed_output_follows_it_into_its_consumer(
     }
     assert nodes["extract-a"].outputs[0].output_id == "e-alpha"
     assert nodes["expr-a"].inputs[0].producer_output_id == "e-alpha"
+
+
+def test_renaming_an_expression_output_follows_into_its_expression_dag(
+    host_with_chain,
+):
+    """The declared output and the exported expression node are one name.
+
+    The execution receipt keys produced quantities by expression node id, so
+    a repair that renamed only the declared output would recreate exactly the
+    seam that loses computed numbers after execution.  The host follows the
+    rename into the expression DAG instead.
+    """
+
+    host, _ = host_with_chain
+
+    result = host._amend_scientific_workflow(
+        "turn-1",
+        {
+            "workflow_id": "chain",
+            "analysis_repairs": [
+                {
+                    "node_id": "expr-a",
+                    "outputs": [
+                        {"output_id": "abs-a", "new_output_id": "abs-alpha"}
+                    ],
+                }
+            ],
+        },
+    )
+
+    node = {
+        item.node_id: item
+        for item in result["scientific_toolchain_plan"].analysis_nodes
+    }["expr-a"]
+    assert node.outputs[0].output_id == "abs-alpha"
+    assert node.expression_output_node_ids == ("abs-alpha",)
+    assert node.expression_nodes[0]["node_id"] == "abs-alpha"

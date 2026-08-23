@@ -499,6 +499,18 @@ class AnalysisNodeIntentV1:
                 raise ScientificToolchainContractError(
                     "quantity expression requires a typed expression DAG"
                 )
+            declared = sorted({item.output_id for item in self.outputs})
+            exported = sorted(set(self.expression_output_node_ids))
+            if declared != exported:
+                raise ScientificToolchainContractError(
+                    f"expression outputs {declared} on node "
+                    f"{self.node_id!r} do not name the exported expression "
+                    f"nodes {exported}; the execution receipt keys every "
+                    "produced quantity by its expression node id, so a "
+                    "claim citing a differently named output cannot "
+                    "resolve after the engines have run -- name each "
+                    "output after the expression node it exports"
+                )
         elif self.expression_nodes or self.expression_output_node_ids:
             raise ScientificToolchainContractError(
                 "expression fields apply only to quantity_expression"
