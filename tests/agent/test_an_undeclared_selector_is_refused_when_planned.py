@@ -128,3 +128,75 @@ def test_orca_printed_thermochemistry_is_not_declared():
         declared = reader.selectors_for_jobtype(jobtype) or ()
         assert "gibbs_free_energy" not in declared
         assert "entropy_times_temperature" not in declared
+
+
+def test_method_identity_is_a_typed_quantity_on_real_output():
+    """'Same functional and basis across the series' becomes host-checkable:
+    the identities were parsed all along but no selector carried them and no
+    predicate could compare text, so a cross-method energy difference was
+    undetectable by the host."""
+
+    from chemsmart.analysis.result_readers import reader_for
+    from chemsmart.io.orca.output import ORCAOutput
+
+    reader = reader_for("orca")
+    output = ORCAOutput(filename="tests/data/ORCATests/outputs/KOH.out")
+    assert reader.read(output, "functional")[0] == "b3lyp"
+    assert reader.read(output, "basis")[0] == "def2-svp"
+    assert reader.read(output, "converged")[0] == 1
+    for jobtype in ("sp", "opt", "ts"):
+        declared = reader.selectors_for_jobtype(jobtype) or ()
+        assert "functional" in declared and "basis" in declared
+
+
+def test_all_equal_text_passes_one_identity_and_fails_two():
+    from chemsmart.agent.scientific_validation import _evaluate_rule
+    from chemsmart.analysis.result_quantities import (
+        DIMENSIONLESS,
+        make_quantity_value,
+    )
+
+    def _text(quantity_id, value):
+        return make_quantity_value(
+            quantity_id=quantity_id,
+            source_value=value,
+            source_unit="",
+            value=value,
+            unit="",
+            dimension=DIMENSIONLESS,
+            evidence_ref="artifact:test#" + "0" * 64,
+            data_kind="text",
+        )
+
+    class _Rule:
+        rule_id = "same-method"
+        predicate = "all_equal_text"
+        input_ids = ("a", "b")
+        threshold = None
+        expected_count = None
+        unit = ""
+
+    same = {
+        "a": ("r1", _text("m-a", "b3lyp")),
+        "b": ("r2", _text("m-b", "B3LYP")),
+    }
+    observed, passed = None, None
+    result = _evaluate_rule(rule=_Rule(), inputs=same)
+    # _evaluate_rule returns (observed, passed) or a result object; accept
+    # both shapes by duck-typing.
+    if isinstance(result, tuple):
+        observed, passed = result
+    else:
+        observed, passed = result.observed_value, result.passed
+    assert observed == 1 and passed
+
+    different = {
+        "a": ("r1", _text("m-a", "b3lyp")),
+        "b": ("r2", _text("m-b", "wb97x-d3bj")),
+    }
+    result = _evaluate_rule(rule=_Rule(), inputs=different)
+    if isinstance(result, tuple):
+        observed, passed = result
+    else:
+        observed, passed = result.observed_value, result.passed
+    assert observed == 2 and not passed

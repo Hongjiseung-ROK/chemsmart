@@ -117,6 +117,10 @@ SELECTOR_UNITS = {
     "trajectory_connectivity_changed": "",
     "irc_direction": "",
     "solvation_model": "",
+    "functional": "",
+    "ab_initio": "",
+    "basis": "",
+    "converged": "1",
     "solvent": "",
 }
 
@@ -760,6 +764,59 @@ def _orca_channel_frontier(output: Any, channel: str, occupied: bool) -> float:
     return max(values) if occupied else min(values)
 
 
+def _route_functional(output: Any) -> str:
+    """The DFT functional named in the echoed route; a semantic identity.
+
+    Post-HF results record no functional -- that identity is ``ab_initio``.
+    Refusing here, rather than returning an empty string, keeps "which
+    method produced this number" a fact the host can compare across a
+    series instead of a blank that equals every other blank.
+    """
+
+    value = getattr(output, "functional", None)
+    if not value:
+        raise MissingQuantityError(
+            "this result records no DFT functional in its route; a post-HF "
+            "method identity is read by 'ab_initio'"
+        )
+    return str(value)
+
+
+def _route_ab_initio(output: Any) -> str:
+    value = getattr(output, "ab_initio", None)
+    if not value:
+        raise MissingQuantityError(
+            "this result records no post-HF method in its route; a DFT "
+            "functional identity is read by 'functional'"
+        )
+    return str(value)
+
+
+def _route_basis(output: Any) -> str:
+    value = getattr(output, "basis", None)
+    if not value:
+        raise MissingQuantityError(
+            "this result records no basis set in its echoed route"
+        )
+    return str(value)
+
+
+def _optimization_converged(output: Any) -> int:
+    """1 when the program printed its optimization-converged marker.
+
+    ``None`` from the parser means the log carries no such marker at all --
+    an unconverged or non-optimizing run -- and extraction refuses rather
+    than manufacturing a 0 that would read as an observed failure.
+    """
+
+    value = getattr(output, "converged", None)
+    if value is None:
+        raise MissingQuantityError(
+            "this result records no optimization convergence marker"
+        )
+    return int(bool(value))
+
+
 def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
     accessors = _text_output_accessors()
     accessors.update(
@@ -845,6 +902,10 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "auxiliary_basis": _orca_auxiliary_basis,
             "auxiliary_basis_role": _orca_auxiliary_basis_role,
             "solvation_model": _orca_solvation_model,
+            "functional": _route_functional,
+            "ab_initio": _route_ab_initio,
+            "basis": _route_basis,
+            "converged": _optimization_converged,
             "solvent": _orca_solvent,
             "dipole_moment": lambda output: [
                 float(item)
@@ -1053,6 +1114,9 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                 _trajectory_connectivity_changed
             ),
             "irc_direction": _irc_direction,
+            "functional": _route_functional,
+            "ab_initio": _route_ab_initio,
+            "basis": _route_basis,
         }
     )
     return accessors
@@ -1209,7 +1273,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 # log-native path route (ORCA's IRC PATH SUMMARY table) is
                 # future parser work.
                 (
+                    "ab_initio",
+                    "basis",
                     "charge",
+                    "functional",
                     "irc_direction",
                     "multiplicity",
                     "solvation_model",
@@ -1219,20 +1286,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "opt",
                 (
-                    "alpha_homo",
-                    "alpha_lumo",
-                    "beta_homo",
-                    "beta_lumo",
-                    "charge",
-                    "connectivity",
-                    "correlation_energy",
-                    "dipole_moment",
-                    "dipole_moment_magnitude",
-                    "dispersion_energy",
-                    "effective_multiplicity",
-                    "energies",
-                    "energy",
-                    "gap",
                     # Printed thermochemistry is deliberately not
                     # declared for ORCA: 6.x applies quasi-RRHO entropy
                     # by default with no keyword, while the typed
@@ -1240,6 +1293,24 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     # convention its receipt states and refuses
                     # imaginary modes the printed value silently drops.
                     # One free-energy route, gated and visible.
+                    "ab_initio",
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "basis",
+                    "beta_homo",
+                    "beta_lumo",
+                    "charge",
+                    "connectivity",
+                    "converged",
+                    "correlation_energy",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "dispersion_energy",
+                    "effective_multiplicity",
+                    "energies",
+                    "energy",
+                    "functional",
+                    "gap",
                     "homo",
                     "lumo",
                     "multiplicity",
@@ -1301,8 +1372,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "sp",
                 (
+                    "ab_initio",
                     "alpha_homo",
                     "alpha_lumo",
+                    "basis",
                     "beta_homo",
                     "beta_lumo",
                     "charge",
@@ -1314,6 +1387,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "effective_multiplicity",
                     "energies",
                     "energy",
+                    "functional",
                     "gap",
                     "homo",
                     "lumo",
@@ -1331,7 +1405,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "td",
                 (
+                    "ab_initio",
                     "absorption_wavelengths",
+                    "basis",
                     "charge",
                     "connectivity",
                     "dipole_moment",
@@ -1345,6 +1421,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "excited_state_manifold_roots",
                     "excited_state_multiplicities",
                     "excited_state_spin_square",
+                    "functional",
                     "multiplicity",
                     "oscillator_strengths",
                     "positions",
@@ -1362,19 +1439,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "ts",
                 (
-                    "alpha_homo",
-                    "alpha_lumo",
-                    "beta_homo",
-                    "beta_lumo",
-                    "charge",
-                    "connectivity",
-                    "dipole_moment",
-                    "dipole_moment_magnitude",
-                    "dispersion_energy",
-                    "effective_multiplicity",
-                    "energies",
-                    "energy",
-                    "gap",
                     # Printed thermochemistry is deliberately not
                     # declared for ORCA: 6.x applies quasi-RRHO entropy
                     # by default with no keyword, while the typed
@@ -1382,6 +1446,23 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     # convention its receipt states and refuses
                     # imaginary modes the printed value silently drops.
                     # One free-energy route, gated and visible.
+                    "ab_initio",
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "basis",
+                    "beta_homo",
+                    "beta_lumo",
+                    "charge",
+                    "connectivity",
+                    "converged",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "dispersion_energy",
+                    "effective_multiplicity",
+                    "energies",
+                    "energy",
+                    "functional",
+                    "gap",
                     "homo",
                     "lumo",
                     "multiplicity",
@@ -1418,6 +1499,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "opt",
                 (
+                    "ab_initio",
+                    "basis",
                     "charge",
                     "connectivity",
                     "dipole_moment",
@@ -1425,6 +1508,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "effective_multiplicity",
                     "energies",
                     "energy",
+                    "functional",
                     "gibbs_free_energy",
                     "multiplicity",
                     "positions",
@@ -1441,7 +1525,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "sp",
                 (
+                    "ab_initio",
                     "absorption_wavelengths",
+                    "basis",
                     "charge",
                     "connectivity",
                     "dipole_moment",
@@ -1453,6 +1539,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "excited_state_indices",
                     "excited_state_labels",
                     "excited_state_spin_square",
+                    "functional",
                     "multiplicity",
                     "oscillator_strengths",
                     "positions",
@@ -1468,6 +1555,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "ts",
                 (
+                    "ab_initio",
+                    "basis",
                     "charge",
                     "connectivity",
                     "dipole_moment",
@@ -1475,6 +1564,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "effective_multiplicity",
                     "energies",
                     "energy",
+                    "functional",
                     "gibbs_free_energy",
                     "multiplicity",
                     "positions",
@@ -1556,6 +1646,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
 
 #: Physical dimension of each selector, in the shared quantity vocabulary.
 _SELECTOR_DIMENSIONS = {
+    "functional": "DIMENSIONLESS",
+    "ab_initio": "DIMENSIONLESS",
+    "basis": "DIMENSIONLESS",
+    "converged": "DIMENSIONLESS",
     "absorption_wavelengths": "LENGTH",
     "energy": "ENERGY",
     "energies": "ENERGY",
@@ -1620,6 +1714,9 @@ _SELECTOR_DIMENSIONS = {
 _TEXT_SELECTORS = frozenset(
     {
         "irc_direction",
+        "functional",
+        "ab_initio",
+        "basis",
         "auxiliary_basis",
         "auxiliary_basis_role",
         "solvation_model",
@@ -1633,6 +1730,7 @@ _TEXT_VECTOR_SELECTORS = frozenset(
 _INTEGER_SELECTORS = frozenset(
     {
         "charge",
+        "converged",
         "multiplicity",
         "trajectory_frame_count",
         "trajectory_connectivity_changed",

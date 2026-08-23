@@ -1927,6 +1927,7 @@ def _analysis_intent_node_schema() -> dict:
                             "type": "string",
                             "enum": [
                                 "all_equal",
+                                "all_equal_text",
                                 "all_finite",
                                 "count_equals",
                                 "maximum_absolute_less_equal",

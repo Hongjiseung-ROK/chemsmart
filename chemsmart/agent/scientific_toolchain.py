@@ -44,6 +44,7 @@ ANALYSIS_INTENT_SUPPORT_STATES = ("blocked_unsupported", "planned")
 RESULT_ARTIFACT_ANALYSIS_KINDS = ("result_extraction", "thermochemistry")
 ANALYSIS_VALIDATION_PREDICATES = (
     "all_equal",
+    "all_equal_text",
     "all_finite",
     "count_equals",
     "maximum_absolute_less_equal",

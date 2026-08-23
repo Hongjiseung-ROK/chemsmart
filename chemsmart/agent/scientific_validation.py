@@ -310,6 +310,26 @@ def _evaluate_rule(
         reference = flattened[0]
         observed = max(abs(value - reference) for value in flattened)
         passed = observed == 0.0
+    elif predicate == "all_equal_text":
+        # Method-identity discipline: "the same functional and basis across
+        # the series" was previously a hope -- text identities were parsed
+        # but no predicate could compare them, so a cross-method energy
+        # difference was undetectable by the host.  Observed value is the
+        # number of distinct texts; the rule passes only when it is one.
+        texts = []
+        for quantity in quantities:
+            if quantity.data_kind not in {"text", "text_vector"}:
+                raise ContractError(
+                    "all_equal_text compares text identities; input "
+                    f"{quantity.quantity_id!r} is {quantity.data_kind or 'numeric'!r}"
+                )
+            value = quantity.value
+            if isinstance(value, (list, tuple)):
+                texts.extend(str(item).strip().casefold() for item in value)
+            else:
+                texts.append(str(value).strip().casefold())
+        observed = len(set(texts))
+        passed = observed == 1
     elif predicate == "minimum_greater_equal":
         flattened = tuple(
             value
