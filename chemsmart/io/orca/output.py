@@ -1075,6 +1075,26 @@ class ORCAOutput(ORCAFileMixin):
                 return True
         return None
 
+    @property
+    def irc_converged(self):
+        """Whether every IRC branch in this log formally converged.
+
+        Both phrasings are pinned to observed artifacts: a converged branch
+        prints "THE IRC HAS CONVERGED" (once per direction in a
+        direction-both run) and an exhausted one prints "MAXIMUM NUMBER OF
+        ITERATIONS REACHED - STOPPING IRC RUN".  Any exhausted branch makes
+        the whole observation False; no marker at all returns None, an
+        absent fact rather than a manufactured verdict.
+        """
+
+        saw_converged = False
+        for line in self.contents:
+            if "MAXIMUM NUMBER OF ITERATIONS REACHED" in line:
+                return False
+            if "THE IRC HAS CONVERGED" in line:
+                saw_converged = True
+        return True if saw_converged else None
+
     @cached_property
     def all_structures(self):
         """Obtain all structures in ORCA output file,

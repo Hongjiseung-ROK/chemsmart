@@ -200,3 +200,47 @@ def test_all_equal_text_passes_one_identity_and_fails_two():
     else:
         observed, passed = result.observed_value, result.passed
     assert observed == 2 and not passed
+
+
+def test_irc_convergence_is_a_typed_quantity_pinned_to_observed_phrasings():
+    """Added only after both phrasings were observed in real artifacts: the
+    first Agent-executed IRC stopped at ORCA's default iteration limit and
+    validated with nothing typed able to see it; the re-run converged and
+    printed the marker once per direction."""
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    class _Log:
+        def __init__(self, *lines):
+            self.contents = lines
+            self.jobtype = "irc"
+
+        @property
+        def irc_converged(self):
+            saw = False
+            for line in self.contents:
+                if "MAXIMUM NUMBER OF ITERATIONS REACHED" in line:
+                    return False
+                if "THE IRC HAS CONVERGED" in line:
+                    saw = True
+            return True if saw else None
+
+    reader = reader_for("orca")
+    converged = _Log(
+        "                      ***            THE IRC HAS CONVERGED"
+        "          ***",
+        "                      ***            THE IRC HAS CONVERGED"
+        "          ***",
+    )
+    exhausted = _Log(
+        "         *  MAXIMUM NUMBER OF ITERATIONS REACHED - STOPPING IRC"
+        " RUN  *",
+    )
+    assert reader.read(converged, "irc_converged")[0] == 1
+    assert reader.read(exhausted, "irc_converged")[0] == 0
+    assert "irc_converged" in (reader.selectors_for_jobtype("irc") or ())
+
+    import pytest
+
+    with pytest.raises(Exception, match="no IRC convergence marker"):
+        reader.read(_Log("nothing relevant"), "irc_converged")

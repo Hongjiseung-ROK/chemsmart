@@ -121,6 +121,7 @@ SELECTOR_UNITS = {
     "ab_initio": "",
     "basis": "",
     "converged": "1",
+    "irc_converged": "1",
     "solvent": "",
 }
 
@@ -808,6 +809,23 @@ def _route_basis(output: Any) -> str:
     return str(value)
 
 
+def _irc_run_converged(output: Any) -> int:
+    """1 only when every IRC branch printed its convergence marker.
+
+    The first Agent-executed IRC stopped at ORCA's default iteration limit
+    and validated with nothing typed able to see it; this selector was
+    added only after both phrasings -- converged and exhausted -- were
+    observed in real artifacts.
+    """
+
+    value = getattr(output, "irc_converged", None)
+    if value is None:
+        raise MissingQuantityError(
+            "this result records no IRC convergence marker"
+        )
+    return int(bool(value))
+
+
 def _optimization_converged(output: Any) -> int:
     """1 when the program printed its optimization-converged marker.
 
@@ -913,6 +931,7 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
             "converged": _optimization_converged,
+            "irc_converged": _irc_run_converged,
             "solvent": _orca_solvent,
             "dipole_moment": lambda output: [
                 float(item)
@@ -1337,6 +1356,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "basis",
                     "charge",
                     "functional",
+                    "irc_converged",
                     "irc_direction",
                     "multiplicity",
                     "solvation_model",
@@ -1719,6 +1739,7 @@ _SELECTOR_DIMENSIONS = {
     "ab_initio": "DIMENSIONLESS",
     "basis": "DIMENSIONLESS",
     "converged": "DIMENSIONLESS",
+    "irc_converged": "DIMENSIONLESS",
     "absorption_wavelengths": "LENGTH",
     "energy": "ENERGY",
     "energies": "ENERGY",
@@ -1800,6 +1821,7 @@ _INTEGER_SELECTORS = frozenset(
     {
         "charge",
         "converged",
+        "irc_converged",
         "multiplicity",
         "trajectory_frame_count",
         "trajectory_connectivity_changed",
