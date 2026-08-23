@@ -284,7 +284,10 @@ def test_a_failed_verdict_is_still_a_completed_analysis(tmp_path):
 
 
 def test_a_broken_analysis_input_skips_its_dependents(tmp_path):
-    toolchain = _chain(selector="definitely_not_a_selector")
+    # spin_square is declared for orca sp (so the plan gate admits it) and
+    # fails at runtime on this closed-shell result -- the shape this test
+    # needs now that an undeclared selector is refused at plan build.
+    toolchain = _chain(selector="spin_square")
     executor = _executor(tmp_path, toolchain)
 
     nodes, status, completions, report_path = executor._run_analysis_phase(
@@ -297,7 +300,7 @@ def test_a_broken_analysis_input_skips_its_dependents(tmp_path):
     assert states["check"] == "skipped"
     assert status == "partial"
     failed = next(node for node in nodes if node.node_id == "extract-sp")
-    assert "selector" in failed.reason
+    assert "<S^2>" in failed.reason
     # The partial envelope delivers the failure to the reader instead of
     # leaving an empty run directory.
     assert report_path.endswith("partial-analysis-report.md")

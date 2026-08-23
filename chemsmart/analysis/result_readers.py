@@ -1241,6 +1241,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "beta_lumo",
                     "charge",
                     "connectivity",
+                    "correlation_energy",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "dispersion_energy",
@@ -1312,6 +1313,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "beta_lumo",
                     "charge",
                     "connectivity",
+                    "correlation_energy",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "dispersion_energy",
@@ -1670,6 +1672,39 @@ def extract_logged_quantities(
             "terminated program result"
         )
     evidence_ref = f"artifact:{request.artifact_id}#{request.artifact_sha256}"
+    # The declaration gate.  A selector declared for a jobtype is a semantic
+    # claim; until this check the registry was consulted only by the pre-plan
+    # capability query, so an undeclared selector still extracted -- which is
+    # how an IRC log's starting structure was delivered labeled as both path
+    # endpoints, and how a scan's optimizer trace could stand in for its
+    # surface.  A reader that declares no jobtype coverage at all (the xyz
+    # reader over registered geometry artifacts) stays ungated: its values
+    # carry no jobtype semantics to misread.
+    if reader.jobtype_selectors:
+        jobtype = str(getattr(output, "jobtype", "") or "").casefold()
+        declared = reader.selectors_for_jobtype(jobtype)
+        if declared is None:
+            raise rq.QuantityExtractionError(
+                f"{request.program} declares no selector coverage for "
+                f"jobtype {jobtype or 'unknown'!r}; declared jobtypes: "
+                f"{sorted(j for j, _ in reader.jobtype_selectors)}. What an "
+                "undeclared jobtype's printed values mean has not been "
+                "audited, so nothing is extracted from it."
+            )
+        undeclared = sorted(
+            {
+                item.selector
+                for item in request.selectors
+                if item.selector not in declared
+            }
+        )
+        if undeclared:
+            raise rq.QuantityExtractionError(
+                f"selector(s) {undeclared} are not declared for "
+                f"{request.program} jobtype {jobtype!r}; a declaration is a "
+                "semantic claim about what the value means for this job "
+                f"type. Declared here: {sorted(declared)}"
+            )
     quantities = []
     for selector in request.selectors:
         try:

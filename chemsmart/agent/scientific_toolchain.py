@@ -629,6 +629,56 @@ def build_scientific_toolchain_plan(
                     "calculation dependency must name a calculation node"
                 )
             dependencies[node.node_id].add(dependency)
+    for node in analyses:
+        # The plan-time half of the declaration gate.  A selector declared
+        # for a jobtype is a semantic claim; an extraction that asks a
+        # calculation's result for an undeclared selector would either be
+        # refused after the engines have run (the late-check class that lost
+        # completed work before) or, worse, deliver a value whose meaning
+        # for that jobtype was never audited -- an IRC log's starting
+        # structure labeled as path endpoints.  Both facts are on hand when
+        # the plan is built, so the refusal happens here, naming what IS
+        # declared so the session can repair in the same turn.
+        if node.analysis_kind != "result_extraction":
+            continue
+        producers = {
+            item.producer_node_id
+            for item in node.inputs
+            if not isinstance(item, RegisteredResultInputIntentV1)
+            and item.producer_node_id in calculation_by_id
+        }
+        for producer_id in sorted(producers):
+            calculation = calculation_by_id[producer_id]
+            from chemsmart.analysis.result_readers import reader_for
+
+            reader = reader_for(calculation.program)
+            if reader is None or not reader.jobtype_selectors:
+                continue
+            declared = reader.selectors_for_jobtype(calculation.jobtype)
+            if declared is None:
+                raise ScientificToolchainContractError(
+                    f"extraction node {node.node_id!r} reads "
+                    f"{calculation.program!r} jobtype "
+                    f"{calculation.jobtype!r}, which declares no selector "
+                    "coverage; declared jobtypes: "
+                    f"{sorted(j for j, _ in reader.jobtype_selectors)}"
+                )
+            undeclared = sorted(
+                {
+                    item.selector
+                    for item in node.selectors
+                    if item.selector not in declared
+                }
+            )
+            if undeclared:
+                raise ScientificToolchainContractError(
+                    f"extraction node {node.node_id!r} requests selector(s) "
+                    f"{undeclared} that are not declared for "
+                    f"{calculation.program!r} jobtype "
+                    f"{calculation.jobtype!r}; a declaration is a semantic "
+                    "claim about what the value means for this job type. "
+                    f"Declared here: {sorted(declared)}"
+                )
     normalized_analyses: list[AnalysisNodeIntentV1] = []
     for node in analyses:
         effective_dependencies = set(node.dependencies)
