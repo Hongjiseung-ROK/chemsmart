@@ -3937,9 +3937,17 @@ def build_frozen_workflow_approval(
         and edge.target_node_id not in non_executable
     )
     data_targets = {edge.target_node_id for edge in data_edges}
-    if len(data_targets) != len(data_edges):
+    consumer_roles = tuple(
+        (edge.target_node_id, edge.consumer_input_id) for edge in data_edges
+    )
+    if len(set(consumer_roles)) != len(consumer_roles):
+        # Distinct roles on one node are distinct CLI parameters -- an IRC
+        # takes a geometry for `filename` and a Hessian for `hess_filename`
+        # from the same validated producer.  What one invocation cannot
+        # admit is two future artifacts competing for one parameter.
         raise ContractError(
-            "one CLI invocation cannot admit multiple future molecular inputs"
+            "one CLI parameter cannot admit two future producer inputs; "
+            "each consumer role on a node takes exactly one data edge"
         )
     if unresolved != data_targets:
         raise ContractError(

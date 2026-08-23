@@ -35,7 +35,8 @@ TS Options
 
       -  Hessian filename. In agent workflows this option is also the declared consumer role of the
          ``validated_producer_orca_hessian`` data edge, with ``inhess: true`` carried as method configuration in the
-         project ``ts`` section; a workflow consuming that edge has not yet reached an approved bundle in this release.
+         project ``ts`` section; a workflow consuming that edge alongside the producer's geometry freezes into the
+         single approval, and none has yet executed here.
 
    -  -  ``--numhess/--no-numhess``
       -  flag

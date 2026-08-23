@@ -39,12 +39,12 @@ beginning far from that geometry's current value may be refused by the program b
 
 ORCA ``irc`` is qualified at the program level on a qualified target: run through the ChemSmart CLI, it consumes the
 transition state's own analytic Hessian, and the reaction path it writes is read from the trajectory artifact rather
-than inferred from the job type. An IRC that consumes a producer's Hessian inside one Agent workflow does not yet reach
-an approved bundle, so in-workflow TS-to-IRC handoff is not described as completed Agent execution. ORCA ``neb`` and
-``modred`` remain planning and preview paths until the selected target is qualified. Gaussian Agent execution is not
-claimed in this release; Gaussian support covers project YAML, generated native input, safe preview, and typed analysis
-of user-supplied completed outputs. GPU4PySCF remains a configuration and preview path until a compatible GPU target is
-qualified.
+than inferred from the job type. An IRC may consume a producer's geometry and Hessian in one Agent workflow — both
+bindings freeze into the single approval — but no such handoff has completed here, so it is not described as completed
+Agent execution. ORCA ``neb`` and ``modred`` remain planning and preview paths until the selected target is qualified.
+Gaussian Agent execution is not claimed in this release; Gaussian support covers project YAML, generated native input,
+safe preview, and typed analysis of user-supplied completed outputs. GPU4PySCF remains a configuration and preview path
+until a compatible GPU target is qualified.
 
 These boundaries do not alter the wider human ``chemsmart run`` and ``chemsmart sub`` CLI. They also do not imply that
 an executable is available on the current machine. Every approved CPU run still needs an observed program environment
@@ -367,6 +367,6 @@ than a relaxed one, and reports whether the result is one species or several sep
 an electronic state, because removing a hydrogen gives a radical or an anion depending on where its electron went. The
 selection rule ``validated_producer_orca_hessian`` declares a validated frequency-bearing ORCA producer as a legal
 source for a transition-state search's ``--inhess-filename`` starting Hessian; the starting Hessian may carry any
-imaginary-mode count, and the observed count is recorded in the handoff receipt. A workflow consuming this rule has not
-yet reached an approved bundle in this release, so producer-Hessian seeding is planning and preview support, not
-completed Agent execution.
+imaginary-mode count, and the observed count is recorded in the handoff receipt. A workflow consuming this rule freezes
+into an approved bundle when the geometry also arrives from the producer; none has yet executed here, so
+producer-Hessian seeding is not described as completed Agent execution.

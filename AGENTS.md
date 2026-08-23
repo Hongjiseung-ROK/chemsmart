@@ -46,13 +46,13 @@ minima is an observation about that trajectory, never an inference from the
 job type. An IRC node whose geometry and Hessian are both supplied directly
 is declared executable and reviewable, and that declaration necessarily
 precedes the first approved run; no Agent-approved IRC has completed here,
-so it remains a declaration rather than an observed execution. An IRC that
-consumes a producer's Hessian inside one workflow currently reaches no
-approved bundle at all: the bounded review requires the producer geometry
-edge alongside the Hessian role, bundle construction admits only one
-producer data edge per node, and no DAG shape satisfies both layers. That
-contradiction is recorded as a defect of this release, not framed as a
-capability.
+so it remains a declaration rather than an observed execution. An IRC consuming
+a producer's geometry and Hessian in one workflow freezes both bindings
+into the single approval: admission keys each producer data edge by its
+consumer role, so distinct roles on one node coexist while one role never
+admits two edges, and execution readiness demands every binding before
+launch. No Agent-approved TS-to-IRC handoff has yet completed, so that
+chain is mechanically admitted intent, not observed execution.
 
 ORCA ``modred`` is declared for planning, preview, and native-input generation
 only. Constrained optimisation is expressible and previewable, and no
@@ -90,12 +90,13 @@ declares a validated frequency-bearing ORCA producer as a legal source for
 an ORCA transition-state search's ``--inhess-filename`` starting Hessian,
 and the materialised input carries the file natively; the starting Hessian
 may carry any imaginary-mode count and the observed count is recorded.
-Declaration is not passage: a consuming workflow has not yet reached an
-approved bundle through this rule — with the geometry supplied directly the
-bounded review refuses the lone Hessian edge, and with both inputs arriving
-from producers bundle construction refuses the second data edge — so
-producer-Hessian TS seeding is expressible, previewable intent pending
-repair of that contradiction, not completed Agent execution. Wavefunction
+Declaration is not completion: when the geometry and the Hessian both
+arrive as producer edges the pair freezes into one approval, while a lone
+Hessian edge on a directly supplied geometry is still refused by the
+bounded review, so the reachable route is the producer pair. No workflow
+has yet executed through this rule, and producer-Hessian TS seeding
+therefore remains admitted, previewable intent rather than completed Agent
+execution. Wavefunction
 (gbw) reuse has no CLI surface and is not claimed.
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
