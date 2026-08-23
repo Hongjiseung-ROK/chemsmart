@@ -402,7 +402,10 @@ def _validate_typed_receipt_payload(
         SCIENTIFIC_VALIDATION_EVALUATED: ("status", {"evaluated"}),
         ANALYSIS_COMPLETION_EVALUATED: (
             "status",
-            {"passed", "blocked"},
+            # "partial" is the third representable truth: an approved chain
+            # whose engines validated but whose analysis did not all execute,
+            # bound with findings naming exactly what did not run.
+            {"passed", "blocked", "partial"},
         ),
         TASK_DEPENDENCY_CONTEXT_SELECTED: (
             "status",
@@ -609,12 +612,15 @@ def _validate_typed_receipt_payload(
                     "analysis completion policy digest mismatch"
                 )
         source_receipts = tuple(payload.get("source_receipt_sha256s") or ())
-        if not source_receipts or source_receipts != tuple(
-            sorted(set(source_receipts))
-        ):
+        if source_receipts != tuple(sorted(set(source_receipts))):
             raise ContractError(
                 "analysis completion requires sorted source receipts"
             )
+        # A partial completion may bind zero receipts -- its first analysis
+        # node can fail before any receipt lands, and the findings are then
+        # the whole content.  A green completion still requires at least one.
+        if not source_receipts and payload.get("status") != "partial":
+            raise ContractError("analysis completion requires source receipts")
         for digest in source_receipts:
             require_sha256(str(digest), "source_receipt_sha256")
         if payload.get("status") == "passed" and (

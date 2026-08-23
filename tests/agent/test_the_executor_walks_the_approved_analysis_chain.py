@@ -296,10 +296,12 @@ def test_a_broken_analysis_input_skips_its_dependents(tmp_path):
     assert states["to-kcal"] == "skipped"
     assert states["check"] == "skipped"
     assert status == "partial"
-    assert completions == ()
-    assert report_path == ""
     failed = next(node for node in nodes if node.node_id == "extract-sp")
     assert "selector" in failed.reason
+    # The partial envelope delivers the failure to the reader instead of
+    # leaving an empty run directory.
+    assert report_path.endswith("partial-analysis-report.md")
+    assert len(completions) == 1
 
 
 def test_blocked_analysis_intent_stays_visible_not_executed(tmp_path):
@@ -437,7 +439,17 @@ def test_an_absent_quantity_settles_the_node_instead_of_crashing(tmp_path):
     assert "no <S^2>" in settled["extract-spin"].reason
     assert settled["claims"].state == "skipped"
     assert status == "partial"
-    assert report_path == ""
+    # The envelope delivers the exemplary refusal to the reader: findings
+    # name what did not run and the footer names the recovery act, while no
+    # claims heading appears because nothing reached claim standing.
+    assert report_path.endswith("partial-analysis-report.md")
+    report = Path(report_path).read_text()
+    assert "Partial analysis: 0 of 2" in report
+    assert "no <S^2>" in report
+    assert "Recovery:" in report
+    from chemsmart.agent.report_format import CLAIMS_HEADING
+
+    assert CLAIMS_HEADING not in report
 
 
 def test_a_refused_completion_is_recorded_not_crashed(tmp_path):
@@ -492,8 +504,6 @@ def test_a_refused_completion_is_recorded_not_crashed(tmp_path):
         record.state in {"executed", "blocked_unsupported"} for record in nodes
     )
     assert status == "partial"
-    assert receipts == ()
-    assert report_path == ""
     refusals = [
         event
         for event in executor.host.event_store.read_events()
@@ -501,3 +511,30 @@ def test_a_refused_completion_is_recorded_not_crashed(tmp_path):
     ]
     assert len(refusals) == 1
     assert "at most one claim record" in refusals[0].payload["reason"]
+    # The envelope still delivers: a partial report rendering BOTH validated
+    # claim records, each under its own record label, with the refusal named.
+    assert report_path.endswith("partial-analysis-report.md")
+    report = Path(report_path).read_text()
+    assert "at most one claim record" in report
+    assert report.count("Claim record:") == 2
+    assert len(receipts) == 1
+
+
+def test_a_successful_report_shows_its_validation_verdicts(tmp_path):
+    """Verdicts used to survive only as prose on settled events; a reader
+    never saw them even when every rule passed. The report carries them."""
+
+    toolchain = _chain()
+    executor = _executor(tmp_path, toolchain)
+
+    nodes, status, receipts, report_path = executor._run_analysis_phase(
+        toolchain
+    )
+
+    assert status == "completed"
+    report = Path(report_path).read_text()
+    from chemsmart.agent.report_format import VERDICTS_HEADING
+
+    assert VERDICTS_HEADING in report
+    assert "all_finite" in report
+    assert "| passed |" in report

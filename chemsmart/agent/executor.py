@@ -971,6 +971,15 @@ class ApprovedWorkflowExecutor:
         analysis_status = "completed" if executed_all else "partial"
         completion_receipts: tuple[str, ...] = ()
         report_path = ""
+
+        def _write_report(report: str, filename: str) -> str:
+            report_directory = self.run_directory / "analysis"
+            report_directory.mkdir(parents=True, exist_ok=True)
+            target = report_directory / filename
+            target.write_text(report + "\n", encoding="utf-8")
+            return str(target)
+
+        partial_findings: tuple[str, ...] = ()
         if executed_all and ledger:
             try:
                 completion_receipts = (
@@ -986,9 +995,14 @@ class ApprovedWorkflowExecutor:
                 # Every node executed and then the completion binding or the
                 # report renderer refused.  A crash here discards the whole
                 # chain's receipts and says nothing; the refusal is instead
-                # recorded as durable evidence and the status stays partial.
+                # recorded as durable evidence, the status drops to partial,
+                # and the partial envelope below still delivers what the
+                # chain validated.
                 completion_receipts = ()
                 analysis_status = "partial"
+                partial_findings = (
+                    "completion or report rendering refused: " + str(exc),
+                )
                 self.host.event_store.append(
                     turn_id="exec-analysis-report",
                     kind=(
@@ -1003,11 +1017,9 @@ class ApprovedWorkflowExecutor:
                     ),
                 )
             else:
-                report_directory = self.run_directory / "analysis"
-                report_directory.mkdir(parents=True, exist_ok=True)
-                target = report_directory / "completed-analysis-report.md"
-                target.write_text(report + "\n", encoding="utf-8")
-                report_path = str(target)
+                report_path = _write_report(
+                    report, "completed-analysis-report.md"
+                )
                 self.host.event_store.append(
                     turn_id="exec-analysis-report",
                     kind=EventKind.WORKFLOW_ANALYSIS_REPORT_RENDERED.value,
@@ -1018,6 +1030,61 @@ class ApprovedWorkflowExecutor:
                     },
                     idempotency_key=(
                         "analysis-report:" + toolchain.plan_sha256
+                    ),
+                )
+        if analysis_status == "partial" and not report_path:
+            # The partial-failure envelope: bind the receipts that DID land
+            # plus findings naming every node that did not execute, and
+            # render them as evidence at their rung.  A reader gets what was
+            # validated with its limitation stated instead of nothing; no
+            # unvalidated number gains claim standing by appearing here.
+            findings = partial_findings or tuple(
+                f"{record.node_id} ({record.analysis_kind}): {record.state}"
+                + (f" -- {record.reason}" if record.reason else "")
+                for record in settled.values()
+                if record.state in {"failed", "skipped"}
+            )
+            try:
+                completion_receipts = (
+                    self.host.evaluate_partial_toolchain_completion(
+                        toolchain,
+                        source_receipt_sha256s=tuple(ledger),
+                        findings=findings,
+                    )
+                )
+                report = self.host.render_completed_analysis_report(
+                    completion_receipts[0]
+                )
+            except ContractError as exc:
+                completion_receipts = ()
+                self.host.event_store.append(
+                    turn_id="exec-analysis-report",
+                    kind=(
+                        EventKind.WORKFLOW_ANALYSIS_COMPLETION_REFUSED.value
+                    ),
+                    payload={
+                        "reason": str(exc),
+                        "toolchain_plan_sha256": toolchain.plan_sha256,
+                    },
+                    idempotency_key=(
+                        "partial-analysis-refused:" + toolchain.plan_sha256
+                    ),
+                )
+            else:
+                report_path = _write_report(
+                    report, "partial-analysis-report.md"
+                )
+                self.host.event_store.append(
+                    turn_id="exec-analysis-report",
+                    kind=EventKind.WORKFLOW_ANALYSIS_REPORT_RENDERED.value,
+                    payload={
+                        "completion_receipt_sha256": completion_receipts[0],
+                        "report_sha256": canonical_sha256(report),
+                        "toolchain_plan_sha256": toolchain.plan_sha256,
+                        "report_kind": "partial",
+                    },
+                    idempotency_key=(
+                        "partial-analysis-report:" + toolchain.plan_sha256
                     ),
                 )
         return (

@@ -173,11 +173,16 @@ from chemsmart.agent.report_format import (
     CONDITIONS_HEADING,
     DECISION_SECTIONS,
     EVIDENCE_COLUMN,
+    FINDINGS_HEADING,
     HOST_REPORT_TITLE,
     NO_DECISION_PREFIX,
+    PARTIAL_STATUS_PREFIX,
+    RECOVERY_PREFIX,
     SOURCE_RECEIPT_COLUMN,
+    SURVIVING_HEADING,
     THERMO_CONDITIONS_HEADING,
     TOOLCHAIN_PLAN_LABEL,
+    VERDICTS_HEADING,
 )
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.runtime.events import EventKind
@@ -6017,6 +6022,8 @@ class CommandCompiledToolHostV1:
         *,
         task_spec_sha256: str,
         source_receipt_sha256s: tuple[str, ...],
+        status: str = "passed",
+        findings: tuple[str, ...] = (),
     ) -> tuple[str, ...]:
         """Record one toolchain-as-policy completion receipt and its event."""
 
@@ -6028,8 +6035,8 @@ class CommandCompiledToolHostV1:
             "policy_sha256": plan.plan_sha256,
             "task_spec_sha256": task_spec_sha256,
             "source_receipt_sha256s": source_receipt_sha256s,
-            "status": "passed",
-            "findings": (),
+            "status": status,
+            "findings": tuple(findings),
         }
         completion = AnalysisCompletionReceiptV1(
             **body, receipt_sha256=canonical_sha256(body)
@@ -6049,7 +6056,7 @@ class CommandCompiledToolHostV1:
                 "task_spec_sha256": completion.task_spec_sha256,
                 "source_receipt_sha256s": completion.source_receipt_sha256s,
                 "status": completion.status,
-                "critical_finding_count": 0,
+                "critical_finding_count": len(completion.findings),
                 "completion_kind": "scientific_toolchain",
                 "record": completion_record,
             },
@@ -6098,6 +6105,47 @@ class CommandCompiledToolHostV1:
             plan,
             task_spec_sha256=task_spec_sha256,
             source_receipt_sha256s=receipts,
+        )
+
+    def evaluate_partial_toolchain_completion(
+        self,
+        plan: ScientificToolchainPlanV1,
+        *,
+        source_receipt_sha256s: tuple[str, ...],
+        findings: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        """Bind what an interrupted approved chain actually produced.
+
+        One benchmark lost 22 executed runs at this seam: engines validated,
+        receipts landed, a late analysis node refused, and the reader got
+        nothing.  A partial completion states the true outcome -- the
+        receipts that exist plus findings naming every node that did not
+        execute -- so the surviving evidence can be rendered without ever
+        promoting an unvalidated number to a claim.  The calculation gate is
+        the same as for a green completion; findings are mandatory.
+        """
+
+        for node_id in plan.calculation_node_ids:
+            receipt = self.execution_receipts.get(node_id)
+            if receipt is None or not bool(
+                getattr(receipt, "validated", False)
+            ):
+                raise ContractError(
+                    "partial toolchain completion requires every "
+                    f"calculation node validated; {node_id!r} is not"
+                )
+        if not findings:
+            raise ContractError(
+                "a partial toolchain completion must name its findings"
+            )
+        return self._record_toolchain_completion(
+            plan,
+            task_spec_sha256=self._resolve_task_spec_reference(
+                {}, "task_spec_sha256"
+            ),
+            source_receipt_sha256s=tuple(sorted(set(source_receipt_sha256s))),
+            status="partial",
+            findings=tuple(findings),
         )
 
     def completion_receipts_for_latest_preflight(self) -> tuple[str, ...]:
@@ -6530,8 +6578,13 @@ class CommandCompiledToolHostV1:
         if toolchain is not None:
             # The toolchain itself was the completion policy.  Claims are
             # rendered when a claim stage recorded them; a scientific decision
-            # is a session act and may legitimately not exist yet.
-            if len(claim_records) > 1 or len(decisions) > 1:
+            # is a session act and may legitimately not exist yet.  A green
+            # completion binds at most one of each; a partial completion
+            # renders every claim record that validated before the chain
+            # broke, each under its own record label.
+            if completion.status == "passed" and (
+                len(claim_records) > 1 or len(decisions) > 1
+            ):
                 raise ContractError(
                     "a toolchain completion binds at most one claim record "
                     "and one decision"
@@ -6539,7 +6592,9 @@ class CommandCompiledToolHostV1:
             return self._render_toolchain_analysis_report(
                 completion=completion,
                 toolchain=toolchain,
-                claims=claim_records[0] if claim_records else None,
+                claim_records=tuple(
+                    sorted(claim_records, key=lambda item: item.receipt_sha256)
+                ),
                 decision=decisions[0] if decisions else None,
             )
         if len(claim_records) != 1 or len(decisions) != 1:
@@ -6619,10 +6674,17 @@ class CommandCompiledToolHostV1:
         *,
         completion: AnalysisCompletionReceiptV1,
         toolchain: ScientificToolchainPlanV1,
-        claims: Any,
+        claim_records: tuple[Any, ...],
         decision: Any,
     ) -> str:
-        """Render an approved toolchain's executed analysis, decision or not."""
+        """Render an approved toolchain's executed analysis, decision or not.
+
+        A partial completion renders too: the headline states how much of
+        the chain executed, the findings name what did not and why, and the
+        receipts that survived are shown as evidence at their rung -- never
+        as claims.  The host renders no number without a typed receipt, and
+        an unvalidated value never gains claim standing by appearing here.
+        """
 
         lines = [
             HOST_REPORT_TITLE,
@@ -6630,6 +6692,22 @@ class CommandCompiledToolHostV1:
             f"{COMPLETION_RECEIPT_LABEL}: `{completion.receipt_sha256}`",
             f"{TOOLCHAIN_PLAN_LABEL}: `{toolchain.plan_sha256}`",
         ]
+        if completion.status == "partial":
+            total = len(toolchain.analysis_nodes)
+            unexecuted = len(completion.findings)
+            lines.extend(
+                (
+                    "",
+                    f"{PARTIAL_STATUS_PREFIX}: "
+                    f"{max(total - unexecuted, 0)} of {total} analysis "
+                    f"nodes executed; {len(claim_records)} claim record(s) "
+                    "rendered.",
+                    "",
+                    FINDINGS_HEADING,
+                    "",
+                )
+            )
+            lines.extend(f"- {finding}" for finding in completion.findings)
         conditions = tuple(
             (node.node_id, node.temperature_k, node.pressure_atm)
             for node in toolchain.analysis_nodes
@@ -6648,7 +6726,7 @@ class CommandCompiledToolHostV1:
             )
             for node_id, temperature, pressure in conditions:
                 lines.append(f"| {node_id} | `{temperature}` | `{pressure}` |")
-        if claims is not None:
+        for claims in claim_records:
             lines.extend(
                 (
                     "",
@@ -6669,6 +6747,106 @@ class CommandCompiledToolHostV1:
                 lines.append(
                     f"| {claim.claim_id} | `{display}` | {claim.display_unit} "
                     f"| `{claim.source_receipt_sha256}` |"
+                )
+        sources = set(completion.source_receipt_sha256s)
+        if completion.status == "partial":
+            survivors: list[tuple[str, Any, str, str, str]] = []
+            for digest in sorted(sources):
+                extraction = self.quantity_extractions.get(digest)
+                if extraction is not None:
+                    survivors.extend(
+                        (
+                            item.quantity_id,
+                            item.value,
+                            item.unit,
+                            "parsed",
+                            digest,
+                        )
+                        for item in extraction.quantities
+                    )
+                thermochemistry = self.thermochemistry_receipts.get(digest)
+                if thermochemistry is not None:
+                    survivors.extend(
+                        (
+                            item.quantity_id,
+                            item.value,
+                            item.unit,
+                            "derived",
+                            digest,
+                        )
+                        for item in thermochemistry.quantities
+                    )
+                expression = self.quantity_expression_receipts.get(digest)
+                if expression is not None:
+                    survivors.extend(
+                        (
+                            item.quantity_id,
+                            item.value,
+                            item.unit,
+                            "derived",
+                            digest,
+                        )
+                        for item in expression.outputs
+                    )
+            if survivors:
+                lines.extend(
+                    (
+                        "",
+                        SURVIVING_HEADING,
+                        "",
+                        "| Quantity | Value | Unit | Evidence rung | "
+                        f"{SOURCE_RECEIPT_COLUMN} |",
+                        "|---|---:|---|---|---|",
+                    )
+                )
+                for quantity_id, value, unit, rung, digest in survivors:
+                    display = json.dumps(
+                        canonical_data(value),
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    )
+                    lines.append(
+                        f"| {quantity_id} | `{display}` | {unit} | {rung} | "
+                        f"`{digest}` |"
+                    )
+        verdict_rows = []
+        for digest in sorted(sources):
+            validation = self.scientific_validation_receipts.get(digest)
+            if validation is None:
+                continue
+            for result in validation.rule_results:
+                verdict_rows.append(
+                    (
+                        validation.node_id,
+                        result.rule_id,
+                        result.predicate,
+                        result.observed_value,
+                        (
+                            result.threshold
+                            if result.threshold is not None
+                            else result.expected_count
+                        ),
+                        result.unit,
+                        "passed" if result.passed else "failed",
+                    )
+                )
+        if verdict_rows:
+            lines.extend(
+                (
+                    "",
+                    VERDICTS_HEADING,
+                    "",
+                    "| Node | Rule | Predicate | Observed | Bound | Unit | "
+                    "Verdict |",
+                    "|---|---|---|---:|---:|---|---|",
+                )
+            )
+            for row in verdict_rows:
+                node_id, rule_id, predicate, observed, bound, unit, word = row
+                lines.append(
+                    f"| {node_id} | {rule_id} | {predicate} | `{observed}` "
+                    f"| `{bound if bound is not None else ''}` | {unit} | "
+                    f"{word} |"
                 )
         if decision is not None:
             sections = tuple(
@@ -6697,6 +6875,18 @@ class CommandCompiledToolHostV1:
                     "a session act; this run executed extraction, "
                     "thermochemistry, expressions, validation verdicts, and "
                     "claim rendering only.",
+                )
+            )
+        if completion.status == "partial":
+            lines.extend(
+                (
+                    "",
+                    f"{RECOVERY_PREFIX}: the engine outputs and every "
+                    "receipt above are unchanged and remain readable. A "
+                    "later explicit analysis request -- a new session over "
+                    "this workspace planning an analysis-only toolchain on "
+                    "the registered results -- may re-extract, validate, "
+                    "and claim them without re-running any engine.",
                 )
             )
         return "\n".join(lines)

@@ -14,9 +14,15 @@ CLAIM_RECORD_LABEL = "Claim record"
 
 NO_DECISION_PREFIX = "Scientific decision: not recorded"
 
+PARTIAL_STATUS_PREFIX = "Partial analysis"
+
 CONDITIONS_HEADING = "## Task-owned conditions"
 THERMO_CONDITIONS_HEADING = "## Thermochemical conditions"
 CLAIMS_HEADING = "## Host-rendered numerical claims"
+FINDINGS_HEADING = "## Analysis nodes that did not execute"
+SURVIVING_HEADING = "## Surviving receipts (evidence, not claims)"
+VERDICTS_HEADING = "## Validation verdicts"
+RECOVERY_PREFIX = "Recovery"
 
 EVIDENCE_COLUMN = "Evidence"
 SOURCE_RECEIPT_COLUMN = "Source receipt"

@@ -439,10 +439,6 @@ class AnalysisCompletionReceiptV1:
             )
         require_sha256(self.policy_sha256, "policy_sha256")
         require_sha256(self.task_spec_sha256, "task_spec_sha256")
-        if not self.source_receipt_sha256s:
-            raise ContractError(
-                "analysis completion receipt requires source receipts"
-            )
         if self.source_receipt_sha256s != tuple(
             sorted(set(self.source_receipt_sha256s))
         ):
@@ -451,9 +447,30 @@ class AnalysisCompletionReceiptV1:
             )
         for digest in self.source_receipt_sha256s:
             require_sha256(digest, "source_receipt_sha256")
-        if self.status != "passed" or self.findings:
+        # A completion states the evaluation's true outcome.  Green ("passed")
+        # binds receipts and carries no findings.  "partial" is the other
+        # representable truth: some of an approved chain did not execute, and
+        # the findings name exactly what and why -- an unexplained partial is
+        # refused, and a green completion still cannot smuggle findings.  A
+        # partial chain may hold zero receipts (its first node failed); a
+        # green one may not.
+        if self.status == "passed":
+            if self.findings:
+                raise ContractError(
+                    "a passed analysis completion carries no findings"
+                )
+            if not self.source_receipt_sha256s:
+                raise ContractError(
+                    "analysis completion receipt requires source receipts"
+                )
+        elif self.status == "partial":
+            if not self.findings:
+                raise ContractError(
+                    "a partial analysis completion must name its findings"
+                )
+        else:
             raise ContractError(
-                "analysis completion receipt must represent a green evaluation"
+                "analysis completion status must be passed or partial"
             )
         body = _completion_receipt_body(self)
         if self.receipt_sha256 != canonical_sha256(body):
