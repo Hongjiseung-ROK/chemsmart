@@ -23,8 +23,9 @@ The production Agent supports:
 - inspection and typed analysis of supported results; and
 - explicitly approved execution on release-qualified CPU paths: ORCA
   single-points, optimization/frequency, transition-state, excited-state,
-  relaxed coordinate scans, intrinsic reaction coordinates, and serial DAG
-  workflows; PySCF ``sp/opt/hess``; and xTB ``sp/opt/hess``.
+  relaxed coordinate scans, and serial DAG workflows; PySCF ``sp/opt/hess``;
+  and xTB ``sp/opt/hess``. ORCA intrinsic reaction coordinates are qualified
+  at the program level only, as stated below.
 
 ORCA ``scan`` is qualified for approved execution: a relaxed torsional profile
 ran through the ordinary plan, preview, single human approval, and provider-free
@@ -33,15 +34,25 @@ analysis layer as any other result. A scan's driven coordinate is carried on the
 workflow node, not in project YAML, because it is a fact about this molecule in
 this calculation rather than reusable method rationale.
 
-ORCA ``irc`` is qualified for approved execution: a 1,2-hydrogen shift ran
-through the ChemSmart CLI on a qualification target, consuming the transition
-state's own analytic Hessian through the native ``%irc InitHess read`` route.
-ORCA writes the reaction path to an XYZ sidecar rather than into the log, so
-an IRC result declares the endpoint it converged to and the direction its
-input explicitly stated, while the path itself is read from the registered
-trajectory artifact. Whether a saddle connects two particular minima is
-therefore an observation about that trajectory, never an inference from the
-job type.
+ORCA ``irc`` execution is qualified at the program level, not yet as a
+completed Agent workflow: a 1,2-hydrogen shift ran through the ChemSmart CLI
+on a qualification target — no provider and no Agent session — consuming the
+transition state's own analytic Hessian through the native ``%irc InitHess
+read`` route. ORCA writes the reaction path to an XYZ sidecar rather than
+into the log, so an IRC result declares the endpoint it converged to and the
+direction its input explicitly stated, while the path itself is read from
+the registered trajectory artifact; whether a saddle connects two particular
+minima is an observation about that trajectory, never an inference from the
+job type. An IRC node whose geometry and Hessian are both supplied directly
+is declared executable and reviewable, and that declaration necessarily
+precedes the first approved run; no Agent-approved IRC has completed here,
+so it remains a declaration rather than an observed execution. An IRC that
+consumes a producer's Hessian inside one workflow currently reaches no
+approved bundle at all: the bounded review requires the producer geometry
+edge alongside the Hessian role, bundle construction admits only one
+producer data edge per node, and no DAG shape satisfies both layers. That
+contradiction is recorded as a defect of this release, not framed as a
+capability.
 
 ORCA ``modred`` is declared for planning, preview, and native-input generation
 only. Constrained optimisation is expressible and previewable, and no
@@ -74,11 +85,18 @@ so charge and multiplicity are bound explicitly afterwards and the consuming
 stage is a new workflow for review. Whether the result is one species or
 several separated pieces is recorded as an observation, not judged.
 
-A validated frequency-bearing ORCA producer may feed its Hessian to an ORCA
-transition-state search through the live ``--inhess-filename`` option under
-the third producer selection rule (``validated_producer_orca_hessian``); the
-starting Hessian may carry any imaginary-mode count and the observed count
-is recorded. Wavefunction (gbw) reuse has no CLI surface and is not claimed.
+The third producer selection rule (``validated_producer_orca_hessian``)
+declares a validated frequency-bearing ORCA producer as a legal source for
+an ORCA transition-state search's ``--inhess-filename`` starting Hessian,
+and the materialised input carries the file natively; the starting Hessian
+may carry any imaginary-mode count and the observed count is recorded.
+Declaration is not passage: a consuming workflow has not yet reached an
+approved bundle through this rule — with the geometry supplied directly the
+bounded review refuses the lone Hessian edge, and with both inputs arriving
+from producers bundle construction refuses the second data edge — so
+producer-Hessian TS seeding is expressible, previewable intent pending
+repair of that contradiction, not completed Agent execution. Wavefunction
+(gbw) reuse has no CLI surface and is not claimed.
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed

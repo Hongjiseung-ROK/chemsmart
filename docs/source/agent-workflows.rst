@@ -37,12 +37,14 @@ either. A completed scan's surface is read into typed quantities through the ord
 The first constrained optimisation of a scan imposes the driven coordinate on the geometry supplied, so a range
 beginning far from that geometry's current value may be refused by the program before any optimisation runs.
 
-ORCA ``irc`` is release-qualified for approved execution on a qualified target: it consumes the transition state's own
-analytic Hessian, and the reaction path it writes is read from the trajectory artifact rather than inferred from the job
-type. ORCA ``neb`` and ``modred`` remain planning and preview paths until the selected target is qualified. Gaussian
-Agent execution is not claimed in this release; Gaussian support covers project YAML, generated native input, safe
-preview, and typed analysis of user-supplied completed outputs. GPU4PySCF remains a configuration and preview path until
-a compatible GPU target is qualified.
+ORCA ``irc`` is qualified at the program level on a qualified target: run through the ChemSmart CLI, it consumes the
+transition state's own analytic Hessian, and the reaction path it writes is read from the trajectory artifact rather
+than inferred from the job type. An IRC that consumes a producer's Hessian inside one Agent workflow does not yet reach
+an approved bundle, so in-workflow TS-to-IRC handoff is not described as completed Agent execution. ORCA ``neb`` and
+``modred`` remain planning and preview paths until the selected target is qualified. Gaussian Agent execution is not
+claimed in this release; Gaussian support covers project YAML, generated native input, safe preview, and typed analysis
+of user-supplied completed outputs. GPU4PySCF remains a configuration and preview path until a compatible GPU target is
+qualified.
 
 These boundaries do not alter the wider human ``chemsmart run`` and ``chemsmart sub`` CLI. They also do not imply that
 an executable is available on the current machine. Every approved CPU run still needs an observed program environment
@@ -362,7 +364,9 @@ workflow. ``derive_molecular_species`` is its mirror, taking an ordered subset o
 the operation underneath homolysis, deprotonation, and fragment extraction. Name either the atoms to remove or the atoms
 to keep; the host records both, copies the parent's coordinates unchanged so the result is a starting structure rather
 than a relaxed one, and reports whether the result is one species or several separated pieces. Derivation never infers
-an electronic state, because removing a hydrogen gives a radical or an anion depending on where its electron went. A
-validated frequency-bearing ORCA producer may feed its Hessian to an ORCA transition-state search through the live
-``--inhess-filename`` option (selection rule ``validated_producer_orca_hessian``); the starting Hessian may carry any
-imaginary-mode count, and the observed count is recorded in the handoff receipt.
+an electronic state, because removing a hydrogen gives a radical or an anion depending on where its electron went. The
+selection rule ``validated_producer_orca_hessian`` declares a validated frequency-bearing ORCA producer as a legal
+source for a transition-state search's ``--inhess-filename`` starting Hessian; the starting Hessian may carry any
+imaginary-mode count, and the observed count is recorded in the handoff receipt. A workflow consuming this rule has not
+yet reached an approved bundle in this release, so producer-Hessian seeding is planning and preview support, not
+completed Agent execution.
