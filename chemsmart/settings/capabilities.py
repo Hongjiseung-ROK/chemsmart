@@ -510,11 +510,15 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                 # the two minima and the connectivity change is observable
                 # rather than asserted.
                 #
-                # As for `scan`, the declaration necessarily precedes the
-                # first approved Agent execution because it is what admits a
-                # node to approval at all.  It is withdrawn if that run does
-                # not hold.  `neb` and `modred` stay preview-only: neither has
-                # had such a run.
+                # The approved Agent execution has since held: a TS -> IRC
+                # workflow (ts feeding two irc nodes, each consuming the
+                # converged saddle's geometry and Hessian as role-distinct
+                # producer bindings) planned, reviewed, executed
+                # provider-free, validated, and delivered claims
+                # (qualification/irc-agent-path, 2026-08-23; -1121.05 cm^-1,
+                # exactly one imaginary mode, wB97X-D3(BJ)/def2-TZVP).
+                # `neb` and `modred` stay preview-only: neither has had such
+                # a run.
                 EngineJobCapability(engine="cpu", jobtype="irc"),
                 EngineJobCapability(
                     engine="cpu",

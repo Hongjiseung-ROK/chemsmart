@@ -1196,13 +1196,22 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 # establishes is the endpoint it converged to and the
                 # direction the ``%irc`` block explicitly declared.
                 "irc",
+                # ``positions`` and ``connectivity`` are deliberately not
+                # declared: an ORCA IRC log prints only the starting
+                # structure, so those selectors would describe the input
+                # transition state while reading as path geometry.  The
+                # first Agent-executed IRC delivered exactly that trap --
+                # both direction endpoints claimed with the TS's own
+                # distances.  The path lives in the trajectory sidecar,
+                # which has no typed selector route yet; endpoint geometry
+                # is therefore an undeclared observable, stated at plan
+                # time rather than mislabeled after execution.
                 (
                     "alpha_homo",
                     "alpha_lumo",
                     "beta_homo",
                     "beta_lumo",
                     "charge",
-                    "connectivity",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "dispersion_energy",
@@ -1214,7 +1223,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "irc_direction",
                     "lumo",
                     "multiplicity",
-                    "positions",
                     "reference_energy",
                     "scf_energy",
                     "solvation_model",

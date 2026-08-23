@@ -37,14 +37,15 @@ either. A completed scan's surface is read into typed quantities through the ord
 The first constrained optimisation of a scan imposes the driven coordinate on the geometry supplied, so a range
 beginning far from that geometry's current value may be refused by the program before any optimisation runs.
 
-ORCA ``irc`` is qualified at the program level on a qualified target: run through the ChemSmart CLI, it consumes the
-transition state's own analytic Hessian, and the reaction path it writes is read from the trajectory artifact rather
-than inferred from the job type. An IRC may consume a producer's geometry and Hessian in one Agent workflow — both
-bindings freeze into the single approval — but no such handoff has completed here, so it is not described as completed
-Agent execution. ORCA ``neb`` and ``modred`` remain planning and preview paths until the selected target is qualified.
-Gaussian Agent execution is not claimed in this release; Gaussian support covers project YAML, generated native input,
-safe preview, and typed analysis of user-supplied completed outputs. GPU4PySCF remains a configuration and preview path
-until a compatible GPU target is qualified.
+ORCA ``irc`` is qualified for approved Agent execution on a qualified target: a transition-state search fed two IRC
+runs, each consuming the converged transition state's own geometry and analytic Hessian as role-distinct producer
+bindings inside one approved workflow, and the chain executed, validated, and delivered host-rendered claims. The IRC
+log prints only the starting structure, so geometry selectors are not declared for the jobtype; the reaction path lives
+in the trajectory artifact, which is registered and readable but has no typed selector route yet — endpoint connectivity
+is read from that artifact by the scientist, not rendered as a host claim. ORCA ``neb`` and ``modred`` remain planning
+and preview paths until the selected target is qualified. Gaussian Agent execution is not claimed in this release;
+Gaussian support covers project YAML, generated native input, safe preview, and typed analysis of user-supplied
+completed outputs. GPU4PySCF remains a configuration and preview path until a compatible GPU target is qualified.
 
 These boundaries do not alter the wider human ``chemsmart run`` and ``chemsmart sub`` CLI. They also do not imply that
 an executable is available on the current machine. Every approved CPU run still needs an observed program environment

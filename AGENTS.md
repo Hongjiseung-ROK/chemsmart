@@ -23,9 +23,8 @@ The production Agent supports:
 - inspection and typed analysis of supported results; and
 - explicitly approved execution on release-qualified CPU paths: ORCA
   single-points, optimization/frequency, transition-state, excited-state,
-  relaxed coordinate scans, and serial DAG workflows; PySCF ``sp/opt/hess``;
-  and xTB ``sp/opt/hess``. ORCA intrinsic reaction coordinates are qualified
-  at the program level only, as stated below.
+  relaxed coordinate scans, intrinsic reaction coordinates, and serial DAG
+  workflows; PySCF ``sp/opt/hess``; and xTB ``sp/opt/hess``.
 
 ORCA ``scan`` is qualified for approved execution: a relaxed torsional profile
 ran through the ordinary plan, preview, single human approval, and provider-free
@@ -34,25 +33,25 @@ analysis layer as any other result. A scan's driven coordinate is carried on the
 workflow node, not in project YAML, because it is a fact about this molecule in
 this calculation rather than reusable method rationale.
 
-ORCA ``irc`` execution is qualified at the program level, not yet as a
-completed Agent workflow: a 1,2-hydrogen shift ran through the ChemSmart CLI
-on a qualification target — no provider and no Agent session — consuming the
-transition state's own analytic Hessian through the native ``%irc InitHess
-read`` route. ORCA writes the reaction path to an XYZ sidecar rather than
-into the log, so an IRC result declares the endpoint it converged to and the
-direction its input explicitly stated, while the path itself is read from
-the registered trajectory artifact; whether a saddle connects two particular
-minima is an observation about that trajectory, never an inference from the
-job type. An IRC node whose geometry and Hessian are both supplied directly
-is declared executable and reviewable, and that declaration necessarily
-precedes the first approved run; no Agent-approved IRC has completed here,
-so it remains a declaration rather than an observed execution. An IRC consuming
-a producer's geometry and Hessian in one workflow freezes both bindings
-into the single approval: admission keys each producer data edge by its
-consumer role, so distinct roles on one node coexist while one role never
-admits two edges, and execution readiness demands every binding before
-launch. No Agent-approved TS-to-IRC handoff has yet completed, so that
-chain is mechanically admitted intent, not observed execution.
+ORCA ``irc`` is qualified for approved Agent execution: a TS-to-IRC
+workflow — one converged transition-state search feeding two
+intrinsic-reaction-coordinate runs, each consuming the transition state's
+own geometry and analytic Hessian as role-distinct producer bindings —
+was planned, previewed, approved in one displayed decision, executed
+provider-free, validated, and delivered host-rendered claims on a
+qualification target; that approval was made by an owner-delegated
+reviewer and the record names it as such. Admission keys each producer
+data edge by its consumer role, so distinct roles on one node coexist
+while one role never admits two edges, and execution readiness demands
+every binding before launch. ORCA writes the reaction path to an XYZ
+sidecar rather than into the log; the log's only printed structure is the
+starting point, so geometry selectors are deliberately not declared for
+the jobtype — the first executed chain demonstrated the trap by rendering
+the transition state's own distances as both endpoints. The trajectory
+artifact is registered and readable, but no typed selector route reaches
+it yet, so whether a saddle connects two particular minima remains an
+observation a scientist makes from that artifact, not a host-rendered
+claim.
 
 ORCA ``modred`` is declared for planning, preview, and native-input generation
 only. Constrained optimisation is expressible and previewable, and no
