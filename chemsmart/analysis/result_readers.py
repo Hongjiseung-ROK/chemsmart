@@ -1115,6 +1115,9 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
             ),
             "irc_direction": _irc_direction,
             "functional": _route_functional,
+            "homo": _gaussian_frontier("homo_energy"),
+            "lumo": _gaussian_frontier("lumo_energy"),
+            "gap": _gaussian_frontier("fmo_gap"),
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
         }
@@ -1133,11 +1136,61 @@ def _xtb_output(path: Path) -> Any:
     return XTBOutput(folder=str(path.parent))
 
 
+def _xtb_state_integer(attribute: str) -> Callable[[Any], int]:
+    def _read(output: Any) -> int:
+        value = getattr(output, attribute, None)
+        if value is None:
+            raise MissingQuantityError(
+                f"this xtb result records no {attribute}"
+            )
+        return int(value)
+
+    return _read
+
+
+def _xtb_gibbs(output: Any) -> float:
+    """xTB prints G only when a Hessian ran; None is an absent quantity."""
+
+    value = getattr(output, "gibbs_free_energy", None)
+    if value is None:
+        raise MissingQuantityError(
+            "this xtb result records no thermochemistry; free energy "
+            "requires a Hessian calculation"
+        )
+    return float(value)
+
+
+def _gaussian_frontier(attribute: str) -> Callable[[Any], float]:
+    """Closed-shell frontier value; open-shell refuses rather than collapses.
+
+    The ORCA frontier repair defined HOMO/LUMO across both spin channels
+    because the unrestricted extremum can straddle them.  The Gaussian
+    parser's single-channel values have not been audited against an
+    open-shell log here, so an unrestricted result refuses instead of
+    silently reporting one channel as the frontier.
+    """
+
+    def _read(output: Any) -> float:
+        if int(getattr(output, "multiplicity", 1) or 1) != 1:
+            raise MissingQuantityError(
+                "open-shell Gaussian frontier orbitals are not audited "
+                "cross-spin; only closed-shell results resolve "
+                f"{attribute!r} here"
+            )
+        return float(getattr(output, attribute))
+
+    return _read
+
+
 def _xtb_accessors() -> dict[str, Callable[[Any], Any]]:
-    # xTB's reader exposes no charge/multiplicity or energy series, so those
-    # selectors stay unregistered rather than being faked from the geometry.
+    # The xTB parser resolves charge, multiplicity, and (after a Hessian)
+    # the free energy; an expert review found them parsed but undeclared,
+    # with this very comment claiming the opposite.
     return {
         "energy": _last_energy,
+        "charge": _xtb_state_integer("charge"),
+        "multiplicity": _xtb_state_integer("multiplicity"),
+        "gibbs_free_energy": _xtb_gibbs,
         "vibrational_frequencies": lambda output: [
             float(item) for item in output.vibrational_frequencies
         ],
@@ -1509,7 +1562,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "functional",
+                    "gap",
                     "gibbs_free_energy",
+                    "homo",
+                    "lumo",
                     "multiplicity",
                     "positions",
                     "spin_square",
@@ -1591,13 +1647,16 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "hess",
                 (
+                    "charge",
                     "connectivity",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "energy",
                     "gap",
+                    "gibbs_free_energy",
                     "homo",
                     "lumo",
+                    "multiplicity",
                     "positions",
                     "symbols",
                     "vibrational_frequencies",
@@ -1606,13 +1665,16 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             (
                 "opt",
                 (
+                    "charge",
                     "connectivity",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "energy",
                     "gap",
+                    "gibbs_free_energy",
                     "homo",
                     "lumo",
+                    "multiplicity",
                     "positions",
                     "symbols",
                 ),

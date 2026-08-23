@@ -497,10 +497,16 @@ def test_a_parser_exception_becomes_an_absent_quantity():
 
 
 def test_a_selector_a_reader_does_not_implement_is_refused_by_name():
-    """Distinct from absent: xTB exposes no charge at all."""
+    """Distinct from absent: xTB implements no scan surface at all.
+
+    The previous example selector was ``charge`` with a docstring claiming
+    xTB exposes none -- the parser resolved it all along, and an expert
+    review flagged the false comment. The subject of this test is the
+    refusal message for a genuinely unimplemented selector.
+    """
 
     with pytest.raises(ValueError, match="does not provide"):
-        reader_for("xtb").read(object(), "charge")
+        reader_for("xtb").read(object(), "scan_energies")
 
 
 @pytest.mark.parametrize("program", sorted(RESULT_READERS))

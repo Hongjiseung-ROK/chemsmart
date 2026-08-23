@@ -2631,6 +2631,24 @@ def handoff_optimized_xtb_geometry(
         raise ContractError(
             "optimized electronic-state multiplicity is invalid"
         )
+    # Parity with the ORCA handoff: the electronic state is verified from
+    # the program's own record, not asserted from the approval.  The xTB
+    # parser has resolved charge and multiplicity all along; this handoff
+    # simply never asked it.
+    from chemsmart.io.xtb.output import XTBOutput
+
+    observed = XTBOutput(folder=str(Path(result_artifact.path).parent))
+    observed_charge = getattr(observed, "charge", None)
+    observed_multiplicity = getattr(observed, "multiplicity", None)
+    if observed_charge is None or observed_multiplicity is None:
+        raise ContractError(
+            "xTB result records no electronic state to verify the handoff"
+        )
+    if (int(observed_charge), int(observed_multiplicity)) != (
+        charge,
+        multiplicity,
+    ):
+        raise ContractError("optimized electronic state differs from approval")
     consumer_fields = _handoff_consumer_fields(
         producer_charge=charge,
         producer_multiplicity=multiplicity,
