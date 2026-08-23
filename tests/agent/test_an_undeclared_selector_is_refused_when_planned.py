@@ -114,3 +114,17 @@ def test_an_undeclared_jobtype_is_refused_before_any_engine_runs():
 def test_a_declared_selector_still_plans():
     plan = _plan("sp", "energy")
     assert plan.analysis_nodes[0].selectors[0].selector == "energy"
+
+
+def test_orca_printed_thermochemistry_is_not_declared():
+    """One free-energy route: ORCA 6.x prints quasi-RRHO by default while
+    derive_thermochemistry computes the convention its receipt states and
+    refuses imaginary modes the printed value silently drops."""
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for("orca")
+    for jobtype in ("sp", "opt", "ts", "td"):
+        declared = reader.selectors_for_jobtype(jobtype) or ()
+        assert "gibbs_free_energy" not in declared
+        assert "entropy_times_temperature" not in declared

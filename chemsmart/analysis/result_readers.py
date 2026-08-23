@@ -1232,9 +1232,14 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "effective_multiplicity",
                     "energies",
                     "energy",
-                    "entropy_times_temperature",
                     "gap",
-                    "gibbs_free_energy",
+                    # Printed thermochemistry is deliberately not
+                    # declared for ORCA: 6.x applies quasi-RRHO entropy
+                    # by default with no keyword, while the typed
+                    # derive_thermochemistry route computes the
+                    # convention its receipt states and refuses
+                    # imaginary modes the printed value silently drops.
+                    # One free-energy route, gated and visible.
                     "homo",
                     "lumo",
                     "multiplicity",
@@ -1369,9 +1374,14 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "effective_multiplicity",
                     "energies",
                     "energy",
-                    "entropy_times_temperature",
                     "gap",
-                    "gibbs_free_energy",
+                    # Printed thermochemistry is deliberately not
+                    # declared for ORCA: 6.x applies quasi-RRHO entropy
+                    # by default with no keyword, while the typed
+                    # derive_thermochemistry route computes the
+                    # convention its receipt states and refuses
+                    # imaginary modes the printed value silently drops.
+                    # One free-energy route, gated and visible.
                     "homo",
                     "lumo",
                     "multiplicity",

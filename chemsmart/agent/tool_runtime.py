@@ -6709,23 +6709,42 @@ class CommandCompiledToolHostV1:
             )
             lines.extend(f"- {finding}" for finding in completion.findings)
         conditions = tuple(
-            (node.node_id, node.temperature_k, node.pressure_atm)
+            node
             for node in toolchain.analysis_nodes
             if node.analysis_kind == "thermochemistry"
             and node.temperature_k is not None
         )
         if conditions:
+            # Every convention the receipt binds is displayed: a 1 mol/L
+            # solution free energy used to render as "1.0 atm" because the
+            # concentration standard state, entropy model, and scale factor
+            # were receipt-bound but invisible -- a 1.89 kcal/mol-per-species
+            # convention hidden from the reader.
             lines.extend(
                 (
                     "",
                     THERMO_CONDITIONS_HEADING,
                     "",
-                    "| Stage | Temperature (K) | Pressure (atm) |",
-                    "|---|---:|---:|",
+                    "| Stage | Temperature (K) | Standard state | "
+                    "Entropy model | Frequency scale |",
+                    "|---|---:|---|---|---:|",
                 )
             )
-            for node_id, temperature, pressure in conditions:
-                lines.append(f"| {node_id} | `{temperature}` | `{pressure}` |")
+            for node in conditions:
+                if node.concentration_mol_l is not None:
+                    standard_state = f"{node.concentration_mol_l:g} mol/L"
+                else:
+                    standard_state = f"{node.pressure_atm:g} atm"
+                entropy_model = node.entropy_method
+                if node.entropy_cutoff_cm1 is not None:
+                    entropy_model += (
+                        f" (cutoff {node.entropy_cutoff_cm1:g} cm^-1)"
+                    )
+                lines.append(
+                    f"| {node.node_id} | `{node.temperature_k}` | "
+                    f"{standard_state} | {entropy_model} | "
+                    f"`{node.frequency_scale_factor:g}` |"
+                )
         for claims in claim_records:
             lines.extend(
                 (

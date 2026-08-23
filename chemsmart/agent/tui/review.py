@@ -288,8 +288,19 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
         conditions = []
         if node.temperature_k is not None:
             conditions.append(f"{node.temperature_k:g} K")
-        if node.pressure_atm is not None:
+        concentration = getattr(node, "concentration_mol_l", None)
+        if concentration is not None:
+            # The standard state the receipt will bind: never display a
+            # solution free energy under a gas-phase pressure label.
+            conditions.append(f"{concentration:g} mol/L")
+        elif node.pressure_atm is not None:
             conditions.append(f"{node.pressure_atm:g} atm")
+        entropy_method = getattr(node, "entropy_method", "rrho")
+        if node.temperature_k is not None and entropy_method != "rrho":
+            conditions.append(entropy_method)
+        scale = getattr(node, "frequency_scale_factor", 1.0)
+        if node.temperature_k is not None and scale != 1.0:
+            conditions.append(f"scale {scale:g}")
         state = human_state(node.support_state)
         if node.blocked_reason:
             state += f": {node.blocked_reason}"
