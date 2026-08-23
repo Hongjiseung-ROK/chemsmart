@@ -593,7 +593,11 @@ class ApprovedWorkflowExecutor:
         from chemsmart.agent.scientific_toolchain import (
             RegisteredResultInputIntentV1,
         )
+        from chemsmart.analysis.quantity_expressions import (
+            QuantityExpressionError,
+        )
         from chemsmart.analysis.result_quantities import (
+            QuantityContractError,
             canonical_thermochemistry_quantity,
         )
 
@@ -940,7 +944,17 @@ class ApprovedWorkflowExecutor:
                 continue
             try:
                 record = _run_node(node)
-            except ContractError as exc:
+            except (
+                ContractError,
+                QuantityContractError,
+                QuantityExpressionError,
+            ) as exc:
+                # The analysis package raises its own typed errors -- an
+                # extraction asking a closed-shell result for <S^2>, an
+                # expression called with the wrong arity.  Six benchmark
+                # runs died on the first and two on the second because
+                # only ContractError was settled here; the escape killed
+                # the executor and erased every refusal message with it.
                 record = ExecutedAnalysisNodeV1(
                     node_id=node.node_id,
                     analysis_kind=node.analysis_kind,
@@ -958,30 +972,54 @@ class ApprovedWorkflowExecutor:
         completion_receipts: tuple[str, ...] = ()
         report_path = ""
         if executed_all and ledger:
-            completion_receipts = (
-                self.host.evaluate_approved_toolchain_completion(
-                    toolchain,
-                    source_receipt_sha256s=tuple(ledger),
+            try:
+                completion_receipts = (
+                    self.host.evaluate_approved_toolchain_completion(
+                        toolchain,
+                        source_receipt_sha256s=tuple(ledger),
+                    )
                 )
-            )
-            report = self.host.render_completed_analysis_report(
-                completion_receipts[0]
-            )
-            report_directory = self.run_directory / "analysis"
-            report_directory.mkdir(parents=True, exist_ok=True)
-            target = report_directory / "completed-analysis-report.md"
-            target.write_text(report + "\n", encoding="utf-8")
-            report_path = str(target)
-            self.host.event_store.append(
-                turn_id="exec-analysis-report",
-                kind=EventKind.WORKFLOW_ANALYSIS_REPORT_RENDERED.value,
-                payload={
-                    "completion_receipt_sha256": completion_receipts[0],
-                    "report_sha256": canonical_sha256(report),
-                    "toolchain_plan_sha256": toolchain.plan_sha256,
-                },
-                idempotency_key=("analysis-report:" + toolchain.plan_sha256),
-            )
+                report = self.host.render_completed_analysis_report(
+                    completion_receipts[0]
+                )
+            except ContractError as exc:
+                # Every node executed and then the completion binding or the
+                # report renderer refused.  A crash here discards the whole
+                # chain's receipts and says nothing; the refusal is instead
+                # recorded as durable evidence and the status stays partial.
+                completion_receipts = ()
+                analysis_status = "partial"
+                self.host.event_store.append(
+                    turn_id="exec-analysis-report",
+                    kind=(
+                        EventKind.WORKFLOW_ANALYSIS_COMPLETION_REFUSED.value
+                    ),
+                    payload={
+                        "reason": str(exc),
+                        "toolchain_plan_sha256": toolchain.plan_sha256,
+                    },
+                    idempotency_key=(
+                        "analysis-completion-refused:" + toolchain.plan_sha256
+                    ),
+                )
+            else:
+                report_directory = self.run_directory / "analysis"
+                report_directory.mkdir(parents=True, exist_ok=True)
+                target = report_directory / "completed-analysis-report.md"
+                target.write_text(report + "\n", encoding="utf-8")
+                report_path = str(target)
+                self.host.event_store.append(
+                    turn_id="exec-analysis-report",
+                    kind=EventKind.WORKFLOW_ANALYSIS_REPORT_RENDERED.value,
+                    payload={
+                        "completion_receipt_sha256": completion_receipts[0],
+                        "report_sha256": canonical_sha256(report),
+                        "toolchain_plan_sha256": toolchain.plan_sha256,
+                    },
+                    idempotency_key=(
+                        "analysis-report:" + toolchain.plan_sha256
+                    ),
+                )
         return (
             tuple(settled[node_id] for node_id in sorted(settled)),
             analysis_status,

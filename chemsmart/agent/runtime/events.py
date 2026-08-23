@@ -60,6 +60,9 @@ class EventKind(str, Enum):
     MOLECULAR_ARRANGEMENT_COMPOSED = "molecular_arrangement_composed"
     MOLECULAR_SPECIES_DERIVED = "molecular_species_derived"
     WORKFLOW_ANALYSIS_REPORT_RENDERED = "workflow_analysis_report_rendered"
+    WORKFLOW_ANALYSIS_COMPLETION_REFUSED = (
+        "workflow_analysis_completion_refused"
+    )
     TASK_DEPENDENCY_CONTEXT_SELECTED = "task_dependency_context_selected"
     PROGRAM_EXECUTED = "program_execution_observed"
     OPTIMIZED_GEOMETRY_HANDED_OFF = "optimized_geometry_handed_off"

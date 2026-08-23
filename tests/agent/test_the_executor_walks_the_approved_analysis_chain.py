@@ -361,3 +361,143 @@ def test_blocked_analysis_intent_stays_visible_not_executed(tmp_path):
     assert states["extract-sp"].state == "executed"
     assert status == "completed"
     assert completions
+
+
+def _chain_with_selector_and_no_dependents(selector):
+    """One extraction plus a dependent claim -- the l3b shape, minimized."""
+
+    extraction = _analysis_node(
+        "extract-spin",
+        "result_extraction",
+        dependencies=("sp",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="raw",
+                source_kind="program_output",
+                producer_node_id="sp",
+                producer_output_id="sp-out",
+            ),
+        ),
+        selectors=(
+            AnalysisSelectorIntentV1(quantity_id="s2", selector=selector),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="s2", quantity_kind="count", unit="1"
+            ),
+        ),
+    )
+    claims = _analysis_node(
+        "claims",
+        "claim_rendering",
+        dependencies=("extract-spin",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="s2-final",
+                source_kind="analysis_output",
+                producer_node_id="extract-spin",
+                producer_output_id="s2",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="s2-final", quantity_kind="count", unit="1"
+            ),
+        ),
+    )
+    return build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(_calculation(),),
+        calculation_observables={"sp": ("sp-out",)},
+        analysis_nodes=(extraction, claims),
+        required_output_ids=("s2-final",),
+    )
+
+
+def test_an_absent_quantity_settles_the_node_instead_of_crashing(tmp_path):
+    """Six benchmark runs died here: <S^2> asked of a closed-shell result.
+
+    The extraction layer raised its own typed error with an exemplary
+    message -- naming the cause and every quantity the result does resolve --
+    and the walk, catching only ContractError, let it kill the executor, so
+    nobody ever read that message and every other receipt was lost with it.
+    """
+
+    toolchain = _chain_with_selector_and_no_dependents("spin_square")
+    executor = _executor(tmp_path, toolchain)
+
+    nodes, status, receipts, report_path = executor._run_analysis_phase(
+        toolchain
+    )
+
+    settled = {record.node_id: record for record in nodes}
+    assert settled["extract-spin"].state == "failed"
+    assert "no <S^2>" in settled["extract-spin"].reason
+    assert settled["claims"].state == "skipped"
+    assert status == "partial"
+    assert report_path == ""
+
+
+def test_a_refused_completion_is_recorded_not_crashed(tmp_path):
+    """The l2b shape: every node executed, then the report renderer refused.
+
+    Two claim-rendering nodes are legal in the plan but the completion
+    binding admits one claim record; that refusal used to escape as a crash
+    after all the work was done. It is now durable evidence instead.
+    """
+
+    from chemsmart.agent.scientific_toolchain import (
+        build_scientific_toolchain_plan as _build,
+    )
+
+    base = _chain()
+    second_claims = _analysis_node(
+        "claims-again",
+        "claim_rendering",
+        dependencies=("to-kcal",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="final-energy-again",
+                source_kind="analysis_output",
+                producer_node_id="to-kcal",
+                producer_output_id="e-kcal",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="final-energy-again",
+                quantity_kind="energy",
+                unit="kcal/mol",
+            ),
+        ),
+    )
+    toolchain = _build(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(_calculation(),),
+        calculation_observables={"sp": ("sp-out",)},
+        analysis_nodes=tuple(base.analysis_nodes) + (second_claims,),
+        required_output_ids=("final-energy", "final-energy-again"),
+    )
+    executor = _executor(tmp_path, toolchain)
+
+    nodes, status, receipts, report_path = executor._run_analysis_phase(
+        toolchain
+    )
+
+    assert all(
+        record.state in {"executed", "blocked_unsupported"} for record in nodes
+    )
+    assert status == "partial"
+    assert receipts == ()
+    assert report_path == ""
+    refusals = [
+        event
+        for event in executor.host.event_store.read_events()
+        if event.kind == EventKind.WORKFLOW_ANALYSIS_COMPLETION_REFUSED.value
+    ]
+    assert len(refusals) == 1
+    assert "at most one claim record" in refusals[0].payload["reason"]
