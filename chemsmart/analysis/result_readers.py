@@ -1196,39 +1196,23 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 # establishes is the endpoint it converged to and the
                 # direction the ``%irc`` block explicitly declared.
                 "irc",
-                # ``positions`` and ``connectivity`` are deliberately not
-                # declared: an ORCA IRC log prints only the starting
-                # structure, so those selectors would describe the input
-                # transition state while reading as path geometry.  The
-                # first Agent-executed IRC delivered exactly that trap --
-                # both direction endpoints claimed with the TS's own
-                # distances.  The path lives in the trajectory sidecar,
-                # which has no typed selector route yet; endpoint geometry
-                # is therefore an undeclared observable, stated at plan
-                # time rather than mislabeled after execution.
+                # Only job-level facts are declared.  An ORCA IRC log prints
+                # a single structure -- the starting point -- so every
+                # state-dependent value (geometry, energies, orbitals,
+                # dipoles, spin) read from it describes the transition
+                # state, not the path: the first Agent-executed IRC
+                # delivered the saddle's own distances as both endpoints,
+                # and its ``energy`` differed from the true endpoint by the
+                # entire barrier.  The path lives in the trajectory sidecar,
+                # which enters the typed layer as a registered geometry
+                # artifact and is read by the ungated xyz reader; a
+                # log-native path route (ORCA's IRC PATH SUMMARY table) is
+                # future parser work.
                 (
-                    "alpha_homo",
-                    "alpha_lumo",
-                    "beta_homo",
-                    "beta_lumo",
                     "charge",
-                    "dipole_moment",
-                    "dipole_moment_magnitude",
-                    "dispersion_energy",
-                    "effective_multiplicity",
-                    "energies",
-                    "energy",
-                    "gap",
-                    "homo",
                     "irc_direction",
-                    "lumo",
                     "multiplicity",
-                    "reference_energy",
-                    "scf_energy",
                     "solvation_model",
-                    "spin_square",
-                    "spin_square_deviation",
-                    "spin_square_target",
                     "symbols",
                 ),
             ),
@@ -1285,7 +1269,12 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment_magnitude",
                     "dispersion_energy",
                     "effective_multiplicity",
-                    "energies",
+                    # ``energies`` is deliberately not declared: on a
+                    # scan result it is the optimizer trace over every
+                    # micro-iteration (max-min spread 143.4 kcal/mol on a
+                    # real butane scan whose surface spans 5.15), sitting
+                    # one natural name away from ``scan_energies``, which
+                    # is the surface.
                     "energy",
                     "gap",
                     "homo",

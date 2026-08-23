@@ -40,12 +40,13 @@ beginning far from that geometry's current value may be refused by the program b
 ORCA ``irc`` is qualified for approved Agent execution on a qualified target: a transition-state search fed two IRC
 runs, each consuming the converged transition state's own geometry and analytic Hessian as role-distinct producer
 bindings inside one approved workflow, and the chain executed, validated, and delivered host-rendered claims. The IRC
-log prints only the starting structure, so geometry selectors are not declared for the jobtype; the reaction path lives
-in the trajectory artifact, which is registered and readable but has no typed selector route yet — endpoint connectivity
-is read from that artifact by the scientist, not rendered as a host claim. ORCA ``neb`` and ``modred`` remain planning
-and preview paths until the selected target is qualified. Gaussian Agent execution is not claimed in this release;
-Gaussian support covers project YAML, generated native input, safe preview, and typed analysis of user-supplied
-completed outputs. GPU4PySCF remains a configuration and preview path until a compatible GPU target is qualified.
+log prints only the starting structure, so only job-level facts (charge, multiplicity, direction, solvation route, atom
+identity) are declared for the jobtype and selector declarations gate extraction; the reaction path lives in the
+trajectory artifact, which enters the typed layer as a registered geometry artifact — endpoint connectivity is read from
+that artifact by the scientist, not rendered as a host claim. ORCA ``neb`` and ``modred`` remain planning and preview
+paths until the selected target is qualified. Gaussian Agent execution is not claimed in this release; Gaussian support
+covers project YAML, generated native input, safe preview, and typed analysis of user-supplied completed outputs.
+GPU4PySCF remains a configuration and preview path until a compatible GPU target is qualified.
 
 These boundaries do not alter the wider human ``chemsmart run`` and ``chemsmart sub`` CLI. They also do not imply that
 an executable is available on the current machine. Every approved CPU run still needs an observed program environment

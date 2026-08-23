@@ -273,7 +273,13 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
     table.add_column("State")
     for node in plan.analysis_nodes:
         inputs = ", ".join(
-            f"{item.producer_node_id}.{item.producer_output_id}"
+            (
+                f"{item.producer_node_id}.{item.producer_output_id}"
+                if hasattr(item, "producer_node_id")
+                # A registered-result input names an artifact, not a
+                # producer node; rendering it used to crash the review.
+                else f"artifact:{item.artifact_id}"
+            )
             for item in node.inputs
         )
         outputs = ", ".join(
