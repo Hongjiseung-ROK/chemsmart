@@ -541,3 +541,122 @@ def test_a_successful_report_shows_its_validation_verdicts(tmp_path):
     assert VERDICTS_HEADING in report
     assert "all_finite" in report
     assert "| passed |" in report
+
+
+def test_a_chain_using_a_constant_renders_its_provenance_table(tmp_path):
+    # The expression applies the 1 atm -> 1 mol/L standard-state
+    # correction as a registry constant: the value is host-resolved, and
+    # the report and its terminal projection must show name, value, unit,
+    # and convention at the surface a reader actually sees.
+    extraction = _analysis_node(
+        "extract-sp",
+        "result_extraction",
+        dependencies=("sp",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="raw",
+                source_kind="program_output",
+                producer_node_id="sp",
+                producer_output_id="sp-out",
+            ),
+        ),
+        selectors=(
+            AnalysisSelectorIntentV1(quantity_id="e", selector="energy"),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="e", quantity_kind="energy", unit="hartree"
+            ),
+        ),
+    )
+    expression = _analysis_node(
+        "apply-standard-state",
+        "quantity_expression",
+        dependencies=("extract-sp",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="e-in",
+                source_kind="analysis_output",
+                producer_node_id="extract-sp",
+                producer_output_id="e",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="e-corrected",
+                quantity_kind="energy",
+                unit="kcal/mol",
+            ),
+        ),
+        expression_nodes=(
+            {
+                "node_id": "ss-correction",
+                "operation": "constant",
+                "constant_name": ("standard_state_correction_1atm_to_1M_298K"),
+            },
+            {
+                "node_id": "shifted",
+                "operation": "add",
+                "input_ids": ("e-in", "ss-correction"),
+            },
+            {
+                "node_id": "e-corrected",
+                "operation": "convert",
+                "input_ids": ("shifted",),
+                "target_unit": "kcal/mol",
+            },
+        ),
+        expression_output_node_ids=("e-corrected",),
+    )
+    claims = _analysis_node(
+        "claims",
+        "claim_rendering",
+        dependencies=("apply-standard-state",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="final-energy",
+                source_kind="analysis_output",
+                producer_node_id="apply-standard-state",
+                producer_output_id="e-corrected",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="final-energy",
+                quantity_kind="energy",
+                unit="kcal/mol",
+            ),
+        ),
+    )
+    toolchain = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(_calculation(),),
+        calculation_observables={"sp": ("sp-out",)},
+        analysis_nodes=(extraction, expression, claims),
+        required_output_ids=("final-energy",),
+    )
+    executor = _executor(tmp_path, toolchain)
+
+    nodes, status, _completions, report_path = executor._run_analysis_phase(
+        toolchain
+    )
+
+    assert status == "completed"
+    assert all(node.state == "executed" for node in nodes)
+    report = Path(report_path).read_text(encoding="utf-8")
+    assert "## Literature constants" in report
+    assert "standard_state_correction_1atm_to_1M_298K" in report
+    assert "1.894" in report
+    assert "RT ln(24.4654)" in report
+
+    from rich.console import Console
+
+    from chemsmart.agent.tui.report import render_report_for_humans
+
+    console = Console(record=True, width=200)
+    console.print(render_report_for_humans(report))
+    projected = console.export_text()
+    assert "Literature constants" in projected
+    assert "standard_state_correction_1atm_to_1M_298K" in projected

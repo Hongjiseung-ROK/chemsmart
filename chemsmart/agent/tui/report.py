@@ -28,6 +28,7 @@ from chemsmart.agent.report_format import (
     DECISION_SECTIONS,
     EVIDENCE_COLUMN,
     HOST_REPORT_TITLE,
+    LITERATURE_CONSTANTS_HEADING,
     NO_DECISION_PREFIX,
     SOURCE_RECEIPT_COLUMN,
     THERMO_CONDITIONS_HEADING,
@@ -165,6 +166,18 @@ def render_report_for_humans(markdown_text: str) -> Group:
             headers, rows, index = _read_table(lines, index)
             blocks.append(
                 _table("Thermochemical conditions", headers, rows, drop=set())
+            )
+            continue
+        if stripped == LITERATURE_CONSTANTS_HEADING:
+            flush()
+            index += 1
+            while index < len(lines) and not lines[index].strip().startswith(
+                "|"
+            ):
+                index += 1
+            headers, rows, index = _read_table(lines, index)
+            blocks.append(
+                _table("Literature constants", headers, rows, drop=set())
             )
             continue
         if stripped == CLAIMS_HEADING:

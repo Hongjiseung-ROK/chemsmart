@@ -19,6 +19,10 @@ from typing import Any, Mapping
 import numpy as np
 from ase import units as ase_units
 
+from chemsmart.analysis.literature_constants import (
+    UnknownLiteratureConstantError,
+    literature_constant,
+)
 from chemsmart.analysis.result_quantities import (
     ANGLE,
     DIMENSIONLESS,
@@ -49,6 +53,7 @@ _OPERATIONS = frozenset(
     {
         "ref",
         "literal",
+        "constant",
         "add",
         "subtract",
         "multiply",
@@ -76,6 +81,7 @@ _OPERATIONS = frozenset(
         "scf_inverse_power_cbs_limit",
         "correlation_inverse_power_cbs_limit",
         "photon_wavelength",
+        "gibbs_to_pka",
         "boltzmann_populations",
         "boltzmann_average",
         "imaginary_mode_count",
@@ -102,6 +108,11 @@ _OPERATIONS = frozenset(
 OPERATION_DESCRIPTIONS: Mapping[str, str] = {
     "ref": "name an earlier value or expression input; use indices to select",
     "literal": "a constant you supply; recorded as model-authored",
+    "constant": (
+        "a host-owned literature value selected by registered name via "
+        "constant_name; no inputs; its unit and standard-state convention "
+        "are owned by the registry, never restated by hand"
+    ),
     "add": "sum of two values of one dimension",
     "subtract": "first input minus the second, one dimension",
     "multiply": "product of two values; dimensions multiply",
@@ -161,6 +172,10 @@ OPERATION_DESCRIPTIONS: Mapping[str, str] = {
         "energies, not total energies"
     ),
     "photon_wavelength": "wavelength of a positive excitation energy",
+    "gibbs_to_pka": (
+        "pKa from a deprotonation free energy and a temperature, in that "
+        "order; owns pKa = deltaG / (RT ln 10)"
+    ),
     "boltzmann_populations": (
         "normalized Boltzmann populations of a set of states. Takes the state "
         "energies as one vector or as separate scalar inputs, followed by a "
@@ -265,6 +280,7 @@ CONVENTION_OPERATIONS = frozenset(
         "transition_state_crossover_temperature",
         "distance",
         "center_of_mass",
+        "gibbs_to_pka",
         "principal_moments_of_inertia",
         "linear_rotor_constant",
         "rigid_rotor_constants",
@@ -281,7 +297,7 @@ CONVENTION_OPERATIONS = frozenset(
 #: Operations that move or restate a value without computing anything with it.
 #: They are neither a convention nor arithmetic, so they are counted as
 #: neither.
-_PLUMBING_OPERATIONS = frozenset({"ref", "literal", "convert"})
+_PLUMBING_OPERATIONS = frozenset({"ref", "literal", "constant", "convert"})
 
 #: Everything else: general arithmetic and reductions.  A reported quantity
 #: reached through many of these, and through no convention operation, was
@@ -632,6 +648,7 @@ class QuantityExpressionNodeV1:
     indices: tuple[int, ...] = ()
     literal_value: Any = None
     literal_unit: str = "1"
+    constant_name: str = ""
     scale_factor: float | None = None
     target_unit: str = ""
     cardinal_numbers: tuple[int, ...] = ()
@@ -651,6 +668,15 @@ class QuantityExpressionNodeV1:
             )
         if len(self.input_ids) > MAX_NODE_INPUTS:
             raise QuantityContractError("expression node has too many inputs")
+        if self.operation == "constant":
+            if not self.constant_name or len(self.constant_name) > 128:
+                raise QuantityContractError(
+                    "constant requires a registered constant_name"
+                )
+        elif self.constant_name:
+            raise QuantityContractError(
+                "constant_name applies only to the constant operation"
+            )
         if any(index < 0 for index in self.indices):
             raise QuantityContractError(
                 "reference indices must be non-negative"
@@ -1005,6 +1031,21 @@ def quantity_expression_semantic_signature(
                 "unit": canonical_unit,
                 "dimension": dimension,
             }
+        elif node.operation == "constant":
+            try:
+                entry = literature_constant(node.constant_name)
+            except UnknownLiteratureConstantError as exc:
+                raise QuantityContractError(str(exc)) from exc
+            normalized, canonical_unit, dimension = normalize_numeric_value(
+                entry.value, entry.unit
+            )
+            result = {
+                "operation": "constant",
+                "name": entry.name,
+                "value": normalized,
+                "unit": canonical_unit,
+                "dimension": dimension,
+            }
         elif node.operation == "ref":
             reference = node.reference
             if not reference and len(node.input_ids) == 1:
@@ -1230,6 +1271,29 @@ def _node_value(
             quantity_id=node.node_id,
             source_value=node.literal_value,
             source_unit=node.literal_unit,
+            value=normalized,
+            unit=canonical_unit,
+            dimension=dimension,
+            evidence_ref=evidence_ref,
+        )
+
+    if operation == "constant":
+        if node.input_ids or node.reference or node.literal_value is not None:
+            raise QuantityExpressionError(
+                "constant takes a registered constant_name and no "
+                "references, inputs, or literal value"
+            )
+        try:
+            entry = literature_constant(node.constant_name)
+        except UnknownLiteratureConstantError as exc:
+            raise QuantityExpressionError(str(exc)) from exc
+        normalized, canonical_unit, dimension = normalize_numeric_value(
+            entry.value, entry.unit
+        )
+        return make_quantity_value(
+            quantity_id=node.node_id,
+            source_value=entry.value,
+            source_unit=entry.unit,
             value=normalized,
             unit=canonical_unit,
             dimension=dimension,
@@ -1487,6 +1551,44 @@ def _node_value(
             value=payload,
             unit="angstrom",
             dimension=LENGTH,
+            evidence_ref=evidence_ref,
+        )
+
+    if operation == "gibbs_to_pka":
+        from chemsmart.analysis.aggregation import (
+            GAS_CONSTANT_KCAL,
+            HARTREE_TO_KCAL_PER_MOL,
+        )
+
+        if (
+            len(inputs) != 2
+            or inputs[0].dimension != ENERGY
+            or inputs[1].dimension != TEMPERATURE
+        ):
+            raise QuantityExpressionError(
+                "gibbs_to_pka takes one deprotonation free energy and one "
+                "temperature, in that order"
+            )
+        delta_g = _numeric(inputs[0])
+        temperature = _numeric(inputs[1])
+        if delta_g.size != 1 or temperature.size != 1:
+            raise QuantityExpressionError("gibbs_to_pka takes scalar inputs")
+        temperature_k = float(temperature.reshape(()))
+        if temperature_k <= 0.0:
+            raise QuantityExpressionError(
+                "gibbs_to_pka requires a positive temperature"
+            )
+        delta_g_kcal = float(delta_g.reshape(())) * HARTREE_TO_KCAL_PER_MOL
+        payload = _payload(
+            delta_g_kcal / (GAS_CONSTANT_KCAL * temperature_k * math.log(10.0))
+        )
+        return make_quantity_value(
+            quantity_id=node.node_id,
+            source_value=payload,
+            source_unit="1",
+            value=payload,
+            unit="1",
+            dimension=DIMENSIONLESS,
             evidence_ref=evidence_ref,
         )
 

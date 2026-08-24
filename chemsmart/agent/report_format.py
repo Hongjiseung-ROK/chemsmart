@@ -18,6 +18,7 @@ PARTIAL_STATUS_PREFIX = "Partial analysis"
 
 CONDITIONS_HEADING = "## Task-owned conditions"
 THERMO_CONDITIONS_HEADING = "## Thermochemical conditions"
+LITERATURE_CONSTANTS_HEADING = "## Literature constants"
 CLAIMS_HEADING = "## Host-rendered numerical claims"
 FINDINGS_HEADING = "## Analysis nodes that did not execute"
 SURVIVING_HEADING = "## Surviving receipts (evidence, not claims)"

@@ -175,6 +175,7 @@ from chemsmart.agent.report_format import (
     EVIDENCE_COLUMN,
     FINDINGS_HEADING,
     HOST_REPORT_TITLE,
+    LITERATURE_CONSTANTS_HEADING,
     NO_DECISION_PREFIX,
     PARTIAL_STATUS_PREFIX,
     RECOVERY_PREFIX,
@@ -227,6 +228,10 @@ from chemsmart.agent.workflows import (
     build_command_workflow_draft,
     build_materialized_workflow,
     build_scientific_workflow_plan,
+)
+from chemsmart.analysis.literature_constants import (
+    UnknownLiteratureConstantError,
+    literature_constant,
 )
 from chemsmart.analysis.quantity_expressions import (
     QuantityExpressionNodeV1,
@@ -6747,6 +6752,43 @@ class CommandCompiledToolHostV1:
                     f"{standard_state} | {entropy_model} | "
                     f"`{node.frequency_scale_factor:g}` |"
                 )
+        constant_names: list[str] = []
+        for node in toolchain.analysis_nodes:
+            if node.analysis_kind != "quantity_expression":
+                continue
+            for item in node.expression_nodes:
+                if str(item.get("operation", "")) != "constant":
+                    continue
+                name = str(item.get("constant_name", ""))
+                if name and name not in constant_names:
+                    constant_names.append(name)
+        if constant_names:
+            # Every host-owned value the chain selected, with the
+            # standard-state convention that gives it meaning.  The number
+            # a reader must not have to take on faith is exactly the one a
+            # model was never allowed to write.
+            lines.extend(
+                (
+                    "",
+                    LITERATURE_CONSTANTS_HEADING,
+                    "",
+                    "| Constant | Value | Unit | Convention |",
+                    "|---|---:|---|---|",
+                )
+            )
+            for name in constant_names:
+                try:
+                    entry = literature_constant(name)
+                except UnknownLiteratureConstantError:
+                    # Reachable only if a registry entry was removed after
+                    # this chain was approved; the report must still say
+                    # why rather than fail to render.
+                    lines.append(f"| {name} | — | — | no longer registered |")
+                    continue
+                lines.append(
+                    f"| {entry.name} | `{entry.value:g}` | {entry.unit} | "
+                    f"{entry.convention} |"
+                )
         for claims in claim_records:
             lines.extend(
                 (
@@ -10353,6 +10395,7 @@ class CommandCompiledToolHostV1:
                 indices=tuple(int(value) for value in item.get("indices", ())),
                 literal_value=item.get("literal_value"),
                 literal_unit=str(item.get("literal_unit", "1")),
+                constant_name=str(item.get("constant_name", "")),
                 scale_factor=(
                     float(item["scale_factor"])
                     if "scale_factor" in item

@@ -315,6 +315,62 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
     return table
 
 
+def _literature_constants_renderable(
+    review: "WorkflowExecutionReviewV1",
+) -> Any:
+    """Show every host-owned constant the planned chain selects, or None.
+
+    The reviewer approves a cycle whose answer moves with these numbers, so
+    the value, unit, and standard-state convention appear at the decision
+    surface -- resolved from the registry by name, never restated by the
+    session that planned the chain.
+    """
+
+    plan = review.scientific_toolchain_plan
+    if plan is None:
+        return None
+    names: list[str] = []
+    for node in plan.analysis_nodes:
+        if node.analysis_kind != "quantity_expression":
+            continue
+        for item in node.expression_nodes:
+            if str(item.get("operation", "")) != "constant":
+                continue
+            name = str(item.get("constant_name", ""))
+            if name and name not in names:
+                names.append(name)
+    if not names:
+        return None
+    from chemsmart.analysis.literature_constants import (
+        UnknownLiteratureConstantError,
+        literature_constant,
+    )
+
+    table = Table(
+        title=(
+            "Literature constants (host-owned values the chain selects "
+            "by name)"
+        )
+    )
+    table.add_column("Constant", style="bold cyan")
+    table.add_column("Value", justify="right")
+    table.add_column("Unit")
+    table.add_column("Convention")
+    for name in names:
+        try:
+            entry = literature_constant(name)
+        except UnknownLiteratureConstantError:
+            table.add_row(name, "—", "—", "no longer registered")
+            continue
+        table.add_row(
+            entry.name,
+            f"{entry.value:g}",
+            entry.unit,
+            entry.convention,
+        )
+    return table
+
+
 def _decision_panel(review: "WorkflowExecutionReviewV1") -> Panel:
     executable_text = ", ".join(item.node_id for item in review.node_reviews)
     deferred = set(review.non_executable_node_ids)
@@ -378,6 +434,9 @@ def render_review_blocks(
         blocks.append(_edges_table(review))
     blocks.extend(_composition_panels(review))
     blocks.append(_analysis_chain_renderable(review))
+    constants_table = _literature_constants_renderable(review)
+    if constants_table is not None:
+        blocks.append(constants_table)
     knowledge_panel = _advisory_knowledge_panel(review)
     if knowledge_panel is not None:
         blocks.append(knowledge_panel)

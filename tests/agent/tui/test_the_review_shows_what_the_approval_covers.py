@@ -179,3 +179,49 @@ def test_a_composed_arrangement_shows_its_parents_and_contact():
     assert "requested distance: 1.94" in text
     assert "built from two approved parent structures" in text
     assert re.search(r"[0-9a-f]{64}", text) is None, "parent digests leaked"
+
+
+def test_a_chain_selecting_a_constant_shows_it_at_the_decision_surface():
+    # The reviewer approves a cycle whose answer moves with this number,
+    # so its value, unit, and standard-state convention render with the
+    # review -- resolved from the registry, not restated by the session.
+    chain = SimpleNamespace(
+        analysis_nodes=(
+            SimpleNamespace(
+                node_id="derive-pka",
+                analysis_kind="quantity_expression",
+                inputs=(
+                    SimpleNamespace(
+                        producer_node_id="thermo-acid",
+                        producer_output_id="gibbs",
+                    ),
+                ),
+                outputs=(SimpleNamespace(output_id="pka", unit="1"),),
+                expression_nodes=(
+                    {
+                        "node_id": "g-proton",
+                        "operation": "constant",
+                        "constant_name": "aqueous_proton_gibbs_298K",
+                    },
+                    {
+                        "node_id": "pka",
+                        "operation": "gibbs_to_pka",
+                        "input_ids": ("dg", "temp"),
+                    },
+                ),
+                temperature_k=None,
+                pressure_atm=None,
+                support_state="planned",
+                blocked_reason="",
+            ),
+        )
+    )
+    text = _flatten(
+        render_review_blocks(_review(scientific_toolchain_plan=chain))
+    )
+
+    assert "Literature constants" in text
+    assert "aqueous_proton_gibbs_298K" in text
+    assert "-270.3" in text
+    assert "kcal/mol" in text
+    assert "1 mol/L" in text

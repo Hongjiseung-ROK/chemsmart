@@ -2097,6 +2097,16 @@ def _quantity_expression_node_schema() -> dict:
                 ),
             },
             "literal_unit": _string(),
+            "constant_name": {
+                "type": "string",
+                "description": (
+                    "For constant, the registered literature-constant name "
+                    "(for example aqueous_proton_gibbs_298K). The host owns "
+                    "the value, unit, and standard-state convention; an "
+                    "unregistered name is refused when planned. Other "
+                    "operations omit this."
+                ),
+            },
             "scale_factor": {"type": "number"},
             "target_unit": _string(),
             "cardinal_numbers": {

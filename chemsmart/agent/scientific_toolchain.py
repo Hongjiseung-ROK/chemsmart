@@ -514,6 +514,25 @@ class AnalysisNodeIntentV1:
                 raise ScientificToolchainContractError(
                     "quantity expression requires a typed expression DAG"
                 )
+            # A constant node names a host-owned registry entry; resolving
+            # the name here makes an unregistered constant a plan-time
+            # refusal that spells out the available set, instead of an
+            # execution failure after the engines have already run.
+            from chemsmart.analysis.literature_constants import (
+                UnknownLiteratureConstantError,
+                literature_constant,
+            )
+
+            for item in self.expression_nodes:
+                if str(item.get("operation", "")) != "constant":
+                    continue
+                try:
+                    literature_constant(str(item.get("constant_name", "")))
+                except UnknownLiteratureConstantError as exc:
+                    raise ScientificToolchainContractError(
+                        f"expression node "
+                        f"{str(item.get('node_id', '?'))!r}: {exc.args[0]}"
+                    ) from exc
             declared = sorted({item.output_id for item in self.outputs})
             exported = sorted(set(self.expression_output_node_ids))
             if declared != exported:
