@@ -2809,6 +2809,131 @@ def handoff_optimized_native_geometry(
     )
 
 
+def handoff_scan_minimum_geometry(
+    *,
+    producer_receipt: ProgramExecutionReceiptV1,
+    result_artifact: TrustedArtifactRefV1,
+    input_artifact: TrustedArtifactRefV1,
+    producer_edge: ProducerEdgeRuleV1,
+    approved_workspace: str | Path,
+    geometry_artifact_id: str,
+    expected_charge: int,
+    expected_multiplicity: int,
+    consumer_charge: int | None = None,
+    consumer_multiplicity: int | None = None,
+) -> tuple[TrustedArtifactRefV1, OptimizedGeometryHandoffV1]:
+    """Carry a validated ORCA scan's minimum-energy sampled point forward.
+
+    The rule's whole meaning is deterministic given the surface: the point
+    with the lowest recorded energy travels, ties resolving to the lowest
+    point index, and the structure is the one ORCA itself wrote for that
+    point. The judgement of *whether* the sampled minimum is the right
+    thing to refine was made when the reviewer approved the displayed rule;
+    nothing here ranks on anyone's behalf.
+    """
+
+    if not producer_receipt.validated:
+        raise ContractError(
+            "scan-minimum geometry requires a validated producer"
+        )
+    if producer_receipt.node_id != producer_edge.producer_node_id:
+        raise ContractError("execution receipt does not match producer edge")
+    if producer_edge.selection_rule != "validated_scan_minimum_geometry":
+        raise ContractError("unsupported scan geometry selection rule")
+    source = _require_current_artifact(result_artifact, "ORCA scan result")
+    if result_artifact.kind != "orca_output":
+        raise ContractError(
+            "scan-minimum handoff requires an orca_output artifact"
+        )
+    if not any(
+        item.artifact_id == result_artifact.artifact_id
+        and item.sha256 == result_artifact.sha256
+        for item in producer_receipt.output_artifacts
+    ):
+        raise ContractError("result artifact is not bound to producer receipt")
+    expected_symbols, _initial_positions = _read_exact_xyz_geometry(
+        input_artifact, label="ORCA scan input"
+    )
+    before = file_sha256(source)
+    try:
+        from chemsmart.io.orca.output import ORCAOutput
+
+        output = ORCAOutput(str(source))
+        jobtype = str(output.jobtype or "").lower()
+        normal_termination = bool(output.normal_termination)
+        records = tuple(output.scan_point_records or ())
+        charge = output.charge
+        multiplicity = output.multiplicity
+    except (AttributeError, IndexError, OSError, TypeError, ValueError) as exc:
+        raise ContractError("ORCA scan result is not readable") from exc
+    after = file_sha256(source)
+    if before != result_artifact.sha256 or after != before:
+        raise ContractError("scan result changed while selecting the minimum")
+    if not normal_termination or jobtype != "scan":
+        raise ContractError("scan-minimum handoff requires a completed scan")
+    candidates = tuple(item for item in records if item.get("geometry_file"))
+    if not candidates:
+        raise ContractError(
+            "the scan recorded no point with a geometry file, so no "
+            "structure can be carried forward"
+        )
+    chosen = min(
+        candidates,
+        key=lambda item: (float(item["energy"]), int(item["index"])),
+    )
+    if (charge, multiplicity) != (
+        int(expected_charge),
+        int(expected_multiplicity),
+    ):
+        raise ContractError("scan electronic state differs from approval")
+    point_path = Path(str(chosen["geometry_file"])).resolve()
+    if not point_path.is_file():
+        raise ContractError("the minimum-energy scan geometry is missing")
+    point_artifact = TrustedArtifactRefV1(
+        artifact_id="scan-minimum-candidate",
+        kind="geometry_xyz",
+        sha256=file_sha256(point_path),
+        size_bytes=point_path.stat().st_size,
+        path=str(point_path),
+        cli_value=str(point_path),
+    )
+    symbols, positions = _read_exact_xyz_geometry(
+        point_artifact, label="ORCA scan point geometry"
+    )
+    if symbols != expected_symbols:
+        raise ContractError(
+            "scan point geometry changed atom identity or atom order"
+        )
+    if any(
+        len(row) != 3 or any(not math.isfinite(value) for value in row)
+        for row in positions
+    ):
+        raise ContractError("scan point positions must be finite Nx3 values")
+    consumer_fields = _handoff_consumer_fields(
+        producer_charge=int(charge),
+        producer_multiplicity=int(multiplicity),
+        consumer_charge=consumer_charge,
+        consumer_multiplicity=consumer_multiplicity,
+    )
+    return _finalize_geometry_handoff(
+        workspace=_absolute_workspace(approved_workspace),
+        producer_edge=producer_edge,
+        producer_receipt=producer_receipt,
+        result_artifact=result_artifact,
+        geometry_artifact_id=geometry_artifact_id,
+        symbols=symbols,
+        positions=positions,
+        charge=charge,
+        multiplicity=multiplicity,
+        comment_label=(
+            f"orca SCAN minimum point {int(chosen['index'])} "
+            f"(coordinate {float(chosen['coordinate']):g}, "
+            f"{float(chosen['energy']):.9f} Eh)"
+        ),
+        consumer_fields=consumer_fields,
+    )
+
+
 @dataclass(frozen=True)
 class _ParsedORCAHessian:
     dimension: int
@@ -3551,6 +3676,8 @@ def _frozen_producer_edge_rule(
 ) -> FrozenProducerEdgeRuleV1:
     if is_validated_optimized_geometry_edge(plan, edge):
         selection_rule = "validated_optimized_geometry"
+    elif is_validated_scan_minimum_geometry_edge(plan, edge):
+        selection_rule = "validated_scan_minimum_geometry"
     elif is_validated_orca_ts_hessian_edge(plan, edge):
         selection_rule = "validated_final_orca_ts_hessian"
     elif is_validated_producer_orca_hessian_edge(plan, edge):
@@ -3558,9 +3685,10 @@ def _frozen_producer_edge_rule(
     else:
         raise ContractError(
             "future data edge has no registered exact artifact selection rule: "
-            "supported edges are an opt/ts geometry_xyz input, an ORCA TS "
-            "orca_hessian input to an IRC hess_filename role, or an ORCA "
-            "producer orca_hessian input to a TS inhess_filename role"
+            "supported edges are an opt/ts geometry_xyz input, an ORCA scan "
+            "geometry_xyz input carrying the minimum-energy sampled point, "
+            "an ORCA TS orca_hessian input to an IRC hess_filename role, or "
+            "an ORCA producer orca_hessian input to a TS inhess_filename role"
         )
     body = {
         "schema_version": "chemsmart.frozen-producer-edge-rule.v1",
@@ -3582,14 +3710,26 @@ def _frozen_producer_edge_rule(
 
 
 #: Producer stages whose geometry a consumer may wait on inside one approval.
-#: Each of these ends at a single stationary structure that ChemSmart's parser
-#: selects and validates without anyone choosing between candidates.
 #:
-#: A relaxed scan is deliberately absent. It ends at a surface, not a structure,
-#: and picking which point to carry forward is a scientific judgement that the
-#: computed surface has to inform -- so it cannot be settled in advance, and the
-#: host must not settle it on the scientist's behalf.
-DEFERRABLE_GEOMETRY_PRODUCER_STAGES = frozenset({"opt", "ts"})
+#: ``opt`` and ``ts`` end at a single stationary structure that ChemSmart's
+#: parser selects and validates without anyone choosing between candidates.
+#: A relaxed scan ends at a surface, and which point to carry forward is a
+#: scientific judgement -- the earlier registry therefore excluded scans
+#: entirely, so the one expressible escape from a torsional saddle (scan the
+#: dihedral, refine the well) could never run under one approval; the first
+#: composed-pKa qualification hit exactly that wall. The judgement has not
+#: moved to the host: a scan edge is admitted only under the named rule
+#: ``validated_scan_minimum_geometry``, whose meaning -- carry the
+#: minimum-energy sampled point -- the planning session chooses and the
+#: displayed review states, so the scientist approves that settlement
+#: explicitly. Any other point on the surface remains the explicit
+#: bind-a-scan-point route with its own new workflow and review.
+DEFERRABLE_GEOMETRY_PRODUCER_STAGES = frozenset({"opt", "ts", "scan"})
+
+#: Stages the optimized-geometry rule itself covers. A scan is deferrable
+#: (set above) but is never an "optimized geometry": its edge carries the
+#: scan-minimum rule instead.
+OPTIMIZED_GEOMETRY_PRODUCER_STAGES = frozenset({"opt", "ts"})
 
 
 def is_validated_optimized_geometry_edge(
@@ -3621,7 +3761,37 @@ def is_validated_optimized_geometry_edge(
     )
     return bool(
         source is not None
-        and source.stage in DEFERRABLE_GEOMETRY_PRODUCER_STAGES
+        and source.stage in OPTIMIZED_GEOMETRY_PRODUCER_STAGES
+    )
+
+
+def is_validated_scan_minimum_geometry_edge(
+    plan: ScientificWorkflowPlanV2,
+    edge: ScientificWorkflowEdgeV2,
+) -> bool:
+    """Whether one future edge carries a scan's minimum-energy sampled point.
+
+    A relaxed scan ends at a surface, so a geometry edge from it needs a
+    named settlement of which structure travels. This rule's meaning is the
+    minimum-energy sampled point -- deterministic given the validated
+    surface (ties resolve to the lowest point index) -- and the displayed
+    review names the rule, so the approving scientist sees exactly that
+    settlement. It exists for the one route that can escape a torsional
+    saddle in this release: scan the dihedral, refine the well. ORCA only,
+    because only the ORCA reader joins scan points to the geometries the
+    engine wrote for them.
+    """
+
+    if edge.edge_kind != "data" or edge.artifact_class != "geometry_xyz":
+        return False
+    source = next(
+        (node for node in plan.nodes if node.node_id == edge.source_node_id),
+        None,
+    )
+    return bool(
+        source is not None
+        and source.stage == "scan"
+        and source.program == "orca"
     )
 
 
@@ -6105,11 +6275,13 @@ __all__ = [
     "derive_ready_node_ids",
     "environment_review_summary",
     "handoff_optimized_native_geometry",
+    "handoff_scan_minimum_geometry",
     "handoff_optimized_pyscf_geometry",
     "handoff_optimized_xtb_geometry",
     "handoff_final_orca_ts_hessian",
     "is_validated_orca_ts_hessian_edge",
     "is_validated_optimized_geometry_edge",
+    "is_validated_scan_minimum_geometry_edge",
     "execution_path_placeholder",
     "execution_server_profile_sha256",
     "normalized_project_settings_review",

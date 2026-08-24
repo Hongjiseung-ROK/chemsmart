@@ -118,11 +118,13 @@ from chemsmart.agent.execution import (
     handoff_optimized_native_geometry,
     handoff_optimized_pyscf_geometry,
     handoff_optimized_xtb_geometry,
+    handoff_scan_minimum_geometry,
     handoff_validated_orca_producer_hessian,
     invocation_identity_sha256,
     is_validated_optimized_geometry_edge,
     is_validated_orca_ts_hessian_edge,
     is_validated_producer_orca_hessian_edge,
+    is_validated_scan_minimum_geometry_edge,
     project_real_execution_argv,
     promote_project_candidate,
 )
@@ -7538,6 +7540,37 @@ class CommandCompiledToolHostV1:
                         )
                     self.artifacts[artifact.artifact_id] = artifact
                     self.hessian_handoffs[edge.consumer_node_id] = observed
+                elif edge.selection_rule == "validated_scan_minimum_geometry":
+                    if context.proposal.program != "orca":
+                        raise ContractError(
+                            "a scan-minimum geometry handoff requires an "
+                            "ORCA scan producer"
+                        )
+                    candidates = tuple(
+                        item for item in outputs if item.kind == "orca_output"
+                    )
+                    if len(candidates) != 1:
+                        raise ContractError(
+                            "a validated ORCA scan requires exactly one "
+                            "orca_output result"
+                        )
+                    artifact, observed = handoff_scan_minimum_geometry(
+                        producer_receipt=receipt,
+                        result_artifact=candidates[0],
+                        input_artifact=context.input_artifact,
+                        producer_edge=edge,
+                        approved_workspace=self.approved_workspace,
+                        geometry_artifact_id=(
+                            f"geometry.{edge.producer_node_id}-to-"
+                            f"{edge.consumer_node_id}"
+                        ),
+                        expected_charge=context.scientific_identity.charge,
+                        expected_multiplicity=(
+                            context.scientific_identity.multiplicity
+                        ),
+                        consumer_charge=consumer_binding.charge,
+                        consumer_multiplicity=(consumer_binding.multiplicity),
+                    )
                 elif context.proposal.program == "pyscf":
                     candidates = tuple(
                         item for item in outputs if item.kind == "pyscf_hdf5"
@@ -7618,7 +7651,10 @@ class CommandCompiledToolHostV1:
                         consumer_charge=consumer_binding.charge,
                         consumer_multiplicity=(consumer_binding.multiplicity),
                     )
-                if edge.selection_rule == "validated_optimized_geometry":
+                if edge.selection_rule in {
+                    "validated_optimized_geometry",
+                    "validated_scan_minimum_geometry",
+                }:
                     consumer_charge, consumer_multiplicity = (
                         observed.consumer_state
                     )
@@ -7658,7 +7694,10 @@ class CommandCompiledToolHostV1:
                 pending_data_edges.append(
                     (scientific_edge, edge, observed, identity)
                 )
-                if edge.selection_rule == "validated_optimized_geometry":
+                if edge.selection_rule in {
+                    "validated_optimized_geometry",
+                    "validated_scan_minimum_geometry",
+                }:
                     self._emit(
                         turn_id,
                         EventKind.OPTIMIZED_GEOMETRY_HANDED_OFF,
@@ -8090,6 +8129,8 @@ class CommandCompiledToolHostV1:
             )
             if is_validated_optimized_geometry_edge(plan, edge):
                 selection_rule = "validated_optimized_geometry"
+            elif is_validated_scan_minimum_geometry_edge(plan, edge):
+                selection_rule = "validated_scan_minimum_geometry"
             elif is_validated_orca_ts_hessian_edge(plan, edge):
                 selection_rule = "validated_final_orca_ts_hessian"
             elif is_validated_producer_orca_hessian_edge(plan, edge):
@@ -8098,7 +8139,8 @@ class CommandCompiledToolHostV1:
                 raise ContractError(
                     "execution review has no exact selection rule for data "
                     f"edge {edge.edge_id!r}; expected optimized geometry, "
-                    "an ORCA final-TS Hessian for IRC, or an ORCA producer "
+                    "an ORCA scan minimum-energy point geometry, an ORCA "
+                    "final-TS Hessian for IRC, or an ORCA producer "
                     "Hessian for a TS inhess_filename role"
                 )
             if (
@@ -8660,6 +8702,8 @@ class CommandCompiledToolHostV1:
             )
             if is_validated_optimized_geometry_edge(plan, edge):
                 selection_rule = "validated_optimized_geometry"
+            elif is_validated_scan_minimum_geometry_edge(plan, edge):
+                selection_rule = "validated_scan_minimum_geometry"
             elif is_validated_orca_ts_hessian_edge(plan, edge):
                 selection_rule = "validated_final_orca_ts_hessian"
             elif is_validated_producer_orca_hessian_edge(plan, edge):
@@ -8668,7 +8712,8 @@ class CommandCompiledToolHostV1:
                 raise ContractError(
                     "bounded execution has no exact selection rule for data "
                     f"edge {edge.edge_id!r}; expected optimized geometry, "
-                    "an ORCA final-TS Hessian for IRC, or an ORCA producer "
+                    "an ORCA scan minimum-energy point geometry, an ORCA "
+                    "final-TS Hessian for IRC, or an ORCA producer "
                     "Hessian for a TS inhess_filename role"
                 )
             if (

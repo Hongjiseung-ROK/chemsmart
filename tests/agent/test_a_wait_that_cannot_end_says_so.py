@@ -4,10 +4,17 @@ A consumer whose geometry comes from an `opt` or `ts` producer is deferrable:
 that stage ends at one stationary structure, so the consumer can sit inside the
 same approval and take the geometry when it exists.
 
-A consumer whose geometry comes from a relaxed `scan` cannot be. A scan ends at
-a surface, not a structure, and which point to carry forward is a scientific
-judgement the surface has to inform. The host must not settle that on the
-scientist's behalf by silently picking, say, the lowest point.
+A consumer whose geometry comes from a relaxed `scan` was originally not:
+a scan ends at a surface, and which point to carry forward is a scientific
+judgement. That judgement now lives in a named, displayed rule instead of
+being absent -- `validated_scan_minimum_geometry` carries exactly the
+minimum-energy sampled point, chosen by the planning session and approved
+as displayed -- because the first composed-pKa qualification showed the
+only expressible escape from a torsional saddle (scan the dihedral,
+refine the well) could never run under one approval. Any other point on
+the surface remains the explicit bind-a-scan-point route with its own
+new workflow. The finding machinery below still explains any wait that
+genuinely cannot end inside one approval.
 
 What the host did instead was worse than either: it told the session to
 "materialize the declared workflow inputs", which is impossible here, and left
@@ -37,11 +44,15 @@ def _waiting(stage, deferrable, node_id="producer"):
     }
 
 
-def test_a_scan_is_not_a_deferrable_geometry_producer():
-    """The premise. A scan ends at a surface, so it is deliberately absent."""
+def test_a_scan_defers_under_the_named_minimum_rule():
+    """The amended premise: deferrable, and never as an optimized geometry."""
 
-    assert "scan" not in DEFERRABLE_GEOMETRY_PRODUCER_STAGES
-    assert {"opt", "ts"} <= DEFERRABLE_GEOMETRY_PRODUCER_STAGES
+    from chemsmart.agent.execution import (
+        OPTIMIZED_GEOMETRY_PRODUCER_STAGES,
+    )
+
+    assert {"opt", "ts", "scan"} <= DEFERRABLE_GEOMETRY_PRODUCER_STAGES
+    assert "scan" not in OPTIMIZED_GEOMETRY_PRODUCER_STAGES
 
 
 def test_waiting_on_an_optimisation_keeps_the_ordinary_advice():
