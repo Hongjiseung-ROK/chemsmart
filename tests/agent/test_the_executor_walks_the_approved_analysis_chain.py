@@ -660,3 +660,120 @@ def test_a_chain_using_a_constant_renders_its_provenance_table(tmp_path):
     projected = console.export_text()
     assert "Literature constants" in projected
     assert "standard_state_correction_1atm_to_1M_298K" in projected
+
+
+def test_a_kernel_refusal_is_a_finding_not_a_crash(tmp_path, monkeypatch):
+    # Observed live: an acetate optimization converged onto its
+    # methyl-torsion saddle, the thermochemistry kernel refused the
+    # meaningless pure-RRHO correction with a bare ValueError, and the
+    # refusal escaped the delivery envelope -- the whole run crashed and
+    # every surviving receipt was lost. The kernel's refusal must settle
+    # the node and reach the partial report as a finding.
+    extraction = _analysis_node(
+        "extract-sp",
+        "result_extraction",
+        dependencies=("sp",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="raw",
+                source_kind="program_output",
+                producer_node_id="sp",
+                producer_output_id="sp-out",
+            ),
+        ),
+        selectors=(
+            AnalysisSelectorIntentV1(quantity_id="e", selector="energy"),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="e", quantity_kind="energy", unit="hartree"
+            ),
+        ),
+    )
+    thermo = _analysis_node(
+        "thermo",
+        "thermochemistry",
+        dependencies=("sp",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="raw",
+                source_kind="program_output",
+                producer_node_id="sp",
+                producer_output_id="sp-out",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="gcorr",
+                quantity_kind="thermal_gibbs_correction",
+                unit="hartree",
+            ),
+        ),
+        temperature_k=298.15,
+        pressure_atm=1.0,
+    )
+    claims = _analysis_node(
+        "claims",
+        "claim_rendering",
+        dependencies=("thermo",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="final-gcorr",
+                source_kind="analysis_output",
+                producer_node_id="thermo",
+                producer_output_id="gcorr",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="final-gcorr",
+                quantity_kind="thermal_gibbs_correction",
+                unit="kcal/mol",
+            ),
+        ),
+    )
+    toolchain = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(_calculation(),),
+        calculation_observables={"sp": ("sp-out",)},
+        analysis_nodes=(extraction, thermo, claims),
+        required_output_ids=("final-gcorr",),
+    )
+    executor = _executor(tmp_path, toolchain)
+
+    import chemsmart.agent.tool_runtime as tool_runtime_module
+
+    def _kernel_refusal(**_kwargs):
+        raise ValueError(
+            "!! ERROR: Detected imaginary frequencies in geometry "
+            "optimization. A valid optimized geometry should not contain "
+            "imaginary frequencies."
+        )
+
+    monkeypatch.setattr(
+        tool_runtime_module,
+        "derive_trusted_thermochemistry",
+        _kernel_refusal,
+    )
+
+    nodes, status, completions, report_path = executor._run_analysis_phase(
+        toolchain
+    )
+
+    states = {node.node_id: node.state for node in nodes}
+    assert states == {
+        "extract-sp": "executed",
+        "thermo": "failed",
+        "claims": "skipped",
+    }
+    thermo_record = next(node for node in nodes if node.node_id == "thermo")
+    assert "imaginary frequencies" in thermo_record.reason
+    assert status == "partial"
+    assert completions
+    report = Path(report_path).read_text(encoding="utf-8")
+    assert "Partial analysis" in report
+    assert "imaginary frequencies" in report
+    # The extraction's receipt survives as evidence at its rung.
+    assert "parsed" in report

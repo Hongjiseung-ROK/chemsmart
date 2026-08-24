@@ -10289,33 +10289,44 @@ class CommandCompiledToolHostV1:
 
     def _derive_thermochemistry(self, turn_id: str, values: dict) -> Any:
         artifact = self._artifact(values["artifact_id"])
-        receipt = derive_trusted_thermochemistry(
-            artifact=artifact,
-            program=values["program"],
-            temperature_k=float(values["temperature_k"]),
-            pressure_atm=float(values["pressure_atm"]),
-            concentration_mol_l=(
-                float(values["concentration_mol_l"])
-                if "concentration_mol_l" in values
-                else None
-            ),
-            entropy_method=str(values.get("entropy_method", "rrho")),
-            entropy_cutoff_cm1=(
-                float(values["entropy_cutoff_cm1"])
-                if "entropy_cutoff_cm1" in values
-                else None
-            ),
-            enthalpy_cutoff_cm1=(
-                float(values["enthalpy_cutoff_cm1"])
-                if "enthalpy_cutoff_cm1" in values
-                else None
-            ),
-            alpha=int(values.get("alpha", 4)),
-            use_weighted_mass=bool(values.get("use_weighted_mass", False)),
-            frequency_scale_factor=float(
-                values.get("frequency_scale_factor", 1.0)
-            ),
-        )
+        try:
+            receipt = derive_trusted_thermochemistry(
+                artifact=artifact,
+                program=values["program"],
+                temperature_k=float(values["temperature_k"]),
+                pressure_atm=float(values["pressure_atm"]),
+                concentration_mol_l=(
+                    float(values["concentration_mol_l"])
+                    if "concentration_mol_l" in values
+                    else None
+                ),
+                entropy_method=str(values.get("entropy_method", "rrho")),
+                entropy_cutoff_cm1=(
+                    float(values["entropy_cutoff_cm1"])
+                    if "entropy_cutoff_cm1" in values
+                    else None
+                ),
+                enthalpy_cutoff_cm1=(
+                    float(values["enthalpy_cutoff_cm1"])
+                    if "enthalpy_cutoff_cm1" in values
+                    else None
+                ),
+                alpha=int(values.get("alpha", 4)),
+                use_weighted_mass=bool(values.get("use_weighted_mass", False)),
+                frequency_scale_factor=float(
+                    values.get("frequency_scale_factor", 1.0)
+                ),
+            )
+        except ValueError as exc:
+            # The thermochemistry kernel refuses scientifically meaningless
+            # requests with a bare ValueError -- observed live: an acetate
+            # optimization that converged onto its methyl-torsion saddle
+            # (-64.7 cm^-1), where a pure-RRHO Gibbs correction does not
+            # exist. Typing the refusal here keeps the delivery envelope's
+            # rule honest: typed errors settle the node and reach the
+            # partial report as findings, while a bare exception stays what
+            # it should be -- a defect that crashes.
+            raise ContractError(str(exc)) from exc
         self.thermochemistry_receipts[receipt.receipt_sha256] = receipt
         record = canonical_data(receipt)
         record.pop("receipt_sha256")
