@@ -241,8 +241,12 @@ def build_command_compiled_tool_surface(
                 "point it came from, at what coordinate and energy. Using "
                 "the returned geometry is a changed molecular input, so the "
                 "stage that consumes it is a new workflow needing its own "
-                "review. artifact_id must identify a completed scan result "
-                "already registered in this workspace."
+                "review. When the point you want is the surface's "
+                "minimum-energy sample, you do not need this tool or a "
+                "second workflow: declare the consumer's geometry input as a "
+                "producer edge from the scan node, and one approval covers "
+                "scan and consumer. artifact_id must identify a completed "
+                "scan result already registered in this workspace."
             ),
             {
                 "artifact_id": _string(),
@@ -1700,7 +1704,14 @@ def _workflow_node_schema() -> dict:
                                 "imaginary-mode count) likewise has "
                                 "'filename'/geometry_xyz plus "
                                 "'inhess_filename'/orca_hessian, and its "
-                                "project ts section must set inhess: true."
+                                "project ts section must set inhess: true. A "
+                                "'filename'/geometry_xyz input fed by an ORCA "
+                                "scan node carries the scan's minimum-energy "
+                                "sampled point under one approval -- declare "
+                                "the edge and the consumer defers until the "
+                                "surface exists; carrying any other point is "
+                                "the bind_scan_point_geometry route with its "
+                                "own new workflow."
                             ),
                         },
                         "artifact_id": _string(),
