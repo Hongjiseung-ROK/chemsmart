@@ -8163,7 +8163,11 @@ class CommandCompiledToolHostV1:
         geometry_edges = tuple(
             edge
             for edge in producer_edges
-            if edge.selection_rule == "validated_optimized_geometry"
+            if edge.selection_rule
+            in {
+                "validated_optimized_geometry",
+                "validated_scan_minimum_geometry",
+            }
         )
         edge_by_target = {
             edge.consumer_node_id: edge for edge in geometry_edges
@@ -8736,7 +8740,11 @@ class CommandCompiledToolHostV1:
         geometry_edges = tuple(
             edge
             for edge in producer_edges
-            if edge.selection_rule == "validated_optimized_geometry"
+            if edge.selection_rule
+            in {
+                "validated_optimized_geometry",
+                "validated_scan_minimum_geometry",
+            }
         )
         edge_by_target = {
             edge.consumer_node_id: edge for edge in geometry_edges
