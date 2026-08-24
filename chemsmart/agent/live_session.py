@@ -1576,6 +1576,22 @@ def _scan_result_artifacts(workspace: Path) -> tuple[_ResultObservation, ...]:
     )
 
 
+def discover_registered_result_artifacts(
+    workspace: Path,
+) -> tuple[TrustedArtifactRefV1, ...]:
+    """Re-derive every registered result artifact in one workspace.
+
+    A registered-result id is content-derived (``<program>-result-<sha16>``),
+    so any process holding the workspace rebuilds exactly the references
+    the planning session registered. The provider-free executor resolves an
+    approved analysis chain's registered-result inputs through this: the
+    approval carries the id, the workspace carries the bytes, and the
+    digest inside the id binds the two.
+    """
+
+    return tuple(item.artifact for item in _scan_result_artifacts(workspace))
+
+
 def _inspect_xyz(path: Path) -> tuple[int, tuple[str, ...]]:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()

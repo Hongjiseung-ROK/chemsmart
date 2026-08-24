@@ -657,6 +657,43 @@ class ApprovedWorkflowExecutor:
                 ),
             )
 
+        requested_registered_ids = {
+            item.artifact_id
+            for node in toolchain.analysis_nodes
+            for item in node.inputs
+            if isinstance(item, RegisteredResultInputIntentV1)
+        }
+        if any(
+            artifact_id not in self.host.artifacts
+            for artifact_id in requested_registered_ids
+        ):
+            # A registered-result id is content-derived, so the approved
+            # workspace can rebuild exactly the artifact the planning
+            # session registered. Observed live: the first composed chain
+            # to reuse a registered acid result crashed here with a bare
+            # KeyError, because the fresh executor host held only the
+            # artifacts this run produced.
+            from chemsmart.agent.live_session import (
+                discover_registered_result_artifacts,
+            )
+
+            for artifact in discover_registered_result_artifacts(
+                Path(self.approval_workspace)
+            ):
+                if artifact.artifact_id in requested_registered_ids:
+                    self.host.artifacts.setdefault(
+                        artifact.artifact_id, artifact
+                    )
+
+        def _registered_artifact(artifact_id: str) -> Any:
+            artifact = self.host.artifacts.get(artifact_id)
+            if artifact is None:
+                raise ContractError(
+                    f"registered result {artifact_id!r} is not present in "
+                    "the approved workspace"
+                )
+            return artifact
+
         def _producer_artifact(producer: str) -> Any:
             prefix = f"result.{producer}."
             result_kind = _producer_result_kind(producer)
@@ -702,7 +739,7 @@ class ApprovedWorkflowExecutor:
                 sources: list[Any] = []
                 for item in node.inputs:
                     if isinstance(item, RegisteredResultInputIntentV1):
-                        sources.append(self.host.artifacts[item.artifact_id])
+                        sources.append(_registered_artifact(item.artifact_id))
                     elif item.producer_node_id in calculation_ids:
                         sources.append(
                             _producer_artifact(item.producer_node_id)
@@ -746,7 +783,7 @@ class ApprovedWorkflowExecutor:
                 sources = []
                 for item in node.inputs:
                     if isinstance(item, RegisteredResultInputIntentV1):
-                        sources.append(self.host.artifacts[item.artifact_id])
+                        sources.append(_registered_artifact(item.artifact_id))
                     elif item.producer_node_id in calculation_ids:
                         sources.append(
                             _producer_artifact(item.producer_node_id)

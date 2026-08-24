@@ -777,3 +777,150 @@ def test_a_kernel_refusal_is_a_finding_not_a_crash(tmp_path, monkeypatch):
     assert "imaginary frequencies" in report
     # The extraction's receipt survives as evidence at its rung.
     assert "parsed" in report
+
+
+def test_a_registered_result_input_resolves_from_the_workspace(tmp_path):
+    # Observed live: the first composed chain to reuse a registered acid
+    # result crashed with a bare KeyError -- the fresh executor host held
+    # only this run's artifacts, and the approved registered input was
+    # never resolved. The id is content-derived, so the approved
+    # workspace rebuilds exactly the artifact the planning session
+    # registered.
+    from chemsmart.agent.scientific_toolchain import (
+        RegisteredResultInputIntentV1,
+    )
+
+    workspace_nodes = tmp_path / "workspace" / "nodes" / "prior-sp"
+    workspace_nodes.mkdir(parents=True)
+    staged = workspace_nodes / "CO2.out"
+    staged.write_bytes(_RESULT.read_bytes())
+    registered_id = "orca-result-8ae1cdc683f8eb7d"
+
+    extraction = _analysis_node(
+        "extract-registered",
+        "result_extraction",
+        dependencies=(),
+        inputs=(
+            RegisteredResultInputIntentV1(
+                input_id="raw", artifact_id=registered_id
+            ),
+        ),
+        selectors=(
+            AnalysisSelectorIntentV1(quantity_id="e", selector="energy"),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="e", quantity_kind="energy", unit="hartree"
+            ),
+        ),
+    )
+    claims = _analysis_node(
+        "claims",
+        "claim_rendering",
+        dependencies=("extract-registered",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="final-energy",
+                source_kind="analysis_output",
+                producer_node_id="extract-registered",
+                producer_output_id="e",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="final-energy",
+                quantity_kind="energy",
+                unit="hartree",
+            ),
+        ),
+    )
+    toolchain = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(_calculation(),),
+        calculation_observables={"sp": ("sp-out",)},
+        analysis_nodes=(extraction, claims),
+        required_output_ids=("final-energy",),
+    )
+    executor = _executor(tmp_path, toolchain)
+
+    nodes, status, _completions, report_path = executor._run_analysis_phase(
+        toolchain
+    )
+
+    assert status == "completed"
+    assert all(node.state == "executed" for node in nodes)
+    report = Path(report_path).read_text(encoding="utf-8")
+    assert "final-energy" in report
+
+
+def test_a_missing_registered_result_is_a_finding_not_a_crash(tmp_path):
+    from chemsmart.agent.scientific_toolchain import (
+        RegisteredResultInputIntentV1,
+    )
+
+    extraction = _analysis_node(
+        "extract-registered",
+        "result_extraction",
+        dependencies=(),
+        inputs=(
+            RegisteredResultInputIntentV1(
+                input_id="raw",
+                artifact_id="orca-result-0000000000000000",
+            ),
+        ),
+        selectors=(
+            AnalysisSelectorIntentV1(quantity_id="e", selector="energy"),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="e", quantity_kind="energy", unit="hartree"
+            ),
+        ),
+    )
+    claims = _analysis_node(
+        "claims",
+        "claim_rendering",
+        dependencies=("extract-registered",),
+        inputs=(
+            AnalysisInputIntentV1(
+                input_id="final-energy",
+                source_kind="analysis_output",
+                producer_node_id="extract-registered",
+                producer_output_id="e",
+            ),
+        ),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="final-energy",
+                quantity_kind="energy",
+                unit="hartree",
+            ),
+        ),
+    )
+    toolchain = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(_calculation(),),
+        calculation_observables={"sp": ("sp-out",)},
+        analysis_nodes=(extraction, claims),
+        required_output_ids=("final-energy",),
+    )
+    executor = _executor(tmp_path, toolchain)
+
+    nodes, status, completions, report_path = executor._run_analysis_phase(
+        toolchain
+    )
+
+    states = {node.node_id: node.state for node in nodes}
+    assert states == {"extract-registered": "failed", "claims": "skipped"}
+    failed = next(
+        node for node in nodes if node.node_id == "extract-registered"
+    )
+    assert "orca-result-0000000000000000" in failed.reason
+    assert status == "partial"
+    assert completions
+    report = Path(report_path).read_text(encoding="utf-8")
+    assert "not present in the approved workspace" in report
