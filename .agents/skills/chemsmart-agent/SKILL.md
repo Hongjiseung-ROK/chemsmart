@@ -93,7 +93,16 @@ from two identity-bound parents, and a derived species
 identity-bound parent's atoms -- homolysis, deprotonation, and fragment
 extraction are that one operation. Both display their lineage at review,
 neither infers an electronic state, and the consuming stage of either is a
-new workflow.
+new workflow. A downstream node may consume a completed ORCA scan's
+minimum-energy sampled point inside one approval via a declared producer
+edge (the displayed review names the rule); carrying any other point is an
+explicit post-scan binding and a new workflow. Typed chains select
+host-owned literature constants by registered name through the
+``constant`` operation -- a ``literal`` is recorded as model-authored, a
+``constant`` as host-owned with its standard-state convention displayed --
+and named convention operations own their mathematics (``gibbs_to_pka``).
+Composed workflows such as an aqueous pKa need no task-specific code, and
+completed registered results may feed a later workflow's analysis.
 
 Never create an approval on the model's behalf. Never offer permanent,
 session-wide, prefix-based, or "always allow" chemistry execution. A revised

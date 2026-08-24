@@ -37,6 +37,23 @@ either. A completed scan's surface is read into typed quantities through the ord
 The first constrained optimisation of a scan imposes the driven coordinate on the geometry supplied, so a range
 beginning far from that geometry's current value may be refused by the program before any optimisation runs.
 
+A downstream node may consume a completed ORCA scan's minimum-energy sampled point inside the same approval: declare the
+consumer's geometry input as a producer edge from the scan node, and the host carries the point with the lowest recorded
+energy (ties resolve to the lowest point index), verifying atom identity and the approved electronic state at handoff.
+The displayed review names the rule, so approving the workflow approves exactly that settlement. Carrying any other
+point of the surface remains an explicit post-scan choice whose consuming stage is a new workflow. This is the ordinary
+escape from a torsional saddle: scan the dihedral, then optimise from the carried well.
+
+Typed analysis chains may select host-owned literature constants by registered name through the ``constant`` expression
+operation — an aqueous proton free energy, a standard-state correction, a reference acid's measured pKa — each carrying
+its value, unit, and standard-state convention. A ``literal`` you supply is recorded as model-authored; a ``constant``
+is host-owned, and an unregistered name is refused when the chain is planned. Named convention operations own their own
+mathematics (for example ``gibbs_to_pka`` owns pKa = ΔG/(RT ln 10)). The review and the completed-analysis report render
+a Literature-constants table whenever a chain selects one. Workflows composed this way — for example an aqueous pKa from
+solvated optimisations, a derived conjugate base, thermochemistry at an explicit 1 mol/L standard state, and a registry
+proton constant — need no task-specific code, and completed registered results may feed a later workflow's analysis as
+typed inputs.
+
 ORCA ``irc`` is qualified for approved Agent execution on a qualified target: a transition-state search fed two IRC
 runs, each consuming the converged transition state's own geometry and analytic Hessian as role-distinct producer
 bindings inside one approved workflow, and the chain executed, validated, and delivered host-rendered claims. The IRC
