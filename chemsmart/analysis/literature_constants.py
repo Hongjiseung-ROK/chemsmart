@@ -82,6 +82,19 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
             "1 mol/L at 298.15 K; RT ln(24.4654)"
         ),
     ),
+    # Experimental datum for relative (proton-exchange) constructions,
+    # where the reference acid's measured value anchors the scale and the
+    # absolute proton free energy cancels identically.
+    LiteratureConstantV1(
+        name="acetic_acid_experimental_pka_298K",
+        value=4.756,
+        unit="1",
+        convention=(
+            "measured aqueous pKa of acetic acid at 298.15 K, infinite "
+            "dilution; dimensionless"
+        ),
+        note="reference anchor for proton-exchange pKa constructions",
+    ),
     # The composite that actually enters a direct-cycle deprotonation.
     LiteratureConstantV1(
         name="aqueous_proton_gibbs_298K",

@@ -30,7 +30,10 @@ def test_every_entry_resolves_through_the_unit_layer():
         )
         assert isinstance(value, float)
         assert unit
-        assert any(dimension)
+        # An experimental pKa is a dimensionless datum; every entry with a
+        # physical unit must still carry a real dimension.
+        if entry.unit != "1":
+            assert any(dimension)
 
 
 def test_an_unknown_name_is_refused_naming_the_available_set():
