@@ -616,6 +616,20 @@ def _advisory_knowledge_panel(
     )
 
 
+def _shown_value(value: Any) -> Any:
+    """Display a measured coordinate without a signed zero.
+
+    A torsion set to zero is reached as something like -1e-17, and a record
+    written before the receipts normalised it still carries -0.0. Reading
+    "achieved -0.0 degree" on the page you approve from looks like a defect,
+    so the display collapses the two zeros as well.
+    """
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value) + 0.0
+    return value
+
+
 def _geometry_edit_panels(review: "WorkflowExecutionReviewV1") -> list[Panel]:
     """What an edit actually did to the molecule, on the decision surface.
 
@@ -643,9 +657,10 @@ def _geometry_edit_panels(review: "WorkflowExecutionReviewV1") -> list[Panel]:
         lines = [
             f"parent: {record.get('parent_artifact_id')}",
             f"{record.get('operation')} on {named}",
-            f"before {record.get('value_before')} {unit} -> requested "
-            f"{record.get('value_requested')} {unit} -> achieved "
-            f"{record.get('value_achieved')} {unit}",
+            f"before {_shown_value(record.get('value_before'))} {unit} -> "
+            f"requested {_shown_value(record.get('value_requested'))} {unit} "
+            f"-> achieved {_shown_value(record.get('value_achieved'))} "
+            f"{unit}",
             f"moved the side of atom {record.get('moving_side_atom')}: "
             f"{moved} ({len(moved)} atoms); every other atom unchanged",
             f"{record.get('formula')} ({record.get('atom_count')} atoms); "
@@ -697,12 +712,13 @@ def _atom_append_panels(review: "WorkflowExecutionReviewV1") -> list[Panel]:
             f"{record.get('parent_atom_count')} atoms)",
             f"appended {record.get('element')} as atom "
             f"{record.get('appended_atom_index')}, against {named}",
-            f"bond {record.get('bond_length_angstrom')} angstrom, angle "
-            f"{record.get('angle_degrees')} deg, dihedral "
-            f"{record.get('dihedral_degrees')} deg (achieved "
-            f"{record.get('achieved_bond_length_angstrom')}, "
-            f"{record.get('achieved_angle_degrees')}, "
-            f"{record.get('achieved_dihedral_degrees')})",
+            f"bond {_shown_value(record.get('bond_length_angstrom'))} "
+            f"angstrom, angle {_shown_value(record.get('angle_degrees'))} "
+            f"deg, dihedral {_shown_value(record.get('dihedral_degrees'))} "
+            f"deg (achieved "
+            f"{_shown_value(record.get('achieved_bond_length_angstrom'))}, "
+            f"{_shown_value(record.get('achieved_angle_degrees'))}, "
+            f"{_shown_value(record.get('achieved_dihedral_degrees'))})",
             f"{record.get('parent_formula')} -> {record.get('formula')}; "
             f"{record.get('fragment_count')} connected piece(s); "
             f"{record.get('atom_order_note')}",

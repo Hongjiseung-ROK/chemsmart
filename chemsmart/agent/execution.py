@@ -1034,6 +1034,17 @@ _EDIT_STARTING_STRUCTURE_ROLE = (
 )
 
 
+def _reported(value: float) -> float:
+    """Round a measured coordinate for the record, without a signed zero.
+
+    A torsion set to zero comes back as a value like -1e-17, and rounding
+    keeps its sign: "achieved -0.0 degree" reads as a defect on the page a
+    human approves from. Adding positive zero collapses the two zeros.
+    """
+
+    return round(float(value), 6) + 0.0
+
+
 def _molecule_graph(molecule: Any) -> Any:
     """One-based connectivity graph of a molecule, from covalent radii."""
 
@@ -1512,12 +1523,12 @@ def transform_trusted_molecular_geometry(
         "moving_side_atom": moving,
         "moved_atoms": moved_atoms,
         "value_unit": unit,
-        "value_before": round(before, 6),
-        "value_requested": round(requested, 6),
-        "value_achieved": round(achieved, 6),
+        "value_before": _reported(before),
+        "value_requested": _reported(requested),
+        "value_achieved": _reported(achieved),
         "atom_count": count,
         "formula": edited.get_chemical_formula(),
-        "min_interatomic_distance_angstrom": round(shortest, 6),
+        "min_interatomic_distance_angstrom": _reported(shortest),
         # Observed, never judged.  A close contact may be the point of the
         # edit or the mistake in it, and the review is where that is decided.
         "close_contact_pairs": contacts,
@@ -1773,15 +1784,15 @@ def append_trusted_molecular_atom(
         "appended_atom_index": count + 1,
         "anchor_atoms": tuple(anchors),
         "anchor_symbols": tuple(symbols[index - 1] for index in anchors),
-        "bond_length_angstrom": round(length, 6),
-        "angle_degrees": round(angle, 6),
-        "dihedral_degrees": round(dihedral, 6),
-        "achieved_bond_length_angstrom": round(achieved_length, 6),
-        "achieved_angle_degrees": round(achieved_angle, 6),
-        "achieved_dihedral_degrees": round(achieved_dihedral, 6),
+        "bond_length_angstrom": _reported(length),
+        "angle_degrees": _reported(angle),
+        "dihedral_degrees": _reported(dihedral),
+        "achieved_bond_length_angstrom": _reported(achieved_length),
+        "achieved_angle_degrees": _reported(achieved_angle),
+        "achieved_dihedral_degrees": _reported(achieved_dihedral),
         "atom_count": count + 1,
         "formula": appended.get_chemical_formula(),
-        "min_interatomic_distance_angstrom": round(shortest, 6),
+        "min_interatomic_distance_angstrom": _reported(shortest),
         "close_contact_pairs": contacts,
         # Observed, never judged: an atom placed far from everything leaves
         # two separated pieces, which is a fact about this geometry and not a
