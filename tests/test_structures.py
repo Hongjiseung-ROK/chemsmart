@@ -475,7 +475,12 @@ class TestStructures:
         assert np.isclose(mol.get_distance(1, 2), 1.16)
         assert np.isclose(mol.get_distance(2, 3), 1.16)
         assert np.isclose(mol.get_angle(1, 2, 3), 180)
-        assert np.isclose(mol.get_dihedral(0, 1, 2, 0), 0)
+        # A linear triatomic has no dihedral: three collinear atoms leave the
+        # torsion undefined, and saying so is the answer.  This asserted 0.0
+        # while the old formula's degenerate cross products reached
+        # arctan2(0, 0), which numpy returns as zero rather than refusing.
+        with pytest.raises(ValueError, match="collinear"):
+            mol.get_dihedral(1, 2, 3, 1)
         assert mol.is_linear
 
 

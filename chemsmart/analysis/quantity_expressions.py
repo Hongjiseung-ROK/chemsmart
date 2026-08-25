@@ -42,6 +42,11 @@ from chemsmart.analysis.result_quantities import (
     make_quantity_value,
 )
 from chemsmart.utils.constants import au_to_debye, energy_conversion
+from chemsmart.utils.geometry import (
+    internal_angle,
+    internal_dihedral,
+    internal_distance,
+)
 
 MAX_EXPRESSION_NODES = 128
 MAX_NODE_INPUTS = 64
@@ -2182,7 +2187,7 @@ def _node_value(
             raise QuantityExpressionError(
                 "distance requires equal one-dimensional coordinate vectors"
             )
-        payload = float(np.linalg.norm(left - right))
+        payload = internal_distance(left, right)
         return make_quantity_value(
             quantity_id=node.node_id,
             source_value=payload,
@@ -2214,8 +2219,7 @@ def _node_value(
             raise QuantityExpressionError(
                 "angle is undefined for zero-length vectors"
             )
-        cosine = float(np.dot(left, right) / denominator)
-        radians = math.acos(max(-1.0, min(1.0, cosine)))
+        radians = internal_angle(first, center, last)
         degrees = math.degrees(radians)
         return make_quantity_value(
             quantity_id=node.node_id,
@@ -2262,9 +2266,7 @@ def _node_value(
             raise QuantityExpressionError(
                 "dihedral is undefined for three collinear atoms"
             )
-        radians = math.atan2(
-            float(np.dot(np.cross(n1, n2), b2 / norm)), float(np.dot(n1, n2))
-        )
+        radians = internal_dihedral(a, b, c, d)
         return make_quantity_value(
             quantity_id=node.node_id,
             source_value=math.degrees(radians),

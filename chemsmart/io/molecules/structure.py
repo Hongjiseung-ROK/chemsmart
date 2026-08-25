@@ -967,12 +967,11 @@ class Molecule:
 
     def get_angle_from_positions(self, position1, position2, position3):
         """
-        Calculate the angle between three points.
+        Calculate the angle between three points, in degrees.
         """
-        v1 = position1 - position2
-        v2 = position3 - position2
-        cos_theta = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
-        return np.degrees(np.arccos(cos_theta))
+        from chemsmart.utils.geometry import internal_angle
+
+        return np.degrees(internal_angle(position1, position2, position3))
 
     def get_dihedral(self, idx1, idx2, idx3, idx4):
         """
@@ -991,16 +990,20 @@ class Molecule:
         self, position1, position2, position3, position4
     ):
         """
-        Calculate the dihedral angle between four points.
+        Calculate the signed dihedral angle between four points, in degrees.
+
+        Shares its arithmetic with the typed analysis layer and the host's
+        geometry-edit operation.  The formula written here previously built
+        its first normal from position1 - position2 rather than
+        position2 - position1 and left the sine term unnormalised, which
+        reported a true 60 degree torsion as 111.05 degrees and exchanged
+        0 with 180.
         """
-        v1 = position1 - position2
-        v2 = position3 - position2
-        v3 = position4 - position3
-        n1 = np.cross(v1, v2)
-        n2 = np.cross(v2, v3)
-        x = np.dot(n1, n2)
-        y = np.dot(np.cross(n1, v2), n2)
-        return np.degrees(np.arctan2(y, x))
+        from chemsmart.utils.geometry import internal_dihedral
+
+        return np.degrees(
+            internal_dihedral(position1, position2, position3, position4)
+        )
 
     def copy(self):
         """

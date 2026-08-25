@@ -138,6 +138,122 @@ def is_collinear(coords, tol=1e-2):
     )  # If cross product is close to zero, points are collinear
 
 
+# The three internal coordinates, and the two operations that build on them,
+# live here so that measuring a coordinate and setting one cannot disagree.
+# They were written twice before, and the copies did not match: the typed
+# analysis layer's torsion was right while ``Molecule.get_dihedral`` returned
+# 111.05 degrees for a true 60 degree torsion and swapped 0 with 180. A host
+# that edits a coordinate and then reports the value it achieved has to
+# measure with the same arithmetic the reader will use, so every caller
+# imports these.
+
+
+def internal_distance(point_i, point_j):
+    """Distance between two points, in the unit the coordinates carry."""
+
+    return float(np.linalg.norm(np.asarray(point_j) - np.asarray(point_i)))
+
+
+def internal_angle(point_i, point_j, point_k):
+    """Angle in radians at ``point_j``, the vertex of i-j-k."""
+
+    left = np.asarray(point_i, dtype=float) - np.asarray(point_j, dtype=float)
+    right = np.asarray(point_k, dtype=float) - np.asarray(point_j, dtype=float)
+    denominator = float(np.linalg.norm(left) * np.linalg.norm(right))
+    if denominator == 0.0:
+        raise ValueError("angle is undefined for zero-length vectors")
+    cosine = float(np.dot(left, right) / denominator)
+    return math.acos(max(-1.0, min(1.0, cosine)))
+
+
+def internal_dihedral(point_i, point_j, point_k, point_l):
+    """Signed torsion in radians about the j-k bond, for bonded i-j-k-l.
+
+    Positive when the far bond is rotated clockwise relative to the near one
+    viewed along j to k, which is the IUPAC convention. The range is
+    (-pi, pi]; callers that want [0, 360) convert at their own boundary.
+    """
+
+    a, b, c, d = (
+        np.asarray(point, dtype=float)
+        for point in (point_i, point_j, point_k, point_l)
+    )
+    b1, b2, b3 = b - a, c - b, d - c
+    axis_norm = float(np.linalg.norm(b2))
+    if axis_norm == 0.0:
+        raise ValueError(
+            "dihedral is undefined when the central atoms coincide"
+        )
+    n1, n2 = np.cross(b1, b2), np.cross(b2, b3)
+    if float(np.linalg.norm(n1)) == 0.0 or float(np.linalg.norm(n2)) == 0.0:
+        raise ValueError("dihedral is undefined for three collinear atoms")
+    return math.atan2(
+        float(np.dot(np.cross(n1, n2), b2 / axis_norm)), float(np.dot(n1, n2))
+    )
+
+
+def rotate_points_about_axis(points, axis_point, axis_direction, angle):
+    """Rotate points by ``angle`` radians about a line, right-hand rule.
+
+    Rodrigues' formula. The line passes through ``axis_point`` along
+    ``axis_direction``; points on the line are returned unmoved.
+    """
+
+    coordinates = np.asarray(points, dtype=float)
+    origin = np.asarray(axis_point, dtype=float)
+    direction = np.asarray(axis_direction, dtype=float)
+    length = float(np.linalg.norm(direction))
+    if length == 0.0:
+        raise ValueError("a rotation axis needs a direction")
+    unit = direction / length
+    shifted = coordinates - origin
+    cosine, sine = math.cos(angle), math.sin(angle)
+    rotated = (
+        shifted * cosine
+        + np.cross(unit, shifted) * sine
+        + np.outer(shifted @ unit, unit) * (1.0 - cosine)
+    )
+    return rotated + origin
+
+
+def place_atom_by_internal_coordinates(
+    anchor, second, third, bond_length, angle, dihedral
+):
+    """Position one new point from the three internal coordinates it is given.
+
+    The new point sits ``bond_length`` from ``anchor``, makes ``angle``
+    radians with ``anchor``-``second``, and has torsion ``dihedral`` radians
+    about the ``anchor``-``second`` bond measured against ``third`` -- the
+    z-matrix convention, so measuring the placed point back with
+    ``internal_dihedral(new, anchor, second, third)`` returns what was asked
+    for.
+    """
+
+    a = np.asarray(anchor, dtype=float)
+    b = np.asarray(second, dtype=float)
+    c = np.asarray(third, dtype=float)
+    ab = a - b
+    ab_norm = float(np.linalg.norm(ab))
+    if ab_norm == 0.0:
+        raise ValueError("the anchor and the angle atom coincide")
+    unit_ab = ab / ab_norm
+    normal = np.cross(b - c, unit_ab)
+    normal_norm = float(np.linalg.norm(normal))
+    if normal_norm == 0.0:
+        raise ValueError(
+            "the three anchor atoms are collinear, which leaves the dihedral "
+            "undefined"
+        )
+    unit_normal = normal / normal_norm
+    in_plane = np.cross(unit_normal, unit_ab)
+    offset = (
+        unit_ab * (-bond_length * math.cos(angle))
+        + in_plane * (bond_length * math.sin(angle) * math.cos(dihedral))
+        + unit_normal * (bond_length * math.sin(angle) * math.sin(dihedral))
+    )
+    return a + offset
+
+
 # def calculate_moments_of_inertia(mass, coords):
 #     """Calculate the principal moments of inertia from mass and coordinates.
 # Mass parameter is a list of atomic masses
