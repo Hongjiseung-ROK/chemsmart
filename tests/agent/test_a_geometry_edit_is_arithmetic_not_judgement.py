@@ -454,3 +454,69 @@ def test_the_advertised_operations_are_the_ones_the_host_implements(tmp_path):
             moving_side_atom=5,
             target_value=0.0,
         )
+
+
+def _duck_review(node_reviews):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        scientific_plan=SimpleNamespace(nodes=(), edges=()),
+        node_reviews=node_reviews,
+    )
+
+
+def _rendered(renderable):
+    from rich.console import Console
+
+    console = Console(record=True, width=200)
+    console.print(renderable)
+    return console.export_text()
+
+
+def test_the_edit_reaches_the_decision_surface_with_its_elements(tmp_path):
+    """What a human needs to catch a wrong edit, on the page they approve."""
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent.tui.review import _geometry_edit_panels
+
+    host = _host_with(tmp_path, _NMA, "nma")
+    edit = _edit(
+        host,
+        "t1",
+        edited_artifact_id="nma-cis",
+        input_artifact_id="nma",
+        operation="set_dihedral",
+        atoms=[1, 2, 4, 5],
+        moving_side_atom=5,
+        target_value=0.0,
+    )["geometry_edit"]
+
+    review = _duck_review(
+        (
+            SimpleNamespace(
+                node_id="opt-cis",
+                molecular_identity={
+                    "charge": 0,
+                    "multiplicity": 1,
+                    "geometry_edit": edit,
+                },
+            ),
+        )
+    )
+    panels = _geometry_edit_panels(review)
+    assert len(panels) == 1
+    text = _rendered(panels[0])
+
+    # The atoms carry their elements: a torsion named over the wrong
+    # quadruple is caught by reading it.
+    assert "C1 - C2 - N4 - C5" in text
+    assert "set_dihedral" in text
+    # All three values, so the requested one survives next to the achieved.
+    assert "before 180.0 degree" in text
+    assert "requested 0.0 degree" in text
+    assert "achieved 0.0 degree" in text
+    assert "moved the side of atom 5" in text
+    assert "observations, not verdicts" in text
+    assert "starting structure" in text
+    assert "binds charge 0, multiplicity 1 explicitly" in text
