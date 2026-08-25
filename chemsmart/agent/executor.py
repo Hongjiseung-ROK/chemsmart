@@ -1570,6 +1570,35 @@ class ApprovedWorkflowExecutor:
                         )
                     )
                     seen.add(node_state.node_id)
+                elif node_state.state == "running":
+                    # A durable reservation with no receipt: the prior
+                    # invocation died mid-engine.  Interrupted is a third
+                    # state, and the default is refusal -- the fence
+                    # forbids relaunching an engine whose original
+                    # process and outputs nobody reconciled -- but the
+                    # record must say so rather than vanish from the
+                    # delivery table as never-attempted.  Observed live
+                    # on the first mid-engine SIGTERM.
+                    binding = self._binding(node_state.node_id)
+                    executed.append(
+                        ExecutedNodeV1(
+                            node_id=node_state.node_id,
+                            program=binding.program,
+                            jobtype=binding.jobtype,
+                            state="ambiguous",
+                            invocation_identity_sha256="",
+                            execution_receipt_sha256="",
+                            rule_ids=(),
+                            failure=(
+                                "launch reservation remains unresolved; "
+                                "relaunch is forbidden -- a prior "
+                                "invocation was interrupted mid-engine "
+                                "and the original process and output "
+                                "state need human reconciliation"
+                            ),
+                        )
+                    )
+                    seen.add(node_state.node_id)
         else:
             run_state = build_workflow_run_state(
                 run_id=run_id,
