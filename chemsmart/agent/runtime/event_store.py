@@ -77,6 +77,7 @@ from chemsmart.agent.runtime.events import (
     WORKFLOW_LAUNCH_RESERVED,
     WORKFLOW_NODE_STATE_CHANGED,
     WORKFLOW_REVIEW_RESOLVED,
+    EventKind,
     RuntimeEvent,
 )
 from chemsmart.agent.runtime.records import (
@@ -92,6 +93,16 @@ from chemsmart.agent.workflows import (
     MaterializedWorkflowV1,
     ScientificWorkflowPlanV2,
 )
+
+
+class ExecutionBundleAlreadyConsumedError(ContractError):
+    """The one-shot claim found this bundle already consumed.
+
+    Typed so the executor can distinguish "a second independent execution
+    of a spent approval" (refused) from "the recorded, incomplete run
+    continuing in its original run directory" (admitted through
+    ``continue_execution_bundle``) without parsing message text.
+    """
 
 
 class RuntimeEventStore:
@@ -257,7 +268,7 @@ class RuntimeEventStore:
                 or bundle.workflow_approval.approval_id
                 in state.consumed_execution_approval_ids
             ):
-                raise ContractError(
+                raise ExecutionBundleAlreadyConsumedError(
                     "execution approval bundle has already been consumed"
                 )
             record = {
@@ -282,6 +293,73 @@ class RuntimeEventStore:
                 },
                 idempotency_key=(
                     "execution-bundle-consumed:" + bundle.bundle_sha256
+                ),
+                existing_events=events,
+            )
+
+    def continue_execution_bundle(
+        self,
+        *,
+        turn_id: str,
+        bundle: WorkflowExecutionApprovalBundleV1,
+        run_id: str,
+        remaining_node_ids: tuple[str, ...],
+    ) -> RuntimeEvent:
+        """Record that a consumed, incomplete approval's run continues.
+
+        One-shot consumption protects against the same approval authorizing
+        MORE work; continuation authorizes none -- the per-node launch
+        fence replays terminal receipts instead of re-executing, and the
+        engine-call budget counts replays -- so the recorded decision may
+        finish across invocations.  This ledger admits a continuation only
+        for a bundle it has itself consumed; whether the run is genuinely
+        incomplete is established by the caller from the run directory's
+        own durable stream before calling.
+        """
+
+        with self._locked_handle(exclusive=True) as handle:
+            events = self._read_locked(handle)
+            state = replay_events(events)
+            if (
+                bundle.bundle_sha256
+                not in state.consumed_execution_bundle_sha256s
+            ):
+                raise ContractError(
+                    "continuation requires a previously consumed execution "
+                    "bundle; this approval was never claimed here"
+                )
+            remaining = tuple(sorted(set(remaining_node_ids)))
+            if not remaining:
+                raise ContractError(
+                    "continuation requires at least one remaining node"
+                )
+            record = {
+                "schema_version": "chemsmart.execution-bundle-continuation.v1",
+                "bundle_sha256": bundle.bundle_sha256,
+                "approval_id": bundle.workflow_approval.approval_id,
+                "run_id": run_id,
+                "remaining_node_ids": remaining,
+                "status": "resumed",
+            }
+            return self._append_locked(
+                handle,
+                turn_id=turn_id,
+                kind=EventKind.EXECUTION_BUNDLE_CONTINUED.value,
+                payload={
+                    "receipt_sha256": canonical_sha256(record),
+                    "bundle_sha256": bundle.bundle_sha256,
+                    "approval_id": bundle.workflow_approval.approval_id,
+                    "run_id": run_id,
+                    "remaining_node_ids": remaining,
+                    "status": "resumed",
+                    "record": record,
+                },
+                # Each resume is its own recorded event; the ledger length
+                # keeps two continuations from collapsing into one.
+                idempotency_key=(
+                    "execution-bundle-continued:"
+                    + bundle.bundle_sha256
+                    + f":{len(events)}"
                 ),
                 existing_events=events,
             )

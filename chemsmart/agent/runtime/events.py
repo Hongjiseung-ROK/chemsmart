@@ -73,6 +73,7 @@ class EventKind(str, Enum):
     SCIENTIFIC_WORKFLOW_MATERIALIZED = "scientific_workflow_materialized"
     WORKFLOW_REVIEW_RESOLVED = "workflow_review_resolved"
     EXECUTION_BUNDLE_CONSUMED = "execution_bundle_consumed"
+    EXECUTION_BUNDLE_CONTINUED = "execution_bundle_continued"
     WORKFLOW_APPROVAL_CONSUMED = "workflow_approval_consumed"
     WORKFLOW_EXECUTION_STARTED = "workflow_execution_started"
     WORKFLOW_LAUNCH_RESERVED = "workflow_node_launch_reserved"

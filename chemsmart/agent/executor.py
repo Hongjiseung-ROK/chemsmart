@@ -399,12 +399,27 @@ class ApprovedWorkflowExecutor:
         if self.claim_workspace_bundle:
             from chemsmart.agent.live_session import (
                 claim_workflow_execution_approval_bundle,
+                continue_workflow_execution_approval_bundle,
+            )
+            from chemsmart.agent.runtime.event_store import (
+                ExecutionBundleAlreadyConsumedError,
             )
 
-            claim_workflow_execution_approval_bundle(
-                self.execution_bundle,
-                workspace=self.approval_workspace,
-            )
+            try:
+                claim_workflow_execution_approval_bundle(
+                    self.execution_bundle,
+                    workspace=self.approval_workspace,
+                )
+            except ExecutionBundleAlreadyConsumedError:
+                # A spent approval admits exactly one more shape: the same
+                # recorded run continuing in its original run directory,
+                # still incomplete.  Anything else re-raises the refusal
+                # inside the continuation check itself.
+                continue_workflow_execution_approval_bundle(
+                    self.execution_bundle,
+                    workspace=self.approval_workspace,
+                    run_event_store=self.host.event_store,
+                )
         self._bundle_claimed = True
 
     def _input_artifact_id(self, binding: Any) -> str:

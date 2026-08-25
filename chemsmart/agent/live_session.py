@@ -4324,6 +4324,74 @@ def claim_workflow_execution_approval_bundle(
     )
 
 
+def continue_workflow_execution_approval_bundle(
+    bundle: WorkflowExecutionApprovalBundleV1,
+    *,
+    workspace: str | Path,
+    run_event_store: RuntimeEventStore,
+):
+    """Admit the continuation of one consumed, incomplete approved run.
+
+    The one-shot claim protects against a spent approval authorizing more
+    work.  A continuation authorizes none: it is the same recorded
+    decision finishing in its original run directory, where the per-node
+    launch fence replays terminal receipts instead of re-executing and
+    the engine-call budget counts replays.  Admission therefore demands
+    all three facts and refuses everything else exactly as before --
+    the consumption ledger must have consumed this exact bundle, the run
+    directory's durable stream must record a run of this approval, and
+    that run must be genuinely incomplete (a completed approval is never
+    re-runnable).  The continuation is appended to the same consumption
+    ledger, naming what remained.
+    """
+
+    root = _validated_workspace(workspace)
+    if Path(bundle.workflow_approval.workspace).resolve() != root:
+        raise ContractError("execution bundle targets another workspace")
+    approval_id = bundle.workflow_approval.approval_id
+    run_id = "run." + approval_id
+    frontier = run_event_store.workflow_frontier(
+        workflow_id=bundle.workflow_approval.workflow_id,
+        run_id=run_id,
+    )
+    if frontier.run_state is None:
+        raise ContractError(
+            "continuation requires the original run directory: its event "
+            "stream records no run of this approval, so this would be a "
+            "second independent execution of a consumed bundle"
+        )
+    approved = set(bundle.frozen_workflow_approval.approved_node_ids)
+    validated = {
+        node.node_id
+        for node in frontier.run_state.nodes
+        if node.state == "validated"
+    }
+    remaining = tuple(sorted(approved - validated))
+    if not remaining:
+        raise ContractError(
+            "the approved workflow already completed; a completed "
+            "approval is not re-runnable"
+        )
+    ledger_root = root / _PRIVATE_ROOT_NAME / "approvals" / approval_id
+    if ledger_root.is_symlink():
+        raise ContractError("approval ledger cannot be a symbolic link")
+    if not ledger_root.is_dir():
+        raise ContractError(
+            "continuation requires the approval's consumption ledger; "
+            "this bundle was never claimed in this workspace"
+        )
+    store = RuntimeEventStore(
+        ledger_root / "consumption-events.jsonl",
+        session_id="approval-" + approval_id,
+    )
+    return store.continue_execution_bundle(
+        turn_id="execute-continue",
+        bundle=bundle,
+        run_id=run_id,
+        remaining_node_ids=remaining,
+    )
+
+
 def _parse_execution_resources(value: Any) -> ExecutionResourceSpecV1:
     """Rehydrate the user-approved resource allocation for execution."""
 
