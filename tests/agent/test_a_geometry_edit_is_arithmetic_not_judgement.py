@@ -520,3 +520,60 @@ def test_the_edit_reaches_the_decision_surface_with_its_elements(tmp_path):
     assert "observations, not verdicts" in text
     assert "starting structure" in text
     assert "binds charge 0, multiplicity 1 explicitly" in text
+
+
+def test_every_atom_of_a_coordinate_names_a_side(tmp_path):
+    """The side that moves decides the motion, not which atom named it.
+
+    An angle's vertex and a torsion's inner atoms each sit on a side without
+    being its outer atom, and pointing at a side by one of them is legal.
+    Deriving the sense of the rotation from the named atom instead of the
+    moved component sent the vertex case the wrong way: the host's own
+    verification caught it, but a legal input must not be a host error.
+    """
+
+    host = _host_with(tmp_path, _NMA, "nma")
+
+    reached = {}
+    for named in (2, 4, 5):
+        edit = _edit(
+            host,
+            f"t-angle-{named}",
+            edited_artifact_id=f"angle-named-{named}",
+            input_artifact_id="nma",
+            operation="set_angle",
+            atoms=[2, 4, 5],
+            moving_side_atom=named,
+            target_value=130.0,
+        )["geometry_edit"]
+        assert edit["value_achieved"] == pytest.approx(130.0, abs=1e-6)
+        reached[named] = tuple(edit["moved_atoms"])
+    # The vertex points at the same side as the far atom does.
+    assert reached[4] == reached[5]
+    assert reached[2] != reached[5]
+
+    for named in (1, 2, 4, 5):
+        edit = _edit(
+            host,
+            f"t-dihedral-{named}",
+            edited_artifact_id=f"dihedral-named-{named}",
+            input_artifact_id="nma",
+            operation="set_dihedral",
+            atoms=[1, 2, 4, 5],
+            moving_side_atom=named,
+            target_value=0.0,
+        )["geometry_edit"]
+        assert edit["value_achieved"] == pytest.approx(0.0, abs=1e-6)
+
+    for named in (2, 4):
+        edit = _edit(
+            host,
+            f"t-bond-{named}",
+            edited_artifact_id=f"bond-named-{named}",
+            input_artifact_id="nma",
+            operation="set_bond_length",
+            atoms=[2, 4],
+            moving_side_atom=named,
+            target_value=1.47,
+        )["geometry_edit"]
+        assert edit["value_achieved"] == pytest.approx(1.47, abs=1e-6)

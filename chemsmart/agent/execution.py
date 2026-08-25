@@ -1353,6 +1353,11 @@ def transform_trusted_molecular_geometry(
             "sides, so no rigid motion can set it"
         )
     moved_atoms = tuple(sorted(moving_component))
+    # Which way the motion goes depends on which SIDE moved, not on which
+    # atom named it. The vertex of an angle and the inner atoms of a torsion
+    # each sit on a side without being its outer atom, and naming one of them
+    # is a legal way to point at that side.
+    far_side_moves = indices[-1] in moving_component
 
     point = {index: positions[index - 1] for index in indices}
     if operation == "set_bond_length":
@@ -1371,7 +1376,7 @@ def transform_trusted_molecular_geometry(
                 "the bond has no direction to set a length along"
             )
         shift = (requested - before) * (direction / norm)
-        sign = 1.0 if moving == indices[1] else -1.0
+        sign = 1.0 if far_side_moves else -1.0
         for index in moved_atoms:
             positions[index - 1] = positions[index - 1] + sign * shift
     else:
@@ -1398,7 +1403,7 @@ def transform_trusted_molecular_geometry(
             axis_direction = normal
             # Rotating the far side by the deficit opens the angle; rotating
             # the near side has to go the other way to reach the same value.
-            sense = 1.0 if moving == indices[2] else -1.0
+            sense = 1.0 if far_side_moves else -1.0
             delta = sense * (math.radians(requested) - before_radians)
         else:
             before_radians = internal_dihedral(
@@ -1415,7 +1420,7 @@ def transform_trusted_molecular_geometry(
                 )
             pivot = point[indices[2]]
             axis_direction = point[indices[2]] - point[indices[1]]
-            sense = 1.0 if moving in {indices[2], indices[3]} else -1.0
+            sense = 1.0 if far_side_moves else -1.0
             delta = sense * (math.radians(requested) - before_radians)
         before = math.degrees(before_radians)
         rotated = rotate_points_about_axis(
