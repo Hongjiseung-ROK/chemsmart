@@ -103,6 +103,21 @@ host-owned literature constants by registered name through the
 and named convention operations own their mathematics (``gibbs_to_pka``).
 Composed workflows such as an aqueous pKa need no task-specific code, and
 completed registered results may feed a later workflow's analysis.
+A batch is N enumerated records under the same single approval: a
+workspace chemsmart .db is inspectable (stored fields are observations,
+never bindings -- a record may store no electronic state at all), a
+record's geometry is extracted with full lineage and its state bound
+explicitly like a derived species, N records plan as N disconnected
+sub-DAGs in one workflow, the displayed review carries every record
+row, execution is sequential and record-major under the displayed
+envelope (episode window and engine-call budget enforced by the
+provider-free executor, replays counted), one record's failure settles
+typed while the others deliver, per-record verdicts render with
+deliberately no aggregate quantity, and an interrupted or partial run
+continues by re-entering its own run directory -- each resume recorded
+on the consumption ledger, terminal nodes replayed without
+re-execution, a mid-engine interruption reported as ambiguous, and a
+completed approval refusing re-invocation.
 
 Never create an approval on the model's behalf. Never offer permanent,
 session-wide, prefix-based, or "always allow" chemistry execution. A revised

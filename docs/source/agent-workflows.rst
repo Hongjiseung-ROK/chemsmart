@@ -54,6 +54,20 @@ solvated optimisations, a derived conjugate base, thermochemistry at an explicit
 proton constant — need no task-specific code, and completed registered results may feed a later workflow's analysis as
 typed inputs.
 
+A batch is N enumerated records under the one displayed approval. A workspace chemsmart ``.db`` database is an
+inspectable artifact: ``inspect_database_records`` enumerates records with their stored fields as observations (a record
+may store no electronic state at all), and ``extract_database_record_geometry`` copies one record's exact coordinates
+into a lineage-carrying workspace geometry artifact — database digest, record id, explicit structure selection, with
+multi-structure ambiguity refused — after which identity and electronic state are bound explicitly, exactly as for a
+derived species; execution never reads the database again. N records are planned as N disconnected sub-DAGs in one
+workflow, the review shows one row per record with its bound state, origin, and any stored-versus-bound mismatch
+flagged, execution is sequential and record-major under the displayed envelope (episode window and engine-call budget
+enforced by the provider-free executor, replays counted), and one record's failure settles that record as typed findings
+while the others deliver — the report carries per-record delivery verdicts and deliberately no aggregate quantity. An
+interrupted or partial run continues by re-entering its own run directory: each resume is recorded on the approval's
+consumption ledger naming the remainder, terminal nodes replay from their receipts without re-execution, a mid-engine
+interruption reports as ambiguous pending human reconciliation, and a completed approval refuses re-invocation.
+
 ORCA ``irc`` is qualified for approved Agent execution on a qualified target: a transition-state search fed two IRC
 runs, each consuming the converged transition state's own geometry and analytic Hessian as role-distinct producer
 bindings inside one approved workflow, and the chain executed, validated, and delivered host-rendered claims. The IRC
