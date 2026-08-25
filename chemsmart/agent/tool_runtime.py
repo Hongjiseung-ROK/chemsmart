@@ -6291,8 +6291,12 @@ class CommandCompiledToolHostV1:
         nothing.  A partial completion states the true outcome -- the
         receipts that exist plus findings naming every node that did not
         execute -- so the surviving evidence can be rendered without ever
-        promoting an unvalidated number to a claim.  The calculation gate is
-        the same as for a green completion; findings are mandatory.
+        promoting an unvalidated number to a claim.  Findings are
+        mandatory, and a calculation node that never validated is admitted
+        only when the findings name it in the executor's fixed shape: in a
+        batch, one record's failed engine run settles that record while
+        the other records' receipts still deliver, and the non-delivery is
+        rendered disclosure rather than a silent hole.
         """
 
         for node_id in plan.calculation_node_ids:
@@ -6300,10 +6304,13 @@ class CommandCompiledToolHostV1:
             if receipt is None or not bool(
                 getattr(receipt, "validated", False)
             ):
-                raise ContractError(
-                    "partial toolchain completion requires every "
-                    f"calculation node validated; {node_id!r} is not"
-                )
+                expected = f"{node_id} (calculation):"
+                if not any(item.startswith(expected) for item in findings):
+                    raise ContractError(
+                        "a partial toolchain completion must name every "
+                        f"non-validated calculation node; {node_id!r} is "
+                        "not named in its findings"
+                    )
         if not findings:
             raise ContractError(
                 "a partial toolchain completion must name its findings"

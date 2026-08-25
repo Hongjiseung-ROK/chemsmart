@@ -1075,11 +1075,30 @@ class ApprovedWorkflowExecutor:
             # render them as evidence at their rung.  A reader gets what was
             # validated with its limitation stated instead of nothing; no
             # unvalidated number gains claim standing by appearing here.
-            findings = partial_findings or tuple(
-                f"{record.node_id} ({record.analysis_kind}): {record.state}"
-                + (f" -- {record.reason}" if record.reason else "")
-                for record in settled.values()
-                if record.state in {"failed", "skipped"}
+            # A calculation node that never validated is disclosed in the
+            # fixed shape the host's partial-completion gate demands, so a
+            # batch record's failed engine run appears in the delivered
+            # report by name rather than silently narrowing the chain.
+            calculation_findings = tuple(
+                f"{node_id} (calculation): did not validate"
+                for node_id in toolchain.calculation_node_ids
+                if not bool(
+                    getattr(
+                        self.host.execution_receipts.get(node_id),
+                        "validated",
+                        False,
+                    )
+                )
+            )
+            findings = calculation_findings + (
+                partial_findings
+                or tuple(
+                    f"{record.node_id} ({record.analysis_kind}): "
+                    f"{record.state}"
+                    + (f" -- {record.reason}" if record.reason else "")
+                    for record in settled.values()
+                    if record.state in {"failed", "skipped"}
+                )
             )
             try:
                 completion_receipts = (
@@ -1197,6 +1216,38 @@ class ApprovedWorkflowExecutor:
             timestamp=stamp,
         )
 
+    def _record_component_index(self) -> dict[str, int]:
+        """Map every plan node to its record -- a connected sub-DAG.
+
+        A batch is N records planned as N disconnected sub-DAGs in one
+        approved plan, so the record boundary is not a new schema field:
+        it is the connected component, derived here from the plan's own
+        edges and numbered by first appearance in plan order.  Derived,
+        never stored -- the grouping can never drift from the plan.
+        """
+
+        parent = {node.node_id: node.node_id for node in self.plan.nodes}
+
+        def find(node_id: str) -> str:
+            while parent[node_id] != node_id:
+                parent[node_id] = parent[parent[node_id]]
+                node_id = parent[node_id]
+            return node_id
+
+        for edge in self.plan.edges:
+            left = find(edge.source_node_id)
+            right = find(edge.target_node_id)
+            if left != right:
+                parent[right] = left
+        order: dict[str, int] = {}
+        index: dict[str, int] = {}
+        for node in self.plan.nodes:
+            root = find(node.node_id)
+            if root not in order:
+                order[root] = len(order)
+            index[node.node_id] = order[root]
+        return index
+
     def run(self) -> WorkflowExecutionResultV1:
         """Execute every ready node until the frontier stops advancing."""
 
@@ -1219,6 +1270,7 @@ class ApprovedWorkflowExecutor:
         approved_node_ids = {
             binding.node_id for binding in self.approval.node_bindings
         }
+        record_of = self._record_component_index()
         while True:
             ready = tuple(
                 node_id
@@ -1229,7 +1281,20 @@ class ApprovedWorkflowExecutor:
             )
             if not ready:
                 break
-            progressed = False
+            # Record-major order: a batch plans N records as N disconnected
+            # sub-DAGs, and the bare frontier walk is breadth-first -- every
+            # record's root before any record's second stage -- so a
+            # suspended or partially failed run held N half-done records and
+            # no finished one.  Completing the earliest incomplete record's
+            # subgraph before opening the next root delivers whole records
+            # early; a single-record plan is one component and unchanged.
+            # Every attempted node enters ``seen``, so the walk terminates
+            # without a progress check, and one record's failure leaves
+            # later records' roots ready on the next pass.
+            earliest = min(record_of[node_id] for node_id in ready)
+            ready = tuple(
+                node_id for node_id in ready if record_of[node_id] == earliest
+            )
             for node_id in ready:
                 seen.add(node_id)
                 outcome = self.run_node(node_id)
@@ -1247,9 +1312,6 @@ class ApprovedWorkflowExecutor:
                     data_edge_bindings = frontier.data_edge_bindings
                 else:
                     run_state = self._settle(run_state, outcome)
-                progressed = progressed or outcome.validated
-            if not progressed:
-                break
         done = {item.node_id for item in executed if item.validated}
         status = "completed" if done == approved_node_ids else "partial"
         analysis_nodes: tuple[ExecutedAnalysisNodeV1, ...] = ()
@@ -1260,15 +1322,19 @@ class ApprovedWorkflowExecutor:
             self.execution_bundle, "scientific_toolchain_plan", None
         )
         if toolchain is not None:
-            if status != "completed":
-                analysis_status = "not_run"
-            else:
-                (
-                    analysis_nodes,
-                    analysis_status,
-                    completion_receipts,
-                    report_path,
-                ) = self._run_analysis_phase(toolchain)
+            # The chain walks whether the calculation partition completed or
+            # not.  Under the old all-or-nothing gate one record's failed
+            # SCF suppressed every other record's approved analysis; inside
+            # the phase a node whose producer never validated settles as a
+            # typed finding with the producer named, dependents skip, and
+            # the partial envelope still renders every receipt that
+            # survived -- the same uniform rule for one molecule or N.
+            (
+                analysis_nodes,
+                analysis_status,
+                completion_receipts,
+                report_path,
+            ) = self._run_analysis_phase(toolchain)
         return WorkflowExecutionResultV1(
             workflow_id=self.plan.workflow_id,
             plan_sha256=self.plan.plan_sha256,
