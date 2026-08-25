@@ -1223,13 +1223,12 @@ class CommandCompiledToolHostV1:
                 raise ContractError(
                     "execution profile requires workflow approval or bounded envelope"
                 )
-            if (
-                self.workflow_execution_approval is not None
-                and self.bounded_execution_envelope is not None
-            ):
-                raise ContractError(
-                    "workflow approval and bounded envelope are mutually exclusive"
-                )
+            # The approved executor carries BOTH by design: the approval
+            # names what may run and the envelope bounds how much.  The
+            # old mutual-exclusion encoded the deleted execution-enabled
+            # session plane and fired the moment the envelope started
+            # riding the bundle into the executor; the coherence that
+            # matters is the resource check below.
             if self.bounded_execution_envelope is not None and (
                 self.execution_resources.resource_sha256
                 != self.bounded_execution_envelope.resources.resource_sha256
