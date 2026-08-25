@@ -781,14 +781,18 @@ def run_live_agent_session(
         base_messages[0],
         {"role": "user", "content": canonical_json(context)},
     ]
+    # The execution envelope bounds the provider-free execution episode
+    # that a LATER `agent run` consumes; a live provider session is
+    # planning-only by construction (execution_enabled raises above), so
+    # its provider wall time is the session's own budget.  The old
+    # coupling was a leftover from the deleted execution-enabled plane,
+    # and it bit live: a six-record batch plan died at 18 steps because
+    # the fixture's 600 s execution episode -- sized to observe a
+    # mid-batch suspension -- was silently also the planning budget.
     provider_budget = _provider_budget(
         profile,
         max_concurrency=1,
-        wall_time_seconds=(
-            bounded_envelope.episode_wall_time_seconds
-            if bounded_envelope is not None
-            else _SESSION_WALL_TIME_SECONDS
-        ),
+        wall_time_seconds=_SESSION_WALL_TIME_SECONDS,
     )
     request_context = _request_context(
         messages=messages,
@@ -810,11 +814,7 @@ def run_live_agent_session(
         tool_schema_sha256=surface.tool_schema_sha256,
         execution_enabled=use_execution_surface,
         provider_profile=profile,
-        wall_time_seconds=(
-            bounded_envelope.episode_wall_time_seconds
-            if bounded_envelope is not None
-            else _SESSION_WALL_TIME_SECONDS
-        ),
+        wall_time_seconds=_SESSION_WALL_TIME_SECONDS,
         chemistry_engine_calls=0,
     )
     lease = load_secret_lease(
@@ -824,12 +824,7 @@ def run_live_agent_session(
         # one here is how a second key for the same provider gets charged by
         # accident.
         label=profile.api_key_env,
-        ttl_seconds=(
-            bounded_envelope.episode_wall_time_seconds
-            if bounded_envelope is not None
-            else _SESSION_WALL_TIME_SECONDS
-        )
-        + 60,
+        ttl_seconds=(_SESSION_WALL_TIME_SECONDS) + 60,
     )
     loop_result = UnifiedSessionRunner(
         host=host,
