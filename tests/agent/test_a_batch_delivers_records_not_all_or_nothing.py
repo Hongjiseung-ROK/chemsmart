@@ -283,3 +283,184 @@ def test_one_records_failure_leaves_the_others_analysis_delivering(tmp_path):
     assert "extract-b" in report
     # The failed engine run is rendered disclosure, not a silent hole.
     assert "sp-b (calculation): did not validate" in report
+
+    # The per-record delivery verdicts: reached states and verdicts stay
+    # separate, never-attempted is not failed, and the report carries the
+    # table with the N-observations sentence.
+    from chemsmart.agent.executor import ExecutedNodeV1
+
+    outcomes = (
+        ExecutedNodeV1(
+            node_id="sp-a",
+            program="orca",
+            jobtype="sp",
+            state="completed",
+            invocation_identity_sha256="",
+            execution_receipt_sha256="d" * 64,
+            rule_ids=(),
+            failure="",
+            validated=True,
+        ),
+        ExecutedNodeV1(
+            node_id="sp-b",
+            program="orca",
+            jobtype="sp",
+            state="failed",
+            invocation_identity_sha256="",
+            execution_receipt_sha256="e" * 64,
+            rule_ids=(),
+            failure="SCF did not converge",
+            validated=False,
+        ),
+    )
+    delivery = executor._record_delivery_summary(outcomes, nodes, toolchain)
+    by_record = {entry["record"]: entry for entry in delivery}
+    assert by_record[1]["calculation"] == "validated"
+    assert by_record[1]["analysis"] == "executed"
+    assert by_record[2]["calculation"] == "not_delivered"
+    assert by_record[2]["analysis"] == "partial"
+    assert by_record[2]["node_states"]["sp-b"] == "failed"
+
+    # A suspended run's later record is not_attempted, not failed.
+    suspended = executor._record_delivery_summary(outcomes[:1], (), toolchain)
+    suspended_by_record = {entry["record"]: entry for entry in suspended}
+    assert suspended_by_record[2]["calculation"] == "not_attempted"
+    assert suspended_by_record[2]["node_states"]["sp-b"] == "not_attempted"
+
+    executor._append_record_delivery_section(report_path, delivery)
+    appended = Path(report_path).read_text()
+    assert "## Record delivery" in appended
+    assert "A batch of N is N observations" in appended
+    assert "| 2 | sp-b (failed) | not_delivered | partial |" in appended
+
+
+def _duck_review(node_reviews, nodes, edges=()):
+    return SimpleNamespace(
+        scientific_plan=SimpleNamespace(nodes=nodes, edges=edges),
+        node_reviews=node_reviews,
+    )
+
+
+def _rendered(renderable):
+    from rich.console import Console
+
+    console = Console(record=True, width=200)
+    console.print(renderable)
+    return console.export_text()
+
+
+def test_the_review_shows_one_row_per_record_and_flags_state_mismatch():
+    from chemsmart.agent.tui.review import _batch_records_renderable
+
+    nodes = (
+        SimpleNamespace(node_id="opt-water", stage="opt"),
+        SimpleNamespace(node_id="opt-methyl", stage="opt"),
+    )
+    node_reviews = (
+        SimpleNamespace(
+            node_id="opt-water",
+            molecular_identity={
+                "approved_names": ("water",),
+                "formula": "H2O",
+                "charge": 0,
+                "multiplicity": 1,
+                "database_extraction": {
+                    "database_filename": "acids.db",
+                    "record_id": "water-sp-0001",
+                    "stored_charge": 0,
+                    "stored_multiplicity": 1,
+                },
+            },
+        ),
+        SimpleNamespace(
+            node_id="opt-methyl",
+            molecular_identity={
+                "approved_names": (),
+                "formula": "CH3",
+                "charge": 0,
+                "multiplicity": 2,
+                "database_extraction": {
+                    "database_filename": "acids.db",
+                    "record_id": "methyl-guess-0002",
+                    "stored_charge": 0,
+                    "stored_multiplicity": 1,
+                },
+            },
+        ),
+    )
+    table = _batch_records_renderable(_duck_review(node_reviews, nodes))
+
+    assert table is not None
+    text = _rendered(table)
+    assert "Batch records (2)" in text
+    assert "water" in text and "CH3" in text
+    assert "record water-sp-0001" in text
+    # The methyl row binds a doublet against a stored singlet: flagged
+    # loudly, never refused -- the reviewer decides.
+    assert "deliberate?" in text
+
+    # A single-record plan renders no batch table at all.
+    single = _batch_records_renderable(
+        _duck_review(node_reviews[:1], nodes[:1])
+    )
+    assert single is None
+
+
+def test_derivation_and_extraction_lineage_reach_the_decision_surface():
+    from chemsmart.agent.tui.review import (
+        _database_extraction_panels,
+        _derivation_panels,
+    )
+
+    node_reviews = (
+        SimpleNamespace(
+            node_id="opt-anion",
+            molecular_identity={
+                "charge": -1,
+                "multiplicity": 1,
+                "derivation": {
+                    "parent_artifact_id": "acetic-acid-opt",
+                    "parent_formula": "C2H4O2",
+                    "parent_atom_count": 8,
+                    "removed_atoms": (6,),
+                    "kept_atoms": (1, 2, 3, 4, 5, 7, 8),
+                    "formula": "C2H3O2",
+                    "atom_count": 7,
+                    "fragment_count": 1,
+                    "atom_order_note": "parent order preserved",
+                },
+            },
+        ),
+        SimpleNamespace(
+            node_id="opt-water",
+            molecular_identity={
+                "charge": 0,
+                "multiplicity": 1,
+                "database_extraction": {
+                    "database_filename": "acids.db",
+                    "record_id": "water-sp-0001",
+                    "structure_index": 1,
+                    "structure_count": 1,
+                    "formula": "H2O",
+                    "atom_count": 3,
+                    "stored_charge": 0,
+                    "stored_multiplicity": 1,
+                    "stored_energy": -76.4,
+                    "stored_is_optimized": True,
+                },
+            },
+        ),
+    )
+    review = _duck_review(node_reviews, ())
+
+    derivations = _derivation_panels(review)
+    assert len(derivations) == 1
+    derivation_text = _rendered(derivations[0])
+    assert "removed atoms (1-based): [6]" in derivation_text
+    assert "binds charge -1, multiplicity 1 explicitly" in derivation_text
+
+    extractions = _database_extraction_panels(review)
+    assert len(extractions) == 1
+    extraction_text = _rendered(extractions[0])
+    assert "record: water-sp-0001" in extraction_text
+    assert "never bindings" in extraction_text

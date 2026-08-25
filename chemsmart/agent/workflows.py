@@ -865,6 +865,45 @@ def _scientific_node_digest_body(node: ScientificWorkflowNodeV2) -> dict:
     return body
 
 
+def workflow_record_components(
+    nodes: Sequence[Any],
+    edges: Sequence[Any],
+) -> tuple[tuple[str, ...], ...]:
+    """Group a plan's nodes into records: its connected sub-DAGs.
+
+    A batch is N records planned as N disconnected sub-DAGs in one plan,
+    so the record boundary is not a schema field -- it is the connected
+    component, derived from the plan's own edges and ordered by first
+    appearance in plan order.  Derived, never stored: the grouping can
+    never drift from the plan, and a single-record plan is exactly one
+    component.  Consumers (the executor's record-major walk, the review's
+    per-record rows, the delivery summary) all read this one derivation.
+    """
+
+    parent = {node.node_id: node.node_id for node in nodes}
+
+    def find(node_id: str) -> str:
+        while parent[node_id] != node_id:
+            parent[node_id] = parent[parent[node_id]]
+            node_id = parent[node_id]
+        return node_id
+
+    for edge in edges:
+        left = find(edge.source_node_id)
+        right = find(edge.target_node_id)
+        if left != right:
+            parent[right] = left
+    groups: dict[str, list[str]] = {}
+    order: list[str] = []
+    for node in nodes:
+        root = find(node.node_id)
+        if root not in groups:
+            groups[root] = []
+            order.append(root)
+        groups[root].append(node.node_id)
+    return tuple(tuple(groups[root]) for root in order)
+
+
 def _validate_scientific_dag(
     nodes: tuple[ScientificWorkflowNodeV2, ...],
     edges: tuple[ScientificWorkflowEdgeV2, ...],
@@ -1201,4 +1240,5 @@ __all__ = [
     "build_command_workflow_spec",
     "build_materialized_workflow",
     "build_scientific_workflow_plan",
+    "workflow_record_components",
 ]

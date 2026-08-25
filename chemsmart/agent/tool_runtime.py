@@ -8608,6 +8608,27 @@ class CommandCompiledToolHostV1:
                         else "deferred-until-producer-output"
                     ),
                 }
+            # Host-owned input lineage travels into the displayed review
+            # regardless of which identity branch applied.  A derived
+            # species' kept/removed atoms are exactly the per-record facts
+            # a reviewer needs on the page (a wrong-atom removal was once
+            # caught only from the artifact bytes), and a database-record
+            # extraction carries its stored fields as labelled
+            # observations beside the explicitly bound state.
+            derivation_receipt = self.molecular_derivations.get(
+                context.input_artifact.sha256
+            )
+            if derivation_receipt is not None:
+                molecular_identity["derivation"] = canonical_data(
+                    derivation_receipt
+                )
+            extraction_receipt = self.database_extractions.get(
+                context.input_artifact.sha256
+            )
+            if extraction_receipt is not None:
+                molecular_identity["database_extraction"] = canonical_data(
+                    extraction_receipt
+                )
             server_profile_sha256 = execution_server_profile_sha256(
                 resources=resources,
                 scratch_root=envelope.scratch_root,

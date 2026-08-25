@@ -99,6 +99,7 @@ def test_run_is_the_provider_free_executor(tmp_path, monkeypatch):
             analysis_completion_receipt_sha256s=(),
             analysis_nodes=(),
             nodes=(),
+            record_delivery=(),
         )
 
     monkeypatch.setattr(executor, "execute_approved_workflow", fake_execute)

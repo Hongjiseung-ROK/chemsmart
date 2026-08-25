@@ -371,6 +371,188 @@ def _literature_constants_renderable(
     return table
 
 
+def _batch_records_renderable(
+    review: "WorkflowExecutionReviewV1",
+) -> Any | None:
+    """One row per record when the plan carries several disconnected ones.
+
+    The batch state is derived from the per-record rows by reading them,
+    never stored beside them, and no row is ever elided: each row carries
+    that molecule's load-bearing facts (identity, explicit state, origin),
+    so approving the batch means having seen every record.
+    """
+
+    from chemsmart.agent.workflows import workflow_record_components
+
+    components = workflow_record_components(
+        review.scientific_plan.nodes, review.scientific_plan.edges
+    )
+    if len(components) <= 1:
+        return None
+    review_by_id = {item.node_id: item for item in review.node_reviews}
+    table = Table(
+        title=(
+            f"Batch records ({len(components)}) -- each row is one "
+            "molecule's sub-workflow under this single approval"
+        )
+    )
+    table.add_column("Record", style="bold cyan")
+    table.add_column("Molecule")
+    table.add_column("Charge / multiplicity")
+    table.add_column("Stages")
+    table.add_column("Origin")
+    for index, group in enumerate(components, start=1):
+        reviewed = [
+            review_by_id[node_id]
+            for node_id in group
+            if node_id in review_by_id
+        ]
+        first = reviewed[0] if reviewed else None
+        if first is not None:
+            identity = first.molecular_identity
+            approved_names = identity.get("approved_names") or ()
+            molecule = (
+                str(approved_names[0])
+                if approved_names
+                else str(identity.get("formula") or "unknown formula")
+            )
+            state = (
+                f"{identity.get('charge')} / {identity.get('multiplicity')}"
+            )
+            extraction = identity.get("database_extraction")
+            derivation = identity.get("derivation")
+            if isinstance(extraction, Mapping):
+                origin = (
+                    f"db {extraction.get('database_filename')} record "
+                    f"{extraction.get('record_id')}"
+                )
+                stored_charge = extraction.get("stored_charge")
+                stored_multiplicity = extraction.get("stored_multiplicity")
+                stored = []
+                if stored_charge is not None:
+                    stored.append(f"charge {stored_charge}")
+                if stored_multiplicity is not None:
+                    stored.append(f"mult {stored_multiplicity}")
+                if stored:
+                    origin += " (stored: " + ", ".join(stored) + ")"
+                if (
+                    stored_charge is not None
+                    and identity.get("charge") is not None
+                    and int(stored_charge) != int(identity["charge"])
+                ) or (
+                    stored_multiplicity is not None
+                    and identity.get("multiplicity") is not None
+                    and int(stored_multiplicity)
+                    != int(identity["multiplicity"])
+                ):
+                    origin += (
+                        " [bold red]!= bound state -- deliberate?[/bold red]"
+                    )
+            elif isinstance(derivation, Mapping):
+                origin = (
+                    f"derived from {derivation.get('parent_artifact_id')}, "
+                    f"removed atoms "
+                    f"{list(derivation.get('removed_atoms') or ())}"
+                )
+            else:
+                coordinate = identity.get("coordinate_identity") or {}
+                origin = str(coordinate.get("kind") or "workspace geometry")
+        else:
+            molecule = "not separately reviewed"
+            state = ""
+            origin = ""
+        stage_by_id = {
+            node.node_id: node.stage for node in review.scientific_plan.nodes
+        }
+        stages = " -> ".join(
+            f"{node_id} ({stage_by_id.get(node_id, '?')})" for node_id in group
+        )
+        table.add_row(str(index), molecule, state, stages, origin)
+    return table
+
+
+def _derivation_panels(review: "WorkflowExecutionReviewV1") -> list[Panel]:
+    """A derived species' kept/removed atoms, on the decision surface.
+
+    A wrong-atom removal was once caught only from the artifact bytes;
+    the lineage the host already records belongs on the page the human
+    approves from.
+    """
+
+    panels: list[Panel] = []
+    for item in review.node_reviews:
+        record = item.molecular_identity.get("derivation")
+        if not isinstance(record, Mapping):
+            continue
+        lines = [
+            f"parent: {record.get('parent_artifact_id')} "
+            f"({record.get('parent_formula')}, "
+            f"{record.get('parent_atom_count')} atoms)",
+            f"removed atoms (1-based): "
+            f"{list(record.get('removed_atoms') or ())}",
+            f"kept atoms (1-based): {list(record.get('kept_atoms') or ())}",
+            f"derived: {record.get('formula')} "
+            f"({record.get('atom_count')} atoms); "
+            f"{record.get('fragment_count')} connected piece(s); "
+            f"{record.get('atom_order_note')}",
+            "electronic state was deliberately unbound at derivation; "
+            f"this node binds charge "
+            f"{item.molecular_identity.get('charge')}, multiplicity "
+            f"{item.molecular_identity.get('multiplicity')} explicitly",
+        ]
+        panels.append(
+            Panel(
+                "\n".join(lines),
+                title=(
+                    f"{item.node_id} · derived species lineage "
+                    "(covered by this approval)"
+                ),
+            )
+        )
+    return panels
+
+
+def _database_extraction_panels(
+    review: "WorkflowExecutionReviewV1",
+) -> list[Panel]:
+    """A record-sourced geometry's lineage and stored-field observations."""
+
+    panels: list[Panel] = []
+    for item in review.node_reviews:
+        record = item.molecular_identity.get("database_extraction")
+        if not isinstance(record, Mapping):
+            continue
+        stored = (
+            f"stored charge {record.get('stored_charge')}, "
+            f"multiplicity {record.get('stored_multiplicity')}, "
+            f"energy {record.get('stored_energy')}, "
+            f"optimized {record.get('stored_is_optimized')}"
+        )
+        lines = [
+            f"database: {record.get('database_filename')}",
+            f"record: {record.get('record_id')} "
+            f"(structure {record.get('structure_index')} of "
+            f"{record.get('structure_count')})",
+            f"extracted: {record.get('formula')} "
+            f"({record.get('atom_count')} atoms); coordinates unchanged",
+            stored + " -- observations from the record's own provenance, "
+            "never bindings",
+            f"this node binds charge "
+            f"{item.molecular_identity.get('charge')}, multiplicity "
+            f"{item.molecular_identity.get('multiplicity')} explicitly",
+        ]
+        panels.append(
+            Panel(
+                "\n".join(lines),
+                title=(
+                    f"{item.node_id} · database record lineage "
+                    "(covered by this approval)"
+                ),
+            )
+        )
+    return panels
+
+
 def _decision_panel(review: "WorkflowExecutionReviewV1") -> Panel:
     executable_text = ", ".join(item.node_id for item in review.node_reviews)
     deferred = set(review.non_executable_node_ids)
@@ -429,10 +611,15 @@ def render_review_blocks(
 
     yaml_texts = project_yaml or {}
     blocks: list[Any] = [_overview_table(review), _environment_table(review)]
+    records_table = _batch_records_renderable(review)
+    if records_table is not None:
+        blocks.append(records_table)
     blocks.append(_bounds_panel(review))
     if review.scientific_plan.edges:
         blocks.append(_edges_table(review))
     blocks.extend(_composition_panels(review))
+    blocks.extend(_derivation_panels(review))
+    blocks.extend(_database_extraction_panels(review))
     blocks.append(_analysis_chain_renderable(review))
     constants_table = _literature_constants_renderable(review)
     if constants_table is not None:

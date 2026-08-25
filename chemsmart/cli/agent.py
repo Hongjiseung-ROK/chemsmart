@@ -597,6 +597,9 @@ def run(approval_file, workspace, run_directory, task_spec_sha256, as_json):
                     "analysis_completion_receipt_sha256s": (
                         result.analysis_completion_receipt_sha256s
                     ),
+                    "record_delivery": [
+                        dict(entry) for entry in result.record_delivery
+                    ],
                     "analysis_nodes": [
                         {
                             "node_id": node.node_id,
@@ -654,6 +657,24 @@ def run(approval_file, workspace, run_directory, task_spec_sha256, as_json):
             if node.reason:
                 line += f" · {_HEX64.sub('…', node.reason)}"
             lines.append(line)
+    if result.record_delivery:
+        lines.append("records:")
+        for entry in result.record_delivery:
+            analysis_part = (
+                f" · analysis {entry['analysis']}"
+                if entry["analysis"] != "none"
+                else ""
+            )
+            calculation_part = (
+                f"calculation {entry['calculation']}"
+                if entry["calculation"]
+                else "analysis only"
+            )
+            lines.append(
+                f"  record {entry['record']} · "
+                f"{calculation_part}{analysis_part} · "
+                + ", ".join(entry["node_ids"])
+            )
     if result.non_executable_node_ids:
         lines.append(
             "not executable in this release: "

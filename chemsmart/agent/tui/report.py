@@ -30,6 +30,7 @@ from chemsmart.agent.report_format import (
     HOST_REPORT_TITLE,
     LITERATURE_CONSTANTS_HEADING,
     NO_DECISION_PREFIX,
+    RECORD_DELIVERY_HEADING,
     SOURCE_RECEIPT_COLUMN,
     THERMO_CONDITIONS_HEADING,
     TOOLCHAIN_PLAN_LABEL,
@@ -179,6 +180,16 @@ def render_report_for_humans(markdown_text: str) -> Group:
             blocks.append(
                 _table("Literature constants", headers, rows, drop=set())
             )
+            continue
+        if stripped == RECORD_DELIVERY_HEADING:
+            flush()
+            index += 1
+            while index < len(lines) and not lines[index].strip().startswith(
+                "|"
+            ):
+                index += 1
+            headers, rows, index = _read_table(lines, index)
+            blocks.append(_table("Record delivery", headers, rows, drop=set()))
             continue
         if stripped == CLAIMS_HEADING:
             flush()

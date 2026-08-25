@@ -126,6 +126,13 @@ class WorkflowExecutionResultV1:
     analysis_status: str = ""
     analysis_completion_receipt_sha256s: tuple[str, ...] = ()
     analysis_report_path: str = ""
+    #: Per-record delivery verdicts, present only when the plan carried
+    #: more than one record (disconnected sub-DAG).  Derived from node
+    #: states by a fixed rule, never stored beside them; reached states
+    #: and verdicts stay separate fields, and never-attempted is not
+    #: failed.  A batch of N is N observations -- there is deliberately
+    #: no aggregate quantity here.
+    record_delivery: tuple[dict[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -1232,36 +1239,190 @@ class ApprovedWorkflowExecutor:
         )
 
     def _record_component_index(self) -> dict[str, int]:
-        """Map every plan node to its record -- a connected sub-DAG.
+        """Map every plan node to its record via the shared derivation.
 
-        A batch is N records planned as N disconnected sub-DAGs in one
-        approved plan, so the record boundary is not a new schema field:
-        it is the connected component, derived here from the plan's own
-        edges and numbered by first appearance in plan order.  Derived,
-        never stored -- the grouping can never drift from the plan.
+        The record boundary is a connected component of the plan's own
+        edges (``workflow_record_components``), never a stored field, so
+        the walk, the review's per-record rows, and the delivery summary
+        can never disagree about where one record ends.
         """
 
-        parent = {node.node_id: node.node_id for node in self.plan.nodes}
+        from chemsmart.agent.workflows import workflow_record_components
 
-        def find(node_id: str) -> str:
-            while parent[node_id] != node_id:
-                parent[node_id] = parent[parent[node_id]]
-                node_id = parent[node_id]
-            return node_id
+        return {
+            node_id: index
+            for index, group in enumerate(
+                workflow_record_components(
+                    self.plan.nodes, getattr(self.plan, "edges", ())
+                )
+            )
+            for node_id in group
+        }
 
-        for edge in self.plan.edges:
-            left = find(edge.source_node_id)
-            right = find(edge.target_node_id)
-            if left != right:
-                parent[right] = left
-        order: dict[str, int] = {}
-        index: dict[str, int] = {}
-        for node in self.plan.nodes:
-            root = find(node.node_id)
-            if root not in order:
-                order[root] = len(order)
-            index[node.node_id] = order[root]
-        return index
+    def _analysis_calc_roots(self, toolchain: Any) -> dict[str, frozenset]:
+        """Map each analysis node to the calculation nodes it rests on."""
+
+        calc_ids = set(toolchain.calculation_node_ids)
+        by_id = {node.node_id: node for node in toolchain.analysis_nodes}
+        roots: dict[str, frozenset] = {}
+        for node_id in toolchain.node_order:
+            node = by_id.get(node_id)
+            if node is None:
+                continue
+            collected: set[str] = set()
+            for item in node.inputs:
+                producer = getattr(item, "producer_node_id", "")
+                if producer in calc_ids:
+                    collected.add(producer)
+                elif producer in roots:
+                    collected |= set(roots[producer])
+            roots[node.node_id] = frozenset(collected)
+        return roots
+
+    def _record_delivery_summary(
+        self,
+        executed: tuple[ExecutedNodeV1, ...],
+        analysis_nodes: tuple[ExecutedAnalysisNodeV1, ...],
+        toolchain: Any,
+    ) -> tuple[dict[str, Any], ...]:
+        """Per-record delivery verdicts for a plan that carries several.
+
+        Verdict rules are fixed and small: a record's calculation is
+        ``validated`` only when every node validated, ``not_delivered``
+        when any attempted node did not validate, ``not_attempted`` when
+        nothing ran (a suspended run's later records), and ``incomplete``
+        otherwise; its analysis is judged over the chain nodes resting
+        entirely on that record's calculations.  Analysis resting on
+        several records or none (registered results) reports under
+        ``shared``.
+        """
+
+        record_of = self._record_component_index()
+        record_count = (max(record_of.values()) + 1) if record_of else 0
+        if record_count <= 1:
+            return ()
+        outcome_by_id = {item.node_id: item for item in executed}
+        roots = (
+            self._analysis_calc_roots(toolchain)
+            if toolchain is not None
+            else {}
+        )
+        entries: list[dict[str, Any]] = []
+        shared: list[ExecutedAnalysisNodeV1] = []
+        claimed: set[str] = set()
+        for index in range(record_count):
+            node_ids = tuple(
+                node.node_id
+                for node in self.plan.nodes
+                if record_of[node.node_id] == index
+            )
+            group = set(node_ids)
+            states = {
+                node_id: (
+                    outcome_by_id[node_id].state
+                    if node_id in outcome_by_id
+                    else "not_attempted"
+                )
+                for node_id in node_ids
+            }
+            attempted = [
+                node_id for node_id in node_ids if node_id in outcome_by_id
+            ]
+            if any(
+                not outcome_by_id[node_id].validated for node_id in attempted
+            ):
+                calculation = "not_delivered"
+            elif len(attempted) == len(node_ids) and attempted:
+                calculation = "validated"
+            elif not attempted:
+                calculation = "not_attempted"
+            else:
+                calculation = "incomplete"
+            mine = [
+                record
+                for record in analysis_nodes
+                if roots.get(record.node_id)
+                and set(roots[record.node_id]) <= group
+            ]
+            claimed.update(record.node_id for record in mine)
+            if not mine:
+                analysis = "none"
+            elif all(record.state == "executed" for record in mine):
+                analysis = "executed"
+            elif all(
+                record.state in {"skipped", "blocked_unsupported"}
+                for record in mine
+            ):
+                analysis = "skipped"
+            else:
+                analysis = "partial"
+            entries.append(
+                {
+                    "record": index + 1,
+                    "node_ids": node_ids,
+                    "node_states": states,
+                    "calculation": calculation,
+                    "analysis": analysis,
+                }
+            )
+        shared = [
+            record
+            for record in analysis_nodes
+            if record.node_id not in claimed
+        ]
+        if shared:
+            entries.append(
+                {
+                    "record": "shared",
+                    "node_ids": tuple(record.node_id for record in shared),
+                    "node_states": {
+                        record.node_id: record.state for record in shared
+                    },
+                    "calculation": "",
+                    "analysis": (
+                        "executed"
+                        if all(record.state == "executed" for record in shared)
+                        else "partial"
+                    ),
+                }
+            )
+        return tuple(entries)
+
+    def _append_record_delivery_section(
+        self,
+        report_path: str,
+        record_delivery: tuple[dict[str, Any], ...],
+    ) -> None:
+        """Render the per-record verdicts into the delivered report."""
+
+        from chemsmart.agent.report_format import RECORD_DELIVERY_HEADING
+
+        lines = [
+            "",
+            RECORD_DELIVERY_HEADING,
+            "",
+            "| Record | Nodes (reached state) | Calculation | Analysis |",
+            "| --- | --- | --- | --- |",
+        ]
+        for entry in record_delivery:
+            nodes_text = (
+                ", ".join(
+                    f"{node_id} ({entry['node_states'][node_id]})"
+                    for node_id in entry["node_ids"]
+                )
+                or "-"
+            )
+            lines.append(
+                f"| {entry['record']} | {nodes_text} | "
+                f"{entry['calculation'] or '-'} | {entry['analysis']} |"
+            )
+        lines.append("")
+        lines.append(
+            "A batch of N is N observations; each verdict above is one "
+            "record's, and no aggregate quantity is rendered."
+        )
+        with open(report_path, "a", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
 
     def run(self) -> WorkflowExecutionResultV1:
         """Execute every ready node until the frontier stops advancing."""
@@ -1350,6 +1511,11 @@ class ApprovedWorkflowExecutor:
                 completion_receipts,
                 report_path,
             ) = self._run_analysis_phase(toolchain)
+        record_delivery = self._record_delivery_summary(
+            tuple(executed), analysis_nodes, toolchain
+        )
+        if record_delivery and report_path:
+            self._append_record_delivery_section(report_path, record_delivery)
         return WorkflowExecutionResultV1(
             workflow_id=self.plan.workflow_id,
             plan_sha256=self.plan.plan_sha256,
@@ -1365,6 +1531,7 @@ class ApprovedWorkflowExecutor:
             analysis_status=analysis_status,
             analysis_completion_receipt_sha256s=completion_receipts,
             analysis_report_path=report_path,
+            record_delivery=record_delivery,
         )
 
 
