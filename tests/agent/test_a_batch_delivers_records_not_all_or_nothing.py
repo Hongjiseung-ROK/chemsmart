@@ -19,7 +19,13 @@ import inspect
 from pathlib import Path
 from types import SimpleNamespace
 
-from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
+import pytest
+
+from chemsmart.agent._contracts import (
+    ContractError,
+    TrustedArtifactRefV1,
+    file_sha256,
+)
 from chemsmart.agent.executor import ApprovedWorkflowExecutor
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.scientific_toolchain import (
@@ -332,6 +338,79 @@ def test_one_records_failure_leaves_the_others_analysis_delivering(tmp_path):
     assert "## Record delivery" in appended
     assert "A batch of N is N observations" in appended
     assert "| 2 | sp-b (failed) | not_delivered | partial |" in appended
+
+
+def test_the_displayed_budget_is_the_executing_budget(tmp_path):
+    """The envelope rides the bundle into the execution host, enforced.
+
+    The executor parsed the envelope for its scratch root and dropped
+    it, so the provider-free walk ran with no episode clock and no
+    engine-call count -- only per-node timeouts.  Invisible in every
+    one- and two-node workflow; the first batch that outlived an
+    episode launched all eight nodes across thirty-one minutes of a
+    displayed 1200 s episode.
+    """
+
+    import inspect
+
+    from chemsmart.agent import executor as executor_module
+    from chemsmart.agent.execution import build_execution_resource_spec
+    from chemsmart.agent.execution_envelope import (
+        BoundedExecutionEnvelopeV1,
+    )
+
+    source = inspect.getsource(executor_module._execution_inputs_from_bundle)
+    assert '"bounded_execution_envelope": envelope' in source
+
+    resources = build_execution_resource_spec(
+        execution_target="run",
+        cores=2,
+        memory_gb=4.0,
+        gpu_count=0,
+        scratch_policy="server",
+        node_timeout_seconds=60,
+    )
+    envelope = BoundedExecutionEnvelopeV1(
+        schema_version="chemsmart.bounded-execution-envelope.v1",
+        mode="bounded-local",
+        allowed_program_engines=(("orca", ("cpu",)),),
+        resources=resources,
+        episode_wall_time_seconds=120,
+        postprocess_reserve_seconds=30,
+        max_engine_calls=1,
+        scratch_root=str(tmp_path / "scratch"),
+    )
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events.jsonl", session_id="budget"
+        ),
+        task_spec_sha256s=("a" * 64,),
+        execution_resources=resources,
+        bounded_execution_envelope=envelope,
+    )
+
+    # A live launch inside the window receives the shrunken allowance.
+    assert host._require_bounded_launch_budget() <= 90.0
+
+    # An exhausted episode refuses the next launch with a typed error
+    # instead of granting the bare node timeout.
+    host._bounded_execution_started_at -= 10_000
+    with pytest.raises(ContractError, match="insufficient episode time"):
+        host._require_bounded_launch_budget()
+
+    # The engine-call budget counts every held receipt -- replays
+    # included -- so it is conserved across the approval's whole life.
+    fresh = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events2.jsonl", session_id="budget2"
+        ),
+        task_spec_sha256s=("a" * 64,),
+        execution_resources=resources,
+        bounded_execution_envelope=envelope,
+    )
+    fresh.execution_receipts["done"] = SimpleNamespace(validated=True)
+    with pytest.raises(ContractError, match="engine-call budget exhausted"):
+        fresh._require_bounded_launch_budget()
 
 
 def _duck_review(node_reviews, nodes, edges=()):

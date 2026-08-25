@@ -1753,6 +1753,14 @@ def _execution_inputs_from_bundle(
         "approved_scientific_toolchain_plan": getattr(
             bundle, "scientific_toolchain_plan", None
         ),
+        # The displayed budget must be the executing budget.  This
+        # envelope was parsed above for the scratch root and then
+        # dropped, so the provider-free executor ran with no episode
+        # clock and no engine-call count -- only per-node timeouts.
+        # Invisible in every one- and two-node workflow; the first
+        # batch that outlived an episode launched all eight nodes
+        # across thirty-one minutes of a displayed 1200 s episode.
+        "bounded_execution_envelope": envelope,
     }
 
 
