@@ -9,6 +9,7 @@ from chemsmart.agent.capabilities import (
     ProgramCapabilityRegistryV1,
     load_program_capabilities,
 )
+from chemsmart.agent.execution import EDITABLE_COORDINATE_OPERATIONS
 from chemsmart.agent.skills import skills_enabled
 from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
 from chemsmart.analysis.result_quantities import SUPPORTED_SELECTORS
@@ -379,6 +380,193 @@ def build_command_compiled_tool_surface(
                 },
             },
             ("derived_artifact_id", "parent_artifact_id"),
+        ),
+        _tool(
+            "edit_molecular_geometry",
+            (
+                "Set one internal coordinate of an identity-bound geometry "
+                "to a value you choose. The host owns the arithmetic: it "
+                "moves the side of the coordinate you name as one rigid "
+                "piece, leaves every other atom exactly where it was, "
+                "measures the coordinate before and after, and records which "
+                "atoms moved. Use it to reach a structure a plain "
+                "optimisation cannot -- another conformer, the far side of a "
+                "rotational barrier, a deliberately stretched bond. Atom "
+                "count, atom order and formula are unchanged, so parent atom "
+                "i is edited atom i. Which side moves is your scientific "
+                "choice and must be named. The result is a STARTING "
+                "structure: the value you requested is what you asked for, "
+                "and only an optimisation and its validation verdict say "
+                "what the coordinate really is, so plan the consuming "
+                "workflow to find out. Editing does not change or infer "
+                "electronic state -- bind charge and multiplicity explicitly "
+                "afterwards. Refusals are structural (an axis that is not a "
+                "bond, a ring a rigid motion would tear, collinear atoms); "
+                "for a coordinate inside a ring, use a constrained "
+                "optimisation or a relaxed scan instead."
+            ),
+            {
+                "edited_artifact_id": {
+                    **_public_identifier(),
+                    "description": (
+                        "Workspace-unique identifier for the edited "
+                        "geometry artifact."
+                    ),
+                },
+                "input_artifact_id": {
+                    **_string(),
+                    "description": (
+                        "Identity-bound geometry_xyz artifact to edit."
+                    ),
+                },
+                "operation": {
+                    "type": "string",
+                    "enum": sorted(EDITABLE_COORDINATE_OPERATIONS),
+                    "description": (
+                        "Which internal coordinate to set: set_bond_length "
+                        "takes 2 atoms, set_angle 3, set_dihedral 4 -- the "
+                        "same coordinates a scan drives and a modred holds."
+                    ),
+                },
+                "atoms": {
+                    "type": "array",
+                    "items": {"type": "integer", "minimum": 1},
+                    "minItems": 2,
+                    "maxItems": 4,
+                    "description": (
+                        "1-based atoms defining the coordinate, in bonded "
+                        "order: i-j for a bond, i-j-k for an angle with the "
+                        "vertex in the middle, i-j-k-l for a torsion about "
+                        "the j-k bond."
+                    ),
+                },
+                "moving_side_atom": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "Which of the coordinate's own atoms sits on the "
+                        "side that moves. Both choices reach the same "
+                        "measured value and give different molecules, so "
+                        "there is no default: name the side whose motion is "
+                        "the chemistry you mean."
+                    ),
+                },
+                "target_value": {
+                    "type": "number",
+                    "description": (
+                        "The value to set, in the coordinate's own unit: "
+                        "angstrom for set_bond_length, degrees for set_angle "
+                        "(strictly between 0 and 180) and set_dihedral "
+                        "(-180 to 180, signed by the IUPAC convention)."
+                    ),
+                },
+            },
+            (
+                "edited_artifact_id",
+                "input_artifact_id",
+                "operation",
+                "atoms",
+                "moving_side_atom",
+                "target_value",
+            ),
+        ),
+        _tool(
+            "append_molecular_atom",
+            (
+                "Add one atom to an identity-bound parent, placed by the "
+                "three internal coordinates that say where it sits: a bond "
+                "length to the atom it attaches to, an angle to a second "
+                "atom, and a dihedral against a third. This is derivation's "
+                "mirror -- protonation, hydrogenation, capping a radical, "
+                "deuteration -- and the host owns the placement arithmetic "
+                "and the bytes. Parent atom indices are unchanged and the "
+                "appended atom is last. Appending never infers an electronic "
+                "state: adding a hydrogen gives a cation or a radical "
+                "depending on whether it brought an electron, so bind charge "
+                "and multiplicity explicitly afterwards. The result is a "
+                "starting structure and the consuming stage is a new "
+                "workflow needing its own review."
+            ),
+            {
+                "appended_artifact_id": {
+                    **_public_identifier(),
+                    "description": (
+                        "Workspace-unique identifier for the appended "
+                        "geometry artifact."
+                    ),
+                },
+                "input_artifact_id": {
+                    **_string(),
+                    "description": (
+                        "Identity-bound geometry_xyz artifact to add to."
+                    ),
+                },
+                "element": {
+                    **_string(),
+                    "description": (
+                        "Element symbol of the atom to add, e.g. 'H'."
+                    ),
+                },
+                "anchor_atom": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "1-based parent atom the new atom bonds to; the "
+                        "bond length is measured to this atom."
+                    ),
+                },
+                "angle_atom": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "1-based parent atom the angle new-anchor-angle is "
+                        "measured against."
+                    ),
+                },
+                "dihedral_atom": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "1-based parent atom the torsion "
+                        "new-anchor-angle-dihedral is measured against; it "
+                        "must not be collinear with the other two."
+                    ),
+                },
+                "bond_length_angstrom": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 5.0,
+                    "description": (
+                        "Distance from the anchor atom, in angstrom."
+                    ),
+                },
+                "angle_degrees": {
+                    "type": "number",
+                    "exclusiveMinimum": 0.0,
+                    "exclusiveMaximum": 180.0,
+                    "description": ("Angle at the anchor atom, in degrees."),
+                },
+                "dihedral_degrees": {
+                    "type": "number",
+                    "minimum": -180.0,
+                    "maximum": 180.0,
+                    "description": (
+                        "Torsion about the anchor-angle bond, in degrees, "
+                        "signed by the IUPAC convention."
+                    ),
+                },
+            },
+            (
+                "appended_artifact_id",
+                "input_artifact_id",
+                "element",
+                "anchor_atom",
+                "angle_atom",
+                "dihedral_atom",
+                "bond_length_angstrom",
+                "angle_degrees",
+                "dihedral_degrees",
+            ),
         ),
         _tool(
             "inspect_database_records",

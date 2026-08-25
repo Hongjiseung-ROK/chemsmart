@@ -1013,6 +1013,789 @@ def extract_trusted_database_record_geometry(
     )
 
 
+#: How many atoms define each editable internal coordinate, and the unit its
+#: value carries.  The same three coordinates a scan drives or a modred holds
+#: (``agent/commands.py``), so a model that can name one can name the other.
+_EDIT_COORDINATE_SPECS = {
+    "set_bond_length": (2, "angstrom"),
+    "set_angle": (3, "degree"),
+    "set_dihedral": (4, "degree"),
+}
+
+#: The operations the model may name, taken from the arithmetic that
+#: implements them so the tool surface cannot advertise one the host has no
+#: transformation for.
+EDITABLE_COORDINATE_OPERATIONS = frozenset(_EDIT_COORDINATE_SPECS)
+
+_EDIT_STARTING_STRUCTURE_ROLE = (
+    "an edited geometry is a starting structure, not a relaxed one: the "
+    "requested value is what the model asked for and only an optimisation "
+    "and its validation verdict can say what the coordinate really is"
+)
+
+
+def _molecule_graph(molecule: Any) -> Any:
+    """One-based connectivity graph of a molecule, from covalent radii."""
+
+    import networkx as nx
+
+    from chemsmart.io.molecules import DEFAULT_BUFFER as CONNECTIVITY_BUFFER
+
+    zero_based = molecule.to_graph(
+        bond_cutoff_buffer=CONNECTIVITY_BUFFER, adjust_H=True
+    )
+    # ``to_graph`` numbers its nodes from zero while every scientific atom
+    # index the model, the review and the receipts speak is one-based.  The
+    # conversion happens here, once, rather than at each use.
+    return nx.relabel_nodes(zero_based, {n: n + 1 for n in zero_based.nodes})
+
+
+def _close_contact_observations(
+    symbols: Sequence[str], positions: Any
+) -> tuple[float, tuple[dict[str, Any], ...]]:
+    """Shortest interatomic distance, and pairs closer than covalent contact.
+
+    Observations, never refusals.  An edit that drives two atoms together may
+    be exactly the intent (an approach coordinate) or a mistake, and only the
+    scientist reading the review can tell which.
+    """
+
+    from chemsmart.utils.periodictable import PeriodicTable
+
+    table = PeriodicTable()
+    radii = [float(table.covalent_radius(symbol)) for symbol in symbols]
+    coordinates = np.asarray(positions, dtype=float)
+    count = len(symbols)
+    shortest = float("inf")
+    pairs: list[dict[str, Any]] = []
+    for first in range(count):
+        for second in range(first + 1, count):
+            separation = float(
+                np.linalg.norm(coordinates[first] - coordinates[second])
+            )
+            shortest = min(shortest, separation)
+            # Three quarters of the covalent contact distance: closer than
+            # this is not a bond being formed, it is two atoms overlapping.
+            contact = (radii[first] + radii[second]) * 0.75
+            if separation < contact:
+                pairs.append(
+                    {
+                        "atoms": (first + 1, second + 1),
+                        "symbols": (symbols[first], symbols[second]),
+                        "distance_angstrom": round(separation, 6),
+                    }
+                )
+    return (0.0 if shortest == float("inf") else shortest), tuple(pairs)
+
+
+def _xyz_payload(
+    symbols: Sequence[str], positions: Any, comment: str
+) -> bytes:
+    """Render a host-owned geometry, in the shape derivation already writes."""
+
+    lines = [str(len(symbols)), comment]
+    for symbol, position in zip(symbols, np.asarray(positions, dtype=float)):
+        lines.append(
+            f"{symbol:<3} {position[0]:.10f} {position[1]:.10f} "
+            f"{position[2]:.10f}"
+        )
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+@dataclass(frozen=True)
+class GeometryEditReceiptV1:
+    """Host-owned lineage of one internal coordinate set to a value.
+
+    The model names a coordinate, a target value, and which side of it moves;
+    the host owns the transformation arithmetic, measures the coordinate
+    before and after, and enumerates exactly which atoms it moved.  No energy
+    exists at edit time, so nothing here judges whether the requested value is
+    a good one -- an optimisation does that, and the gap between what was
+    requested and what relaxation returns is the scientific observation the
+    edit exists to make possible.
+
+    Atom count, atom order, and molecular formula are preserved by
+    construction: the operation moves a subset of the parent's atoms and
+    invents none, so parent atom *i* is edited atom *i*, which is what lets a
+    later analysis re-measure the same coordinate on the relaxed result.
+    """
+
+    schema_version: str
+    edited_artifact_id: str
+    edited_artifact_sha256: str
+    parent_artifact_id: str
+    parent_sha256: str
+    parent_identity_sha256: str
+    operation: str
+    coordinate_atoms: tuple[int, ...]
+    coordinate_symbols: tuple[str, ...]
+    moving_side_atom: int
+    moved_atoms: tuple[int, ...]
+    value_unit: str
+    value_before: float
+    value_requested: float
+    value_achieved: float
+    atom_count: int
+    formula: str
+    min_interatomic_distance_angstrom: float
+    close_contact_pairs: tuple[dict[str, Any], ...]
+    connectivity_changed: bool
+    atom_order_note: str
+    starting_structure_role: str
+    status: str
+    receipt_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "chemsmart.geometry-edit.v1":
+            raise ContractError("unsupported geometry edit receipt")
+        for name, digest in (
+            ("edited_artifact_sha256", self.edited_artifact_sha256),
+            ("parent_sha256", self.parent_sha256),
+            ("parent_identity_sha256", self.parent_identity_sha256),
+        ):
+            require_sha256(digest, name)
+        expected = _EDIT_COORDINATE_SPECS.get(self.operation)
+        if expected is None:
+            raise ContractError(
+                f"unsupported geometry edit operation {self.operation!r}"
+            )
+        atom_count, unit = expected
+        if len(self.coordinate_atoms) != atom_count:
+            raise ContractError(
+                f"{self.operation} is defined by {atom_count} atoms"
+            )
+        if len(self.coordinate_symbols) != atom_count:
+            raise ContractError(
+                "a geometry edit records one symbol per coordinate atom"
+            )
+        if self.value_unit != unit:
+            raise ContractError(
+                f"{self.operation} carries its value in {unit}"
+            )
+        if self.moving_side_atom not in self.coordinate_atoms:
+            raise ContractError(
+                "the moving side is named by one of the coordinate's atoms"
+            )
+        if not self.moved_atoms:
+            raise ContractError("a geometry edit moves at least one atom")
+        if self.starting_structure_role != _EDIT_STARTING_STRUCTURE_ROLE:
+            raise ContractError(
+                "a geometry edit receipt must state the starting-structure "
+                "role"
+            )
+        if self.status != "edited":
+            raise ContractError("geometry edit must be edited")
+        object.__setattr__(
+            self,
+            "close_contact_pairs",
+            tuple(
+                canonical_data(dict(item)) for item in self.close_contact_pairs
+            ),
+        )
+        body = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key != "receipt_sha256"
+        }
+        if self.receipt_sha256 != canonical_sha256(body):
+            raise ContractError("geometry edit digest mismatch")
+
+
+def transform_trusted_molecular_geometry(
+    *,
+    approved_workspace: str | Path,
+    edited_artifact_id: str,
+    parent: TrustedArtifactRefV1,
+    parent_identity_sha256: str,
+    operation: str,
+    atoms: Sequence[int],
+    moving_side_atom: int,
+    target_value: float,
+) -> tuple[TrustedArtifactRefV1, GeometryEditReceiptV1]:
+    """Set one internal coordinate to a value, as a rigid motion.
+
+    The coordinate's axis bond is broken in the perceived connectivity graph
+    and the component holding ``moving_side_atom`` is carried; every other
+    atom keeps its coordinates exactly.  Which side moves is a scientific
+    choice with three different library conventions behind it, so it is named
+    rather than defaulted, and the atoms that actually moved are enumerated in
+    the receipt.
+
+    Refusals are structural, never scientific: an axis that is not a bond, a
+    ring the rigid motion would tear, coincident or collinear atoms.  A
+    requested value the host thinks unwise is not refused -- that judgement
+    belongs to an engine.
+    """
+
+    from chemsmart.io.molecules.structure import Molecule
+    from chemsmart.utils.geometry import (
+        internal_angle,
+        internal_dihedral,
+        internal_distance,
+        rotate_points_about_axis,
+    )
+
+    spec = _EDIT_COORDINATE_SPECS.get(operation)
+    if spec is None:
+        raise ContractError(
+            f"unsupported geometry edit operation {operation!r}; it is one of "
+            f"{sorted(_EDIT_COORDINATE_SPECS)}"
+        )
+    expected_atoms, unit = spec
+    if parent.kind != "geometry_xyz":
+        raise ContractError(
+            "a geometry edit consumes one geometry_xyz artifact"
+        )
+    path = _require_current_artifact(parent, "geometry edit parent")
+    molecule = Molecule.from_filepath(str(path))
+    symbols = list(molecule.chemical_symbols)
+    positions = np.asarray(molecule.positions, dtype=float).copy()
+    count = len(symbols)
+
+    indices = [int(value) for value in atoms]
+    if len(indices) != expected_atoms:
+        raise ContractError(
+            f"{operation} is defined by {expected_atoms} atoms, not "
+            f"{len(indices)}"
+        )
+    if len(set(indices)) != len(indices):
+        raise ContractError(f"{operation} names the same atom twice")
+    out_of_range = [index for index in indices if not 1 <= index <= count]
+    if out_of_range:
+        raise ContractError(
+            f"coordinate atoms must lie in 1..{count}; got "
+            f"{sorted(out_of_range)}"
+        )
+    moving = int(moving_side_atom)
+    if moving not in indices:
+        raise ContractError(
+            "moving_side_atom must be one of the coordinate's own atoms "
+            f"{indices}; got {moving}"
+        )
+
+    graph = _molecule_graph(molecule)
+    # Which bond the motion turns about, and which atom of the pair anchors
+    # the still side, differ per coordinate.
+    if operation == "set_bond_length":
+        axis = (indices[0], indices[1])
+    elif operation == "set_angle":
+        axis = (indices[0], indices[1])
+        second_axis = (indices[1], indices[2])
+    else:
+        axis = (indices[1], indices[2])
+
+    def _require_bond(pair: tuple[int, int]) -> None:
+        if not graph.has_edge(*pair):
+            raise ContractError(
+                f"atoms {pair[0]} ({symbols[pair[0] - 1]}) and {pair[1]} "
+                f"({symbols[pair[1] - 1]}) are not bonded in the perceived "
+                "connectivity, so there is no side of the coordinate to move; "
+                "compose_molecular_arrangement places unbound fragments"
+            )
+
+    if operation == "set_bond_length":
+        _require_bond(axis)
+    elif operation == "set_angle":
+        _require_bond(axis)
+        _require_bond(second_axis)
+    else:
+        _require_bond((indices[0], indices[1]))
+        _require_bond(axis)
+        _require_bond((indices[2], indices[3]))
+
+    import networkx as nx
+
+    cycles = nx.cycle_basis(graph)
+    ring_atoms = {
+        frozenset(pair)
+        for cycle in cycles
+        for pair in zip(cycle, cycle[1:] + cycle[:1])
+    }
+
+    def _in_ring(pair: tuple[int, int]) -> bool:
+        return frozenset(pair) in ring_atoms
+
+    # A rigid motion cannot change a coordinate inside a ring without tearing
+    # the ring open, and each coordinate is trapped by a different bond: a
+    # bond length by its own bond, a torsion by its central bond, an angle
+    # only when both of its bonds are in the ring.
+    ring_refusal = (
+        "; a ring coordinate is reached with a constrained optimisation "
+        "(modred) or a relaxed scan, which lets the rest of the ring respond"
+    )
+    if operation == "set_bond_length" and _in_ring(axis):
+        raise ContractError(
+            f"bond {axis[0]}-{axis[1]} lies in a ring, so setting its length "
+            "as a rigid motion would tear the ring open" + ring_refusal
+        )
+    if operation == "set_dihedral" and _in_ring(axis):
+        raise ContractError(
+            f"the central bond {axis[0]}-{axis[1]} of this torsion lies in a "
+            "ring, so rotating about it as a rigid motion would tear the ring "
+            "open" + ring_refusal
+        )
+    if operation == "set_angle" and _in_ring(axis) and _in_ring(second_axis):
+        raise ContractError(
+            f"both bonds of the angle {indices[0]}-{indices[1]}-{indices[2]} "
+            "lie in a ring, so opening it as a rigid motion would tear the "
+            "ring open" + ring_refusal
+        )
+
+    working = graph.copy()
+    working.remove_edge(*axis)
+    components = list(nx.connected_components(working))
+    moving_component = next(
+        (item for item in components if moving in item), None
+    )
+    if moving_component is None or len(components) < 2:
+        raise ContractError(
+            "the coordinate's axis does not separate the molecule into two "
+            "sides, so no rigid motion can set it"
+        )
+    moved_atoms = tuple(sorted(moving_component))
+
+    point = {index: positions[index - 1] for index in indices}
+    if operation == "set_bond_length":
+        before = internal_distance(point[indices[0]], point[indices[1]])
+        requested = float(target_value)
+        if not 0.2 <= requested <= 10.0:
+            raise ContractError(
+                "a bond length must lie in [0.2, 10.0] angstrom; got "
+                f"{requested}"
+            )
+        direction = point[indices[1]] - point[indices[0]]
+        norm = float(np.linalg.norm(direction))
+        if norm == 0.0:
+            raise ContractError(
+                f"atoms {indices[0]} and {indices[1]} share one position, so "
+                "the bond has no direction to set a length along"
+            )
+        shift = (requested - before) * (direction / norm)
+        sign = 1.0 if moving == indices[1] else -1.0
+        for index in moved_atoms:
+            positions[index - 1] = positions[index - 1] + sign * shift
+    else:
+        if operation == "set_angle":
+            before_radians = internal_angle(
+                point[indices[0]], point[indices[1]], point[indices[2]]
+            )
+            requested = float(target_value)
+            if not 0.0 < requested < 180.0:
+                raise ContractError(
+                    "an angle must lie strictly between 0 and 180 degrees; "
+                    f"got {requested}"
+                )
+            normal = np.cross(
+                point[indices[0]] - point[indices[1]],
+                point[indices[2]] - point[indices[1]],
+            )
+            if float(np.linalg.norm(normal)) == 0.0:
+                raise ContractError(
+                    f"atoms {indices[0]}, {indices[1]} and {indices[2]} are "
+                    "collinear, so the plane the angle opens in is undefined"
+                )
+            pivot = point[indices[1]]
+            axis_direction = normal
+            # Rotating the far side by the deficit opens the angle; rotating
+            # the near side has to go the other way to reach the same value.
+            sense = 1.0 if moving == indices[2] else -1.0
+            delta = sense * (math.radians(requested) - before_radians)
+        else:
+            before_radians = internal_dihedral(
+                point[indices[0]],
+                point[indices[1]],
+                point[indices[2]],
+                point[indices[3]],
+            )
+            requested = float(target_value)
+            if not -180.0 <= requested <= 180.0:
+                raise ContractError(
+                    "a dihedral must lie in [-180, 180] degrees; got "
+                    f"{requested}"
+                )
+            pivot = point[indices[2]]
+            axis_direction = point[indices[2]] - point[indices[1]]
+            sense = 1.0 if moving in {indices[2], indices[3]} else -1.0
+            delta = sense * (math.radians(requested) - before_radians)
+        before = math.degrees(before_radians)
+        rotated = rotate_points_about_axis(
+            positions[[index - 1 for index in moved_atoms]],
+            pivot,
+            axis_direction,
+            delta,
+        )
+        for offset, index in enumerate(moved_atoms):
+            positions[index - 1] = rotated[offset]
+
+    edited = Molecule(
+        symbols=list(symbols), positions=[list(row) for row in positions]
+    )
+    achieved_point = {index: positions[index - 1] for index in indices}
+    if operation == "set_bond_length":
+        achieved = internal_distance(
+            achieved_point[indices[0]], achieved_point[indices[1]]
+        )
+    elif operation == "set_angle":
+        achieved = math.degrees(
+            internal_angle(
+                achieved_point[indices[0]],
+                achieved_point[indices[1]],
+                achieved_point[indices[2]],
+            )
+        )
+    else:
+        achieved = math.degrees(
+            internal_dihedral(
+                achieved_point[indices[0]],
+                achieved_point[indices[1]],
+                achieved_point[indices[2]],
+                achieved_point[indices[3]],
+            )
+        )
+    # The host's own arithmetic is what is being checked here, not the
+    # model's chemistry: a miss means this function is wrong.
+    residual = abs(achieved - requested)
+    if unit == "degree":
+        residual = abs((achieved - requested + 180.0) % 360.0 - 180.0)
+    if residual > 1.0e-6:
+        raise ContractError(
+            f"the host set {operation} to {achieved} rather than the "
+            f"requested {requested}; the transformation is wrong"
+        )
+
+    shortest, contacts = _close_contact_observations(symbols, positions)
+    connectivity_changed = set(map(frozenset, graph.edges)) != set(
+        map(frozenset, _molecule_graph(edited).edges)
+    )
+    coordinate_text = "-".join(
+        f"{symbols[index - 1]}{index}" for index in indices
+    )
+    payload = _xyz_payload(
+        symbols,
+        positions,
+        (
+            f"ChemSmart geometry edit; {operation} {coordinate_text} from "
+            f"{before:.6f} to {achieved:.6f} {unit}; moved the side of atom "
+            f"{moving} ({len(moved_atoms)} atoms); every other atom unchanged; "
+            "starting structure, electronic state deliberately unbound"
+        ),
+    )
+    target = _target_below(
+        _absolute_workspace(approved_workspace),
+        "artifacts",
+        f"{require_identifier(edited_artifact_id, 'artifact_id')}.xyz",
+    )
+    _write_exact_once(target, payload)
+    artifact = TrustedArtifactRefV1(
+        artifact_id=edited_artifact_id,
+        kind="geometry_xyz",
+        sha256=file_sha256(target),
+        size_bytes=target.stat().st_size,
+        path=str(target),
+        cli_value=str(target),
+    )
+    body = {
+        "schema_version": "chemsmart.geometry-edit.v1",
+        "edited_artifact_id": artifact.artifact_id,
+        "edited_artifact_sha256": artifact.sha256,
+        "parent_artifact_id": parent.artifact_id,
+        "parent_sha256": parent.sha256,
+        "parent_identity_sha256": parent_identity_sha256,
+        "operation": operation,
+        "coordinate_atoms": tuple(indices),
+        "coordinate_symbols": tuple(symbols[index - 1] for index in indices),
+        "moving_side_atom": moving,
+        "moved_atoms": moved_atoms,
+        "value_unit": unit,
+        "value_before": round(before, 6),
+        "value_requested": round(requested, 6),
+        "value_achieved": round(achieved, 6),
+        "atom_count": count,
+        "formula": edited.get_chemical_formula(),
+        "min_interatomic_distance_angstrom": round(shortest, 6),
+        # Observed, never judged.  A close contact may be the point of the
+        # edit or the mistake in it, and the review is where that is decided.
+        "close_contact_pairs": contacts,
+        "connectivity_changed": bool(connectivity_changed),
+        "atom_order_note": (
+            "atom order and count are preserved; parent atom i is edited "
+            "atom i"
+        ),
+        "starting_structure_role": _EDIT_STARTING_STRUCTURE_ROLE,
+        "status": "edited",
+    }
+    return artifact, GeometryEditReceiptV1(
+        **body, receipt_sha256=canonical_sha256(body)
+    )
+
+
+@dataclass(frozen=True)
+class AtomAppendReceiptV1:
+    """Host-owned lineage of one atom added to a parent by its coordinates.
+
+    The mirror of derivation.  Derivation removes an ordered subset of a
+    parent's atoms; appending adds one atom, positioned by the three internal
+    coordinates that define where it sits relative to three atoms already
+    there.  The host owns the placement arithmetic and the bytes; the model
+    owns the element, the anchors, and the geometry, and why.
+
+    Appending never infers an electronic state, for the same reason
+    derivation does not: taking a hydrogen off gives a radical or an anion
+    depending on where its electron went, and putting one on gives a cation or
+    a radical depending on whether it brought one.  Charge and multiplicity
+    are bound explicitly afterwards, and the consuming stage is a new
+    workflow.  Parent atoms keep their indices; the appended atom is last.
+    """
+
+    schema_version: str
+    appended_artifact_id: str
+    appended_artifact_sha256: str
+    parent_artifact_id: str
+    parent_sha256: str
+    parent_identity_sha256: str
+    parent_atom_count: int
+    parent_formula: str
+    element: str
+    appended_atom_index: int
+    anchor_atoms: tuple[int, ...]
+    anchor_symbols: tuple[str, ...]
+    bond_length_angstrom: float
+    angle_degrees: float
+    dihedral_degrees: float
+    achieved_bond_length_angstrom: float
+    achieved_angle_degrees: float
+    achieved_dihedral_degrees: float
+    atom_count: int
+    formula: str
+    min_interatomic_distance_angstrom: float
+    close_contact_pairs: tuple[dict[str, Any], ...]
+    fragment_count: int
+    atom_order_note: str
+    starting_structure_role: str
+    status: str
+    receipt_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "chemsmart.atom-append.v1":
+            raise ContractError("unsupported atom append receipt")
+        for name, digest in (
+            ("appended_artifact_sha256", self.appended_artifact_sha256),
+            ("parent_sha256", self.parent_sha256),
+            ("parent_identity_sha256", self.parent_identity_sha256),
+        ):
+            require_sha256(digest, name)
+        if len(self.anchor_atoms) != 3 or len(self.anchor_symbols) != 3:
+            raise ContractError(
+                "an appended atom is placed against three anchor atoms"
+            )
+        if len(set(self.anchor_atoms)) != 3:
+            raise ContractError("an append names the same anchor twice")
+        if self.atom_count != self.parent_atom_count + 1:
+            raise ContractError("an append adds exactly one atom")
+        if self.appended_atom_index != self.atom_count:
+            raise ContractError("the appended atom is the last atom")
+        if self.starting_structure_role != _EDIT_STARTING_STRUCTURE_ROLE:
+            raise ContractError(
+                "an append receipt must state the starting-structure role"
+            )
+        if self.status != "appended":
+            raise ContractError("atom append must be appended")
+        object.__setattr__(
+            self,
+            "close_contact_pairs",
+            tuple(
+                canonical_data(dict(item)) for item in self.close_contact_pairs
+            ),
+        )
+        body = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key != "receipt_sha256"
+        }
+        if self.receipt_sha256 != canonical_sha256(body):
+            raise ContractError("atom append digest mismatch")
+
+
+def append_trusted_molecular_atom(
+    *,
+    approved_workspace: str | Path,
+    appended_artifact_id: str,
+    parent: TrustedArtifactRefV1,
+    parent_identity_sha256: str,
+    element: str,
+    anchor_atom: int,
+    angle_atom: int,
+    dihedral_atom: int,
+    bond_length_angstrom: float,
+    angle_degrees: float,
+    dihedral_degrees: float,
+) -> tuple[TrustedArtifactRefV1, AtomAppendReceiptV1]:
+    """Add one atom at the position three internal coordinates specify."""
+
+    import networkx as nx
+
+    from chemsmart.io.molecules.structure import Molecule
+    from chemsmart.utils.geometry import (
+        internal_angle,
+        internal_dihedral,
+        internal_distance,
+        place_atom_by_internal_coordinates,
+    )
+    from chemsmart.utils.periodictable import PeriodicTable
+
+    if parent.kind != "geometry_xyz":
+        raise ContractError("an append consumes one geometry_xyz artifact")
+    table = PeriodicTable()
+    symbol = str(element).strip().capitalize()
+    try:
+        table.to_atomic_number(symbol)
+    except Exception as error:
+        raise ContractError(
+            f"{element!r} is not a chemical element symbol"
+        ) from error
+    path = _require_current_artifact(parent, "append parent")
+    molecule = Molecule.from_filepath(str(path))
+    symbols = list(molecule.chemical_symbols)
+    positions = np.asarray(molecule.positions, dtype=float)
+    count = len(symbols)
+
+    anchors = [int(anchor_atom), int(angle_atom), int(dihedral_atom)]
+    if len(set(anchors)) != 3:
+        raise ContractError("an append names the same anchor atom twice")
+    out_of_range = [index for index in anchors if not 1 <= index <= count]
+    if out_of_range:
+        raise ContractError(
+            f"anchor atoms must lie in 1..{count}; got {sorted(out_of_range)}"
+        )
+    length = float(bond_length_angstrom)
+    if not 0.5 <= length <= 5.0:
+        raise ContractError(
+            f"an appended bond length must lie in [0.5, 5.0] angstrom; got "
+            f"{length}"
+        )
+    angle = float(angle_degrees)
+    if not 0.0 < angle < 180.0:
+        raise ContractError(
+            f"an appended angle must lie strictly between 0 and 180 degrees; "
+            f"got {angle}"
+        )
+    dihedral = float(dihedral_degrees)
+    if not -180.0 <= dihedral <= 180.0:
+        raise ContractError(
+            f"an appended dihedral must lie in [-180, 180] degrees; got "
+            f"{dihedral}"
+        )
+
+    placed = place_atom_by_internal_coordinates(
+        positions[anchors[0] - 1],
+        positions[anchors[1] - 1],
+        positions[anchors[2] - 1],
+        length,
+        math.radians(angle),
+        math.radians(dihedral),
+    )
+    appended_positions = np.vstack([positions, placed[None, :]])
+    appended_symbols = symbols + [symbol]
+    appended = Molecule(
+        symbols=list(appended_symbols),
+        positions=[list(row) for row in appended_positions],
+    )
+
+    achieved_length = internal_distance(positions[anchors[0] - 1], placed)
+    achieved_angle = math.degrees(
+        internal_angle(
+            placed, positions[anchors[0] - 1], positions[anchors[1] - 1]
+        )
+    )
+    achieved_dihedral = math.degrees(
+        internal_dihedral(
+            placed,
+            positions[anchors[0] - 1],
+            positions[anchors[1] - 1],
+            positions[anchors[2] - 1],
+        )
+    )
+    residual = max(
+        abs(achieved_length - length),
+        abs(achieved_angle - angle),
+        abs((achieved_dihedral - dihedral + 180.0) % 360.0 - 180.0),
+    )
+    if residual > 1.0e-6:
+        raise ContractError(
+            "the host placed the atom away from the requested internal "
+            "coordinates; the placement is wrong"
+        )
+
+    shortest, contacts = _close_contact_observations(
+        appended_symbols, appended_positions
+    )
+    anchor_text = "-".join(f"{symbols[index - 1]}{index}" for index in anchors)
+    payload = _xyz_payload(
+        appended_symbols,
+        appended_positions,
+        (
+            f"ChemSmart appended atom; {symbol} placed at {length:.6f} "
+            f"angstrom, {angle:.6f} and {dihedral:.6f} degrees against "
+            f"{anchor_text}; parent atoms unchanged, appended atom is "
+            f"{count + 1}; starting structure, electronic state deliberately "
+            "unbound"
+        ),
+    )
+    target = _target_below(
+        _absolute_workspace(approved_workspace),
+        "artifacts",
+        f"{require_identifier(appended_artifact_id, 'artifact_id')}.xyz",
+    )
+    _write_exact_once(target, payload)
+    artifact = TrustedArtifactRefV1(
+        artifact_id=appended_artifact_id,
+        kind="geometry_xyz",
+        sha256=file_sha256(target),
+        size_bytes=target.stat().st_size,
+        path=str(target),
+        cli_value=str(target),
+    )
+    body = {
+        "schema_version": "chemsmart.atom-append.v1",
+        "appended_artifact_id": artifact.artifact_id,
+        "appended_artifact_sha256": artifact.sha256,
+        "parent_artifact_id": parent.artifact_id,
+        "parent_sha256": parent.sha256,
+        "parent_identity_sha256": parent_identity_sha256,
+        "parent_atom_count": count,
+        "parent_formula": molecule.get_chemical_formula(),
+        "element": symbol,
+        "appended_atom_index": count + 1,
+        "anchor_atoms": tuple(anchors),
+        "anchor_symbols": tuple(symbols[index - 1] for index in anchors),
+        "bond_length_angstrom": round(length, 6),
+        "angle_degrees": round(angle, 6),
+        "dihedral_degrees": round(dihedral, 6),
+        "achieved_bond_length_angstrom": round(achieved_length, 6),
+        "achieved_angle_degrees": round(achieved_angle, 6),
+        "achieved_dihedral_degrees": round(achieved_dihedral, 6),
+        "atom_count": count + 1,
+        "formula": appended.get_chemical_formula(),
+        "min_interatomic_distance_angstrom": round(shortest, 6),
+        "close_contact_pairs": contacts,
+        # Observed, never judged: an atom placed far from everything leaves
+        # two separated pieces, which is a fact about this geometry and not a
+        # verdict on it.
+        "fragment_count": nx.number_connected_components(
+            _molecule_graph(appended)
+        ),
+        "atom_order_note": (
+            "parent atom indices are unchanged; the appended atom is the "
+            "last atom"
+        ),
+        "starting_structure_role": _EDIT_STARTING_STRUCTURE_ROLE,
+        "status": "appended",
+    }
+    return artifact, AtomAppendReceiptV1(
+        **body, receipt_sha256=canonical_sha256(body)
+    )
+
+
 def promote_project_candidate(
     render_receipt: ProjectRenderReceiptV1,
     *,
@@ -6458,7 +7241,10 @@ def _block_failed_descendants(
 
 __all__ = [
     "ApprovedNodeBindingV1",
+    "AtomAppendReceiptV1",
+    "EDITABLE_COORDINATE_OPERATIONS",
     "DatabaseRecordExtractionReceiptV1",
+    "GeometryEditReceiptV1",
     "ExecutionResourceSpecV1",
     "FrozenMaterializedNodePreviewV1",
     "FrozenProducerEdgeRuleV1",
@@ -6503,6 +7289,8 @@ __all__ = [
     "derive_ready_node_ids",
     "environment_review_summary",
     "extract_trusted_database_record_geometry",
+    "append_trusted_molecular_atom",
+    "transform_trusted_molecular_geometry",
     "handoff_optimized_native_geometry",
     "handoff_scan_minimum_geometry",
     "handoff_optimized_pyscf_geometry",

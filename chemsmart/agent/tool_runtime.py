@@ -79,9 +79,11 @@ from chemsmart.agent.dependency_context import (
 from chemsmart.agent.execution import (
     DEFERRABLE_GEOMETRY_PRODUCER_STAGES,
     ApprovedNodeBindingV1,
+    AtomAppendReceiptV1,
     DatabaseRecordExtractionReceiptV1,
     ExecutionResourceSpecV1,
     FrozenWorkflowApprovalV1,
+    GeometryEditReceiptV1,
     MolecularCompositionReceiptV1,
     MolecularDerivationReceiptV1,
     OptimizedGeometryHandoffV1,
@@ -96,6 +98,7 @@ from chemsmart.agent.execution import (
     WorkflowExecutionReviewV1,
     WorkflowNodeRunStateV1,
     WorkflowRunStateV1,
+    append_trusted_molecular_atom,
     bind_project_promotion_validation,
     build_frozen_workflow_approval,
     build_producer_edge_rule,
@@ -129,6 +132,7 @@ from chemsmart.agent.execution import (
     is_validated_scan_minimum_geometry_edge,
     project_real_execution_argv,
     promote_project_candidate,
+    transform_trusted_molecular_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
 from chemsmart.agent.identity import ApprovedMolecularIdentityV1
@@ -1417,6 +1421,8 @@ class CommandCompiledToolHostV1:
         self.database_extractions: dict[
             str, DatabaseRecordExtractionReceiptV1
         ] = {}
+        self.geometry_edits: dict[str, GeometryEditReceiptV1] = {}
+        self.atom_appends: dict[str, AtomAppendReceiptV1] = {}
         self.invocations: dict[str, CanonicalCommandInvocationV1] = {}
         self.command_inspections: dict[str, CommandInspectionReceiptV1] = {}
         self.safe_previews: dict[str, SafePreviewReceiptV1] = {}
@@ -1746,6 +1752,8 @@ class CommandCompiledToolHostV1:
                 self._compose_molecular_arrangement
             ),
             "derive_molecular_species": self._derive_molecular_species,
+            "edit_molecular_geometry": self._edit_molecular_geometry,
+            "append_molecular_atom": self._append_molecular_atom,
             "inspect_database_records": self._inspect_database_records,
             "extract_database_record_geometry": (
                 self._extract_database_record_geometry
@@ -2116,6 +2124,168 @@ class CommandCompiledToolHostV1:
                 "electronic state, and removing an atom decides neither; the "
                 "stage that consumes this geometry is a new workflow needing "
                 "its own review"
+            ),
+        }
+
+    def _identity_bound_parent(
+        self, artifact_id: Any, operation: str
+    ) -> tuple[Any, str]:
+        """Resolve a parent geometry that already carries an identity."""
+
+        parent = self._artifact(artifact_id)
+        identities = {
+            binding.geometry_artifact_sha256: binding
+            for binding in self.scientific_identities.values()
+        }
+        if parent.sha256 not in identities:
+            raise ContractError(
+                f"parent ({parent.artifact_id!r}) carries no scientific "
+                f"identity; {operation} requires an identity-bound parent -- "
+                "call bind_scientific_identity for it first"
+            )
+        return parent, identities[parent.sha256].binding_sha256
+
+    def _unused_artifact_id(self, artifact_id: Any) -> str:
+        """Reject an identifier already standing for other bytes."""
+
+        value = str(artifact_id)
+        if value in self.artifacts:
+            taken = sorted(self.artifacts)
+            raise ContractError(
+                f"artifact ID {value!r} is already registered; choose one "
+                f"not in {taken}"
+            )
+        return value
+
+    def _edit_molecular_geometry(self, turn_id: str, values: dict) -> Any:
+        """Set one internal coordinate of an identity-bound parent.
+
+        The model names the coordinate, the value it wants, and which side of
+        the coordinate moves; the host owns the transformation, measures the
+        coordinate before and after, and enumerates the atoms it moved. No
+        energy exists here, so nothing judges whether the requested value is
+        a good one: what makes the edit scientific evidence is that an
+        optimisation later disagrees with it, in public.
+        """
+
+        if self.approved_workspace is None:
+            raise ContractError(
+                "a geometry edit requires an approved workspace to write into"
+            )
+        edited_artifact_id = self._unused_artifact_id(
+            values["edited_artifact_id"]
+        )
+        parent, identity_sha256 = self._identity_bound_parent(
+            values["input_artifact_id"], "a geometry edit"
+        )
+        artifact, receipt = transform_trusted_molecular_geometry(
+            approved_workspace=self.approved_workspace,
+            edited_artifact_id=edited_artifact_id,
+            parent=parent,
+            parent_identity_sha256=identity_sha256,
+            operation=str(values["operation"]),
+            atoms=[int(item) for item in values.get("atoms", ())],
+            moving_side_atom=int(values["moving_side_atom"]),
+            target_value=float(values["target_value"]),
+        )
+        self.artifacts[artifact.artifact_id] = artifact
+        self.geometry_edits[artifact.sha256] = receipt
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.MOLECULAR_GEOMETRY_EDITED.value,
+            payload={
+                "receipt_sha256": receipt.receipt_sha256,
+                "edited_artifact_id": artifact.artifact_id,
+                "edited_artifact_sha256": artifact.sha256,
+                "parent_sha256": parent.sha256,
+                "operation": receipt.operation,
+                "coordinate_atoms": list(receipt.coordinate_atoms),
+                "moving_side_atom": receipt.moving_side_atom,
+                "moved_atoms": list(receipt.moved_atoms),
+                "value_unit": receipt.value_unit,
+                "value_before": receipt.value_before,
+                "value_requested": receipt.value_requested,
+                "value_achieved": receipt.value_achieved,
+                "connectivity_changed": receipt.connectivity_changed,
+            },
+            idempotency_key=("geometry-edit:" + receipt.receipt_sha256),
+        )
+        return {
+            "geometry_edit": receipt,
+            "artifact": artifact,
+            "next_action": (
+                "bind charge and multiplicity explicitly with "
+                "bind_scientific_identity -- an edit does not change or infer "
+                "electronic state; the edited geometry is a starting "
+                "structure, and the stage that optimises it is a new workflow "
+                "needing its own review, where the coordinate you requested "
+                "can be measured against the relaxed result"
+            ),
+        }
+
+    def _append_molecular_atom(self, turn_id: str, values: dict) -> Any:
+        """Add one atom to an identity-bound parent by its coordinates.
+
+        Derivation's mirror. Taking a hydrogen off gives a radical or an
+        anion depending on where its electron went; putting one on gives a
+        cation or a radical depending on whether it brought one, so the
+        appended species binds its charge and multiplicity explicitly too.
+        """
+
+        if self.approved_workspace is None:
+            raise ContractError(
+                "an atom append requires an approved workspace to write into"
+            )
+        appended_artifact_id = self._unused_artifact_id(
+            values["appended_artifact_id"]
+        )
+        parent, identity_sha256 = self._identity_bound_parent(
+            values["input_artifact_id"], "an atom append"
+        )
+        artifact, receipt = append_trusted_molecular_atom(
+            approved_workspace=self.approved_workspace,
+            appended_artifact_id=appended_artifact_id,
+            parent=parent,
+            parent_identity_sha256=identity_sha256,
+            element=str(values["element"]),
+            anchor_atom=int(values["anchor_atom"]),
+            angle_atom=int(values["angle_atom"]),
+            dihedral_atom=int(values["dihedral_atom"]),
+            bond_length_angstrom=float(values["bond_length_angstrom"]),
+            angle_degrees=float(values["angle_degrees"]),
+            dihedral_degrees=float(values["dihedral_degrees"]),
+        )
+        self.artifacts[artifact.artifact_id] = artifact
+        self.atom_appends[artifact.sha256] = receipt
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.MOLECULAR_ATOM_APPENDED.value,
+            payload={
+                "receipt_sha256": receipt.receipt_sha256,
+                "appended_artifact_id": artifact.artifact_id,
+                "appended_artifact_sha256": artifact.sha256,
+                "parent_sha256": parent.sha256,
+                "element": receipt.element,
+                "appended_atom_index": receipt.appended_atom_index,
+                "anchor_atoms": list(receipt.anchor_atoms),
+                "bond_length_angstrom": receipt.bond_length_angstrom,
+                "angle_degrees": receipt.angle_degrees,
+                "dihedral_degrees": receipt.dihedral_degrees,
+                "formula": receipt.formula,
+                "fragment_count": receipt.fragment_count,
+            },
+            idempotency_key=("atom-append:" + receipt.receipt_sha256),
+        )
+        return {
+            "atom_append": receipt,
+            "artifact": artifact,
+            "next_action": (
+                "bind charge and multiplicity explicitly with "
+                "bind_scientific_identity -- appending does not infer "
+                "electronic state, and whether the added atom brought an "
+                "electron decides it; the appended geometry is a starting "
+                "structure, and the stage that consumes it is a new workflow "
+                "needing its own review"
             ),
         }
 
@@ -8627,6 +8797,20 @@ class CommandCompiledToolHostV1:
             if extraction_receipt is not None:
                 molecular_identity["database_extraction"] = canonical_data(
                     extraction_receipt
+                )
+            edit_receipt = self.geometry_edits.get(
+                context.input_artifact.sha256
+            )
+            if edit_receipt is not None:
+                molecular_identity["geometry_edit"] = canonical_data(
+                    edit_receipt
+                )
+            append_receipt = self.atom_appends.get(
+                context.input_artifact.sha256
+            )
+            if append_receipt is not None:
+                molecular_identity["atom_append"] = canonical_data(
+                    append_receipt
                 )
             server_profile_sha256 = execution_server_profile_sha256(
                 resources=resources,
