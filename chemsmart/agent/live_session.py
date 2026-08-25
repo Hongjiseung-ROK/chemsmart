@@ -2089,8 +2089,13 @@ def _bootstrap_conformance(
     ``preview_only``.
     """
 
+    # A continuation re-enters the original run directory, so the
+    # bootstrap from the first invocation is already here; every file
+    # inside re-verifies byte-exactly through _write_private_exact, and
+    # the first live batch resume crashed on this bare mkdir before the
+    # continuation claim was even consulted.
     bootstrap_directory = run_directory / "bootstrap"
-    bootstrap_directory.mkdir(mode=0o700)
+    bootstrap_directory.mkdir(mode=0o700, exist_ok=True)
     server_path = bootstrap_directory / "preview-server.yaml"
     _write_private_exact(
         server_path,

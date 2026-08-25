@@ -657,6 +657,17 @@ class ApprovedWorkflowExecutor:
         #: (producer node, output id) -> (receipt digest, receipt quantity id)
         outputs: dict[tuple[str, str], tuple[str, str]] = {}
         ledger: list[str] = []
+        # Settlement rounds are first-class: a continuation re-enters the
+        # same run directory and re-walks the chain, and a node that
+        # settled `failed` before the suspension may settle `executed`
+        # after its producer validated on resume.  Each round's
+        # settlements and report therefore carry a round tag derived from
+        # the stream length at phase start -- unique across invocations,
+        # shared within one -- so the append-only stream records every
+        # round and the latest one supersedes by order, never by edit.
+        # The first live batch resume conflicted here on the un-tagged
+        # keys.
+        round_tag = f"r{len(self.host.event_store.read_events())}"
 
         def _emit(record: ExecutedAnalysisNodeV1) -> None:
             settled[record.node_id] = record
@@ -676,6 +687,8 @@ class ApprovedWorkflowExecutor:
                     + toolchain.plan_sha256
                     + ":"
                     + record.node_id
+                    + ":"
+                    + round_tag
                 ),
             )
 
@@ -1072,7 +1085,10 @@ class ApprovedWorkflowExecutor:
                         "toolchain_plan_sha256": toolchain.plan_sha256,
                     },
                     idempotency_key=(
-                        "analysis-completion-refused:" + toolchain.plan_sha256
+                        "analysis-completion-refused:"
+                        + toolchain.plan_sha256
+                        + ":"
+                        + round_tag
                     ),
                 )
             else:
@@ -1088,7 +1104,10 @@ class ApprovedWorkflowExecutor:
                         "toolchain_plan_sha256": toolchain.plan_sha256,
                     },
                     idempotency_key=(
-                        "analysis-report:" + toolchain.plan_sha256
+                        "analysis-report:"
+                        + toolchain.plan_sha256
+                        + ":"
+                        + round_tag
                     ),
                 )
         if analysis_status == "partial" and not report_path:
@@ -1145,7 +1164,10 @@ class ApprovedWorkflowExecutor:
                         "toolchain_plan_sha256": toolchain.plan_sha256,
                     },
                     idempotency_key=(
-                        "partial-analysis-refused:" + toolchain.plan_sha256
+                        "partial-analysis-refused:"
+                        + toolchain.plan_sha256
+                        + ":"
+                        + round_tag
                     ),
                 )
             else:
@@ -1162,7 +1184,10 @@ class ApprovedWorkflowExecutor:
                         "report_kind": "partial",
                     },
                     idempotency_key=(
-                        "partial-analysis-report:" + toolchain.plan_sha256
+                        "partial-analysis-report:"
+                        + toolchain.plan_sha256
+                        + ":"
+                        + round_tag
                     ),
                 )
         return (
@@ -1424,28 +1449,139 @@ class ApprovedWorkflowExecutor:
         with open(report_path, "a", encoding="utf-8") as handle:
             handle.write("\n".join(lines) + "\n")
 
+    def _replayed_outcome(
+        self, node_state: Any, frontier: Any
+    ) -> ExecutedNodeV1:
+        """Report a durably settled node from its own receipts, unmoved.
+
+        A continuation never re-drives the host sequence for a node the
+        stream already settled: the preflight gate rightly refuses to
+        re-prepare a non-pending node (the first live batch resume
+        surfaced exactly that as six blocked rows), and the launch fence
+        already guarantees no re-execution.  The durable receipt is the
+        truth; the node's result artifacts are rehydrated from its own
+        node workspace so the approved analysis chain can read them in
+        this process -- the same scan that bound them when the engine
+        finished.
+        """
+
+        binding = self._binding(node_state.node_id)
+        receipt = frontier.receipt_for_node(node_state.node_id)
+        if receipt is None:
+            raise ContractError(
+                f"durably settled node {node_state.node_id!r} holds no "
+                "execution receipt; the stream is not continuable"
+            )
+        self.host.execution_receipts[node_state.node_id] = receipt
+        node_workspace = (
+            Path(self.approval_workspace) / "nodes" / node_state.node_id
+        )
+        if node_workspace.is_dir():
+            self.host._execution_output_artifacts(
+                node_state.node_id,
+                node_workspace,
+                program=binding.program,
+            )
+        validated = bool(getattr(receipt, "validated", False))
+        return ExecutedNodeV1(
+            node_id=node_state.node_id,
+            program=binding.program,
+            jobtype=binding.jobtype,
+            state=str(getattr(receipt, "execution_state", node_state.state)),
+            invocation_identity_sha256="",
+            execution_receipt_sha256=str(
+                getattr(receipt, "receipt_sha256", "")
+            ),
+            rule_ids=tuple(getattr(receipt, "findings", ()) or ()),
+            failure=(
+                ""
+                if validated
+                else _execution_failure_summary(receipt, self.host)
+            ),
+            validated=validated,
+            result_validation_receipt_sha256=str(
+                getattr(receipt, "result_validation_receipt_sha256", "")
+            ),
+            invocation_sha256=str(getattr(receipt, "invocation_sha256", "")),
+        )
+
     def run(self) -> WorkflowExecutionResultV1:
         """Execute every ready node until the frontier stops advancing."""
 
         run_id = "run." + self.approval.approval_id
-        run_state = build_workflow_run_state(
-            run_id=run_id,
-            plan=self.plan,
-            approval=self.frozen_approval,
-            # This walk is the act of consuming the approval. An unconsumed
-            # approval has an empty frontier by construction, so leaving this
-            # false would report "nothing to do" for a fully approved plan.
-            approval_consumed=True,
-        )
         executed: list[ExecutedNodeV1] = []
         seen: set[str] = set()
-        data_edge_bindings = ()
         # The approval, not the plan, names what may run.  A scientific plan
         # keeps a stage this release cannot execute rather than dropping it,
         # and such a stage carries no approved binding.
         approved_node_ids = {
             binding.node_id for binding in self.approval.node_bindings
         }
+        durable = self.host.event_store.workflow_frontier(
+            workflow_id=self.plan.workflow_id,
+            run_id=run_id,
+        )
+        if durable.run_state is not None:
+            # A continuation: the durable stream is the starting truth.
+            # Admission happens here, at entry, not lazily at the first
+            # launch -- a re-invocation whose remaining work is zero
+            # launches must still be recorded as resumed, and a completed
+            # approval must refuse before it re-delivers anything.
+            if self.claim_workspace_bundle:
+                from chemsmart.agent.live_session import (
+                    continue_workflow_execution_approval_bundle,
+                )
+
+                continue_workflow_execution_approval_bundle(
+                    self.execution_bundle,
+                    workspace=self.approval_workspace,
+                    run_event_store=self.host.event_store,
+                )
+                self._bundle_claimed = True
+            run_state = durable.run_state
+            data_edge_bindings = durable.data_edge_bindings
+            for node_state in run_state.nodes:
+                if node_state.node_id not in approved_node_ids:
+                    continue
+                if node_state.state in {
+                    "validated",
+                    "failed",
+                    "engine_complete",
+                }:
+                    executed.append(
+                        self._replayed_outcome(node_state, durable)
+                    )
+                    seen.add(node_state.node_id)
+                elif node_state.state in {"blocked", "ambiguous"}:
+                    binding = self._binding(node_state.node_id)
+                    executed.append(
+                        ExecutedNodeV1(
+                            node_id=node_state.node_id,
+                            program=binding.program,
+                            jobtype=binding.jobtype,
+                            state=node_state.state,
+                            invocation_identity_sha256="",
+                            execution_receipt_sha256="",
+                            rule_ids=node_state.failure_rule_ids,
+                            failure=(
+                                "settled in a prior invocation of this "
+                                "approval"
+                            ),
+                        )
+                    )
+                    seen.add(node_state.node_id)
+        else:
+            run_state = build_workflow_run_state(
+                run_id=run_id,
+                plan=self.plan,
+                approval=self.frozen_approval,
+                # This walk is the act of consuming the approval. An
+                # unconsumed approval has an empty frontier by
+                # construction, so leaving this false would report
+                # "nothing to do" for a fully approved plan.
+                approval_consumed=True,
+            )
+            data_edge_bindings = ()
         record_of = self._record_component_index()
         while True:
             ready = tuple(
