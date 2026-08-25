@@ -59,6 +59,7 @@ class EventKind(str, Enum):
     WORKFLOW_ANALYSIS_NODE_SETTLED = "workflow_analysis_node_settled"
     MOLECULAR_ARRANGEMENT_COMPOSED = "molecular_arrangement_composed"
     MOLECULAR_SPECIES_DERIVED = "molecular_species_derived"
+    DATABASE_RECORD_EXTRACTED = "database_record_extracted"
     DOMAIN_SKILL_CONSULTED = "domain_skill_consulted"
     WORKFLOW_ANALYSIS_REPORT_RENDERED = "workflow_analysis_report_rendered"
     WORKFLOW_ANALYSIS_COMPLETION_REFUSED = (

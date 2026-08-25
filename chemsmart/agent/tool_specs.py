@@ -381,6 +381,107 @@ def build_command_compiled_tool_surface(
             ("derived_artifact_id", "parent_artifact_id"),
         ),
         _tool(
+            "inspect_database_records",
+            (
+                "Enumerate the records of a workspace chemsmart .db "
+                "artifact: record ids, formulas, structure counts, and the "
+                "record's own stored fields (charge, multiplicity, energy, "
+                "optimized flag). Stored fields are observations from the "
+                "database's provenance, never identity bindings -- a record "
+                "may store no electronic state at all. An optional query "
+                "filters records with the database query language (FIELD "
+                "OPERATOR VALUE joined by AND/OR, ~ for contains). To use a "
+                "record's geometry, admit it with "
+                "extract_database_record_geometry and then bind charge and "
+                "multiplicity explicitly with bind_scientific_identity."
+            ),
+            {
+                "database_artifact_id": {
+                    **_string(),
+                    "description": (
+                        "Workspace chemsmart_db artifact to enumerate."
+                    ),
+                },
+                "query": {
+                    **_string(),
+                    "description": (
+                        "Optional record filter, e.g. "
+                        "\"program = 'xtb' AND normal_termination = 1\"; "
+                        "an invalid query is refused naming the supported "
+                        "fields and operators."
+                    ),
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "description": (
+                        "Maximum records to return (default 50); the total "
+                        "count is always reported."
+                    ),
+                },
+            },
+            ("database_artifact_id",),
+        ),
+        _tool(
+            "extract_database_record_geometry",
+            (
+                "Copy one database record's stored coordinates into a new "
+                "host-owned workspace geometry artifact with full lineage "
+                "(database digest, record id, structure selection). "
+                "Coordinates are copied unchanged, and execution never "
+                "reads the .db again -- the extracted artifact is an "
+                "ordinary geometry input. It carries NO electronic state: "
+                "the record's stored charge and multiplicity are returned "
+                "as observations, and binding is yours -- call "
+                "bind_scientific_identity explicitly afterwards, stating "
+                "your own charge and multiplicity for the calculation you "
+                "intend. Give exactly one of record_index or record_id; "
+                "structure_index is required when the record stores more "
+                "than one structure."
+            ),
+            {
+                "extracted_artifact_id": {
+                    **_public_identifier(),
+                    "description": (
+                        "Workspace-unique identifier for the extracted "
+                        "geometry artifact."
+                    ),
+                },
+                "database_artifact_id": {
+                    **_string(),
+                    "description": (
+                        "Workspace chemsmart_db artifact to extract from."
+                    ),
+                },
+                "record_index": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "1-based record index. Mutually exclusive with "
+                        "record_id."
+                    ),
+                },
+                "record_id": {
+                    **_string(),
+                    "description": (
+                        "Record id or unique prefix. Mutually exclusive "
+                        "with record_index."
+                    ),
+                },
+                "structure_index": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "1-based structure within the record, in the "
+                        "record's own order; required when the record "
+                        "stores several structures."
+                    ),
+                },
+            },
+            ("extracted_artifact_id", "database_artifact_id"),
+        ),
+        _tool(
             "read_project_yaml",
             "Read an already host-bound project artifact by stable ID.",
             {"program": program, "project_artifact_id": _string()},

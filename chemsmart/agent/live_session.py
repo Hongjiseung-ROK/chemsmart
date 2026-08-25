@@ -224,6 +224,40 @@ class _XyzObservation:
         }
 
 
+_DATABASE_STORED_FIELDS_SENTENCE = (
+    "record fields such as charge, multiplicity, and energy are stored "
+    "observations from the database's own provenance; they are never "
+    "identity bindings -- extract a record's geometry with "
+    "extract_database_record_geometry and bind charge and multiplicity "
+    "explicitly with bind_scientific_identity"
+)
+
+
+@dataclass(frozen=True)
+class _DatabaseObservation:
+    """A workspace chemsmart .db file admitted as an inspectable artifact.
+
+    The database is provenance a session may read, never authority: its
+    stored per-record fields are observations, and nothing in execution
+    ever reads the .db -- extraction copies exact bytes into ordinary
+    workspace geometry artifacts with full lineage.
+    """
+
+    artifact: TrustedArtifactRefV1
+    record_count: int
+
+    def public_record(self) -> dict[str, Any]:
+        return {
+            "artifact_id": self.artifact.artifact_id,
+            "artifact_class": self.artifact.kind,
+            "sha256": self.artifact.sha256,
+            "size_bytes": self.artifact.size_bytes,
+            "record_count": self.record_count,
+            "stored_fields_role": _DATABASE_STORED_FIELDS_SENTENCE,
+            "provenance_status": "workspace_exact_user_approved",
+        }
+
+
 @dataclass(frozen=True)
 class _PySCFResultObservation:
     artifact: TrustedArtifactRefV1
@@ -460,6 +494,7 @@ def run_live_agent_session(
     workspace_path = _validated_workspace(workspace)
     observations = _scan_xyz_artifacts(workspace_path)
     result_observations = _scan_result_artifacts(workspace_path)
+    database_observations = _scan_database_artifacts(workspace_path)
     molecular_inputs = _coerce_approved_molecular_inputs(
         approved_molecular_inputs
     )
@@ -485,6 +520,7 @@ def run_live_agent_session(
         identities,
         result_observations=result_observations,
         approved_molecular_inputs=molecular_inputs,
+        database_observations=database_observations,
     )
     prebound_scientific_identities = _approved_input_state_bindings(
         molecular_inputs,
@@ -505,7 +541,11 @@ def run_live_agent_session(
     session_id = _session_id(task_spec_sha256)
     run_directory = _private_run_directory(workspace_path, session_id)
 
-    if not observations and not analysis_only_session:
+    if (
+        not observations
+        and not database_observations
+        and not analysis_only_session
+    ):
         return _local_result(
             session_id=session_id,
             task_spec_sha256=task_spec_sha256,
@@ -513,9 +553,10 @@ def run_live_agent_session(
             execution_requested=execution_enabled,
             execution_profile_status="not_started",
             final_text=(
-                "No exact XYZ or supported completed-result artifact is "
-                "present in the approved workspace. Add user-approved input "
-                "or result data; coordinates and results were not generated."
+                "No exact XYZ artifact, chemsmart .db database, or "
+                "supported completed-result artifact is present in the "
+                "approved workspace. Add user-approved input or result "
+                "data; coordinates and results were not generated."
             ),
         )
 
@@ -534,7 +575,16 @@ def run_live_agent_session(
         live_schema = build_live_click_schema()
         conformance, conformance_records = _bootstrap_conformance(
             run_directory=run_directory,
-            input_artifact=observations[0].artifact,
+            # A database-only workspace has no user geometry yet; the
+            # conformance probe needs any exact coordinate file (it runs
+            # fake previews at charge 0, multiplicity 1), so the host
+            # writes a private mechanical probe that never becomes a
+            # session artifact.
+            input_artifact=(
+                observations[0].artifact
+                if observations
+                else _conformance_probe_artifact(run_directory)
+            ),
             registry_sha256=registry.registry_sha256,
             live_schema=live_schema,
             resources=(
@@ -582,7 +632,11 @@ def run_live_agent_session(
         "event_store": event_store,
         "artifacts": {
             item.artifact.artifact_id: item.artifact
-            for item in (*observations, *result_observations)
+            for item in (
+                *observations,
+                *result_observations,
+                *database_observations,
+            )
         },
         "environment_targets": environment_targets,
         "compute_environment_receipts": compute_receipts,
@@ -684,6 +738,7 @@ def run_live_agent_session(
         task_spec_sha256=task_spec_sha256,
         observations=observations,
         result_observations=result_observations,
+        database_observations=database_observations,
         conformance_records=conformance_records,
         registry_sha256=registry.registry_sha256,
         live_schema_sha256=live_schema.schema_sha256,
@@ -1114,6 +1169,61 @@ def _scan_xyz_artifacts(workspace: Path) -> tuple[_XyzObservation, ...]:
                 atom_count=atom_count,
                 symbols=symbols,
             ),
+        )
+    return tuple(
+        sorted(
+            observations.values(), key=lambda item: item.artifact.artifact_id
+        )
+    )
+
+
+def _scan_database_artifacts(
+    workspace: Path,
+) -> tuple[_DatabaseObservation, ...]:
+    """Admit user-placed chemsmart .db files as inspectable artifacts.
+
+    Only a file the chemsmart database layer can actually open and count
+    enters the tool host; anything else is ignored rather than
+    misrepresented as an enumerable record set.
+    """
+
+    from chemsmart.database.database import Database
+
+    observations: dict[str, _DatabaseObservation] = {}
+    private_root = workspace / _PRIVATE_ROOT_NAME
+    host_artifact_root = workspace / "artifacts"
+    host_node_root = workspace / "nodes"
+    for candidate in sorted(workspace.rglob("*.db")):
+        if any(
+            root in candidate.parents
+            for root in (private_root, host_artifact_root, host_node_root)
+        ):
+            continue
+        if candidate.is_symlink() or not candidate.is_file():
+            continue
+        resolved = candidate.resolve()
+        try:
+            resolved.relative_to(workspace)
+        except ValueError as exc:
+            raise ContractError(
+                "database artifact escapes the approved workspace"
+            ) from exc
+        try:
+            record_count = int(Database(str(resolved)).count_records())
+        except Exception:
+            continue
+        digest = file_sha256(resolved)
+        artifact = TrustedArtifactRefV1(
+            artifact_id=f"database-{digest[:16]}",
+            kind="chemsmart_db",
+            sha256=digest,
+            size_bytes=resolved.stat().st_size,
+            path=str(resolved),
+            cli_value=str(resolved),
+        )
+        observations.setdefault(
+            digest,
+            _DatabaseObservation(artifact=artifact, record_count=record_count),
         )
     return tuple(
         sorted(
@@ -1630,6 +1740,7 @@ def _task_spec_sha256(
     *,
     result_observations: Iterable[_ResultObservation] = (),
     approved_molecular_inputs: Iterable[ApprovedMolecularInputV1] = (),
+    database_observations: Iterable[_DatabaseObservation] = (),
 ) -> str:
     identities = _coerce_approved_identities(
         (
@@ -1685,6 +1796,17 @@ def _task_spec_sha256(
     if molecular_inputs:
         body["approved_molecular_input_sha256s"] = tuple(
             item.assignment_sha256 for item in molecular_inputs
+        )
+    databases = tuple(database_observations)
+    if databases:
+        # An absent field keeps every pre-database task digest unchanged.
+        body["database_artifacts"] = tuple(
+            {
+                "artifact_id": item.artifact.artifact_id,
+                "sha256": item.artifact.sha256,
+                "record_count": item.record_count,
+            }
+            for item in databases
         )
     return canonical_sha256(body)
 
@@ -1924,6 +2046,33 @@ def _conformance_project_sections(
                     )
         return sections
     return None
+
+
+def _conformance_probe_artifact(run_directory: Path) -> TrustedArtifactRefV1:
+    """Write the mechanical geometry the conformance probe fake-previews.
+
+    A database-only workspace holds no user coordinate file yet, and
+    bootstrap conformance only needs *a* readable geometry to exercise
+    each program's input-generation path (it already hardcodes charge 0
+    and multiplicity 1).  The probe lives in the private run directory
+    and is never registered as a session artifact, displayed as input,
+    or entered into the task digest.
+    """
+
+    target = run_directory / "conformance-probe.xyz"
+    _write_private_exact(
+        target,
+        b"1\nChemSmart conformance probe; mechanical, not a task input\n"
+        b"He 0.0000000000 0.0000000000 0.0000000000\n",
+    )
+    return TrustedArtifactRefV1(
+        artifact_id="conformance-probe",
+        kind="geometry_xyz",
+        sha256=file_sha256(target),
+        size_bytes=target.stat().st_size,
+        path=str(target),
+        cli_value=str(target),
+    )
 
 
 def _bootstrap_conformance(
@@ -2611,6 +2760,7 @@ def _public_context(
     task_spec_sha256: str,
     observations: tuple[_XyzObservation, ...],
     result_observations: tuple[_ResultObservation, ...] = (),
+    database_observations: tuple[_DatabaseObservation, ...] = (),
     conformance_records: tuple[dict[str, Any], ...],
     registry_sha256: str,
     live_schema_sha256: str,
@@ -2634,7 +2784,11 @@ def _public_context(
         "live_cli_schema_sha256": live_schema_sha256,
         "artifacts": tuple(
             item.public_record()
-            for item in (*observations, *result_observations)
+            for item in (
+                *observations,
+                *result_observations,
+                *database_observations,
+            )
         ),
         "approved_molecular_identities": approved_identity_records,
         "approved_molecular_inputs": approved_input_records,

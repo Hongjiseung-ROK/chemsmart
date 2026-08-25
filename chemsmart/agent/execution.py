@@ -786,6 +786,233 @@ def derive_trusted_molecular_species(
     )
 
 
+_DATABASE_STORED_FIELDS_ROLE = (
+    "stored database fields are observations from the record's own "
+    "provenance, never identity bindings; charge and multiplicity are "
+    "bound explicitly after extraction"
+)
+
+
+@dataclass(frozen=True)
+class DatabaseRecordExtractionReceiptV1:
+    """Host-owned lineage of one geometry copied out of a .db record.
+
+    A database row is provenance, not authority: an ASE-kin record may
+    store charge, multiplicity, and energy, or store nothing at all, and
+    either way those fields describe how the record was made rather than
+    what the next calculation means.  The host owns the byte copy and the
+    lineage (database digest, record, structure); the model owns which
+    record and why, and must bind the electronic state explicitly
+    afterwards.  Coordinates are copied unchanged, so the extracted
+    geometry has whatever stationary character the record's own history
+    gave it -- the receipt records the stored optimized flag as an
+    observation and judges nothing.
+    """
+
+    schema_version: str
+    extracted_artifact_id: str
+    extracted_artifact_sha256: str
+    database_artifact_id: str
+    database_sha256: str
+    database_filename: str
+    record_id: str
+    record_index: int
+    structure_index: int
+    structure_count: int
+    atom_count: int
+    formula: str
+    stored_charge: int | None
+    stored_multiplicity: int | None
+    stored_energy: float | None
+    stored_is_optimized: bool
+    stored_fields_role: str
+    status: str
+    receipt_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "chemsmart.database-record-extraction.v1":
+            raise ContractError(
+                "unsupported database record extraction receipt"
+            )
+        for name, digest in (
+            ("extracted_artifact_sha256", self.extracted_artifact_sha256),
+            ("database_sha256", self.database_sha256),
+        ):
+            require_sha256(digest, name)
+        if not str(self.record_id).strip():
+            raise ContractError("extraction requires the full record id")
+        if self.structure_count < 1:
+            raise ContractError("an extracted record carries structures")
+        if not 1 <= self.structure_index <= self.structure_count:
+            raise ContractError(
+                "structure_index must lie within the record's structures"
+            )
+        if self.atom_count < 1:
+            raise ContractError("an extracted geometry carries atoms")
+        if self.stored_fields_role != _DATABASE_STORED_FIELDS_ROLE:
+            raise ContractError(
+                "extraction receipt must state the stored-fields role"
+            )
+        if self.status != "extracted":
+            raise ContractError("database extraction must be extracted")
+        body = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key != "receipt_sha256"
+        }
+        if self.receipt_sha256 != canonical_sha256(body):
+            raise ContractError("database extraction digest mismatch")
+
+
+def extract_trusted_database_record_geometry(
+    *,
+    approved_workspace: str | Path,
+    extracted_artifact_id: str,
+    database_artifact: TrustedArtifactRefV1,
+    record_index: int | None = None,
+    record_id: str | None = None,
+    structure_index: int | None = None,
+) -> tuple[TrustedArtifactRefV1, DatabaseRecordExtractionReceiptV1]:
+    """Copy one record's stored coordinates into a host-owned geometry.
+
+    Exactly one of ``record_index`` and ``record_id`` selects the record.
+    A record may store several structures; when it stores exactly one, it
+    is taken, and otherwise ``structure_index`` (1-based, in the record's
+    own order) must name the one wanted -- refusing the ambiguity rather
+    than resolving it.  The written bytes never depend on the .db again:
+    execution reads workspace artifacts, and the receipt pins the
+    database digest, record, and structure the bytes came from.
+    """
+
+    from chemsmart.database.database import Database
+    from chemsmart.database.utils import resolve_record
+    from chemsmart.io.molecules.structure import Molecule
+
+    if database_artifact.kind != "chemsmart_db":
+        raise ContractError(
+            "extraction consumes one chemsmart_db database artifact"
+        )
+    if (record_index is None) == (record_id is None):
+        raise ContractError(
+            "extraction requires exactly one of record_index or record_id"
+        )
+    path = _require_current_artifact(database_artifact, "database")
+    database = Database(str(path))
+    try:
+        record = resolve_record(
+            database,
+            record_index=record_index,
+            record_id=record_id,
+            return_list=False,
+        )
+    except ValueError as exc:
+        summaries = database.get_all_records()
+        available = ", ".join(
+            f"{item['record_index']}:{item['record_id']}"
+            for item in summaries[:20]
+        )
+        suffix = "" if len(summaries) <= 20 else ", ..."
+        raise ContractError(
+            f"{exc} Records in this database ({len(summaries)}): "
+            f"{available}{suffix}"
+        ) from exc
+    structures = list(record.get("molecules") or ())
+    structure_count = len(structures)
+    if structure_count == 0:
+        raise ContractError(
+            f"record {record['record_id']!r} stores no structures"
+        )
+    if structure_index is None:
+        if structure_count != 1:
+            raise ContractError(
+                f"record {record['record_id']!r} stores "
+                f"{structure_count} structures; name structure_index "
+                f"(1..{structure_count}) explicitly"
+            )
+        selected_index = 1
+    else:
+        selected_index = int(structure_index)
+        if not 1 <= selected_index <= structure_count:
+            raise ContractError(
+                f"structure_index must lie in 1..{structure_count}; got "
+                f"{selected_index}"
+            )
+    structure = structures[selected_index - 1]
+    symbols = structure.get("chemical_symbols")
+    positions = structure.get("positions")
+    if not symbols or positions is None or len(positions) != len(symbols):
+        raise ContractError(
+            f"record {record['record_id']!r} structure {selected_index} "
+            "stores no usable coordinates"
+        )
+    molecule = Molecule(
+        symbols=list(symbols),
+        positions=[list(point) for point in positions],
+    )
+    lines = [
+        str(len(symbols)),
+        (
+            "ChemSmart database record extraction; record "
+            f"{record['record_id']} structure {selected_index} of "
+            f"{structure_count} from {Path(database_artifact.path).name}; "
+            "stored fields are observations; electronic state "
+            "deliberately unbound"
+        ),
+    ]
+    for symbol, position in zip(molecule.chemical_symbols, molecule.positions):
+        lines.append(
+            f"{symbol:<3} {position[0]:.10f} {position[1]:.10f} "
+            f"{position[2]:.10f}"
+        )
+    payload = ("\n".join(lines) + "\n").encode("utf-8")
+    target = _target_below(
+        _absolute_workspace(approved_workspace),
+        "artifacts",
+        f"{require_identifier(extracted_artifact_id, 'artifact_id')}.xyz",
+    )
+    _write_exact_once(target, payload)
+    artifact = TrustedArtifactRefV1(
+        artifact_id=extracted_artifact_id,
+        kind="geometry_xyz",
+        sha256=file_sha256(target),
+        size_bytes=target.stat().st_size,
+        path=str(target),
+        cli_value=str(target),
+    )
+    stored_charge = structure.get("charge")
+    stored_multiplicity = structure.get("multiplicity")
+    stored_energy = structure.get("energy")
+    body = {
+        "schema_version": "chemsmart.database-record-extraction.v1",
+        "extracted_artifact_id": artifact.artifact_id,
+        "extracted_artifact_sha256": artifact.sha256,
+        "database_artifact_id": database_artifact.artifact_id,
+        "database_sha256": database_artifact.sha256,
+        "database_filename": Path(database_artifact.path).name,
+        "record_id": str(record["record_id"]),
+        "record_index": int(record["record_index"]),
+        "structure_index": selected_index,
+        "structure_count": structure_count,
+        "atom_count": len(symbols),
+        "formula": molecule.get_chemical_formula(),
+        "stored_charge": (
+            None if stored_charge is None else int(stored_charge)
+        ),
+        "stored_multiplicity": (
+            None if stored_multiplicity is None else int(stored_multiplicity)
+        ),
+        "stored_energy": (
+            None if stored_energy is None else float(stored_energy)
+        ),
+        "stored_is_optimized": bool(structure.get("is_optimized_structure")),
+        "stored_fields_role": _DATABASE_STORED_FIELDS_ROLE,
+        "status": "extracted",
+    }
+    return artifact, DatabaseRecordExtractionReceiptV1(
+        **body, receipt_sha256=canonical_sha256(body)
+    )
+
+
 def promote_project_candidate(
     render_receipt: ProjectRenderReceiptV1,
     *,
@@ -6231,6 +6458,7 @@ def _block_failed_descendants(
 
 __all__ = [
     "ApprovedNodeBindingV1",
+    "DatabaseRecordExtractionReceiptV1",
     "ExecutionResourceSpecV1",
     "FrozenMaterializedNodePreviewV1",
     "FrozenProducerEdgeRuleV1",
@@ -6274,6 +6502,7 @@ __all__ = [
     "build_workflow_run_state",
     "derive_ready_node_ids",
     "environment_review_summary",
+    "extract_trusted_database_record_geometry",
     "handoff_optimized_native_geometry",
     "handoff_scan_minimum_geometry",
     "handoff_optimized_pyscf_geometry",

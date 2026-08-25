@@ -79,6 +79,7 @@ from chemsmart.agent.dependency_context import (
 from chemsmart.agent.execution import (
     DEFERRABLE_GEOMETRY_PRODUCER_STAGES,
     ApprovedNodeBindingV1,
+    DatabaseRecordExtractionReceiptV1,
     ExecutionResourceSpecV1,
     FrozenWorkflowApprovalV1,
     MolecularCompositionReceiptV1,
@@ -114,6 +115,7 @@ from chemsmart.agent.execution import (
     environment_review_summary,
     execution_path_placeholder,
     execution_server_profile_sha256,
+    extract_trusted_database_record_geometry,
     handoff_final_orca_ts_hessian,
     handoff_optimized_native_geometry,
     handoff_optimized_pyscf_geometry,
@@ -1413,6 +1415,9 @@ class CommandCompiledToolHostV1:
         self.molecular_derivations: dict[str, MolecularDerivationReceiptV1] = (
             {}
         )
+        self.database_extractions: dict[
+            str, DatabaseRecordExtractionReceiptV1
+        ] = {}
         self.invocations: dict[str, CanonicalCommandInvocationV1] = {}
         self.command_inspections: dict[str, CommandInspectionReceiptV1] = {}
         self.safe_previews: dict[str, SafePreviewReceiptV1] = {}
@@ -1742,6 +1747,10 @@ class CommandCompiledToolHostV1:
                 self._compose_molecular_arrangement
             ),
             "derive_molecular_species": self._derive_molecular_species,
+            "inspect_database_records": self._inspect_database_records,
+            "extract_database_record_geometry": (
+                self._extract_database_record_geometry
+            ),
             "read_project_yaml": self._read_project_yaml,
             "validate_project_yaml": self._validate_project_yaml,
             "plan_command_workflow": self._plan_command_workflow,
@@ -2108,6 +2117,160 @@ class CommandCompiledToolHostV1:
                 "electronic state, and removing an atom decides neither; the "
                 "stage that consumes this geometry is a new workflow needing "
                 "its own review"
+            ),
+        }
+
+    def _inspect_database_records(self, turn_id: str, values: dict) -> Any:
+        """Enumerate a workspace database's records as observations.
+
+        A .db row is provenance, not authority: it may store charge,
+        multiplicity, and energy, or store no electronic state at all
+        (the ASE-kin row guarantees only geometry and metadata).  This
+        tool therefore reports stored fields under an explicit
+        observation role and never turns them into bindings; the
+        recorded, evidence-bearing act is the extraction that follows.
+        """
+
+        from chemsmart.database.database import Database
+        from chemsmart.database.query import DatabaseQuery
+
+        artifact = self._artifact(values["database_artifact_id"])
+        if artifact.kind != "chemsmart_db":
+            raise ContractError(
+                f"artifact {artifact.artifact_id!r} is {artifact.kind!r}, "
+                "not a chemsmart_db database"
+            )
+        database = Database(artifact.path)
+        total = int(database.count_records())
+        limit = int(values.get("limit") or 50)
+        query_string = str(values.get("query") or "").strip()
+        if query_string:
+            try:
+                rows = DatabaseQuery(
+                    artifact.path, query_string, target="records"
+                ).query_summaries()
+            except ValueError as exc:
+                raise ContractError(str(exc)) from exc
+            detail_records = [
+                database.get_record(record_id=row.get("record_id"))
+                for row in rows[:limit]
+            ]
+            matched_count = len(rows)
+        else:
+            detail_records = database.get_all_records()[:limit]
+            matched_count = total
+        records_payload = []
+        for record in detail_records:
+            if record is None:
+                continue
+            structures = list(record.get("molecules") or ())
+            meta = record.get("meta") or {}
+            records_payload.append(
+                {
+                    "record_index": record.get("record_index"),
+                    "record_id": record.get("record_id"),
+                    "method": meta.get("method"),
+                    "basis": meta.get("basis"),
+                    "structure_count": len(structures),
+                    "structures": [
+                        {
+                            "structure_index": position,
+                            "formula": entry.get("chemical_formula"),
+                            "atom_count": entry.get("number_of_atoms"),
+                            "stored_charge": entry.get("charge"),
+                            "stored_multiplicity": entry.get("multiplicity"),
+                            "stored_energy": entry.get("energy"),
+                            "stored_is_optimized": bool(
+                                entry.get("is_optimized_structure")
+                            ),
+                        }
+                        for position, entry in enumerate(structures, start=1)
+                    ],
+                }
+            )
+        return {
+            "schema_version": "chemsmart.database-records-inspection.v1",
+            "database_artifact_id": artifact.artifact_id,
+            "record_count": total,
+            "matched_count": matched_count,
+            "returned_records": len(records_payload),
+            "query": query_string,
+            "records": records_payload,
+            "stored_fields_role": (
+                "stored_charge, stored_multiplicity, and stored_energy are "
+                "observations from the database's own provenance, never "
+                "identity bindings; a record may store no electronic state "
+                "at all"
+            ),
+            "next_action": (
+                "admit a record's geometry with "
+                "extract_database_record_geometry, then bind charge and "
+                "multiplicity explicitly with bind_scientific_identity"
+            ),
+        }
+
+    def _extract_database_record_geometry(
+        self, turn_id: str, values: dict
+    ) -> Any:
+        """Copy one record's coordinates into a host-owned geometry."""
+
+        if self.approved_workspace is None:
+            raise ContractError(
+                "extraction requires an approved workspace to write into"
+            )
+        extracted_artifact_id = str(values["extracted_artifact_id"])
+        if extracted_artifact_id in self.artifacts:
+            taken = sorted(self.artifacts)
+            raise ContractError(
+                f"artifact ID {extracted_artifact_id!r} is already "
+                f"registered; choose one not in {taken}"
+            )
+        database = self._artifact(values["database_artifact_id"])
+        record_index = values.get("record_index")
+        record_id = values.get("record_id")
+        structure_index = values.get("structure_index")
+        artifact, receipt = extract_trusted_database_record_geometry(
+            approved_workspace=self.approved_workspace,
+            extracted_artifact_id=extracted_artifact_id,
+            database_artifact=database,
+            record_index=(None if record_index is None else int(record_index)),
+            record_id=None if record_id is None else str(record_id),
+            structure_index=(
+                None if structure_index is None else int(structure_index)
+            ),
+        )
+        self.artifacts[artifact.artifact_id] = artifact
+        self.database_extractions[artifact.sha256] = receipt
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.DATABASE_RECORD_EXTRACTED.value,
+            payload={
+                "receipt_sha256": receipt.receipt_sha256,
+                "extracted_artifact_id": artifact.artifact_id,
+                "extracted_artifact_sha256": artifact.sha256,
+                "database_sha256": receipt.database_sha256,
+                "record_id": receipt.record_id,
+                "record_index": receipt.record_index,
+                "structure_index": receipt.structure_index,
+                "formula": receipt.formula,
+            },
+            idempotency_key=("database-extraction:" + receipt.receipt_sha256),
+        )
+        return {
+            "extraction": receipt,
+            "artifact": artifact,
+            "stored_state_observation": {
+                "charge": receipt.stored_charge,
+                "multiplicity": receipt.stored_multiplicity,
+                "energy": receipt.stored_energy,
+                "is_optimized": receipt.stored_is_optimized,
+            },
+            "next_action": (
+                "bind charge and multiplicity explicitly with "
+                "bind_scientific_identity -- the stored values above are "
+                "observations from the database's provenance, not "
+                "bindings; state the electronic state you intend for this "
+                "calculation"
             ),
         }
 
