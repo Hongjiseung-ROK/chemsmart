@@ -371,6 +371,20 @@ def _literature_constants_renderable(
     return table
 
 
+def _short_record_id(record_id: Any) -> str:
+    """Truncate a content-derived database record id for human reading.
+
+    The database family's own tables truncate record ids to twelve
+    characters and every database CLI resolves unique prefixes, so the
+    decision surface follows the same convention: the first live batch
+    review printed six 64-character ids a human cannot read.  The full
+    id stays in the review packet's typed lineage record.
+    """
+
+    text = str(record_id or "")
+    return text[:12] + "…" if len(text) > 12 else text
+
+
 def _batch_records_renderable(
     review: "WorkflowExecutionReviewV1",
 ) -> Any | None:
@@ -424,7 +438,7 @@ def _batch_records_renderable(
             if isinstance(extraction, Mapping):
                 origin = (
                     f"db {extraction.get('database_filename')} record "
-                    f"{extraction.get('record_id')}"
+                    f"{_short_record_id(extraction.get('record_id'))}"
                 )
                 stored_charge = extraction.get("stored_charge")
                 stored_multiplicity = extraction.get("stored_multiplicity")
@@ -530,7 +544,7 @@ def _database_extraction_panels(
         )
         lines = [
             f"database: {record.get('database_filename')}",
-            f"record: {record.get('record_id')} "
+            f"record: {_short_record_id(record.get('record_id'))} "
             f"(structure {record.get('structure_index')} of "
             f"{record.get('structure_count')})",
             f"extracted: {record.get('formula')} "

@@ -366,7 +366,7 @@ def test_the_review_shows_one_row_per_record_and_flags_state_mismatch():
                 "multiplicity": 1,
                 "database_extraction": {
                     "database_filename": "acids.db",
-                    "record_id": "water-sp-0001",
+                    "record_id": "water-0001",
                     "stored_charge": 0,
                     "stored_multiplicity": 1,
                 },
@@ -381,7 +381,10 @@ def test_the_review_shows_one_row_per_record_and_flags_state_mismatch():
                 "multiplicity": 2,
                 "database_extraction": {
                     "database_filename": "acids.db",
-                    "record_id": "methyl-guess-0002",
+                    # Real record ids are 64-hex content digests; the
+                    # decision surface truncates them to the database
+                    # family's 12-character prefix convention.
+                    "record_id": "abc123def456789fedcba",
                     "stored_charge": 0,
                     "stored_multiplicity": 1,
                 },
@@ -394,7 +397,10 @@ def test_the_review_shows_one_row_per_record_and_flags_state_mismatch():
     text = _rendered(table)
     assert "Batch records (2)" in text
     assert "water" in text and "CH3" in text
-    assert "record water-sp-0001" in text
+    assert "record water-0001" in text
+    # A long content-derived id renders as a readable prefix, never whole.
+    assert "abc123def456…" in text
+    assert "abc123def456789fedcba" not in text
     # The methyl row binds a doublet against a stored singlet: flagged
     # loudly, never refused -- the reviewer decides.
     assert "deliberate?" in text
@@ -438,7 +444,7 @@ def test_derivation_and_extraction_lineage_reach_the_decision_surface():
                 "multiplicity": 1,
                 "database_extraction": {
                     "database_filename": "acids.db",
-                    "record_id": "water-sp-0001",
+                    "record_id": "water-0001",
                     "structure_index": 1,
                     "structure_count": 1,
                     "formula": "H2O",
@@ -462,5 +468,5 @@ def test_derivation_and_extraction_lineage_reach_the_decision_surface():
     extractions = _database_extraction_panels(review)
     assert len(extractions) == 1
     extraction_text = _rendered(extractions[0])
-    assert "record: water-sp-0001" in extraction_text
+    assert "record: water-0001" in extraction_text
     assert "never bindings" in extraction_text
