@@ -15,6 +15,7 @@ import hashlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
+from rich.console import Group
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
@@ -324,6 +325,17 @@ def _literature_constants_renderable(
     the value, unit, and standard-state convention appear at the decision
     surface -- resolved from the registry by name, never restated by the
     session that planned the chain.
+
+    The convention family is here for a narrower reason.  Constants that
+    look independent are often matched pairs -- an absolute electrode
+    potential means one thing beside the proton solvation free energy
+    determined on the same scale and another beside a different one -- and
+    the literature circulates the halves separately.  A crossed pair fails
+    silently: both values are correct, the units are right, nothing
+    diverges, and the answer is wrong.  So when a chain draws on more than
+    one family the table says so, and the reviewer decides; mixing can be
+    deliberate, and it is sometimes the only way to reproduce a published
+    cycle.
     """
 
     plan = review.scientific_toolchain_plan
@@ -355,18 +367,44 @@ def _literature_constants_renderable(
     table.add_column("Constant", style="bold cyan")
     table.add_column("Value", justify="right")
     table.add_column("Unit")
+    table.add_column("Family")
     table.add_column("Convention")
+    families: list[str] = []
     for name in names:
         try:
             entry = literature_constant(name)
         except UnknownLiteratureConstantError:
-            table.add_row(name, "—", "—", "no longer registered")
+            table.add_row(name, "—", "—", "—", "no longer registered")
             continue
+        if (
+            entry.convention_family != "independent"
+            and entry.convention_family not in families
+        ):
+            families.append(entry.convention_family)
         table.add_row(
             entry.name,
             f"{entry.value:g}",
             entry.unit,
+            entry.convention_family,
             entry.convention,
+        )
+    if len(families) > 1:
+        return Group(
+            table,
+            Panel(
+                Text(
+                    "This chain draws on "
+                    f"{len(families)} convention families: "
+                    + ", ".join(sorted(families))
+                    + ". Constants determined on different scales are not "
+                    "interchangeable even when each is correct on its own, "
+                    "and a crossed pair shifts the answer without failing. "
+                    "Confirm the combination is the one you intend.",
+                    style="bold yellow",
+                ),
+                title="Mixed constant conventions",
+                border_style="yellow",
+            ),
         )
     return table
 

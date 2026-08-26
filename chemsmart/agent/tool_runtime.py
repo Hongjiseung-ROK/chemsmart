@@ -7132,10 +7132,11 @@ class CommandCompiledToolHostV1:
                     "",
                     LITERATURE_CONSTANTS_HEADING,
                     "",
-                    "| Constant | Value | Unit | Convention |",
-                    "|---|---:|---|---|",
+                    "| Constant | Value | Unit | Family | Convention |",
+                    "|---|---:|---|---|---|",
                 )
             )
+            families: list[str] = []
             for name in constant_names:
                 try:
                     entry = literature_constant(name)
@@ -7143,11 +7144,33 @@ class CommandCompiledToolHostV1:
                     # Reachable only if a registry entry was removed after
                     # this chain was approved; the report must still say
                     # why rather than fail to render.
-                    lines.append(f"| {name} | — | — | no longer registered |")
+                    lines.append(
+                        f"| {name} | — | — | — | no longer registered |"
+                    )
                     continue
+                if (
+                    entry.convention_family != "independent"
+                    and entry.convention_family not in families
+                ):
+                    families.append(entry.convention_family)
                 lines.append(
                     f"| {entry.name} | `{entry.value:g}` | {entry.unit} | "
-                    f"{entry.convention} |"
+                    f"{entry.convention_family} | {entry.convention} |"
+                )
+            if len(families) > 1:
+                # An absolute electrode potential means one thing beside the
+                # proton solvation free energy determined on the same scale
+                # and another beside a different one, and the literature
+                # circulates the halves separately. A crossed pair is silent:
+                # both values are correct, the units are right, nothing
+                # diverges, and the answer moves by more than method error.
+                lines.append("")
+                lines.append(
+                    "This analysis combined "
+                    f"{len(families)} convention families "
+                    f"({', '.join(sorted(families))}). Constants determined "
+                    "on different scales are not interchangeable even when "
+                    "each is correct on its own."
                 )
         for claims in claim_records:
             lines.extend(
