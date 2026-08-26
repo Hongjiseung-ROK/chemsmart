@@ -1501,14 +1501,29 @@ class TestGaussian16Output:
 
         mol = g16_genecp.molecule
         assert np.allclose(mol.positions, last_structure_positions, rtol=1e-4)
+        # Displacing steps along the stored mode itself, which Gaussian
+        # prints as a Cartesian displacement.  These constants used to be
+        # the old values, produced when this method divided by sqrt(m) a
+        # second time in the belief that its input was mass-weighted; the
+        # expected geometry is now stated as the physics rather than as a
+        # frozen triple, so a convention change cannot pass unnoticed.
+        first_mode = np.asarray(mol.vibrational_modes[0], dtype=float)
+        origin = np.asarray(mol.positions, dtype=float)
+
         mol2 = mol.vibrationally_displaced(mode_idx=1, amp=0.5)
         assert np.allclose(
-            mol2.positions[29], [-1.668781, 1.679069, 0.38199], rtol=1e-4
+            np.asarray(mol2.positions) - origin, 0.5 * first_mode, atol=1e-6
+        )
+        assert np.allclose(
+            mol2.positions[29], [-1.667111, 1.678135, 0.382447], rtol=1e-4
         )
 
         mol3 = mol.vibrationally_displaced(mode_idx=1, amp=-0.5)
         assert np.allclose(
-            mol3.positions[29], [-2.505441, 2.147201, 0.152904], rtol=1e-4
+            np.asarray(mol3.positions) - origin, -0.5 * first_mode, atol=1e-6
+        )
+        assert np.allclose(
+            mol3.positions[29], [-2.507111, 2.148135, 0.152447], rtol=1e-4
         )
 
     def test_read_full_gen_outputfile(self, gaussian_full_gen_outfile):
