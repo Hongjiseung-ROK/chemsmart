@@ -11,6 +11,7 @@ from chemsmart.agent.capabilities import (
 )
 from chemsmart.agent.execution import EDITABLE_COORDINATE_OPERATIONS
 from chemsmart.agent.skills import skills_enabled
+from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
 from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
 from chemsmart.analysis.result_quantities import SUPPORTED_SELECTORS
 from chemsmart.analysis.result_readers import (
@@ -2408,12 +2409,27 @@ def _quantity_expression_node_schema() -> dict:
             "literal_unit": _string(),
             "constant_name": {
                 "type": "string",
+                "enum": sorted(LITERATURE_CONSTANTS),
                 "description": (
-                    "For constant, the registered literature-constant name "
-                    "(for example aqueous_proton_gibbs_298K). The host owns "
-                    "the value, unit, and standard-state convention; an "
-                    "unregistered name is refused when planned. Other "
-                    "operations omit this."
+                    "For constant, the registered literature-constant name. "
+                    "The host owns the value, unit, and standard-state "
+                    "convention; an unregistered name is refused when "
+                    "planned. Other operations omit this. Registered names, "
+                    "each with its unit and the convention family it may be "
+                    "combined within: "
+                    + "; ".join(
+                        f"{name} [{entry.unit}, {entry.convention_family}]"
+                        for name, entry in sorted(LITERATURE_CONSTANTS.items())
+                    )
+                    + ". Two entries sharing a family combine freely. Two "
+                    "families in one chain is not refused, but it is "
+                    "displayed to the reviewer, because constants determined "
+                    "on different scales are not interchangeable even when "
+                    "each is correct on its own -- pick the electrode "
+                    "potential belonging to the solvation scale you used. "
+                    "An entry marked independent combines with any family. "
+                    "The values themselves are deliberately not listed here: "
+                    "select by meaning, and let the host supply the number."
                 ),
             },
             "scale_factor": {"type": "number"},

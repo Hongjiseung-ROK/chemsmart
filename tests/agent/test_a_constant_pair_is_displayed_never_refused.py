@@ -210,3 +210,51 @@ def test_a_chain_selecting_nothing_renders_nothing():
         )
         is None
     )
+
+
+def test_the_registered_names_are_visible_to_a_planning_session():
+    """A vocabulary a session cannot see is a vocabulary it cannot use.
+
+    The field carried one worked example and no list, so a session needing a
+    constant outside that example had to guess a name and read the refusal.
+    That is survivable when the registry holds one usable value for a job and
+    fatal when it holds two competing ones: a session cannot choose between
+    conventions it does not know exist.
+    """
+
+    import json
+
+    from chemsmart.agent.tool_specs import (
+        build_command_compiled_tool_surface,
+    )
+
+    surface = json.dumps(
+        build_command_compiled_tool_surface(),
+        default=lambda item: getattr(item, "__dict__", str(item)),
+    )
+    for name in LITERATURE_CONSTANTS:
+        assert name in surface, name
+
+
+def test_no_constant_value_reaches_the_model_surface():
+    """The model selects by meaning; the host supplies the number.
+
+    Listing the values would invite a session to restate one by hand, and a
+    restated constant is model-authored however faithfully it was copied.
+    Names, units and families are what a choice needs.
+    """
+
+    import json
+
+    from chemsmart.agent.tool_specs import (
+        build_command_compiled_tool_surface,
+    )
+
+    surface = json.dumps(
+        build_command_compiled_tool_surface(),
+        default=lambda item: getattr(item, "__dict__", str(item)),
+    )
+    for entry in LITERATURE_CONSTANTS.values():
+        assert f"{entry.value:g}" not in surface, entry.name
+        assert entry.convention_family in surface
+        assert entry.unit in surface
