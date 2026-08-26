@@ -119,6 +119,9 @@ SELECTOR_UNITS = {
     "trajectory_connectivity_changed": "",
     "irc_direction": "",
     "solvation_model": "",
+    "solvation_electrostatic_energy": "Eh",
+    "solvation_nonelectrostatic_energy": "Eh",
+    "solvation_cavity_surface_area": "angstrom^2",
     "functional": "",
     "ab_initio": "",
     "basis": "",
@@ -1092,6 +1095,15 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "auxiliary_basis": _orca_auxiliary_basis,
             "auxiliary_basis_role": _orca_auxiliary_basis_role,
             "solvation_model": _orca_solvation_model,
+            "solvation_electrostatic_energy": (
+                lambda output: output.solvation_electrostatic_energy
+            ),
+            "solvation_nonelectrostatic_energy": (
+                lambda output: output.solvation_nonelectrostatic_energy
+            ),
+            "solvation_cavity_surface_area": (
+                lambda output: output.solvation_cavity_surface_area
+            ),
             "functional": _route_functional,
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
@@ -1568,7 +1580,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "positions",
                     "reference_energy",
                     "scf_energy",
+                    "solvation_cavity_surface_area",
+                    "solvation_electrostatic_energy",
                     "solvation_model",
+                    "solvation_nonelectrostatic_energy",
                     "spin_square",
                     "spin_square_deviation",
                     "spin_square_target",
@@ -1648,7 +1663,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "positions",
                     "reference_energy",
                     "scf_energy",
+                    "solvation_cavity_surface_area",
+                    "solvation_electrostatic_energy",
                     "solvation_model",
+                    "solvation_nonelectrostatic_energy",
                     "spin_square",
                     "spin_square_deviation",
                     "spin_square_target",
@@ -1722,7 +1740,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "positions",
                     "reference_energy",
                     "scf_energy",
+                    "solvation_cavity_surface_area",
+                    "solvation_electrostatic_energy",
                     "solvation_model",
+                    "solvation_nonelectrostatic_energy",
                     "spin_square",
                     "spin_square_deviation",
                     "spin_square_target",
@@ -1977,6 +1998,9 @@ _SELECTOR_DIMENSIONS = {
     "trajectory_connectivity_changed": "DIMENSIONLESS",
     "irc_direction": "DIMENSIONLESS",
     "solvation_model": "DIMENSIONLESS",
+    "solvation_electrostatic_energy": "ENERGY",
+    "solvation_nonelectrostatic_energy": "ENERGY",
+    "solvation_cavity_surface_area": "AREA",
     "solvent": "DIMENSIONLESS",
 }
 

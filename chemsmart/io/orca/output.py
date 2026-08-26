@@ -2500,6 +2500,70 @@ class ORCAOutput(ORCAFileMixin):
         _, hirshfeld_spins = self._get_hirshfeld_charges_and_spins()
         return hirshfeld_spins
 
+    def _last_labelled_solvation_value(self, label, field):
+        """Return the last value ORCA printed on ``label``, or ``None``.
+
+        An optimisation runs one SCF per geometry step and each prints its
+        own solvation summary, so a phenoxide opt+freq output carries the
+        block four times.  Only the last belongs to the geometry the rest of
+        the record describes; taking the first, or concatenating, is the
+        multi-job mistake that once made a Gaussian reader report 240
+        frequencies for a 120-mode molecule.
+
+        Absence returns ``None`` rather than raising, which is the Gaussian
+        convention.  ORCA's older accessors here end in ``all_x[-1]`` and
+        raise ``IndexError`` on a run that never wrote the block; the typed
+        layer reads ``None`` as an absent quantity and says so.
+        """
+        value = None
+        for line in self.contents:
+            stripped = line.strip()
+            if not stripped.startswith(label):
+                continue
+            parts = stripped.split()
+            try:
+                value = float(parts[field])
+            except (IndexError, ValueError):
+                continue
+        return value
+
+    @property
+    def solvation_electrostatic_energy(self):
+        """Polarisation free energy of the continuum, in Hartree.
+
+        This is the term that dominates the solvation free energy of an ion
+        and it is what ORCA labels ``CPCM Dielectric``.  It is printed
+        whenever a continuum model is active, including under SMD, because
+        SMD builds its electrostatics on CPCM.
+
+        It reports what the program *applied*.  That is not always what the
+        route requested: an archived DLPNO-CCSD(T) job whose route said
+        ``CPCM(Water)`` printed an SMD CDS term and no dielectric line at
+        all, so the printed decomposition follows the method as well as the
+        keyword.  Read it beside ``solvation_model``.
+        """
+        return self._last_labelled_solvation_value("CPCM Dielectric", 3)
+
+    @property
+    def solvation_nonelectrostatic_energy(self):
+        """SMD cavity-dispersion-solvent-structure term, in Hartree.
+
+        ORCA labels it ``SMD CDS (Gcds)``.  A CPCM-only run has no such term
+        and this returns ``None``; that absence is the difference between the
+        two models rather than a defect.
+        """
+        return self._last_labelled_solvation_value("SMD CDS (Gcds)", 4)
+
+    @property
+    def solvation_cavity_surface_area(self):
+        """Molecular cavity surface area, in square Angstrom.
+
+        The cavity is the boundary the continuum sees, so its area is the
+        geometric half of a solvation term whose other half is the charge
+        distribution inside it.
+        """
+        return self._last_labelled_solvation_value("Cavity Surface-area", -1)
+
     # ** ** ** ** ** ** ** ** ** ** ** ** ** ** *
     # *     ORCA property calculations      *
     # ** ** ** ** ** ** ** ** ** ** ** ** ** ** *

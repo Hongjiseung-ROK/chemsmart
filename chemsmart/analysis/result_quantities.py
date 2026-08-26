@@ -61,6 +61,11 @@ MOMENT_OF_INERTIA: Dimension = (0, 2, 0, 0, 0, 0, 0, 1)
 #: length.  Rewriting it would change the dimension recorded in every dipole
 #: receipt already written, and a stored receipt's dimension is part of its
 #: identity.
+#: Area, i.e. length squared.  Named so the selector dimension table can
+#: refer to it; it introduces no new base and composes exactly as a product
+#: of lengths, which is what a molecular cavity surface is.
+AREA: Dimension = (0, 2, 0, 0, 0, 0)
+
 CHARGE: Dimension = (0, 0, 0, 0, 0, 0, 0, 0, 1)
 ELECTRIC_POTENTIAL: Dimension = (1, 0, 0, 0, 0, 0, 0, 0, -1)
 
@@ -161,6 +166,14 @@ SUPPORTED_SELECTORS = SUPPORTED_PYSCF_SELECTORS | frozenset(
         "scan_coordinate_values",
         "scan_energies",
         "scan_point_indices",
+        # The continuum solvation decomposition ORCA prints whenever a
+        # continuum model is active.  The names are scheme-neutral but the
+        # meanings are not interchangeable between programs, so only ORCA
+        # declares them; see the reader for why Gaussian, PySCF and xTB do
+        # not.
+        "solvation_electrostatic_energy",
+        "solvation_nonelectrostatic_energy",
+        "solvation_cavity_surface_area",
     }
 )
 
@@ -1742,6 +1755,7 @@ __all__ = [
     "ENTROPY",
     "FREQUENCY",
     "LENGTH",
+    "AREA",
     "CHARGE",
     "ELECTRIC_POTENTIAL",
     "MASS",
