@@ -258,3 +258,45 @@ def test_no_constant_value_reaches_the_model_surface():
         assert f"{entry.value:g}" not in surface, entry.name
         assert entry.convention_family in surface
         assert entry.unit in surface
+
+
+def test_every_constant_says_what_it_is_for():
+    """A convention string states a standard state; a purpose states a use.
+
+    Observed live: a plan composed the aqueous proton free energy from a 1 atm
+    gas term and a transfer term that starts at 1 mol/L, dropping the bridge
+    between those standard states and shifting both its pKa values by 1.4
+    units. The registry held the bridge as its own entry and held the finished
+    composed value too. Nothing in the vocabulary said which entry belonged
+    beside which, so the purpose field says it.
+    """
+
+    for entry in LITERATURE_CONSTANTS.values():
+        assert entry.purpose, entry.name
+
+    # The two entries the live error joined must each warn about the other's
+    # standard state, and the finished value must advertise itself as
+    # finished; those three sentences are the repair.
+    gas = literature_constant("proton_gas_gibbs_sackur_tetrode_298K")
+    transfer = literature_constant("proton_solvation_gibbs_kelly2006")
+    composed = literature_constant("aqueous_proton_gibbs_298K")
+    assert "1 atm" in gas.purpose
+    assert "standard_state_correction_1atm_to_1M_298K" in transfer.purpose
+    assert "aqueous_proton_gibbs_298K" in transfer.purpose
+    assert "by hand" in composed.purpose
+
+
+def test_the_purposes_reach_the_model_and_the_values_still_do_not():
+    import json
+
+    from chemsmart.agent.tool_specs import (
+        build_command_compiled_tool_surface,
+    )
+
+    surface = json.dumps(
+        build_command_compiled_tool_surface(),
+        default=lambda item: getattr(item, "__dict__", str(item)),
+    )
+    for entry in LITERATURE_CONSTANTS.values():
+        assert entry.purpose in surface, entry.name
+        assert f"{entry.value:g}" not in surface, entry.name

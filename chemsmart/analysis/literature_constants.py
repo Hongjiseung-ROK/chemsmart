@@ -54,6 +54,15 @@ class LiteratureConstantV1:
     #: ``"independent"`` marks a value that belongs to no pairing -- a
     #: measured property of one substance, such as a reference acid's pKa.
     convention_family: str = "independent"
+    #: What this entry is *for*, in one phrase, and what it must be paired
+    #: with.  The convention string states an entry's standard state; it does
+    #: not say which other entry belongs beside it, and a session choosing
+    #: among several related constants needs that second thing.  Observed
+    #: live: a plan composed the aqueous proton free energy from a 1 atm gas
+    #: term and a transfer term that starts at 1 mol/L, dropping the bridge
+    #: between those standard states and shifting both its pKa values by 1.4
+    #: units.  The registry held the bridge, and held the finished value too.
+    purpose: str = ""
     note: str = ""
 
 
@@ -61,6 +70,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     # Tissandier et al. 1998, cluster-pair approximation.
     LiteratureConstantV1(
         name="proton_hydration_gibbs_tissandier1998",
+        purpose=(
+            "transfer term that starts from a 1 atm ideal gas; add it to the 1 atm gas-phase proton free energy and the result is already the aqueous proton"
+        ),
         convention_family=("tissandier1998_cluster_pair_proton_scale"),
         value=-1104.5,
         unit="kJ/mol",
@@ -74,6 +86,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     # 1 mol/L gas reference.
     LiteratureConstantV1(
         name="proton_solvation_gibbs_kelly2006",
+        purpose=(
+            "transfer term that starts from a 1 mol/L ideal gas; the gas-phase free energy must be brought to 1 mol/L first with standard_state_correction_1atm_to_1M_298K, or use aqueous_proton_gibbs_298K instead"
+        ),
         convention_family=("tissandier1998_cluster_pair_proton_scale"),
         value=-265.9,
         unit="kcal/mol",
@@ -86,6 +101,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     # Classical ideal-gas proton: H = 5/2 RT, S from Sackur-Tetrode.
     LiteratureConstantV1(
         name="proton_gas_gibbs_sackur_tetrode_298K",
+        purpose=(
+            "the free proton's gas-phase free energy at 1 atm; pair it only with a transfer term that also starts at 1 atm, or convert it first"
+        ),
         value=-6.28,
         unit="kcal/mol",
         convention=(
@@ -99,6 +117,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     ),
     LiteratureConstantV1(
         name="standard_state_correction_1atm_to_1M_298K",
+        purpose=(
+            "the bridge between a 1 atm ideal gas and a 1 mol/L ideal gas; needed wherever those two standard states meet in one sum"
+        ),
         value=1.894,
         unit="kcal/mol",
         convention=(
@@ -111,6 +132,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     # absolute proton free energy cancels identically.
     LiteratureConstantV1(
         name="acetic_acid_experimental_pka_298K",
+        purpose=(
+            "a measured pKa, for anchoring a proton-exchange cycle to experiment instead of to an absolute proton free energy"
+        ),
         value=4.756,
         unit="1",
         convention=(
@@ -122,6 +146,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     # The composite that actually enters a direct-cycle deprotonation.
     LiteratureConstantV1(
         name="aqueous_proton_gibbs_298K",
+        purpose=(
+            "the finished aqueous proton free energy at 1 mol/L; prefer this to composing the gas and transfer terms by hand"
+        ),
         convention_family=("tissandier1998_cluster_pair_proton_scale"),
         value=-270.3,
         unit="kcal/mol",
@@ -142,6 +169,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     # that belongs with the cluster-pair proton scale above.
     LiteratureConstantV1(
         name="standard_hydrogen_electrode_absolute_potential_kelly2006",
+        purpose=(
+            "subtract from an absolute reduction potential to quote it against the standard hydrogen electrode; use the proton scale of the same family"
+        ),
         value=4.28,
         unit="V",
         convention_family=("tissandier1998_cluster_pair_proton_scale"),
@@ -164,6 +194,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     # 2008, 24, 9868, as tabulated by Marenich et al. 2014.
     LiteratureConstantV1(
         name="standard_hydrogen_electrode_absolute_potential_fawcett2008",
+        purpose=(
+            "the same subtraction on the real-solvation scale; use the proton value of the same family, not the cluster-pair one"
+        ),
         value=4.42,
         unit="V",
         convention_family="fawcett2008_real_solvation_proton_scale",
@@ -183,6 +216,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     ),
     LiteratureConstantV1(
         name="proton_real_solvation_gibbs_fawcett2008",
+        purpose=(
+            "the proton solvation value belonging with the real-scale electrode potential; a transfer from a 1 bar ideal gas to 1 mol/L aqueous"
+        ),
         value=-1091.0,
         unit="kJ/mol",
         convention_family="fawcett2008_real_solvation_proton_scale",
@@ -200,6 +236,9 @@ _ENTRIES: tuple[LiteratureConstantV1, ...] = (
     # Wise, Agarwal and Mayer, J. Am. Chem. Soc. 2020, 142, 10681.
     LiteratureConstantV1(
         name="acetonitrile_hydrogen_atom_formation_constant_wise2020",
+        purpose=(
+            "the C_G term of the Bordwell relation in acetonitrile; no equivalent for water is registered"
+        ),
         value=52.6,
         unit="kcal/mol",
         convention_family="wise2020_acetonitrile_ferrocene_scale",
