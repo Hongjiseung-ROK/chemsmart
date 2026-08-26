@@ -533,6 +533,38 @@ class AnalysisNodeIntentV1:
                         f"expression node "
                         f"{str(item.get('node_id', '?'))!r}: {exc.args[0]}"
                     ) from exc
+            # An expression node's inputs are resolved in list order while
+            # the run evaluates, so a node placed before the node it reads
+            # raises "references an unavailable prior value" -- and only
+            # then, once every engine has already finished. That is the same
+            # class of loss the constant check above exists to prevent, and
+            # the fix is the same: it is a structural fact about the DAG,
+            # fully determinable now, so refuse it now and name the node and
+            # the reference rather than spend an hour of compute first.
+            available = {item.input_id for item in self.inputs}
+            for item in self.expression_nodes:
+                node_id = str(item.get("node_id", "?"))
+                referenced = [
+                    str(value)
+                    for value in (item.get("input_ids") or ())
+                    if str(value)
+                ]
+                reference = str(item.get("reference", "") or "")
+                if reference:
+                    referenced.append(reference)
+                missing = [
+                    name for name in referenced if name not in available
+                ]
+                if missing:
+                    raise ScientificToolchainContractError(
+                        f"expression node {node_id!r} reads "
+                        f"{sorted(set(missing))}, which no earlier node or "
+                        "analysis input provides. Expression nodes are "
+                        "evaluated in the order given, so every node must "
+                        "appear after the nodes and inputs it reads; "
+                        f"available at {node_id!r}: {sorted(available)}"
+                    )
+                available.add(node_id)
             declared = sorted({item.output_id for item in self.outputs})
             exported = sorted(set(self.expression_output_node_ids))
             if declared != exported:

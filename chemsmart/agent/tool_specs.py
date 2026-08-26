@@ -2202,6 +2202,14 @@ def _analysis_intent_node_schema() -> dict:
             },
             "expression_nodes": {
                 "type": "array",
+                "description": (
+                    "The typed expression DAG, evaluated strictly in the "
+                    "order given: a node may only read analysis inputs and "
+                    "nodes listed before it, so define a value before the "
+                    "node that uses it. Writing the headline quantity first "
+                    "and its parts underneath is refused when planned, "
+                    "naming the node and what it could not resolve."
+                ),
                 "items": _quantity_expression_node_schema(),
             },
             "expression_output_node_ids": {
