@@ -2668,7 +2668,11 @@ class Molecule:
     ):
         """
         Create a geometry (or trajectory) displaced
-        along a *mass-weighted* normal mode.
+        along a stored Cartesian normal mode.
+
+        The stored modes are Cartesian displacements as the programs print
+        them, not mass-weighted eigenvectors, so no mass weighting is
+        applied here.
 
         Args:
             mode_idx (int): Mode index (1-based, negatives allowed)
@@ -2694,26 +2698,38 @@ class Molecule:
             idx = int(mode_idx)
             logger.debug(f"Displacing vibrational mode number #{idx}")
             if idx < 0:
-                mw_mode = np.asarray(self.vibrational_modes[idx], dtype=float)
+                cart_mode = np.asarray(
+                    self.vibrational_modes[idx], dtype=float
+                )
             else:
                 # accept 1-based indices
-                mw_mode = np.asarray(
+                cart_mode = np.asarray(
                     self.vibrational_modes[idx - 1], dtype=float
                 )
         else:
             raise ValueError("Vibrational mode number should be integer.")
 
-        if mw_mode.shape != (self.num_atoms, 3):
+        if cart_mode.shape != (self.num_atoms, 3):
             raise ValueError(
                 f"vibrational mode must have shape ({self.num_atoms}, 3); "
-                f"got {mw_mode.shape} instead!"
+                f"got {cart_mode.shape} instead!"
             )
 
+        # The stored mode is ALREADY a Cartesian displacement.  ORCA says so
+        # in its own output header -- "Cartesian displacements weighted by
+        # M(i,i)=1/sqrt(m[i]) ... normalized but *not* orthogonal", and
+        # non-orthogonality is the signature: the mass-weighted eigenvectors
+        # are orthogonal, these are not.  Gaussian and xTB print the same
+        # convention, and PySCF's array differs only by a per-mode scalar.
+        # Dividing by sqrt(m) here divided a second time and inverted which
+        # atoms dominate a mode: on the sn2_ts reference the migrating carbon
+        # fell from 73.9% to 27.9% of the imaginary mode while each methyl
+        # hydrogen rose from 4.7% to 21.1%, turning an SN2 saddle into a
+        # methyl umbrella.
         logger.debug(
-            "Convert from mass-weighted mode to Cartesian mode: \n"
-            "multiplying by M^{-1/2} * mode"
+            "Displacing along the stored Cartesian normal mode "
+            "(no mass weighting is applied here)"
         )
-        cart_mode = mw_mode / np.sqrt(self.masses)[:, None]  # masses in amu
 
         if normalize:
             logger.debug("normalize so max per-atom displacement = 1")
