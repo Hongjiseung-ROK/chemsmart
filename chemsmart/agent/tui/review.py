@@ -630,116 +630,115 @@ def _shown_value(value: Any) -> Any:
     return value
 
 
-def _geometry_edit_panels(review: "WorkflowExecutionReviewV1") -> list[Panel]:
-    """What an edit actually did to the molecule, on the decision surface.
+def _geometry_lineage_panels(
+    review: "WorkflowExecutionReviewV1",
+) -> list[Panel]:
+    """Every hop of a built geometry's edit chain, on the decision surface.
 
-    The atoms carry their element symbols because that is what makes a
-    wrong-atom edit catchable by reading: a torsion named over the wrong
-    quadruple usually reads as chemical nonsense the moment its elements are
-    spelled out.  The value the model asked for and the value the host
-    reached are both shown, and neither is a claim about what the coordinate
-    will be once an optimiser has had it.
+    A built structure may be several operations deep -- the cis rotamer with
+    both methyls staggered is three edits -- and the hop that decides what
+    the molecule IS can sit at the root of the chain.  The first chained
+    build displayed only the final hop, which hid exactly the edit a
+    reviewer would need to catch, so every hop renders in the order it was
+    performed.  The atoms carry their element symbols because that is what
+    makes a wrong-atom edit catchable by reading.
     """
 
     panels: list[Panel] = []
     for item in review.node_reviews:
-        record = item.molecular_identity.get("geometry_edit")
-        if not isinstance(record, Mapping):
+        chain = item.molecular_identity.get("geometry_lineage")
+        if not isinstance(chain, (list, tuple)) or not chain:
             continue
-        atoms = list(record.get("coordinate_atoms") or ())
-        symbols = list(record.get("coordinate_symbols") or ())
-        named = " - ".join(
-            f"{symbol}{index}" for symbol, index in zip(symbols, atoms)
-        )
-        unit = record.get("value_unit")
-        moved = list(record.get("moved_atoms") or ())
-        contacts = list(record.get("close_contact_pairs") or ())
-        lines = [
-            f"parent: {record.get('parent_artifact_id')}",
-            f"{record.get('operation')} on {named}",
-            f"before {_shown_value(record.get('value_before'))} {unit} -> "
-            f"requested {_shown_value(record.get('value_requested'))} {unit} "
-            f"-> achieved {_shown_value(record.get('value_achieved'))} "
-            f"{unit}",
-            f"moved the side of atom {record.get('moving_side_atom')}: "
-            f"{moved} ({len(moved)} atoms); every other atom unchanged",
-            f"{record.get('formula')} ({record.get('atom_count')} atoms); "
-            f"{record.get('atom_order_note')}",
-            f"closest contact {record.get('min_interatomic_distance_angstrom')}"
-            f" angstrom; {len(contacts)} pair(s) inside covalent contact; "
-            "connectivity "
-            + (
-                "changed"
-                if record.get("connectivity_changed")
-                else "unchanged"
+        total = len(chain)
+        for position, record in enumerate(chain, start=1):
+            if not isinstance(record, Mapping):
+                continue
+            step = f"step {position} of {total}" if total > 1 else "one step"
+            if record.get("kind") == "atom_append":
+                anchors = list(record.get("anchor_atoms") or ())
+                symbols = list(record.get("anchor_symbols") or ())
+                named = ", ".join(
+                    f"{symbol}{index}"
+                    for symbol, index in zip(symbols, anchors)
+                )
+                contacts = list(record.get("close_contact_pairs") or ())
+                lines = [
+                    f"parent: {record.get('parent_artifact_id')} "
+                    f"({record.get('parent_formula')}, "
+                    f"{record.get('parent_atom_count')} atoms)",
+                    f"appended {record.get('element')} as atom "
+                    f"{record.get('appended_atom_index')}, against {named}",
+                    f"bond {_shown_value(record.get('bond_length_angstrom'))} "
+                    f"angstrom, angle "
+                    f"{_shown_value(record.get('angle_degrees'))} deg, "
+                    f"dihedral {_shown_value(record.get('dihedral_degrees'))} "
+                    f"deg (achieved "
+                    f"{_shown_value(record.get('achieved_bond_length_angstrom'))}, "
+                    f"{_shown_value(record.get('achieved_angle_degrees'))}, "
+                    f"{_shown_value(record.get('achieved_dihedral_degrees'))})",
+                    f"{record.get('parent_formula')} -> "
+                    f"{record.get('formula')}; "
+                    f"{record.get('fragment_count')} connected piece(s); "
+                    f"{record.get('atom_order_note')}",
+                    "closest contact "
+                    f"{_shown_value(record.get('min_interatomic_distance_angstrom'))}"
+                    f" angstrom; {len(contacts)} pair(s) inside covalent "
+                    "contact -- observations, not verdicts",
+                ]
+                title_kind = "appended atom"
+            else:
+                atoms = list(record.get("coordinate_atoms") or ())
+                symbols = list(record.get("coordinate_symbols") or ())
+                named = " - ".join(
+                    f"{symbol}{index}" for symbol, index in zip(symbols, atoms)
+                )
+                unit = record.get("value_unit")
+                moved = list(record.get("moved_atoms") or ())
+                contacts = list(record.get("close_contact_pairs") or ())
+                lines = [
+                    f"parent: {record.get('parent_artifact_id')}",
+                    f"{record.get('operation')} on {named}",
+                    f"before {_shown_value(record.get('value_before'))} "
+                    f"{unit} -> requested "
+                    f"{_shown_value(record.get('value_requested'))} {unit} "
+                    f"-> achieved "
+                    f"{_shown_value(record.get('value_achieved'))} {unit}",
+                    f"moved the side of atom "
+                    f"{record.get('moving_side_atom')}: {moved} "
+                    f"({len(moved)} atoms); every other atom unchanged",
+                    f"{record.get('formula')} "
+                    f"({record.get('atom_count')} atoms); "
+                    f"{record.get('atom_order_note')}",
+                    "closest contact "
+                    f"{_shown_value(record.get('min_interatomic_distance_angstrom'))}"
+                    f" angstrom; {len(contacts)} pair(s) inside covalent "
+                    "contact; connectivity "
+                    + (
+                        "changed"
+                        if record.get("connectivity_changed")
+                        else "unchanged"
+                    )
+                    + " -- observations, not verdicts",
+                ]
+                title_kind = "edited geometry"
+            if position == total:
+                lines.append(str(record.get("starting_structure_role")))
+                lines.append(
+                    "electronic state was deliberately unbound while "
+                    "building; this node binds charge "
+                    f"{item.molecular_identity.get('charge')}, multiplicity "
+                    f"{item.molecular_identity.get('multiplicity')} "
+                    "explicitly"
+                )
+            panels.append(
+                Panel(
+                    "\n".join(lines),
+                    title=(
+                        f"{item.node_id} · {title_kind} lineage, {step} "
+                        "(covered by this approval)"
+                    ),
+                )
             )
-            + " -- observations, not verdicts",
-            str(record.get("starting_structure_role")),
-            "electronic state was deliberately unbound at the edit; this "
-            f"node binds charge {item.molecular_identity.get('charge')}, "
-            f"multiplicity {item.molecular_identity.get('multiplicity')} "
-            "explicitly",
-        ]
-        panels.append(
-            Panel(
-                "\n".join(lines),
-                title=(
-                    f"{item.node_id} · edited geometry lineage "
-                    "(covered by this approval)"
-                ),
-            )
-        )
-    return panels
-
-
-def _atom_append_panels(review: "WorkflowExecutionReviewV1") -> list[Panel]:
-    """Where an appended atom was put, and against which atoms."""
-
-    panels: list[Panel] = []
-    for item in review.node_reviews:
-        record = item.molecular_identity.get("atom_append")
-        if not isinstance(record, Mapping):
-            continue
-        anchors = list(record.get("anchor_atoms") or ())
-        symbols = list(record.get("anchor_symbols") or ())
-        named = ", ".join(
-            f"{symbol}{index}" for symbol, index in zip(symbols, anchors)
-        )
-        contacts = list(record.get("close_contact_pairs") or ())
-        lines = [
-            f"parent: {record.get('parent_artifact_id')} "
-            f"({record.get('parent_formula')}, "
-            f"{record.get('parent_atom_count')} atoms)",
-            f"appended {record.get('element')} as atom "
-            f"{record.get('appended_atom_index')}, against {named}",
-            f"bond {_shown_value(record.get('bond_length_angstrom'))} "
-            f"angstrom, angle {_shown_value(record.get('angle_degrees'))} "
-            f"deg, dihedral {_shown_value(record.get('dihedral_degrees'))} "
-            f"deg (achieved "
-            f"{_shown_value(record.get('achieved_bond_length_angstrom'))}, "
-            f"{_shown_value(record.get('achieved_angle_degrees'))}, "
-            f"{_shown_value(record.get('achieved_dihedral_degrees'))})",
-            f"{record.get('parent_formula')} -> {record.get('formula')}; "
-            f"{record.get('fragment_count')} connected piece(s); "
-            f"{record.get('atom_order_note')}",
-            f"closest contact {record.get('min_interatomic_distance_angstrom')}"
-            f" angstrom; {len(contacts)} pair(s) inside covalent contact "
-            "-- observations, not verdicts",
-            str(record.get("starting_structure_role")),
-            "electronic state was deliberately unbound at the append; this "
-            f"node binds charge {item.molecular_identity.get('charge')}, "
-            f"multiplicity {item.molecular_identity.get('multiplicity')} "
-            "explicitly",
-        ]
-        panels.append(
-            Panel(
-                "\n".join(lines),
-                title=(
-                    f"{item.node_id} · appended atom lineage "
-                    "(covered by this approval)"
-                ),
-            )
-        )
     return panels
 
 
@@ -761,8 +760,7 @@ def render_review_blocks(
     blocks.extend(_composition_panels(review))
     blocks.extend(_derivation_panels(review))
     blocks.extend(_database_extraction_panels(review))
-    blocks.extend(_geometry_edit_panels(review))
-    blocks.extend(_atom_append_panels(review))
+    blocks.extend(_geometry_lineage_panels(review))
     blocks.append(_analysis_chain_renderable(review))
     constants_table = _literature_constants_renderable(review)
     if constants_table is not None:

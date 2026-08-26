@@ -8784,33 +8784,51 @@ class CommandCompiledToolHostV1:
             # caught only from the artifact bytes), and a database-record
             # extraction carries its stored fields as labelled
             # observations beside the explicitly bound state.
-            derivation_receipt = self.molecular_derivations.get(
-                context.input_artifact.sha256
-            )
+            # A built geometry may be a CHAIN: the cis rotamer with both
+            # methyls staggered is three edits deep, and the hop that
+            # decides which rotamer the molecule is sits at the root.  The
+            # first chained build displayed only the final hop, hiding
+            # exactly the edit a reviewer would need to catch, so the walk
+            # follows parent digests through every edit and append and
+            # attaches the whole chain root-first, ending on a derivation
+            # or extraction when one anchors it.
+            geometry_lineage: list[dict] = []
+            cursor = context.input_artifact.sha256
+            while True:
+                edit_receipt = self.geometry_edits.get(cursor)
+                if edit_receipt is not None:
+                    geometry_lineage.append(
+                        {
+                            "kind": "geometry_edit",
+                            **canonical_data(edit_receipt),
+                        }
+                    )
+                    cursor = edit_receipt.parent_sha256
+                    continue
+                append_receipt = self.atom_appends.get(cursor)
+                if append_receipt is not None:
+                    geometry_lineage.append(
+                        {
+                            "kind": "atom_append",
+                            **canonical_data(append_receipt),
+                        }
+                    )
+                    cursor = append_receipt.parent_sha256
+                    continue
+                break
+            derivation_receipt = self.molecular_derivations.get(cursor)
             if derivation_receipt is not None:
                 molecular_identity["derivation"] = canonical_data(
                     derivation_receipt
                 )
-            extraction_receipt = self.database_extractions.get(
-                context.input_artifact.sha256
-            )
+            extraction_receipt = self.database_extractions.get(cursor)
             if extraction_receipt is not None:
                 molecular_identity["database_extraction"] = canonical_data(
                     extraction_receipt
                 )
-            edit_receipt = self.geometry_edits.get(
-                context.input_artifact.sha256
-            )
-            if edit_receipt is not None:
-                molecular_identity["geometry_edit"] = canonical_data(
-                    edit_receipt
-                )
-            append_receipt = self.atom_appends.get(
-                context.input_artifact.sha256
-            )
-            if append_receipt is not None:
-                molecular_identity["atom_append"] = canonical_data(
-                    append_receipt
+            if geometry_lineage:
+                molecular_identity["geometry_lineage"] = tuple(
+                    reversed(geometry_lineage)
                 )
             server_profile_sha256 = execution_server_profile_sha256(
                 resources=resources,

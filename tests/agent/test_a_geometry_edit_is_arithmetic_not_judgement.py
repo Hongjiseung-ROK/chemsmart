@@ -478,7 +478,7 @@ def test_the_edit_reaches_the_decision_surface_with_its_elements(tmp_path):
 
     from types import SimpleNamespace
 
-    from chemsmart.agent.tui.review import _geometry_edit_panels
+    from chemsmart.agent.tui.review import _geometry_lineage_panels
 
     host = _host_with(tmp_path, _NMA, "nma")
     edit = _edit(
@@ -499,12 +499,12 @@ def test_the_edit_reaches_the_decision_surface_with_its_elements(tmp_path):
                 molecular_identity={
                     "charge": 0,
                     "multiplicity": 1,
-                    "geometry_edit": edit,
+                    "geometry_lineage": ({"kind": "geometry_edit", **edit},),
                 },
             ),
         )
     )
-    panels = _geometry_edit_panels(review)
+    panels = _geometry_lineage_panels(review)
     assert len(panels) == 1
     text = _rendered(panels[0])
 
@@ -577,3 +577,127 @@ def test_every_atom_of_a_coordinate_names_a_side(tmp_path):
             target_value=1.47,
         )["geometry_edit"]
         assert edit["value_achieved"] == pytest.approx(1.47, abs=1e-6)
+
+
+def test_a_chained_build_shows_every_hop_at_review(tmp_path):
+    """The hop that decides what the molecule is must not hide upstream.
+
+    The first live chained build (cis rotamer + a staggered methyl)
+    displayed only its final hop, so the amide-dihedral edit -- the one
+    that decides WHICH rotamer the reviewer is approving -- was invisible
+    on the page. Every hop now renders, in the order it was performed.
+    """
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent.tui.review import _geometry_lineage_panels
+
+    host = _host_with(tmp_path, _NMA, "nma")
+    first = _edit(
+        host,
+        "t1",
+        edited_artifact_id="nma-cis",
+        input_artifact_id="nma",
+        operation="set_dihedral",
+        atoms=[1, 2, 4, 5],
+        moving_side_atom=5,
+        target_value=0.0,
+    )["geometry_edit"]
+    # Each hop's parent must itself be identity-bound: chaining does not
+    # exempt an intermediate artifact from the explicit-state discipline.
+    host.dispatch(
+        turn_id="t1b",
+        tool_name="bind_scientific_identity",
+        arguments={
+            "input_artifact_id": "nma-cis",
+            "charge": 0,
+            "multiplicity": 1,
+        },
+    )
+    second = _edit(
+        host,
+        "t2",
+        edited_artifact_id="nma-cis-staggered",
+        input_artifact_id="nma-cis",
+        operation="set_dihedral",
+        atoms=[3, 2, 1, 6],
+        moving_side_atom=6,
+        target_value=60.0,
+    )["geometry_edit"]
+
+    review = _duck_review(
+        (
+            SimpleNamespace(
+                node_id="opt-cis",
+                molecular_identity={
+                    "charge": 0,
+                    "multiplicity": 1,
+                    "geometry_lineage": (
+                        {"kind": "geometry_edit", **first},
+                        {"kind": "geometry_edit", **second},
+                    ),
+                },
+            ),
+        )
+    )
+    panels = _geometry_lineage_panels(review)
+    assert len(panels) == 2
+    first_text = _rendered(panels[0])
+    second_text = _rendered(panels[1])
+    # Root-first: the rotamer-deciding edit is step 1, on the page.
+    assert "step 1 of 2" in first_text
+    assert "C1 - C2 - N4 - C5" in first_text
+    assert "requested 0.0 degree" in first_text
+    assert "step 2 of 2" in second_text
+    assert "O3 - C2 - C1 - H6" in second_text
+    # The state-binding line belongs to the final hop only.
+    assert "binds charge 0" not in first_text
+    assert "binds charge 0, multiplicity 1 explicitly" in second_text
+
+
+def test_the_review_builder_attaches_the_whole_chain(tmp_path):
+    """From the consumed artifact back to the workspace root, root-first."""
+
+    host = _host_with(tmp_path, _NMA, "nma")
+    _edit(
+        host,
+        "t1",
+        edited_artifact_id="hop-one",
+        input_artifact_id="nma",
+        operation="set_dihedral",
+        atoms=[1, 2, 4, 5],
+        moving_side_atom=5,
+        target_value=0.0,
+    )
+    host.dispatch(
+        turn_id="t1b",
+        tool_name="bind_scientific_identity",
+        arguments={
+            "input_artifact_id": "hop-one",
+            "charge": 0,
+            "multiplicity": 1,
+        },
+    )
+    final = _edit(
+        host,
+        "t2",
+        edited_artifact_id="hop-two",
+        input_artifact_id="hop-one",
+        operation="set_bond_length",
+        atoms=[2, 4],
+        moving_side_atom=4,
+        target_value=1.40,
+    )
+
+    chain = []
+    cursor = final["artifact"]["sha256"]
+    while cursor in host.geometry_edits:
+        receipt = host.geometry_edits[cursor]
+        chain.append(receipt)
+        cursor = receipt.parent_sha256
+    assert [item.edited_artifact_id for item in chain] == [
+        "hop-two",
+        "hop-one",
+    ]
+    # The root parent is the workspace geometry, not another edit.
+    assert cursor not in host.geometry_edits
