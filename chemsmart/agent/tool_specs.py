@@ -82,7 +82,16 @@ def build_command_compiled_tool_surface(
             "the program or result does not provide remains explicitly blocked. "
             "The connectivity selector returns binary geometry-perceived "
             "adjacency in source atom order from covalent radii; it is not an "
-            "electronic bond-order assignment."
+            "electronic bond-order assignment. The "
+            "vibrational_mode_atom_participation selector is host-derived, "
+            "not printed by any program: it is each atom's share of a mode's "
+            "squared displacement, computed from the displacement vectors "
+            "the program did print and renormalised so a row sums to one, "
+            "which is what makes it comparable across programs. It says how "
+            "much of a mode an atom carries, never what the motion is; and "
+            "inside a degenerate set the individual vectors are an arbitrary "
+            "basis, so read vibrational_mode_degeneracy_group before "
+            "assigning motion to a single mode."
         ),
     }
     digest = {"type": "string", "pattern": "^[0-9a-f]{64}$"}
