@@ -49,7 +49,6 @@ ORCA:
         export PATH=$HOME/bin/openmpi-4.1.6/build/bin:$PATH
         export LD_LIBRARY_PATH=$HOME/bin/openmpi-4.1.6/build/lib:$LD_LIBRARY_PATH
 
-
 PYSCF:
     # Optional: EXEFOLDER: ~/miniconda3/envs/pyscf-gpu/bin
     # It names the bin/ directory whose python owns PySCF/GPU4PySCF.
@@ -58,6 +57,28 @@ PYSCF:
     CONDA_ENV: |
         source ~/miniconda3/etc/profile.d/conda.sh
         conda activate ~/miniconda3/envs/chemsmart
+
+XTB:
+    EXEFOLDER: null  # use xtb from activated conda environment/PATH
+    LOCAL_RUN: True
+    SCRATCH: False  # run in job folder by default; set True for batch/scratch runs
+    CONDA_ENV: |   # program-specific conda env
+        source ~/miniconda3/etc/profile.d/conda.sh
+        conda activate ~/miniconda3/envs/chemsmart
+    MODULES: null
+    SCRIPTS: null
+    ENVARS: null
+
+CREST:
+    EXEFOLDER: null  # use crest from activated conda environment/PATH
+    LOCAL_RUN: True
+    SCRATCH: False  # run in job folder by default; set True for batch/scratch runs
+    CONDA_ENV: |   # program-specific conda env
+        source ~/miniconda3/etc/profile.d/conda.sh
+        conda activate ~/miniconda3/envs/chemsmart
+    MODULES: null
+    SCRIPTS: null
+    ENVARS: null
 
 NCIPLOT:
     EXEFOLDER: ~/bin/nciplot

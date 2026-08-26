@@ -4,11 +4,13 @@ from abc import abstractmethod
 from typing import Optional
 
 from chemsmart.settings.executable import (  # noqa: F401
+    CRESTExecutable,
     Executable,
     GaussianExecutable,
     NCIPLOTExecutable,
     ORCAExecutable,
     PySCFExecutable,
+    XTBExecutable,
 )
 from chemsmart.settings.user import CHEMSMARTUserSettings
 from chemsmart.utils.mixins import RegistryMixin

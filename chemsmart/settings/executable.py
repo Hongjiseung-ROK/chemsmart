@@ -83,29 +83,30 @@ class Executable(RegistryMixin):
         server_yaml = YAMLFile(filename=server_yaml_file)
 
         # Extract configuration for the specific program.
+        # If the program block is missing, raise so the user can update their
+        # server YAML from the current template.
+        program_cfg = server_yaml.yaml_contents_dict.get(cls.PROGRAM)
+        if program_cfg is None:
+            raise ValueError(
+                f"No '{cls.PROGRAM}' section found in {server_yaml_file}.\n "
+                "Consider updating your server YAML with the latest template."
+                "Run `chemsmart update configs` to update your server YAML.`"
+            )
+
         # EXEFOLDER is optional: a library backend such as PySCF has no
         # executable folder, and its subclass resolves an interpreter
-        # instead. Every sibling key already uses .get().
-        executable_folder = server_yaml.yaml_contents_dict[cls.PROGRAM].get(
-            "EXEFOLDER", None
+        # instead.
+        executable_folder_raw = program_cfg.get("EXEFOLDER")
+        executable_folder = (
+            os.path.expanduser(executable_folder_raw)
+            if executable_folder_raw
+            else None
         )
-        if executable_folder is not None:
-            executable_folder = os.path.expanduser(executable_folder)
-        local_run = server_yaml.yaml_contents_dict[cls.PROGRAM].get(
-            "LOCAL_RUN", False
-        )
-        conda_env = server_yaml.yaml_contents_dict[cls.PROGRAM].get(
-            "CONDA_ENV", None
-        )
-        modules = server_yaml.yaml_contents_dict[cls.PROGRAM].get(
-            "MODULES", None
-        )
-        scripts = server_yaml.yaml_contents_dict[cls.PROGRAM].get(
-            "SCRIPTS", None
-        )
-        envars = server_yaml.yaml_contents_dict[cls.PROGRAM].get(
-            "ENVARS", None
-        )
+        local_run = program_cfg.get("LOCAL_RUN", False)
+        conda_env = program_cfg.get("CONDA_ENV", None)
+        modules = program_cfg.get("MODULES", None)
+        scripts = program_cfg.get("SCRIPTS", None)
+        envars = program_cfg.get("ENVARS", None)
 
         # Strip comments from configuration strings
         if conda_env is not None:
@@ -295,6 +296,70 @@ class ORCAExecutable(Executable):
             return executable_path
 
 
+class XTBExecutable(Executable):
+    """
+    Executable handler for xTB semiempirical quantum chemistry software.
+    """
+
+    PROGRAM = "XTB"
+
+    def __init__(self, executable_folder=None, **kwargs):
+        """
+        Initialize XTBExecutable instance.
+
+        Args:
+            executable_folder (str, optional):
+            Path to xTB executable directory. If omitted, xtb is resolved
+            from PATH, e.g. from an activated conda environment.
+            **kwargs: Additional arguments passed to parent Executable class.
+        """
+        super().__init__(executable_folder=executable_folder, **kwargs)
+
+    def get_executable(self):
+        """
+        Get the full path to the xTB executable.
+
+        Returns:
+            str: Full path to xtb if executable_folder is set, otherwise
+            xtb to use PATH resolution.
+        """
+        if self.executable_folder is not None:
+            return os.path.join(self.executable_folder, "xtb")
+        return "xtb"
+
+
+class CRESTExecutable(Executable):
+    """
+    Executable handler for CREST conformer-rotamer ensemble sampling tool.
+    """
+
+    PROGRAM = "CREST"
+
+    def __init__(self, executable_folder=None, **kwargs):
+        """
+        Initialize CRESTExecutable instance.
+
+        Args:
+            executable_folder (str, optional):
+            Path to CREST executable directory. If omitted, crest is
+            resolved from PATH, e.g. from an activated conda environment.
+            **kwargs: Additional arguments passed to parent Executable class.
+        """
+        super().__init__(executable_folder=executable_folder, **kwargs)
+
+    def get_executable(self):
+        """
+        Get the full path to the CREST executable.
+
+        Returns:
+            str: Full path to crest if executable_folder is set, otherwise
+            crest to use PATH resolution.
+        """
+        if self.executable_folder is not None:
+            return os.path.join(self.executable_folder, "crest")
+        return "crest"
+
+
 class NCIPLOTExecutable(Executable):
     """
     Executable handler for NCIPLOT non-covalent interaction analysis software.
@@ -362,7 +427,7 @@ class PySCFExecutable(Executable):
         """
         try:
             return super().from_servername(servername)
-        except KeyError:
+        except (KeyError, ValueError):
             logger.debug(
                 f"No PYSCF block in server '{servername}'; using the running "
                 f"interpreter {sys.executable}."

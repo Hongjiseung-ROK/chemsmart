@@ -268,6 +268,10 @@ def read_molecular_job_yaml(
             from chemsmart.jobs.pyscf.settings import PySCFJobSettings
 
             default_config = PySCFJobSettings.default().__dict__
+        elif program == "xtb":
+            from chemsmart.jobs.xtb.settings import XTBJobSettings
+
+            default_config = XTBJobSettings.default().__dict__
         else:
             # other programs may be implemented in future
             pass
