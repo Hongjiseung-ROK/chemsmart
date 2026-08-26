@@ -135,7 +135,10 @@ from chemsmart.agent.execution import (
     transform_trusted_molecular_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
-from chemsmart.agent.identity import ApprovedMolecularIdentityV1
+from chemsmart.agent.identity import (
+    ApprovedMolecularIdentityV1,
+    refuse_impossible_electronic_state,
+)
 from chemsmart.agent.inspection import (
     GeneratedArtifactInspectionReceiptV1,
     inspect_generated_artifact,
@@ -2452,6 +2455,25 @@ class CommandCompiledToolHostV1:
                 "scientific identity targets an unknown task spec"
             )
         artifact = self._artifact(values["input_artifact_id"])
+        # Read the geometry before binding anything.  The state about to be
+        # bound is checked against this molecule's electron count, and the
+        # same read supplies the facts returned below -- so the refusal
+        # cannot be swallowed by the best-effort guard around those facts.
+        try:
+            from chemsmart.io.molecules.structure import Molecule
+
+            molecule = Molecule.from_filepath(artifact.path)
+            symbols = tuple(molecule.chemical_symbols)
+        except Exception:
+            molecule = None
+            symbols = ()
+        if symbols:
+            refuse_impossible_electronic_state(
+                symbols,
+                values["charge"],
+                values["multiplicity"],
+                context="scientific identity",
+            )
         binding = build_scientific_identity_binding(
             task_spec_sha256=task_spec_sha256,
             geometry_artifact=artifact,
@@ -2468,13 +2490,10 @@ class CommandCompiledToolHostV1:
         # every session already looks. The binding itself stays digest-frozen
         # inside the wrapper.
         try:
-            from chemsmart.io.molecules.structure import Molecule
-
-            molecule = Molecule.from_filepath(artifact.path)
             geometry_facts = {
-                "atom_count": len(molecule.chemical_symbols),
+                "atom_count": len(symbols),
                 "formula": molecule.get_chemical_formula(),
-                "symbols": tuple(molecule.chemical_symbols),
+                "symbols": symbols,
             }
         except Exception:
             geometry_facts = {}
@@ -8607,6 +8626,26 @@ class CommandCompiledToolHostV1:
                 if planned_node.multiplicity is not None
                 else context.scientific_identity.multiplicity
             )
+            # A node may deliberately reuse a producer geometry on another
+            # charge/multiplicity surface, which is how a redox or
+            # hydrogen-transfer series is written.  That freedom is exactly
+            # where an impossible pair enters, so the state is checked against
+            # this molecule's electron count before it reaches a review.  No
+            # producer rule changes the atom set, so the input artifact's
+            # symbols are the consumer's symbols.
+            try:
+                _node_symbols = _review_molecule_identity(
+                    context.input_artifact
+                )["atom_order"]
+            except Exception:
+                _node_symbols = ()
+            if _node_symbols:
+                refuse_impossible_electronic_state(
+                    _node_symbols,
+                    target_charge,
+                    target_multiplicity,
+                    context=f"node {planned_node.node_id!r}",
+                )
             if edge is None and (target_charge, target_multiplicity) != (
                 context.scientific_identity.charge,
                 context.scientific_identity.multiplicity,
@@ -9195,6 +9234,26 @@ class CommandCompiledToolHostV1:
                 if planned_node.multiplicity is not None
                 else context.scientific_identity.multiplicity
             )
+            # A node may deliberately reuse a producer geometry on another
+            # charge/multiplicity surface, which is how a redox or
+            # hydrogen-transfer series is written.  That freedom is exactly
+            # where an impossible pair enters, so the state is checked against
+            # this molecule's electron count before it reaches a review.  No
+            # producer rule changes the atom set, so the input artifact's
+            # symbols are the consumer's symbols.
+            try:
+                _node_symbols = _review_molecule_identity(
+                    context.input_artifact
+                )["atom_order"]
+            except Exception:
+                _node_symbols = ()
+            if _node_symbols:
+                refuse_impossible_electronic_state(
+                    _node_symbols,
+                    target_charge,
+                    target_multiplicity,
+                    context=f"node {planned_node.node_id!r}",
+                )
             if edge is None and (target_charge, target_multiplicity) != (
                 context.scientific_identity.charge,
                 context.scientific_identity.multiplicity,

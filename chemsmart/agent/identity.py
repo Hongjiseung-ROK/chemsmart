@@ -461,3 +461,71 @@ __all__ = [
     "load_approved_molecular_input_manifest",
     "validate_identity_for_geometry",
 ]
+
+
+def refuse_impossible_electronic_state(
+    symbols: Iterable[str],
+    charge: int,
+    multiplicity: int,
+    *,
+    context: str,
+) -> None:
+    """Refuse a (charge, multiplicity) pair no molecule can have.
+
+    The host never chooses an electronic state and never prefers one legal
+    state over another -- a singlet and a triplet of the same species are both
+    admissible here, and which one is right is what the calculation is for.
+    What this refuses is arithmetic: a species cannot hold a negative number
+    of electrons, cannot have more unpaired electrons than electrons, and
+    cannot pair an even electron count with an odd number of unpaired
+    electrons.  That is the same line the geometry-edit surface draws, where
+    refusals are structural and a requested value is never graded on merit.
+
+    The rule already existed twice in this codebase, correctly, in the xTB and
+    PySCF job-settings layers -- and nowhere for ORCA or Gaussian, and nowhere
+    at all before a workflow was materialized.  A check that runs after the
+    human has approved a plan cannot stop the plan from being approved, so it
+    runs here, where the state is first bound to a geometry and again wherever
+    a node rebinds one.
+
+    Parity is safe under effective core potentials: a standard ECP replaces
+    closed core shells, so it removes an even number of electrons and leaves
+    the parity of the all-electron count unchanged.  If a supported ECP ever
+    removes an odd number, this test must be withheld for jobs that use one.
+
+    Args:
+        symbols: Element symbols of the species carrying the state.
+        charge: Total molecular charge.
+        multiplicity: Spin multiplicity, 2S+1.
+        context: What is being bound, named in the refusal.
+
+    Raises:
+        ContractError: If the state is arithmetically impossible.
+    """
+
+    from chemsmart.utils.periodictable import electron_count
+
+    try:
+        electrons = electron_count(symbols, charge)
+    except (ValueError, KeyError, TypeError):
+        # An unreadable or non-elemental symbol is somebody else's refusal;
+        # silently declining to check is better than inventing a verdict.
+        return
+    unpaired = int(multiplicity) - 1
+    if electrons < 0:
+        raise ContractError(
+            f"{context} charge {charge:+d} implies a negative electron "
+            f"count for this molecule"
+        )
+    if unpaired > electrons:
+        raise ContractError(
+            f"{context} multiplicity {multiplicity} implies {unpaired} "
+            f"unpaired electrons, but the species has only {electrons}"
+        )
+    if (electrons - unpaired) % 2:
+        raise ContractError(
+            f"{context} charge {charge:+d} with multiplicity {multiplicity} "
+            f"is impossible: {electrons} electrons cannot leave {unpaired} "
+            f"unpaired. An even electron count needs an odd multiplicity and "
+            f"an odd count an even one; state the electronic state you mean"
+        )

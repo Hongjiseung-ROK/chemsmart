@@ -301,3 +301,39 @@ class PeriodicTable:
     def is_metal(self, symbol):
         """Return True when ``symbol`` is classified as a metal."""
         return is_metal(symbol)
+
+
+def total_nuclear_charge(symbols):
+    """Return the summed atomic number of ``symbols``.
+
+    Args:
+        symbols (Iterable[str]): Element symbols, already normalized.
+
+    Returns:
+        int: Sum of atomic numbers.
+
+    Raises:
+        ValueError: If any symbol is not a chemical element.
+    """
+    table = PeriodicTable()
+    return sum(table.to_atomic_number(str(symbol)) for symbol in symbols)
+
+
+def electron_count(symbols, charge):
+    """Return the electron count implied by ``symbols`` and ``charge``.
+
+    This is the all-electron count.  Under an effective core potential the
+    number of electrons actually treated is smaller, so this value is not the
+    size of the calculation -- but its *parity* is unchanged, because a
+    standard ECP replaces closed core shells and therefore always removes an
+    even number of electrons.  Parity is consequently safe to test on this
+    number even for a job that uses an ECP; the count itself is not.
+
+    Args:
+        symbols (Iterable[str]): Element symbols, already normalized.
+        charge (int): Total molecular charge.
+
+    Returns:
+        int: Number of electrons.
+    """
+    return total_nuclear_charge(symbols) - int(charge)
