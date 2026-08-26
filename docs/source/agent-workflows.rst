@@ -85,6 +85,22 @@ hydrogen gives a cation or a radical depending on whether it brought an electron
 explicitly afterwards and the consuming stage is a new workflow; the displayed review renders every hop of a built chain
 in the order it was performed, so the edit that decides what the molecule is stays on the decision surface.
 
+A vibrational frequency says how fast a mode moves, never which atoms move in it.
+``vibrational_mode_atom_participation`` answers the second question: each atom's share of a mode's squared displacement,
+one row per mode summing to one, so a row reads as "how much of mode k does atom i carry". It is derived by the host
+from the displacement vectors the program printed and renormalised, which is what lets one selector mean the same thing
+for programs whose stored vectors differ — ORCA, Gaussian and xTB print Cartesian displacements at unit norm, while
+PySCF returns the same physical displacement scaled by one over the square root of the reduced mass. Dividing by the
+row's own total removes that per-mode scalar, the arbitrary sign of an eigenvector, and the program's choice of frame;
+it does not remove the program's atomic mass table, which perturbs the vectors themselves by about a tenth of a percent
+for C/H/O and about one percent for heavy halogens. The number is an observation — that three hydrogens carry 96% of an
+imaginary mode is evidence, and calling it a methyl rotor is your reading of that evidence. Inside a degenerate set the
+individual eigenvectors are an arbitrary basis, so ``vibrational_mode_degeneracy_group`` reports which modes share a
+frequency within a stated tolerance and lets you see that a mode has company before assigning motion to it. Both are
+declared for ORCA ``opt`` and ``ts``, xTB ``hess``, and PySCF. Gaussian is deliberately undeclared: ChemSmart never runs
+Gaussian, and its displacement block differs between the default output, ``freq=HPModes`` and ``freq=raman``, so which
+block a supplied log contains is not something this reader can yet establish.
+
 ORCA ``irc`` is qualified for approved Agent execution on a qualified target: a transition-state search fed two IRC
 runs, each consuming the converged transition state's own geometry and analytic Hessian as role-distinct producer
 bindings inside one approved workflow, and the chain executed, validated, and delivered host-rendered claims. The IRC

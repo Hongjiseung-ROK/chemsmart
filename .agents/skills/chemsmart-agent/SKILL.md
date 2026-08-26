@@ -36,6 +36,21 @@ CBS extrapolation, Boltzmann populations and averages, harmonic ZPE,
 imaginary-mode counts, geometry measurements, centres of mass, inertia,
 rotational constants, and connectivity changes.
 
+A frequency says how fast a mode moves, never which atoms move in it.
+For that, ORCA opt/ts, xTB hess, and PySCF serve
+``vibrational_mode_atom_participation``: each atom's share of a mode's
+squared displacement, one row per mode summing to one. It is host-derived
+from the displacement vectors the program printed, renormalised so it
+means the same thing across programs whose vectors do not (PySCF stores
+the same displacement scaled by 1/sqrt(reduced mass)). Read it as an
+observation -- "these three atoms carry 96% of this imaginary mode" is
+evidence; "this is a methyl rotor" is your claim, not the host's. Inside
+a degenerate set the individual eigenvectors are an arbitrary basis, so
+consult ``vibrational_mode_degeneracy_group`` before assigning motion to
+one mode. Gaussian is deliberately undeclared: we never run it, and its
+displacement block comes in variants (``freq=HPModes``, ``freq=raman``)
+this reader cannot yet tell apart.
+
 Do not force every task through every layer. A valid route may be analysis-only
 or may choose a different causal decomposition. Use only the operations needed
 to answer the scientific request, and keep every source quantity and convention
