@@ -555,9 +555,37 @@ class ResultReaderV1:
                 f"{self.program} result contains no {selector!r} value "
                 f"({type(exc).__name__})"
             ) from exc
-        if value is None or (isinstance(value, (list, tuple)) and not value):
+        if value is None or (
+            isinstance(value, (list, tuple, Mapping, set, frozenset))
+            and not value
+        ):
             raise MissingQuantityError(
                 f"{self.program} result contains no {selector!r} value"
+            )
+        if isinstance(value, Mapping):
+            # Every program's per-atom parsers key by an atom label, and the
+            # labels do not agree: ORCA and Gaussian use a global 1-based
+            # index while xTB uses a per-element counter, so CO2 with atom
+            # order O,O,C is {"O1","O2","C1"} there and {"O1","O2","C3"}
+            # elsewhere -- the same key names a different atom. The typed
+            # layer cannot repair that later either: freezing a mapping sorts
+            # it by label, which reorders per-atom data out of molecular
+            # order, and the resulting object is accepted as a "matrix" whose
+            # cells are half strings and only fails at first arithmetic.
+            #
+            # So a mapping never leaves an accessor. Normalise it to a
+            # positional vector in molecular order and pair it with symbols,
+            # which is what connectivity already does. Refusing here keeps
+            # that a typed contract failure rather than an uncaught TypeError
+            # deep in numpy.
+            from chemsmart.analysis import result_quantities as rq
+
+            raise rq.QuantityExtractionError(
+                f"{self.program} accessor for {selector!r} returned an "
+                "atom-labelled mapping; per-atom quantities must be "
+                "normalised to a positional vector in molecular order "
+                "before they leave the accessor, because atom-label "
+                "schemes differ between programs"
             )
         return value, self.source_units.get(selector, SELECTOR_UNITS[selector])
 

@@ -29,6 +29,7 @@ from chemsmart.analysis.result_readers import (
     _SELECTOR_DIMENSIONS,
     RESULT_READERS,
     SELECTOR_UNITS,
+    MissingQuantityError,
 )
 
 
@@ -127,3 +128,58 @@ def test_the_repaired_selectors_reach_a_real_orca_result():
         reader.read(output, "ab_initio")
     with pytest.raises(MissingQuantityError):
         reader.read(output, "spin_square")
+
+
+def test_every_accessor_is_also_requestable():
+    """The direction the first version of this file did not pin.
+
+    It asserted declared-for-a-jobtype implies requestable, which is the
+    direction the eight orphans broke. It said nothing about accessors that
+    are implemented but declared for no jobtype -- fifteen of them exist, some
+    deliberately withheld (ORCA's printed thermochemistry, because 6.x applies
+    quasi-RRHO with no keyword) and some simply orphaned. If one of those is
+    ever declared, or an accessor is added with a name outside the supported
+    set, the gate would refuse it exactly as it refused the eight. Pin the
+    superset so the next accessor cannot repeat the defect.
+    """
+
+    accessors = set()
+    for reader in RESULT_READERS.values():
+        accessors |= set(reader.accessors)
+    unreachable = sorted(accessors - set(SUPPORTED_SELECTORS))
+    assert not unreachable, (
+        "these reader accessors exist but could not be requested if they "
+        f"were declared: {unreachable}"
+    )
+
+
+def test_an_atom_labelled_mapping_never_leaves_an_accessor():
+    """Per-atom values must be positional before the typed layer sees them.
+
+    Atom-label schemes disagree between programs -- ORCA and Gaussian key by a
+    global 1-based index, xTB by a per-element counter, so CO2 with atom order
+    O,O,C is {"O1","O2","C1"} on one and {"O1","O2","C3"} on the other, and
+    the same key names a different atom. Freezing a mapping then sorts it by
+    label, which reorders per-atom data out of molecular order and yields an
+    object accepted as a "matrix" of half-strings that only fails at first
+    arithmetic. So the reader refuses a mapping outright, and an empty one is
+    an ordinary absent quantity.
+    """
+
+    from chemsmart.analysis.result_quantities import QuantityExtractionError
+    from chemsmart.analysis.result_readers import ResultReaderV1
+
+    reader = ResultReaderV1(
+        program="probe",
+        artifact_kind="probe_output",
+        parser_id="probe.Parser",
+        open_output=lambda path: path,
+        accessors={
+            "energy": lambda output: {"O1": -0.42, "C2": 0.13},
+            "energies": lambda output: {},
+        },
+    )
+    with pytest.raises(QuantityExtractionError, match="positional vector"):
+        reader.read(object(), "energy")
+    with pytest.raises(MissingQuantityError):
+        reader.read(object(), "energies")

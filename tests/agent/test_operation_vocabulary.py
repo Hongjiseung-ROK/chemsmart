@@ -145,3 +145,33 @@ def test_the_schema_tells_the_model_to_prefer_the_named_convention():
     ]
     assert "rather than rebuilding" in description
     assert "three equally spaced cardinal numbers" in description
+
+
+def test_every_validation_predicate_the_model_may_choose_is_derived():
+    """The predicate enum must come from its source of truth, not a copy.
+
+    The operation and literature-constant vocabularies above are derived from
+    the sets that define them, so a new entry reaches the model with no edit
+    here. The predicate enum was the exception: eight names typed as string
+    literals in the tool schema while ANALYSIS_VALIDATION_PREDICATES lived in
+    the toolchain module, never imported here and never compared by any test.
+    The two agreed by hand. A ninth predicate would have been invisible to the
+    model until somebody noticed, which is the same defect class as a selector
+    that is declared and cannot be requested.
+    """
+
+    from chemsmart.agent.scientific_toolchain import (
+        ANALYSIS_VALIDATION_PREDICATES,
+    )
+
+    surface = build_command_compiled_tool_surface()
+    definition = next(
+        item["function"]
+        for item in surface.tool_definitions
+        if item["function"]["name"] == "plan_scientific_workflow"
+    )
+    node_schema = definition["parameters"]["properties"]["analysis_nodes"][
+        "items"
+    ]["properties"]["validation_rules"]["items"]
+    predicate = node_schema["properties"]["predicate"]
+    assert set(predicate["enum"]) == set(ANALYSIS_VALIDATION_PREDICATES)

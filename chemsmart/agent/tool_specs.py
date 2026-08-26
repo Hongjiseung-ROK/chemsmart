@@ -10,6 +10,9 @@ from chemsmart.agent.capabilities import (
     load_program_capabilities,
 )
 from chemsmart.agent.execution import EDITABLE_COORDINATE_OPERATIONS
+from chemsmart.agent.scientific_toolchain import (
+    ANALYSIS_VALIDATION_PREDICATES,
+)
 from chemsmart.agent.skills import skills_enabled
 from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
 from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
@@ -2243,16 +2246,15 @@ def _analysis_intent_node_schema() -> dict:
                         "rule_id": _public_identifier(),
                         "predicate": {
                             "type": "string",
-                            "enum": [
-                                "all_equal",
-                                "all_equal_text",
-                                "all_finite",
-                                "count_equals",
-                                "integer_equals",
-                                "maximum_absolute_less_equal",
-                                "minimum_greater_equal",
-                                "symmetric_within",
-                            ],
+                            # Derived, not hand-listed. The eight names were
+                            # typed here as literals while the constant they
+                            # mirror lived in the toolchain module, with
+                            # nothing keeping the two lists together -- so a
+                            # ninth predicate would have been invisible to the
+                            # model until somebody noticed. Every other
+                            # model-facing vocabulary here is derived from its
+                            # source of truth; this one now is too.
+                            "enum": sorted(ANALYSIS_VALIDATION_PREDICATES),
                         },
                         "input_ids": {
                             "type": "array",
