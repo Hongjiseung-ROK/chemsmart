@@ -51,6 +51,25 @@ one mode. Gaussian is deliberately undeclared: we never run it, and its
 displacement block comes in variants (``freq=HPModes``, ``freq=raman``)
 this reader cannot yet tell apart.
 
+An electrode potential is expressible: charge is a dimension, so
+potential is energy per charge and ``gibbs_to_redox_potential`` owns
+E = -dG/(nF) and the IUPAC sign. Subtract a reference electrode as
+ordinary arithmetic against a registered constant so the electrode you
+chose stays visible. Read a constant's convention family and its purpose
+before composing several by hand: a family says which scale an entry
+sits on and nothing about its standard state, so two entries on one
+scale can still need the term that bridges them, and where a finished
+composed value is registered, prefer it. A chain drawing on two families
+is displayed to the reviewer, never refused -- mixing can be deliberate.
+
+Two refusals now happen at planning rather than after an engine runs. A
+charge and multiplicity no molecule can have is refused when the state
+is bound; every state the arithmetic permits is still admitted, because
+choosing among possible states is what the calculation is for. And an
+expression node that reads a value no earlier node or analysis input
+provides is refused when planned -- expression nodes evaluate in the
+order given, so define a value before the node that uses it.
+
 Do not force every task through every layer. A valid route may be analysis-only
 or may choose a different causal decomposition. Use only the operations needed
 to answer the scientific request, and keep every source quantity and convention
