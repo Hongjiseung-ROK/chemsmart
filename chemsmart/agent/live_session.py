@@ -492,9 +492,23 @@ def run_live_agent_session(
             "an execution review requires --execution-envelope"
         )
     workspace_path = _validated_workspace(workspace)
-    observations = _scan_xyz_artifacts(workspace_path)
-    result_observations = _scan_result_artifacts(workspace_path)
-    database_observations = _scan_database_artifacts(workspace_path)
+    # Engine scratch is working space, not evidence: a crashed engine leaves
+    # intermediates behind, and a file the user never placed must not enter
+    # the session as if they had.  The envelope says where scratch lives, so
+    # its root is barred from every artifact scan.
+    scratch_exclusions: tuple[Path, ...] = ()
+    if bounded_envelope is not None and bounded_envelope.scratch_root:
+        scratch_path = Path(bounded_envelope.scratch_root)
+        if not scratch_path.is_absolute():
+            scratch_path = workspace_path / scratch_path
+        scratch_exclusions = (scratch_path.resolve(),)
+    observations = _scan_xyz_artifacts(workspace_path, scratch_exclusions)
+    result_observations = _scan_result_artifacts(
+        workspace_path, scratch_exclusions
+    )
+    database_observations = _scan_database_artifacts(
+        workspace_path, scratch_exclusions
+    )
     molecular_inputs = _coerce_approved_molecular_inputs(
         approved_molecular_inputs
     )
@@ -1126,16 +1140,21 @@ def _private_run_directory(workspace: Path, session_id: str) -> Path:
     return target
 
 
-def _scan_xyz_artifacts(workspace: Path) -> tuple[_XyzObservation, ...]:
+def _scan_xyz_artifacts(
+    workspace: Path, excluded_roots: tuple[Path, ...] = ()
+) -> tuple[_XyzObservation, ...]:
     observations: dict[str, _XyzObservation] = {}
     private_root = workspace / _PRIVATE_ROOT_NAME
     host_artifact_root = workspace / "artifacts"
     host_node_root = workspace / "nodes"
+    barred = (
+        private_root,
+        host_artifact_root,
+        host_node_root,
+        *excluded_roots,
+    )
     for candidate in sorted(workspace.rglob("*.xyz")):
-        if any(
-            root in candidate.parents
-            for root in (private_root, host_artifact_root, host_node_root)
-        ):
+        if any(root in candidate.parents for root in barred):
             continue
         if candidate.is_symlink() or not candidate.is_file():
             continue
@@ -1173,7 +1192,7 @@ def _scan_xyz_artifacts(workspace: Path) -> tuple[_XyzObservation, ...]:
 
 
 def _scan_database_artifacts(
-    workspace: Path,
+    workspace: Path, excluded_roots: tuple[Path, ...] = ()
 ) -> tuple[_DatabaseObservation, ...]:
     """Admit user-placed chemsmart .db files as inspectable artifacts.
 
@@ -1188,11 +1207,14 @@ def _scan_database_artifacts(
     private_root = workspace / _PRIVATE_ROOT_NAME
     host_artifact_root = workspace / "artifacts"
     host_node_root = workspace / "nodes"
+    barred = (
+        private_root,
+        host_artifact_root,
+        host_node_root,
+        *excluded_roots,
+    )
     for candidate in sorted(workspace.rglob("*.db")):
-        if any(
-            root in candidate.parents
-            for root in (private_root, host_artifact_root, host_node_root)
-        ):
+        if any(root in candidate.parents for root in barred):
             continue
         if candidate.is_symlink() or not candidate.is_file():
             continue
@@ -1228,7 +1250,7 @@ def _scan_database_artifacts(
 
 
 def _scan_pyscf_result_artifacts(
-    workspace: Path,
+    workspace: Path, excluded_roots: tuple[Path, ...] = ()
 ) -> tuple[_PySCFResultObservation, ...]:
     """Bind user-placed structured results without exposing model paths.
 
@@ -1240,11 +1262,9 @@ def _scan_pyscf_result_artifacts(
     observations: dict[str, _PySCFResultObservation] = {}
     private_root = workspace / _PRIVATE_ROOT_NAME
     host_artifact_root = workspace / "artifacts"
+    barred = (private_root, host_artifact_root, *excluded_roots)
     for candidate in sorted(workspace.rglob("*.h5")):
-        if any(
-            root in candidate.parents
-            for root in (private_root, host_artifact_root)
-        ):
+        if any(root in candidate.parents for root in barred):
             continue
         if candidate.is_symlink() or not candidate.is_file():
             continue
@@ -1328,7 +1348,7 @@ def _scan_pyscf_result_artifacts(
 
 
 def _scan_xtb_result_artifacts(
-    workspace: Path,
+    workspace: Path, excluded_roots: tuple[Path, ...] = ()
 ) -> tuple[_LoggedResultObservation, ...]:
     """Admit validated xTB native outputs to the shared quantity tool chain.
 
@@ -1343,11 +1363,9 @@ def _scan_xtb_result_artifacts(
     observations: dict[str, _LoggedResultObservation] = {}
     private_root = workspace / _PRIVATE_ROOT_NAME
     host_artifact_root = workspace / "artifacts"
+    barred = (private_root, host_artifact_root, *excluded_roots)
     for receipt_path in sorted(workspace.rglob("*.xtb-result-receipt.json")):
-        if any(
-            root in receipt_path.parents
-            for root in (private_root, host_artifact_root)
-        ):
+        if any(root in receipt_path.parents for root in barred):
             continue
         if receipt_path.is_symlink() or not receipt_path.is_file():
             continue
@@ -1453,7 +1471,7 @@ def _scan_xtb_result_artifacts(
 
 
 def _scan_orca_result_artifacts(
-    workspace: Path,
+    workspace: Path, excluded_roots: tuple[Path, ...] = ()
 ) -> tuple[_LoggedResultObservation, ...]:
     """Expose normally terminated ORCA outputs to the typed result reader."""
 
@@ -1462,11 +1480,9 @@ def _scan_orca_result_artifacts(
     observations: dict[str, _LoggedResultObservation] = {}
     private_root = workspace / _PRIVATE_ROOT_NAME
     host_artifact_root = workspace / "artifacts"
+    barred = (private_root, host_artifact_root, *excluded_roots)
     for candidate in sorted(workspace.rglob("*.out")):
-        if any(
-            root in candidate.parents
-            for root in (private_root, host_artifact_root)
-        ):
+        if any(root in candidate.parents for root in barred):
             continue
         if candidate.is_symlink() or not candidate.is_file():
             continue
@@ -1564,7 +1580,7 @@ def _scan_orca_result_artifacts(
 
 
 def _scan_gaussian_result_artifacts(
-    workspace: Path,
+    workspace: Path, excluded_roots: tuple[Path, ...] = ()
 ) -> tuple[_LoggedResultObservation, ...]:
     """Expose normally terminated Gaussian results to the typed reader.
 
@@ -1582,15 +1598,13 @@ def _scan_gaussian_result_artifacts(
     observations: dict[str, _LoggedResultObservation] = {}
     private_root = workspace / _PRIVATE_ROOT_NAME
     host_artifact_root = workspace / "artifacts"
+    barred = (private_root, host_artifact_root, *excluded_roots)
     candidates = {
         *workspace.rglob("*.log"),
         *workspace.rglob("*.out"),
     }
     for candidate in sorted(candidates):
-        if any(
-            root in candidate.parents
-            for root in (private_root, host_artifact_root)
-        ):
+        if any(root in candidate.parents for root in barred):
             continue
         if candidate.is_symlink() or not candidate.is_file():
             continue
@@ -1665,16 +1679,18 @@ def _scan_gaussian_result_artifacts(
     )
 
 
-def _scan_result_artifacts(workspace: Path) -> tuple[_ResultObservation, ...]:
+def _scan_result_artifacts(
+    workspace: Path, excluded_roots: tuple[Path, ...] = ()
+) -> tuple[_ResultObservation, ...]:
     """Collect every registered, analysis-ready program result."""
 
     return tuple(
         sorted(
             (
-                *_scan_pyscf_result_artifacts(workspace),
-                *_scan_xtb_result_artifacts(workspace),
-                *_scan_orca_result_artifacts(workspace),
-                *_scan_gaussian_result_artifacts(workspace),
+                *_scan_pyscf_result_artifacts(workspace, excluded_roots),
+                *_scan_xtb_result_artifacts(workspace, excluded_roots),
+                *_scan_orca_result_artifacts(workspace, excluded_roots),
+                *_scan_gaussian_result_artifacts(workspace, excluded_roots),
             ),
             key=lambda item: item.artifact.artifact_id,
         )
