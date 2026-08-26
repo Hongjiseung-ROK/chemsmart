@@ -60,9 +60,6 @@ SUPPORTED_PYSCF_SELECTORS = frozenset(
         "vibrational_frequencies",
         "vibrational_mode_atom_participation",
         "vibrational_mode_degeneracy_group",
-        "scan_coordinate_values",
-        "scan_energies",
-        "scan_point_indices",
         "homo",
         "lumo",
         "gap",
@@ -126,6 +123,30 @@ SUPPORTED_SELECTORS = SUPPORTED_PYSCF_SELECTORS | frozenset(
         "vpt2_harmonic_frequencies",
         "vpt2_fundamental_frequencies",
         "vpt2_zero_point_rovibrational_energy",
+        # Method identity and convergence.  A composed workflow spanning many
+        # nodes has to be able to assert that one functional and one method
+        # ran across all of them -- ``all_equal_text`` is the predicate that
+        # exists for exactly that -- and to ask whether an optimization
+        # converged.  All four have had accessors, jobtype declarations, units
+        # and dimensions for some time; only the request gate was missing, so
+        # the capability was unreachable rather than absent.
+        "ab_initio",
+        "functional",
+        "converged",
+        "irc_converged",
+        # Spin-resolved frontier orbitals, declared beside the restricted
+        # pair.  An open-shell species has no single HOMO, so a radical in a
+        # redox or hydrogen-transfer workflow needs these rather than ``homo``.
+        "alpha_homo",
+        "alpha_lumo",
+        "beta_homo",
+        "beta_lumo",
+        # The relaxed-scan surface.  Read by the ORCA reader; deliberately not
+        # in the PySCF set above, which has no scan jobtype and no extraction
+        # branch for these names.
+        "scan_coordinate_values",
+        "scan_energies",
+        "scan_point_indices",
     }
 )
 
