@@ -11,14 +11,8 @@ from chemsmart.settings.pyscf import PySCFProjectSettings
 
 
 @pytest.fixture()
-def pyscf_test_project_yaml():
-    return (
-        Path(__file__).parent
-        / "data"
-        / "PySCFTests"
-        / "project_yaml"
-        / "test.yaml"
-    )
+def pyscf_test_project_yaml(pyscf_yaml_settings_test):
+    return Path(pyscf_yaml_settings_test)
 
 
 class TestPySCFJobSettings:
