@@ -25,8 +25,10 @@ from chemsmart.analysis.literature_constants import (
 )
 from chemsmart.analysis.result_quantities import (
     ANGLE,
+    CHARGE,
     DIMENSIONLESS,
     DIPOLE_MOMENT,
+    ELECTRIC_POTENTIAL,
     ENERGY,
     ENTROPY,
     FREQUENCY,
@@ -360,6 +362,8 @@ def canonical_unit_for_dimension(dimension: Dimension) -> str:
         ENTROPY: "hartree K^-1",
         DIPOLE_MOMENT: "debye",
         MASS: "u",
+        CHARGE: "e",
+        ELECTRIC_POTENTIAL: "hartree e^-1",
     }
     if dimension in known:
         return known[dimension]
@@ -372,6 +376,7 @@ def canonical_unit_for_dimension(dimension: Dimension) -> str:
         "atm",
         "debye",
         "u",
+        "e",
     )
     terms = []
     for label, exponent in zip(labels, dimension):
@@ -569,6 +574,26 @@ def _unit_spec(unit: str) -> tuple[Dimension, str, float]:
         "atm": (PRESSURE, "atm", 1.0),
         "bar": (PRESSURE, "atm", 1.0 / 1.01325),
         "pa": (PRESSURE, "atm", 1.0 / 101_325.0),
+        "e": (CHARGE, "e", 1.0),
+        # One volt acting on one elementary charge is one electronvolt, by
+        # definition of the electronvolt.  So the volt conversion factor is
+        # exactly the eV-to-hartree factor already in this table, and no new
+        # physical constant enters here.
+        "v": (
+            ELECTRIC_POTENTIAL,
+            "hartree e^-1",
+            energy_conversion("eV", "hartree", 1.0),
+        ),
+        "volt": (
+            ELECTRIC_POTENTIAL,
+            "hartree e^-1",
+            energy_conversion("eV", "hartree", 1.0),
+        ),
+        "mv": (
+            ELECTRIC_POTENTIAL,
+            "hartree e^-1",
+            energy_conversion("eV", "hartree", 1.0e-3),
+        ),
     }
     try:
         return aliases[key]

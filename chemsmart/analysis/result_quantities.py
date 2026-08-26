@@ -50,6 +50,20 @@ DIPOLE_MOMENT: Dimension = (0, 0, 0, 0, 0, 0, 1)
 MASS: Dimension = (0, 0, 0, 0, 0, 0, 0, 1)
 MOMENT_OF_INERTIA: Dimension = (0, 2, 0, 0, 0, 0, 0, 1)
 
+#: Electric charge, the ninth base, in units of the elementary charge.  It
+#: exists so that an electrode potential is a dimension rather than a number
+#: with a hopeful label: potential is energy per charge, which makes
+#: dG = -nFE dimensionally checkable instead of asserted, and dissolves the
+#: Faraday constant into the unit system where it belongs -- it is a
+#: definition, not a value taken from the literature.
+#:
+#: DIPOLE_MOMENT above stays its own base rather than becoming charge times
+#: length.  Rewriting it would change the dimension recorded in every dipole
+#: receipt already written, and a stored receipt's dimension is part of its
+#: identity.
+CHARGE: Dimension = (0, 0, 0, 0, 0, 0, 0, 0, 1)
+ELECTRIC_POTENTIAL: Dimension = (1, 0, 0, 0, 0, 0, 0, 0, -1)
+
 SUPPORTED_PYSCF_SELECTORS = frozenset(
     {
         "energy",
@@ -442,12 +456,12 @@ class QuantityValueV1:
             "text_vector",
         }:
             raise QuantityContractError("unsupported quantity data kind")
-        if len(self.dimension) not in {6, 7, 8} or not all(
+        if len(self.dimension) not in {6, 7, 8, 9} or not all(
             isinstance(exponent, int) for exponent in self.dimension
         ):
             raise QuantityContractError(
                 "dimension must contain six legacy, seven dipole-extended, "
-                "or eight mass-extended integers"
+                "eight mass-extended, or nine charge-extended integers"
             )
         object.__setattr__(self, "source_value", _freeze(self.source_value))
         object.__setattr__(self, "value", _freeze(self.value))
@@ -1728,6 +1742,8 @@ __all__ = [
     "ENTROPY",
     "FREQUENCY",
     "LENGTH",
+    "CHARGE",
+    "ELECTRIC_POTENTIAL",
     "MASS",
     "MOMENT_OF_INERTIA",
     "PRESSURE",
