@@ -1056,20 +1056,48 @@ class Gaussian16Output(GaussianFileMixin):
 
     #### FREQUENCY CALCULATIONS
     @cached_property
+    def _last_frequency_job_contents(self):
+        """Lines of the last job step in this log that printed frequencies.
+
+        A Gaussian log may hold several job steps, and an earlier step's
+        frequencies belong to a different calculation than the final one's.
+        Reading the whole file returned 240 frequencies for a 42-atom
+        molecule whose 3N-6 is 120, with the optimisation step's imaginary
+        mode sitting at index 120 -- so a strict-minimum verdict could read
+        a saddle the final Hessian does not have. ORCA's reader already
+        segments by job and takes the last block; this does the same.
+
+        Frequencies and normal modes are both read from this one segment,
+        which is what keeps mode k paired with frequency k.
+        """
+
+        latest: list[str] = []
+        current: list[str] = []
+        has_frequencies = False
+        for line in self.contents:
+            current.append(line)
+            if line.startswith("Frequencies --"):
+                has_frequencies = True
+            if "Normal termination" in line:
+                if has_frequencies:
+                    latest = current
+                current = []
+                has_frequencies = False
+        if has_frequencies:
+            latest = current
+        return latest
+
+    @cached_property
     def vibrational_frequencies(self):
         """
         Read the vibrational frequencies from the Gaussian output file.
         """
         frequencies = []
-        for line in self.contents:
+        for line in self._last_frequency_job_contents:
             if line.startswith("Frequencies --"):
                 freq_string = line.split("--")[1].strip()
                 for freq in freq_string.split():
                     frequencies.append(float(freq))
-            else:
-                continue
-            if "Thermochemistry" in line:
-                break
         return frequencies
 
     @cached_property
@@ -1154,30 +1182,35 @@ class Gaussian16Output(GaussianFileMixin):
         vibration.
         """
         list_of_vib_modes = []
-        for i, line in enumerate(self.contents):
-            if line.startswith("Frequencies --"):
-                first_col_vib_modes = []
-                second_col_vib_modes = []
-                third_col_vib_modes = []
-                for j_line in self.contents[i + 5 :]:
-                    # if line match normal mode pattern
-                    if re.match(normal_mode_pattern, j_line):
-                        normal_mode = [float(val) for val in j_line.split()]
-                        first_col_vib_mode = normal_mode[2:5]
-                        second_col_vib_mode = normal_mode[5:8]
-                        third_col_vib_mode = normal_mode[8:11]
-                        first_col_vib_modes.append(first_col_vib_mode)
-                        second_col_vib_modes.append(second_col_vib_mode)
-                        third_col_vib_modes.append(third_col_vib_mode)
-                    else:
-                        break
-                list_of_vib_modes.append(np.array(first_col_vib_modes))
-                list_of_vib_modes.append(np.array(second_col_vib_modes))
-                list_of_vib_modes.append(np.array(third_col_vib_modes))
-            else:
+        contents = self._last_frequency_job_contents
+        for i, line in enumerate(contents):
+            if not line.startswith("Frequencies --"):
                 continue
-            if "Thermochemistry" in line:
-                break
+            first_col_vib_modes = []
+            second_col_vib_modes = []
+            third_col_vib_modes = []
+            for j_line in contents[i + 5 :]:
+                # if line match normal mode pattern
+                if re.match(normal_mode_pattern, j_line):
+                    normal_mode = [float(val) for val in j_line.split()]
+                    first_col_vib_mode = normal_mode[2:5]
+                    second_col_vib_mode = normal_mode[5:8]
+                    third_col_vib_mode = normal_mode[8:11]
+                    first_col_vib_modes.append(first_col_vib_mode)
+                    second_col_vib_modes.append(second_col_vib_mode)
+                    third_col_vib_modes.append(third_col_vib_mode)
+                else:
+                    break
+            # A final block may carry fewer than three modes: CO2 has four
+            # and its last block holds one, so appending all three columns
+            # unconditionally invented two empty (natoms, 0) arrays and
+            # reported six modes for a four-mode molecule.  The xTB copy of
+            # this parser already guards this way.
+            list_of_vib_modes.append(np.array(first_col_vib_modes))
+            if any(second_col_vib_modes):
+                list_of_vib_modes.append(np.array(second_col_vib_modes))
+            if any(third_col_vib_modes):
+                list_of_vib_modes.append(np.array(third_col_vib_modes))
         return list_of_vib_modes
 
     @cached_property

@@ -89,3 +89,57 @@ def test_a_mode_of_the_wrong_shape_is_refused():
     )
     with pytest.raises(ValueError, match="must have shape"):
         molecule.vibrationally_displaced(1)
+
+
+def test_a_multi_job_log_reports_only_the_last_hessian(
+    gaussian_outputs_test_directory,
+):
+    """An earlier job step's frequencies are a different calculation.
+
+    This log is an optimisation with CalcAll followed by a separate Freq
+    step. Reading the whole file returned 240 frequencies and 240 modes
+    for a 42-atom molecule whose 3N-6 is 120, with the optimisation's
+    imaginary mode at index 120 -- so a strict-minimum verdict could read
+    a saddle that the final Hessian does not have.
+    """
+
+    import os
+
+    from chemsmart.io.gaussian.output import Gaussian16Output
+
+    path = os.path.join(
+        gaussian_outputs_test_directory, "Pd_insertion_ts_r.log"
+    )
+    output = Gaussian16Output(filename=path)
+    atoms = len(output.get_molecule().chemical_symbols)
+
+    assert atoms == 42
+    assert len(output.vibrational_frequencies) == 3 * atoms - 6
+    # Frequencies and modes come from one segment, so index k means one
+    # thing in both.
+    assert len(output.vibrational_modes) == len(output.vibrational_frequencies)
+    assert all(
+        np.asarray(mode).shape == (atoms, 3)
+        for mode in output.vibrational_modes
+    )
+
+
+def test_a_trailing_block_does_not_invent_empty_modes(
+    gaussian_outputs_test_directory,
+):
+    """CO2 has four modes; its last printed block carries one."""
+
+    import os
+
+    from chemsmart.io.gaussian.output import Gaussian16Output
+
+    path = os.path.join(gaussian_outputs_test_directory, "co2.log")
+    output = Gaussian16Output(filename=path)
+    atoms = len(output.get_molecule().chemical_symbols)
+
+    assert len(output.vibrational_frequencies) == 4
+    assert len(output.vibrational_modes) == 4
+    assert all(
+        np.asarray(mode).shape == (atoms, 3)
+        for mode in output.vibrational_modes
+    )
