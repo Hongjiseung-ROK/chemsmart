@@ -89,6 +89,7 @@ _OPERATIONS = frozenset(
         "correlation_inverse_power_cbs_limit",
         "photon_wavelength",
         "gibbs_to_pka",
+        "gibbs_to_redox_potential",
         "boltzmann_populations",
         "boltzmann_average",
         "imaginary_mode_count",
@@ -182,6 +183,15 @@ OPERATION_DESCRIPTIONS: Mapping[str, str] = {
     "gibbs_to_pka": (
         "pKa from a deprotonation free energy and a temperature, in that "
         "order; owns pKa = deltaG / (RT ln 10)"
+    ),
+    "gibbs_to_redox_potential": (
+        "electrode potential from a half-reaction free energy and the number "
+        "of electrons transferred, in that order; owns E = -deltaG / (n F) "
+        "and with it the IUPAC sign, so a reduction free energy that is "
+        "negative gives a positive potential. The result is an absolute "
+        "potential on the same scale as the free energy it came from; "
+        "subtract a reference-electrode constant separately, so which "
+        "electrode you referenced stays visible in the expression"
     ),
     "boltzmann_populations": (
         "normalized Boltzmann populations of a set of states. Takes the state "
@@ -288,6 +298,7 @@ CONVENTION_OPERATIONS = frozenset(
         "distance",
         "center_of_mass",
         "gibbs_to_pka",
+        "gibbs_to_redox_potential",
         "principal_moments_of_inertia",
         "linear_rotor_constant",
         "rigid_rotor_constants",
@@ -1619,6 +1630,43 @@ def _node_value(
             value=payload,
             unit="1",
             dimension=DIMENSIONLESS,
+            evidence_ref=evidence_ref,
+        )
+
+    if operation == "gibbs_to_redox_potential":
+        # E = -deltaG / (n F).  Free energies here are per mole and F is
+        # Avogadro's number times the elementary charge, so per electron the
+        # arithmetic is just -deltaG / n; the elementary charge enters as the
+        # unit of the result rather than as a factor.  That is why no Faraday
+        # constant appears in this function or in the constants registry.
+        if (
+            len(inputs) != 2
+            or inputs[0].dimension != ENERGY
+            or inputs[1].dimension != DIMENSIONLESS
+        ):
+            raise QuantityExpressionError(
+                "gibbs_to_redox_potential takes one half-reaction free "
+                "energy and one electron count, in that order"
+            )
+        delta_g = _numeric(inputs[0])
+        electrons = _numeric(inputs[1])
+        if delta_g.size != 1 or electrons.size != 1:
+            raise QuantityExpressionError(
+                "gibbs_to_redox_potential takes scalar inputs"
+            )
+        electron_count = float(electrons.reshape(()))
+        if electron_count <= 0.0:
+            raise QuantityExpressionError(
+                "gibbs_to_redox_potential requires a positive electron count"
+            )
+        payload = _payload(-float(delta_g.reshape(())) / electron_count)
+        return make_quantity_value(
+            quantity_id=node.node_id,
+            source_value=payload,
+            source_unit="hartree e^-1",
+            value=payload,
+            unit="hartree e^-1",
+            dimension=ELECTRIC_POTENTIAL,
             evidence_ref=evidence_ref,
         )
 

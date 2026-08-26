@@ -245,3 +245,133 @@ def test_the_dipole_moment_base_is_untouched():
     assert normalize_numeric_value(1.0, "e bohr")[2] == DIPOLE_MOMENT
     assert normalize_numeric_value(1.0, "e a0")[2] == DIPOLE_MOMENT
     assert DIPOLE_MOMENT != CHARGE
+
+
+def _redox(delta_g_kcal, electrons, reference_volts=None):
+    inputs = [
+        _quantity("in_dg", delta_g_kcal, "kcal/mol"),
+        _quantity("in_n", float(electrons), "1"),
+    ]
+    nodes = [
+        QuantityExpressionNodeV1(
+            node_id="dg", operation="ref", reference="in_dg"
+        ),
+        QuantityExpressionNodeV1(
+            node_id="n", operation="ref", reference="in_n"
+        ),
+        QuantityExpressionNodeV1(
+            node_id="e_abs",
+            operation="gibbs_to_redox_potential",
+            input_ids=("dg", "n"),
+        ),
+        QuantityExpressionNodeV1(
+            node_id="e_abs_volts",
+            operation="convert",
+            input_ids=("e_abs",),
+            target_unit="V",
+        ),
+    ]
+    outputs = ["e_abs_volts"]
+    if reference_volts is not None:
+        inputs.append(_quantity("in_ref", reference_volts, "V"))
+        nodes += [
+            QuantityExpressionNodeV1(
+                node_id="ref", operation="ref", reference="in_ref"
+            ),
+            QuantityExpressionNodeV1(
+                node_id="e_vs_ref",
+                operation="subtract",
+                input_ids=("e_abs", "ref"),
+            ),
+            QuantityExpressionNodeV1(
+                node_id="e_vs_ref_volts",
+                operation="convert",
+                input_ids=("e_vs_ref",),
+                target_unit="V",
+            ),
+        ]
+        outputs.append("e_vs_ref_volts")
+    receipt = evaluate_quantity_expression(
+        QuantityExpressionRequestV1(
+            schema_version=_SCHEMA,
+            expression_id="redox",
+            inputs=tuple(inputs),
+            nodes=tuple(nodes),
+            output_node_ids=tuple(outputs),
+        )
+    )
+    return {item.quantity_id: item for item in receipt.outputs}
+
+
+def test_the_redox_operation_owns_the_iupac_sign():
+    """A favourable reduction has a negative dG and a positive potential.
+
+    Getting this backwards is the classic redox error and it is silent: the
+    magnitude is right and only the sign says the cell runs the other way.
+    The operation owns it so no expression has to restate it.
+    """
+
+    outputs = _redox(-98.70, 1)
+    assert outputs["e_abs_volts"].source_value == pytest.approx(4.28, abs=0.01)
+    assert outputs["e_abs_volts"].dimension == ELECTRIC_POTENTIAL
+
+    unfavourable = _redox(+98.70, 1)
+    assert unfavourable["e_abs_volts"].source_value == pytest.approx(
+        -4.28, abs=0.01
+    )
+
+
+def test_referencing_an_electrode_is_ordinary_subtraction():
+    """Which electrode was referenced stays visible in the expression.
+
+    A half reaction whose absolute potential equals the absolute potential of
+    the standard hydrogen electrode is zero on the SHE scale, by definition.
+    """
+
+    outputs = _redox(-98.70, 1, reference_volts=4.28)
+    assert outputs["e_vs_ref_volts"].source_value == pytest.approx(
+        0.0, abs=0.01
+    )
+
+
+def test_a_two_electron_process_halves_the_potential():
+    one = _redox(-98.70, 1)["e_abs_volts"].source_value
+    two = _redox(-98.70, 2)["e_abs_volts"].source_value
+    assert two == pytest.approx(one / 2.0, abs=1e-6)
+
+
+@pytest.mark.parametrize("electrons", [0.0, -1.0])
+def test_a_non_positive_electron_count_is_refused(electrons):
+    with pytest.raises(Exception, match="positive electron count"):
+        _redox(-98.70, electrons)
+
+
+def test_the_redox_operation_refuses_wrong_input_dimensions():
+    """A temperature where an electron count belongs must not silently work."""
+
+    nodes = (
+        QuantityExpressionNodeV1(
+            node_id="dg", operation="ref", reference="in_dg"
+        ),
+        QuantityExpressionNodeV1(
+            node_id="t", operation="ref", reference="in_t"
+        ),
+        QuantityExpressionNodeV1(
+            node_id="e",
+            operation="gibbs_to_redox_potential",
+            input_ids=("dg", "t"),
+        ),
+    )
+    with pytest.raises(Exception, match="electron count"):
+        evaluate_quantity_expression(
+            QuantityExpressionRequestV1(
+                schema_version=_SCHEMA,
+                expression_id="bad",
+                inputs=(
+                    _quantity("in_dg", -1.0, "kcal/mol"),
+                    _quantity("in_t", 298.15, "K"),
+                ),
+                nodes=nodes,
+                output_node_ids=("e",),
+            )
+        )
