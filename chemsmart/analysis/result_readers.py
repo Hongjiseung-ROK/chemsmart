@@ -67,6 +67,8 @@ SELECTOR_UNITS = {
     "singlet_oscillator_strengths": "",
     "triplet_oscillator_strengths": "",
     "vibrational_frequencies": "cm^-1",
+    "vibrational_mode_atom_participation": "",
+    "vibrational_mode_degeneracy_group": "",
     "scan_energies": "Eh",
     # A scanned coordinate is a distance for a bond and an angle for a torsion,
     # so a single declared unit here would be false for half of all scans.  The
@@ -141,6 +143,121 @@ def _last_energy(output: Any) -> float:
 def _positions(output: Any) -> list[list[float]]:
     molecule = output.molecule
     return [[float(value) for value in row] for row in molecule.positions]
+
+
+#: Frequencies closer than this are treated as one degenerate set.  Two
+#: programs print frequencies to two decimals, so a tighter window would
+#: split a genuinely degenerate pair on rounding alone; a much looser one
+#: would merge distinct modes of a floppy molecule.
+MODE_DEGENERACY_TOLERANCE_CM1 = 1.0
+
+
+def _mode_displacement_matrices(output: Any) -> list[Any]:
+    """The program's own per-mode displacement matrices, index-aligned.
+
+    Every registered reader reaches this through ``vibrational_modes``, and
+    the pairing with ``vibrational_frequencies`` is the invariant that makes
+    a mode index mean one thing: mode k is the mode whose frequency is
+    frequency k.  A result whose two lists disagree is refused rather than
+    silently mispaired.
+    """
+
+    import numpy as np
+
+    modes = getattr(output, "vibrational_modes", None) or []
+    frequencies = getattr(output, "vibrational_frequencies", None) or []
+    if not modes:
+        raise MissingQuantityError(
+            "result establishes no vibrational normal modes"
+        )
+    if len(modes) != len(frequencies):
+        raise MissingQuantityError(
+            f"result reports {len(frequencies)} vibrational frequencies but "
+            f"{len(modes)} normal modes, so a mode index would not name the "
+            "mode its frequency names"
+        )
+    matrices = []
+    for mode in modes:
+        matrix = np.asarray(mode, dtype=float)
+        if matrix.ndim != 2 or matrix.shape[1] != 3:
+            raise MissingQuantityError(
+                "a vibrational normal mode must carry three displacement "
+                f"components per atom; got shape {matrix.shape}"
+            )
+        matrices.append(matrix)
+    return matrices
+
+
+def _vibrational_mode_atom_participation(output: Any) -> list[list[float]]:
+    """Per-atom share of each mode's squared displacement.
+
+    ``s_i = ||x_i||^2 / sum_j ||x_j||^2`` for atom ``i`` of one mode, so each
+    row sums to one and the table reads "how much of mode k is atom i".
+
+    This is the one quantity the four supported programs agree on.  They do
+    not agree on the vector: ORCA, Gaussian and xTB print Cartesian
+    displacements normalised to unit norm, while PySCF returns the same
+    physical displacement scaled by ``1/sqrt(reduced mass)`` in amu^-1/2 --
+    a per-mode scalar.  Dividing by the row's own total removes exactly that
+    scalar, and with it the arbitrary eigenvector sign and the program's
+    choice of coordinate frame, none of which survive into a ratio of
+    squared magnitudes.  What it does not remove is each program's atomic
+    mass table (Gaussian uses most-abundant-isotope masses where the others
+    use standard atomic weights), which perturbs the eigenvector itself by
+    roughly a tenth of a percent for C/H/O and about one percent for heavy
+    halogens.
+
+    The number is an observation.  Reading "atoms 6, 7 and 8 carry 97% of
+    this imaginary mode, and they are the three hydrogens of a methyl group"
+    is chemistry, and it belongs to the scientist, not to this function.
+    """
+
+    participation = []
+    for matrix in _mode_displacement_matrices(output):
+        squared = (matrix**2).sum(axis=1)
+        total = float(squared.sum())
+        if total <= 0.0:
+            raise MissingQuantityError(
+                "a vibrational normal mode has zero displacement, so no "
+                "atom carries a share of it"
+            )
+        participation.append([float(value) for value in squared / total])
+    return participation
+
+
+def _vibrational_mode_degeneracy_group(output: Any) -> list[int]:
+    """Which modes share a frequency, as 1-based group labels.
+
+    Within a degenerate set the individual eigenvectors are an arbitrary
+    basis: the two bending modes of a linear triatomic can be printed as
+    pure-x and pure-y, or as any rotation of that pair, and the program's
+    choice carries no physics.  Per-mode participation is therefore
+    ill-posed inside such a set -- only the sum over the set is meaningful.
+
+    Modes whose frequencies lie within
+    :data:`MODE_DEGENERACY_TOLERANCE_CM1` of the group's first member share
+    a label, so a reader can see that mode k has company before drawing a
+    conclusion about which atoms move in it.  Singleton labels are the
+    ordinary case; the grouping states a fact and judges nothing.
+    """
+
+    frequencies = getattr(output, "vibrational_frequencies", None) or []
+    if not frequencies:
+        raise MissingQuantityError(
+            "result establishes no vibrational frequencies"
+        )
+    labels: list[int] = []
+    group = 0
+    anchor: float | None = None
+    for frequency in (float(item) for item in frequencies):
+        if (
+            anchor is None
+            or abs(frequency - anchor) > MODE_DEGENERACY_TOLERANCE_CM1
+        ):
+            group += 1
+            anchor = frequency
+        labels.append(group)
+    return labels
 
 
 def _symbols(output: Any) -> list[str]:
@@ -446,9 +563,22 @@ class ResultReaderV1:
 
 
 def _text_output_accessors(
-    *, thermochemistry: bool = True
+    *,
+    thermochemistry: bool = True,
+    mode_composition: bool = False,
 ) -> dict[str, Callable[[Any], Any]]:
-    """Accessors shared by the log-parsing programs."""
+    """Accessors shared by the log-parsing programs.
+
+    ``mode_composition`` is opt-in rather than shared because an accessor is
+    what ``registered_reader_selectors`` shows the model.  Gaussian's own
+    displacement block comes in variants this reader cannot yet tell apart
+    -- ``freq=HPModes`` prints a second, higher-precision block, and
+    ``freq=raman`` moves the row header -- and we never run Gaussian, so the
+    variant is the user's choice and not an observable of ours.  Listing the
+    quantity for a reader that may be looking at the wrong block would
+    advertise support we cannot stand behind, so Gaussian is left out until
+    the reader can detect what it is reading.
+    """
 
     accessors: dict[str, Callable[[Any], Any]] = {
         "energy": _last_energy,
@@ -462,6 +592,13 @@ def _text_output_accessors(
         "charge": lambda output: int(output.charge),
         "multiplicity": lambda output: int(output.multiplicity),
     }
+    if mode_composition:
+        accessors["vibrational_mode_atom_participation"] = (
+            _vibrational_mode_atom_participation
+        )
+        accessors["vibrational_mode_degeneracy_group"] = (
+            _vibrational_mode_degeneracy_group
+        )
     if thermochemistry:
         accessors["gibbs_free_energy"] = lambda output: float(
             output.gibbs_free_energy
@@ -843,7 +980,7 @@ def _optimization_converged(output: Any) -> int:
 
 
 def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
-    accessors = _text_output_accessors()
+    accessors = _text_output_accessors(mode_composition=True)
     accessors.update(
         {
             # A relaxed scan is a surface, so it reaches the typed layer as
@@ -1217,6 +1354,12 @@ def _xtb_accessors() -> dict[str, Callable[[Any], Any]]:
         "charge": _xtb_state_integer("charge"),
         "multiplicity": _xtb_state_integer("multiplicity"),
         "gibbs_free_energy": _xtb_gibbs,
+        "vibrational_mode_atom_participation": (
+            _vibrational_mode_atom_participation
+        ),
+        "vibrational_mode_degeneracy_group": (
+            _vibrational_mode_degeneracy_group
+        ),
         "vibrational_frequencies": lambda output: [
             float(item) for item in output.vibrational_frequencies
         ],
@@ -1403,6 +1546,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_target",
                     "symbols",
                     "vibrational_frequencies",
+                    "vibrational_mode_atom_participation",
+                    "vibrational_mode_degeneracy_group",
                 ),
             ),
             (
@@ -1555,6 +1700,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_target",
                     "symbols",
                     "vibrational_frequencies",
+                    "vibrational_mode_atom_participation",
+                    "vibrational_mode_degeneracy_group",
                 ),
             ),
         ),
@@ -1687,6 +1834,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "positions",
                     "symbols",
                     "vibrational_frequencies",
+                    "vibrational_mode_atom_participation",
+                    "vibrational_mode_degeneracy_group",
                 ),
             ),
             (
@@ -1760,6 +1909,8 @@ _SELECTOR_DIMENSIONS = {
     "singlet_oscillator_strengths": "DIMENSIONLESS",
     "triplet_oscillator_strengths": "DIMENSIONLESS",
     "vibrational_frequencies": "FREQUENCY",
+    "vibrational_mode_atom_participation": "DIMENSIONLESS",
+    "vibrational_mode_degeneracy_group": "DIMENSIONLESS",
     "vpt2_harmonic_frequencies": "FREQUENCY",
     "vpt2_fundamental_frequencies": "FREQUENCY",
     "vpt2_zero_point_rovibrational_energy": "FREQUENCY",

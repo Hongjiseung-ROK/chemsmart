@@ -58,6 +58,8 @@ SUPPORTED_PYSCF_SELECTORS = frozenset(
         "connectivity",
         "symbols",
         "vibrational_frequencies",
+        "vibrational_mode_atom_participation",
+        "vibrational_mode_degeneracy_group",
         "scan_coordinate_values",
         "scan_energies",
         "scan_point_indices",
@@ -221,6 +223,12 @@ _SELECTOR_RESULT_UNITS = {
     "positions": {"results/positions": "Angstrom"},
     "connectivity": {"results/positions": "Angstrom"},
     "vibrational_frequencies": {"results/vibrational_frequencies": "cm^-1"},
+    "vibrational_mode_atom_participation": {
+        "results/normal_modes": "dimensionless"
+    },
+    "vibrational_mode_degeneracy_group": {
+        "results/vibrational_frequencies": "cm^-1"
+    },
     "scan_energies": {"results/scan_energies": "Eh"},
     "scan_coordinate_values": {"results/scan_coordinate_values": ""},
     "scan_point_indices": {"results/scan_point_indices": ""},
@@ -1145,6 +1153,38 @@ def _extract_selector(
             value=value,
             unit="cm^-1",
             dimension=FREQUENCY,
+            evidence_ref=evidence_ref,
+        )
+    if name in {
+        "vibrational_mode_atom_participation",
+        "vibrational_mode_degeneracy_group",
+    }:
+        from chemsmart.analysis.result_readers import (
+            MissingQuantityError,
+            _vibrational_mode_atom_participation,
+            _vibrational_mode_degeneracy_group,
+        )
+
+        # PySCF stores the same physical displacement as the log-parsing
+        # programs, scaled by 1/sqrt(reduced mass) -- a per-mode scalar that
+        # a per-atom share divides straight back out, so the identical
+        # helper serves every program.
+        compute = (
+            _vibrational_mode_atom_participation
+            if name.endswith("participation")
+            else _vibrational_mode_degeneracy_group
+        )
+        try:
+            value = compute(output)
+        except MissingQuantityError as error:
+            raise QuantityExtractionError(str(error)) from error
+        return _make_quantity(
+            quantity_id=selector.quantity_id,
+            source_value=value,
+            source_unit="1",
+            value=value,
+            unit="1",
+            dimension=DIMENSIONLESS,
             evidence_ref=evidence_ref,
         )
     if name in {"homo", "lumo", "gap"}:
