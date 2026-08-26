@@ -68,6 +68,23 @@ interrupted or partial run continues by re-entering its own run directory: each 
 consumption ledger naming the remainder, terminal nodes replay from their receipts without re-execution, a mid-engine
 interruption reports as ambiguous pending human reconciliation, and a completed approval refuses re-invocation.
 
+A geometry may be built by typed spatial operations whose arithmetic the host owns. ``edit_molecular_geometry`` sets one
+internal coordinate of an identity-bound geometry — a bond length, an angle, or a torsion, the same three coordinates a
+scan drives — as a rigid motion: you name the coordinate's atoms, the target value in the coordinate's own unit, and
+which side moves, named by one of the coordinate's own atoms because the choice is scientific and the common libraries
+disagree on a default. The host measures the coordinate before and after with the same arithmetic the analysis layer's
+``distance``/``angle``/``dihedral`` operations use, verifies the requested value was reached, enumerates every atom that
+moved, and records close contacts and connectivity changes as observations rather than verdicts. Refusals are structural
+only — an axis that is not a perceived bond, a coordinate a rigid motion would tear out of a ring (use a constrained
+optimisation or a relaxed scan there), collinear or out-of-range atoms; a requested value is never judged, because the
+optimisation that consumes the edited structure is what grades it, and the gap between what was requested and what
+relaxation returns is the measurement. ``append_molecular_atom`` is derivation's mirror: it adds one atom placed by a
+bond length, an angle, and a dihedral against three anchor atoms — protonation, hydrogenation, capping — leaving parent
+atom indices unchanged. Both operations write starting structures with electronic state deliberately unbound (adding a
+hydrogen gives a cation or a radical depending on whether it brought an electron), so charge and multiplicity are bound
+explicitly afterwards and the consuming stage is a new workflow; the displayed review renders every hop of a built chain
+in the order it was performed, so the edit that decides what the molecule is stays on the decision surface.
+
 ORCA ``irc`` is qualified for approved Agent execution on a qualified target: a transition-state search fed two IRC
 runs, each consuming the converged transition state's own geometry and analytic Hessian as role-distinct producer
 bindings inside one approved workflow, and the chain executed, validated, and delivered host-rendered claims. The IRC

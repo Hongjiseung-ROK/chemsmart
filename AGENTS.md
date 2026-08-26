@@ -189,6 +189,58 @@ documented anion systematic stated, the fourth settled typed on its
 own saddle); and a mid-engine interruption resumed with zero
 re-execution.
 
+``edit_molecular_geometry`` sets one internal coordinate of an
+identity-bound geometry — bond length, angle, or torsion, the same
+three coordinates a scan drives — as a host-owned rigid motion. The
+model names the coordinate, the target value in the coordinate's own
+unit, and which side moves; which side moves is a scientific choice
+with three incompatible library conventions behind it, so it is named
+by one of the coordinate's own atoms, never defaulted, and the receipt
+enumerates every atom that actually moved. The host measures the
+coordinate before and after with the same arithmetic the typed
+analysis layer uses, verifies it reached what was asked, and records
+close contacts and connectivity changes as observations, never
+verdicts. Refusals are structural only — an axis that is not a
+perceived bond, a ring a rigid motion would tear (which differs per
+coordinate), collinear or out-of-range atoms; no energy exists at edit
+time and a requested value is never refused on scientific merit,
+because grading it is what the consuming optimisation is for. An
+edited geometry is a starting structure; atom count, order, and
+formula are preserved, so parent atom i is edited atom i and a later
+analysis may re-measure the same coordinate on the relaxed result.
+``append_molecular_atom`` is derivation's mirror: one atom, placed by
+the three internal coordinates that define its position against three
+anchor atoms; parent indices are unchanged and the appended atom is
+last. Both operations bind no electronic state — adding a hydrogen
+gives a cation or a radical depending on whether it brought an
+electron — so charge and multiplicity are bound explicitly afterwards,
+the consuming stage is a new workflow, and the displayed review
+renders every hop of a built geometry's chain root-first, because the
+hop that decides what the molecule is can sit at the root.
+
+This surface is qualified through completed Agent executions in which
+requested-versus-relaxed is the delivered observable: an
+N-methylacetamide rotamer study whose cis form is reachable only by a
+deliberate amide-torsion edit (the edit survived relaxation to 0.01°;
+a task-supplied claim that the amide C–N is an ordinary 1.47 Å single
+bond was contradicted by relaxation at 1.363 Å on the same page; the
+trans rotamer validated as a strict all-real minimum; successive
+sessions diagnosed methyl-rotor saddles from failed strict verdicts
+and repaired them by displayed edits, and the completed series
+established that the cis form's two methyl rotors are geared, so its
+strict minimum is recorded as honestly unconfirmed rather than
+claimed); a 1,2-difluoroethane transfer in which the session built
+both gauche enantiomers by edits, predicted the gauche effect with
+its mechanism before any number existed, and physics returned gauche
+lower with the requested 60° torsions relaxing to 71.9°; and an amide
+protonation study in which both conjugate acids exist only through
+appended protons, the O-protonated cation validated as a strict
+minimum confirming the session's resonance-based site prediction, and
+the appended O–H and N–H bonds relaxed within 0.01 Å of their
+requested lengths. N edits are N observations; no spatial-competence
+score or aggregate exists, and nothing grades a request except the
+relaxation that consumes it.
+
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
 results; this release does not claim Gaussian Agent execution. GPU4PySCF

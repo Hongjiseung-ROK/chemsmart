@@ -118,6 +118,20 @@ continues by re-entering its own run directory -- each resume recorded
 on the consumption ledger, terminal nodes replayed without
 re-execution, a mid-engine interruption reported as ambiguous, and a
 completed approval refusing re-invocation.
+A geometry may be built by typed host-owned spatial operations:
+edit_molecular_geometry sets one internal coordinate (bond length,
+angle, or torsion) as a rigid motion of a named side -- the moving
+side is the model's choice, named by one of the coordinate's own
+atoms and never defaulted, and the receipt lists every atom that
+moved with the coordinate measured before and after; refusals are
+structural only (unbonded axis, ring, collinear atoms) and a
+requested value is never judged, because the consuming optimisation
+grades it. append_molecular_atom is derivation's mirror, placing one
+atom by three internal coordinates against three anchors. Both leave
+electronic state unbound for explicit binding, both make starting
+structures whose consuming stage is a new workflow, and the review
+renders every hop of a built chain root-first so the edit that
+decides what the molecule is stays on the decision surface.
 
 Never create an approval on the model's behalf. Never offer permanent,
 session-wide, prefix-based, or "always allow" chemistry execution. A revised
