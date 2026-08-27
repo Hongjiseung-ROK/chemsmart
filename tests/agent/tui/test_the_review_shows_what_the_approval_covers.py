@@ -329,3 +329,82 @@ def test_a_route_directive_is_named_beside_the_node_that_carries_it():
 def test_a_workflow_without_route_directives_shows_no_such_panel():
     text = _flatten(render_review_blocks(_review()))
     assert "Project route directives" not in text
+
+
+def test_the_level_is_resolved_through_the_analysis_dag_not_one_hop():
+    """The mixture that matters is usually a hop away.
+
+    An expression reading two other expressions is exactly where one
+    program's number meets another's, and its own inputs name analysis
+    nodes rather than results. Resolving only direct producers leaves that
+    row blank, which invites a reader to take the blank for "nothing mixed
+    here" -- the opposite of what it means.
+    """
+
+    screen = _node_review(
+        node_id="screen",
+        program="xtb",
+        project_settings_text='{"method": "gfn2"}',
+    )
+    refine = _node_review(
+        node_id="refine",
+        program="orca",
+        project_settings_text='{"functional": "M062X", "basis": "def2-TZVP"}',
+    )
+
+    def _analysis(node_id, inputs, kind="quantity_expression"):
+        return SimpleNamespace(
+            node_id=node_id,
+            analysis_kind=kind,
+            inputs=tuple(
+                SimpleNamespace(
+                    producer_node_id=producer, producer_output_id=output
+                )
+                for producer, output in inputs
+            ),
+            outputs=(SimpleNamespace(output_id=f"{node_id}-out", unit="1"),),
+            expression_nodes=(),
+            temperature_k=None,
+            pressure_atm=None,
+            support_state="planned",
+            blocked_reason="",
+        )
+
+    chain = SimpleNamespace(
+        analysis_nodes=(
+            _analysis(
+                "read-screen",
+                (("screen", "result"),),
+                kind="result_extraction",
+            ),
+            _analysis(
+                "read-refine",
+                (("refine", "result"),),
+                kind="result_extraction",
+            ),
+            _analysis("e-screen", (("read-screen", "e"),)),
+            _analysis("e-refine", (("read-refine", "e"),)),
+            # Two hops from any calculation node, and the first place the
+            # two programs' numbers meet.
+            _analysis(
+                "verdict",
+                (("e-screen", "e-screen-out"), ("e-refine", "e-refine-out")),
+                kind="scientific_validation",
+            ),
+        )
+    )
+    text = _flatten(
+        render_review_blocks(
+            _review(
+                node_reviews=(screen, refine),
+                scientific_plan=SimpleNamespace(
+                    nodes=(screen, refine), edges=(), plan_sha256="b" * 64
+                ),
+                scientific_toolchain_plan=chain,
+            )
+        )
+    )
+
+    row = text[text.index("verdict") :]
+    assert "xtb · gfn2" in row
+    assert "orca · M062X/def2-TZVP" in row

@@ -349,6 +349,41 @@ def _levels_of_theory(
     return levels
 
 
+def _levels_carried_by_analysis_node(
+    plan: Any, levels: Mapping[str, str]
+) -> dict[str, set[str]]:
+    """Map each analysis node to every level of theory its values came from.
+
+    Resolved through the analysis DAG rather than one hop, because the
+    mixture that matters most is usually a hop away: an expression reading
+    two other expressions is exactly where one program's number meets
+    another's, and a column that goes blank there would invite a reader to
+    take the blank for "nothing mixed here".
+    """
+
+    carried: dict[str, set[str]] = {}
+    nodes = tuple(getattr(plan, "analysis_nodes", ()) or ())
+    for _pass in range(len(nodes) + 1):
+        changed = False
+        for node in nodes:
+            seen = set(carried.get(node.node_id, ()))
+            for item in node.inputs:
+                producer_id = getattr(item, "producer_node_id", None)
+                if not producer_id:
+                    continue
+                direct = levels.get(producer_id)
+                if direct:
+                    seen.add(direct)
+                else:
+                    seen |= carried.get(producer_id, set())
+            if seen != carried.get(node.node_id, set()):
+                carried[node.node_id] = seen
+                changed = True
+        if not changed:
+            break
+    return carried
+
+
 def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
     plan = review.scientific_toolchain_plan
     if plan is None:
@@ -371,7 +406,7 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
     table.add_column("Outputs")
     table.add_column("Conditions")
     table.add_column("State")
-    levels = _levels_of_theory(review)
+    carried = _levels_carried_by_analysis_node(plan, _levels_of_theory(review))
     for node in plan.analysis_nodes:
         inputs = ", ".join(
             (
@@ -386,12 +421,7 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
         # Which levels of theory feed this node's arithmetic.  Displayed,
         # never refused: mixing them can be exactly right or exactly wrong,
         # and that is the reviewer's call to make with it in front of them.
-        producers = []
-        for item in node.inputs:
-            producer_id = getattr(item, "producer_node_id", None)
-            level = levels.get(producer_id) if producer_id else None
-            if level and level not in producers:
-                producers.append(level)
+        producers = sorted(carried.get(node.node_id, ()))
         outputs = ", ".join(
             f"{item.output_id} ({item.unit})" for item in node.outputs
         )
