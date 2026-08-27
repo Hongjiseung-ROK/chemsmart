@@ -51,6 +51,28 @@ one mode. Gaussian is deliberately undeclared: we never run it, and its
 displacement block comes in variants (``freq=HPModes``, ``freq=raman``)
 this reader cannot yet tell apart.
 
+A completed solvated ORCA result carries its own solvation
+decomposition: ``solvation_electrostatic_energy``,
+``solvation_nonelectrostatic_energy`` and
+``solvation_cavity_surface_area`` are declared for ``opt``, ``sp`` and
+``ts`` beside ``solvation_model`` and ``solvent``. Read them together --
+the terms say what the program applied, which can differ from what the
+route asked for. A gas-phase result reports them absent, and a CPCM run
+carries no cavity-dispersion term; that absence is how the models differ,
+not a failure. Use them to decompose a delivered solvated number, never
+to conclude that solvation is the source of a discrepancy: a basis-set or
+functional error of the same size looks identical in that decomposition.
+
+Per-atom charges arrive as a positional vector in molecular order, paired
+with ``symbols``, and named by scheme -- ``mulliken_atomic_charges`` and
+``loewdin_atomic_charges`` for ORCA. They are different quantities, not
+different spellings, and they can disagree by an electron on the same
+atom, so quote the scheme with the number and prefer what both agree on.
+Hirshfeld and CM5 are parsed and undeclared. The physical check worth
+doing is that the per-atom charges sum to the formal charge; a session
+doing exactly that found a reader returning spin populations for every
+open-shell result.
+
 An electrode potential is expressible: charge is a dimension, so
 potential is energy per charge and ``gibbs_to_redox_potential`` owns
 E = -dG/(nF) and the IUPAC sign. Subtract a reference electrode as

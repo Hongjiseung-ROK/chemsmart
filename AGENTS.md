@@ -326,6 +326,51 @@ same scheme was denied because its chain composed the aqueous proton
 free energy from terms at two standard states; catching that before an
 engine ran is what the single displayed approval is for.
 
+A completed solvated ORCA result can say what its solvation cost. The
+electrostatic term, the SMD cavity-dispersion term and the cavity surface
+area are declared for ``opt``, ``sp`` and ``ts`` beside the solvation
+model and the solvent name, and each reads the last printed block because
+an optimisation prints one per SCF step. Absence is meaning rather than
+failure: a gas-phase result reports the terms absent, and a CPCM run has
+no cavity-dispersion term, which is how it differs from an SMD run. The
+terms report what the program *applied*, which is not always what the
+route requested, so they are read beside the model rather than instead of
+it. Only ORCA declares them — no archived Gaussian log carries the
+printed terms, PySCF folds solvation into its total energy with no
+decomposition, and every archived xTB run has solvation switched off,
+so for those three there is nothing a declaration could have audited.
+
+Per-atom populations are positional and named by the scheme that produced
+them. Atom-label schemes disagree between programs — ORCA numbers atoms
+globally while xTB counts within each element, so the same atom is
+``C3`` in one and ``C1`` in the other — and a mapping cannot be reordered
+safely afterwards, so labels are resolved against the molecule's own
+symbols at the reader and a scheme that does not match is refused rather
+than guessed. Mulliken and Löwdin are declared for ORCA because ORCA
+prints both without being asked; Hirshfeld and CM5 are parsed and not
+declared, because reaching them means spending the project route channel
+on a directive that changes no method, which is a question about that
+channel rather than about the quantity. The scheme is in the name because
+the schemes disagree: on one phenoxide anion Mulliken places more than a
+whole electron of excess charge on the hydroxyl oxygen where Löwdin
+places about a third of one, and neither is "the charge on the oxygen".
+
+This surface is qualified through one completed analysis-only delivery
+over four finished results with no engine launched, and the delivery
+found a defect the release had carried for years. ORCA prints one column
+of populations for a closed shell and two for an open shell, charge then
+spin, under a header whose text contains the closed-shell header, so a
+reader taking the last number on the row returned charges for restricted
+results and spin populations for unrestricted ones under a single name.
+Nothing had noticed because nothing in the typed layer had ever read
+them; a session that added the vector up saw a neutral radical's charges
+sum to +1.00 e, flagged it as unresolvable from its surface rather than
+explaining it away, and the trace led to the reader. The values are now
+read by position, the per-atom sum matches the formal charge for every
+tested species, and the correction reaches further than the new
+selectors, because those properties are attached to the molecule and
+stored by the database assembler.
+
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
 results; this release does not claim Gaussian Agent execution. GPU4PySCF
