@@ -300,6 +300,55 @@ def _route_directive_panel(review: "WorkflowExecutionReviewV1") -> Any:
     return table
 
 
+def _levels_of_theory(
+    review: "WorkflowExecutionReviewV1",
+) -> dict[str, str]:
+    """Map each calculation node to a one-line level of theory.
+
+    A typed value carries its unit and its dimension and not the method that
+    produced it, and the arithmetic checks only those two.  So a GFN2 energy
+    minus a hybrid-DFT energy is accepted, and so is a Mulliken charge from
+    one program minus a Mulliken charge from another at a different basis.
+
+    Refusing that would be wrong in both directions.  A high-level single
+    point on a low-level geometry is the most ordinary multi-program
+    protocol there is, and composite methods mix levels on purpose; two
+    energies from one program at different basis sets are just as
+    unsubtractable and no program check would catch them.  What was missing
+    is not a rule but a sightline: the level was already known per node and
+    simply absent from the surface where the arithmetic is approved.
+    """
+
+    import json
+
+    levels: dict[str, str] = {}
+    for item in review.node_reviews:
+        parts = [str(item.program)]
+        try:
+            settings = json.loads(item.project_settings_text)
+        except (TypeError, ValueError):
+            settings = {}
+        if isinstance(settings, Mapping):
+            method = " ".join(
+                str(settings[key]).strip()
+                for key in ("functional", "ab_initio", "method")
+                if settings.get(key)
+            ).strip()
+            basis = str(settings.get("basis") or "").strip()
+            if method and basis:
+                parts.append(f"{method}/{basis}")
+            elif method or basis:
+                parts.append(method or basis)
+            solvent = str(settings.get("solvent_id") or "").strip()
+            model = str(settings.get("solvent_model") or "").strip()
+            if solvent and model:
+                parts.append(f"{model}({solvent})")
+            elif solvent or model:
+                parts.append(solvent or model)
+        levels[item.node_id] = " · ".join(part for part in parts if part)
+    return levels
+
+
 def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
     plan = review.scientific_toolchain_plan
     if plan is None:
@@ -318,9 +367,11 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
     table.add_column("Node", style="bold cyan")
     table.add_column("Kind")
     table.add_column("Inputs")
+    table.add_column("Level of theory")
     table.add_column("Outputs")
     table.add_column("Conditions")
     table.add_column("State")
+    levels = _levels_of_theory(review)
     for node in plan.analysis_nodes:
         inputs = ", ".join(
             (
@@ -332,6 +383,15 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
             )
             for item in node.inputs
         )
+        # Which levels of theory feed this node's arithmetic.  Displayed,
+        # never refused: mixing them can be exactly right or exactly wrong,
+        # and that is the reviewer's call to make with it in front of them.
+        producers = []
+        for item in node.inputs:
+            producer_id = getattr(item, "producer_node_id", None)
+            level = levels.get(producer_id) if producer_id else None
+            if level and level not in producers:
+                producers.append(level)
         outputs = ", ".join(
             f"{item.output_id} ({item.unit})" for item in node.outputs
         )
@@ -358,6 +418,7 @@ def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
             node.node_id,
             node.analysis_kind,
             inputs or "—",
+            "\n".join(producers) or "—",
             outputs or "—",
             ", ".join(conditions) or "—",
             state,

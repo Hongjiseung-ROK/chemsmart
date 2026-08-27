@@ -225,3 +225,107 @@ def test_a_chain_selecting_a_constant_shows_it_at_the_decision_surface():
     assert "-270.3" in text
     assert "kcal/mol" in text
     assert "1 mol/L" in text
+
+
+def test_the_chain_names_the_level_of_theory_each_input_came_from():
+    """A cross-level subtraction is visible where the approval happens.
+
+    A typed value carries a unit and a dimension, and the arithmetic checks
+    only those, so a GFN2 energy minus a hybrid-DFT energy is accepted and
+    so is a Mulliken charge from one program minus one from another at a
+    different basis.  Refusing that would be wrong in both directions: a
+    high-level single point on a low-level geometry is the most ordinary
+    multi-program protocol there is, while two energies from one program at
+    different basis sets are just as unsubtractable and no program check
+    would catch them.  So the level is displayed and never refused, and the
+    reviewer decides whether the mixture is a composite method or a mistake.
+    """
+
+    screen = _node_review(
+        node_id="screen",
+        program="xtb",
+        project_settings_text='{"method": "gfn2"}',
+    )
+    refine = _node_review(
+        node_id="refine",
+        program="orca",
+        project_settings_text=(
+            '{"functional": "M062X", "basis": "ma-def2-TZVP",'
+            ' "solvent_model": "smd", "solvent_id": "water"}'
+        ),
+    )
+    chain = SimpleNamespace(
+        analysis_nodes=(
+            SimpleNamespace(
+                node_id="difference",
+                analysis_kind="expression",
+                inputs=(
+                    SimpleNamespace(
+                        producer_node_id="screen",
+                        producer_output_id="e-screen",
+                    ),
+                    SimpleNamespace(
+                        producer_node_id="refine",
+                        producer_output_id="e-refine",
+                    ),
+                ),
+                outputs=(SimpleNamespace(output_id="delta", unit="hartree"),),
+                temperature_k=None,
+                pressure_atm=None,
+                support_state="planned",
+                blocked_reason="",
+            ),
+        )
+    )
+    text = _flatten(
+        render_review_blocks(
+            _review(
+                node_reviews=(screen, refine),
+                scientific_plan=SimpleNamespace(
+                    nodes=(screen, refine), edges=(), plan_sha256="b" * 64
+                ),
+                scientific_toolchain_plan=chain,
+            )
+        )
+    )
+
+    assert "Level of theory" in text
+    assert "xtb · gfn2" in text
+    assert "orca · M062X/ma-def2-TZVP · smd(water)" in text
+
+
+def test_a_route_directive_is_named_beside_the_node_that_carries_it():
+    """The one channel where free text reaches a program's input.
+
+    It is already inside the effective project settings the reviewer can
+    read per node, and a single token in a settings dump is exactly what a
+    reader skims past.
+    """
+
+    node = _node_review(
+        node_id="sp-hirshfeld",
+        program="orca",
+        project_settings_text=(
+            '{"functional": "M062X",'
+            ' "additional_route_parameters": "Hirshfeld"}'
+        ),
+    )
+    text = _flatten(
+        render_review_blocks(
+            _review(
+                node_reviews=(node,),
+                scientific_plan=SimpleNamespace(
+                    nodes=(node,), edges=(), plan_sha256="b" * 64
+                ),
+            )
+        )
+    )
+
+    assert "Project route directives" in text
+    assert "sp-hirshfeld" in text
+    assert "Hirshfeld" in text
+
+
+def test_a_workflow_without_route_directives_shows_no_such_panel():
+    text = _flatten(render_review_blocks(_review()))
+    assert "Project route directives" not in text
