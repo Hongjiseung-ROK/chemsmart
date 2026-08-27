@@ -180,6 +180,7 @@ SUPPORTED_SELECTORS = SUPPORTED_PYSCF_SELECTORS | frozenset(
         # spellings of one, and no renormalisation removes the difference.
         "mulliken_atomic_charges",
         "loewdin_atomic_charges",
+        "hirshfeld_atomic_charges",
     }
 )
 

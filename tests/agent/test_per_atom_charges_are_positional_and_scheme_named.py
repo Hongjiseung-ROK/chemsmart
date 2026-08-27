@@ -39,7 +39,11 @@ _PHENOXIDE = Path(
     "/home/chemsmart/agent-campaigns/ax41-refine-100/qualification"
     "/pcet-analysis-path/workspace/phenoxide-optfreq.out"
 )
-_SCHEMES = ("mulliken_atomic_charges", "loewdin_atomic_charges")
+#: The two ORCA prints without being asked.
+_DEFAULT_SCHEMES = ("mulliken_atomic_charges", "loewdin_atomic_charges")
+#: Every declared scheme, including the one a route directive must request.
+_SCHEMES = _DEFAULT_SCHEMES + ("hirshfeld_atomic_charges",)
+_HIRSHFELD = Path("tests/data/ORCATests/outputs/udc3_ts1_c15_sp_hirshfeld.out")
 
 
 def test_a_global_index_scheme_orders_by_the_molecule():
@@ -92,7 +96,7 @@ def test_each_scheme_is_typed_as_a_charge(selector):
     assert getattr(rq, _SELECTOR_DIMENSIONS[selector]) == CHARGE
 
 
-@pytest.mark.parametrize("selector", _SCHEMES)
+@pytest.mark.parametrize("selector", _DEFAULT_SCHEMES)
 def test_the_charges_sum_to_the_molecular_charge(selector):
     """The physical checksum that also proves the ordering is complete.
 
@@ -135,7 +139,7 @@ def test_each_program_declares_only_the_schemes_its_output_carries():
     """
 
     expected = {
-        "orca": {"mulliken_atomic_charges", "loewdin_atomic_charges"},
+        "orca": set(_SCHEMES),
         "pyscf": {"mulliken_atomic_charges"},
         "gaussian": set(),
         "xtb": set(),
@@ -188,7 +192,7 @@ _OPEN_SHELL = [
 
 
 @pytest.mark.parametrize("stem,charge,multiplicity", _OPEN_SHELL)
-@pytest.mark.parametrize("selector", _SCHEMES)
+@pytest.mark.parametrize("selector", _DEFAULT_SCHEMES)
 def test_an_open_shell_result_reports_charges_not_spin(
     stem, charge, multiplicity, selector
 ):
@@ -251,3 +255,85 @@ def test_the_charge_column_is_read_by_position_not_from_the_end():
     assert len(first_row) - colon - 1 == 2, "row must have two numbers"
     assert charges[0] == pytest.approx(float(first_row[colon + 1]))
     assert charges[0] != pytest.approx(float(first_row[-1]))
+
+
+def test_hirshfeld_reads_every_atom_of_a_run_that_asked_for_it():
+    """Reachability is three conditions, and this fixture carries all three.
+
+    The parser produces it, the typed layer can be asked for it, and the
+    Agent can make ORCA emit it -- ``Hirshfeld`` is a route token appended to
+    the route line, which is why this archived job has the block at all.
+    Hydrogens matter here in a way they do not for a heavy-atom summary: a
+    condensed Fukui function needs every atom or it does not sum to one.
+    """
+
+    reader = RESULT_READERS["orca"]
+    output = reader.open_output(_HIRSHFELD)
+    charges, unit = reader.read(output, "hirshfeld_atomic_charges")
+    symbols, _ = reader.read(output, "symbols")
+    assert unit == "e"
+    assert len(charges) == len(symbols) == 78
+    assert "H" in symbols
+    assert charges[0] == pytest.approx(-0.177356)
+
+
+def test_a_basin_partition_closes_on_a_grid_and_a_basis_partition_exactly():
+    """The checksum holds for all three, but not to the same tolerance.
+
+    Mulliken and Loewdin divide a sum over basis functions, so their only
+    residual is the six printed decimals -- 2e-6 over 78 atoms.  Hirshfeld
+    divides real space against a promolecular reference on a numerical grid,
+    and closes two orders of magnitude looser at 3e-4.  Reading that residual
+    as a defect would be wrong, and reading it as licence to skip the
+    checksum would be worse: the checksum is what proves the vector is
+    complete and in molecular order, and 3e-4 is still nowhere near the
+    0.5 e a dropped or duplicated atom would cost.
+    """
+
+    reader = RESULT_READERS["orca"]
+    output = reader.open_output(_HIRSHFELD)
+    total, _ = reader.read(output, "charge")
+    sums = {}
+    for selector in _SCHEMES:
+        charges, _ = reader.read(output, selector)
+        sums[selector] = sum(charges)
+    for selector in _DEFAULT_SCHEMES:
+        assert sums[selector] == pytest.approx(float(total), abs=1e-5)
+    basin = abs(sums["hirshfeld_atomic_charges"] - float(total))
+    basis = abs(sums["mulliken_atomic_charges"] - float(total))
+    assert basin < 1e-3
+    assert basin > 100 * basis
+
+
+def test_three_schemes_three_answers_on_one_oxygen():
+    """Why the scheme is in the name, extended to the recommended one."""
+
+    reader = RESULT_READERS["orca"]
+    output = reader.open_output(_HIRSHFELD)
+    symbols, _ = reader.read(output, "symbols")
+    assert symbols[0] == "O"
+    values = {
+        selector: reader.read(output, selector)[0][0] for selector in _SCHEMES
+    }
+    assert values["mulliken_atomic_charges"] == pytest.approx(
+        -0.5444, abs=1e-3
+    )
+    assert values["loewdin_atomic_charges"] == pytest.approx(-0.1536, abs=1e-3)
+    assert values["hirshfeld_atomic_charges"] == pytest.approx(
+        -0.1774, abs=1e-3
+    )
+    spread = max(values.values()) - min(values.values())
+    assert spread > 0.35
+
+
+def test_a_run_that_never_asked_has_no_hirshfeld_analysis():
+    """Absence is meaning, and it must not arrive as a parser traceback.
+
+    ORCA prints the block only on request, so the accessor returns nothing
+    rather than indexing an empty list -- which is what it used to do.
+    """
+
+    reader = RESULT_READERS["orca"]
+    output = reader.open_output(_CO2)
+    with pytest.raises(MissingQuantityError, match="hirshfeld"):
+        reader.read(output, "hirshfeld_atomic_charges")

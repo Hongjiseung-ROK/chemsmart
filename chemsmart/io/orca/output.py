@@ -2507,6 +2507,13 @@ class ORCAOutput(ORCAFileMixin):
 
                 all_hirshfeld_charges.append(hirshfeld_charges)
                 all_hirshfeld_spins.append(hirshfeld_spins)
+        if not all_hirshfeld_charges:
+            # ORCA prints this block only when the route asks for it, so a
+            # run without the directive has no Hirshfeld analysis at all.
+            # That is an absent quantity rather than a parse failure, and
+            # returning it as absence keeps the distinction the typed layer
+            # is built on -- ``all_x[-1]`` here used to raise IndexError.
+            return None, None
         return all_hirshfeld_charges[-1], all_hirshfeld_spins[-1]
 
     @property

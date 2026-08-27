@@ -123,6 +123,7 @@ SELECTOR_UNITS = {
     "solvation_nonelectrostatic_energy": "Eh",
     "solvation_cavity_surface_area": "angstrom^2",
     "mulliken_atomic_charges": "e",
+    "hirshfeld_atomic_charges": "e",
     "loewdin_atomic_charges": "e",
     "functional": "",
     "method": "",
@@ -950,6 +951,25 @@ def _orca_symbols(output: Any) -> list[str]:
     ]
 
 
+def _orca_hirshfeld_charges(output: Any) -> list[float] | None:
+    """Return the Hirshfeld charges as a positional vector, or ``None``.
+
+    Parsing once matters -- the property rescans the whole file -- and
+    absence must reach ``read`` as a value rather than as an exception, so
+    that a run which never asked for the analysis is refused in those words
+    instead of by naming a Python type at a scientist.
+    """
+
+    charges = output.hirshfeld_charges
+    if charges is None:
+        return None
+    return _per_atom_vector(
+        charges,
+        _orca_symbols(output),
+        quantity="hirshfeld_atomic_charges",
+    )
+
+
 def _orca_channel_eigenvalues(
     output: Any, channel: str
 ) -> tuple[list[float], list[float]]:
@@ -1193,6 +1213,13 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
                 _orca_symbols(output),
                 quantity="loewdin_atomic_charges",
             ),
+            # A partition of the density into atomic basins rather than
+            # over basis functions, so it does not carry Mulliken's basis
+            # sensitivity -- which is why the condensed-Fukui literature
+            # asks for it.  ORCA prints the block only when the route says
+            # so, and a run that did not ask has no Hirshfeld analysis at
+            # all rather than a failed one.
+            "hirshfeld_atomic_charges": _orca_hirshfeld_charges,
             "functional": _route_functional,
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
@@ -1874,6 +1901,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energy",
                     "functional",
                     "gap",
+                    "hirshfeld_atomic_charges",
                     "homo",
                     "loewdin_atomic_charges",
                     "lumo",
@@ -1961,6 +1989,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energy",
                     "functional",
                     "gap",
+                    "hirshfeld_atomic_charges",
                     "homo",
                     "loewdin_atomic_charges",
                     "lumo",
@@ -2042,6 +2071,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energy",
                     "functional",
                     "gap",
+                    "hirshfeld_atomic_charges",
                     "homo",
                     "loewdin_atomic_charges",
                     "lumo",
@@ -2342,6 +2372,7 @@ _SELECTOR_DIMENSIONS = {
     "solvation_nonelectrostatic_energy": "ENERGY",
     "solvation_cavity_surface_area": "AREA",
     "mulliken_atomic_charges": "CHARGE",
+    "hirshfeld_atomic_charges": "CHARGE",
     "loewdin_atomic_charges": "CHARGE",
     "solvent": "DIMENSIONLESS",
 }

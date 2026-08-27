@@ -251,6 +251,55 @@ def _composition_panels(review: "WorkflowExecutionReviewV1") -> list[Panel]:
     return panels
 
 
+def _route_directive_panel(review: "WorkflowExecutionReviewV1") -> Any:
+    """Name every project route-hatch token, or return ``None``.
+
+    The hatch carries two kinds of thing.  A source-required scientific
+    keyword changes the calculation, and a print directive changes only what
+    the program reports -- ORCA's ``Hirshfeld`` being the case that matters,
+    because the condensed-Fukui literature asks for that scheme and ORCA
+    prints it only when told to.  Both are already inside the effective
+    project settings the reviewer can read per node, but a single token in a
+    settings dump is exactly what a reader skims past, and this is the one
+    channel where free text reaches a program's input.  So it is named on
+    its own, next to the node it belongs to.
+
+    Which kind a token is stays the reviewer's reading.  The host does not
+    classify a keyword it did not define.
+    """
+
+    import json
+
+    rows = []
+    for item in review.node_reviews:
+        try:
+            settings = json.loads(item.project_settings_text)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(settings, Mapping):
+            continue
+        tokens = settings.get("additional_route_parameters")
+        if not tokens:
+            continue
+        if isinstance(tokens, str):
+            rendered = tokens
+        else:
+            rendered = " ".join(str(token) for token in tokens)
+        rows.append((item.node_id, rendered.strip()))
+    if not rows:
+        return None
+    table = Table(
+        title=(
+            "Project route directives (free text reaching the program input)"
+        )
+    )
+    table.add_column("Node", style="bold cyan")
+    table.add_column("Tokens")
+    for node_id, rendered in rows:
+        table.add_row(node_id, rendered)
+    return table
+
+
 def _analysis_chain_renderable(review: "WorkflowExecutionReviewV1") -> Any:
     plan = review.scientific_toolchain_plan
     if plan is None:
@@ -806,6 +855,9 @@ def render_review_blocks(
     knowledge_panel = _advisory_knowledge_panel(review)
     if knowledge_panel is not None:
         blocks.append(knowledge_panel)
+    route_directives = _route_directive_panel(review)
+    if route_directives is not None:
+        blocks.append(route_directives)
     for item in review.node_reviews:
         yaml_text = yaml_texts.get(item.node_id)
         if yaml_text:
