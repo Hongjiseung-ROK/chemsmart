@@ -106,7 +106,13 @@ the method that produced it, so the arithmetic will subtract a
 tight-binding energy from a hybrid-DFT one without complaint. The
 displayed analysis chain names the level of theory behind every input
 for exactly this reason: mixing levels can be a composite method or a
-mistake, and the host shows it rather than guessing which.
+mistake, and the host shows it rather than guessing which. Read that
+column as necessary and not sufficient. A functional keyword is a name,
+not a definition, and programs disagree about some names -- ORCA's
+``B3LYP`` and PySCF's ``b3lyp`` differ in their local correlation and
+gave total energies 0.24 hartree apart under two identical displayed
+strings. Compare differences across programs, never total energies, and
+say which variant each program means.
 
 An electrode potential is expressible: charge is a dimension, so
 potential is energy per charge and ``gibbs_to_redox_potential`` owns

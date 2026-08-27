@@ -405,12 +405,17 @@ differs from the one a selector reads it as is a divergence to state,
 not an absence to report. PySCF ``td`` declares nothing, because it is a
 preview surface and no approved workflow can emit an excited state.
 
-Extraction is qualified by reading, not by launching: the merged plane
-was exercised against archived PySCF results with their run receipts,
-where the job type is detected from the stored spec, a frequency selector
-is served for ``hess`` and refused for ``sp``, and the per-atom Mulliken
-vector sums to the record's own formal charge. What the merge does not
-claim is any new execution surface; PySCF ``sp/opt/hess`` was already
+This surface is qualified through one completed multi-program execution:
+a single displayed approval covering seven nodes — one xTB optimisation
+feeding three ORCA and three PySCF single points on that geometry at
+three electronic states — all validated, with the geometry handoff
+crossing programs twice and preserving atom identity and order. PySCF
+answered through the merged plane on those live results, serving method,
+basis, energies, orbital energies, the spin diagnostic and per-atom
+Mulliken charges that close on each record's own formal charge; a
+frequency selector is served for ``hess`` and refused for ``sp`` by the
+job type detected from the stored spec. What the merge does not claim is
+any new execution surface: PySCF ``sp/opt/hess`` was already
 release-qualified and remains exactly that.
 
 A geometry may cross programs and a number may not follow it freely. The
@@ -425,8 +430,22 @@ low-level geometry is an ordinary protocol and composite methods mix
 levels deliberately, while two energies from one program at different
 basis sets are equally unsubtractable and no program-identity check would
 catch them. The displayed analysis chain names the level of theory behind
-every input so the reviewer decides whether a mixture is a method or a
-mistake.
+every input, resolved through the analysis chain rather than one hop, so
+the reviewer decides whether a mixture is a method or a mistake.
+
+Naming the level is necessary and it is not sufficient, and the release
+says so rather than implying otherwise. In the qualifying run both
+programs were asked for ``b3lyp`` with one basis and the chain displayed
+two identical strings, while the total energies differed by 0.24 hartree
+on every species: one program's ``B3LYP`` uses the VWN5 local
+correlation and the other's uses VWN3, so five identical characters name
+two functionals. The offset was nearly constant across the three charge
+states and largely cancelled in the differences, which is why the derived
+indices still agreed to about 0.1 eV while no total energy agreed at all.
+A refusal would have compared the same two strings and been no wiser. The
+host shows what the project asked each program for; whether two programs
+mean the same thing by a keyword is a fact about the programs, and
+checking it stays the scientist's.
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
