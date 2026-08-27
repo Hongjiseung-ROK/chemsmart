@@ -347,13 +347,27 @@ globally while xTB counts within each element, so the same atom is
 safely afterwards, so labels are resolved against the molecule's own
 symbols at the reader and a scheme that does not match is refused rather
 than guessed. Mulliken and Löwdin are declared for ORCA because ORCA
-prints both without being asked; Hirshfeld and CM5 are parsed and not
-declared, because reaching them means spending the project route channel
-on a directive that changes no method, which is a question about that
-channel rather than about the quantity. The scheme is in the name because
-the schemes disagree: on one phenoxide anion Mulliken places more than a
-whole electron of excess charge on the hydroxyl oxygen where Löwdin
-places about a third of one, and neither is "the charge on the oxygen".
+prints both without being asked. Hirshfeld is declared for the same three
+job types and reached through the project route channel, which carries
+two kinds of token and no others: a source-required keyword that refines
+an otherwise supported typed method, and a print directive that changes
+no method and only makes the program report more of what it already
+computed. Both are displayed to the reviewer on their own beside the node
+that carries them, because a single word inside a settings dump is what a
+reader skims past. PySCF declares Mulliken, which its driver computes and
+stores under a mandatory declared unit; xTB's population comes from a
+minimal tight-binding density and is not Mulliken, so no xTB accessor
+answers to that name. CM5 stays parsed and undeclared. The scheme is in
+the name because the schemes disagree: on one phenoxide anion Mulliken
+places more than a whole electron of excess charge on the hydroxyl oxygen
+where Löwdin places about a third of one, and neither is "the charge on
+the oxygen". They also do not close on the formal charge alike — the two
+basis partitions divide a sum over basis functions and close to their
+printed decimals, while a basin partition divides real space on a
+numerical grid and closes two orders of magnitude looser. Both are far
+from what a dropped or duplicated atom would cost, so the checksum
+remains the check that a per-atom vector is complete and in molecular
+order.
 
 This surface is qualified through one completed analysis-only delivery
 over four finished results with no engine launched, and the delivery
@@ -370,6 +384,49 @@ read by position, the per-atom sum matches the formal charge for every
 tested species, and the correction reaches further than the new
 selectors, because those properties are attached to the molecule and
 stored by the database assembler.
+
+Every program answers the shared selector vocabulary through one
+extraction plane. A structured PySCF result is a registered reader beside
+the log-parsing programs, with job-type declarations for ``sp``, ``opt``
+and ``hess``, so the capability query reports what it carries and the
+same declaration gate refuses a selector whose meaning was never audited
+for that job type. It had been a second plane reached by name — its own
+selector vocabulary, its own unit table, and no gate — which is how a
+plan naming a selector this program never implemented could pass
+planning and be refused only after every engine had finished. Merging it
+closes a recorded cross-program disagreement as a unit rather than a
+quantity: PySCF stores excitation energies in hartree where the
+log-parsing programs print electronvolts, and a reader states its own
+native unit while the arithmetic stays canonical. The HDF5 path keeps
+what no log format has, an admission guard binding the exact bytes to a
+sibling run receipt and its whole ancestry of digests, and each numeric
+dataset is read only under the unit it declares; a stored unit that
+differs from the one a selector reads it as is a divergence to state,
+not an absence to report. PySCF ``td`` declares nothing, because it is a
+preview surface and no approved workflow can emit an excited state.
+
+Extraction is qualified by reading, not by launching: the merged plane
+was exercised against archived PySCF results with their run receipts,
+where the job type is detected from the stored spec, a frequency selector
+is served for ``hess`` and refused for ``sp``, and the per-atom Mulliken
+vector sums to the record's own formal charge. What the merge does not
+claim is any new execution surface; PySCF ``sp/opt/hess`` was already
+release-qualified and remains exactly that.
+
+A geometry may cross programs and a number may not follow it freely. The
+optimised-geometry handoff is keyed on the producing program and refuses
+any change of atom identity or order, so an xTB optimisation feeding an
+ORCA or PySCF single point preserves that parent atom *i* is child atom
+*i*. A typed value carries its unit and its dimension and not the method
+that produced it, and the arithmetic checks only those, so a
+tight-binding energy and a hybrid-DFT energy subtract without complaint.
+That is displayed and never refused: a high-level single point on a
+low-level geometry is an ordinary protocol and composite methods mix
+levels deliberately, while two energies from one program at different
+basis sets are equally unsubtractable and no program-identity check would
+catch them. The displayed analysis chain names the level of theory behind
+every input so the reviewer decides whether a mixture is a method or a
+mistake.
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed

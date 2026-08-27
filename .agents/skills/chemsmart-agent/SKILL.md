@@ -64,14 +64,49 @@ to conclude that solvation is the source of a discrepancy: a basis-set or
 functional error of the same size looks identical in that decomposition.
 
 Per-atom charges arrive as a positional vector in molecular order, paired
-with ``symbols``, and named by scheme -- ``mulliken_atomic_charges`` and
-``loewdin_atomic_charges`` for ORCA. They are different quantities, not
-different spellings, and they can disagree by an electron on the same
-atom, so quote the scheme with the number and prefer what both agree on.
-Hirshfeld and CM5 are parsed and undeclared. The physical check worth
-doing is that the per-atom charges sum to the formal charge; a session
-doing exactly that found a reader returning spin populations for every
-open-shell result.
+with ``symbols``, and named by scheme. ORCA declares
+``mulliken_atomic_charges``, ``loewdin_atomic_charges`` and
+``hirshfeld_atomic_charges``; PySCF declares ``mulliken_atomic_charges``.
+They are different quantities, not different spellings, and can disagree
+by more than a third of an electron on the same atom, so quote the scheme
+with the number. The two basis partitions divide a sum over basis
+functions and inherit its sensitivity; Hirshfeld divides real space
+against a promolecular reference and does not, which is why the
+condensed-reactivity literature asks for it. ORCA prints Mulliken and
+Loewdin unasked but prints Hirshfeld only when the route says
+``Hirshfeld``, which the project escape hatch may carry -- a print
+directive changes no method and every token you put there is displayed to
+the reviewer on its own. CM5 stays undeclared.
+
+The physical check worth doing on any per-atom vector is that it sums to
+the formal charge; a session doing exactly that found a reader returning
+spin populations for every open-shell result. Expect the two basis
+partitions to close to their printed decimals and a basin partition to
+close two orders of magnitude looser on its numerical grid -- both far
+from what a dropped atom would cost. When you difference two per-atom
+vectors across electronic states, check the sum in the direction where a
+wrong reading would change its sign, not the direction where charges and
+spins happen to agree.
+
+Every program answers the shared selector vocabulary the same way, and
+that now includes PySCF: its structured HDF5 result is a registered
+reader with job-type declarations for ``sp``, ``opt`` and ``hess``, so
+the capability query reports what it carries and the declaration gate
+refuses a selector whose meaning was never audited for that job type.
+Excitation energies come back in hartree there and in electronvolts from
+the log-parsing programs; the reader states its own native unit and the
+arithmetic is canonical either way, so never convert one yourself.
+PySCF ``td`` is a preview surface and declares nothing.
+
+A geometry may cross programs -- an xTB optimisation feeding an ORCA or
+PySCF single point is the ordinary multi-program protocol, and the
+handoff refuses any change of atom identity or order. Numbers may not
+cross so freely. A typed value carries its unit and its dimension and not
+the method that produced it, so the arithmetic will subtract a
+tight-binding energy from a hybrid-DFT one without complaint. The
+displayed analysis chain names the level of theory behind every input
+for exactly this reason: mixing levels can be a composite method or a
+mistake, and the host shows it rather than guessing which.
 
 An electrode potential is expressible: charge is a dimension, so
 potential is energy per charge and ``gibbs_to_redox_potential`` owns
