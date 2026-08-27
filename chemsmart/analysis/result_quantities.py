@@ -502,6 +502,47 @@ class QuantityValueV1:
             raise QuantityContractError("quantity value digest mismatch")
 
 
+def canonical_extraction_receipt_body(
+    *,
+    schema_version: str,
+    artifact_id: str,
+    artifact_sha256: str,
+    program: str,
+    parser_id: str,
+    quantities: Any,
+    status: str,
+    absent: Any = (),
+) -> dict[str, Any]:
+    """Return the one body an extraction receipt is digested over.
+
+    Two digests used to be computed over this record -- the receipt's own,
+    from a hand-built dict, and the durable event's, from the dataclass
+    minus its digest field -- and they agreed only because the two happened
+    to contain the same keys.  Adding a field that is present on the
+    dataclass and absent from a complete receipt's body broke that
+    coincidence and settled a node as failed with a digest mismatch, which
+    is why the rule now lives in one place and is called from all three.
+
+    ``absent`` enters the body only when it is non-empty, so every receipt
+    written before absences existed stays verifiable.  Status and absences
+    are locked together by the receipt, so a body without the key is
+    unambiguously a complete extraction.
+    """
+
+    body: dict[str, Any] = {
+        "schema_version": schema_version,
+        "artifact_id": artifact_id,
+        "artifact_sha256": artifact_sha256,
+        "program": program,
+        "parser_id": parser_id,
+        "quantities": quantities,
+        "status": status,
+    }
+    if absent:
+        body["absent"] = absent
+    return body
+
+
 @dataclass(frozen=True)
 class QuantityExtractionReceiptV1:
     schema_version: str
@@ -512,24 +553,51 @@ class QuantityExtractionReceiptV1:
     quantities: tuple[QuantityValueV1, ...]
     status: str
     receipt_sha256: str
+    #: Quantities this request asked for that the result does not carry, as
+    #: ``(quantity_id, selector, reason)``.  A receipt used to record only
+    #: what it held, which made a partial extraction indistinguishable from
+    #: a complete one for a smaller request -- so the evidence chain could
+    #: weaken without saying so.  An absence is a stated gap with the
+    #: reader's own reason, never a value the host chose to substitute.
+    absent: tuple[tuple[str, str, str], ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "quantities", tuple(self.quantities))
+        object.__setattr__(
+            self, "absent", tuple(tuple(item) for item in self.absent)
+        )
         if self.schema_version != "chemsmart.quantity-extraction-receipt.v1":
             raise QuantityContractError(
                 "unsupported extraction receipt schema"
             )
-        if self.status != "extracted":
+        if self.status not in {"extracted", "partial"}:
             raise QuantityContractError("invalid extraction receipt status")
-        body = {
-            "schema_version": self.schema_version,
-            "artifact_id": self.artifact_id,
-            "artifact_sha256": self.artifact_sha256,
-            "program": self.program,
-            "parser_id": self.parser_id,
-            "quantities": self.quantities,
-            "status": self.status,
-        }
+        if bool(self.absent) != (self.status == "partial"):
+            # The status is what an older reader checks, so it must be the
+            # thing that changes.  A partial receipt with no absence named,
+            # or a complete one carrying absences, would let the two drift.
+            raise QuantityContractError(
+                "extraction receipt status must be 'partial' exactly when "
+                "the request named quantities the result does not carry"
+            )
+        for item in self.absent:
+            if len(item) != 3 or not all(
+                isinstance(field, str) and field for field in item
+            ):
+                raise QuantityContractError(
+                    "each absence records a quantity id, a selector and a "
+                    "reason"
+                )
+        body = canonical_extraction_receipt_body(
+            schema_version=self.schema_version,
+            artifact_id=self.artifact_id,
+            artifact_sha256=self.artifact_sha256,
+            program=self.program,
+            parser_id=self.parser_id,
+            quantities=self.quantities,
+            status=self.status,
+            absent=self.absent,
+        )
         if self.receipt_sha256 != canonical_quantity_sha256(body):
             raise QuantityContractError(
                 "quantity extraction receipt digest mismatch"
@@ -1479,6 +1547,7 @@ __all__ = [
     "ResultQuantityExtractionRequestV1",
     "ThermochemistryReceiptV1",
     "ThermochemistryRequestV1",
+    "canonical_extraction_receipt_body",
     "canonical_quantity_sha256",
     "derive_pyscf_thermochemistry",
     "derive_result_thermochemistry",

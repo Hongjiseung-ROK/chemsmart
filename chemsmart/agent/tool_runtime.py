@@ -178,6 +178,7 @@ from chemsmart.agent.projects import (
     validate_project_yaml,
 )
 from chemsmart.agent.report_format import (
+    ABSENCES_HEADING,
     CLAIM_RECORD_LABEL,
     CLAIMS_HEADING,
     COMPLETION_RECEIPT_LABEL,
@@ -256,6 +257,7 @@ from chemsmart.analysis.result_quantities import (
     QuantitySelectorV1,
     QuantityValueV1,
     ThermochemistryReceiptV1,
+    canonical_extraction_receipt_body,
     canonical_thermochemistry_quantity,
     make_quantity_value,
     quantity_extraction_receipt_from_record,
@@ -7075,6 +7077,34 @@ class CommandCompiledToolHostV1:
                 )
             )
             lines.extend(f"- {finding}" for finding in completion.findings)
+        # Rendered whether the run reads completed or partial.  A chain can
+        # deliver every output it declared it was for and still have been
+        # refused a quantity along the way; saying so is what keeps "absence
+        # is meaning" true once a refusal stops ending the whole extraction.
+        # The reasons are read straight off the extraction receipts the
+        # completion already binds -- the host states what it could not give
+        # and never quietly gives something else.
+        absences = tuple(
+            (quantity_id, selector, reason)
+            for digest in sorted(completion.source_receipt_sha256s)
+            for quantity_id, selector, reason in getattr(
+                self.quantity_extractions.get(digest), "absent", ()
+            )
+        )
+        if absences:
+            lines.extend(
+                (
+                    "",
+                    ABSENCES_HEADING,
+                    "",
+                    "| Quantity | Selector | Why the result does not carry it |",
+                    "|---|---|---|",
+                )
+            )
+            lines.extend(
+                f"| {quantity_id} | {selector} | {reason} |"
+                for quantity_id, selector, reason in absences
+            )
         conditions = tuple(
             node
             for node in toolchain.analysis_nodes
@@ -10796,8 +10826,18 @@ class CommandCompiledToolHostV1:
         self.quantity_extraction_bindings[receipt.receipt_sha256] = {
             selector.quantity_id: selector.selector for selector in selectors
         }
-        record = canonical_data(receipt)
-        record.pop("receipt_sha256")
+        record = canonical_data(
+            canonical_extraction_receipt_body(
+                schema_version=receipt.schema_version,
+                artifact_id=receipt.artifact_id,
+                artifact_sha256=receipt.artifact_sha256,
+                program=receipt.program,
+                parser_id=receipt.parser_id,
+                quantities=receipt.quantities,
+                status=receipt.status,
+                absent=receipt.absent,
+            )
+        )
         self._emit(
             turn_id,
             EventKind.RESULT_QUANTITIES_EXTRACTED,

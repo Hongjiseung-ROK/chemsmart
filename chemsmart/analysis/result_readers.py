@@ -2471,18 +2471,33 @@ def extract_logged_quantities(
                 f"type. Declared here: {sorted(declared)}"
             )
     quantities = []
+    absent: list[tuple[str, str, str]] = []
     for selector in request.selectors:
         try:
             source_value, source_unit = reader.read(output, selector.selector)
         except MissingQuantityError as exc:
-            # Name what this artifact does hold.  Without it the only way to
-            # learn the shape of a result is one refused selector at a time,
-            # and a quantity that was never asked for looks the same as one
-            # the run never produced.
+            # A quantity this run never produced is a stated gap, so it is
+            # recorded rather than raised: one absence used to end the whole
+            # extraction, and every consumer of every sibling quantity
+            # skipped with it -- including, in the run that prompted this,
+            # twelve nodes that named no absent value at all.  The reason
+            # travels with the absence, and the artifact's own inventory
+            # travels with it too, so a reader learns the shape of the
+            # result here instead of one refused selector at a time.
+            #
+            # Only this error type collects.  QuantityExtractionError below
+            # means the reader and the writer disagree about what a stored
+            # value is, which is a defect rather than a gap, and it still
+            # ends the extraction.
             available = reader.available_selectors(output)
-            raise rq.QuantityExtractionError(
-                f"{exc}. This result resolves: {', '.join(available)}"
-            ) from exc
+            absent.append(
+                (
+                    selector.quantity_id,
+                    selector.selector,
+                    f"{exc}. This result resolves: {', '.join(available)}",
+                )
+            )
+            continue
         dimension = getattr(rq, _SELECTOR_DIMENSIONS[selector.selector])
         if selector.selector in {"symbols", *_TEXT_VECTOR_SELECTORS}:
             value = source_value
@@ -2526,15 +2541,16 @@ def extract_logged_quantities(
         raise rq.QuantityExtractionError(
             "result artifact changed during extraction"
         )
-    body = {
-        "schema_version": "chemsmart.quantity-extraction-receipt.v1",
-        "artifact_id": request.artifact_id,
-        "artifact_sha256": request.artifact_sha256,
-        "program": request.program,
-        "parser_id": reader.parser_id,
-        "quantities": tuple(quantities),
-        "status": "extracted",
-    }
+    body = rq.canonical_extraction_receipt_body(
+        schema_version="chemsmart.quantity-extraction-receipt.v1",
+        artifact_id=request.artifact_id,
+        artifact_sha256=request.artifact_sha256,
+        program=request.program,
+        parser_id=reader.parser_id,
+        quantities=tuple(quantities),
+        status="partial" if absent else "extracted",
+        absent=tuple(absent),
+    )
     return rq.QuantityExtractionReceiptV1(
         **body, receipt_sha256=rq.canonical_quantity_sha256(body)
     )

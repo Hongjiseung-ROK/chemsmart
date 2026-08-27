@@ -295,12 +295,19 @@ def test_a_broken_analysis_input_skips_its_dependents(tmp_path):
     )
 
     states = {node.node_id: node.state for node in nodes}
-    assert states["extract-sp"] == "failed"
+    # The node ran and delivered nothing it was asked for, so it settles
+    # executed with the output named absent -- the walk did run it -- while
+    # the consumer that named that output still does not run.  Which of the
+    # two the state records is the round's whole point: what the walk did,
+    # against what the evidence contains.
+    assert states["extract-sp"] == "executed"
     assert states["to-kcal"] == "skipped"
     assert states["check"] == "skipped"
     assert status == "partial"
-    failed = next(node for node in nodes if node.node_id == "extract-sp")
-    assert "<S^2>" in failed.reason
+    extraction = next(node for node in nodes if node.node_id == "extract-sp")
+    assert extraction.absent_output_ids == ("e",)
+    starved = next(node for node in nodes if node.node_id == "to-kcal")
+    assert "extract-sp.e" in starved.reason
     # The partial envelope delivers the failure to the reader instead of
     # leaving an empty run directory.
     assert report_path.endswith("partial-analysis-report.md")
@@ -438,16 +445,26 @@ def test_an_absent_quantity_settles_the_node_instead_of_crashing(tmp_path):
     )
 
     settled = {record.node_id: record for record in nodes}
-    assert settled["extract-spin"].state == "failed"
-    assert "no <S^2>" in settled["extract-spin"].reason
+    # The refusal is no longer fatal to the node, and the claim that mattered
+    # here is unchanged: a consumer that names the refused output does not
+    # run, nothing crashes, and the exemplary message still reaches a reader.
+    assert settled["extract-spin"].state == "executed"
+    assert settled["extract-spin"].absent_output_ids == ("s2",)
     assert settled["claims"].state == "skipped"
+    assert "extract-spin.s2" in settled["claims"].reason
     assert status == "partial"
     # The envelope delivers the exemplary refusal to the reader: findings
     # name what did not run and the footer names the recovery act, while no
     # claims heading appears because nothing reached claim standing.
     assert report_path.endswith("partial-analysis-report.md")
     report = Path(report_path).read_text()
-    assert "Partial analysis: 2 finding(s) over 2 analysis nodes" in report
+    assert "Partial analysis: 1 finding(s) over 2 analysis nodes" in report
+    # The exemplary refusal still reaches the reader -- now under its own
+    # heading, as a quantity the result does not carry, rather than as a
+    # node that did not execute.
+    from chemsmart.agent.report_format import ABSENCES_HEADING
+
+    assert ABSENCES_HEADING in report
     assert "no <S^2>" in report
     assert "Recovery:" in report
     from chemsmart.agent.report_format import CLAIMS_HEADING

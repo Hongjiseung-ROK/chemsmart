@@ -106,6 +106,13 @@ class ExecutedAnalysisNodeV1:
     state: str
     receipt_sha256s: tuple[str, ...] = ()
     reason: str = ""
+    #: Outputs this node was asked for that its result does not carry.  A
+    #: node that ran and delivered some of what was requested still counts
+    #: as executed: the state records what the walk did with the node, and
+    #: the receipt's own ``partial`` status records what the evidence
+    #: contains.  Consumers naming one of these skip; consumers naming only
+    #: the delivered siblings do not.
+    absent_output_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -798,16 +805,29 @@ class ApprovedWorkflowExecutor:
                     ],
                 )
                 digest = _field(receipt, "receipt_sha256")
+                absent_quantity_ids = {
+                    str(item[0]) for item in (_field(receipt, "absent") or ())
+                }
+                missing: list[str] = []
                 for output in node.outputs:
+                    quantity_id = _extraction_quantity_id(node, output)
+                    if quantity_id in absent_quantity_ids:
+                        # Publishing nothing under this key is what makes a
+                        # consumer that names it skip.  A consumer naming a
+                        # sibling finds its value exactly where it always
+                        # was.
+                        missing.append(output.output_id)
+                        continue
                     outputs[(node.node_id, output.output_id)] = (
                         digest,
-                        _extraction_quantity_id(node, output),
+                        quantity_id,
                     )
                 return ExecutedAnalysisNodeV1(
                     node_id=node.node_id,
                     analysis_kind=kind,
                     state="executed",
                     receipt_sha256s=(digest,),
+                    absent_output_ids=tuple(sorted(missing)),
                 )
             if kind == "thermochemistry":
                 if node.temperature_k is None or node.pressure_atm is None:
@@ -1001,16 +1021,40 @@ class ApprovedWorkflowExecutor:
                 and settled[dependency].state
                 in {"failed", "skipped", "blocked_unsupported"}
             )
-            if broken:
+            # A dependency that ran and delivered some of what it was asked
+            # for breaks only the consumers that named something it did not
+            # deliver.  This used to key on the node alone, so one refused
+            # selector settled every consumer of every sibling quantity --
+            # in the run that prompted this, twelve nodes that named no
+            # absent value at all.  The output-level edge was already here,
+            # validated three lines before the plan collapsed it into a node
+            # id, and used at both plan time and consume time.
+            starved = tuple(
+                sorted(
+                    {
+                        f"{item.producer_node_id}.{item.producer_output_id}"
+                        for item in node.inputs
+                        if getattr(item, "producer_node_id", None) in settled
+                        and item.producer_output_id
+                        in settled[item.producer_node_id].absent_output_ids
+                    }
+                )
+            )
+            if broken or starved:
+                if broken:
+                    reason = "upstream analysis did not execute: " + ", ".join(
+                        broken
+                    )
+                else:
+                    reason = "the result carries no value for: " + ", ".join(
+                        starved
+                    )
                 _emit(
                     ExecutedAnalysisNodeV1(
                         node_id=node.node_id,
                         analysis_kind=node.analysis_kind,
                         state="skipped",
-                        reason=(
-                            "upstream analysis did not execute: "
-                            + ", ".join(broken)
-                        ),
+                        reason=reason,
                     )
                 )
                 continue
@@ -1040,6 +1084,23 @@ class ApprovedWorkflowExecutor:
             record.state in {"executed", "blocked_unsupported"}
             for record in settled.values()
         )
+        # A node that ran and was refused one quantity still counts as
+        # executed, so a chain can now finish with an absence in it.  The
+        # run reads completed when it delivered what the session declared
+        # the chain was for, and partial when an absence took one of those
+        # required outputs -- which can happen with nothing skipped at all,
+        # if the missing output was a deliverable no later node consumed.
+        starved_requirements = tuple(
+            sorted(
+                {
+                    output_id
+                    for record in settled.values()
+                    for output_id in record.absent_output_ids
+                    if output_id in set(toolchain.required_output_ids)
+                }
+            )
+        )
+        executed_all = executed_all and not starved_requirements
         analysis_status = "completed" if executed_all else "partial"
         completion_receipts: tuple[str, ...] = ()
         report_path = ""

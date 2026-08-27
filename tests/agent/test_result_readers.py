@@ -22,7 +22,6 @@ from chemsmart.agent.capabilities import CapabilityQueryV1, query_capability
 from chemsmart.agent.postprocessing import extract_trusted_result_quantities
 from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
 from chemsmart.analysis.result_quantities import (
-    QuantityExtractionError,
     QuantitySelectorV1,
 )
 from chemsmart.analysis.result_readers import (
@@ -195,14 +194,27 @@ def test_registered_xyz_geometry_enters_the_typed_quantity_plane(tmp_path):
 
 
 def test_xyz_energy_refuses_an_unlabeled_negative_comment_number(tmp_path):
+    """The reason still has to be stated; it now travels on the receipt.
+
+    A comment line's bare negative number is a charge, not an energy, and
+    saying so is the point.  Since a refusal settles per output rather than
+    ending the extraction, the sentence reaches a reader as a named absence
+    instead of as an exception -- which is the same claim, recorded where
+    the evidence is rather than only where the traceback was.
+    """
+
     endpoint = tmp_path / "charged.xyz"
     endpoint.write_text(
         "1\ncharge -1.0 multiplicity 2\nH 0.0 0.0 0.0\n",
         encoding="utf-8",
     )
 
-    with pytest.raises(QuantityExtractionError, match="explicit Energy"):
-        _extract(endpoint, "xyz", "energy")
+    receipt = _extract(endpoint, "xyz", "energy")
+    assert receipt.status == "partial"
+    assert not receipt.quantities
+    ((quantity_id, selector, reason),) = receipt.absent
+    assert selector == "energy"
+    assert "explicit Energy" in reason
 
     positions = _extract(endpoint, "xyz", "positions").quantities[0]
     assert positions.value == ((0.0, 0.0, 0.0),)
@@ -272,8 +284,12 @@ def test_orca_dft_d_total_scf_and_dispersion_are_distinct_components():
     assert scf.value == pytest.approx(-675.52250804211144)
     assert dispersion.value == pytest.approx(-0.000297849)
     assert total.value == pytest.approx(scf.value + dispersion.value)
-    with pytest.raises(Exception, match="post-SCF correlation"):
-        _extract(path, "orca", "correlation_energy", "correlation")
+
+    # A dispersion-corrected DFT total is not a correlation energy, and the
+    # reason is now recorded as an absence rather than raised.
+    refused = _extract(path, "orca", "correlation_energy", "correlation")
+    assert refused.status == "partial"
+    assert "post-SCF correlation" in refused.absent[0][2]
 
 
 def test_orca_correlation_requires_a_native_printed_result_not_method_name():
