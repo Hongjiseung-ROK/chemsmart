@@ -189,3 +189,36 @@ def test_only_orca_declares_them():
             continue
         for selector in _SOLVATION_SELECTORS:
             assert selector not in reader.accessors, (program, selector)
+
+
+def test_the_solvent_is_declared_wherever_the_model_is():
+    """Found by a live session, not by reading the tables.
+
+    A session asked to characterise how the continuum treated four species
+    asked for `solvent` eight times and was refused every time: the accessor
+    existed, carried a unit and a dimension, and was declared for no ORCA
+    jobtype at all, while `solvation_model` was declared for every one. Both
+    come from the same route-parsing helper and both are job-level facts, so
+    the asymmetry had no reason behind it -- knowing a run used SMD without
+    knowing what it was dissolved in is half a fact.
+    """
+
+    declared = dict(_reader().jobtype_selectors)
+    for jobtype, selectors in declared.items():
+        assert ("solvent" in selectors) == (
+            "solvation_model" in selectors
+        ), jobtype
+
+
+def test_the_solvent_name_reads_and_gas_phase_reports_absence():
+    reader = _reader()
+    gas = reader.open_output(Path("tests/data/ORCATests/outputs/CO2.out"))
+    with pytest.raises(MissingQuantityError):
+        reader.read(gas, "solvent")
+
+    solvated = reader.open_output(
+        Path("tests/data/ORCATests/outputs/phenol_pka_B_sp.out")
+    )
+    name, unit = reader.read(solvated, "solvent")
+    assert name == "water"
+    assert unit == ""
