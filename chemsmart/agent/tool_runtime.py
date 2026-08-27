@@ -263,7 +263,10 @@ from chemsmart.analysis.result_quantities import (
     quantity_extraction_receipt_from_record,
     thermochemistry_receipt_from_record,
 )
-from chemsmart.analysis.result_readers import reader_for
+from chemsmart.analysis.result_readers import (
+    reader_for,
+    registered_reader_programs,
+)
 from chemsmart.utils.process_observation import (
     ProcessObservationV1,
     ProcessSignalGuard,
@@ -1775,6 +1778,7 @@ class CommandCompiledToolHostV1:
             "preview_command": self._preview_command,
             "preflight_program_node": self._preflight_program_node,
             "inspect_calculation_artifact": self._inspect_calculation_artifact,
+            "inspect_result_selectors": self._inspect_result_selectors,
             "extract_result_quantities": self._extract_result_quantities,
             "derive_thermochemistry": self._derive_thermochemistry,
             "evaluate_quantity_expression": self._evaluate_quantity_expression,
@@ -10804,6 +10808,55 @@ class CommandCompiledToolHostV1:
             expected_receipt_sha256=receipt.expected_receipt_sha256,
         )
         return receipt
+
+    def _inspect_result_selectors(self, turn_id: str, values: dict) -> Any:
+        """Return what one completed result resolves, by probing its parser.
+
+        The reader has always been able to answer this, and until now the
+        answer only ever reached a session appended to a refusal -- one
+        selector at a time, after an extraction had already been planned and
+        run.  Probing costs one attempted read per accessor on an already
+        opened result and no re-parse.
+
+        It states what the artifact holds and chooses nothing: which of these
+        the scientific question needs is not the host's judgement, and a
+        selector missing here is a property of the calculation that produced
+        this result rather than a gap in the parser.
+        """
+
+        artifact = self._artifact(values["artifact_id"])
+        program = str(values["program"]).strip().lower()
+        reader = reader_for(program)
+        if reader is None:
+            raise ContractError(
+                "no typed result reader is registered for "
+                f"{program!r}; registered: "
+                f"{registered_reader_programs()}"
+            )
+        if artifact.kind != reader.artifact_kind:
+            raise ContractError(
+                f"{program} selector inspection requires a bound "
+                f"{reader.artifact_kind} artifact, not {artifact.kind!r}"
+            )
+        output = reader.open_output(Path(artifact.path))
+        available = reader.available_selectors(output)
+        jobtype = str(getattr(output, "jobtype", "") or "").casefold()
+        declared = reader.selectors_for_jobtype(jobtype)
+        return {
+            "artifact_id": artifact.artifact_id,
+            "program": program,
+            "parser_id": reader.parser_id,
+            "jobtype": jobtype,
+            "available_selectors": available,
+            # A selector this artifact resolves is still refused unless the
+            # job type declares it, because a declaration is a claim about
+            # what the value means for that job type.
+            "requestable_selectors": tuple(
+                selector
+                for selector in available
+                if declared is None or selector in declared
+            ),
+        }
 
     def _extract_result_quantities(self, turn_id: str, values: dict) -> Any:
         artifact = self._artifact(values["artifact_id"])

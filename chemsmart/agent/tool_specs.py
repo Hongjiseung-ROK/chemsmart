@@ -1078,6 +1078,26 @@ def build_command_compiled_tool_surface(
             ),
         ),
         _tool(
+            "inspect_result_selectors",
+            (
+                "List the selectors one completed result actually resolves, "
+                "by probing its parser. A declaration describes a job type; "
+                "what a particular result carries is narrower, because the "
+                "method and settings decide what the program printed -- a "
+                "spin-restricted run prints no <S^2>, a single point has no "
+                "Hessian. Use it when planning analysis over results that "
+                "already exist, so the shape of an artifact is learned once "
+                "rather than one refused selector at a time. It cannot help "
+                "before a calculation has run: there is no artifact to probe "
+                "until the engine has produced one."
+            ),
+            {
+                "program": structured_result_program,
+                "artifact_id": _string(),
+            },
+            ("program", "artifact_id"),
+        ),
+        _tool(
             "extract_result_quantities",
             (
                 "Parse selected numerical or scientific fields from a trusted "
