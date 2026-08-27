@@ -168,3 +168,77 @@ def test_the_two_schemes_disagree_and_that_is_why_the_name_carries_one():
     assert mulliken[oxygen] < -0.9
     assert loewdin[oxygen] > -0.5
     assert abs(mulliken[oxygen] - loewdin[oxygen]) > 0.5
+
+
+_OPEN_SHELL = [
+    ("fe3_doublet", 3, 2),
+    ("fe3_quartet", 3, 4),
+    ("fe3_sextet", 3, 6),
+    ("fe2_triplet", 2, 3),
+]
+
+
+@pytest.mark.parametrize("stem,charge,multiplicity", _OPEN_SHELL)
+@pytest.mark.parametrize("selector", _SCHEMES)
+def test_an_open_shell_result_reports_charges_not_spin(
+    stem, charge, multiplicity, selector
+):
+    """The defect a live session found by adding up what it was given.
+
+    ORCA prints one column for a closed shell and two for an open shell --
+    "MULLIKEN ATOMIC CHARGES" becomes "... AND SPIN POPULATIONS", charge
+    first and spin second -- and the header substring matches both. Reading
+    the last token therefore returned the charge of a restricted result and
+    the spin population of an unrestricted one, under one name.
+
+    It went unseen because nothing in the typed layer had ever read these
+    values; declaring the selector is what made it reachable, and the first
+    session to use it noticed that a neutral phenoxyl radical's charges summed
+    to +1.00 e. A doublet cation had looked correct only because its total
+    spin and its formal charge are both +1 -- which is why the sextet below is
+    the decisive case: its charge is +3 and its spin is +5.
+    """
+
+    reader = RESULT_READERS["orca"]
+    output = reader.open_output(
+        Path(f"tests/data/ORCATests/outputs/{stem}.out")
+    )
+    charges, unit = reader.read(output, selector)
+    assert unit == "e"
+    total = sum(charges)
+    assert total == pytest.approx(float(charge), abs=1e-3)
+    if multiplicity - 1 != charge:
+        # the old reading; it must not come back
+        assert total != pytest.approx(float(multiplicity - 1), abs=1e-3)
+
+
+def test_the_charge_column_is_read_by_position_not_from_the_end():
+    """Pinned directly against both printed layouts.
+
+    A closed-shell row is "0 C : 1.034841" and an open-shell row is
+    "0 C : 0.850767 0.111279". The charge is the first number after the colon
+    in both; only the closed-shell case makes it the last one too.
+    """
+
+    reader = RESULT_READERS["orca"]
+    open_shell = reader.open_output(
+        Path("tests/data/ORCATests/outputs/fe3_sextet.out")
+    )
+    charges, _ = reader.read(open_shell, "mulliken_atomic_charges")
+    text = Path("tests/data/ORCATests/outputs/fe3_sextet.out").read_text()
+    # The colon may be attached to the element ("Fe:") or stand alone
+    # ("O :"), which is itself why the parser locates it rather than
+    # assuming a column count.
+    start = max(
+        index
+        for index, line in enumerate(text.splitlines())
+        if "MULLIKEN ATOMIC CHARGES" in line
+    )
+    first_row = text.splitlines()[start + 2].split()
+    assert first_row[0] == "0", "expected the first atom's row"
+    colon = next(
+        index for index, token in enumerate(first_row) if token.endswith(":")
+    )
+    assert len(first_row) - colon - 1 == 2, "row must have two numbers"
+    assert charges[0] == pytest.approx(float(first_row[colon + 1]))
+    assert charges[0] != pytest.approx(float(first_row[-1]))

@@ -2198,8 +2198,25 @@ class ORCAOutput(ORCAFileMixin):
                     element_num = f"{element}{line_j_elements[0]}"
                     # use 1-indexed
                     element_num_1idx = increment_numbers(element_num, 1)
+                    # ORCA prints one column for a closed shell and two for
+                    # an open shell -- "MULLIKEN ATOMIC CHARGES" becomes
+                    # "... AND SPIN POPULATIONS", charge first and spin
+                    # second -- and the header substring matches both. Taking
+                    # the last token therefore read the charge of a restricted
+                    # result and the spin population of an unrestricted one,
+                    # under one name. A phenoxyl radical's charges summed to
+                    # +1.00 e, which is its total spin rather than its formal
+                    # charge of zero, and a doublet cation looked right only
+                    # because its spin sum and its charge are both +1. The
+                    # charge is the first number after the colon in both
+                    # layouts, so read it by position rather than from the end.
+                    colon = next(
+                        index
+                        for index, token in enumerate(line_j_elements)
+                        if token.endswith(":")
+                    )
                     mulliken_atomic_charges[element_num_1idx] = float(
-                        line_j_elements[-1]
+                        line_j_elements[colon + 1]
                     )
                 all_mulliken_atomic_charges.append(mulliken_atomic_charges)
         return all_mulliken_atomic_charges[-1]
@@ -2224,8 +2241,16 @@ class ORCAOutput(ORCAFileMixin):
                     element = p.to_element(element)
                     element_num = f"{element}{line_j_elements[0]}"
                     element_num_1idx = increment_numbers(element_num, 1)
+                    # Same two-column layout as the Mulliken block above, and
+                    # the same fix: the charge is the first number after the
+                    # colon whether or not a spin population follows it.
+                    colon = next(
+                        index
+                        for index, token in enumerate(line_j_elements)
+                        if token.endswith(":")
+                    )
                     loewdin_atomic_charges[element_num_1idx] = float(
-                        line_j_elements[-1]
+                        line_j_elements[colon + 1]
                     )
                 all_loewdin_atomic_charges.append(loewdin_atomic_charges)
         return all_loewdin_atomic_charges[-1]
