@@ -122,6 +122,8 @@ SELECTOR_UNITS = {
     "solvation_electrostatic_energy": "Eh",
     "solvation_nonelectrostatic_energy": "Eh",
     "solvation_cavity_surface_area": "angstrom^2",
+    "mulliken_atomic_charges": "e",
+    "loewdin_atomic_charges": "e",
     "functional": "",
     "ab_initio": "",
     "basis": "",
@@ -265,6 +267,73 @@ def _vibrational_mode_degeneracy_group(output: Any) -> list[int]:
 
 def _symbols(output: Any) -> list[str]:
     return [str(item) for item in output.molecule.chemical_symbols]
+
+
+_ATOM_LABEL = re.compile(r"^([A-Za-z]{1,3})(\d+)$")
+
+
+def _per_atom_vector(
+    labelled: Any, symbols: list[str], *, quantity: str
+) -> list[float]:
+    """Order an atom-labelled per-atom mapping into molecular order.
+
+    Every program's per-atom parsers hand back a mapping keyed by an atom
+    label, and the labelling schemes do not agree: ORCA and Gaussian number
+    atoms globally, so carbon dioxide's carbon is ``"C3"``, while xTB counts
+    within each element and calls the same atom ``"C1"``.  Reading one
+    scheme as the other returns a different atom without any error.
+
+    The typed layer cannot repair the order later either -- freezing a
+    mapping sorts it by label, so ``O1, C2, H3`` becomes ``C2, H3, O1``, and
+    per-atom values silently stop lining up with the geometry they describe.
+
+    So the label is resolved here, against the molecule's own symbols, and
+    every atom must be named exactly once by a label whose element matches
+    the atom at that position.  A per-element scheme fails that check rather
+    than passing quietly, which is the point: this refuses to guess.
+    """
+
+    if not isinstance(labelled, Mapping):
+        values = [float(item) for item in labelled]
+        if len(values) != len(symbols):
+            raise MissingQuantityError(
+                f"{quantity} carries {len(values)} values for "
+                f"{len(symbols)} atoms"
+            )
+        return values
+    if len(labelled) != len(symbols):
+        raise MissingQuantityError(
+            f"{quantity} carries {len(labelled)} values for "
+            f"{len(symbols)} atoms"
+        )
+    ordered: list[float | None] = [None] * len(symbols)
+    for label, value in labelled.items():
+        match = _ATOM_LABEL.match(str(label).strip())
+        if match is None:
+            raise MissingQuantityError(
+                f"{quantity} carries an unreadable atom label {label!r}"
+            )
+        element, index_text = match.groups()
+        index = int(index_text)
+        if not 1 <= index <= len(symbols):
+            raise MissingQuantityError(
+                f"{quantity} names atom {index} of {len(symbols)}"
+            )
+        expected = symbols[index - 1]
+        if expected.strip().lower() != element.strip().lower():
+            raise MissingQuantityError(
+                f"{quantity} labels atom {index} {element!r} while the "
+                f"geometry has {expected!r}; the atom-label scheme does "
+                "not match this molecule's atom order"
+            )
+        if ordered[index - 1] is not None:
+            raise MissingQuantityError(
+                f"{quantity} names atom {index} more than once"
+            )
+        ordered[index - 1] = float(value)
+    if any(item is None for item in ordered):
+        raise MissingQuantityError(f"{quantity} does not name every atom")
+    return [float(item) for item in ordered]
 
 
 def _required_record_values(
@@ -1104,6 +1173,16 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "solvation_cavity_surface_area": (
                 lambda output: output.solvation_cavity_surface_area
             ),
+            "mulliken_atomic_charges": lambda output: _per_atom_vector(
+                output.mulliken_atomic_charges,
+                _orca_symbols(output),
+                quantity="mulliken_atomic_charges",
+            ),
+            "loewdin_atomic_charges": lambda output: _per_atom_vector(
+                output.loewdin_atomic_charges,
+                _orca_symbols(output),
+                quantity="loewdin_atomic_charges",
+            ),
             "functional": _route_functional,
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
@@ -1575,7 +1654,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "homo",
+                    "loewdin_atomic_charges",
                     "lumo",
+                    "mulliken_atomic_charges",
                     "multiplicity",
                     "positions",
                     "reference_energy",
@@ -1658,7 +1739,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "homo",
+                    "loewdin_atomic_charges",
                     "lumo",
+                    "mulliken_atomic_charges",
                     "multiplicity",
                     "positions",
                     "reference_energy",
@@ -1735,7 +1818,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "homo",
+                    "loewdin_atomic_charges",
                     "lumo",
+                    "mulliken_atomic_charges",
                     "multiplicity",
                     "positions",
                     "reference_energy",
@@ -2001,6 +2086,8 @@ _SELECTOR_DIMENSIONS = {
     "solvation_electrostatic_energy": "ENERGY",
     "solvation_nonelectrostatic_energy": "ENERGY",
     "solvation_cavity_surface_area": "AREA",
+    "mulliken_atomic_charges": "CHARGE",
+    "loewdin_atomic_charges": "CHARGE",
     "solvent": "DIMENSIONLESS",
 }
 

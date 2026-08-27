@@ -174,6 +174,12 @@ SUPPORTED_SELECTORS = SUPPORTED_PYSCF_SELECTORS | frozenset(
         "solvation_electrostatic_energy",
         "solvation_nonelectrostatic_energy",
         "solvation_cavity_surface_area",
+        # Per-atom populations, named by the scheme that produced them
+        # because Mulliken, Loewdin, Hirshfeld, CM5 and a tight-binding
+        # population are different quantities rather than different
+        # spellings of one, and no renormalisation removes the difference.
+        "mulliken_atomic_charges",
+        "loewdin_atomic_charges",
     }
 )
 
