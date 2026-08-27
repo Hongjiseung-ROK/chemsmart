@@ -19,9 +19,7 @@ from chemsmart.analysis.result_quantities import (
     ResultQuantityExtractionRequestV1,
     ThermochemistryReceiptV1,
     ThermochemistryRequestV1,
-    derive_pyscf_thermochemistry,
     derive_result_thermochemistry,
-    extract_pyscf_quantities,
 )
 
 
@@ -34,13 +32,11 @@ def typed_result_artifact_kind(program: str) -> str:
     )
 
     normalized = str(program).strip().lower()
-    if normalized == "pyscf":
-        return "pyscf_hdf5"
     reader = reader_for(normalized)
     if reader is None:
         raise ContractError(
             "no typed result reader is registered for program; registered: "
-            f"{('pyscf',) + registered_reader_programs()}"
+            f"{registered_reader_programs()}"
         )
     return reader.artifact_kind
 
@@ -69,10 +65,6 @@ def extract_trusted_result_quantities(
         program=normalized_program,
         selectors=selectors,
     )
-    if normalized_program == "pyscf":
-        return extract_pyscf_quantities(
-            request=request, artifact_path=artifact.path
-        )
     return extract_logged_quantities(
         request=request, artifact_path=artifact.path
     )
@@ -116,11 +108,6 @@ def derive_trusted_thermochemistry(
         use_weighted_mass=use_weighted_mass,
         frequency_scale_factor=frequency_scale_factor,
     )
-    if normalized_program == "pyscf":
-        return derive_pyscf_thermochemistry(
-            request=request,
-            artifact_path=artifact.path,
-        )
     return derive_result_thermochemistry(
         request=request,
         artifact_path=artifact.path,

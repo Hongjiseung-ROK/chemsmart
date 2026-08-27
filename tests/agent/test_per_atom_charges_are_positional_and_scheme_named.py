@@ -121,26 +121,35 @@ def test_declared_only_where_the_meaning_was_audited():
             assert selector not in declared[jobtype], (jobtype, selector)
 
 
-def test_only_orca_declares_them_and_only_the_default_schemes():
-    """Hirshfeld and CM5 are parsed and deliberately not declared.
+def test_each_program_declares_only_the_schemes_its_output_carries():
+    """A scheme is declared where that program computes it, and nowhere else.
 
-    They are reachable -- "! Hirshfeld" is a route token, not a block -- but
-    reaching them means spending the project escape hatch on a print
-    directive, whose permission covers keywords that refine a supported
-    method. A print directive refines none, so that is a policy question
-    rather than a decision to take quietly. Mulliken and Loewdin need no
-    channel at all: ORCA prints both by default.
+    Mulliken and Loewdin are ORCA defaults printed without being asked.
+    PySCF's driver computes a Mulliken population and stores it under its own
+    declared unit, so the same name is honest there -- for the scheme.  It is
+    not an invitation to subtract one from the other: a Mulliken charge in a
+    triple-zeta basis and one from a different program at a different basis
+    are the same partition of different densities.  xTB's population comes
+    from a minimal tight-binding density and is not Mulliken at all, which is
+    why no xTB accessor answers to this name.
     """
 
+    expected = {
+        "orca": {"mulliken_atomic_charges", "loewdin_atomic_charges"},
+        "pyscf": {"mulliken_atomic_charges"},
+        "gaussian": set(),
+        "xtb": set(),
+        "xyz": set(),
+    }
     for program, reader in RESULT_READERS.items():
-        for selector in _SCHEMES:
-            if program == "orca":
-                assert selector in reader.accessors
-            else:
-                assert selector not in reader.accessors, program
+        carried = {name for name in _SCHEMES if name in reader.accessors}
+        assert carried == expected[program], program
+
+    # Parsed and deliberately undeclared: reaching Hirshfeld or CM5 needs a
+    # print directive through the project route hatch, and the scheme's own
+    # accessor is a separate question from whether that channel may carry it.
     orca = RESULT_READERS["orca"]
     for withheld in (
-        "hirshfeld_charges",
         "hirshfeld_cm5_charges",
         "loewdin_spin_densities",
     ):

@@ -66,8 +66,20 @@ def _extract(path, program, selector, quantity_id="q"):
     )
 
 
-def test_the_log_parsing_programs_are_registered():
-    assert registered_reader_programs() == ("gaussian", "orca", "xtb", "xyz")
+def test_every_result_program_is_registered():
+    # PySCF is here because a structured HDF5 result answers the same
+    # selector vocabulary through the same registry, job-type declaration
+    # gate and discovery path as a parsed log.  It used to be a second
+    # extraction plane reached by name, which is how a capability query
+    # could report that this program answers no selector at all.
+    assert registered_reader_programs() == (
+        "gaussian",
+        "orca",
+        "pyscf",
+        "xtb",
+        "xyz",
+    )
+    assert reader_for("pyscf").artifact_kind == "pyscf_hdf5"
     assert registered_reader_selectors()["xyz"] == (
         "connectivity",
         "energy",
@@ -794,10 +806,12 @@ def test_pyscf_spin_diagnostics_preserve_observation_target_and_deviation():
 
     import numpy as np
 
-    from chemsmart.analysis.result_quantities import _extract_selector
-
     output = SimpleNamespace(
         multiplicity=2,
+        result_units={
+            "results/spin_square": "dimensionless",
+            "results/spin_square_effective_multiplicity": ("dimensionless"),
+        },
         results={
             "spin_square": np.asarray(0.80),
             "spin_square_effective_multiplicity": np.asarray(
@@ -807,11 +821,8 @@ def test_pyscf_spin_diagnostics_preserve_observation_target_and_deviation():
     )
 
     def value(selector):
-        return _extract_selector(
-            output,
-            QuantitySelectorV1(quantity_id=selector, selector=selector),
-            "artifact:spin#" + "a" * 64,
-        ).value
+        read, _unit = reader_for("pyscf").read(output, selector)
+        return read
 
     assert value("spin_square") == pytest.approx(0.80)
     assert value("spin_square_target") == pytest.approx(0.75)
@@ -826,7 +837,6 @@ def test_pyscf_connectivity_uses_the_structured_final_geometry():
 
     import numpy as np
 
-    from chemsmart.analysis.result_quantities import _extract_selector
     from chemsmart.io.molecules.structure import Molecule
 
     molecule = Molecule(
@@ -838,18 +848,23 @@ def test_pyscf_connectivity_uses_the_structured_final_geometry():
     output = SimpleNamespace(
         positions=molecule.positions,
         symbols=molecule.chemical_symbols,
+        result_units={"results/positions": "Angstrom"},
         get_molecule=lambda: molecule,
     )
-    quantity = _extract_selector(
-        output,
-        QuantitySelectorV1(quantity_id="graph", selector="connectivity"),
-        "artifact:geometry#" + "a" * 64,
+    value, _unit = reader_for("pyscf").read(output, "connectivity")
+    assert value == [[0, 1, 0], [1, 0, 0], [0, 0, 0]]
+
+    # The stored unit is part of the machine contract, so a geometry written
+    # under a unit this reader does not read it as is a divergence to state
+    # rather than a number to convert.
+    drifted = SimpleNamespace(
+        positions=molecule.positions,
+        symbols=molecule.chemical_symbols,
+        result_units={"results/positions": "Bohr"},
+        get_molecule=lambda: molecule,
     )
-    assert quantity.value == (
-        (0.0, 1.0, 0.0),
-        (1.0, 0.0, 0.0),
-        (0.0, 0.0, 0.0),
-    )
+    with pytest.raises(Exception, match="units are absent or incompatible"):
+        reader_for("pyscf").read(drifted, "connectivity")
 
 
 def test_geometry_connectivity_recognizes_a_peroxide_bond():

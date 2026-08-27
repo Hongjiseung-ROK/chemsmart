@@ -14,12 +14,10 @@ assert that one functional was used across a series, and could not reach
 ``functional`` at all.  These tests pin the class, not the eight names.
 """
 
-import inspect
 from pathlib import Path
 
 import pytest
 
-from chemsmart.analysis import result_quantities as rq
 from chemsmart.analysis.result_quantities import (
     SUPPORTED_PYSCF_SELECTORS,
     SUPPORTED_SELECTORS,
@@ -76,22 +74,23 @@ def test_a_declared_selector_constructs_a_typed_request(selector):
     assert request.selector == selector
 
 
-def test_the_pyscf_set_claims_only_what_the_pyscf_path_extracts():
-    """Membership of the PySCF set is a claim about the structured path.
+def test_the_pyscf_set_claims_only_what_the_pyscf_reader_implements():
+    """Membership of the PySCF set is a claim about a real accessor.
 
-    The PySCF reader does not go through ``RESULT_READERS``; it reads its own
-    HDF5 results in ``_extract_selector``.  A name in the PySCF set with no
-    branch there is an advertisement: the request is accepted and then refused
-    as unsupported at extraction time.
+    This used to read the source text of a separate extraction function,
+    because the structured PySCF path did not go through ``RESULT_READERS``
+    at all: it had its own vocabulary, its own unit table and no job-type
+    declaration gate, so a name could be claimed, accepted at planning and
+    then refused as unsupported once every engine had already run.  PySCF is
+    a registered reader now, so the same registry that answers this question
+    for every other program answers it here.
     """
 
-    source = inspect.getsource(rq._extract_selector)
-    unhandled = sorted(
-        name for name in SUPPORTED_PYSCF_SELECTORS if name not in source
-    )
+    accessors = set(RESULT_READERS["pyscf"].accessors)
+    unhandled = sorted(SUPPORTED_PYSCF_SELECTORS - accessors)
     assert not unhandled, (
-        "these selectors are claimed for the PySCF path but have no "
-        f"extraction branch: {unhandled}"
+        "these selectors are claimed for the PySCF path but the registered "
+        f"reader implements no accessor for them: {unhandled}"
     )
 
 

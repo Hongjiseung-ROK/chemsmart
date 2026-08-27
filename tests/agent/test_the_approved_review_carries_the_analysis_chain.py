@@ -125,7 +125,7 @@ def test_the_chain_is_in_the_displayed_bytes_and_the_bundle(tmp_path):
     assert load_workflow_execution_review(path) == review
 
     # A different analysis chain is a different reviewed digest.
-    other = _review_with_chain(base, _toolchain(selector="scf_energy"))
+    other = _review_with_chain(base, _toolchain(selector="homo"))
     assert other.review_sha256 != review.review_sha256
 
     bundle = approve_workflow_execution_review(

@@ -125,6 +125,7 @@ SELECTOR_UNITS = {
     "mulliken_atomic_charges": "e",
     "loewdin_atomic_charges": "e",
     "functional": "",
+    "method": "",
     "ab_initio": "",
     "basis": "",
     "converged": "1",
@@ -616,9 +617,18 @@ class ResultReaderV1:
                 f"{self.program} result reader does not provide {selector!r}; "
                 f"it provides {sorted(self.selectors)}"
             )
+        from chemsmart.analysis.result_quantities import (
+            QuantityExtractionError,
+        )
+
         try:
             value = self.accessors[selector](output)
-        except MissingQuantityError:
+        except (MissingQuantityError, QuantityExtractionError):
+            # Absence and divergence are different answers.  A block this run
+            # never wrote is an absent quantity; a stored unit that is not the
+            # one we read the dataset as means the writer's contract and this
+            # reader have diverged, and reporting that as "no value" would
+            # hide a defect behind the ordinary meaning of a missing block.
             raise
         except Exception as exc:
             # The parsers raise IndexError/TypeError when a block the run never
@@ -1570,6 +1580,216 @@ def _xyz_accessors() -> dict[str, Callable[[Any], Any]]:
 #: Programs whose results can be read into typed quantities.  PySCF keeps its
 #: dedicated structured-HDF5 path in ``result_quantities``; the entries here are
 #: the log-parsing programs that had none.
+def _pyscf_output(path: Path) -> Any:
+    """Open a structured PySCF result after its full admission check.
+
+    The HDF5 path carries an admission guard no log format has: the file
+    states its own contract version, a sibling run receipt binds these exact
+    bytes and the whole ancestry of digests behind them, and every numeric
+    dataset carries a declared unit.  Folding this program into the shared
+    reader plane must keep all of that, so the ancestry guard runs here at
+    open time and the per-dataset unit check runs inside each accessor --
+    verifying the union of every declared selector's datasets here would
+    refuse a valid result over a dataset nobody asked about.
+    """
+
+    from chemsmart.analysis.result_quantities import (
+        result_file_sha256,
+        validate_pyscf_analysis_artifact,
+    )
+
+    output, _receipt = validate_pyscf_analysis_artifact(
+        path, expected_sha256=result_file_sha256(path)
+    )
+    return output
+
+
+def _pyscf_require_units(selector: str, output: Any) -> None:
+    """Refuse a dataset whose stored unit is not the one we read it as.
+
+    Absence and disagreement are different answers.  A dataset this run never
+    wrote has no unit at all, which is the ordinary absent quantity; a dataset
+    that is present under a unit we did not expect means the writer's contract
+    and this reader have diverged, and that is a defect to state rather than a
+    value to convert.
+    """
+
+    from chemsmart.analysis import result_quantities as rq
+
+    expected = rq._SELECTOR_RESULT_UNITS.get(selector, {})
+    if not expected:
+        # Job identity and the electronic state are read from the spec block
+        # rather than a numeric dataset, so there is no stored unit to audit.
+        return
+    observed = output.result_units
+    absent = [path for path in expected if observed.get(path) is None]
+    if absent:
+        raise MissingQuantityError(
+            f"pyscf result contains no {selector!r} value "
+            f"(datasets absent: {sorted(absent)})"
+        )
+    wrong = {
+        path: {"expected": unit, "observed": observed.get(path)}
+        for path, unit in expected.items()
+        if observed.get(path) != unit
+    }
+    if wrong:
+        raise rq.QuantityExtractionError(
+            f"PySCF result units are absent or incompatible: {wrong}"
+        )
+
+
+def _pyscf_spin(name: str, output: Any) -> float:
+    """Return one member of the <S^2> diagnostic set.
+
+    The target is derived from the bound multiplicity rather than read, so it
+    exists for any result; the observed value and the effective multiplicity
+    are written only for an unrestricted reference, and their absence is the
+    ordinary meaning of a closed-shell run.
+    """
+
+    multiplicity = output.multiplicity
+    if not isinstance(multiplicity, int) or multiplicity <= 0:
+        raise MissingQuantityError(
+            "pyscf result does not establish a positive multiplicity"
+        )
+    target = (float(multiplicity) ** 2 - 1.0) / 4.0
+    if name == "spin_square_target":
+        return target
+    spin_value = output.results.get("spin_square")
+    effective_value = output.results.get("spin_square_effective_multiplicity")
+    if spin_value is None or effective_value is None:
+        raise MissingQuantityError(
+            "pyscf result has no complete <S^2> diagnostic"
+        )
+    spin_square = float(_first_scalar(spin_value))
+    if name == "spin_square":
+        return spin_square
+    if name == "spin_square_deviation":
+        return spin_square - target
+    return float(_first_scalar(effective_value))
+
+
+def _first_scalar(value: Any) -> float:
+    """Return a stored scalar that HDF5 may have shaped as a 1-element array."""
+
+    while isinstance(value, (list, tuple)) or hasattr(value, "shape"):
+        try:
+            value = value[0]
+        except (IndexError, KeyError, TypeError):
+            break
+    return float(value)
+
+
+def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
+    """Selector name to a callable reading it from a structured PySCF result.
+
+    This was an ``if``/``elif`` chain on a second extraction path that built
+    its own quantity values, carried its own unit table and had no job-type
+    declaration gate -- so a single point could be asked for frequencies and
+    only a runtime absence message stood in the way, while the capability
+    query could not report that this program answers any selector at all.
+    Reading through the shared plane also cross-checks each value's observed
+    dimension against the declared one, which the separate path never did.
+    """
+
+    raw: dict[str, Callable[[Any], Any]] = {
+        "energy": lambda output: float(output.energies[-1]),
+        "energies": lambda output: [float(item) for item in output.energies],
+        "positions": lambda output: [
+            [float(value) for value in row] for row in output.positions
+        ],
+        "symbols": lambda output: [
+            str(symbol) for symbol in output.chemical_symbols
+        ],
+        "connectivity": lambda output: _connectivity_matrix(
+            output.get_molecule()
+        ),
+        "charge": lambda output: int(output.charge),
+        "multiplicity": lambda output: int(output.multiplicity),
+        "method": lambda output: str(output.method),
+        "basis": lambda output: str(output.basis),
+        "homo": lambda output: float(output.homo_energy),
+        "lumo": lambda output: float(output.lumo_energy),
+        "gap": lambda output: float(output.fmo_gap),
+        "dipole_moment": lambda output: [
+            float(value) for value in output.dipole_moment
+        ],
+        "dipole_moment_magnitude": lambda output: (
+            sum(float(value) ** 2 for value in output.dipole_moment) ** 0.5
+        ),
+        "mulliken_atomic_charges": lambda output: _per_atom_vector(
+            output.mulliken_atomic_charges,
+            [str(symbol) for symbol in output.chemical_symbols],
+            quantity="mulliken_atomic_charges",
+        ),
+        "vibrational_frequencies": lambda output: [
+            float(item) for item in output.vibrational_frequencies
+        ],
+        "vibrational_mode_atom_participation": (
+            _vibrational_mode_atom_participation
+        ),
+        "vibrational_mode_degeneracy_group": (
+            _vibrational_mode_degeneracy_group
+        ),
+        # Excited-state values stay implemented and undeclared: PySCF ``td``
+        # is a preview surface in this release, so no approved workflow can
+        # emit them and a job-type declaration would advertise a quantity
+        # nothing reachable produces.
+        "excitation_energies": lambda output: [
+            float(item) for item in output.excitation_energies
+        ],
+        "oscillator_strengths": lambda output: [
+            float(item) for item in output.oscillator_strengths
+        ],
+    }
+    for name in (
+        "spin_square",
+        "spin_square_target",
+        "spin_square_deviation",
+        "effective_multiplicity",
+    ):
+        raw[name] = (lambda key: lambda output: _pyscf_spin(key, output))(name)
+
+    def _guard(
+        selector: str, read: Callable[[Any], Any]
+    ) -> Callable[[Any], Any]:
+        def accessor(output: Any) -> Any:
+            _pyscf_require_units(selector, output)
+            return read(output)
+
+        return accessor
+
+    return {name: _guard(name, read) for name, read in raw.items()}
+
+
+#: Selectors every executed PySCF stage writes.  The SCF block that follows
+#: every stage stores energies, geometry, orbital energies and the population
+#: and dipole properties, so a single point and an optimisation answer the
+#: same set; a Hessian stage adds the vibrational quantities on top.
+_PYSCF_SCF_SELECTORS = (
+    "basis",
+    "charge",
+    "connectivity",
+    "dipole_moment",
+    "dipole_moment_magnitude",
+    "effective_multiplicity",
+    "energies",
+    "energy",
+    "gap",
+    "homo",
+    "lumo",
+    "method",
+    "mulliken_atomic_charges",
+    "multiplicity",
+    "positions",
+    "spin_square",
+    "spin_square_deviation",
+    "spin_square_target",
+    "symbols",
+)
+
+
 RESULT_READERS: dict[str, ResultReaderV1] = {
     "orca": ResultReaderV1(
         program="orca",
@@ -2011,6 +2231,34 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ),
         ),
     ),
+    "pyscf": ResultReaderV1(
+        program="pyscf",
+        artifact_kind="pyscf_hdf5",
+        parser_id="chemsmart.io.pyscf.output.PySCFOutput",
+        open_output=_pyscf_output,
+        accessors=_pyscf_accessors(),
+        # PySCF stores excitation energies in hartree where the log-parsing
+        # programs print electronvolts.  One entry closes a cross-program
+        # disagreement this project had recorded and never reconciled.
+        source_units={"excitation_energies": "Eh"},
+        jobtype_selectors=(
+            (
+                "hess",
+                tuple(
+                    sorted(
+                        _PYSCF_SCF_SELECTORS
+                        + (
+                            "vibrational_frequencies",
+                            "vibrational_mode_atom_participation",
+                            "vibrational_mode_degeneracy_group",
+                        )
+                    )
+                ),
+            ),
+            ("opt", _PYSCF_SCF_SELECTORS),
+            ("sp", _PYSCF_SCF_SELECTORS),
+        ),
+    ),
     "xyz": ResultReaderV1(
         program="xyz",
         artifact_kind="geometry_xyz",
@@ -2025,6 +2273,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
 #: Physical dimension of each selector, in the shared quantity vocabulary.
 _SELECTOR_DIMENSIONS = {
     "functional": "DIMENSIONLESS",
+    "method": "DIMENSIONLESS",
     "ab_initio": "DIMENSIONLESS",
     "basis": "DIMENSIONLESS",
     "converged": "DIMENSIONLESS",
@@ -2101,6 +2350,7 @@ _TEXT_SELECTORS = frozenset(
     {
         "irc_direction",
         "functional",
+        "method",
         "ab_initio",
         "basis",
         "auxiliary_basis",

@@ -227,7 +227,7 @@ def test_validated_project_repair_can_rebind_without_rewriting_analysis_dag(
                     "selectors": [
                         {
                             "quantity_id": "frequency-values",
-                            "selector": "frequencies",
+                            "selector": "vibrational_frequencies",
                         }
                     ],
                     "outputs": [

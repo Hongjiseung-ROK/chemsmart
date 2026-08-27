@@ -274,6 +274,9 @@ _SELECTOR_RESULT_UNITS = {
     "oscillator_strengths": {"results/oscillator_strengths": "dimensionless"},
     "dipole_moment": {"results/dipole_moment": "Debye"},
     "dipole_moment_magnitude": {"results/dipole_moment": "Debye"},
+    "mulliken_atomic_charges": {
+        "results/mulliken_charges": "elementary_charge"
+    },
     "positions": {"results/positions": "Angstrom"},
     "connectivity": {"results/positions": "Angstrom"},
     "vibrational_frequencies": {"results/vibrational_frequencies": "cm^-1"},
@@ -431,13 +434,12 @@ class ResultQuantityExtractionRequestV1:
             )
         _require_identifier(self.artifact_id, "artifact_id")
         _require_sha256(self.artifact_sha256)
-        if self.program != "pyscf":
-            from chemsmart.analysis.result_readers import reader_for
+        from chemsmart.analysis.result_readers import reader_for
 
-            if reader_for(self.program) is None:
-                raise QuantityContractError(
-                    f"no result reader is registered for {self.program!r}"
-                )
+        if reader_for(self.program) is None:
+            raise QuantityContractError(
+                f"no result reader is registered for {self.program!r}"
+            )
         if not self.selectors:
             raise QuantityContractError(
                 "at least one quantity selector is required"
@@ -558,14 +560,13 @@ class ThermochemistryRequestV1:
         _require_sha256(self.artifact_sha256)
         normalized_program = str(self.program).strip().lower()
         object.__setattr__(self, "program", normalized_program)
-        if normalized_program != "pyscf":
-            from chemsmart.analysis.result_readers import reader_for
+        from chemsmart.analysis.result_readers import reader_for
 
-            if reader_for(normalized_program) is None:
-                raise QuantityContractError(
-                    "no thermochemistry result reader is registered for "
-                    f"{normalized_program!r}"
-                )
+        if reader_for(normalized_program) is None:
+            raise QuantityContractError(
+                "no thermochemistry result reader is registered for "
+                f"{normalized_program!r}"
+            )
         if not math.isfinite(self.temperature_k) or self.temperature_k <= 0.0:
             raise QuantityContractError(
                 "temperature_k must be finite and positive"
@@ -1020,328 +1021,27 @@ def _require_finite_numeric(value: Any, selector: str) -> Any:
     return value
 
 
-def _extract_selector(
-    output: PySCFOutput,
-    selector: QuantitySelectorV1,
-    evidence_ref: str,
-) -> QuantityValueV1:
-    name = selector.selector
-    value: Any
-    if name == "energy":
-        if not output.energies:
-            raise QuantityExtractionError("PySCF artifact has no energy")
-        value = _require_finite_numeric(output.energies[-1], name)
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="hartree",
-            value=value,
-            unit="hartree",
-            dimension=ENERGY,
-            evidence_ref=evidence_ref,
-        )
-    if name == "energies":
-        value = _require_finite_numeric(output.energies, name)
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="hartree",
-            value=value,
-            unit="hartree",
-            dimension=ENERGY,
-            evidence_ref=evidence_ref,
-        )
-    if name == "excitation_energies":
-        if output.excitation_energies is None:
-            raise QuantityExtractionError(
-                "PySCF artifact has no excitation energies"
-            )
-        value = _require_finite_numeric(output.excitation_energies, name)
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="hartree",
-            value=value,
-            unit="hartree",
-            dimension=ENERGY,
-            evidence_ref=evidence_ref,
-        )
-    if name == "oscillator_strengths":
-        if output.oscillator_strengths is None:
-            raise QuantityExtractionError(
-                "PySCF artifact has no oscillator strengths"
-            )
-        value = _require_finite_numeric(output.oscillator_strengths, name)
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="1",
-            value=value,
-            unit="1",
-            dimension=DIMENSIONLESS,
-            evidence_ref=evidence_ref,
-        )
-    if name in {
-        "spin_square",
-        "spin_square_target",
-        "spin_square_deviation",
-        "effective_multiplicity",
-    }:
-        multiplicity = output.multiplicity
-        if not isinstance(multiplicity, int) or multiplicity <= 0:
-            raise QuantityExtractionError(
-                "PySCF artifact does not establish a positive multiplicity"
-            )
-        target = (float(multiplicity) ** 2 - 1.0) / 4.0
-        if name == "spin_square_target":
-            value = target
-        else:
-            spin_value = output.results.get("spin_square")
-            effective_value = output.results.get(
-                "spin_square_effective_multiplicity"
-            )
-            if spin_value is None or effective_value is None:
-                raise QuantityExtractionError(
-                    "PySCF artifact has no complete <S^2> diagnostic"
-                )
-            spin_square = float(
-                np.asarray(
-                    _require_finite_numeric(spin_value, "spin_square")
-                ).reshape(-1)[0]
-            )
-            effective = float(
-                np.asarray(
-                    _require_finite_numeric(
-                        effective_value, "effective_multiplicity"
-                    )
-                ).reshape(-1)[0]
-            )
-            value = {
-                "spin_square": spin_square,
-                "spin_square_deviation": spin_square - target,
-                "effective_multiplicity": effective,
-            }[name]
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="1",
-            value=value,
-            unit="1",
-            dimension=DIMENSIONLESS,
-            evidence_ref=evidence_ref,
-        )
-    if name in {"dipole_moment", "dipole_moment_magnitude"}:
-        if output.dipole_moment is None:
-            raise QuantityExtractionError(
-                "PySCF artifact has no dipole moment"
-            )
-        vector = _require_finite_numeric(output.dipole_moment, name)
-        value = (
-            float(np.linalg.norm(np.asarray(vector, dtype=float)))
-            if name == "dipole_moment_magnitude"
-            else vector
-        )
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="Debye",
-            value=value,
-            unit="debye",
-            dimension=DIPOLE_MOMENT,
-            evidence_ref=evidence_ref,
-        )
-    if name == "positions":
-        if output.positions is None:
-            raise QuantityExtractionError("PySCF artifact has no positions")
-        value = _require_finite_numeric(output.positions, name)
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="angstrom",
-            value=value,
-            unit="angstrom",
-            dimension=LENGTH,
-            evidence_ref=evidence_ref,
-        )
-    if name == "connectivity":
-        if output.positions is None or not output.symbols:
-            raise QuantityExtractionError(
-                "PySCF artifact has no complete geometry for connectivity"
-            )
-        from chemsmart.analysis.result_readers import _connectivity_matrix
-
-        value = _connectivity_matrix(output.get_molecule())
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="1",
-            value=value,
-            unit="1",
-            dimension=DIMENSIONLESS,
-            evidence_ref=evidence_ref,
-        )
-    if name == "symbols":
-        value = tuple(str(symbol) for symbol in output.chemical_symbols)
-        if not value:
-            raise QuantityExtractionError("PySCF artifact has no atom symbols")
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="1",
-            value=value,
-            unit="1",
-            dimension=DIMENSIONLESS,
-            evidence_ref=evidence_ref,
-            data_kind="text_vector",
-        )
-    if name == "vibrational_frequencies":
-        if output.vibrational_frequencies is None:
-            raise QuantityExtractionError(
-                "PySCF artifact has no vibrational frequencies"
-            )
-        value = _require_finite_numeric(output.vibrational_frequencies, name)
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="cm^-1",
-            value=value,
-            unit="cm^-1",
-            dimension=FREQUENCY,
-            evidence_ref=evidence_ref,
-        )
-    if name in {
-        "vibrational_mode_atom_participation",
-        "vibrational_mode_degeneracy_group",
-    }:
-        from chemsmart.analysis.result_readers import (
-            MissingQuantityError,
-            _vibrational_mode_atom_participation,
-            _vibrational_mode_degeneracy_group,
-        )
-
-        # PySCF stores the same physical displacement as the log-parsing
-        # programs, scaled by 1/sqrt(reduced mass) -- a per-mode scalar that
-        # a per-atom share divides straight back out, so the identical
-        # helper serves every program.
-        compute = (
-            _vibrational_mode_atom_participation
-            if name.endswith("participation")
-            else _vibrational_mode_degeneracy_group
-        )
-        try:
-            value = compute(output)
-        except MissingQuantityError as error:
-            raise QuantityExtractionError(str(error)) from error
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="1",
-            value=value,
-            unit="1",
-            dimension=DIMENSIONLESS,
-            evidence_ref=evidence_ref,
-        )
-    if name in {"homo", "lumo", "gap"}:
-        attribute = {
-            "homo": "homo_energy",
-            "lumo": "lumo_energy",
-            "gap": "fmo_gap",
-        }[name]
-        value = getattr(output, attribute)
-        if value is None:
-            raise QuantityExtractionError(
-                f"PySCF artifact cannot define the requested {name} value"
-            )
-        value = float(_require_finite_numeric(value, name))
-        normalized = energy_conversion("eV", "hartree", value)
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="eV",
-            value=normalized,
-            unit="hartree",
-            dimension=ENERGY,
-            evidence_ref=evidence_ref,
-        )
-    if name in {"charge", "multiplicity"}:
-        value = getattr(output, name)
-        if not isinstance(value, int):
-            raise QuantityExtractionError(
-                f"PySCF artifact has no integer {name} value"
-            )
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="1",
-            value=value,
-            unit="1",
-            dimension=DIMENSIONLESS,
-            evidence_ref=evidence_ref,
-            data_kind="integer",
-        )
-    if name in {"method", "basis"}:
-        value = getattr(output, name)
-        if not isinstance(value, str) or not value.strip():
-            raise QuantityExtractionError(
-                f"PySCF artifact has no {name} metadata"
-            )
-        return _make_quantity(
-            quantity_id=selector.quantity_id,
-            source_value=value,
-            source_unit="1",
-            value=value,
-            unit="1",
-            dimension=DIMENSIONLESS,
-            evidence_ref=evidence_ref,
-            data_kind="text",
-        )
-    raise QuantityContractError(f"unsupported selector: {name!r}")
-
-
 def extract_pyscf_quantities(
     *,
     request: ResultQuantityExtractionRequestV1,
     artifact_path: str | os.PathLike[str],
 ) -> QuantityExtractionReceiptV1:
-    """Extract selected values from a host-resolved structured PySCF result."""
+    """Extract selected values from a host-resolved structured PySCF result.
 
-    artifact = _verify_artifact(artifact_path, request.artifact_sha256)
-    output = PySCFOutput(artifact)
-    required_units: dict[str, str] = {}
-    for selector in request.selectors:
-        required_units.update(
-            _SELECTOR_RESULT_UNITS.get(selector.selector, {})
+    PySCF now answers the shared selector vocabulary through the same
+    registered reader, job-type declaration gate and unit-and-dimension
+    cross-check as every log-parsing program, so this name survives only for
+    callers that reach for it directly.
+    """
+
+    from chemsmart.analysis.result_readers import extract_logged_quantities
+
+    if request.program != "pyscf":
+        raise QuantityContractError(
+            "extract_pyscf_quantities requires program 'pyscf'"
         )
-    _require_analysis_ready_pyscf_result(
-        artifact=artifact,
-        expected_sha256=request.artifact_sha256,
-        output=output,
-        required_units=required_units,
-    )
-    if output.result_sha256 != request.artifact_sha256:
-        raise QuantityExtractionError(
-            "PySCF parser observed substituted bytes"
-        )
-    evidence_ref = f"artifact:{request.artifact_id}#{request.artifact_sha256}"
-    quantities = tuple(
-        _extract_selector(output, selector, evidence_ref)
-        for selector in request.selectors
-    )
-    if result_file_sha256(artifact) != request.artifact_sha256:
-        raise QuantityExtractionError(
-            "result artifact changed during extraction"
-        )
-    body = {
-        "schema_version": "chemsmart.quantity-extraction-receipt.v1",
-        "artifact_id": request.artifact_id,
-        "artifact_sha256": request.artifact_sha256,
-        "program": request.program,
-        "parser_id": "chemsmart.io.pyscf.output.PySCFOutput",
-        "quantities": quantities,
-        "status": "extracted",
-    }
-    return QuantityExtractionReceiptV1(
-        **body, receipt_sha256=canonical_quantity_sha256(body)
+    return extract_logged_quantities(
+        request=request, artifact_path=artifact_path
     )
 
 
