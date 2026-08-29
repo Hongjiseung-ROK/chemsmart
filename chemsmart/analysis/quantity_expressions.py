@@ -574,6 +574,133 @@ def _compound_unit_spec(
     return dimension, canonical_unit_for_dimension(dimension), factor
 
 
+def unit_dimension(unit: str) -> Dimension:
+    """Public dimension of a unit string, for plan-time checking."""
+
+    dimension, _, _ = _unit_spec(unit)
+    return dimension
+
+
+#: Operations whose result carries their (single, agreeing) input
+#: dimension. A disagreement among known input dimensions here is a
+#: provable planning error, not an unknown.
+_SAME_DIMENSION_OPERATIONS = frozenset(
+    {
+        "add",
+        "subtract",
+        "min",
+        "max",
+        "sum",
+        "mean",
+        "abs",
+        "exponential_cbs_limit",
+        "scf_exponential_cbs_limit",
+        "scf_inverse_power_cbs_limit",
+        "correlation_inverse_power_cbs_limit",
+    }
+)
+
+#: Operations whose result dimension is fixed by the operation itself.
+#: Stated via unit strings so the table cannot drift from the unit
+#: registry. Deliberately incomplete: an operation absent here and
+#: from every other rule yields "unknown", never a guess.
+_FIXED_DIMENSION_OPERATION_UNITS = {
+    "distance": "angstrom",
+    "angle": "degree",
+    "dihedral": "degree",
+    "photon_wavelength": "angstrom",
+    "gibbs_to_pka": "1",
+    "boltzmann_populations": "1",
+    "imaginary_mode_count": "1",
+    "connectivity_difference_count": "1",
+    "harmonic_zero_point_energy": "hartree",
+    "transition_state_crossover_temperature": "K",
+}
+
+
+def operation_result_dimension(
+    operation: str,
+    input_dimensions: tuple[Dimension | None, ...],
+    *,
+    literal_unit: str = "",
+    target_unit: str = "",
+    constant_name: str = "",
+) -> Dimension | None:
+    """Dimension an expression node must produce, derivable at plan time.
+
+    Returns ``None`` when the rule is unknown or an input dimension is
+    unknown -- the caller skips rather than guesses. Raises
+    QuantityExpressionError only on a provable inconsistency (a
+    same-dimension operation fed unlike dimensions; a convert whose
+    target dimension its input cannot reach). Observed live: a session
+    swapped ``coordinate_at_minimum``'s two ordered inputs, so a node
+    declared as a length produced an energy, and the claim render died
+    after every engine had finished -- the dimensional twin of the
+    four-input-subtract loss this file's arity table already refuses.
+    """
+
+    known = [item for item in input_dimensions if item is not None]
+    if operation in {"ref", "scale"}:
+        return input_dimensions[0] if input_dimensions else None
+    if operation == "literal":
+        return unit_dimension(literal_unit) if literal_unit else None
+    if operation == "constant":
+        if not constant_name:
+            return None
+        try:
+            from chemsmart.analysis.literature_constants import (
+                literature_constant,
+            )
+
+            return unit_dimension(literature_constant(constant_name).unit)
+        except Exception:
+            return None
+    if operation in _SAME_DIMENSION_OPERATIONS:
+        if len(known) != len(input_dimensions) or not known:
+            return None
+        first = _canonical_dimension(known[0])
+        for item in known[1:]:
+            if _canonical_dimension(item) != first:
+                raise QuantityExpressionError(
+                    f"{operation} requires inputs of one dimension; the "
+                    "plan's declared units give "
+                    f"{canonical_unit_for_dimension(first)!r} and "
+                    f"{canonical_unit_for_dimension(item)!r}"
+                )
+        return first
+    if operation in {"multiply", "divide"}:
+        if len(known) != 2 or len(input_dimensions) != 2:
+            return None
+        first = _canonical_dimension(known[0])
+        second = _canonical_dimension(known[1])
+        if operation == "divide":
+            second = tuple(-value for value in second)
+        return _add_dimensions(first, second)
+    if operation == "convert":
+        if not input_dimensions or input_dimensions[0] is None:
+            return None
+        source = _canonical_dimension(input_dimensions[0])
+        if target_unit:
+            target = _canonical_dimension(unit_dimension(target_unit))
+            if target != source:
+                raise QuantityExpressionError(
+                    f"convert to {target_unit!r} is unreachable from a "
+                    "quantity of dimension "
+                    f"{canonical_unit_for_dimension(source)!r}"
+                )
+            return target
+        return source
+    if operation in {"coordinate_at_minimum", "coordinate_at_maximum"}:
+        # The answer is a coordinate: it carries the second input's
+        # dimension, exactly as the evaluator computes it.
+        if len(input_dimensions) == 2:
+            return input_dimensions[1]
+        return None
+    if operation in _FIXED_DIMENSION_OPERATION_UNITS:
+        return unit_dimension(_FIXED_DIMENSION_OPERATION_UNITS[operation])
+    return None
+
+
 def _unit_spec(unit: str) -> tuple[Dimension, str, float]:
     key = _normalized_unit_key(unit)
     aliases: dict[str, tuple[Dimension, str, float]] = {

@@ -793,6 +793,89 @@ def build_scientific_toolchain_plan(
                     f"Declared here: {sorted(declared)}."
                     + thermochemistry_route_hint(undeclared)
                 )
+    # The dimensional half of the plan-time gate. Every expression
+    # node's result dimension is derivable from the plan alone where the
+    # operation's rule is certain, and a declared output unit whose
+    # dimension the chain cannot produce would otherwise be discovered
+    # by a claim render after every engine has finished. Observed live
+    # (C5): a session swapped coordinate_at_minimum's ordered inputs, a
+    # node declared as a length produced an energy, and the loss
+    # surfaced only at render time. Unknown rules and unknown input
+    # dimensions skip -- this gate never guesses.
+    from chemsmart.analysis.quantity_expressions import (
+        QuantityExpressionError,
+        canonical_unit_for_dimension,
+        operation_result_dimension,
+        unit_dimension,
+    )
+
+    analysis_output_units = {
+        (node.node_id, output.output_id): output.unit
+        for node in analyses
+        for output in node.outputs
+    }
+    for node in analyses:
+        if node.analysis_kind != "quantity_expression":
+            continue
+        dimensions: dict[str, tuple | None] = {}
+        for item in node.inputs:
+            unit = analysis_output_units.get(
+                (
+                    getattr(item, "producer_node_id", ""),
+                    getattr(item, "producer_output_id", ""),
+                )
+            )
+            try:
+                dimensions[item.input_id] = (
+                    unit_dimension(unit) if unit else None
+                )
+            except QuantityExpressionError:
+                dimensions[item.input_id] = None
+        for expression in node.expression_nodes:
+            expression_id = str(expression.get("node_id", ""))
+            referenced = [
+                str(value)
+                for value in (expression.get("input_ids") or ())
+                if str(value)
+            ]
+            reference = str(expression.get("reference", "") or "")
+            if reference:
+                referenced.append(reference)
+            try:
+                dimensions[expression_id] = operation_result_dimension(
+                    str(expression.get("operation", "")),
+                    tuple(dimensions.get(name) for name in referenced),
+                    literal_unit=str(expression.get("unit", "") or ""),
+                    target_unit=str(expression.get("target_unit", "") or ""),
+                    constant_name=str(
+                        expression.get("constant_name", "") or ""
+                    ),
+                )
+            except QuantityExpressionError as exc:
+                raise ScientificToolchainContractError(
+                    f"expression node {expression_id!r} on "
+                    f"{node.node_id!r}: {exc}"
+                ) from exc
+        for output in node.outputs:
+            computed = dimensions.get(output.output_id)
+            if computed is None:
+                continue
+            try:
+                declared_dimension = unit_dimension(output.unit)
+            except QuantityExpressionError:
+                continue
+            if canonical_unit_for_dimension(
+                declared_dimension
+            ) != canonical_unit_for_dimension(computed):
+                raise ScientificToolchainContractError(
+                    f"expression output {output.output_id!r} on node "
+                    f"{node.node_id!r} declares unit {output.unit!r} but "
+                    "the expression chain produces a quantity of dimension "
+                    f"{canonical_unit_for_dimension(computed)!r}. The "
+                    "declared unit is checkable from the plan alone; the "
+                    "alternative is a claim render failing after every "
+                    "engine has finished."
+                )
     normalized_analyses: list[AnalysisNodeIntentV1] = []
     for node in analyses:
         effective_dependencies = set(node.dependencies)
