@@ -267,6 +267,12 @@ class _AnalysisDelivery:
     claims: int
     decisions: int
     receipt_sha256s: tuple[str, ...]
+    #: Claim quantities whose supporting receipt a recorded decision
+    #: doubts (``doubt:{receipt}`` evidence references intersected with
+    #: the rendered claims' source receipts) -- computed here from the
+    #: stream so a doubt recorded after the completion event still
+    #: reaches the settlement.
+    doubted_quantity_ids: tuple[str, ...] = ()
 
 
 def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
@@ -285,6 +291,8 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
     claims = 0
     decisions = 0
     receipts: list[str] = []
+    doubt_refs: set[str] = set()
+    claim_pairs: list[tuple[str, str]] = []
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -302,10 +310,22 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
         digest = str(payload.get("receipt_sha256") or "")
         if kind == "scientific_decision_recorded":
             decisions += 1
+            record = payload.get("record") or {}
+            for reference in record.get("evidence_refs") or ():
+                if str(reference).startswith("doubt:"):
+                    doubt_refs.add(str(reference)[len("doubt:") :])
         elif kind == "analysis_claims_recorded":
             claims += 1
             if digest:
                 receipts.append(digest)
+            record = payload.get("record") or {}
+            for claim in record.get("claims") or ():
+                claim_pairs.append(
+                    (
+                        str(claim.get("source_receipt_sha256") or ""),
+                        str(claim.get("quantity_id") or ""),
+                    )
+                )
         elif kind == "analysis_completion_evaluated":
             completion_status = str(payload.get("status") or "")
             limitations = tuple(
@@ -328,6 +348,15 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
         claims=claims,
         decisions=decisions,
         receipt_sha256s=tuple(receipts),
+        doubted_quantity_ids=tuple(
+            sorted(
+                {
+                    quantity_id
+                    for receipt, quantity_id in claim_pairs
+                    if quantity_id and receipt in doubt_refs
+                }
+            )
+        ),
     )
 
 
@@ -474,7 +503,18 @@ def run_goal_loop(
                 terminal == "complete"
                 and delivery.completion_status == "passed"
             )
-            if (
+            if delivery.doubted_quantity_ids:
+                # The session claimed from a receipt its own recorded
+                # decision doubts. Whatever the completion word says --
+                # partial by the gate, or passed because the doubt came
+                # after -- a doubted number is the human's to read.
+                settled = "returned_to_human"
+                reasons = (
+                    "a rendered claim stands on a receipt the session's "
+                    "own recorded decision doubts: "
+                    + ", ".join(delivery.doubted_quantity_ids),
+                )
+            elif (
                 certified
                 and delivery.limitation_output_ids
                 and delivery.decisions

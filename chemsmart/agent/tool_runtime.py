@@ -2997,6 +2997,23 @@ class CommandCompiledToolHostV1:
                     )
                 functional_resolution_refs.add(receipt_sha256)
                 continue
+            prefix = "doubt:"
+            if reference.startswith(prefix):
+                # A typed doubt: the session names the exact receipt it
+                # distrusts. The completion gate intersects these digests
+                # with the rendered claims' supporting receipts, so a
+                # doubted number cannot ship under a clean certification.
+                receipt_sha256 = reference[len(prefix) :]
+                require_sha256(receipt_sha256, "doubted_receipt_sha256")
+                if not any(
+                    receipt_sha256 in receipts
+                    for receipts in postprocessing_registries
+                ):
+                    raise ContractError(
+                        "scientific decision doubts an unknown "
+                        "postprocessing receipt"
+                    )
+                continue
             parsed_postprocessing_ref = _postprocessing_evidence_reference(
                 reference
             )
@@ -6462,11 +6479,62 @@ class CommandCompiledToolHostV1:
                 }
             )
         )
+        doubted_quantity_ids = self._claims_under_recorded_doubt(
+            task_spec_sha256=draft.task_spec_id
+        )
+        status = "passed"
+        findings: tuple[str, ...] = ()
+        if doubted_quantity_ids:
+            # A session that doubts a receipt and claims from it has said
+            # both things in typed form; the completion word carries that
+            # truth instead of certifying past it.
+            status = "partial"
+            findings = tuple(
+                f"analysis.claim_under_recorded_doubt.{quantity_id}"
+                for quantity_id in doubted_quantity_ids
+            )
         return self._record_toolchain_completion(
             plan,
             task_spec_sha256=draft.task_spec_id,
             source_receipt_sha256s=source_receipts,
+            status=status,
+            findings=findings,
             limitation_output_ids=limitation_output_ids,
+        )
+
+    def _claims_under_recorded_doubt(
+        self, *, task_spec_sha256: str
+    ) -> tuple[str, ...]:
+        """Name claim quantities whose supporting receipt a doubt cites.
+
+        Set intersection over digests the session itself minted: every
+        ``doubt:{receipt_sha256}`` evidence reference on a task-bound
+        scientific decision, against each rendered claim's
+        source_receipt_sha256. No prose is read and no science judged;
+        a prose-only doubt keeps the prior behavior, because the host
+        cannot know which claim free text points at.
+        """
+
+        doubted = {
+            str(reference)[len("doubt:") :]
+            for record in self.scientific_decisions.values()
+            if record.task_spec_sha256 == task_spec_sha256
+            for reference in record.evidence_refs
+            if str(reference).startswith("doubt:")
+        }
+        if not doubted:
+            return ()
+        return tuple(
+            sorted(
+                {
+                    claim.quantity_id
+                    for record in self.analysis_claim_records.values()
+                    if getattr(record, "task_spec_sha256", "")
+                    == task_spec_sha256
+                    for claim in getattr(record, "claims", ())
+                    if claim.source_receipt_sha256 in doubted
+                }
+            )
         )
 
     def _record_toolchain_completion(

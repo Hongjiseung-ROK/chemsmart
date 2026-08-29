@@ -347,6 +347,8 @@ def _delivery_rows(
     claims=True,
     decision=True,
     failed_rule=False,
+    claim_source="",
+    doubt_ref="",
 ):
     """Stream shapes drawn from the live goal round's three sessions."""
 
@@ -369,14 +371,34 @@ def _delivery_rows(
             }
         )
     if claims:
+        claims_payload = {"receipt_sha256": "a1" + "a" * 62}
+        if claim_source:
+            claims_payload["record"] = {
+                "claims": (
+                    {
+                        "source_receipt_sha256": claim_source,
+                        "quantity_id": "dg_solv",
+                    },
+                )
+            }
         rows.append(
             {
                 "kind": "analysis_claims_recorded",
-                "payload": {"receipt_sha256": "a1" + "a" * 62},
+                "payload": claims_payload,
             }
         )
     if decision:
-        rows.append({"kind": "scientific_decision_recorded", "payload": {}})
+        decision_payload = {}
+        if doubt_ref:
+            decision_payload["record"] = {
+                "evidence_refs": ("doubt:" + doubt_ref,)
+            }
+        rows.append(
+            {
+                "kind": "scientific_decision_recorded",
+                "payload": decision_payload,
+            }
+        )
     if completion:
         rows.append(
             {
@@ -537,3 +559,44 @@ def test_the_executor_accepts_a_stop_file_and_marks_cancelled():
         failure="cancelled by the human at a node boundary",
     )
     assert node.state == "cancelled"
+
+
+def test_a_claim_from_a_doubted_receipt_returns_to_the_human(tmp_path):
+    """The r3 residue: a session wrote the correct doubt and claimed
+    the doubted number anyway. Typed as doubt:{receipt}, the settlement
+    returns the number to the human even when the completion certified
+    before the decision landed -- the intersection is computed from the
+    stream, not from the completion word."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1",
+                terminal="complete",
+                wake_rows=_delivery_rows(
+                    claim_source="e" * 64, doubt_ref="e" * 64
+                ),
+            ),
+        ],
+        executes=[],
+    )
+    assert result.settlement == "returned_to_human"
+    assert any("dg_solv" in reason for reason in result.reasons)
+
+
+def test_a_doubt_about_an_unclaimed_receipt_changes_nothing(tmp_path):
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1",
+                terminal="complete",
+                wake_rows=_delivery_rows(
+                    claim_source="e" * 64, doubt_ref="9" * 64
+                ),
+            ),
+        ],
+        executes=[],
+    )
+    assert result.settlement == "achieved"

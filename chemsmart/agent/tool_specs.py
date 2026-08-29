@@ -1029,7 +1029,15 @@ def build_command_compiled_tool_surface(
         ),
         _tool(
             "record_scientific_decision",
-            "Record public chemical rationale, alternatives, and uncertainty.",
+            (
+                "Record public chemical rationale, alternatives, and "
+                "uncertainty. A doubt that cites its receipt binds to the "
+                "claim standing on that receipt: add the evidence reference "
+                "doubt:{receipt_sha256} and the completion gate will not "
+                "certify past it (passed becomes partial naming the doubted "
+                "quantity, and the goal returns to the human). A doubt kept "
+                "in prose alone binds to nothing."
+            ),
             {
                 "decision_id": _string(),
                 "task_spec_sha256": digest,

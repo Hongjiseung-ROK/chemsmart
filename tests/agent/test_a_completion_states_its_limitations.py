@@ -126,7 +126,51 @@ def _empty_draft():
     )
 
 
-def _completion_via_gate(tmp_path, *, blocked_thermochemistry):
+def _claims_record(*, source_receipt_sha256, quantity_id="e"):
+    from chemsmart.agent.analysis_claims import (
+        AnalysisReportedQuantityV1,
+        build_analysis_claim_record,
+    )
+
+    return build_analysis_claim_record(
+        task_spec_sha256="a" * 64,
+        claims=(
+            AnalysisReportedQuantityV1(
+                claim_id="claim-1",
+                source_kind="quantity_extraction",
+                source_receipt_sha256=source_receipt_sha256,
+                quantity_id=quantity_id,
+                quantity_value_sha256="1" * 64,
+                display_value=-76.4,
+                display_unit="hartree",
+                canonical_value=-76.4,
+                canonical_unit="hartree",
+                dimension=(2, 1, -2, 0, 0, 0),
+                data_kind="scalar",
+            ),
+        ),
+    )
+
+
+def _decision_record(*, evidence_refs):
+    from chemsmart.agent.execution import build_scientific_decision_record
+
+    return build_scientific_decision_record(
+        decision_id="decision-1",
+        task_spec_sha256="a" * 64,
+        stage_order=("analysis",),
+        assumptions=(),
+        method_rationale="recorded for the doubt-binding test",
+        alternatives=(),
+        uncertainties=("the extraction may not describe this species",),
+        diagnostics=(),
+        evidence_refs=tuple(evidence_refs),
+    )
+
+
+def _completion_via_gate(
+    tmp_path, *, blocked_thermochemistry, doubt_ref="", claim_source=""
+):
     draft = _empty_draft()
     plan = _analysis_only_plan(
         blocked_thermochemistry=blocked_thermochemistry,
@@ -149,6 +193,12 @@ def _completion_via_gate(tmp_path, *, blocked_thermochemistry):
     host._scientific_toolchain_analysis_receipts = (
         lambda _plan, task_spec_sha256: matched
     )
+    if claim_source:
+        record = _claims_record(source_receipt_sha256=claim_source)
+        host.analysis_claim_records[record.receipt_sha256] = record
+    if doubt_ref:
+        decision = _decision_record(evidence_refs=("doubt:" + doubt_ref,))
+        host.scientific_decisions[decision.record_sha256] = decision
     receipts = host._completion_receipts_for_latest_analysis_toolchain()
     (digest,) = receipts
     return host.analysis_completion_receipts[digest], host
@@ -207,3 +257,43 @@ def test_limitations_are_not_findings():
         **base, receipt_sha256=canonical_sha256(base)
     )
     assert legacy.limitation_output_ids == ()
+
+
+def test_a_doubted_claim_downgrades_the_certification(tmp_path):
+    """The r3 residue closed: the session doubted the receipt its own
+    claim stands on, in typed form. The gate no longer certifies past
+    it -- passed becomes partial, naming the doubted quantity."""
+
+    completion, _host = _completion_via_gate(
+        tmp_path,
+        blocked_thermochemistry=False,
+        claim_source="e" * 64,
+        doubt_ref="e" * 64,
+    )
+    assert completion.status == "partial"
+    assert completion.findings == (
+        "analysis.claim_under_recorded_doubt.e",
+    )
+
+
+def test_a_doubt_about_an_unclaimed_receipt_keeps_the_pass(tmp_path):
+    completion, _host = _completion_via_gate(
+        tmp_path,
+        blocked_thermochemistry=False,
+        claim_source="e" * 64,
+        doubt_ref="9" * 64,
+    )
+    assert completion.status == "passed"
+    assert completion.findings == ()
+
+
+def test_a_prose_only_doubt_keeps_the_prior_behavior(tmp_path):
+    """An uncertainty kept in free text binds to nothing: the host
+    cannot know which claim prose points at, and does not guess."""
+
+    completion, _host = _completion_via_gate(
+        tmp_path,
+        blocked_thermochemistry=False,
+        claim_source="e" * 64,
+    )
+    assert completion.status == "passed"
