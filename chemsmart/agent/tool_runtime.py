@@ -1662,6 +1662,9 @@ class CommandCompiledToolHostV1:
                     values.get("source_receipt_sha256s") or ()
                 )
                 values["findings"] = tuple(values.get("findings") or ())
+                values["limitation_output_ids"] = tuple(
+                    values.get("limitation_output_ids") or ()
+                )
                 receipt = AnalysisCompletionReceiptV1(
                     **values, receipt_sha256=receipt_sha256
                 )
@@ -6387,10 +6390,23 @@ class CommandCompiledToolHostV1:
         )
         if not source_receipts:
             return ()
+        # The receipt states which required outputs the approved plan
+        # itself declared blocked: a delivery with stated limitations
+        # and a full delivery must not share one word.
+        limitation_output_ids = tuple(
+            sorted(
+                {
+                    output_id
+                    for output_id in plan.required_output_ids
+                    if output_producers[output_id] in missing_required
+                }
+            )
+        )
         return self._record_toolchain_completion(
             plan,
             task_spec_sha256=draft.task_spec_id,
             source_receipt_sha256s=source_receipts,
+            limitation_output_ids=limitation_output_ids,
         )
 
     def _record_toolchain_completion(
@@ -6401,6 +6417,7 @@ class CommandCompiledToolHostV1:
         source_receipt_sha256s: tuple[str, ...],
         status: str = "passed",
         findings: tuple[str, ...] = (),
+        limitation_output_ids: tuple[str, ...] = (),
     ) -> tuple[str, ...]:
         """Record one toolchain-as-policy completion receipt and its event."""
 
@@ -6415,6 +6432,8 @@ class CommandCompiledToolHostV1:
             "status": status,
             "findings": tuple(findings),
         }
+        if limitation_output_ids:
+            body["limitation_output_ids"] = tuple(limitation_output_ids)
         completion = AnalysisCompletionReceiptV1(
             **body, receipt_sha256=canonical_sha256(body)
         )
@@ -6423,6 +6442,11 @@ class CommandCompiledToolHostV1:
         )
         completion_record = canonical_data(completion)
         completion_record.pop("receipt_sha256")
+        if not completion.limitation_output_ids:
+            # Mirror the digest body: the field is present only when
+            # non-empty, so pre-field records and full deliveries share
+            # one arithmetic.
+            completion_record.pop("limitation_output_ids", None)
         turn_id = self.event_store.state().turn_id or "analysis-toolchain"
         self.event_store.append(
             turn_id=turn_id,
@@ -6434,6 +6458,7 @@ class CommandCompiledToolHostV1:
                 "source_receipt_sha256s": completion.source_receipt_sha256s,
                 "status": completion.status,
                 "critical_finding_count": len(completion.findings),
+                "limitation_output_ids": completion.limitation_output_ids,
                 "completion_kind": "scientific_toolchain",
                 "record": completion_record,
             },

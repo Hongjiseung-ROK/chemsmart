@@ -431,6 +431,13 @@ class AnalysisCompletionReceiptV1:
     status: str
     findings: tuple[str, ...]
     receipt_sha256: str
+    #: Required outputs whose producer the approved plan itself
+    #: declared blocked_unsupported. Not findings: a finding says what
+    #: went wrong, a limitation says what the chain stated up front it
+    #: could not produce and delivered without. A passed completion
+    #: may carry limitations; folding them into a bare "passed" is how
+    #: a live goal round settled an honest refusal as achieved.
+    limitation_output_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.analysis-completion-receipt.v1":
@@ -454,6 +461,12 @@ class AnalysisCompletionReceiptV1:
         # refused, and a green completion still cannot smuggle findings.  A
         # partial chain may hold zero receipts (its first node failed); a
         # green one may not.
+        if self.limitation_output_ids != tuple(
+            sorted(set(self.limitation_output_ids))
+        ) or any(not str(item) for item in self.limitation_output_ids):
+            raise ContractError(
+                "limitation output ids must be non-empty, sorted, unique"
+            )
         if self.status == "passed":
             if self.findings:
                 raise ContractError(
@@ -480,7 +493,7 @@ class AnalysisCompletionReceiptV1:
 def _completion_receipt_body(
     receipt: AnalysisCompletionReceiptV1,
 ) -> dict[str, Any]:
-    return {
+    body = {
         "schema_version": receipt.schema_version,
         "policy_sha256": receipt.policy_sha256,
         "task_spec_sha256": receipt.task_spec_sha256,
@@ -488,6 +501,12 @@ def _completion_receipt_body(
         "status": receipt.status,
         "findings": receipt.findings,
     }
+    # Present only when non-empty, so every receipt minted before the
+    # field existed -- and every full delivery after -- verifies under
+    # one digest arithmetic.
+    if receipt.limitation_output_ids:
+        body["limitation_output_ids"] = receipt.limitation_output_ids
+    return body
 
 
 def build_analysis_completion_receipt(
