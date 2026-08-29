@@ -356,6 +356,192 @@ _ResultObservation = _PySCFResultObservation | _LoggedResultObservation
 
 
 @dataclass(frozen=True)
+class _FailedResultObservation:
+    """A program output that failed, nameable with its terminal facts.
+
+    Every result scanner above drops a non-normally-terminated output
+    before it can be named, so the session that most needed to read a
+    failure could not even ask about it: a live scan died at step 2 of
+    12 and the next session's context contained no trace of the file.
+    This record admits the failure for inspection only -- the artifact
+    class is ``failed_result``, which no reader's ``artifact_kind``
+    matches, so quantity extraction and geometry handoff stay refused by
+    construction while the facts a revision needs travel in the record.
+    """
+
+    artifact: TrustedArtifactRefV1
+    program: str
+    jobtype: str | None
+    converged: bool | None
+    scan_steps_reached: int | None
+    scan_steps_planned: int | None
+    native_failure_class: str
+    engine_lines: tuple[str, ...]
+    charge: int | None
+    multiplicity: int | None
+
+    def public_record(self) -> dict[str, Any]:
+        return {
+            "artifact_id": self.artifact.artifact_id,
+            "artifact_class": "failed_result",
+            "sha256": self.artifact.sha256,
+            "size_bytes": self.artifact.size_bytes,
+            "program": self.program,
+            "jobtype": self.jobtype,
+            "normal_termination": False,
+            "converged": self.converged,
+            "scan_steps_reached": self.scan_steps_reached,
+            "scan_steps_planned": self.scan_steps_planned,
+            "native_failure_class": self.native_failure_class,
+            "engine_lines": self.engine_lines,
+            "charge": self.charge,
+            "multiplicity": self.multiplicity,
+            "admissibility": (
+                "inspectable evidence only; not admissible for quantity "
+                "extraction or geometry handoff"
+            ),
+        }
+
+
+def _scan_failed_result_artifacts(
+    workspace: Path, excluded_roots: tuple[Path, ...] = ()
+) -> tuple[_FailedResultObservation, ...]:
+    """Name every failed program output beside the registered results."""
+
+    from chemsmart.io.native_failure import (
+        summarize_gaussian_native_failure,
+        summarize_orca_native_failure,
+        summarize_xtb_native_failure,
+    )
+
+    sniffers = (
+        ("orca", "* O   R   C   A *", summarize_orca_native_failure),
+        ("xtb", "x T B", summarize_xtb_native_failure),
+        (
+            "gaussian",
+            "Entering Gaussian System",
+            summarize_gaussian_native_failure,
+        ),
+    )
+    observations: dict[str, _FailedResultObservation] = {}
+    private_root = workspace / _PRIVATE_ROOT_NAME
+    host_artifact_root = workspace / "artifacts"
+    barred = (private_root, host_artifact_root, *excluded_roots)
+    for candidate in sorted(
+        (*workspace.rglob("*.out"), *workspace.rglob("*.log"))
+    ):
+        if any(root in candidate.parents for root in barred):
+            continue
+        if candidate.is_symlink() or not candidate.is_file():
+            continue
+        resolved = candidate.resolve()
+        try:
+            resolved.relative_to(workspace)
+            head = resolved.read_text(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):
+            continue
+        program = ""
+        summarize = None
+        for name, banner, summarizer in sniffers:
+            if banner in head[:8192]:
+                program = name
+                summarize = summarizer
+                break
+        if not program:
+            continue
+        jobtype: str | None = None
+        converged: bool | None = None
+        reached: int | None = None
+        planned: int | None = None
+        charge: int | None = None
+        multiplicity: int | None = None
+        try:
+            if program == "orca":
+                from chemsmart.io.orca.output import ORCAOutput
+
+                output = ORCAOutput(filename=resolved)
+                if output.normal_termination:
+                    continue
+                jobtype = str(output.jobtype or "").strip().lower() or None
+                converged = output.converged
+                reached = output.scan_step_count or None
+                coordinate = output.scan_coordinate
+                planned = int(coordinate["points"]) if coordinate else None
+                charge = (
+                    output.charge if isinstance(output.charge, int) else None
+                )
+                multiplicity = (
+                    output.multiplicity
+                    if isinstance(output.multiplicity, int)
+                    else None
+                )
+            elif program == "xtb":
+                from chemsmart.io.xtb.output import XTBOutput
+
+                output = XTBOutput(filename=resolved)
+                if bool(getattr(output, "normal_termination", False)):
+                    continue
+                converged = getattr(
+                    output, "geometry_optimization_converged", None
+                )
+            else:
+                from chemsmart.io.gaussian.output import Gaussian16Output
+
+                output = Gaussian16Output(filename=resolved)
+                if bool(getattr(output, "normal_termination", False)):
+                    continue
+        except (
+            AttributeError,
+            IndexError,
+            OSError,
+            TypeError,
+            ValueError,
+        ):
+            # An unreadable failure is still a nameable failure; the
+            # terminal facts simply stay absent.
+            pass
+        failure_class = "incomplete_output"
+        engine_lines: tuple[str, ...] = ()
+        try:
+            summary = summarize(head.splitlines())
+            if summary is not None:
+                failure_class = summary.error_class
+                engine_lines = summary.engine_lines
+        except (TypeError, ValueError):
+            pass
+        digest = file_sha256(resolved)
+        artifact = TrustedArtifactRefV1(
+            artifact_id=f"failed-result-{digest[:16]}",
+            kind="failed_result",
+            sha256=digest,
+            size_bytes=resolved.stat().st_size,
+            path=str(resolved),
+            cli_value=str(resolved),
+        )
+        observations.setdefault(
+            digest,
+            _FailedResultObservation(
+                artifact=artifact,
+                program=program,
+                jobtype=jobtype,
+                converged=converged,
+                scan_steps_reached=reached,
+                scan_steps_planned=planned,
+                native_failure_class=failure_class,
+                engine_lines=engine_lines,
+                charge=charge,
+                multiplicity=multiplicity,
+            ),
+        )
+    return tuple(
+        sorted(
+            observations.values(),
+            key=lambda item: item.artifact.artifact_id,
+        )
+    )
+
+
+@dataclass(frozen=True)
 class LiveAgentSessionResultV1:
     """Path-free public projection of one local live session."""
 
@@ -504,6 +690,9 @@ def run_live_agent_session(
         scratch_exclusions = (scratch_path.resolve(),)
     observations = _scan_xyz_artifacts(workspace_path, scratch_exclusions)
     result_observations = _scan_result_artifacts(
+        workspace_path, scratch_exclusions
+    )
+    failed_result_observations = _scan_failed_result_artifacts(
         workspace_path, scratch_exclusions
     )
     database_observations = _scan_database_artifacts(
@@ -752,6 +941,7 @@ def run_live_agent_session(
         task_spec_sha256=task_spec_sha256,
         observations=observations,
         result_observations=result_observations,
+        failed_result_observations=failed_result_observations,
         database_observations=database_observations,
         conformance_records=conformance_records,
         registry_sha256=registry.registry_sha256,
@@ -2776,6 +2966,7 @@ def _public_context(
     task_spec_sha256: str,
     observations: tuple[_XyzObservation, ...],
     result_observations: tuple[_ResultObservation, ...] = (),
+    failed_result_observations: tuple[_FailedResultObservation, ...] = (),
     database_observations: tuple[_DatabaseObservation, ...] = (),
     conformance_records: tuple[dict[str, Any], ...],
     registry_sha256: str,
@@ -2805,6 +2996,9 @@ def _public_context(
                 *result_observations,
                 *database_observations,
             )
+        ),
+        "failed_result_artifacts": tuple(
+            item.public_record() for item in failed_result_observations
         ),
         "approved_molecular_identities": approved_identity_records,
         "approved_molecular_inputs": approved_input_records,
