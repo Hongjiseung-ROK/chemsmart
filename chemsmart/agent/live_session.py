@@ -857,6 +857,10 @@ def run_live_agent_session(
         # The execution composition below replaces this with the exact
         # user-approved workflow workspace.
         "approved_workspace": run_directory,
+        # Recorded runs live only under the user workspace; the private
+        # preview root above records none, so run inspection resolves
+        # against the workspace itself.
+        "run_evidence_root": workspace_path,
         "preview_server": str(preview_server_path),
         "result_functional_evidence": {
             item.validation_receipt_sha256: item.public_record()
@@ -3479,6 +3483,7 @@ def _bounded_execution_composition_inputs(
     }
     return {
         "approved_workspace": workspace,
+        "run_evidence_root": workspace,
         "execution_resources": envelope.resources,
         "execution_server": str(server_profile),
         "execution_environment": environment,
@@ -3568,6 +3573,7 @@ def _execution_composition_inputs(
         approved_projects = _approved_project_artifacts(workspace, approval)
         return {
             "approved_workspace": workspace,
+            "run_evidence_root": workspace,
             "execution_resources": resources,
             "workflow_execution_approval": approval,
             "frozen_workflow_approval": frozen,
@@ -3624,6 +3630,7 @@ def _execution_composition_inputs(
     approved_projects = _approved_project_artifacts(workspace, approval)
     composed: dict[str, Any] = {
         "approved_workspace": workspace,
+        "run_evidence_root": workspace,
         "execution_resources": resources,
         "workflow_execution_approval": approval,
         "execution_server": str(server_profile),

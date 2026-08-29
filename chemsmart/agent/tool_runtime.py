@@ -1108,6 +1108,7 @@ class CommandCompiledToolHostV1:
         live_schema: LiveClickSchemaV1 | None = None,
         task_spec_sha256s: tuple[str, ...] = (),
         approved_workspace: str | Path | None = None,
+        run_evidence_root: str | Path | None = None,
         execution_resources: ExecutionResourceSpecV1 | None = None,
         workflow_execution_approval: WorkflowExecutionApprovalV1 | None = None,
         frozen_workflow_approval: FrozenWorkflowApprovalV1 | None = None,
@@ -1163,6 +1164,16 @@ class CommandCompiledToolHostV1:
         self.approved_workspace = (
             Path(approved_workspace).resolve()
             if approved_workspace is not None
+            else None
+        )
+        # approved_workspace means a different root per surface: the
+        # planning host binds its private preview root, the executor
+        # binds the user workspace. Recorded runs live only under the
+        # user workspace, so run inspection resolves against this
+        # field and never against approved_workspace.
+        self.run_evidence_root = (
+            Path(run_evidence_root).resolve()
+            if run_evidence_root is not None
             else None
         )
         self.execution_resources = execution_resources
@@ -10875,20 +10886,24 @@ class CommandCompiledToolHostV1:
 
         Without a ``run`` reference it lists the runs the workspace
         records; with one it returns that run's full outcome. The host
-        resolves run references inside the workspace's own private root
-        only -- never a caller-supplied path.
+        resolves run references inside the user workspace's own
+        ``.chemsmart-agent`` records only -- never a caller-supplied
+        path, and never the session's private preview root, where no
+        run is ever recorded.
         """
 
-        if self.approved_workspace is None:
+        if self.run_evidence_root is None:
             raise ContractError(
-                "run inspection requires an approved workspace"
+                "run inspection requires the workspace whose "
+                ".chemsmart-agent directory records runs; this host "
+                "was constructed without one"
             )
         from chemsmart.agent.terminal_states import (
             derive_run_outcome,
             read_run_events,
         )
 
-        private_root = self.approved_workspace / ".chemsmart-agent"
+        records_root = self.run_evidence_root / ".chemsmart-agent"
         streams: dict[str, Path] = {}
         for pattern in (
             "replays/*/run/events.jsonl",
@@ -10896,10 +10911,10 @@ class CommandCompiledToolHostV1:
             "goals/*/runs/*/events.jsonl",
             "runs/*/events.jsonl",
         ):
-            for path in sorted(private_root.glob(pattern)):
+            for path in sorted(records_root.glob(pattern)):
                 if path.is_symlink() or not path.is_file():
                     continue
-                reference = str(path.parent.relative_to(private_root))
+                reference = str(path.parent.relative_to(records_root))
                 streams[reference] = path
 
         requested = str(values.get("run", "") or "").strip()

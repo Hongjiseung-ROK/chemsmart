@@ -1857,6 +1857,7 @@ def _execution_inputs_from_bundle(
     }
     return {
         "approved_workspace": workspace,
+        "run_evidence_root": workspace,
         "execution_resources": resources,
         "workflow_execution_approval": approval,
         "frozen_workflow_approval": bundle.frozen_workflow_approval,
