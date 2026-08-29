@@ -235,3 +235,48 @@ def test_xtb_native_failure_has_a_production_producer():
     assert (
         'xtb_observation["native_failure"]' in source
     ), "the summary must land where _engine_lines_for can find it"
+
+
+def test_a_failed_xtb_run_keeps_its_own_vocabulary(tmp_path):
+    """The early bail-out silenced xTB exactly when it failed.
+
+    The evaluator's non-zero-exit branch exempted only ORCA and
+    Gaussian, so a failed xTB run -- one of the three programs this
+    release executes -- was summarised as the single generic process
+    finding while its 68-code receipt audit and its native-failure
+    account sat unreachable. It now takes the same path as ORCA: the
+    process finding is recorded, the missing receipt is named, and the
+    engine's own complaint is classified and quoted even though the
+    crash left no receipt to audit.
+    """
+
+    import hashlib as _hashlib
+
+    from chemsmart.agent.execution import TrustedArtifactRefV1
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    log = tmp_path / "job.out"
+    log.write_text(
+        "SCC did not converge\n########  scc not converged  ######\n"
+    )
+    artifact = TrustedArtifactRefV1(
+        artifact_id="result.n.1",
+        kind="xtb_output",
+        sha256=_hashlib.sha256(log.read_bytes()).hexdigest(),
+        size_bytes=log.stat().st_size,
+        path=str(log),
+        cli_value=str(log),
+    )
+    evaluation = CommandCompiledToolHostV1._evaluate_execution_outputs(
+        program="xtb",
+        jobtype="sp",
+        charge=0,
+        multiplicity=1,
+        output_artifacts=(artifact,),
+        exit_status=1,
+    )
+    assert "execution.process.nonzero_or_unknown" in evaluation.findings
+    assert "xtb.result.receipt_count" in evaluation.findings
+    assert "xtb.native_failure.scf_convergence" in evaluation.findings
+    xtb_observation = evaluation.observations.get("xtb") or {}
+    assert "native_failure" in xtb_observation

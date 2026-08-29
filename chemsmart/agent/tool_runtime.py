@@ -10239,7 +10239,11 @@ class CommandCompiledToolHostV1:
                 == "approved_stationary_point_policy"
             ):
                 findings.append("pyscf.result.policy_validation_unavailable")
-        elif exit_status != 0 and program not in {"orca", "gaussian"}:
+        elif exit_status != 0 and program not in {
+            "orca",
+            "gaussian",
+            "xtb",
+        }:
             findings.append("execution.process.nonzero_or_unknown")
         elif program == "orca":
             if exit_status != 0:
@@ -10421,6 +10425,14 @@ class CommandCompiledToolHostV1:
                     findings.append("orca.result.unreadable")
             observation["orca"] = orca_observation
         elif program == "xtb":
+            # A failed xTB run used to bail out above with the single
+            # generic process finding, so the 68-code receipt audit and
+            # the native-failure account below were reachable only when
+            # xTB exited 0 -- the whole vocabulary vanished exactly when
+            # it was needed. xTB now takes the same path as ORCA: the
+            # process finding is recorded and its own audit still runs.
+            if exit_status != 0:
+                findings.append("execution.process.nonzero_or_unknown")
             receipts: list[Path] = []
             for artifact in output_artifacts:
                 if (
@@ -10462,44 +10474,47 @@ class CommandCompiledToolHostV1:
                 )
                 observation["xtb"] = xtb_observation
                 findings.extend(xtb_findings)
-                # The receipt says whether the run satisfied its contract; it
-                # does not say what xTB itself complained about.  xTB is one of
-                # the three programs this release executes, so a failed run
-                # deserves the same account as ORCA gets.
-                # The xTB log itself is registered as kind "xtb_output";
-                # "program_output" covers the charges/wbo/xtbrestart/topology
-                # sidecars, which never contain the "finished run" sentinel.
-                # Summarizing over those called every healthy live run an
-                # incomplete_output failure -- observed on the first real
-                # xtb execution through agent run, where all three
-                # normally terminated single points failed validation.
-                xtb_logs = tuple(
-                    artifact
-                    for artifact in output_artifacts
-                    if artifact.kind == "xtb_output"
-                    and Path(artifact.path).suffix.lower() != ".err"
+            # The receipt says whether the run satisfied its contract; it
+            # does not say what xTB itself complained about.  xTB is one of
+            # the three programs this release executes, so a failed run
+            # deserves the same account as ORCA gets -- and most of all
+            # when the crash left no receipt, which is why this block
+            # sits outside the receipt branch.
+            # The xTB log itself is registered as kind "xtb_output";
+            # "program_output" covers the charges/wbo/xtbrestart/topology
+            # sidecars, which never contain the "finished run" sentinel.
+            # Summarizing over those called every healthy live run an
+            # incomplete_output failure -- observed on the first real
+            # xtb execution through agent run, where all three
+            # normally terminated single points failed validation.
+            xtb_logs = tuple(
+                artifact
+                for artifact in output_artifacts
+                if artifact.kind == "xtb_output"
+                and Path(artifact.path).suffix.lower() != ".err"
+            )
+            if xtb_logs:
+                from chemsmart.io.native_failure import (
+                    summarize_xtb_native_failure,
                 )
-                if xtb_logs:
-                    from chemsmart.io.native_failure import (
-                        summarize_xtb_native_failure,
-                    )
 
-                    failure_summary = summarize_xtb_native_failure(
-                        _iter_native_diagnostic_lines(xtb_logs),
-                        diagnostic_lines=_iter_native_diagnostic_lines(
-                            _native_diagnostic_artifacts(output_artifacts)
-                        ),
+                failure_summary = summarize_xtb_native_failure(
+                    _iter_native_diagnostic_lines(xtb_logs),
+                    diagnostic_lines=_iter_native_diagnostic_lines(
+                        _native_diagnostic_artifacts(output_artifacts)
+                    ),
+                )
+                if failure_summary is not None:
+                    xtb_observation = observation.setdefault("xtb", {})
+                    xtb_observation["native_failure"] = (
+                        _bound_native_failure_summary(
+                            failure_summary,
+                            artifacts=xtb_logs[:1],
+                        )
                     )
-                    if failure_summary is not None:
-                        xtb_observation["native_failure"] = (
-                            _bound_native_failure_summary(
-                                failure_summary,
-                                artifacts=xtb_logs[:1],
-                            )
-                        )
-                        findings.append(
-                            "xtb.native_failure." + failure_summary.error_class
-                        )
+                    findings.append(
+                        "xtb.native_failure." + failure_summary.error_class
+                    )
         elif program == "gaussian":
             if exit_status != 0:
                 findings.append("execution.process.nonzero_or_unknown")
