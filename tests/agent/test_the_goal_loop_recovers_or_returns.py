@@ -340,40 +340,139 @@ def test_an_identity_change_returns_to_the_human(tmp_path):
     assert any("identities" in r for r in result.reasons)
 
 
-def test_a_session_with_no_plan_and_failing_verdicts_settles_unreachable(
-    tmp_path,
+def _delivery_rows(
+    *,
+    completion="passed",
+    limitations=(),
+    claims=True,
+    decision=True,
+    failed_rule=False,
 ):
-    refusal_rows = (
-        {"kind": "scientific_decision_recorded", "payload": {}},
+    """Stream shapes drawn from the live goal round's three sessions."""
+
+    rows = [
         {
             "kind": "result_quantities_extracted",
             "payload": {"receipt_sha256": "e" * 64},
         },
-        {
-            "kind": "scientific_validation_evaluated",
-            "payload": {
-                "receipt_sha256": "f" * 64,
-                "record": {
-                    "rule_results": ({"rule_id": "same", "passed": False},)
+    ]
+    if failed_rule:
+        rows.append(
+            {
+                "kind": "scientific_validation_evaluated",
+                "payload": {
+                    "receipt_sha256": "f" * 64,
+                    "record": {
+                        "rule_results": (
+                            {"rule_id": "same", "passed": False},
+                        )
+                    },
                 },
-            },
-        },
-    )
+            }
+        )
+    if claims:
+        rows.append(
+            {
+                "kind": "analysis_claims_recorded",
+                "payload": {"receipt_sha256": "a1" + "a" * 62},
+            }
+        )
+    if decision:
+        rows.append({"kind": "scientific_decision_recorded", "payload": {}})
+    if completion:
+        rows.append(
+            {
+                "kind": "analysis_completion_evaluated",
+                "payload": {
+                    "receipt_sha256": "c1" + "c" * 62,
+                    "status": completion,
+                    "limitation_output_ids": list(limitations),
+                },
+            }
+        )
+    return tuple(rows)
+
+
+def test_a_stated_limitation_settles_as_the_typed_refusal(tmp_path):
+    """The live r3 shape: completion passed with a blocked required
+    output, substitute claims delivered, decision recorded, every
+    validation rule green. The old classifier watched failed rules --
+    the one place an honest refusal leaves no trace -- and settled
+    this achieved."""
+
     result = _loop(
         tmp_path,
         sessions=[
             _planning_session(
-                "live-1", terminal="complete", wake_rows=refusal_rows
+                "live-1",
+                terminal="complete",
+                wake_rows=_delivery_rows(limitations=("dg",)),
             ),
         ],
         executes=[],
     )
     assert result.settlement == "unreachable_from_evidence"
+    assert any("dg" in reason for reason in result.reasons)
     ledger = GoalLedger(
         tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
     )
     settled = ledger.entries()[-1]
     assert settled["payload"]["evidence"]["receipt_sha256s"]
+
+
+def test_a_certified_clean_delivery_settles_achieved(tmp_path):
+    """The live r1 shape: completion passed with no limitations."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1", terminal="complete", wake_rows=_delivery_rows()
+            ),
+        ],
+        executes=[],
+    )
+    assert result.settlement == "achieved"
+
+
+def test_an_uncertified_delivery_returns_naming_the_gate(tmp_path):
+    """The live r2 shape: claims and a decision recorded, no
+    completion event, terminal 'planned'. The word was right before,
+    for a reason that would also fire on a clean delivery; the reason
+    now names what is actually missing."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1",
+                terminal="planned",
+                wake_rows=_delivery_rows(completion=""),
+            ),
+        ],
+        executes=[],
+    )
+    assert result.settlement == "returned_to_human"
+    assert any("completion gate" in reason for reason in result.reasons)
+
+
+def test_a_failed_rule_is_not_a_refusal(tmp_path):
+    """The hazard the seal named and the round left unexercised: a
+    delivering session whose stream holds one honestly failed
+    validation rule must not settle as a refusal."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1",
+                terminal="complete",
+                wake_rows=_delivery_rows(failed_rule=True),
+            ),
+        ],
+        executes=[],
+    )
+    assert result.settlement == "achieved"
 
 
 def test_a_goal_is_not_a_resumable_queue(tmp_path):

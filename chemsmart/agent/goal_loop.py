@@ -257,18 +257,40 @@ def _wake_context(
 def _achieved(execute_result: Any) -> bool:
     status = str(getattr(execute_result, "status", "") or "")
     analysis = str(getattr(execute_result, "analysis_status", "") or "")
-    return status == "completed" and analysis in {"completed", "none", ""}
+    return status == "completed" and analysis in {"completed", ""}
 
 
-def _settlement_evidence(events_path: Path) -> dict[str, Any]:
-    """Receipts a refusal settlement cites, from the session's stream."""
+@dataclass(frozen=True)
+class _AnalysisDelivery:
+    """What one session's durable stream says it delivered."""
 
-    receipts: list[str] = []
+    completion_status: str
+    limitation_output_ids: tuple[str, ...]
+    claims: int
+    decisions: int
+    receipt_sha256s: tuple[str, ...]
+
+
+def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
+    """Read the delivery facts a settlement stands on.
+
+    Every field is a typed record the host itself wrote: the
+    completion receipt with its stated limitations, the claim and
+    decision records, and the receipt digests a settlement cites. The
+    first live goal round's classifier read none of these -- it
+    watched validation rules, the one place an honest refusal leaves
+    no trace -- and settled a receipts-backed refusal as achieved.
+    """
+
+    completion_status = ""
+    limitations: tuple[str, ...] = ()
+    claims = 0
     decisions = 0
+    receipts: list[str] = []
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
-        return {}
+        lines = []
     for line in lines:
         text = line.strip()
         if not text:
@@ -279,20 +301,45 @@ def _settlement_evidence(events_path: Path) -> dict[str, Any]:
             continue
         kind = str(event.get("kind") or "")
         payload = event.get("payload") or {}
+        digest = str(payload.get("receipt_sha256") or "")
         if kind == "scientific_decision_recorded":
             decisions += 1
+        elif kind == "analysis_claims_recorded":
+            claims += 1
+            if digest:
+                receipts.append(digest)
+        elif kind == "analysis_completion_evaluated":
+            completion_status = str(payload.get("status") or "")
+            limitations = tuple(
+                str(item)
+                for item in (payload.get("limitation_output_ids") or ())
+            )
+            if digest:
+                receipts.append(digest)
         elif kind in {
             "result_quantities_extracted",
             "scientific_validation_evaluated",
             "quantity_expression_evaluated",
+            "thermochemistry_derived",
         }:
-            digest = str(payload.get("receipt_sha256") or "")
             if digest:
                 receipts.append(digest)
-    if decisions and receipts:
+    return _AnalysisDelivery(
+        completion_status=completion_status,
+        limitation_output_ids=limitations,
+        claims=claims,
+        decisions=decisions,
+        receipt_sha256s=tuple(receipts),
+    )
+
+
+def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
+    """Receipts a settlement cites, from the session's own stream."""
+
+    if delivery.decisions and delivery.receipt_sha256s:
         return {
-            "scientific_decisions": decisions,
-            "receipt_sha256s": tuple(receipts),
+            "scientific_decisions": delivery.decisions,
+            "receipt_sha256s": delivery.receipt_sha256s,
         }
     return {}
 
@@ -423,40 +470,57 @@ def run_goal_loop(
                     created_at=_utc_now(),
                 )
                 ledger.create(goal)
-            evidence = _settlement_evidence(events_path)
-            if terminal == "complete" and evidence:
-                ledger.settle(
-                    (
-                        "unreachable_from_evidence"
-                        if _refusal_declared(events_path)
-                        else "achieved"
-                    ),
-                    reasons=(f"session terminal state: {terminal}",),
-                    evidence=evidence,
+            delivery = _analysis_delivery(events_path)
+            evidence = _settlement_evidence(delivery)
+            certified = (
+                terminal == "complete"
+                and delivery.completion_status == "passed"
+            )
+            if (
+                certified
+                and delivery.limitation_output_ids
+                and delivery.decisions
+                and evidence
+            ):
+                # The plan's own completion receipt says a required
+                # output's producer was declared blocked: the requested
+                # observable was not delivered, and the recorded
+                # decision with its receipts is the typed refusal.
+                settled = "unreachable_from_evidence"
+                reasons = (
+                    "the completion receipt names required outputs "
+                    "delivered without: "
+                    + ", ".join(delivery.limitation_output_ids),
                 )
-                settled = (
-                    "unreachable_from_evidence"
-                    if _refusal_declared(events_path)
-                    else "achieved"
-                )
-            elif terminal == "complete":
-                ledger.settle(
-                    "achieved",
-                    reasons=("analysis-only delivery",),
-                )
+            elif certified and delivery.claims:
                 settled = "achieved"
-            else:
-                ledger.settle(
-                    "returned_to_human",
-                    reasons=(f"session terminal state: {terminal}",),
+                reasons = (
+                    "the host completion gate certified the delivery",
                 )
+            elif delivery.claims or delivery.decisions:
+                # Something was recorded, but the host never certified
+                # completion -- a human reads it, whatever the
+                # session's terminal word was.
                 settled = "returned_to_human"
+                reasons = (
+                    f"session terminal state: {terminal}; the session "
+                    "recorded analysis but the host completion gate "
+                    "did not pass",
+                )
+            else:
+                settled = "returned_to_human"
+                reasons = (f"session terminal state: {terminal}",)
+            ledger.settle(
+                settled,
+                reasons=reasons,
+                evidence=evidence,
+            )
             return GoalLoopResultV1(
                 goal_id=goal_id,
                 settlement=settled,
                 cycles=cycles,
                 revisions_admitted=revisions_admitted,
-                reasons=(terminal,),
+                reasons=reasons,
             )
 
         review = _review_record(review_file)
@@ -629,37 +693,6 @@ def run_goal_loop(
                 revisions_admitted=revisions_admitted,
                 reasons=("budgets exhausted",),
             )
-
-
-def _refusal_declared(events_path: Path) -> bool:
-    """Whether the session's decision names the goal unanswerable.
-
-    Deterministic and shallow on purpose: it detects that a scientific
-    decision was recorded whose rationale declares the requested
-    quantity unobtainable, by the presence of a validation that was
-    planned to fail or an explicit decision event, never by grading
-    prose.
-    """
-
-    try:
-        lines = events_path.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return False
-    for line in lines:
-        text = line.strip()
-        if not text:
-            continue
-        try:
-            event = json.loads(text)
-        except json.JSONDecodeError:
-            continue
-        if str(event.get("kind") or "") != ("scientific_validation_evaluated"):
-            continue
-        record = (event.get("payload") or {}).get("record") or {}
-        for result in record.get("rule_results") or ():
-            if isinstance(result, Mapping) and result.get("passed") is (False):
-                return True
-    return False
 
 
 __all__ = ["GoalLoopResultV1", "run_goal_loop"]
