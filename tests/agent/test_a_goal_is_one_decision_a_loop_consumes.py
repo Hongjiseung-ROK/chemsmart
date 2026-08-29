@@ -71,17 +71,28 @@ def _review(*, nodes=1, solvent=None, temperature=298.15):
     }
 
 
-def _wake_stream(tmp_path, *, read_outcome=True):
+_RUN = "goals/goal-b2live-01/runs/cycle-1"
+
+
+def _wake_stream(tmp_path, *, read_outcome=True, run=_RUN):
+    """A session stream. With read_outcome, it holds the host-recorded
+    run-bound read; without, only the name-level tool pair the old
+    gate credited -- which proved nothing and must count for nothing."""
+
     path = tmp_path / "wake-events.jsonl"
     rows = [
         {
             "kind": "tool_started",
             "payload": {"request_id": "r1", "tool": "inspect_run_outcome"},
         },
+        {"kind": "tool_succeeded", "payload": {"request_id": "r1"}},
     ]
     if read_outcome:
         rows.append(
-            {"kind": "tool_succeeded", "payload": {"request_id": "r1"}}
+            {
+                "kind": "run_outcome_inspected",
+                "payload": {"run": run, "stream_sha256": "a" * 64},
+            }
         )
     path.write_text(
         "\n".join(json.dumps(row) for row in rows) + "\n",
@@ -132,6 +143,7 @@ def test_an_admissible_revision_passes_every_named_check(tmp_path):
         revision_review=_review(nodes=2),
         revision_scientific_identity_sha256="b" * 64,
         session_events_path=_wake_stream(tmp_path),
+        previous_run_reference=_RUN,
         prior_outcome_evidence_hashes=("e" * 64,),
     )
     assert verdict.admitted, verdict.reasons
@@ -147,6 +159,7 @@ def test_an_identity_change_returns_to_the_human(tmp_path):
         revision_review=_review(),
         revision_scientific_identity_sha256="d" * 64,
         session_events_path=_wake_stream(tmp_path),
+        previous_run_reference=_RUN,
         prior_outcome_evidence_hashes=(),
     )
     assert not verdict.admitted
@@ -162,6 +175,7 @@ def test_a_solvent_change_is_a_condition_not_a_method(tmp_path):
         revision_review=_review(solvent="water"),
         revision_scientific_identity_sha256="b" * 64,
         session_events_path=_wake_stream(tmp_path),
+        previous_run_reference=_RUN,
         prior_outcome_evidence_hashes=(),
     )
     assert not verdict.checks["conditions_preserved"]
@@ -175,10 +189,49 @@ def test_an_evidence_free_revision_is_refused(tmp_path):
         revision_review=_review(),
         revision_scientific_identity_sha256="b" * 64,
         session_events_path=_wake_stream(tmp_path, read_outcome=False),
+        previous_run_reference=_RUN,
         prior_outcome_evidence_hashes=(),
     )
     assert not verdict.checks["evidence_read"]
     assert any("answering a guess" in r for r in verdict.reasons)
+
+
+def test_a_wake_embedded_outcome_is_evidence_by_construction(tmp_path):
+    """The host composed the wake context and recorded which run's
+    outcome it embedded; forcing the session to re-read what it was
+    handed is a ceremony, not a check. The gate credits the
+    attestation."""
+
+    goal = _goal()
+    verdict = admit_revision(
+        goal=goal,
+        budgets=GoalLedger(tmp_path / "g").budgets(goal),
+        revision_review=_review(),
+        revision_scientific_identity_sha256="b" * 64,
+        session_events_path=_wake_stream(tmp_path, read_outcome=False),
+        previous_run_reference=_RUN,
+        wake_embedded_run=_RUN,
+        prior_outcome_evidence_hashes=(),
+    )
+    assert verdict.checks["evidence_read"]
+
+
+def test_a_read_of_a_different_run_is_not_evidence(tmp_path):
+    """Reading cycle-1's outcome does not license a revision of
+    cycle-3; the gate binds the read to the run being revised."""
+
+    goal = _goal()
+    verdict = admit_revision(
+        goal=goal,
+        budgets=GoalLedger(tmp_path / "g").budgets(goal),
+        revision_review=_review(),
+        revision_scientific_identity_sha256="b" * 64,
+        session_events_path=_wake_stream(tmp_path, run=_RUN),
+        previous_run_reference="goals/goal-b2live-01/runs/cycle-3",
+        prior_outcome_evidence_hashes=(),
+    )
+    assert not verdict.checks["evidence_read"]
+    assert any("cycle-3" in r for r in verdict.reasons)
 
 
 def test_a_program_outside_the_envelope_returns(tmp_path):
@@ -193,6 +246,7 @@ def test_a_program_outside_the_envelope_returns(tmp_path):
         revision_review=review,
         revision_scientific_identity_sha256="b" * 64,
         session_events_path=_wake_stream(tmp_path),
+        previous_run_reference=_RUN,
         prior_outcome_evidence_hashes=(),
     )
     assert not verdict.checks["programs_within_envelope"]
@@ -220,6 +274,7 @@ def test_a_record_local_batch_revision_is_admissible(tmp_path):
         revision_review=_review(nodes=1),
         revision_scientific_identity_sha256="b" * 64,
         session_events_path=_wake_stream(tmp_path),
+        previous_run_reference=_RUN,
         prior_outcome_evidence_hashes=("e" * 64,),
     )
     assert verdict.admitted, verdict.reasons
@@ -259,12 +314,20 @@ def test_conditions_extraction_is_order_free():
 
 
 def test_the_gate_reads_the_stream_not_a_claim(tmp_path):
-    assert session_read_run_outcome(_wake_stream(tmp_path)) is True
+    assert session_read_run_outcome(_wake_stream(tmp_path), _RUN) is True
+    assert (
+        session_read_run_outcome(_wake_stream(tmp_path), "runs/other")
+        is False
+    )
     (tmp_path / "b").mkdir()
+    # The live goal round's unsound shape: the tool succeeded (a bare
+    # listing over an empty root) with no run-bound record. The old
+    # gate credited exactly this; it now proves nothing.
     assert (
         session_read_run_outcome(
-            _wake_stream(tmp_path / "b", read_outcome=False)
+            _wake_stream(tmp_path / "b", read_outcome=False), _RUN
         )
         is False
     )
-    assert session_read_run_outcome(tmp_path / "missing.jsonl") is False
+    assert session_read_run_outcome(tmp_path / "missing.jsonl", _RUN) is False
+    assert session_read_run_outcome(_wake_stream(tmp_path), "") is False

@@ -319,18 +319,25 @@ class GoalLedger:
         )
 
 
-def session_read_run_outcome(session_events_path: str | Path) -> bool:
-    """Whether a session actually pulled a typed run outcome.
+def session_read_run_outcome(
+    session_events_path: str | Path, run: str
+) -> bool:
+    """Whether this session pulled the typed outcome of one named run.
 
-    The evidence gate does not ask the model to copy digests: the
-    session's own sealed stream records every tool call, so the host
-    verifies that ``inspect_run_outcome`` was called and succeeded.
-    What this proves is that the typed outcome entered the session's
+    The evidence gate does not ask the model to copy digests: when a
+    session reads a run's outcome, the host itself records a
+    ``run_outcome_inspected`` event naming the run and the exact
+    stream bytes served. The first live goal round showed why the
+    weaker check -- "the inspection tool succeeded at least once" --
+    is unsound: a bare listing over an empty root succeeded, and the
+    gate credited a session that had read nothing. What this proves
+    is that the named run's typed outcome entered the session's
     context; comprehension is graded by the human reading, as always.
     """
 
-    succeeded: set[str] = set()
-    started: dict[str, str] = {}
+    reference = str(run or "").strip()
+    if not reference:
+        return False
     try:
         lines = (
             Path(session_events_path).read_text(encoding="utf-8").splitlines()
@@ -345,16 +352,12 @@ def session_read_run_outcome(session_events_path: str | Path) -> bool:
             event = json.loads(text)
         except json.JSONDecodeError:
             continue
+        if str(event.get("kind") or "") != "run_outcome_inspected":
+            continue
         payload = event.get("payload") or {}
-        if event.get("kind") == "tool_started":
-            started[str(payload.get("request_id") or "")] = str(
-                payload.get("tool") or ""
-            )
-        elif event.get("kind") == "tool_succeeded":
-            request = str(payload.get("request_id") or "")
-            if started.get(request) == "inspect_run_outcome":
-                succeeded.add(request)
-    return bool(succeeded)
+        if str(payload.get("run") or "") == reference:
+            return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -375,6 +378,8 @@ def admit_revision(
     revision_scientific_identity_sha256: str,
     session_events_path: str | Path,
     prior_outcome_evidence_hashes: tuple[str, ...],
+    previous_run_reference: str,
+    wake_embedded_run: str = "",
 ) -> RevisionAdmissionV1:
     """Admit or return one revision, deterministically.
 
@@ -451,12 +456,24 @@ def admit_revision(
     if not checks["revision_budget_remains"]:
         reasons.append("the goal's revision budget is exhausted")
 
-    checks["evidence_read"] = session_read_run_outcome(session_events_path)
+    # The revision must have been planned by a session that provably
+    # HELD the typed outcome of the run it revises. Two host-attested
+    # routes prove it: the wake context embedded that run's outcome
+    # (recorded in the goal ledger when the host composed it), or the
+    # session read it through inspect_run_outcome, which records a
+    # run-bound event. Neither route grades comprehension.
+    revised_run = str(previous_run_reference or "").strip()
+    checks["evidence_read"] = bool(revised_run) and (
+        str(wake_embedded_run or "").strip() == revised_run
+        or session_read_run_outcome(session_events_path, revised_run)
+    )
     if not checks["evidence_read"]:
         reasons.append(
-            "the revising session never read a typed run outcome; a "
-            "plan that answers a failure it never read is answering a "
-            "guess"
+            "the revising session never held the typed outcome of the "
+            f"run it revises ({revised_run or 'unrecorded'}): the wake "
+            "context did not embed it and no run-bound read appears in "
+            "the session's stream; a plan that answers a failure it "
+            "never read is answering a guess"
         )
 
     admitted = all(checks.values())

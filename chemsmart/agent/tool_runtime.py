@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import math
@@ -10954,7 +10955,27 @@ class CommandCompiledToolHostV1:
                 f"this workspace records no run {requested!r}; "
                 f"recorded runs: {sorted(streams)}"
             )
+        stream_bytes = path.read_bytes()
         outcome = derive_run_outcome(read_run_events(path))
+        # A named read is a typed act: the durable event binds the run
+        # reference to the exact stream bytes served, so the revision
+        # gate can verify which run's outcome entered this session --
+        # a bare listing proves nothing and records nothing.
+        stream_sha256 = hashlib.sha256(stream_bytes).hexdigest()
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.RUN_OUTCOME_INSPECTED.value,
+            payload={
+                "run": requested,
+                "workflow_id": outcome.workflow_id,
+                "workflow_state": outcome.workflow_state,
+                "engine_calls_consumed": outcome.engine_calls_consumed,
+                "stream_sha256": stream_sha256,
+            },
+            idempotency_key=(
+                f"run-outcome-inspected:{requested}:{stream_sha256}"
+            ),
+        )
         record = outcome.public_record()
         record["run"] = requested
         record["nodes"] = tuple(

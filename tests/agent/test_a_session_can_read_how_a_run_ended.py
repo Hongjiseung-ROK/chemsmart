@@ -118,6 +118,20 @@ def test_a_goal_cycle_run_resolves_by_its_ledger_reference(tmp_path):
     (node,) = outcome["nodes"]
     assert node["state"] == "timeout_terminated"
 
+    # A named read is a typed act the host records: the evidence gate
+    # verifies the run-bound event, never a bare tool success.
+    import json as _json
+
+    stream = (tmp_path / "host-events.jsonl").read_text(encoding="utf-8")
+    inspected = [
+        event
+        for event in map(_json.loads, stream.splitlines())
+        if event.get("kind") == "run_outcome_inspected"
+    ]
+    (event,) = inspected
+    assert event["payload"]["run"] == "goals/goal-b2/runs/cycle-1"
+    assert len(event["payload"]["stream_sha256"]) == 64
+
 
 def test_an_unknown_run_reference_names_what_exists(tmp_path):
     workspace = _recorded_run(tmp_path)

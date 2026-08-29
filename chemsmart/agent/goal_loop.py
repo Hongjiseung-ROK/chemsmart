@@ -131,6 +131,16 @@ def _session_events_path(session_result: Any, workspace: Path) -> Path:
     return runs[-1]
 
 
+def _previous_run_reference(ledger: GoalLedger) -> str:
+    """The last recorded run — the run a revision answers."""
+
+    reference = ""
+    for entry in ledger.entries():
+        if entry["kind"] == "run_recorded":
+            reference = str(entry["payload"].get("run") or "")
+    return reference
+
+
 def _wake_context(
     goal: GoalRecordV1,
     ledger: GoalLedger,
@@ -170,6 +180,9 @@ def _wake_context(
             "revisions_remaining": budgets.revisions_remaining,
         },
         "trajectory": trajectory,
+        "previous_run": (
+            _previous_run_reference(ledger) if outcome is not None else ""
+        ),
         "previous_run_outcome": (
             outcome.public_record() if outcome is not None else {}
         ),
@@ -303,6 +316,13 @@ def run_goal_loop(
         wake = (
             _wake_context(goal, ledger, outcome) if goal is not None else None
         )
+        if wake is not None and wake.get("previous_run"):
+            # Host attestation for the evidence gate: this cycle's
+            # session was handed the named run's typed outcome.
+            ledger.append(
+                "wake_composed",
+                {"cycle": cycles, "run": wake["previous_run"]},
+            )
         session = plan_session(
             task=task,
             provider=provider,
@@ -439,6 +459,10 @@ def run_goal_loop(
                     digest
                     for node in (outcome.nodes if outcome else ())
                     for digest in node.evidence_event_hashes
+                ),
+                previous_run_reference=_previous_run_reference(ledger),
+                wake_embedded_run=str(
+                    (wake or {}).get("previous_run") or ""
                 ),
             )
             if not verdict.admitted:

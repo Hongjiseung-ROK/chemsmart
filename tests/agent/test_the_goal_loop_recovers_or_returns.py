@@ -159,6 +159,13 @@ _READ_OUTCOME_ROWS = (
         "payload": {"request_id": "r1", "tool": "inspect_run_outcome"},
     },
     {"kind": "tool_succeeded", "payload": {"request_id": "r1"}},
+    {
+        "kind": "run_outcome_inspected",
+        "payload": {
+            "run": "goals/goal-t1/runs/cycle-1",
+            "stream_sha256": "a" * 64,
+        },
+    },
 )
 
 
@@ -224,7 +231,14 @@ def test_a_failed_run_wakes_a_revision_that_recovers(tmp_path):
     assert payload["checks"]["evidence_read"] is True
 
 
-def test_an_evidence_free_revision_returns_to_the_human(tmp_path):
+def test_a_wake_handed_outcome_admits_without_ritual(tmp_path):
+    """The host composed the wake context, embedded the previous run's
+    typed outcome, and recorded that act in the ledger. A revision of
+    that run is evidence-read by construction -- the first live goal
+    round's gate demanded a re-read of what the host itself handed
+    over, and blocked a scientifically sound revision on a wiring
+    defect. The attestation, not the ritual, is the evidence."""
+
     result = _loop(
         tmp_path,
         sessions=[
@@ -233,15 +247,26 @@ def test_an_evidence_free_revision_returns_to_the_human(tmp_path):
         ],
         executes=[
             _execute(
-                tmp_path,
-                failed=True,
-                status="partial",
-                analysis="partial",
+                tmp_path, failed=True, status="partial", analysis="partial"
+            ),
+            _execute(
+                tmp_path, failed=True, status="partial", analysis="partial"
             ),
         ],
+        max_revisions=1,
     )
-    assert result.settlement == "returned_to_human"
-    assert any("answering a guess" in r for r in result.reasons)
+    assert result.settlement == "exhausted"
+    assert result.revisions_admitted == 1
+    entries = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    ).entries()
+    by_kind = {}
+    for entry in entries:
+        by_kind.setdefault(entry["kind"], []).append(entry["payload"])
+    (wake,) = by_kind["wake_composed"]
+    assert wake == {"cycle": 2, "run": "goals/goal-t1/runs/cycle-1"}
+    (admitted,) = by_kind["revision_admitted"]
+    assert admitted["checks"]["evidence_read"] is True
 
 
 def test_an_identity_change_returns_to_the_human(tmp_path):

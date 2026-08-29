@@ -63,6 +63,7 @@ class EventKind(str, Enum):
     MOLECULAR_GEOMETRY_EDITED = "molecular_geometry_edited"
     MOLECULAR_ATOM_APPENDED = "molecular_atom_appended"
     DOMAIN_SKILL_CONSULTED = "domain_skill_consulted"
+    RUN_OUTCOME_INSPECTED = "run_outcome_inspected"
     WORKFLOW_ANALYSIS_REPORT_RENDERED = "workflow_analysis_report_rendered"
     WORKFLOW_ANALYSIS_COMPLETION_REFUSED = (
         "workflow_analysis_completion_refused"
