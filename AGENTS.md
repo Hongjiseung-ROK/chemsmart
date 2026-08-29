@@ -521,12 +521,25 @@ one record's failure settles that record once recovery within the goal's
 budgets is exhausted, and a revision of a failed record touches no other
 record's settlement.
 
+A goal settles into one typed state. It is achieved when the host
+completion gate certified the delivery; unreachable from evidence when
+the certified completion names required outputs the plan itself declared
+blocked and the recorded scientific decision carries the receipts — a
+typed refusal is a deliverable, not a failure; exhausted when the
+granted budgets are spent; and returned to the human otherwise, with the
+reason naming what is missing. A completion receipt states the required
+outputs it delivered without, so a full delivery and a delivery with
+stated limitations never share one word.
+
 Every executed node settles into one typed terminal record drawn from a
 shared program-neutral vocabulary, carrying the program-native findings
 and structured facts beneath it; the verbatim engine text is attached
 evidence, never the interface. A result that failed is nameable and
 inspectable with its terminal record, and is never admitted for quantity
-extraction or geometry handoff.
+extraction or geometry handoff. The human may cancel execution at any
+node boundary; the withdrawal is a typed terminal fact on every node it
+stopped, never an absence, and an engine already launched is never
+killed by it — timeouts and signals own that.
 
 The terminal UI is a view and controller for this chain. It is not a second
 permission engine. Internal receipts and content digests preserve provenance
