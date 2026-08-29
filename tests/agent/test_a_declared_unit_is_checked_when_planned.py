@@ -127,9 +127,7 @@ def test_a_swapped_extremum_is_refused_when_planned():
 
 def test_the_correct_order_plans_under_a_truthful_unit():
     plan = _plan(
-        _expression_node(
-            first="energies", second="coords", declared_unit="1"
-        )
+        _expression_node(first="energies", second="coords", declared_unit="1")
     )
 
     assert plan.plan_sha256

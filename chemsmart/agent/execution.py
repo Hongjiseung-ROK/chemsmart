@@ -475,9 +475,7 @@ def _place_dual_contact(
         rotvec = generator.normal(size=3)
         direction = generator.normal(size=3)
         direction /= np.linalg.norm(direction)
-        start = np.concatenate(
-            [rotvec, target_1 + distance_1 * direction]
-        )
+        start = np.concatenate([rotvec, target_1 + distance_1 * direction])
         try:
             result = minimize(
                 objective,
@@ -678,9 +676,7 @@ def compose_trusted_molecular_arrangement(
         positions=np.vstack((positions_a, positions_b)),
     )
     achieved_second = (
-        float(
-            np.linalg.norm(positions_b[link_b2] - positions_a[link_a2])
-        )
+        float(np.linalg.norm(positions_b[link_b2] - positions_a[link_a2]))
         if dual_contact
         else None
     )
@@ -695,7 +691,8 @@ def compose_trusted_molecular_arrangement(
         (
             "ChemSmart composed arrangement; fragment A atoms first; "
             f"contact {fragment_a_atom}(A)-{fragment_b_atom}(B) at "
-            f"{achieved:.4f} angstrom" + second_note
+            f"{achieved:.4f} angstrom"
+            + second_note
             + "; electronic state deliberately unbound"
         ),
     ]

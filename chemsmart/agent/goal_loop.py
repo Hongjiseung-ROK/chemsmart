@@ -153,8 +153,7 @@ def _settle_from_delivery(
         settled = "unreachable_from_evidence"
         reasons = (
             "the completion receipt names required outputs "
-            "delivered without: "
-            + ", ".join(delivery.limitation_output_ids),
+            "delivered without: " + ", ".join(delivery.limitation_output_ids),
         )
     elif certified and delivery.claims:
         settled = "achieved"

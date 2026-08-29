@@ -71,9 +71,7 @@ def test_register_three_read_two_the_frontier_names_the_third(tmp_path):
     _extract(host, "geometry-water-a", "positions")
     _extract(host, "geometry-water-b", "connectivity")
 
-    assert host._artifacts_without_structural_read() == (
-        "geometry-gas",
-    )
+    assert host._artifacts_without_structural_read() == ("geometry-gas",)
 
 
 def test_a_nonstructural_read_does_not_count_as_measuring(tmp_path):
@@ -83,9 +81,7 @@ def test_a_nonstructural_read_does_not_count_as_measuring(tmp_path):
 
     # Composition is not structure: the artifact stays listed until a
     # structural selector reads it.
-    assert host._artifacts_without_structural_read() == (
-        "geometry-gas",
-    )
+    assert host._artifacts_without_structural_read() == ("geometry-gas",)
     _extract(host, "geometry-gas", "positions")
     assert host._artifacts_without_structural_read() == ()
 
@@ -134,9 +130,7 @@ def test_a_registered_result_is_listed_until_its_structure_is_read(tmp_path):
     )
     host = _host(tmp_path, artifact)
 
-    assert host._artifacts_without_structural_read() == (
-        "registered-co2",
-    )
+    assert host._artifacts_without_structural_read() == ("registered-co2",)
 
 
 def test_the_identity_discipline_lives_at_the_point_of_use():
