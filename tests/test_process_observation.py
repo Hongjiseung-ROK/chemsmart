@@ -365,3 +365,75 @@ def test_external_signal_restores_and_invokes_custom_prior_handler():
         if process.poll() is None:
             process.kill()
             process.wait()
+
+
+def test_external_signal_is_its_own_terminal_state(tmp_path):
+    """A human interrupt used to read as a clean exit.
+
+    The observation loop broke on the captured signal with no limit
+    reason, so the state fell through to "exited" -- byte-identical to
+    the engine finishing on its own -- and only an unconfirmed kill left
+    any mark. The interrupt is now its own state with its own finding.
+    """
+
+    script = _write_script(
+        tmp_path / "interrupted.py",
+        """
+        import json
+        import os
+        import signal
+        import subprocess
+        import sys
+
+        from chemsmart.utils.process_observation import (
+            ProcessSignalGuard,
+            observe_process,
+        )
+
+        with ProcessSignalGuard() as signal_guard:
+            process = subprocess.Popen(
+                [sys.executable, "-c", "import time; time.sleep(60)"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                start_new_session=True,
+            )
+            os.kill(os.getpid(), signal.SIGTERM)
+            observed = observe_process(
+                process,
+                timeout_seconds=60,
+                memory_limit_mb=256,
+                sample_interval_seconds=0.02,
+                termination_grace_seconds=1,
+                signal_guard=signal_guard,
+            )
+            observation = observed.observation
+            print(
+                json.dumps(
+                    {
+                        "state": observation.state,
+                        "findings": list(observation.findings),
+                    }
+                )
+            )
+            sys.stdout.flush()
+            # Skip the guard's re-raise: the observation is the test
+            # subject, not the controller's signal etiquette.
+            os._exit(0)
+        """,
+    )
+    completed = subprocess.run(
+        [sys.executable, str(script)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+    import json as _json
+
+    payload = _json.loads(completed.stdout.strip().splitlines()[-1])
+    assert payload["state"] in {
+        "external_signal_terminated",
+        "external_signal_ambiguous",
+    }
+    assert "process.external_signal" in payload["findings"]

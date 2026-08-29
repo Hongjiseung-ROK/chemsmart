@@ -74,6 +74,8 @@ class ProcessObservationV1:
             "timed_out_ambiguous",
             "memory_limit_exceeded_terminated",
             "memory_limit_exceeded_ambiguous",
+            "external_signal_terminated",
+            "external_signal_ambiguous",
         }:
             raise ValueError("unsupported process observation state")
         if (
@@ -540,6 +542,12 @@ def observe_process(
                     break
 
         if signal_guard.external_signal is not None:
+            # A human interrupt is its own terminal fact. Without a limit
+            # reason this fell through to state "exited" -- byte-identical
+            # to a clean engine exit -- so a Ctrl-C mid-engine was
+            # unrepresentable and only the unconfirmed-kill case left any
+            # mark at all.
+            limit_reason = "external_signal"
             break
         now = time.monotonic()
         remaining = deadline - now
@@ -591,6 +599,8 @@ def observe_process(
         findings.append("process.timeout")
     elif limit_reason == "memory_limit_exceeded":
         findings.append("process.memory_limit_exceeded")
+    elif limit_reason == "external_signal":
+        findings.append("process.external_signal")
     if termination_requested and not termination_confirmed:
         findings.append("process.termination_ambiguous")
     if not limit_reason:

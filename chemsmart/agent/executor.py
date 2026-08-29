@@ -1649,7 +1649,11 @@ class ApprovedWorkflowExecutor:
                             state="ambiguous",
                             invocation_identity_sha256="",
                             execution_receipt_sha256="",
-                            rule_ids=(),
+                            # The typed id that distinguishes this from a
+                            # timeout-ambiguous or a launch-ambiguous node;
+                            # the English sentence below carried the whole
+                            # distinction and was never persisted.
+                            rule_ids=("execution.interrupted.mid_engine",),
                             failure=(
                                 "launch reservation remains unresolved; "
                                 "relaunch is forbidden -- a prior "

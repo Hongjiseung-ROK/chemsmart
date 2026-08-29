@@ -11957,6 +11957,8 @@ def _process_observation_findings(
         findings.add("execution.process.timeout")
     if observation.memory_limit_exceeded:
         findings.add("execution.process.memory_limit_exceeded")
+    if observation.state.startswith("external_signal"):
+        findings.add("execution.process.external_signal")
     if observation.termination_requested and not (
         observation.termination_confirmed
     ):
