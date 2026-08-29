@@ -35,7 +35,7 @@ _MAX_DIAGNOSTICS = 3
 _MAX_DIAGNOSTIC_CHARS = 160
 
 #: Programs whose output this module knows how to classify.
-_SUPPORTED_PROGRAMS = frozenset({"gaussian", "orca", "xtb"})
+_SUPPORTED_PROGRAMS = frozenset({"gaussian", "orca", "xtb", "pyscf"})
 
 #: Engines state the diagnosis and then abort, so the terminating line is
 #: frequently the least informative one in the block: ORCA's abort marker
@@ -316,6 +316,88 @@ def summarize_xtb_native_failure(
     )
 
 
+#: PySCF's driver records its own typed account -- a failure record with
+#: the stage that raised, and per-stage convergence flags -- so its
+#: summariser maps typed facts instead of grepping text.
+_PYSCF_STAGE_CLASSES = {
+    "initialization": "initialization",
+    "scf": "scf_convergence",
+    "opt": "geometry_optimization",
+    "hess": "hessian_evaluation",
+    "td": "excited_state",
+}
+
+
+def summarize_pyscf_native_failure(
+    status: object,
+) -> NativeFailureSummaryV1 | None:
+    """Classify an abnormal PySCF run from its own typed status.
+
+    The driver writes a failure record naming the stage that raised,
+    and per-stage convergence flags for the quiet deaths that raise
+    nothing (an SCF that returns unconverged; an optimizer that stops
+    without converging). All of it sat unread while every PySCF death
+    collapsed to the generic bucket.
+    """
+
+    if not isinstance(status, dict):
+        return None
+    if status.get("normal_termination") is True:
+        return None
+    failure = status.get("failure")
+    stages = status.get("stages")
+    stages = stages if isinstance(stages, dict) else {}
+    if isinstance(failure, dict):
+        stage = str(failure.get("stage") or "")
+        error_class = _PYSCF_STAGE_CLASSES.get(stage, "driver_exception")
+        message = " ".join(
+            str(failure.get("message") or "").split()
+        )[:_MAX_DIAGNOSTIC_CHARS]
+        kind = str(failure.get("type") or "").strip()
+        line = _redact(f"{kind}: {message}" if kind else message).strip()
+        return NativeFailureSummaryV1(
+            schema_version=_SCHEMA_VERSION,
+            program="pyscf",
+            termination_state="error_termination",
+            error_class=error_class,
+            diagnostic_lines=(
+                (f"PySCF stage {stage!r} raised",) if stage else ()
+            ),
+            engine_lines=(line[:_MAX_DIAGNOSTIC_CHARS],) if line else (),
+        )
+
+    def _stage_flag(stage_name: str, flag: str) -> object:
+        stage_record = stages.get(stage_name)
+        if isinstance(stage_record, dict):
+            return stage_record.get(flag)
+        return None
+
+    quiet: tuple[str, str] | None = None
+    if _stage_flag("scf", "converged") is False:
+        quiet = ("scf_convergence", "PySCF recorded scf converged false")
+    elif _stage_flag("opt", "final_scf_converged") is False:
+        quiet = (
+            "scf_convergence",
+            "PySCF recorded the final scf under opt unconverged",
+        )
+    elif _stage_flag("opt", "optimizer_converged") is False:
+        quiet = (
+            "geometry_optimization",
+            "PySCF recorded the geometry optimizer unconverged",
+        )
+    if quiet is None:
+        return None
+    error_class, diagnostic = quiet
+    return NativeFailureSummaryV1(
+        schema_version=_SCHEMA_VERSION,
+        program="pyscf",
+        termination_state="incomplete",
+        error_class=error_class,
+        diagnostic_lines=(diagnostic,),
+        engine_lines=(),
+    )
+
+
 def _summarize(
     *,
     program: str,
@@ -462,5 +544,6 @@ __all__ = [
     "NativeFailureSummaryV1",
     "summarize_gaussian_native_failure",
     "summarize_orca_native_failure",
+    "summarize_pyscf_native_failure",
     "summarize_xtb_native_failure",
 ]

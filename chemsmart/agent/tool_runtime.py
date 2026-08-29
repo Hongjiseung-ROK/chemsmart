@@ -10195,9 +10195,36 @@ class CommandCompiledToolHostV1:
             result = engine.result_artifact
             if result is not None:
                 try:
+                    from chemsmart.io.native_failure import (
+                        summarize_pyscf_native_failure,
+                    )
+                    from chemsmart.io.pyscf.output import read_pyscf_h5
                     from chemsmart.jobs.pyscf.validation import (
                         validate_pyscf_result,
                     )
+
+                    result_spec, _provenance, result_status, _results = (
+                        read_pyscf_h5(
+                            _current_artifact_path(
+                                result, field_name="PySCF HDF5 result"
+                            )
+                        )
+                    )
+                    # The driver's own typed account -- the stage that
+                    # raised, or a stage that quietly returned
+                    # unconverged -- is summarised before validation so
+                    # a validator refusal cannot mask it.
+                    native = summarize_pyscf_native_failure(result_status)
+                    if native is not None:
+                        pyscf_observation = observation.setdefault(
+                            "pyscf", {}
+                        )
+                        pyscf_observation["native_failure"] = (
+                            native.as_dict()
+                        )
+                        findings.append(
+                            f"pyscf.native_failure.{native.error_class}"
+                        )
 
                     expected_symbols, expected_positions = (
                         _pyscf_input_geometry(expected_input_artifact)
@@ -10246,15 +10273,6 @@ class CommandCompiledToolHostV1:
                         findings.append(
                             "pyscf.result.validation_state_inconsistent"
                         )
-                    from chemsmart.io.pyscf.output import read_pyscf_h5
-
-                    result_spec, _provenance, _status, _results = (
-                        read_pyscf_h5(
-                            _current_artifact_path(
-                                result, field_name="PySCF HDF5 program binding"
-                            )
-                        )
-                    )
                     expected_engine = (
                         capability_environment_receipt.engine
                         if capability_environment_receipt is not None
