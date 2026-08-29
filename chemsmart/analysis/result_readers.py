@@ -2468,7 +2468,8 @@ def extract_logged_quantities(
                 f"selector(s) {undeclared} are not declared for "
                 f"{request.program} jobtype {jobtype!r}; a declaration is a "
                 "semantic claim about what the value means for this job "
-                f"type. Declared here: {sorted(declared)}"
+                f"type. Declared here: {sorted(declared)}."
+                + rq.thermochemistry_route_hint(undeclared)
             )
     quantities = []
     absent: list[tuple[str, str, str]] = []

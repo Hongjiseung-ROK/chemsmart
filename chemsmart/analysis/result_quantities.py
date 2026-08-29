@@ -266,6 +266,40 @@ def derivable_thermochemistry_quantities(
     return tuple(sorted(names))
 
 
+def thermochemistry_route_hint(selectors) -> str:
+    """One sentence naming the open door, when refused selectors have one.
+
+    A refusal that only lists what is declared teaches a session what it
+    cannot have; it does not say where the quantity actually lives. A
+    live session asked a result for its free energy, was correctly told
+    no jobtype declares that selector, reported the closed gate as a
+    limitation -- and never reached the thermochemistry stage that was
+    open, while a sibling session used it on identical results the same
+    hour. The refusal is the moment the route must be named.
+
+    Returns "" when none of the refused selectors is a thermochemistry
+    quantity, so callers can append unconditionally.
+    """
+
+    derivable = set(derivable_thermochemistry_quantities(None))
+    derivable.update(QUASI_HARMONIC_THERMOCHEMISTRY_QUANTITIES)
+    matched = sorted(
+        {
+            str(item)
+            for item in selectors
+            if canonical_thermochemistry_quantity(item) in derivable
+        }
+    )
+    if not matched:
+        return ""
+    return (
+        f" A thermochemistry stage derives {matched} from a "
+        "frequency-bearing result under an explicitly bound temperature, "
+        "pressure, and standard state; plan one on the producing "
+        "calculation instead of selecting these from the log."
+    )
+
+
 _IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{0,127}$")
 _CURRENT_PYSCF_RESULT_CONTRACT = "chemsmart.pyscf-result-contract.v3"
 _SELECTOR_RESULT_UNITS = {

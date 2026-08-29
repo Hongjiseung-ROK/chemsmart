@@ -780,13 +780,18 @@ def build_scientific_toolchain_plan(
                 }
             )
             if undeclared:
+                from chemsmart.analysis.result_quantities import (
+                    thermochemistry_route_hint,
+                )
+
                 raise ScientificToolchainContractError(
                     f"extraction node {node.node_id!r} requests selector(s) "
                     f"{undeclared} that are not declared for "
                     f"{calculation.program!r} jobtype "
                     f"{calculation.jobtype!r}; a declaration is a semantic "
                     "claim about what the value means for this job type. "
-                    f"Declared here: {sorted(declared)}"
+                    f"Declared here: {sorted(declared)}."
+                    + thermochemistry_route_hint(undeclared)
                 )
     normalized_analyses: list[AnalysisNodeIntentV1] = []
     for node in analyses:
