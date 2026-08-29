@@ -402,6 +402,26 @@ class ToolLoopRunner:
                     # The supported endpoints echo model identity but do not
                     # report the applied reasoning effort independently.
                     "observed_reasoning_effort": "not_reported",
+                    **(
+                        {
+                            "requested_enable_thinking": (
+                                session.config.enable_thinking
+                            )
+                        }
+                        if getattr(session.config, "enable_thinking", None)
+                        is not None
+                        else {}
+                    ),
+                    # What the provider actually billed and streamed: a
+                    # session whose every turn reports no reasoning is a
+                    # first-class observation, not a post-hoc grep.
+                    "reasoning_tokens": int(
+                        provider_receipt.reasoning_tokens
+                    ),
+                    "reasoning_observed": bool(
+                        provider_receipt.reasoning_tokens > 0
+                        or provider_receipt.reasoning_continuation_present
+                    ),
                     "transport_deadlines": (
                         session.public_transport_deadline_record()
                     ),

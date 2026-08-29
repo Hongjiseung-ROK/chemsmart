@@ -919,3 +919,76 @@ def test_raw_reset_is_sanitized_and_terminalizes_runtime(
     assert attempt.payload["transport_failure"]["error_class"] == "transport"
     persisted = (tmp_path / "events" / "runtime.jsonl").read_text()
     assert "authorization secret" not in persisted
+
+
+def test_a_turn_records_what_the_provider_billed_for_reasoning(tmp_path):
+    from chemsmart.agent.runtime.alibaba import (
+        AlibabaTokenPlanConfigV1,
+        AlibabaTokenPlanToolSession,
+    )
+
+    responses = iter(
+        (
+            {
+                "id": "synthetic-reasoned",
+                "model": "deepseek-v4-flash",
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {
+                            "role": "assistant",
+                            "content": "Done.",
+                            "reasoning_content": "private reasoning",
+                        },
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 9,
+                    "completion_tokens_details": {"reasoning_tokens": 7},
+                },
+            },
+        )
+    )
+    config = AlibabaTokenPlanConfigV1(
+        model="deepseek-v4-flash",
+        context_tokens=1_000_000,
+        max_output_tokens=262_144,
+        reasoning_effort="max",
+        enable_thinking=True,
+    )
+    session = AlibabaTokenPlanToolSession(
+        transport=lambda _payload: next(responses),
+        messages=[{"role": "user", "content": "Plan."}],
+        config=config,
+    )
+    store = RuntimeEventStore(
+        tmp_path / "events" / "runtime.jsonl",
+        session_id="protocol-session",
+    )
+    host = _DispatchSpyHost()
+    envelope, request_context, network = _run_contracts(host, config)
+
+    ToolLoopRunner(host=host, event_store=store).run(
+        session=session,
+        envelope=envelope,
+        request_context=request_context,
+        provider_budget=network,
+    )
+
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "events" / "runtime.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    turns = [
+        event
+        for event in events
+        if event.get("kind") == "provider_turn_observed"
+    ]
+    assert turns, "no provider turn was recorded"
+    payload = turns[0].get("payload") or turns[0].get("record") or {}
+    assert payload["reasoning_tokens"] == 7
+    assert payload["reasoning_observed"] is True
+    assert payload["requested_enable_thinking"] is True
