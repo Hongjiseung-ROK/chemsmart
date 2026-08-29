@@ -360,6 +360,7 @@ class ApprovedWorkflowExecutor:
         execution_bundle: Any,
         approval_workspace: Path,
         claim_workspace_bundle: bool = True,
+        should_stop: Any = None,
     ) -> None:
         self.host = host
         self.plan = plan
@@ -374,6 +375,7 @@ class ApprovedWorkflowExecutor:
         self.execution_bundle = execution_bundle
         self.approval_workspace = approval_workspace
         self.claim_workspace_bundle = bool(claim_workspace_bundle)
+        self.should_stop = should_stop
         self._bundle_claimed = False
         self._turn = 0
         self._handoff_inputs: dict[str, str] = {}
@@ -1701,7 +1703,32 @@ class ApprovedWorkflowExecutor:
             ready = tuple(
                 node_id for node_id in ready if record_of[node_id] == earliest
             )
+            cancelled = False
             for node_id in ready:
+                # The human may cancel at a node boundary: an engine
+                # already launched is never killed here -- that is what
+                # timeouts and signals are for -- but no further node
+                # launches under a grant the human has withdrawn.
+                if self.should_stop is not None and self.should_stop():
+                    binding = self._binding(node_id)
+                    executed.append(
+                        ExecutedNodeV1(
+                            node_id=node_id,
+                            program=binding.program,
+                            jobtype=binding.jobtype,
+                            state="cancelled",
+                            invocation_identity_sha256="",
+                            execution_receipt_sha256="",
+                            rule_ids=("execution.cancelled.human",),
+                            failure=(
+                                "cancelled by the human at a node "
+                                "boundary; the node was never launched"
+                            ),
+                        )
+                    )
+                    seen.add(node_id)
+                    cancelled = True
+                    continue
                 seen.add(node_id)
                 outcome = self.run_node(node_id)
                 executed.append(outcome)
@@ -1718,6 +1745,8 @@ class ApprovedWorkflowExecutor:
                     data_edge_bindings = frontier.data_edge_bindings
                 else:
                     run_state = self._settle(run_state, outcome)
+            if cancelled:
+                break
         done = {item.node_id for item in executed if item.validated}
         status = "completed" if done == approved_node_ids else "partial"
         analysis_nodes: tuple[ExecutedAnalysisNodeV1, ...] = ()
@@ -1864,6 +1893,7 @@ def _execute_workflow_bundle(
     workspace: Path,
     run_directory: Path,
     claim_workspace_bundle: bool,
+    stop_file: Path | None = None,
 ) -> WorkflowExecutionResultV1:
     """Execute the typed ChemSmart DAG represented by an approved review."""
 
@@ -1941,6 +1971,9 @@ def _execute_workflow_bundle(
         execution_bundle=bundle,
         approval_workspace=workspace,
         claim_workspace_bundle=claim_workspace_bundle,
+        should_stop=(
+            (lambda: stop_file.exists()) if stop_file is not None else None
+        ),
     ).run()
 
 
@@ -1951,6 +1984,7 @@ def execute_approved_workflow(
     run_directory: Path,
     task_spec_sha256: str = "",
     expected_approval_file_sha256: str = "",
+    stop_file: Path | None = None,
 ) -> WorkflowExecutionResultV1:
     """Compatibility adapter for a previously persisted v1 approval file."""
 
@@ -1973,6 +2007,7 @@ def execute_approved_workflow(
         workspace=workspace,
         run_directory=run_directory,
         claim_workspace_bundle=True,
+        stop_file=stop_file,
     )
 
 

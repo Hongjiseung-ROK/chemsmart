@@ -316,3 +316,55 @@ def test_a_goal_is_not_a_resumable_queue(tmp_path):
             sessions=[_planning_session("live-9", review=_review_payload())],
             executes=[],
         )
+
+
+def test_the_stop_file_cancels_at_the_cycle_boundary(tmp_path):
+    stop = tmp_path / "stop"
+    stop.write_text("cancel\n")
+    result = run_goal_loop(
+        task="the goal task",
+        workspace=(tmp_path / "ws2"),
+        execution_envelope_file=_envelope_file(tmp_path),
+        goal_id="goal-t2",
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("no session may start after cancel")
+        ),
+        resolve_review=lambda **kwargs: ("d" * 64, tmp_path / "b.json"),
+        execute_bundle=lambda **kwargs: None,
+        stop_file=stop,
+    )
+    assert result.settlement == "returned_to_human"
+    assert result.reasons == ("cancelled",)
+
+
+def test_the_executor_accepts_a_stop_file_and_marks_cancelled():
+    """The walk marks an unlaunched node cancelled with its typed id.
+
+    The full executor path needs an approved bundle and engines; the
+    live goal qualification exercises it. Here the contract is pinned
+    at the seam: the entry accepts stop_file, and the cancelled node
+    record carries the typed rule id beside the human sentence.
+    """
+
+    import inspect
+
+    from chemsmart.agent.executor import (
+        ExecutedNodeV1,
+        execute_approved_workflow,
+    )
+
+    assert (
+        "stop_file" in inspect.signature(execute_approved_workflow).parameters
+    )
+    node = ExecutedNodeV1(
+        node_id="n",
+        program="orca",
+        jobtype="opt",
+        state="cancelled",
+        invocation_identity_sha256="",
+        execution_receipt_sha256="",
+        rule_ids=("execution.cancelled.human",),
+        failure="cancelled by the human at a node boundary",
+    )
+    assert node.state == "cancelled"

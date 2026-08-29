@@ -255,6 +255,7 @@ def run_goal_loop(
     workspace = Path(workspace).resolve()
     goal_dir = workspace / ".chemsmart-agent" / "goals" / goal_id
     ledger = GoalLedger(goal_dir)
+    ledger.directory.mkdir(parents=True, exist_ok=True)
     if ledger.goal_path.exists():
         raise ContractError(
             "this goal already exists; a goal is one human decision, "
