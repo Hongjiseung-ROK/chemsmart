@@ -180,6 +180,23 @@ non-executing. Before an engine launch:
 5. hand only the displayed executable partition to the provider-free
    deterministic executor; deferred stages remain visible but unapproved.
 
+The unit of the human decision is the goal. One ``/approve`` covers the
+requested observables, every identity and electronic-state binding, the
+physical conditions, the envelope with its engine-call, wall-clock, and
+revision budgets, and the complete initial plan. Under that grant the
+host may admit a revised workflow without a returning human action, but
+only when the revision preserves identity, state, and conditions, stays
+inside the envelope, and its session read the previous run's typed
+terminal outcome (``inspect_run_outcome``) -- an evidence-free revision
+returns to the human. Every admission is recorded with the composite
+actor ``goal-approval:<goal-id>`` beside the human ``granted_by``; the
+model never approves. A reviewer may freeze the exact initial plan and
+keep the frozen grain for that goal, and a stop file cancels at the
+next boundary. How each executed node ended is one typed vocabulary
+derived from the sealed run stream; a failed output is nameable as a
+``failed_result`` for inspection and never admissible for extraction or
+geometry handoff.
+
 A typed analysis chain displayed in the review is covered by the same single
 approval: after every approved calculation node validates, the executor runs
 the chain provider-free and renders a completed-analysis report, while
