@@ -196,3 +196,78 @@ def test_an_observed_exhaustion_is_false_not_none(tmp_path):
     no_marker = tmp_path / "single_point.out"
     no_marker.write_text("FINAL SINGLE POINT ENERGY   -1.0\n")
     assert ORCAOutput(str(no_marker)).converged is None
+
+
+def _scan_log(tmp_path, *, exhausted):
+    lines = [
+        "         *               RELAXED SURFACE SCAN STEP   1",
+        "         *** THE OPTIMIZATION HAS CONVERGED ***",
+        "         *               RELAXED SURFACE SCAN STEP   2",
+    ]
+    if exhausted:
+        lines += [
+            "       The optimization did not converge but reached the"
+            " maximum number of",
+            "       optimization cycles.",
+        ]
+    else:
+        lines += ["         *** THE OPTIMIZATION HAS CONVERGED ***"]
+    lines += ["                    ****ORCA TERMINATED NORMALLY****"]
+    log = tmp_path / ("exhausted.out" if exhausted else "clean.out")
+    log.write_text("\n".join(lines) + "\n")
+    return log
+
+
+def _evaluate_scan(tmp_path, *, exhausted):
+    import hashlib as _hashlib
+
+    from chemsmart.agent.execution import TrustedArtifactRefV1
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    log = _scan_log(tmp_path, exhausted=exhausted)
+    artifact = TrustedArtifactRefV1(
+        artifact_id="result.scan.1",
+        kind="orca_output",
+        sha256=_hashlib.sha256(log.read_bytes()).hexdigest(),
+        size_bytes=log.stat().st_size,
+        path=str(log),
+        cli_value=str(log),
+    )
+    return CommandCompiledToolHostV1._evaluate_execution_outputs(
+        program="orca",
+        jobtype="scan",
+        charge=0,
+        multiplicity=1,
+        output_artifacts=(artifact,),
+        exit_status=0,
+    )
+
+
+def test_a_normally_terminated_scan_with_an_exhausted_step_is_flagged(
+    tmp_path,
+):
+    """A scan whose step exhausted its optimizer used to validate
+    silently: the nonconvergence rule was restricted to opt and ts, so
+    a normal exit with a partial surface carried no finding at all.
+    The engine says so now; classification splits it as a scan-step
+    ending."""
+
+    evaluation = _evaluate_scan(tmp_path, exhausted=True)
+    assert "orca.result.scan_step_not_converged" in evaluation.findings
+
+    clean = _evaluate_scan(tmp_path, exhausted=False)
+    assert "orca.result.scan_step_not_converged" not in clean.findings
+
+    from chemsmart.agent.terminal_states import _classify_failure
+
+    assert (
+        _classify_failure(
+            findings=("orca.result.scan_step_not_converged",),
+            native_class="",
+            converged=None,
+            reached=None,
+            planned=None,
+            jobtype="scan",
+        )
+        == "failed_nonconverged_scan_step"
+    )

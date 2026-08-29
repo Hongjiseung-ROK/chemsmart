@@ -274,7 +274,9 @@ def _classify_failure(
     nonconverged = (
         converged is False
         or any(
-            item.endswith(".optimization_not_converged") for item in findings
+            item.endswith(".optimization_not_converged")
+            or item.endswith(".scan_step_not_converged")
+            for item in findings
         )
         or native_class == "geometry_optimization"
     )
