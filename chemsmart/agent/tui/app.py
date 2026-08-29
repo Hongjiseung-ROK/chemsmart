@@ -790,11 +790,14 @@ class ChemSmartAgentApp(App[None]):
         table.add_column("Terminal state")
         table.add_column("Report")
         for index, summary in enumerate(summaries, start=1):
+            state_cell = summary.terminal_state
+            if summary.node_endings:
+                state_cell = f"{state_cell} — {summary.node_endings}"
             table.add_row(
                 str(index),
                 summary.name,
                 summary.kind,
-                summary.terminal_state,
+                state_cell,
                 "/report " + str(index) if summary.report_path else "—",
             )
         self._write(table)

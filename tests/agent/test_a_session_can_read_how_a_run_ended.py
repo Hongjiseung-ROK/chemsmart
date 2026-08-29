@@ -80,3 +80,22 @@ def test_no_workspace_means_no_run_inspection(tmp_path):
     host = _Host(None)
     with pytest.raises(ContractError, match="approved workspace"):
         host._inspect_run_outcome("t", {})
+
+
+def test_the_human_line_says_how_each_node_ended(tmp_path):
+    """The TUI's run row used to say only the session's terminal word;
+    how the run's nodes actually ended stayed inside the stream. The
+    endings phrase speaks the typed derivation in words, with no digest
+    anywhere near a human eye."""
+
+    from chemsmart.agent.tui.runs import node_endings_phrase
+
+    workspace = _recorded_run(tmp_path)
+    phrase = node_endings_phrase(
+        workspace / ".chemsmart-agent" / "runs" / "cycle-1" / "events.jsonl"
+    )
+    assert phrase == "sp-initial: timed out"
+    assert "sha" not in phrase.lower()
+
+    missing = node_endings_phrase(tmp_path / "nowhere" / "events.jsonl")
+    assert missing == ""

@@ -16,6 +16,11 @@ class RunSummaryV1:
     directory: Path
     terminal_state: str
     report_path: Path | None
+    #: One human phrase per node ending, from the typed terminal
+    #: derivation -- "ax-scan: non-converged at step 2 of 12" -- so a
+    #: reader learns how a run died without opening the stream. Empty
+    #: when the stream is unreadable or records no run.
+    node_endings: str = ""
 
 
 def _terminal_state(events_file: Path) -> str:
@@ -42,6 +47,57 @@ def _terminal_state(events_file: Path) -> str:
     return state
 
 
+_ENDING_WORDS = {
+    "validated": "validated",
+    "engine_complete_unvalidated": "engine complete, unvalidated",
+    "failed_native": "failed in the engine",
+    "failed_nonconverged_scf": "SCF did not converge",
+    "failed_nonconverged_geometry": "optimization did not converge",
+    "failed_nonconverged_scan_step": "scan step did not converge",
+    "timeout_terminated": "timed out",
+    "timeout_ambiguous": "timed out, kill unconfirmed",
+    "memory_limit_terminated": "hit the memory limit",
+    "memory_limit_ambiguous": "memory limit, kill unconfirmed",
+    "external_signal_terminated": "interrupted by signal",
+    "external_signal_ambiguous": "interrupted, kill unconfirmed",
+    "interrupted_mid_engine": "interrupted mid-engine",
+    "launch_failed": "failed to launch",
+    "launch_ambiguous": "launch state ambiguous",
+    "blocked_dependency": "blocked by a failed dependency",
+    "refused_admission": "refused before launch",
+    "not_launched": "never launched",
+    "cancelled": "cancelled",
+}
+
+
+def node_endings_phrase(events_file: Path) -> str:
+    """Say how each node ended, in words, from the typed derivation."""
+
+    try:
+        from chemsmart.agent.terminal_states import (
+            derive_run_outcome,
+            read_run_events,
+        )
+
+        outcome = derive_run_outcome(read_run_events(events_file))
+    except Exception:
+        return ""
+    phrases = []
+    for node in outcome.nodes:
+        ending = _ENDING_WORDS.get(node.state, node.state)
+        if (
+            node.state == "failed_nonconverged_scan_step"
+            and node.scan_steps_reached is not None
+            and node.scan_steps_planned is not None
+        ):
+            ending = (
+                f"non-converged at step {node.scan_steps_reached} of "
+                f"{node.scan_steps_planned}"
+            )
+        phrases.append(f"{node.node_id}: {ending}")
+    return " · ".join(phrases)
+
+
 def _summarize(directory: Path, kind: str) -> RunSummaryV1:
     # A replay scope keeps its run under <scope>/run; an execution directory
     # is itself the run directory.
@@ -61,6 +117,7 @@ def _summarize(directory: Path, kind: str) -> RunSummaryV1:
         directory=run_directory,
         terminal_state=_terminal_state(run_directory / "events.jsonl"),
         report_path=report if report.exists() else None,
+        node_endings=node_endings_phrase(run_directory / "events.jsonl"),
     )
 
 
@@ -83,4 +140,4 @@ def list_runs(workspace: Path) -> tuple[RunSummaryV1, ...]:
     return tuple(summary for _mtime, summary in found)
 
 
-__all__ = ["RunSummaryV1", "list_runs"]
+__all__ = ["RunSummaryV1", "list_runs", "node_endings_phrase"]
