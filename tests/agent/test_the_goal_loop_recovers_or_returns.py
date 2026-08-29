@@ -211,9 +211,22 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
     assert first["previous_run"] == ""
     assert first["trajectory"] == ()
     assert "typed refusal" in first["authority"]
+    assert first["deliverables"] == {
+        "delivered_quantity_ids": (),
+        "limitation_output_ids": (),
+        "doubted_quantity_ids": (),
+    }
     assert second["previous_run"] == "goals/goal-t1/runs/cycle-1"
     assert second["previous_run_outcome"]
     assert "typed refusal" in second["authority"]
+    # The wake states what the previous run's own stream delivered --
+    # here an engine failure with no claims, so every list is empty but
+    # the record is present for the session to read.
+    assert set(second["deliverables"]) == {
+        "delivered_quantity_ids",
+        "limitation_output_ids",
+        "doubted_quantity_ids",
+    }
 
 
 def test_cycle_one_approves_runs_and_settles_achieved(tmp_path):
@@ -600,3 +613,37 @@ def test_a_doubt_about_an_unclaimed_receipt_changes_nothing(tmp_path):
         executes=[],
     )
     assert result.settlement == "achieved"
+
+
+def test_the_wake_deliverables_come_from_the_previous_runs_stream(tmp_path):
+    """Names quantities and stated limitations, never values: the wake
+    session sees what already stands delivered, what the chain declared
+    it could not produce, and what its own decisions doubt."""
+
+    from chemsmart.agent.goal_loop import (
+        _analysis_delivery,
+        _deliverables_record,
+    )
+
+    workspace = tmp_path / "ws"
+    _write_session_stream(
+        workspace,
+        "cycle-1",
+        _delivery_rows(
+            limitations=("dg",),
+            claim_source="e" * 64,
+            doubt_ref="e" * 64,
+        ),
+    )
+    record = _deliverables_record(
+        _analysis_delivery(
+            workspace / ".chemsmart-agent" / "runs" / "cycle-1"
+            / "events.jsonl"
+        )
+    )
+
+    assert record == {
+        "delivered_quantity_ids": ("dg_solv",),
+        "limitation_output_ids": ("dg",),
+        "doubted_quantity_ids": ("dg_solv",),
+    }

@@ -183,6 +183,11 @@ def _goal_terms_context(
             ),
             "revisions_remaining": int(max_revisions),
         },
+        "deliverables": {
+            "delivered_quantity_ids": (),
+            "limitation_output_ids": (),
+            "doubted_quantity_ids": (),
+        },
         "trajectory": (),
         "previous_run": "",
         "previous_run_outcome": {},
@@ -196,10 +201,29 @@ def _goal_terms_context(
     }
 
 
+def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
+    """What the previous run's own stream says stands delivered.
+
+    Names quantities and stated limitations, never values: the goal's
+    demand is in the task, and this record lets a wake session see what
+    it has already delivered, what the chain declared it could not, and
+    what its own decisions doubt -- so the next action can follow the
+    gap rather than the tool list.
+    """
+
+    return {
+        "delivered_quantity_ids": delivery.delivered_quantity_ids,
+        "limitation_output_ids": delivery.limitation_output_ids,
+        "doubted_quantity_ids": delivery.doubted_quantity_ids,
+    }
+
+
 def _wake_context(
     goal: GoalRecordV1,
     ledger: GoalLedger,
     outcome: Any,
+    *,
+    workspace: Path | None = None,
 ) -> dict[str, Any]:
     budgets = ledger.budgets(goal)
     trajectory = tuple(
@@ -224,6 +248,23 @@ def _wake_context(
         if entry["kind"]
         in {"run_recorded", "revision_admitted", "revision_returned"}
     )
+    previous_run = (
+        _previous_run_reference(ledger) if outcome is not None else ""
+    )
+    deliverables: dict[str, Any] = {
+        "delivered_quantity_ids": (),
+        "limitation_output_ids": (),
+        "doubted_quantity_ids": (),
+    }
+    if previous_run and workspace is not None:
+        deliverables = _deliverables_record(
+            _analysis_delivery(
+                Path(workspace)
+                / ".chemsmart-agent"
+                / Path(*previous_run.split("/"))
+                / "events.jsonl"
+            )
+        )
     return {
         "schema_version": "chemsmart.goal-wake-context.v1",
         "goal_id": goal.goal_id,
@@ -234,10 +275,9 @@ def _wake_context(
             "wall_seconds_remaining": budgets.wall_seconds_remaining,
             "revisions_remaining": budgets.revisions_remaining,
         },
+        "deliverables": deliverables,
         "trajectory": trajectory,
-        "previous_run": (
-            _previous_run_reference(ledger) if outcome is not None else ""
-        ),
+        "previous_run": previous_run,
         "previous_run_outcome": (
             outcome.public_record() if outcome is not None else {}
         ),
@@ -273,6 +313,8 @@ class _AnalysisDelivery:
     #: stream so a doubt recorded after the completion event still
     #: reaches the settlement.
     doubted_quantity_ids: tuple[str, ...] = ()
+    #: Every quantity a rendered claim delivered, by its own id.
+    delivered_quantity_ids: tuple[str, ...] = ()
 
 
 def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
@@ -354,6 +396,15 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
                     quantity_id
                     for receipt, quantity_id in claim_pairs
                     if quantity_id and receipt in doubt_refs
+                }
+            )
+        ),
+        delivered_quantity_ids=tuple(
+            sorted(
+                {
+                    quantity_id
+                    for _receipt, quantity_id in claim_pairs
+                    if quantity_id
                 }
             )
         ),
@@ -446,7 +497,7 @@ def run_goal_loop(
         review_file = goal_dir / "reviews" / f"cycle-{cycles}.json"
         review_file.parent.mkdir(parents=True, exist_ok=True)
         wake = (
-            _wake_context(goal, ledger, outcome)
+            _wake_context(goal, ledger, outcome, workspace=workspace)
             if goal is not None
             else _goal_terms_context(
                 goal_id=goal_id,
