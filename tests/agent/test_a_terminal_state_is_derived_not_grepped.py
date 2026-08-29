@@ -145,6 +145,62 @@ def test_the_scan_classification_needs_the_observed_facts():
     )
 
 
+def test_a_withdrawn_grant_survives_the_process(tmp_path):
+    """The executor wrote cancelled into an in-memory record only, so
+    a human's withdrawal derived as not_launched afterwards -- the
+    withdrawn grant and a node that never came up shared one word.
+    The durable vocabulary now carries it: a pending node cancels, a
+    launched node never does, and the workflow summary word follows."""
+
+    from chemsmart.agent.execution import (
+        ContractError,
+        build_workflow_run_state,
+        transition_workflow_node,
+    )
+
+    from .test_runtime_v2_launch_fence import _frontier
+
+    plan, _materialized, approval, _invocation = _frontier(tmp_path)
+    run_state = build_workflow_run_state(
+        plan=plan,
+        approval=approval,
+        run_id="run.water-approval",
+        approval_consumed=True,
+    )
+    (row,) = run_state.nodes
+    assert row.state == "pending"
+    cancelled = transition_workflow_node(
+        run_state,
+        node_id="sp-initial",
+        new_state="cancelled",
+        plan=plan,
+        failure_rule_ids=("execution.cancelled.human",),
+        timestamp="2026-08-04T00:00:01+00:00",
+    )
+    (node,) = cancelled.nodes
+    assert node.state == "cancelled"
+    assert node.failure_rule_ids == ("execution.cancelled.human",)
+    assert cancelled.state == "cancelled"
+    assert cancelled.finished_at
+
+    running = transition_workflow_node(
+        run_state,
+        node_id="sp-initial",
+        new_state="running",
+        plan=plan,
+        invocation_sha256="5" * 64,
+        timestamp="2026-08-04T00:00:01+00:00",
+    )
+    with pytest.raises(ContractError, match="invalid workflow node state"):
+        transition_workflow_node(
+            running,
+            node_id="sp-initial",
+            new_state="cancelled",
+            plan=plan,
+            timestamp="2026-08-04T00:00:02+00:00",
+        )
+
+
 def test_every_state_the_derivation_can_emit_is_declared():
     with pytest.raises(ValueError, match="unsupported node terminal"):
         NodeTerminalStateV1(

@@ -451,6 +451,11 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
                 )
                 else "refused_admission"
             )
+        elif effective_state == "cancelled":
+            # The durable row carries the human's withdrawal; before it
+            # did, a cancelled node derived as not_launched and the
+            # withdrawn grant left no typed trace.
+            terminal = "cancelled"
         else:
             terminal = "not_launched"
 

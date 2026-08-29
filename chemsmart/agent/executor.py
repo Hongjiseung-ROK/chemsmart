@@ -1726,6 +1726,34 @@ class ApprovedWorkflowExecutor:
                             ),
                         )
                     )
+                    # The word must survive the process: an in-memory
+                    # cancelled node derived as not_launched, so a
+                    # withdrawn grant and a node that never came up
+                    # were indistinguishable afterwards. A stop before
+                    # the first launch leaves no durable run at all --
+                    # there is nothing to mark in a stream that does
+                    # not exist.
+                    frontier = self.host.event_store.workflow_frontier(
+                        workflow_id=self.plan.workflow_id,
+                        run_id=run_id,
+                    )
+                    if frontier.run_state is not None:
+                        _event, run_state = (
+                            self.host.event_store
+                            .transition_workflow_run_node(
+                                turn_id="execution-cancel",
+                                run_id=run_id,
+                                node_id=node_id,
+                                new_state="cancelled",
+                                plan=self.plan,
+                                failure_rule_ids=(
+                                    "execution.cancelled.human",
+                                ),
+                                timestamp=datetime.now(
+                                    timezone.utc
+                                ).isoformat(),
+                            )
+                        )
                     seen.add(node_id)
                     cancelled = True
                     continue

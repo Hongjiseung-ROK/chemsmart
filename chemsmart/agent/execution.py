@@ -6789,6 +6789,7 @@ class WorkflowNodeRunStateV1:
             "failed",
             "blocked",
             "ambiguous",
+            "cancelled",
         }:
             raise ContractError("unsupported workflow node run state")
         for name, digest in (
@@ -6872,6 +6873,7 @@ class WorkflowRunStateV1:
             "failed",
             "blocked",
             "ambiguous",
+            "cancelled",
         }:
             raise ContractError("unsupported workflow run state")
         if self.state != "waiting_for_approval" and not self.approval_consumed:
@@ -7085,7 +7087,10 @@ def transition_workflow_node(
     if current is None:
         raise ContractError("workflow run state has no such node")
     allowed = {
-        "pending": {"running", "blocked"},
+        # A human may withdraw the grant at a node boundary; only a
+        # node that never launched can be cancelled, so the word is
+        # unreachable from any running or terminal state.
+        "pending": {"running", "blocked", "cancelled"},
         "deferred": set(),
         "running": {"engine_complete", "failed", "ambiguous"},
         "engine_complete": {"validated", "failed"},
@@ -7093,6 +7098,7 @@ def transition_workflow_node(
         "failed": set(),
         "blocked": set(),
         "ambiguous": set(),
+        "cancelled": set(),
     }
     if new_state not in allowed[current.state]:
         raise ContractError("invalid workflow node state transition")
@@ -7183,6 +7189,11 @@ def transition_workflow_node(
         workflow_state = "failed"
     elif "blocked" in executable_states:
         workflow_state = "blocked"
+    elif "cancelled" in executable_states:
+        # A failure outranks a cancellation in the summary word: the
+        # science that failed is the fact, and why the rest never ran
+        # stays visible on each cancelled node.
+        workflow_state = "cancelled"
     else:
         workflow_state = "running"
     started_at = run_state.started_at
@@ -7196,7 +7207,7 @@ def transition_workflow_node(
         # failed.  If replay now exposes an independent pending sibling, clear
         # that premature timestamp when the sibling advances.
         finished_at = ""
-    elif workflow_state in {"validated", "failed", "blocked"}:
+    elif workflow_state in {"validated", "failed", "blocked", "cancelled"}:
         finished_at = str(timestamp).strip()
     body = {
         "schema_version": run_state.schema_version,
