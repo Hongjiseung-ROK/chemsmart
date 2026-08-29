@@ -1019,6 +1019,15 @@ def agent_config(
             f"reasoning effort for {provider} must be one of "
             f"{[e or '(omit)' for e in efforts]}"
         )
+    enable_thinking = None
+    if _provider_registry()[provider].thinking_switch_key:
+        thinking_choice = click.prompt(
+            "Explicit thinking switch",
+            type=click.Choice(["(omit)", "on", "off"]),
+            default="(omit)",
+        )
+        if thinking_choice != "(omit)":
+            enable_thinking = thinking_choice == "on"
     if context_tokens is None:
         context_tokens = click.prompt("Context window in tokens", type=int)
     if max_output_tokens is None:
@@ -1047,6 +1056,8 @@ def agent_config(
     }
     if reasoning_effort:
         block["reasoning_effort"] = reasoning_effort
+    if enable_thinking is not None:
+        block["enable_thinking"] = enable_thinking
 
     payload = dict(existing) if existing else {}
     providers = dict(payload.get("providers") or {})

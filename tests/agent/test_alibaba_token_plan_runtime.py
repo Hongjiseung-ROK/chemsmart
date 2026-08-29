@@ -565,3 +565,35 @@ def test_sse_inter_event_deadline_ignores_comments_after_data(monkeypatch):
 
     assert observed.value.timeout_phase == "inter_event"
     assert response.closed is True
+
+
+def _thinking_config(enable_thinking=None):
+    return AlibabaTokenPlanConfigV1(
+        model="deepseek-v4-flash",
+        context_tokens=1_000_000,
+        max_output_tokens=262_144,
+        reasoning_effort="max",
+        enable_thinking=enable_thinking,
+    )
+
+
+def test_a_stated_thinking_switch_reaches_the_wire():
+    def _session(config):
+        return AlibabaTokenPlanToolSession(
+            transport=lambda payload: payload,
+            messages=[{"role": "user", "content": "Plan."}],
+            config=config,
+        )
+
+    assert (
+        _session(_thinking_config(True)).request_payload()["enable_thinking"]
+        is True
+    )
+    assert (
+        _session(_thinking_config(False)).request_payload()["enable_thinking"]
+        is False
+    )
+    # Silence keeps the provider's own default and stays off the wire.
+    assert "enable_thinking" not in _session(
+        _thinking_config(None)
+    ).request_payload()

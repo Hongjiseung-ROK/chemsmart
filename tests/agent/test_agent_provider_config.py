@@ -99,9 +99,13 @@ def test_historical_provider_profile_v1_digest_is_byte_compatible():
         **body, profile_sha256=canonical_sha256(body)
     )
 
+    # The digest is computed over the historical body exactly; the
+    # in-memory projection additionally carries the unstated thinking
+    # switch, which stays out of the digest arithmetic.
     assert profile.__dict__ == {
         **body,
         "profile_sha256": canonical_sha256(body),
+        "enable_thinking": None,
     }
 
 
@@ -351,4 +355,67 @@ def test_nonempty_fallback_is_rejected_without_reading_that_profile(tmp_path):
     path.write_text(content, encoding="utf-8")
 
     with pytest.raises(ContractError, match="does not execute fallback"):
+        load_agent_provider_selection(path)
+
+
+def test_agent_yaml_thinking_switch_is_profile_supplied(tmp_path):
+    path = _write_config(
+        tmp_path / "agent.yaml",
+        model="deepseek-v4-flash-0731",
+        reasoning_effort="max",
+    )
+    content = path.read_text(encoding="utf-8").replace(
+        "    preserve_thinking: true\n  deepseek:",
+        "    preserve_thinking: true\n    enable_thinking: true\n  deepseek:",
+    )
+    path.write_text(content, encoding="utf-8")
+
+    profile = load_agent_provider_selection(path).active_profile
+
+    assert profile.enable_thinking is True
+    assert profile.runtime_config().enable_thinking is True
+
+
+def test_a_profile_without_the_switch_keeps_its_digest(tmp_path):
+    # Unstated means absent from the digest body, so every profile minted
+    # before the field existed verifies under one arithmetic.
+    profile = load_agent_provider_selection(
+        _write_config(tmp_path / "agent.yaml")
+    ).active_profile
+
+    assert profile.enable_thinking is None
+    body = {
+        key: value
+        for key, value in profile.__dict__.items()
+        if key
+        not in {"profile_sha256", "transport_deadlines", "enable_thinking"}
+    }
+    assert profile.profile_sha256 == canonical_sha256(body)
+
+
+def test_the_switch_is_refused_where_no_provider_declares_it(tmp_path):
+    path = _write_config(tmp_path / "agent.yaml")
+    content = path.read_text(encoding="utf-8").replace(
+        "    reasoning_effort: max\n    preserve_thinking: true\n",
+        "    reasoning_effort: max\n    preserve_thinking: true\n"
+        "    enable_thinking: true\n",
+    )
+    path.write_text(content, encoding="utf-8")
+
+    with pytest.raises(ContractError, match="declares no thinking switch"):
+        load_agent_provider_selection(path, requested_profile="deepseek")
+
+
+def test_a_nonboolean_thinking_switch_is_refused(tmp_path):
+    path = _write_config(tmp_path / "agent.yaml")
+    content = path.read_text(encoding="utf-8").replace(
+        "    preserve_thinking: true\n  deepseek:",
+        "    preserve_thinking: true\n    enable_thinking: definitely\n"
+        "  deepseek:",
+    )
+    path.write_text(content, encoding="utf-8")
+
+    with pytest.raises(
+        ContractError, match="enable_thinking must be boolean"
+    ):
         load_agent_provider_selection(path)

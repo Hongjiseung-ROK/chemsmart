@@ -1203,6 +1203,14 @@ def _provider_public_record(
         "endpoint_origin": profile.endpoint,
         "reasoning_effort": profile.reasoning_effort,
         "preserve_thinking": profile.preserve_thinking,
+        # Present only when the profile states the switch, so a reading
+        # scientist sees which thinking setting produced which behaviour
+        # while every earlier record keeps its shape.
+        **(
+            {"enable_thinking": profile.enable_thinking}
+            if getattr(profile, "enable_thinking", None) is not None
+            else {}
+        ),
         "profile_sha256": profile.profile_sha256,
         "fallback_profiles": tuple(
             item.profile_name for item in fallback_profiles

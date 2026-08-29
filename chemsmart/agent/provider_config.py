@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -89,6 +89,11 @@ class AgentProviderProfileV1:
     context_tokens: int
     max_output_tokens: int
     profile_sha256: str
+    #: Explicit thinking switch, present only where the provider declares
+    #: a wire key for it. None means "not stated" and stays out of the
+    #: digest body, so every profile minted before the field existed
+    #: verifies under one arithmetic.
+    enable_thinking: bool | None = None
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.agent-provider-profile.v1":
@@ -98,6 +103,7 @@ class AgentProviderProfileV1:
             key: value
             for key, value in self.__dict__.items()
             if key != "profile_sha256"
+            and not (key == "enable_thinking" and value is None)
         }
         if self.profile_sha256 != canonical_sha256(body):
             raise ContractError("agent provider profile digest mismatch")
@@ -119,6 +125,7 @@ class AgentProviderProfileV1:
                 endpoint=self.endpoint,
                 reasoning_effort=self.reasoning_effort,
                 preserve_thinking=self.preserve_thinking,
+                enable_thinking=self.enable_thinking,
                 context_tokens=self.context_tokens,
                 max_output_tokens=self.max_output_tokens,
                 turn_deadlines=turn_deadlines,
@@ -155,7 +162,11 @@ class AgentProviderProfileV1:
 class AgentProviderProfileV2(AgentProviderProfileV1):
     """Provider profile whose explicit transport policy is digest-bound."""
 
-    transport_deadlines: ProviderTurnDeadlinesV1
+    # The default exists only to keep the dataclass legal behind the
+    # optional field above; the loader always passes explicit deadlines.
+    transport_deadlines: ProviderTurnDeadlinesV1 = field(
+        default_factory=ProviderTurnDeadlinesV1
+    )
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.agent-provider-profile.v2":
@@ -165,6 +176,7 @@ class AgentProviderProfileV2(AgentProviderProfileV1):
             key: value
             for key, value in self.__dict__.items()
             if key not in {"profile_sha256", "transport_deadlines"}
+            and not (key == "enable_thinking" and value is None)
         }
         body["transport_deadlines"] = (
             self.transport_deadlines.configuration_record()
@@ -347,6 +359,9 @@ def _build_profile(
     preserve_thinking = entry.get("preserve_thinking", True)
     if not isinstance(preserve_thinking, bool):
         raise ContractError("preserve_thinking must be boolean")
+    enable_thinking = entry.get("enable_thinking")
+    if enable_thinking is not None and not isinstance(enable_thinking, bool):
+        raise ContractError("enable_thinking must be boolean when stated")
     context_tokens, max_output_tokens = _explicit_token_limits(entry)
     raw_deadlines = entry.get("transport_deadlines")
     if raw_deadlines is None:
@@ -398,6 +413,11 @@ def _build_profile(
         raise ContractError(
             f"{declaration.display_name} tool continuation must be preserved"
         )
+    if enable_thinking is not None and not declaration.thinking_switch_key:
+        raise ContractError(
+            f"{declaration.display_name} declares no thinking switch; "
+            "remove enable_thinking from the profile"
+        )
 
     body = {
         "schema_version": (
@@ -416,6 +436,8 @@ def _build_profile(
         "context_tokens": context_tokens,
         "max_output_tokens": max_output_tokens,
     }
+    if enable_thinking is not None:
+        body["enable_thinking"] = enable_thinking
     if transport_deadlines is not None:
         body["transport_deadlines"] = (
             transport_deadlines.configuration_record()

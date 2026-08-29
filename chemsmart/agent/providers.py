@@ -34,6 +34,10 @@ class ProviderDeclarationV1:
     requires_preserved_thinking: bool = False
     runnable: bool = True
     refusal: str = ""
+    #: Wire key this provider admits for an explicit thinking switch;
+    #: empty means a profile may not state one. The profile supplies the
+    #: value -- source never asserts a thinking default on its own.
+    thinking_switch_key: str = ""
 
 
 PROVIDERS: Mapping[str, ProviderDeclarationV1] = MappingProxyType(
@@ -88,6 +92,7 @@ PROVIDERS: Mapping[str, ProviderDeclarationV1] = MappingProxyType(
             cli_efforts=("high", "max", "xhigh"),
             model_hint="the exact catalog id your Token Plan serves",
             requires_preserved_thinking=True,
+            thinking_switch_key="enable_thinking",
         ),
         "deepseek": ProviderDeclarationV1(
             name="deepseek",

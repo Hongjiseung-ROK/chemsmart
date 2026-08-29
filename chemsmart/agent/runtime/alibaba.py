@@ -48,6 +48,10 @@ class AlibabaTokenPlanConfigV1:
     turn_deadlines: ProviderTurnDeadlinesV1 = field(
         default_factory=ProviderTurnDeadlinesV1
     )
+    #: Explicit hybrid-thinking switch; None keeps the provider's own
+    #: default and stays off the wire. The value is profile-supplied --
+    #: this module never chooses one.
+    enable_thinking: bool | None = None
 
     def __post_init__(self) -> None:
         if self.provider != ALIBABA_TOKEN_PLAN_PROVIDER:
@@ -72,6 +76,10 @@ class AlibabaTokenPlanConfigV1:
             raise ContractError(
                 "Alibaba tool continuation must preserve thinking"
             )
+        if self.enable_thinking is not None and not isinstance(
+            self.enable_thinking, bool
+        ):
+            raise ContractError("enable_thinking must be boolean when stated")
         if self.sdk_max_retries != 0:
             raise ContractError(
                 "provider retries require a separately authorized attempt"
@@ -179,8 +187,19 @@ class AlibabaTokenPlanToolSession(DeepSeekV4ToolSession):
             "stream_options": {"include_usage": True},
             "max_tokens": self.config.max_output_tokens,
             "reasoning_effort": self.config.reasoning_effort,
+            # preserve_thinking is documented for Qwen/Kimi thinking models
+            # only; a DeepSeek model carries the same continuation in the
+            # replayed reasoning_content and tolerates this key as a no-op
+            # (observed on every recorded live call). Removal is deferred:
+            # dropping it would change request bytes against every recorded
+            # session mid-campaign.
             "preserve_thinking": self.config.preserve_thinking,
         }
+        if self.config.enable_thinking is not None:
+            # The provider's own pages disagree on this model family's
+            # thinking default; a profile that states the switch turns an
+            # inherited default into an asserted fact on the wire.
+            payload["enable_thinking"] = self.config.enable_thinking
         if tools:
             payload["tools"] = deepcopy(tools)
         return payload
