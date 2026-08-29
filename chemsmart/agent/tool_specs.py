@@ -1098,6 +1098,26 @@ def build_command_compiled_tool_surface(
             ("program", "artifact_id"),
         ),
         _tool(
+            "inspect_run_outcome",
+            (
+                "Read how a recorded run in this workspace ended, as one "
+                "typed vocabulary: per-node terminal states (validated, "
+                "failed_nonconverged_scan_step, timeout_terminated, "
+                "interrupted_mid_engine, ...) with the program-native "
+                "findings, the engine's own redacted words, convergence "
+                "and scan reached-versus-planned facts, wall seconds, and "
+                "the evidence digests a revision cites. Call it with no "
+                "run reference to list the runs this workspace records; "
+                "name one to read its full outcome. Read the outcome "
+                "before planning a revision of failed work: a plan that "
+                "answers a failure it never read is answering a guess."
+            ),
+            {
+                "run": _string(),
+            },
+            (),
+        ),
+        _tool(
             "extract_result_quantities",
             (
                 "Parse selected numerical or scientific fields from a trusted "

@@ -1779,6 +1779,7 @@ class CommandCompiledToolHostV1:
             "preflight_program_node": self._preflight_program_node,
             "inspect_calculation_artifact": self._inspect_calculation_artifact,
             "inspect_result_selectors": self._inspect_result_selectors,
+            "inspect_run_outcome": self._inspect_run_outcome,
             "extract_result_quantities": self._extract_result_quantities,
             "derive_thermochemistry": self._derive_thermochemistry,
             "evaluate_quantity_expression": self._evaluate_quantity_expression,
@@ -10862,6 +10863,93 @@ class CommandCompiledToolHostV1:
             expected_receipt_sha256=receipt.expected_receipt_sha256,
         )
         return receipt
+
+    def _inspect_run_outcome(self, turn_id: str, values: dict) -> Any:
+        """Return how a recorded run ended, as typed terminal states.
+
+        The durable stream has always carried the facts; a session could
+        read none of them -- a failed run's account lived in terminal
+        text a human had to retype into the next task. This tool serves
+        the same derivation the goal loop's wake context uses, so what a
+        session can ask for and what the loop acts on cannot drift.
+
+        Without a ``run`` reference it lists the runs the workspace
+        records; with one it returns that run's full outcome. The host
+        resolves run references inside the workspace's own private root
+        only -- never a caller-supplied path.
+        """
+
+        if self.approved_workspace is None:
+            raise ContractError(
+                "run inspection requires an approved workspace"
+            )
+        from chemsmart.agent.terminal_states import (
+            derive_run_outcome,
+            read_run_events,
+        )
+
+        private_root = self.approved_workspace / ".chemsmart-agent"
+        streams: dict[str, Path] = {}
+        for pattern in (
+            "replays/*/run/events.jsonl",
+            "executions/*/events.jsonl",
+            "goals/*/runs/*/events.jsonl",
+            "runs/*/events.jsonl",
+        ):
+            for path in sorted(private_root.glob(pattern)):
+                if path.is_symlink() or not path.is_file():
+                    continue
+                reference = str(path.parent.relative_to(private_root))
+                streams[reference] = path
+
+        requested = str(values.get("run", "") or "").strip()
+        if not requested:
+            listing = []
+            for reference, path in streams.items():
+                try:
+                    outcome = derive_run_outcome(read_run_events(path))
+                except (ContractError, ValueError, TypeError):
+                    listing.append({"run": reference, "readable": False})
+                    continue
+                listing.append(
+                    {
+                        "run": reference,
+                        "readable": True,
+                        "workflow_id": outcome.workflow_id,
+                        "workflow_state": outcome.workflow_state,
+                        "engine_calls_consumed": (
+                            outcome.engine_calls_consumed
+                        ),
+                        "node_states": {
+                            node.node_id: node.state for node in outcome.nodes
+                        },
+                    }
+                )
+            return {
+                "workspace_runs": tuple(listing),
+                "note": (
+                    "name one run to read its full typed outcome, "
+                    "including per-node terminal facts and the evidence "
+                    "digests a revision cites"
+                ),
+            }
+        path = streams.get(requested)
+        if path is None:
+            raise ContractError(
+                f"this workspace records no run {requested!r}; "
+                f"recorded runs: {sorted(streams)}"
+            )
+        outcome = derive_run_outcome(read_run_events(path))
+        record = outcome.public_record()
+        record["run"] = requested
+        record["nodes"] = tuple(
+            {
+                **node.public_record(),
+                "evidence_event_hashes": node.evidence_event_hashes,
+            }
+            for node in outcome.nodes
+        )
+        return record
 
     def _inspect_result_selectors(self, turn_id: str, values: dict) -> Any:
         """Return what one completed result resolves, by probing its parser.
