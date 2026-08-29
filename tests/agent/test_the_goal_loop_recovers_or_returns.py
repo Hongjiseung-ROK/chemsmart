@@ -647,3 +647,29 @@ def test_the_wake_deliverables_come_from_the_previous_runs_stream(tmp_path):
         "limitation_output_ids": ("dg",),
         "doubted_quantity_ids": ("dg_solv",),
     }
+
+
+def test_goal_terms_are_restated_in_the_recency_slot(tmp_path):
+    """Alphabetical canonical JSON lands the goal block mid-context --
+    the attention trough. A goal session's coordinator message now ends
+    with the goal terms restated verbatim; a plain session's message
+    shape is untouched."""
+
+    from chemsmart.agent.live_session import _coordinator_base_messages
+
+    goal = {"goal_id": "goal-t1", "budgets": {"engine_calls_remaining": 2}}
+    with_goal = _coordinator_base_messages(
+        context={"task": "t", "goal": goal},
+        approved_workflow=None,
+    )
+    without = _coordinator_base_messages(
+        context={"task": "t"},
+        approved_workflow=None,
+    )
+
+    assert len(without) == 2
+    assert len(with_goal) == 3
+    tail = with_goal[-1]
+    assert tail["role"] == "user"
+    assert "restated for recency" in tail["content"]
+    assert '"goal_id":"goal-t1"' in tail["content"].replace(" ", "")

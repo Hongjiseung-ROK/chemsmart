@@ -1299,7 +1299,7 @@ def _coordinator_base_messages(
     task: str = "",
 ) -> list[dict[str, str]]:
     _, documents = activated_skill_documents(task)
-    return [
+    messages = [
         {
             "role": "system",
             "content": _system_prompt(
@@ -1310,6 +1310,27 @@ def _coordinator_base_messages(
         },
         {"role": "user", "content": canonical_json(context)},
     ]
+    goal_record = (
+        context.get("goal") if isinstance(context, Mapping) else None
+    )
+    if goal_record:
+        # Alphabetical canonical JSON lands the goal block mid-context,
+        # in the attention trough. Restate the goal's terms as the final
+        # segment so budgets, authority, deliverables, and the refusal
+        # affordance sit in the recency slot. Duplication, not movement:
+        # the canonical context object and every digest over it are
+        # untouched.
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    "goal terms, restated for recency (identical to the "
+                    "goal block in the context above): "
+                    + canonical_json(goal_record)
+                ),
+            }
+        )
+    return messages
 
 
 def _validated_workspace(value: str | Path) -> Path:
