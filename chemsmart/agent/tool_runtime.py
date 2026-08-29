@@ -7040,6 +7040,19 @@ class CommandCompiledToolHostV1:
             lines.extend(f"- {value}" for value in entries)
         return "\n".join(lines)
 
+    @staticmethod
+    def _divergent_source_note(item: Any, phrase: str) -> str:
+        """The receipt's display form, when it differs from canonical."""
+        source_unit = str(getattr(item, "source_unit", "") or "")
+        if not source_unit or source_unit == str(item.unit):
+            return ""
+        display = json.dumps(
+            canonical_data(item.source_value),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        return f" (= `{display}` {source_unit} {phrase})"
+
     def _render_toolchain_analysis_report(
         self,
         *,
@@ -7230,7 +7243,17 @@ class CommandCompiledToolHostV1:
                 )
         sources = set(completion.source_receipt_sha256s)
         if completion.status == "partial":
-            survivors: list[tuple[str, Any, str, str, str]] = []
+            # Each row carries the canonical value and, when the receipt
+            # holds a different display form, that form beside it. A live
+            # report rendered a quantity named e-diff-kjmol as its
+            # canonical 0.1545 hartree while the 405.7 kJ/mol the plan's
+            # convert had produced sat unprinted in the receipt -- a
+            # reader trusting the row name over the unit column quotes
+            # the wrong number. An expression's source form is the one
+            # the plan requested; a parsed quantity's is the one the
+            # program printed; thermochemistry's source unit is the
+            # engine's internal representation and is not annotated.
+            survivors: list[tuple[str, Any, str, str, str, str]] = []
             for digest in sorted(sources):
                 extraction = self.quantity_extractions.get(digest)
                 if extraction is not None:
@@ -7241,6 +7264,7 @@ class CommandCompiledToolHostV1:
                             item.unit,
                             "parsed",
                             digest,
+                            self._divergent_source_note(item, "as printed"),
                         )
                         for item in extraction.quantities
                     )
@@ -7253,6 +7277,7 @@ class CommandCompiledToolHostV1:
                             item.unit,
                             "derived",
                             digest,
+                            "",
                         )
                         for item in thermochemistry.quantities
                     )
@@ -7265,6 +7290,7 @@ class CommandCompiledToolHostV1:
                             item.unit,
                             "derived",
                             digest,
+                            self._divergent_source_note(item, "as requested"),
                         )
                         for item in expression.outputs
                     )
@@ -7279,15 +7305,15 @@ class CommandCompiledToolHostV1:
                         "|---|---:|---|---|---|",
                     )
                 )
-                for quantity_id, value, unit, rung, digest in survivors:
+                for quantity_id, value, unit, rung, digest, note in survivors:
                     display = json.dumps(
                         canonical_data(value),
                         ensure_ascii=False,
                         separators=(",", ":"),
                     )
                     lines.append(
-                        f"| {quantity_id} | `{display}` | {unit} | {rung} | "
-                        f"`{digest}` |"
+                        f"| {quantity_id} | `{display}`{note} | {unit} "
+                        f"| {rung} | `{digest}` |"
                     )
         verdict_rows = []
         for digest in sorted(sources):
