@@ -8526,10 +8526,16 @@ class CommandCompiledToolHostV1:
                 "execution review requires at least one executable node"
             )
         if len(executable_nodes) > envelope.max_engine_calls:
+            analysis_only = (
+                "; this envelope's budget is 0, so it authorises analysis "
+                "over registered results only"
+                if envelope.max_engine_calls == 0
+                else ""
+            )
             raise ContractError(
                 "scientific workflow exceeds bounded engine-call budget: "
                 f"{len(executable_nodes)} nodes for "
-                f"{envelope.max_engine_calls} calls"
+                f"{envelope.max_engine_calls} calls" + analysis_only
             )
         data_edges = tuple(
             edge
@@ -9186,9 +9192,16 @@ class CommandCompiledToolHostV1:
         if plan.task_spec_sha256 not in self.task_spec_sha256s:
             raise ContractError("bounded workflow belongs to another task")
         if len(plan.nodes) > envelope.max_engine_calls:
+            analysis_only = (
+                "; this envelope's budget is 0, so it authorises analysis "
+                "over registered results only"
+                if envelope.max_engine_calls == 0
+                else ""
+            )
             raise ContractError(
                 "scientific workflow exceeds bounded engine-call budget: "
-                f"{len(plan.nodes)} nodes for {envelope.max_engine_calls} calls"
+                f"{len(plan.nodes)} nodes for {envelope.max_engine_calls} "
+                "calls" + analysis_only
             )
         data_edges = tuple(
             edge for edge in plan.edges if edge.edge_kind == "data"

@@ -176,8 +176,8 @@ def test_bounded_execution_cleans_only_runner_validated_successful_scratch(
             "non-CPU engine requires",
         ),
         (
-            lambda value: value.update({"max_engine_calls": 0}),
-            "max_engine_calls must be positive",
+            lambda value: value.update({"max_engine_calls": -1}),
+            "max_engine_calls must be non-negative",
         ),
     ),
 )

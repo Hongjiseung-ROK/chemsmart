@@ -167,8 +167,15 @@ class BoundedExecutionEnvelopeV1:
             raise ContractError(
                 "node timeout exceeds the executable part of the episode"
             )
-        if self.max_engine_calls < 1:
-            raise ContractError("max_engine_calls must be positive")
+        # Zero is a meaningful bound, not an unset one: an analysis-only
+        # envelope states that no engine may run, which is a
+        # release-qualified shape (a completed analysis-only delivery
+        # over four finished results ran with no engine launched). Both
+        # such sessions in one campaign died at this guard when it read
+        # "must be positive", and the workaround -- a budget of 1 --
+        # permits an engine call instead of forbidding one.
+        if self.max_engine_calls < 0:
+            raise ContractError("max_engine_calls must be non-negative")
         scratch = Path(self.scratch_root)
         if not scratch.is_absolute() or scratch == Path("/"):
             raise ContractError("scratch_root must be a narrow absolute path")
