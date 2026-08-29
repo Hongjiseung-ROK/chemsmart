@@ -316,8 +316,7 @@ def test_conditions_extraction_is_order_free():
 def test_the_gate_reads_the_stream_not_a_claim(tmp_path):
     assert session_read_run_outcome(_wake_stream(tmp_path), _RUN) is True
     assert (
-        session_read_run_outcome(_wake_stream(tmp_path), "runs/other")
-        is False
+        session_read_run_outcome(_wake_stream(tmp_path), "runs/other") is False
     )
     (tmp_path / "b").mkdir()
     # The live goal round's unsound shape: the tool succeeded (a bare

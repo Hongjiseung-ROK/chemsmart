@@ -129,7 +129,11 @@ def test_runs_are_listed_from_their_durable_evidence(tmp_path: Path):
     # A goal cycle's run was invisible to this table while the first
     # live goal round ran; it lists like any other recorded run.
     goal_run = (
-        tmp_path / ".chemsmart-agent" / "goals" / "goal-b2" / "runs"
+        tmp_path
+        / ".chemsmart-agent"
+        / "goals"
+        / "goal-b2"
+        / "runs"
         / "cycle-1"
     )
     goal_run.mkdir(parents=True)

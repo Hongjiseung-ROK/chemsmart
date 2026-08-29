@@ -363,9 +363,7 @@ def _delivery_rows(
                 "payload": {
                     "receipt_sha256": "f" * 64,
                     "record": {
-                        "rule_results": (
-                            {"rule_id": "same", "passed": False},
-                        )
+                        "rule_results": ({"rule_id": "same", "passed": False},)
                     },
                 },
             }

@@ -103,9 +103,7 @@ def test_a_goal_cycle_run_resolves_by_its_ledger_reference(tmp_path):
     reference. The handler must resolve it against the user workspace,
     not the session's private preview root."""
 
-    workspace = _recorded_run(
-        tmp_path, reference="goals/goal-b2/runs/cycle-1"
-    )
+    workspace = _recorded_run(tmp_path, reference="goals/goal-b2/runs/cycle-1")
     host = _planning_host(tmp_path, workspace)
     listing = host._inspect_run_outcome("t", {})
     (row,) = listing["workspace_runs"]

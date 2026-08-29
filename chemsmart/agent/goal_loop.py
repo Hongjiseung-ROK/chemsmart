@@ -177,9 +177,7 @@ def _goal_terms_context(
         "granted_by": granted_by,
         "conditions": {},
         "budgets": {
-            "engine_calls_remaining": int(
-                envelope_record["max_engine_calls"]
-            ),
+            "engine_calls_remaining": int(envelope_record["max_engine_calls"]),
             "wall_seconds_remaining": float(
                 envelope_record["episode_wall_time_seconds"]
             ),
@@ -494,9 +492,7 @@ def run_goal_loop(
                 )
             elif certified and delivery.claims:
                 settled = "achieved"
-                reasons = (
-                    "the host completion gate certified the delivery",
-                )
+                reasons = ("the host completion gate certified the delivery",)
             elif delivery.claims or delivery.decisions:
                 # Something was recorded, but the host never certified
                 # completion -- a human reads it, whatever the
@@ -590,9 +586,7 @@ def run_goal_loop(
                     for digest in node.evidence_event_hashes
                 ),
                 previous_run_reference=_previous_run_reference(ledger),
-                wake_embedded_run=str(
-                    (wake or {}).get("previous_run") or ""
-                ),
+                wake_embedded_run=str((wake or {}).get("previous_run") or ""),
             )
             if not verdict.admitted:
                 ledger.append(

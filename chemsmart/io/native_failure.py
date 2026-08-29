@@ -350,9 +350,9 @@ def summarize_pyscf_native_failure(
     if isinstance(failure, dict):
         stage = str(failure.get("stage") or "")
         error_class = _PYSCF_STAGE_CLASSES.get(stage, "driver_exception")
-        message = " ".join(
-            str(failure.get("message") or "").split()
-        )[:_MAX_DIAGNOSTIC_CHARS]
+        message = " ".join(str(failure.get("message") or "").split())[
+            :_MAX_DIAGNOSTIC_CHARS
+        ]
         kind = str(failure.get("type") or "").strip()
         line = _redact(f"{kind}: {message}" if kind else message).strip()
         return NativeFailureSummaryV1(

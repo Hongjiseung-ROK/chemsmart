@@ -150,9 +150,7 @@ def list_runs(workspace: Path) -> tuple[RunSummaryV1, ...]:
             for directory in runs.iterdir():
                 if not directory.is_dir():
                     continue
-                summary = _summarize(
-                    directory, f"goal {goal_directory.name}"
-                )
+                summary = _summarize(directory, f"goal {goal_directory.name}")
                 found.append((directory.stat().st_mtime, summary))
     found.sort(key=lambda item: item[0], reverse=True)
     return tuple(summary for _mtime, summary in found)

@@ -10216,12 +10216,8 @@ class CommandCompiledToolHostV1:
                     # a validator refusal cannot mask it.
                     native = summarize_pyscf_native_failure(result_status)
                     if native is not None:
-                        pyscf_observation = observation.setdefault(
-                            "pyscf", {}
-                        )
-                        pyscf_observation["native_failure"] = (
-                            native.as_dict()
-                        )
+                        pyscf_observation = observation.setdefault("pyscf", {})
+                        pyscf_observation["native_failure"] = native.as_dict()
                         findings.append(
                             f"pyscf.native_failure.{native.error_class}"
                         )
@@ -10453,9 +10449,7 @@ class CommandCompiledToolHostV1:
                     # of any marker stays an absent fact, not a
                     # verdict.
                     if jobtype == "scan" and output.converged is False:
-                        findings.append(
-                            "orca.result.scan_step_not_converged"
-                        )
+                        findings.append("orca.result.scan_step_not_converged")
                     if output.final_energy is None:
                         findings.append("orca.result.energy_missing")
                     requested_frequency_analysis = any(

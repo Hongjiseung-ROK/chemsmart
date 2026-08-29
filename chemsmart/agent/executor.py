@@ -1739,8 +1739,7 @@ class ApprovedWorkflowExecutor:
                     )
                     if frontier.run_state is not None:
                         _event, run_state = (
-                            self.host.event_store
-                            .transition_workflow_run_node(
+                            self.host.event_store.transition_workflow_run_node(
                                 turn_id="execution-cancel",
                                 run_id=run_id,
                                 node_id=node_id,

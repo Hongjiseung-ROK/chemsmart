@@ -151,9 +151,7 @@ def test_the_evaluator_records_the_account_from_the_artifact(tmp_path):
     receipt_path = tmp_path / "pyscf-run-receipt.json"
     receipt_path.write_text(
         json.dumps(
-            dict(
-                receipt_body, receipt_sha256=canonical_sha256(receipt_body)
-            )
+            dict(receipt_body, receipt_sha256=canonical_sha256(receipt_body))
         ),
         encoding="utf-8",
     )
