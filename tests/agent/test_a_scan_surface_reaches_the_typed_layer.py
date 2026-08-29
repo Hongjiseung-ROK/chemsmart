@@ -134,3 +134,65 @@ def test_a_job_that_drove_nothing_reports_nothing():
     assert output.scan_coordinate is None
     assert output.scan_profile == ()
     assert output.scan_step_count == 0
+
+
+def test_reached_and_planned_are_askable_beside_the_surface():
+    """Reached versus planned is the whole diagnosis when a scan dies.
+
+    Both numbers were parsed and unconsumed until a live relaxed scan
+    died at step 2 of 12 and no tool could state either. On this
+    completed seven-point fixture the two agree; on a truncated run they
+    are the diagnosis.
+    """
+
+    receipt = extract_trusted_result_quantities(
+        artifact=_artifact(_SCAN),
+        program="orca",
+        selectors=(
+            QuantitySelectorV1(
+                quantity_id="reached", selector="scan_steps_reached"
+            ),
+            QuantitySelectorV1(
+                quantity_id="planned", selector="scan_steps_planned"
+            ),
+        ),
+    )
+    values = {item.quantity_id: item for item in receipt.quantities}
+    assert values["reached"].value == 7.0
+    assert values["planned"].value == 7.0
+    assert values["reached"].unit == "1"
+
+
+def test_an_observed_exhaustion_is_false_not_none(tmp_path):
+    """The tri-state the live failure needed.
+
+    ORCA prints its exhaustion notice wrapped across two lines; only the
+    first is matched. Before the False branch existed, an observed
+    exhaustion was indistinguishable from a log with no optimization at
+    all, so 'failed at step 2 of 12, non-converged' was unstatable.
+    """
+
+    exhausted = tmp_path / "exhausted_scan.out"
+    exhausted.write_text(
+        "\n".join(
+            (
+                "         *               RELAXED SURFACE SCAN STEP   1",
+                "         *** THE OPTIMIZATION HAS CONVERGED ***",
+                "         *               RELAXED SURFACE SCAN STEP   2",
+                "       The optimization did not converge but reached the"
+                " maximum number of",
+                "       optimization cycles.",
+            )
+        )
+    )
+    output = ORCAOutput(str(exhausted))
+    assert output.converged is False
+    assert output.scan_step_count == 2
+
+    converged_only = tmp_path / "converged_opt.out"
+    converged_only.write_text("*** THE OPTIMIZATION HAS CONVERGED ***\n")
+    assert ORCAOutput(str(converged_only)).converged is True
+
+    no_marker = tmp_path / "single_point.out"
+    no_marker.write_text("FINAL SINGLE POINT ENERGY   -1.0\n")
+    assert ORCAOutput(str(no_marker)).converged is None

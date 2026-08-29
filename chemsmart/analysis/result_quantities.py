@@ -166,6 +166,11 @@ SUPPORTED_SELECTORS = SUPPORTED_PYSCF_SELECTORS | frozenset(
         "scan_coordinate_values",
         "scan_energies",
         "scan_point_indices",
+        # Reached versus planned is the whole diagnosis when a scan dies
+        # partway; both were parsed and unconsumed until a live scan died
+        # at step 2 of 12 and no tool could state either number.
+        "scan_steps_planned",
+        "scan_steps_reached",
         # The continuum solvation decomposition ORCA prints whenever a
         # continuum model is active.  The names are scheme-neutral but the
         # meanings are not interchangeable between programs, so only ORCA

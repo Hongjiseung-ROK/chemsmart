@@ -78,6 +78,8 @@ SELECTOR_UNITS = {
     # The position of each point in the surface, so a session can name the
     # point it chose rather than describe it.
     "scan_point_indices": "",
+    "scan_steps_reached": "1",
+    "scan_steps_planned": "1",
     "vpt2_harmonic_frequencies": "cm^-1",
     "vpt2_fundamental_frequencies": "cm^-1",
     "vpt2_zero_point_rovibrational_energy": "cm^-1",
@@ -1096,9 +1098,12 @@ def _irc_run_converged(output: Any) -> int:
 def _optimization_converged(output: Any) -> int:
     """1 when the program printed its optimization-converged marker.
 
-    ``None`` from the parser means the log carries no such marker at all --
-    an unconverged or non-optimizing run -- and extraction refuses rather
-    than manufacturing a 0 that would read as an observed failure.
+    ``False`` is an observation -- the program printed its own
+    exhaustion marker ("did not converge ... maximum number of
+    optimization cycles") -- and is served as 0. ``None`` means the log
+    carries no convergence marker of either kind, a non-optimizing run,
+    and extraction refuses rather than manufacturing a 0 that would
+    read as an observed failure.
     """
 
     value = getattr(output, "converged", None)
@@ -1107,6 +1112,26 @@ def _optimization_converged(output: Any) -> int:
             "this result records no optimization convergence marker"
         )
     return int(bool(value))
+
+
+def _scan_steps_reached(output: Any) -> int:
+    """How many relaxed-scan steps this run actually started."""
+    value = getattr(output, "scan_step_count", None)
+    if not value:
+        raise MissingQuantityError(
+            "this result announces no relaxed-scan steps"
+        )
+    return int(value)
+
+
+def _scan_steps_planned(output: Any) -> int:
+    """How many steps the scan declared before its first point."""
+    coordinate = getattr(output, "scan_coordinate", None)
+    if not coordinate:
+        raise MissingQuantityError(
+            "this result declares no driven scan coordinate"
+        )
+    return int(coordinate["points"])
 
 
 def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
@@ -1127,6 +1152,15 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "scan_point_indices": lambda output: [
                 float(record["index"]) for record in output.scan_point_records
             ],
+            # Reached versus planned is the whole diagnosis when a scan
+            # dies partway. The parser has always known both -- the step
+            # announcements it counted, and the step total ORCA stated
+            # before the first point -- and threw them away: a truncated
+            # scan reached the typed layer only as shorter vectors, with
+            # nothing to say what the target was. A live scan died at
+            # step 2 of 12 and no tool could state either number.
+            "scan_steps_reached": _scan_steps_reached,
+            "scan_steps_planned": _scan_steps_planned,
             "absorption_wavelengths": lambda output: [
                 float(item) for item in output.absorption_wavelengths
             ],
@@ -1960,6 +1994,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "scan_coordinate_values",
                     "scan_energies",
                     "scan_point_indices",
+                    "scan_steps_planned",
+                    "scan_steps_reached",
                     "scf_energy",
                     "solvation_model",
                     "solvent",
@@ -2314,6 +2350,8 @@ _SELECTOR_DIMENSIONS = {
     "scan_energies": "ENERGY",
     "scan_coordinate_values": "DIMENSIONLESS",
     "scan_point_indices": "DIMENSIONLESS",
+    "scan_steps_reached": "DIMENSIONLESS",
+    "scan_steps_planned": "DIMENSIONLESS",
     "entropy_times_temperature": "ENERGY",
     "excitation_energies": "ENERGY",
     "singlet_excitation_energies": "ENERGY",

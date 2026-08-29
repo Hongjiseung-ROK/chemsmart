@@ -1067,13 +1067,28 @@ class ORCAOutput(ORCAFileMixin):
 
     @property
     def converged(self):
+        """Whether a geometry optimization in this log converged.
+
+        A true tri-state, on the ``irc_converged`` pattern. Both
+        phrasings are pinned to observed artifacts: a converged
+        optimization prints "THE OPTIMIZATION HAS CONVERGED"; an
+        exhausted one prints "The optimization did not converge but
+        reached the maximum number of optimization cycles" (wrapped
+        across two lines, so only the first is matched). Before the
+        False branch existed this returned True or None only, so an
+        observed exhaustion was indistinguishable from a log carrying
+        no optimization at all -- a live relaxed scan died at step 2 on
+        exactly this exhaustion and the typed layer could not say so.
+        A scan prints the marker per step, so any exhausted step makes
+        the whole observation False, mirroring ``irc_converged``.
         """
-        Check if the ORCA optimization has converged.
-        """
+        saw_converged = False
         for line in self.contents:
+            if "The optimization did not converge" in line:
+                return False
             if "THE OPTIMIZATION HAS CONVERGED" in line:
-                return True
-        return None
+                saw_converged = True
+        return True if saw_converged else None
 
     @property
     def irc_converged(self):
