@@ -244,7 +244,10 @@ def build_command_compiled_tool_surface(
             (
                 "Bind an explicit charge and multiplicity to the exact host "
                 "geometry artifact. input_artifact_id must identify a "
-                "geometry_xyz artifact, never a project YAML or result."
+                "geometry_xyz artifact, never a project YAML or result. "
+                "File names, XYZ comments, element lists, project settings, "
+                "and preview artifacts do not establish molecular identity: "
+                "measure the structure before binding what it is."
             ),
             {
                 "input_artifact_id": _string(),

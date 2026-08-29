@@ -3209,9 +3209,12 @@ def _system_prompt(
         "when public context contains its approved_molecular_identity record. "
         "Use only one of that record's approved_names, bind it to the record's "
         "exact geometry_sha256, and cite its evidence_ref in the scientific "
-        "decision. File names, "
-        "XYZ comments, element lists, project settings, and preview artifacts do "
-        "not establish molecular identity. An approved molecular identity never "
+        # The identity-discipline sentence ("file names ... do not
+        # establish molecular identity") moved verbatim to the
+        # bind_scientific_identity tool description -- the point of use --
+        # after sitting ~60 sentences deep here while live sessions
+        # bound identities from labels.
+        "decision. An approved molecular identity never "
         "establishes charge or multiplicity. A public approved_molecular_input "
         "record separately establishes its stated geometry_role, charge, and "
         "multiplicity only for the exact geometry_sha256 it names. The host has "

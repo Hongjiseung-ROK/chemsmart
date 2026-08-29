@@ -134,3 +134,20 @@ def test_a_registered_result_is_listed_until_its_structure_is_read(tmp_path):
     assert host._artifacts_without_structural_read() == (
         "registered-co2",
     )
+
+
+def test_the_identity_discipline_lives_at_the_point_of_use():
+    """Moved, not copied: the sentence sat ~60 sentences deep in the
+    system prompt while live sessions bound identities from labels.
+    It now rides the bind tool's own description."""
+
+    from chemsmart.agent.live_session import _system_prompt
+
+    spec = next(
+        item
+        for item in build_command_compiled_tool_surface().tool_definitions
+        if item["function"]["name"] == "bind_scientific_identity"
+    )
+    sentence = "do not establish molecular identity"
+    assert sentence in spec["function"]["description"]
+    assert sentence not in _system_prompt(None)
