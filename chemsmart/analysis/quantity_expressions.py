@@ -632,11 +632,12 @@ def operation_result_dimension(
     unknown -- the caller skips rather than guesses. Raises
     QuantityExpressionError only on a provable inconsistency (a
     same-dimension operation fed unlike dimensions; a convert whose
-    target dimension its input cannot reach). Observed live: a session
-    swapped ``coordinate_at_minimum``'s two ordered inputs, so a node
-    declared as a length produced an energy, and the claim render died
-    after every engine had finished -- the dimensional twin of the
-    four-input-subtract loss this file's arity table already refuses.
+    target dimension its input cannot reach). Motivated live by a
+    claim render dying on a dimension mismatch after every engine had
+    finished -- the dimensional twin of the four-input-subtract loss
+    this file's arity table already refuses. The walk trusts declared
+    producer units as seeds, so declared-versus-actual extraction lies
+    are the extraction-side gate's job, not this rule's.
     """
 
     known = [item for item in input_dimensions if item is not None]

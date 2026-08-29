@@ -2639,6 +2639,20 @@ def extract_logged_quantities(
     )
 
 
+def selector_dimension(selector: str):
+    """The fixed dimension a selector's extracted value carries, or None.
+
+    Exposed for the plan-time gate: an extraction output's declared
+    unit is checkable against this table before any engine runs. A
+    selector absent from the table yields None and the caller skips.
+    """
+
+    from chemsmart.analysis import result_quantities as rq
+
+    name = _SELECTOR_DIMENSIONS.get(str(selector).strip())
+    return getattr(rq, name) if name else None
+
+
 def reader_for(program: str) -> ResultReaderV1 | None:
     """Return the registered reader for ``program``, or ``None``."""
 

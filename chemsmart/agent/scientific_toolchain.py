@@ -793,21 +793,57 @@ def build_scientific_toolchain_plan(
                     f"Declared here: {sorted(declared)}."
                     + thermochemistry_route_hint(undeclared)
                 )
-    # The dimensional half of the plan-time gate. Every expression
-    # node's result dimension is derivable from the plan alone where the
-    # operation's rule is certain, and a declared output unit whose
-    # dimension the chain cannot produce would otherwise be discovered
-    # by a claim render after every engine has finished. Observed live
-    # (C5): a session swapped coordinate_at_minimum's ordered inputs, a
-    # node declared as a length produced an energy, and the loss
-    # surfaced only at render time. Unknown rules and unknown input
-    # dimensions skip -- this gate never guesses.
+    # The dimensional half of the plan-time gate. Observed live (C5,
+    # twice): a relaxed distance scan's coordinate values extract
+    # dimensionless -- a scan coordinate may be a length or an angle,
+    # so the selector cannot fix a physical dimension -- while the plan
+    # declared the output in angstrom; the length-declared chain
+    # produced a dimensionless quantity, and the claim render died
+    # after every engine had finished, on two independent sessions with
+    # correctly ordered expressions. Both halves of the check are
+    # derivable from the plan alone: an extraction output's declared
+    # unit against the selector's own fixed dimension, and an
+    # expression output's declared unit against the chain's derivable
+    # result dimension. Unknown rules and unknown dimensions skip --
+    # this gate never guesses.
     from chemsmart.analysis.quantity_expressions import (
         QuantityExpressionError,
         canonical_unit_for_dimension,
         operation_result_dimension,
         unit_dimension,
     )
+    from chemsmart.analysis.result_readers import selector_dimension
+
+    for node in analyses:
+        if node.analysis_kind != "result_extraction":
+            continue
+        selector_by_quantity = {
+            item.quantity_id: item.selector for item in node.selectors
+        }
+        for output in node.outputs:
+            selector = selector_by_quantity.get(output.output_id)
+            if not selector:
+                continue
+            fixed = selector_dimension(selector)
+            if fixed is None:
+                continue
+            try:
+                declared_dimension = unit_dimension(output.unit)
+            except QuantityExpressionError:
+                continue
+            if canonical_unit_for_dimension(
+                declared_dimension
+            ) != canonical_unit_for_dimension(fixed):
+                raise ScientificToolchainContractError(
+                    f"extraction output {output.output_id!r} on node "
+                    f"{node.node_id!r} declares unit {output.unit!r}, but "
+                    f"selector {selector!r} carries dimension "
+                    f"{canonical_unit_for_dimension(fixed)!r}. A scan's "
+                    "coordinate values, for example, are positional numbers "
+                    "in the scan's own coordinate unit; a physical distance "
+                    "or angle is measured from a geometry with the "
+                    "distance/angle/dihedral operations instead."
+                )
 
     analysis_output_units = {
         (node.node_id, output.output_id): output.unit

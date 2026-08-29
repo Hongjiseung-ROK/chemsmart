@@ -1,10 +1,14 @@
-"""A session swapped coordinate_at_minimum's two ordered inputs, so an
-expression output declared as a length produced an energy -- and the
-loss surfaced as "target unit has an incompatible dimension" at claim
-render, after three engines had finished (C5, live). The dimensional
-half of the plan-time gate now refuses the mismatch when the plan is
-built, beside the arity, constant, and read-order refusals that share
-its doctrine. Unknown rules skip; the gate never guesses.
+"""C5 died twice live on one dimensional lie discovered only at claim
+render, after three engines had finished each time: a relaxed distance
+scan's coordinate values extract dimensionless -- a scan coordinate
+may be a length or an angle, so the selector cannot fix a physical
+dimension -- while both plans declared the output in angstrom, with
+correctly ordered expressions. The plan-time gate now checks both
+halves from the plan alone: extraction outputs against the selector's
+own fixed dimension, and expression outputs against the chain's
+derivable result dimension, beside the arity, constant, and read-order
+refusals that share its doctrine. Unknown rules skip; the gate never
+guesses.
 """
 
 import pytest
@@ -40,7 +44,9 @@ def _extraction_node():
         ),
         outputs=(
             AnalysisOutputIntentV1(
-                output_id="coords", quantity_kind="length", unit="angstrom"
+                output_id="coords",
+                quantity_kind="scan_coordinate",
+                unit="1",
             ),
             AnalysisOutputIntentV1(
                 output_id="energies", quantity_kind="energy", unit="hartree"
@@ -109,10 +115,9 @@ def _plan(expression):
     )
 
 
-def test_the_live_swap_is_refused_when_planned():
-    """C5's exact shape: inputs (coordinates, energies) extremise the
-    coordinates and return an energy, while the output declares a
-    length."""
+def test_a_swapped_extremum_is_refused_when_planned():
+    """Swapped inputs extremise the coordinates and return the energy
+    at that point, while the output declares a length."""
 
     with pytest.raises(
         ScientificToolchainContractError, match="min_sep.*angstrom.*hartree"
@@ -120,8 +125,12 @@ def test_the_live_swap_is_refused_when_planned():
         _plan(_expression_node(first="coords", second="energies"))
 
 
-def test_the_correct_order_still_plans():
-    plan = _plan(_expression_node(first="energies", second="coords"))
+def test_the_correct_order_plans_under_a_truthful_unit():
+    plan = _plan(
+        _expression_node(
+            first="energies", second="coords", declared_unit="1"
+        )
+    )
 
     assert plan.plan_sha256
 
@@ -215,3 +224,86 @@ def test_an_unknown_rule_skips_rather_than_guesses():
     )
 
     assert plan.plan_sha256
+
+
+def test_a_scan_coordinate_declared_as_length_is_refused_when_planned():
+    """The true C5 shape, seen twice live with correctly ordered
+    expressions: scan_coordinate_values extracts dimensionless (a scan
+    coordinate may be a length or an angle), the plan declared
+    angstrom, and the render died after three engines had finished."""
+
+    node = _extraction_node()
+    lied = AnalysisNodeIntentV1(
+        node_id=node.node_id,
+        analysis_kind=node.analysis_kind,
+        dependencies=node.dependencies,
+        inputs=node.inputs,
+        selectors=node.selectors,
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="coords", quantity_kind="length", unit="angstrom"
+            ),
+            AnalysisOutputIntentV1(
+                output_id="energies", quantity_kind="energy", unit="hartree"
+            ),
+        ),
+        expression_nodes=(),
+        expression_output_node_ids=(),
+        temperature_k=None,
+        pressure_atm=None,
+        support_state="planned",
+        blocked_reason="",
+    )
+
+    with pytest.raises(
+        ScientificToolchainContractError,
+        match="scan_coordinate_values.*carries dimension '1'",
+    ):
+        build_scientific_toolchain_plan(
+            plan_id="p",
+            workflow_id="w",
+            command_workflow_draft_sha256="9" * 64,
+            calculation_nodes=(),
+            calculation_observables={},
+            analysis_nodes=(lied,),
+            required_output_ids=("coords",),
+        )
+
+
+def test_a_dimensionless_scan_coordinate_declaration_plans():
+    plan = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(),
+        calculation_observables={},
+        analysis_nodes=(_dimensionless_extraction(),),
+        required_output_ids=("coords",),
+    )
+
+    assert plan.plan_sha256
+
+
+def _dimensionless_extraction():
+    node = _extraction_node()
+    return AnalysisNodeIntentV1(
+        node_id=node.node_id,
+        analysis_kind=node.analysis_kind,
+        dependencies=node.dependencies,
+        inputs=node.inputs,
+        selectors=node.selectors,
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id="coords", quantity_kind="scan_coordinate", unit="1"
+            ),
+            AnalysisOutputIntentV1(
+                output_id="energies", quantity_kind="energy", unit="hartree"
+            ),
+        ),
+        expression_nodes=(),
+        expression_output_node_ids=(),
+        temperature_k=None,
+        pressure_atm=None,
+        support_state="planned",
+        blocked_reason="",
+    )

@@ -284,10 +284,12 @@ def test_a_failed_verdict_is_still_a_completed_analysis(tmp_path):
 
 
 def test_a_broken_analysis_input_skips_its_dependents(tmp_path):
-    # spin_square is declared for orca sp (so the plan gate admits it) and
-    # fails at runtime on this closed-shell result -- the shape this test
-    # needs now that an undeclared selector is refused at plan build.
-    toolchain = _chain(selector="spin_square")
+    # solvation_electrostatic_energy is declared for orca sp (so the plan
+    # gate admits it), carries the energy dimension the chain's convert
+    # needs (so the dimensional gate admits it), and is absent at runtime
+    # on this gas-phase result -- absence is meaning, and the walk must
+    # starve dependents rather than crash.
+    toolchain = _chain(selector="solvation_electrostatic_energy")
     executor = _executor(tmp_path, toolchain)
 
     nodes, status, completions, report_path = executor._run_analysis_phase(
