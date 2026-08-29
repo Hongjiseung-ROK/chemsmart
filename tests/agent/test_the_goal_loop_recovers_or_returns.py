@@ -718,3 +718,39 @@ def test_a_typed_engine_error_settles_the_same_way(tmp_path):
 
     assert result.settlement == "returned_to_human"
     assert any("approved execution" in reason for reason in result.reasons)
+
+
+def test_an_engineless_cycle_settles_from_its_delivery(tmp_path):
+    """C8's live crash: an admitted revision launched no engine, the
+    run directory recorded no workflow run, and derive_run_outcome's
+    ValueError escaped the loop unsettled. The cycle now settles from
+    the run stream's typed delivery, exactly as a no-partition
+    planning cycle does."""
+
+    def analysis_only_execute(run_directory):
+        store = RuntimeEventStore(
+            run_directory / "events.jsonl", session_id="exec-1"
+        )
+        store.append(
+            turn_id="t1",
+            kind="session_started",
+            payload={"phase": "route", "task_id": "t"},
+        )
+        return SimpleNamespace(status="partial", analysis_status="partial")
+
+    result = _loop(
+        tmp_path,
+        sessions=[_planning_session("live-1", review=_review_payload())],
+        executes=[analysis_only_execute],
+    )
+
+    assert result.settlement == "returned_to_human"
+    ledger = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    )
+    kinds = [entry["kind"] for entry in ledger.entries()]
+    assert kinds[-1] == "goal_settled"
+    run_rows = [
+        entry for entry in ledger.entries() if entry["kind"] == "run_recorded"
+    ]
+    assert run_rows[-1]["payload"]["workflow_state"] == "analysis_only"

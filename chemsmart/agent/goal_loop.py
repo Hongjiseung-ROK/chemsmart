@@ -105,6 +105,83 @@ def _default_execute(
     )
 
 
+def _settle_from_delivery(
+    ledger: GoalLedger,
+    *,
+    goal_id: str,
+    cycles: int,
+    revisions_admitted: int,
+    events_path: Path,
+    terminal: str,
+) -> GoalLoopResultV1:
+    """Settle a goal from one stream's typed delivery facts.
+
+    Serves two shapes: a planning session that ended without an
+    executable partition (its own stream carries the delivery), and an
+    admitted revision whose approved bundle launched no engine -- the
+    executor walks the analysis chain into the run directory's stream
+    and no workflow run is recorded, which is a legitimate cycle
+    ending, not a defect.
+    """
+
+    delivery = _analysis_delivery(events_path)
+    evidence = _settlement_evidence(delivery)
+    certified = (
+        terminal == "complete" and delivery.completion_status == "passed"
+    )
+    if delivery.doubted_quantity_ids:
+        # The session claimed from a receipt its own recorded decision
+        # doubts. Whatever the completion word says -- partial by the
+        # gate, or passed because the doubt came after -- a doubted
+        # number is the human's to read.
+        settled = "returned_to_human"
+        reasons = (
+            "a rendered claim stands on a receipt the session's "
+            "own recorded decision doubts: "
+            + ", ".join(delivery.doubted_quantity_ids),
+        )
+    elif (
+        certified
+        and delivery.limitation_output_ids
+        and delivery.decisions
+        and evidence
+    ):
+        # The plan's own completion receipt says a required output's
+        # producer was declared blocked: the requested observable was
+        # not delivered, and the recorded decision with its receipts is
+        # the typed refusal.
+        settled = "unreachable_from_evidence"
+        reasons = (
+            "the completion receipt names required outputs "
+            "delivered without: "
+            + ", ".join(delivery.limitation_output_ids),
+        )
+    elif certified and delivery.claims:
+        settled = "achieved"
+        reasons = ("the host completion gate certified the delivery",)
+    elif delivery.claims or delivery.decisions:
+        # Something was recorded, but the host never certified
+        # completion -- a human reads it, whatever the session's
+        # terminal word was.
+        settled = "returned_to_human"
+        reasons = (
+            f"session terminal state: {terminal}; the session "
+            "recorded analysis but the host completion gate "
+            "did not pass",
+        )
+    else:
+        settled = "returned_to_human"
+        reasons = (f"session terminal state: {terminal}",)
+    ledger.settle(settled, reasons=reasons, evidence=evidence)
+    return GoalLoopResultV1(
+        goal_id=goal_id,
+        settlement=settled,
+        cycles=cycles,
+        revisions_admitted=revisions_admitted,
+        reasons=reasons,
+    )
+
+
 def _typed_error_settlement(
     ledger: GoalLedger,
     *,
@@ -602,66 +679,13 @@ def run_goal_loop(
                     created_at=_utc_now(),
                 )
                 ledger.create(goal)
-            delivery = _analysis_delivery(events_path)
-            evidence = _settlement_evidence(delivery)
-            certified = (
-                terminal == "complete"
-                and delivery.completion_status == "passed"
-            )
-            if delivery.doubted_quantity_ids:
-                # The session claimed from a receipt its own recorded
-                # decision doubts. Whatever the completion word says --
-                # partial by the gate, or passed because the doubt came
-                # after -- a doubted number is the human's to read.
-                settled = "returned_to_human"
-                reasons = (
-                    "a rendered claim stands on a receipt the session's "
-                    "own recorded decision doubts: "
-                    + ", ".join(delivery.doubted_quantity_ids),
-                )
-            elif (
-                certified
-                and delivery.limitation_output_ids
-                and delivery.decisions
-                and evidence
-            ):
-                # The plan's own completion receipt says a required
-                # output's producer was declared blocked: the requested
-                # observable was not delivered, and the recorded
-                # decision with its receipts is the typed refusal.
-                settled = "unreachable_from_evidence"
-                reasons = (
-                    "the completion receipt names required outputs "
-                    "delivered without: "
-                    + ", ".join(delivery.limitation_output_ids),
-                )
-            elif certified and delivery.claims:
-                settled = "achieved"
-                reasons = ("the host completion gate certified the delivery",)
-            elif delivery.claims or delivery.decisions:
-                # Something was recorded, but the host never certified
-                # completion -- a human reads it, whatever the
-                # session's terminal word was.
-                settled = "returned_to_human"
-                reasons = (
-                    f"session terminal state: {terminal}; the session "
-                    "recorded analysis but the host completion gate "
-                    "did not pass",
-                )
-            else:
-                settled = "returned_to_human"
-                reasons = (f"session terminal state: {terminal}",)
-            ledger.settle(
-                settled,
-                reasons=reasons,
-                evidence=evidence,
-            )
-            return GoalLoopResultV1(
+            return _settle_from_delivery(
+                ledger,
                 goal_id=goal_id,
-                settlement=settled,
                 cycles=cycles,
                 revisions_admitted=revisions_admitted,
-                reasons=reasons,
+                events_path=events_path,
+                terminal=terminal,
             )
 
         review = _review_record(review_file)
@@ -790,9 +814,38 @@ def run_goal_loop(
             read_run_events,
         )
 
-        outcome = derive_run_outcome(
-            read_run_events(run_directory / "events.jsonl")
-        )
+        try:
+            outcome = derive_run_outcome(
+                read_run_events(run_directory / "events.jsonl")
+            )
+        except ValueError as exc:
+            if "found 0" not in str(exc):
+                raise
+            # An admitted revision whose approved bundle launched no
+            # engine: the executor walked the analysis chain into the
+            # run stream and recorded no workflow run. Observed live
+            # (C8): the cycle is a legitimate delivery-or-return, and
+            # letting the derivation's own contract error escape left
+            # the goal unsettled. Settle from the run stream's typed
+            # delivery, exactly as a no-partition planning cycle does.
+            ledger.append(
+                "run_recorded",
+                {
+                    "cycle": cycles,
+                    "run": f"goals/{goal_id}/runs/cycle-{cycles}",
+                    "workflow_state": "analysis_only",
+                    "engine_calls_consumed": 0,
+                    "engine_wall_seconds": 0.0,
+                },
+            )
+            return _settle_from_delivery(
+                ledger,
+                goal_id=goal_id,
+                cycles=cycles,
+                revisions_admitted=revisions_admitted,
+                events_path=run_directory / "events.jsonl",
+                terminal="complete",
+            )
         ledger.append(
             "run_recorded",
             {
