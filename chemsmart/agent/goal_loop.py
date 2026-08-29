@@ -141,6 +141,63 @@ def _previous_run_reference(ledger: GoalLedger) -> str:
     return reference
 
 
+#: The refusal affordance, present from cycle 1: the first live goal
+#: round's honest refusal was invisible to the settlement layer partly
+#: because no session was ever told the typed route exists.
+_REFUSAL_AFFORDANCE = (
+    "If the requested observable is unreachable from the admissible "
+    "evidence, deliver what is reachable, retain the unreachable "
+    "observable as a blocked analysis intent naming its required "
+    "producer, and record the scientific decision citing its "
+    "receipts; the goal then settles as a typed refusal, which is a "
+    "deliverable."
+)
+
+
+def _goal_terms_context(
+    *,
+    goal_id: str,
+    granted_by: str,
+    envelope_record: Mapping[str, Any],
+    max_revisions: int,
+) -> dict[str, Any]:
+    """Cycle 1's context: the goal's terms before any run exists.
+
+    The first live goal round handed cycle 1 nothing -- an
+    analysis-only goal is single-cycle by construction, so its session
+    never saw the budgets (a zero engine-call grant would have said
+    "analysis only" before the session drafted engine work), the
+    authority in force, or the refusal affordance. The terms are all
+    in hand when the loop starts; only the trajectory is empty.
+    """
+
+    return {
+        "schema_version": "chemsmart.goal-wake-context.v1",
+        "goal_id": goal_id,
+        "granted_by": granted_by,
+        "conditions": {},
+        "budgets": {
+            "engine_calls_remaining": int(
+                envelope_record["max_engine_calls"]
+            ),
+            "wall_seconds_remaining": float(
+                envelope_record["episode_wall_time_seconds"]
+            ),
+            "revisions_remaining": int(max_revisions),
+        },
+        "trajectory": (),
+        "previous_run": "",
+        "previous_run_outcome": {},
+        "authority": (
+            "This session plans cycle 1 of an approved goal; the "
+            "budgets above are the whole grant. A plan that changes "
+            "molecular identity, electronic state, or physical "
+            "conditions later, or exceeds these budgets, returns to "
+            "the human instead of running. " + _REFUSAL_AFFORDANCE
+        ),
+    }
+
+
 def _wake_context(
     goal: GoalRecordV1,
     ledger: GoalLedger,
@@ -187,11 +244,12 @@ def _wake_context(
             outcome.public_record() if outcome is not None else {}
         ),
         "authority": (
-            "This session runs under an approved goal. Read the previous "
-            "run's typed outcome with inspect_run_outcome before planning "
-            "a revision; a revision that changes molecular identity, "
-            "electronic state, or physical conditions, or exceeds the "
-            "budgets above, returns to the human instead of running."
+            "This session runs under an approved goal. The previous "
+            "run's typed outcome is embedded above and inspect_run_outcome "
+            "re-reads it or any earlier run; a revision that changes "
+            "molecular identity, electronic state, or physical "
+            "conditions, or exceeds the budgets above, returns to the "
+            "human instead of running. " + _REFUSAL_AFFORDANCE
         ),
     }
 
@@ -314,7 +372,14 @@ def run_goal_loop(
         review_file = goal_dir / "reviews" / f"cycle-{cycles}.json"
         review_file.parent.mkdir(parents=True, exist_ok=True)
         wake = (
-            _wake_context(goal, ledger, outcome) if goal is not None else None
+            _wake_context(goal, ledger, outcome)
+            if goal is not None
+            else _goal_terms_context(
+                goal_id=goal_id,
+                granted_by=granted_by,
+                envelope_record=envelope_record,
+                max_revisions=max_revisions,
+            )
         )
         if wake is not None and wake.get("previous_run"):
             # Host attestation for the evidence gate: this cycle's

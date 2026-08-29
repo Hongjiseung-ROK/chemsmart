@@ -169,6 +169,53 @@ _READ_OUTCOME_ROWS = (
 )
 
 
+def test_every_cycle_sees_the_goal_terms(tmp_path):
+    """Cycle 1 used to receive nothing -- an analysis-only goal is
+    single-cycle by construction, so its session never learned the
+    budgets, the authority, or that a typed refusal is a deliverable.
+    The terms are in hand when the loop starts; every cycle gets them,
+    and cycles with a previous run get its typed outcome embedded."""
+
+    contexts = []
+
+    def capture(inner):
+        def step(workspace, kwargs):
+            contexts.append(kwargs["goal_context"])
+            return inner(workspace, kwargs)
+
+        return step
+
+    _loop(
+        tmp_path,
+        sessions=[
+            capture(_planning_session("live-1", review=_review_payload())),
+            capture(_planning_session("live-2", review=_review_payload())),
+        ],
+        executes=[
+            _execute(
+                tmp_path, failed=True, status="partial", analysis="partial"
+            ),
+            _execute(
+                tmp_path, failed=True, status="partial", analysis="partial"
+            ),
+        ],
+        max_revisions=1,
+    )
+    first, second = contexts
+    assert first["schema_version"] == "chemsmart.goal-wake-context.v1"
+    assert first["budgets"] == {
+        "engine_calls_remaining": 6,
+        "wall_seconds_remaining": 7200.0,
+        "revisions_remaining": 1,
+    }
+    assert first["previous_run"] == ""
+    assert first["trajectory"] == ()
+    assert "typed refusal" in first["authority"]
+    assert second["previous_run"] == "goals/goal-t1/runs/cycle-1"
+    assert second["previous_run_outcome"]
+    assert "typed refusal" in second["authority"]
+
+
 def test_cycle_one_approves_runs_and_settles_achieved(tmp_path):
     result = _loop(
         tmp_path,
