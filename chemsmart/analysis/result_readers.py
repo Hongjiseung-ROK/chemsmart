@@ -2444,6 +2444,44 @@ _INTEGER_SELECTORS = frozenset(
 )
 
 
+def _derived_adjacency(reader: Any, output: Any) -> Any:
+    """Bond list bundled onto a delivered positions read.
+
+    Reading relations off raw Cartesian coordinates is the operation
+    language models measurably fail at, so the host bundles the
+    adjacency it already computes -- the same covalent-radius perception
+    the ``connectivity`` selector serves -- whenever positions are
+    actually delivered from a result. The hard line, stated once:
+    derived adjacency is a measurement and is allowed; any perceived
+    label -- isomer, conformer, species, ring class, stereo
+    descriptor -- is the scientist's judgement and must never be
+    attached here. A reader that serves no connectivity simply bundles
+    nothing.
+    """
+
+    try:
+        symbols, _unit = reader.read(output, "symbols")
+        connectivity, _unit = reader.read(output, "connectivity")
+    except Exception:
+        return ()
+    bonds = tuple(
+        (int(row_index), int(column_index))
+        for row_index, row in enumerate(connectivity)
+        for column_index, bonded in enumerate(row)
+        if bonded and column_index > row_index
+    )
+    counts: dict[str, int] = {}
+    for symbol in symbols:
+        counts[str(symbol)] = counts.get(str(symbol), 0) + 1
+    formula = "".join(
+        f"{symbol}{count if count > 1 else ''}"
+        for symbol, count in sorted(counts.items())
+    )
+    if not formula:
+        return ()
+    return {"formula": formula, "bond_atom_pairs": bonds}
+
+
 def extract_logged_quantities(
     *,
     request: Any,
@@ -2511,6 +2549,7 @@ def extract_logged_quantities(
             )
     quantities = []
     absent: list[tuple[str, str, str]] = []
+    positions_delivered = False
     for selector in request.selectors:
         try:
             source_value, source_unit = reader.read(output, selector.selector)
@@ -2576,6 +2615,8 @@ def extract_logged_quantities(
                 data_kind=data_kind,
             )
         )
+        if selector.selector == "positions":
+            positions_delivered = True
     if rq.result_file_sha256(artifact) != request.artifact_sha256:
         raise rq.QuantityExtractionError(
             "result artifact changed during extraction"
@@ -2589,6 +2630,9 @@ def extract_logged_quantities(
         quantities=tuple(quantities),
         status="partial" if absent else "extracted",
         absent=tuple(absent),
+        derived_adjacency=(
+            _derived_adjacency(reader, output) if positions_delivered else ()
+        ),
     )
     return rq.QuantityExtractionReceiptV1(
         **body, receipt_sha256=rq.canonical_quantity_sha256(body)

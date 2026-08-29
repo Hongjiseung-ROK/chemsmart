@@ -151,3 +151,67 @@ def test_the_identity_discipline_lives_at_the_point_of_use():
     sentence = "do not establish molecular identity"
     assert sentence in spec["function"]["description"]
     assert sentence not in _system_prompt(None)
+
+
+def _receipt(host, artifact_id, *selectors):
+    payload = host.dispatch(
+        turn_id="t1",
+        tool_name="extract_result_quantities",
+        arguments={
+            "artifact_id": artifact_id,
+            "program": "xyz",
+            "selectors": [
+                {"quantity_id": f"{artifact_id}-{s}", "selector": s}
+                for s in selectors
+            ],
+        },
+    )
+    assert payload["status"] == "ok"
+    return payload["result"]
+
+
+def test_a_positions_read_carries_the_perceived_bond_list(tmp_path):
+    """Reading relations off raw Cartesians is the operation language
+    models measurably fail at; the adjacency the host already computes
+    rides every delivered positions read. A measurement, never a label:
+    formula and bond pairs only."""
+
+    host = _host(tmp_path, _geometry(tmp_path, "water"))
+
+    receipt = _receipt(host, "geometry-water", "positions")
+
+    adjacency = receipt["derived_adjacency"]
+    assert adjacency["formula"] == "H2O"
+    assert [tuple(pair) for pair in adjacency["bond_atom_pairs"]] == [
+        (0, 1),
+        (0, 2),
+    ]
+    assert set(adjacency) == {"formula", "bond_atom_pairs"}
+
+
+def test_a_read_without_positions_bundles_nothing(tmp_path):
+    host = _host(tmp_path, _geometry(tmp_path, "water"))
+
+    receipt = _receipt(host, "geometry-water", "symbols")
+
+    assert not receipt.get("derived_adjacency")
+
+
+def test_a_receipt_without_adjacency_keeps_its_digest():
+    """Present only when non-empty: every receipt minted before the
+    field existed verifies under one arithmetic."""
+
+    from chemsmart.analysis.result_quantities import (
+        canonical_extraction_receipt_body,
+    )
+
+    with_default = canonical_extraction_receipt_body(
+        schema_version="chemsmart.quantity-extraction-receipt.v1",
+        artifact_id="a",
+        artifact_sha256="0" * 64,
+        program="xyz",
+        parser_id="p",
+        quantities=(),
+        status="extracted",
+    )
+    assert "derived_adjacency" not in with_default

@@ -551,6 +551,7 @@ def canonical_extraction_receipt_body(
     quantities: Any,
     status: str,
     absent: Any = (),
+    derived_adjacency: Any = (),
 ) -> dict[str, Any]:
     """Return the one body an extraction receipt is digested over.
 
@@ -565,7 +566,8 @@ def canonical_extraction_receipt_body(
     ``absent`` enters the body only when it is non-empty, so every receipt
     written before absences existed stays verifiable.  Status and absences
     are locked together by the receipt, so a body without the key is
-    unambiguously a complete extraction.
+    unambiguously a complete extraction.  ``derived_adjacency`` follows the
+    same rule.
     """
 
     body: dict[str, Any] = {
@@ -579,6 +581,12 @@ def canonical_extraction_receipt_body(
     }
     if absent:
         body["absent"] = absent
+    if derived_adjacency:
+        # Present only when a positions read bundled the perceived bond
+        # list, so every receipt minted before the field existed -- and
+        # every read that carries no adjacency -- verifies under one
+        # arithmetic.
+        body["derived_adjacency"] = derived_adjacency
     return body
 
 
@@ -599,12 +607,37 @@ class QuantityExtractionReceiptV1:
     #: weaken without saying so.  An absence is a stated gap with the
     #: reader's own reason, never a value the host chose to substitute.
     absent: tuple[tuple[str, str, str], ...] = ()
+    #: Bond list bundled onto a delivered positions read: the perceived
+    #: covalent adjacency of the same structure, as
+    #: ``{"formula": str, "bond_atom_pairs": ((i, j), ...)}``.  The hard
+    #: line, stated once and forever: derived adjacency is a measurement
+    #: and is allowed; any perceived label -- isomer, conformer, species,
+    #: ring class, stereo descriptor -- is the scientist's judgement and
+    #: must never be attached here.
+    derived_adjacency: Any = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "quantities", tuple(self.quantities))
         object.__setattr__(
             self, "absent", tuple(tuple(item) for item in self.absent)
         )
+        if self.derived_adjacency:
+            adjacency = dict(self.derived_adjacency)
+            pairs = tuple(
+                tuple(int(index) for index in pair)
+                for pair in adjacency.get("bond_atom_pairs", ())
+            )
+            if set(adjacency) != {"formula", "bond_atom_pairs"} or not (
+                isinstance(adjacency.get("formula"), str)
+                and adjacency["formula"]
+                and all(len(pair) == 2 for pair in pairs)
+            ):
+                raise QuantityContractError(
+                    "derived adjacency carries exactly a formula and "
+                    "bond atom pairs"
+                )
+            adjacency["bond_atom_pairs"] = pairs
+            object.__setattr__(self, "derived_adjacency", adjacency)
         if self.schema_version != "chemsmart.quantity-extraction-receipt.v1":
             raise QuantityContractError(
                 "unsupported extraction receipt schema"
@@ -636,6 +669,7 @@ class QuantityExtractionReceiptV1:
             quantities=self.quantities,
             status=self.status,
             absent=self.absent,
+            derived_adjacency=self.derived_adjacency,
         )
         if self.receipt_sha256 != canonical_quantity_sha256(body):
             raise QuantityContractError(

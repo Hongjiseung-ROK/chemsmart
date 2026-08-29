@@ -11243,6 +11243,7 @@ class CommandCompiledToolHostV1:
                 quantities=receipt.quantities,
                 status=receipt.status,
                 absent=receipt.absent,
+                derived_adjacency=receipt.derived_adjacency,
             )
         )
         self._emit(
