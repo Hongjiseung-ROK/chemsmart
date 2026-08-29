@@ -415,6 +415,103 @@ class MolecularCompositionReceiptV1:
             raise ContractError("molecular composition digest mismatch")
 
 
+def _place_dual_contact(
+    positions_a,
+    coords_b,
+    *,
+    link_a,
+    link_b,
+    distance_1,
+    link_a2,
+    link_b2,
+    distance_2,
+    min_dist_matrix,
+    ineq_mask,
+):
+    """Rigidly place fragment B satisfying two contact distances at once.
+
+    Two equalities over six rigid degrees of freedom, every non-contact
+    interfragment pair held outside covalent-radii-plus-buffer, and the
+    remaining freedom maximising the tightest non-contact separation.
+    Multistart SLSQP; returns placed B coordinates or None when no
+    clash-free two-contact arrangement exists.
+    """
+
+    import numpy as np
+    from scipy.optimize import minimize
+    from scipy.spatial.transform import Rotation
+
+    relative = coords_b - coords_b[link_b]
+    target_1 = positions_a[link_a]
+    target_2 = positions_a[link_a2]
+
+    def placed(params):
+        rotation = Rotation.from_rotvec(params[:3])
+        return rotation.apply(relative) + params[3:6]
+
+    def equalities(params):
+        points = placed(params)
+        return np.array(
+            [
+                np.linalg.norm(points[link_b] - target_1) - distance_1,
+                np.linalg.norm(points[link_b2] - target_2) - distance_2,
+            ]
+        )
+
+    def separations(params):
+        points = placed(params)
+        pair = np.linalg.norm(
+            points[:, None, :] - positions_a[None, :, :], axis=2
+        )
+        return (pair - min_dist_matrix)[ineq_mask]
+
+    def objective(params):
+        margins = separations(params)
+        return -float(margins.min()) if margins.size else 0.0
+
+    generator = np.random.default_rng(7)
+    best = None
+    for _ in range(96):
+        rotvec = generator.normal(size=3)
+        direction = generator.normal(size=3)
+        direction /= np.linalg.norm(direction)
+        start = np.concatenate(
+            [rotvec, target_1 + distance_1 * direction]
+        )
+        try:
+            result = minimize(
+                objective,
+                start,
+                method="SLSQP",
+                constraints=[
+                    {"type": "eq", "fun": equalities},
+                    {"type": "ineq", "fun": separations},
+                ],
+                options={"maxiter": 300, "ftol": 1e-9},
+            )
+        except Exception:
+            continue
+        if not result.success:
+            continue
+        if np.abs(equalities(result.x)).max() > 1e-4:
+            continue
+        margins = separations(result.x)
+        if margins.size and margins.min() < -1e-4:
+            continue
+        score = -float(result.fun)
+        if best is None or score > best[0]:
+            best = (score, np.array(result.x))
+        if score > 0.15:
+            # Deterministic early exit (fixed seed): any solution with a
+            # comfortable clash margin serves -- relaxation owns the
+            # rest -- and the full multistart is kept only for tight
+            # geometries.
+            break
+    if best is None:
+        return None
+    return placed(best[1])
+
+
 def compose_trusted_molecular_arrangement(
     *,
     approved_workspace: str | Path,
@@ -426,6 +523,9 @@ def compose_trusted_molecular_arrangement(
     fragment_a_atom: int,
     fragment_b_atom: int,
     distance_angstrom: float,
+    fragment_a_atom_2: int | None = None,
+    fragment_b_atom_2: int | None = None,
+    distance_angstrom_2: float | None = None,
 ) -> tuple[TrustedArtifactRefV1, MolecularCompositionReceiptV1]:
     """Place fragment B against fragment A at one explicit atomic contact.
 
@@ -435,6 +535,13 @@ def compose_trusted_molecular_arrangement(
     separation (the iterate module's SLSQP machinery, reused with the
     model's contact distance instead of a covalent bond length). Fragment A
     keeps its coordinates; the composed file lists fragment A's atoms first.
+
+    An optional second contact pins a doubly-contacted motif -- a cyclic
+    hydrogen-bonded dimer -- with both distances solved simultaneously.
+    Added after two independent live sessions, needing a cyclic formamide
+    dimer that single-contact placement deliberately points apart, each
+    engineered a fragile contact-closing scan instead and lost the motif
+    to engine mechanics: the vocabulary could not say "hold both hands".
     """
 
     import numpy as np
@@ -470,6 +577,37 @@ def compose_trusted_molecular_arrangement(
         )
     link_a = int(fragment_a_atom) - 1
     link_b = int(fragment_b_atom) - 1
+    second_fields = (fragment_a_atom_2, fragment_b_atom_2, distance_angstrom_2)
+    dual_contact = any(field is not None for field in second_fields)
+    if dual_contact and any(field is None for field in second_fields):
+        raise ContractError(
+            "a second contact names both atoms and its distance: give "
+            "fragment_a_atom_2, fragment_b_atom_2, and "
+            "distance_angstrom_2 together"
+        )
+    if dual_contact:
+        if not 1 <= int(fragment_a_atom_2) <= count_a:
+            raise ContractError(
+                f"fragment_a_atom_2 must be 1..{count_a}; got "
+                f"{fragment_a_atom_2}"
+            )
+        if not 1 <= int(fragment_b_atom_2) <= count_b:
+            raise ContractError(
+                f"fragment_b_atom_2 must be 1..{count_b}; got "
+                f"{fragment_b_atom_2}"
+            )
+        distance_2 = float(distance_angstrom_2)
+        if not 0.5 <= distance_2 <= 10.0:
+            raise ContractError(
+                "second contact distance must lie in [0.5, 10.0] angstrom; "
+                f"got {distance_2}"
+            )
+        link_a2 = int(fragment_a_atom_2) - 1
+        link_b2 = int(fragment_b_atom_2) - 1
+        if (link_a2, link_b2) == (link_a, link_b):
+            raise ContractError(
+                "the second contact must name a different atom pair"
+            )
 
     array_a = IterateAnalyzer._molecule_to_array(molecule_a)
     array_b = IterateAnalyzer._molecule_to_array(molecule_b)
@@ -483,25 +621,49 @@ def compose_trusted_molecular_arrangement(
     )
     ineq_mask = np.ones((count_b, count_a), dtype=bool)
     ineq_mask[link_b, link_a] = False
-    placed = IterateAnalyzer._optimize_lagrange(
-        array_b,
-        array_a[:, 1:4],
-        96,
-        6,
-        link_a,
-        relative[:, 1:4],
-        distance,
-        min_dist_matrix,
-        link_b,
-        ineq_mask,
-    )
-    if placed is None:
-        raise ContractError(
-            "no clash-free arrangement satisfies the requested contact: "
-            "raise distance_angstrom or choose different contact atoms"
+    if dual_contact:
+        ineq_mask[link_b2, link_a2] = False
+        placed_positions = _place_dual_contact(
+            array_a[:, 1:4],
+            array_b[:, 1:4],
+            link_a=link_a,
+            link_b=link_b,
+            distance_1=distance,
+            link_a2=link_a2,
+            link_b2=link_b2,
+            distance_2=distance_2,
+            min_dist_matrix=min_dist_matrix,
+            ineq_mask=ineq_mask,
         )
-    positions_a = array_a[:, 1:4]
-    positions_b = placed[:, 1:4]
+        if placed_positions is None:
+            raise ContractError(
+                "no clash-free arrangement satisfies both requested "
+                "contacts: the distances may be geometrically "
+                "incompatible with the fragments -- adjust a distance or "
+                "choose different contact atoms"
+            )
+        positions_a = array_a[:, 1:4]
+        positions_b = placed_positions
+    else:
+        placed = IterateAnalyzer._optimize_lagrange(
+            array_b,
+            array_a[:, 1:4],
+            96,
+            6,
+            link_a,
+            relative[:, 1:4],
+            distance,
+            min_dist_matrix,
+            link_b,
+            ineq_mask,
+        )
+        if placed is None:
+            raise ContractError(
+                "no clash-free arrangement satisfies the requested contact: "
+                "raise distance_angstrom or choose different contact atoms"
+            )
+        positions_a = array_a[:, 1:4]
+        positions_b = placed[:, 1:4]
     achieved = float(np.linalg.norm(positions_b[link_b] - positions_a[link_a]))
     pair_distances = np.linalg.norm(
         positions_b[:, np.newaxis, :] - positions_a[np.newaxis, :, :],
@@ -515,12 +677,26 @@ def compose_trusted_molecular_arrangement(
         symbols=list(symbols),
         positions=np.vstack((positions_a, positions_b)),
     )
+    achieved_second = (
+        float(
+            np.linalg.norm(positions_b[link_b2] - positions_a[link_a2])
+        )
+        if dual_contact
+        else None
+    )
+    second_note = (
+        f"; contact {fragment_a_atom_2}(A)-{fragment_b_atom_2}(B) at "
+        f"{achieved_second:.4f} angstrom"
+        if dual_contact
+        else ""
+    )
     lines = [
         str(len(symbols)),
         (
             "ChemSmart composed arrangement; fragment A atoms first; "
             f"contact {fragment_a_atom}(A)-{fragment_b_atom}(B) at "
-            f"{achieved:.4f} angstrom; electronic state deliberately unbound"
+            f"{achieved:.4f} angstrom" + second_note
+            + "; electronic state deliberately unbound"
         ),
     ]
     for symbol, position in zip(symbols, composed.positions):
@@ -545,7 +721,7 @@ def compose_trusted_molecular_arrangement(
     )
     placement = {
         "schema_version": "chemsmart.placement-spec.v1",
-        "mode": "contact",
+        "mode": "dual_contact" if dual_contact else "contact",
         "fragment_a_atom": int(fragment_a_atom),
         "fragment_b_atom": int(fragment_b_atom),
         "distance_angstrom": distance,
@@ -553,6 +729,16 @@ def compose_trusted_molecular_arrangement(
         "sphere_direction_samples": 96,
         "axial_rotation_samples": 6,
     }
+    if dual_contact:
+        # Present only in dual mode, so every single-contact receipt --
+        # including all minted before the second contact existed --
+        # verifies under one arithmetic.
+        placement["fragment_a_atom_2"] = int(fragment_a_atom_2)
+        placement["fragment_b_atom_2"] = int(fragment_b_atom_2)
+        placement["distance_angstrom_2"] = distance_2
+        placement["achieved_second_contact_distance_angstrom"] = round(
+            achieved_second, 6
+        )
     body = {
         "schema_version": "chemsmart.molecular-composition.v1",
         "composed_artifact_id": artifact.artifact_id,

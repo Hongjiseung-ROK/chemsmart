@@ -345,6 +345,35 @@ def build_command_compiled_tool_surface(
                         "angstrom."
                     ),
                 },
+                "fragment_a_atom_2": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "Optional second contact atom within fragment A. "
+                        "Single-contact placement points the unpinned ends "
+                        "apart (remaining freedom maximises separation), so "
+                        "a doubly-contacted motif -- a cyclic "
+                        "hydrogen-bonded dimer -- is asked for with a "
+                        "second contact, never approximated by scanning a "
+                        "contact closed. Give all three _2 fields together; "
+                        "the host solves both distances simultaneously."
+                    ),
+                },
+                "fragment_b_atom_2": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": (
+                        "Optional second contact atom within fragment B."
+                    ),
+                },
+                "distance_angstrom_2": {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 10.0,
+                    "description": (
+                        "Optional second contact distance, in angstrom."
+                    ),
+                },
             },
             (
                 "composed_artifact_id",

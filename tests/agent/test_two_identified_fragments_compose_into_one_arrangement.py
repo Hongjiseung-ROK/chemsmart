@@ -129,3 +129,80 @@ def test_an_unidentified_fragment_cannot_compose(tmp_path):
     message = str(refusal.value)
     assert "carries no scientific identity" in message
     assert "bind_scientific_identity" in message
+
+
+def test_a_second_contact_holds_both_hands(tmp_path):
+    """Two independent live sessions, needing a cyclic
+    doubly-hydrogen-bonded dimer that single-contact placement
+    deliberately points apart, each engineered a fragile
+    contact-closing scan and lost the motif to engine mechanics. A
+    second explicit contact now asks for the ring directly: both
+    distances solved simultaneously, everything else clash-free."""
+
+    host = _host_with_fragments(tmp_path)
+
+    result = host.dispatch(
+        turn_id="t1",
+        tool_name="compose_molecular_arrangement",
+        arguments={
+            "composed_artifact_id": "cyclic-pair",
+            "fragment_a_artifact_id": "geometry-water",
+            "fragment_b_artifact_id": "geometry-ammonia",
+            "fragment_a_atom": 1,
+            "fragment_b_atom": 2,
+            "distance_angstrom": 2.0,
+            "fragment_a_atom_2": 2,
+            "fragment_b_atom_2": 1,
+            "distance_angstrom_2": 2.2,
+        },
+    )["result"]
+
+    composition = result["composition"]
+    placement = composition["placement"]
+    assert placement["mode"] == "dual_contact"
+    assert abs(composition["achieved_contact_distance_angstrom"] - 2.0) < 1e-3
+    assert (
+        abs(placement["achieved_second_contact_distance_angstrom"] - 2.2)
+        < 1e-3
+    )
+    assert composition["min_interfragment_distance_angstrom"] > 0.5
+
+
+def test_a_partial_second_contact_is_refused(tmp_path):
+    host = _host_with_fragments(tmp_path)
+
+    with pytest.raises(ContractError, match="give"):
+        host.dispatch(
+            turn_id="t1",
+            tool_name="compose_molecular_arrangement",
+            arguments={
+                "composed_artifact_id": "half-asked",
+                "fragment_a_artifact_id": "geometry-water",
+                "fragment_b_artifact_id": "geometry-ammonia",
+                "fragment_a_atom": 1,
+                "fragment_b_atom": 1,
+                "distance_angstrom": 2.8,
+                "fragment_a_atom_2": 2,
+            },
+        )
+
+
+def test_a_repeated_contact_pair_is_refused(tmp_path):
+    host = _host_with_fragments(tmp_path)
+
+    with pytest.raises(ContractError, match="different atom pair"):
+        host.dispatch(
+            turn_id="t1",
+            tool_name="compose_molecular_arrangement",
+            arguments={
+                "composed_artifact_id": "same-hand-twice",
+                "fragment_a_artifact_id": "geometry-water",
+                "fragment_b_artifact_id": "geometry-ammonia",
+                "fragment_a_atom": 1,
+                "fragment_b_atom": 1,
+                "distance_angstrom": 2.8,
+                "fragment_a_atom_2": 1,
+                "fragment_b_atom_2": 1,
+                "distance_angstrom_2": 2.8,
+            },
+        )

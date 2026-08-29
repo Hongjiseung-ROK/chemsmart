@@ -2039,6 +2039,21 @@ class CommandCompiledToolHostV1:
             fragment_a_atom=int(values["fragment_a_atom"]),
             fragment_b_atom=int(values["fragment_b_atom"]),
             distance_angstrom=float(values["distance_angstrom"]),
+            fragment_a_atom_2=(
+                int(values["fragment_a_atom_2"])
+                if values.get("fragment_a_atom_2") is not None
+                else None
+            ),
+            fragment_b_atom_2=(
+                int(values["fragment_b_atom_2"])
+                if values.get("fragment_b_atom_2") is not None
+                else None
+            ),
+            distance_angstrom_2=(
+                float(values["distance_angstrom_2"])
+                if values.get("distance_angstrom_2") is not None
+                else None
+            ),
         )
         self.artifacts[artifact.artifact_id] = artifact
         self.molecular_compositions[artifact.sha256] = receipt
