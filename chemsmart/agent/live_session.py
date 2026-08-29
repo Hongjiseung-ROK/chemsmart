@@ -615,6 +615,7 @@ def run_live_agent_session(
     review_file: str | Path | None = None,
     on_run_directory: Callable[[Path], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
+    goal_context: Mapping[str, Any] | None = None,
 ) -> LiveAgentSessionResultV1:
     """Run one agent.yaml-selected session over exact workspace artifacts.
 
@@ -943,6 +944,7 @@ def run_live_agent_session(
         result_observations=result_observations,
         failed_result_observations=failed_result_observations,
         database_observations=database_observations,
+        goal_record=goal_context,
         conformance_records=conformance_records,
         registry_sha256=registry.registry_sha256,
         live_schema_sha256=live_schema.schema_sha256,
@@ -2968,6 +2970,7 @@ def _public_context(
     result_observations: tuple[_ResultObservation, ...] = (),
     failed_result_observations: tuple[_FailedResultObservation, ...] = (),
     database_observations: tuple[_DatabaseObservation, ...] = (),
+    goal_record: Mapping[str, Any] | None = None,
     conformance_records: tuple[dict[str, Any], ...],
     registry_sha256: str,
     live_schema_sha256: str,
@@ -3000,6 +3003,11 @@ def _public_context(
         "failed_result_artifacts": tuple(
             item.public_record() for item in failed_result_observations
         ),
+        # The goal loop's typed wake context: the goal's terms, the
+        # remaining budgets, the trajectory so far, and the prior run's
+        # typed terminal states. Host-composed, deterministic, and
+        # recorded in the ledger; absent outside a goal cycle.
+        "goal": dict(goal_record or {}),
         "approved_molecular_identities": approved_identity_records,
         "approved_molecular_inputs": approved_input_records,
         "approved_project_artifacts": approved_project_records,

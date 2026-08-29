@@ -366,6 +366,134 @@ def review(
     )
 
 
+@agent.command("goal")
+@click.option("--task", type=str, default=None, help="Natural-language goal.")
+@click.option(
+    "--task-file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="UTF-8 file containing the natural-language goal.",
+)
+@click.option(
+    "--workspace",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+    help="Disposable goal workspace containing user-approved artifacts.",
+)
+@click.option(
+    "--execution-envelope",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="The goal-level bounds the one human decision covers.",
+)
+@click.option(
+    "--goal-id", type=str, required=True, help="Identifier for this goal."
+)
+@click.option(
+    "--granted-by",
+    type=str,
+    required=True,
+    help="Human actor whose one decision every cycle consumes.",
+)
+@click.option(
+    "--max-revisions",
+    type=int,
+    default=5,
+    show_default=True,
+    help="How many host-admitted revisions the grant covers.",
+)
+@click.option("--provider", type=str, default=None)
+@click.option(
+    "--provider-config",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+)
+@click.option(
+    "--analysis-completion-file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+)
+@click.option(
+    "--initial-decision",
+    type=click.Choice(["approve", "deny"]),
+    default="approve",
+    show_default=True,
+    help="The human's decision on the cycle-1 review; deny settles the "
+    "goal returned_to_human before any engine runs.",
+)
+@click.option(
+    "--stop-file",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Touch this file to cancel the goal at the next cycle boundary.",
+)
+def goal(
+    task,
+    task_file,
+    workspace,
+    execution_envelope,
+    goal_id,
+    granted_by,
+    max_revisions,
+    provider,
+    provider_config,
+    analysis_completion_file,
+    initial_decision,
+    stop_file,
+):
+    """Drive one goal to settlement under one human decision.
+
+    The plan is still reviewed and displayed; execution is still
+    provider-free; what the goal adds is recovery: after each run the
+    session reads the typed terminal outcome and may revise its route,
+    and the host admits the revision only when it preserves every
+    identity, state, and condition the human approved, stays inside the
+    envelope, and cites the evidence it answers. The model never
+    approves; every admission names the goal grant and the human who
+    made it.
+    """
+
+    from chemsmart.agent._contracts import ContractError
+    from chemsmart.agent.goal_loop import run_goal_loop
+
+    if bool(task) == bool(task_file):
+        raise click.ClickException(
+            "provide exactly one of --task or --task-file"
+        )
+    goal_task = (
+        task if task else Path(task_file).read_text(encoding="utf-8").strip()
+    )
+    try:
+        result = run_goal_loop(
+            task=goal_task,
+            workspace=workspace,
+            execution_envelope_file=execution_envelope,
+            goal_id=goal_id,
+            granted_by=granted_by,
+            max_revisions=max_revisions,
+            provider=provider,
+            provider_config_file=provider_config,
+            analysis_completion_file=analysis_completion_file,
+            initial_decision=initial_decision,
+            stop_file=stop_file,
+        )
+    except ContractError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(
+        json.dumps(
+            {
+                "goal_id": result.goal_id,
+                "settlement": result.settlement,
+                "cycles": result.cycles,
+                "revisions_admitted": result.revisions_admitted,
+                "reasons": list(result.reasons),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+
+
 @agent.command("tui")
 @click.option(
     "--provider",
