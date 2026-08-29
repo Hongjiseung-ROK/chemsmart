@@ -144,6 +144,15 @@ def _previous_run_reference(ledger: GoalLedger) -> str:
 #: The refusal affordance, present from cycle 1: the first live goal
 #: round's honest refusal was invisible to the settlement layer partly
 #: because no session was ever told the typed route exists.
+#: The closing act is adversarial and points at a tool call, never at
+#: re-reading one's own prose: intrinsic self-review without external
+#: feedback degrades, while one further typed observation can refute.
+_ADVERSARIAL_CLOSE = (
+    "Before recording the scientific decision, attempt to refute the "
+    "delivery with one further typed read; a refutation that stands is "
+    "a finding to deliver, not a failure. "
+)
+
 _REFUSAL_AFFORDANCE = (
     "If the requested observable is unreachable from the admissible "
     "evidence, deliver what is reachable, retain the unreachable "
@@ -196,7 +205,9 @@ def _goal_terms_context(
             "budgets above are the whole grant. A plan that changes "
             "molecular identity, electronic state, or physical "
             "conditions later, or exceeds these budgets, returns to "
-            "the human instead of running. " + _REFUSAL_AFFORDANCE
+            "the human instead of running. "
+            + _ADVERSARIAL_CLOSE
+            + _REFUSAL_AFFORDANCE
         ),
     }
 
@@ -287,7 +298,9 @@ def _wake_context(
             "re-reads it or any earlier run; a revision that changes "
             "molecular identity, electronic state, or physical "
             "conditions, or exceeds the budgets above, returns to the "
-            "human instead of running. " + _REFUSAL_AFFORDANCE
+            "human instead of running. "
+            + _ADVERSARIAL_CLOSE
+            + _REFUSAL_AFFORDANCE
         ),
     }
 

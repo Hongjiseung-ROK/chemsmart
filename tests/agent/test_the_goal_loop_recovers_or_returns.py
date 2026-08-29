@@ -211,6 +211,7 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
     assert first["previous_run"] == ""
     assert first["trajectory"] == ()
     assert "typed refusal" in first["authority"]
+    assert "attempt to refute" in first["authority"]
     assert first["deliverables"] == {
         "delivered_quantity_ids": (),
         "limitation_output_ids": (),
@@ -219,6 +220,7 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
     assert second["previous_run"] == "goals/goal-t1/runs/cycle-1"
     assert second["previous_run_outcome"]
     assert "typed refusal" in second["authority"]
+    assert "attempt to refute" in second["authority"]
     # The wake states what the previous run's own stream delivered --
     # here an engine failure with no claims, so every list is empty but
     # the record is present for the session to read.
