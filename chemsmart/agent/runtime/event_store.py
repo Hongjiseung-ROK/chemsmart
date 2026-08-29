@@ -502,6 +502,31 @@ class RuntimeEventStore:
         with self._locked_handle(exclusive=True) as handle:
             events = self._read_locked(handle)
             state = replay_events(events)
+            # A run directory belongs to one workflow run. Every guard
+            # below compares against what the frontier found for THIS
+            # workflow id, so a revised plan under a different id found
+            # nothing persisted, skipped every comparison, and entered a
+            # resident run's directory as an independent fresh run --
+            # interleaving two approvals' events in one stream.
+            foreign = sorted(
+                (str(rid), str(record.get("workflow_id") or ""))
+                for rid, record in getattr(
+                    state, "workflow_run_records", {}
+                ).items()
+                if isinstance(record, Mapping) and str(rid) != run_id
+            )
+            if foreign:
+                resident_run, resident_workflow = foreign[0]
+                raise ContractError(
+                    "this run directory already records workflow run "
+                    f"{resident_run!r}"
+                    + (
+                        f" of workflow {resident_workflow!r}"
+                        if resident_workflow
+                        else ""
+                    )
+                    + "; a different approval starts its own run directory"
+                )
             frontier = reconstruct_workflow_frontier(
                 state, workflow_id=plan.workflow_id, run_id=run_id
             )

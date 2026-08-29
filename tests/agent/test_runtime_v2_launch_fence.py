@@ -25,7 +25,13 @@ from chemsmart.agent.workflows import (
 )
 
 
-def _frontier(tmp_path, *, with_non_executable=False):
+def _frontier(
+    tmp_path,
+    *,
+    with_non_executable=False,
+    workflow_id="water-workflow",
+    approval_id="water-approval",
+):
     nodes = [
         ScientificWorkflowNodeV2(
             node_id="sp-initial",
@@ -52,7 +58,7 @@ def _frontier(tmp_path, *, with_non_executable=False):
             )
         )
     plan = build_scientific_workflow_plan(
-        workflow_id="water-workflow",
+        workflow_id=workflow_id,
         task_spec_sha256="a" * 64,
         scientific_identity_sha256="b" * 64,
         nodes=tuple(nodes),
@@ -109,7 +115,7 @@ def _frontier(tmp_path, *, with_non_executable=False):
         status=("partial" if with_non_executable else "ready_for_approval"),
     )
     approval = build_frozen_workflow_approval(
-        approval_id="water-approval",
+        approval_id=approval_id,
         plan=plan,
         materialized_workflow=materialized,
         resources=resources,
@@ -289,3 +295,42 @@ def test_strict_plan_loader_rejects_extra_and_corrupt_fields(tmp_path):
     corrupted["status"] = "previewed"
     with pytest.raises(ContractError, match="can only be planned"):
         scientific_workflow_plan_from_record(corrupted)
+
+
+def test_a_run_directory_belongs_to_one_workflow_run(tmp_path):
+    """A revised plan under a new workflow id used to slip in as fresh.
+
+    Every persisted-state comparison in the fence reads what the
+    frontier found for the supplied workflow id, so a stream holding a
+    different workflow's run offered nothing to compare and the foreign
+    launch was admitted -- two approvals' events interleaved in one
+    directory. The fence now refuses any launch into a directory whose
+    stream already records another run, naming the resident.
+    """
+    store = RuntimeEventStore(
+        tmp_path / "events" / "runtime.jsonl", session_id="water-session"
+    )
+    _reserve(store, tmp_path)
+
+    plan, materialized, approval, invocation = _frontier(
+        tmp_path,
+        workflow_id="revised-workflow",
+        approval_id="revised-approval",
+    )
+    with pytest.raises(
+        ContractError,
+        match=(
+            r"already records workflow run 'run\.water-approval' of "
+            r"workflow 'water-workflow'; a different approval starts "
+            "its own run directory"
+        ),
+    ):
+        store.reserve_workflow_node_launch(
+            turn_id="turn-2",
+            plan=plan,
+            materialized_workflow=materialized,
+            approval=approval,
+            invocation=invocation,
+            run_id="run.revised-approval",
+            timestamp="2026-08-04T01:00:00+00:00",
+        )
