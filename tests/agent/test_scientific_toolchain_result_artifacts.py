@@ -128,7 +128,7 @@ def test_registered_result_can_be_the_thermochemistry_root():
 def test_analysis_quantity_cannot_replace_thermochemistry_result_artifact():
     quantity_source = AnalysisNodeIntentV1(
         node_id="derived-quantity",
-        analysis_kind="claim_rendering",
+        analysis_kind="quantity_expression",
         dependencies=(),
         inputs=(),
         selectors=(),
@@ -139,8 +139,15 @@ def test_analysis_quantity_cannot_replace_thermochemistry_result_artifact():
                 unit="hartree",
             ),
         ),
-        expression_nodes=(),
-        expression_output_node_ids=(),
+        expression_nodes=(
+            {
+                "node_id": "derived-energy",
+                "operation": "literal",
+                "literal_value": -1.0,
+                "literal_unit": "hartree",
+            },
+        ),
+        expression_output_node_ids=("derived-energy",),
         temperature_k=None,
         pressure_atm=None,
         support_state="planned",

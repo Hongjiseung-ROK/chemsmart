@@ -276,6 +276,23 @@ class AnalysisNodeIntentV1:
             raise ScientificToolchainContractError(
                 "analysis intent must preserve at least one output"
             )
+        if (
+            self.analysis_kind == "claim_rendering"
+            and self.support_state == "planned"
+            and not self.inputs
+        ):
+            # The executor renders claims from this node's inputs and from
+            # nothing else, so a claim node that binds none can never render
+            # one -- determinable from the node alone, with no execution.
+            # Found live: such a node previewed green, both engines ran, and
+            # it then failed with "claims has 0 items". Dependencies alone do
+            # not feed it; each claimed value must be bound as an input
+            # naming its producer node and output.
+            raise ScientificToolchainContractError(
+                f"claim rendering node {self.node_id!r} binds no inputs, so "
+                "it can never render a claim; bind each claimed value as an "
+                "input naming its producer node and output"
+            )
         if self.analysis_kind == "result_extraction":
             # The executor already refuses an extraction output that names no
             # selector, and it is right to: with more than one selector the
