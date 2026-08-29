@@ -494,11 +494,39 @@ do not grant engine authority. Real calculation follows this chain:
    a later explicit analysis request may always read completed results.
 
 There is no permanent calculation grant, session-wide "always allow", command
-prefix allow-list, or model-created approval. A revised molecule, state,
-project, environment, resource allocation, or DAG is a new workflow and must be
-reviewed again. A multi-node causal workflow needs one human action because the
-complete graph is displayed together; a displayed non-executable stage remains
-unapproved and unlaunched.
+prefix allow-list, or model-created approval. The unit of human decision is
+the goal: one displayed decision covering the requested observables, every
+molecular identity and electronic state, the physical conditions, the
+execution envelope with its engine-call, wall-clock, and revision budgets,
+and the complete initial plan with its preview. Under that decision the host
+may admit a revised workflow without a returning human action only when the
+revision cites the typed terminal evidence it answers, preserves every
+identity binding, electronic state, and condition, stays inside the
+envelope, and passes the same validation, materialisation, and safe preview
+as the original; every admitted revision is recorded and displayed in the
+run story. A revised molecule, state, condition, or envelope is a new goal
+and a new human decision, and a reviewer may instead freeze the exact
+initial plan, restoring the frozen grain for that goal. The model never
+approves: the goal approval, made by a human over the displayed page, is
+the sole authority a revision consumes, and the recorded decision names
+that authority together with the human who granted it. What this grain
+deliberately trades is stated plainly: a node added at revision time runs
+with host preview and durable display, not fresh human eyes on its argv;
+the scientifically load-bearing invariants remain human-approved and
+host-enforced on every cycle. A multi-node causal workflow needs one human
+action because the complete graph is displayed together; a displayed
+non-executable stage remains unapproved and unlaunched. Within a goal, a
+failed batch record may be revised record-locally while budgets remain;
+one record's failure settles that record once recovery within the goal's
+budgets is exhausted, and a revision of a failed record touches no other
+record's settlement.
+
+Every executed node settles into one typed terminal record drawn from a
+shared program-neutral vocabulary, carrying the program-native findings
+and structured facts beneath it; the verbatim engine text is attached
+evidence, never the interface. A result that failed is nameable and
+inspectable with its terminal record, and is never admitted for quantity
+extraction or geometry handoff.
 
 The terminal UI is a view and controller for this chain. It is not a second
 permission engine. Internal receipts and content digests preserve provenance
