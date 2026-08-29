@@ -246,9 +246,9 @@ from chemsmart.analysis.literature_constants import (
     literature_constant,
 )
 from chemsmart.analysis.quantity_expressions import (
-    QuantityExpressionNodeV1,
     QuantityExpressionRequestV1,
     convert_normalized_value,
+    expression_node_from_plan,
     normalize_numeric_value,
     quantity_expression_receipt_from_record,
 )
@@ -11016,33 +11016,7 @@ class CommandCompiledToolHostV1:
                 )
             )
         nodes = tuple(
-            QuantityExpressionNodeV1(
-                node_id=str(item["node_id"]),
-                operation=str(item["operation"]),
-                input_ids=tuple(
-                    str(value) for value in item.get("input_ids", ())
-                ),
-                reference=str(item.get("reference", "")),
-                indices=tuple(int(value) for value in item.get("indices", ())),
-                literal_value=item.get("literal_value"),
-                literal_unit=str(item.get("literal_unit", "1")),
-                constant_name=str(item.get("constant_name", "")),
-                scale_factor=(
-                    float(item["scale_factor"])
-                    if "scale_factor" in item
-                    else None
-                ),
-                target_unit=str(item.get("target_unit", "")),
-                cardinal_numbers=tuple(
-                    int(value) for value in item.get("cardinal_numbers", ())
-                ),
-                extrapolation_exponent=(
-                    float(item["extrapolation_exponent"])
-                    if "extrapolation_exponent" in item
-                    else None
-                ),
-            )
-            for item in values["nodes"]
+            expression_node_from_plan(item) for item in values["nodes"]
         )
         request = QuantityExpressionRequestV1(
             schema_version="chemsmart.quantity-expression-request.v1",

@@ -514,6 +514,32 @@ class AnalysisNodeIntentV1:
                 raise ScientificToolchainContractError(
                     "quantity expression requires a typed expression DAG"
                 )
+            # Constructing the typed node here makes the evaluator's own
+            # shape contract -- known operation, admissible input count,
+            # per-operation fields -- a planning refusal. The gap was found
+            # live: a six-species pKa workflow wrote an isodesmic exchange
+            # as one four-input `subtract`, passed planning and approval,
+            # ran six solvated opt+freq jobs, and lost every number to
+            # "subtract requires two inputs" -- pure arithmetic on the plan
+            # text, checked only after the engines had finished.
+            from chemsmart.analysis.quantity_expressions import (
+                expression_node_from_plan,
+            )
+            from chemsmart.analysis.result_quantities import (
+                QuantityContractError,
+            )
+
+            for item in self.expression_nodes:
+                try:
+                    expression_node_from_plan(item)
+                except (
+                    QuantityContractError,
+                    QuantityExpressionError,
+                ) as exc:
+                    raise ScientificToolchainContractError(
+                        f"expression node "
+                        f"{str(item.get('node_id', '?'))!r}: {exc}"
+                    ) from exc
             # A constant node names a host-owned registry entry; resolving
             # the name here makes an unregistered constant a plan-time
             # refusal that spells out the available set, instead of an

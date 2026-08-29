@@ -52,7 +52,7 @@ def _expression(outputs, exported):
             {
                 "node_id": name,
                 "operation": "subtract",
-                "operand_ids": ("lumo", "homo"),
+                "input_ids": ("lumo", "homo"),
             }
             for name in exported
         ),

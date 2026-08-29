@@ -135,7 +135,7 @@ def test_an_unregistered_constant_is_refused_when_planned():
                 {
                     "node_id": "pka",
                     "operation": "gibbs_to_pka",
-                    "operand_ids": ("g-proton", "g-acid"),
+                    "input_ids": ("g-proton", "g-acid"),
                 },
             ),
             expression_output_node_ids=("pka",),

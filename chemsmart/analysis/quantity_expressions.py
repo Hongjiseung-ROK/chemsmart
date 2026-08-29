@@ -151,8 +151,9 @@ OPERATION_DESCRIPTIONS: Mapping[str, str] = {
     "angle": "angle at the middle of three indexed coordinate vectors",
     "dihedral": (
         "signed torsion about the middle bond of four indexed coordinate "
-        "vectors, in (-180, 180]. The third standard internal coordinate "
-        "alongside distance and angle; do not rebuild it from cross products"
+        "vectors in bonded order a-b-c-d, in (-180, 180]. The third "
+        "standard internal coordinate alongside distance and angle; do not "
+        "rebuild it from cross products"
     ),
     "convert": "restate a value in target_unit; arithmetic stays canonical",
     "linear_fit_slope": "slope of a least-squares line through x and y",
@@ -279,6 +280,105 @@ if set(OPERATION_DESCRIPTIONS) != set(_OPERATIONS):  # pragma: no cover
         "every expression operation must be described: "
         f"{sorted(set(_OPERATIONS) ^ set(OPERATION_DESCRIPTIONS))}"
     )
+
+#: How many inputs each operation accepts, stated where the operations live.
+#:
+#: A frozenset lists the exact admissible counts; a (minimum, None) tuple
+#: means that many or more.  The evaluator has always enforced these counts,
+#: but only while evaluating -- after every engine had finished.  A live
+#: six-species pKa workflow wrote an isodesmic exchange as one four-input
+#: `subtract`, passed planning, preview, and approval, ran six solvated
+#: opt+freq jobs, and lost the whole payload to "subtract requires two
+#: inputs".  The count is a structural fact about the node, fully
+#: determinable at planning, so it is declared here and checked at node
+#: construction; the guard below pins the table to the operation set so the
+#: two cannot drift apart.
+OPERATION_INPUT_COUNTS: Mapping[str, frozenset[int] | tuple[int, None]] = {
+    "ref": frozenset({0, 1}),
+    "literal": frozenset({0}),
+    "constant": frozenset({0}),
+    "add": frozenset({2}),
+    "subtract": frozenset({2}),
+    "multiply": frozenset({2}),
+    "divide": frozenset({2}),
+    "scale": frozenset({1}),
+    "abs": frozenset({1}),
+    "sqrt": frozenset({1}),
+    "power": frozenset({1}),
+    "exp": frozenset({1}),
+    "log": frozenset({1}),
+    "sum": (1, None),
+    "mean": (1, None),
+    "min": (1, None),
+    "max": (1, None),
+    "coordinate_at_maximum": frozenset({2}),
+    "coordinate_at_minimum": frozenset({2}),
+    "distance": frozenset({2}),
+    "angle": frozenset({3}),
+    "dihedral": frozenset({4}),
+    "convert": frozenset({1}),
+    "linear_fit_slope": frozenset({2}),
+    "linear_fit_intercept": frozenset({2}),
+    "exponential_cbs_limit": frozenset({1, 3}),
+    "scf_exponential_cbs_limit": frozenset({2}),
+    "scf_inverse_power_cbs_limit": frozenset({2}),
+    "correlation_inverse_power_cbs_limit": frozenset({2}),
+    "photon_wavelength": frozenset({1}),
+    "gibbs_to_pka": frozenset({2}),
+    "gibbs_to_redox_potential": frozenset({2}),
+    "boltzmann_populations": (2, None),
+    "boltzmann_average": (3, None),
+    "imaginary_mode_count": frozenset({1, 2}),
+    "harmonic_zero_point_energy": frozenset({1}),
+    "transition_state_crossover_temperature": frozenset({1}),
+    "center_of_mass": frozenset({2}),
+    "principal_moments_of_inertia": frozenset({2}),
+    "linear_rotor_constant": frozenset({1}),
+    "rigid_rotor_constants": frozenset({1}),
+    "connectivity_difference_count": frozenset({4}),
+}
+
+if set(OPERATION_INPUT_COUNTS) != set(_OPERATIONS):  # pragma: no cover
+    raise RuntimeError(
+        "every expression operation must state its input count: "
+        f"{sorted(set(_OPERATIONS) ^ set(OPERATION_INPUT_COUNTS))}"
+    )
+
+
+def _admissible_count_phrase(
+    admissible: frozenset[int] | tuple[int, None],
+) -> str:
+    """State an operation's admissible input counts in one readable clause."""
+    if isinstance(admissible, tuple):
+        return f"{admissible[0]} or more inputs"
+    counts = sorted(admissible)
+    if counts == [0]:
+        return "no inputs"
+    words = " or ".join(str(item) for item in counts)
+    return f"exactly {words} input(s)"
+
+
+def require_expression_input_count(operation: str, count: int) -> None:
+    """Refuse an input count the named operation can never evaluate.
+
+    Raises the expression vocabulary's own error, carrying the
+    operation's description: the refusal is the moment a session learns
+    what the operation wanted, so the message states the accepted
+    shape rather than only the count.
+    """
+    admissible = OPERATION_INPUT_COUNTS[operation]
+    if isinstance(admissible, tuple):
+        if count >= admissible[0]:
+            return
+    elif count in admissible:
+        return
+    noun = "input" if count == 1 else "inputs"
+    raise QuantityExpressionError(
+        f"{operation} accepts {_admissible_count_phrase(admissible)}; "
+        f"got {count} {noun} -- {operation}: "
+        f"{OPERATION_DESCRIPTIONS[operation]}"
+    )
+
 
 #: Operations that carry a computational-chemistry convention ChemSmart owns.
 #: Reaching a reported quantity through one of these means the convention came
@@ -709,6 +809,7 @@ class QuantityExpressionNodeV1:
             )
         if len(self.input_ids) > MAX_NODE_INPUTS:
             raise QuantityContractError("expression node has too many inputs")
+        require_expression_input_count(self.operation, len(self.input_ids))
         if self.operation == "constant":
             if not self.constant_name or len(self.constant_name) > 128:
                 raise QuantityContractError(
@@ -758,6 +859,41 @@ class QuantityExpressionNodeV1:
             raise QuantityContractError(
                 "CBS cardinal numbers and exponent apply only to CBS operations"
             )
+
+
+def expression_node_from_plan(
+    item: Mapping[str, Any],
+) -> QuantityExpressionNodeV1:
+    """Coerce one planned expression dict into the typed node.
+
+    This is the single dict-to-node reading, shared by the planning
+    admission and the evaluation tool, so a node the plan admits is by
+    construction a node the evaluator recognises: operation, input
+    count, and per-operation field shape are all checked here, at the
+    moment the plan is written, rather than after the engines have run.
+    """
+    return QuantityExpressionNodeV1(
+        node_id=str(item.get("node_id", "")),
+        operation=str(item.get("operation", "")),
+        input_ids=tuple(str(value) for value in item.get("input_ids", ())),
+        reference=str(item.get("reference", "") or ""),
+        indices=tuple(int(value) for value in item.get("indices", ())),
+        literal_value=item.get("literal_value"),
+        literal_unit=str(item.get("literal_unit", "1")),
+        constant_name=str(item.get("constant_name", "")),
+        scale_factor=(
+            float(item["scale_factor"]) if "scale_factor" in item else None
+        ),
+        target_unit=str(item.get("target_unit", "")),
+        cardinal_numbers=tuple(
+            int(value) for value in item.get("cardinal_numbers", ())
+        ),
+        extrapolation_exponent=(
+            float(item["extrapolation_exponent"])
+            if "extrapolation_exponent" in item
+            else None
+        ),
+    )
 
 
 @dataclass(frozen=True)
