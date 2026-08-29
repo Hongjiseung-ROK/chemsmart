@@ -122,7 +122,12 @@ def _summarize(directory: Path, kind: str) -> RunSummaryV1:
 
 
 def list_runs(workspace: Path) -> tuple[RunSummaryV1, ...]:
-    """Newest-first summaries of every execution and replay in a workspace."""
+    """Newest-first summaries of every recorded run in a workspace.
+
+    Executions, replays, and goal-cycle runs; a goal's runs live at
+    goals/<goal-id>/runs/cycle-N and were invisible here while the
+    first live goal round ran.
+    """
 
     root = Path(workspace) / ".chemsmart-agent"
     found: list[tuple[float, RunSummaryV1]] = []
@@ -136,6 +141,19 @@ def list_runs(workspace: Path) -> tuple[RunSummaryV1, ...]:
             found.append(
                 (directory.stat().st_mtime, _summarize(directory, kind))
             )
+    goals = root / "goals"
+    if goals.is_dir():
+        for goal_directory in goals.iterdir():
+            runs = goal_directory / "runs"
+            if not runs.is_dir():
+                continue
+            for directory in runs.iterdir():
+                if not directory.is_dir():
+                    continue
+                summary = _summarize(
+                    directory, f"goal {goal_directory.name}"
+                )
+                found.append((directory.stat().st_mtime, summary))
     found.sort(key=lambda item: item[0], reverse=True)
     return tuple(summary for _mtime, summary in found)
 

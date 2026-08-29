@@ -3010,8 +3010,10 @@ def _public_context(
         # The goal loop's typed wake context: the goal's terms, the
         # remaining budgets, the trajectory so far, and the prior run's
         # typed terminal states. Host-composed, deterministic, and
-        # recorded in the ledger; absent outside a goal cycle.
-        "goal": dict(goal_record or {}),
+        # recorded in the ledger; the key exists only inside a goal
+        # cycle -- a present-empty "goal" outside one names a concept
+        # the session is not running under.
+        **({"goal": dict(goal_record)} if goal_record else {}),
         "approved_molecular_identities": approved_identity_records,
         "approved_molecular_inputs": approved_input_records,
         "approved_project_artifacts": approved_project_records,

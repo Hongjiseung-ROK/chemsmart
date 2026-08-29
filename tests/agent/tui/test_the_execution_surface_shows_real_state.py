@@ -126,6 +126,23 @@ def test_runs_are_listed_from_their_durable_evidence(tmp_path: Path):
     replay = tmp_path / ".chemsmart-agent" / "replays" / "replay-1" / "run"
     replay.mkdir(parents=True)
     (replay / "events.jsonl").write_text("", encoding="utf-8")
+    # A goal cycle's run was invisible to this table while the first
+    # live goal round ran; it lists like any other recorded run.
+    goal_run = (
+        tmp_path / ".chemsmart-agent" / "goals" / "goal-b2" / "runs"
+        / "cycle-1"
+    )
+    goal_run.mkdir(parents=True)
+    (goal_run / "events.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "runtime_terminated",
+                "payload": {"terminal_state": "complete"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     summaries = list_runs(tmp_path)
 
@@ -134,3 +151,5 @@ def test_runs_are_listed_from_their_durable_evidence(tmp_path: Path):
     assert by_name["tui-abc"].report_path is not None
     assert by_name["replay-1"].kind == "replay"
     assert by_name["replay-1"].terminal_state == "in progress"
+    assert by_name["cycle-1"].kind == "goal goal-b2"
+    assert by_name["cycle-1"].terminal_state == "complete"
