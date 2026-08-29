@@ -50,7 +50,10 @@ def _extract(host, artifact_id, selector):
             "artifact_id": artifact_id,
             "program": "xyz",
             "selectors": [
-                {"quantity_id": f"{artifact_id}-{selector}", "selector": selector}
+                {
+                    "quantity_id": f"{artifact_id}-{selector}",
+                    "selector": selector,
+                }
             ],
         },
     )

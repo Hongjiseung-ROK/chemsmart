@@ -594,6 +594,7 @@ def test_a_stated_thinking_switch_reaches_the_wire():
         is False
     )
     # Silence keeps the provider's own default and stays off the wire.
-    assert "enable_thinking" not in _session(
-        _thinking_config(None)
-    ).request_payload()
+    assert (
+        "enable_thinking"
+        not in _session(_thinking_config(None)).request_payload()
+    )

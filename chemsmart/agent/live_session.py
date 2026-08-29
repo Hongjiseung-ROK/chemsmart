@@ -1310,9 +1310,7 @@ def _coordinator_base_messages(
         },
         {"role": "user", "content": canonical_json(context)},
     ]
-    goal_record = (
-        context.get("goal") if isinstance(context, Mapping) else None
-    )
+    goal_record = context.get("goal") if isinstance(context, Mapping) else None
     if goal_record:
         # Alphabetical canonical JSON lands the goal block mid-context,
         # in the attention trough. Restate the goal's terms as the final

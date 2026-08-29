@@ -271,9 +271,7 @@ def test_a_doubted_claim_downgrades_the_certification(tmp_path):
         doubt_ref="e" * 64,
     )
     assert completion.status == "partial"
-    assert completion.findings == (
-        "analysis.claim_under_recorded_doubt.e",
-    )
+    assert completion.findings == ("analysis.claim_under_recorded_doubt.e",)
 
 
 def test_a_doubt_about_an_unclaimed_receipt_keeps_the_pass(tmp_path):

@@ -415,9 +415,7 @@ class ToolLoopRunner:
                     # What the provider actually billed and streamed: a
                     # session whose every turn reports no reasoning is a
                     # first-class observation, not a post-hoc grep.
-                    "reasoning_tokens": int(
-                        provider_receipt.reasoning_tokens
-                    ),
+                    "reasoning_tokens": int(provider_receipt.reasoning_tokens),
                     "reasoning_observed": bool(
                         provider_receipt.reasoning_tokens > 0
                         or provider_receipt.reasoning_continuation_present

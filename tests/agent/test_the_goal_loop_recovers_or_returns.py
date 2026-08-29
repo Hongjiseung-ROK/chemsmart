@@ -639,7 +639,10 @@ def test_the_wake_deliverables_come_from_the_previous_runs_stream(tmp_path):
     )
     record = _deliverables_record(
         _analysis_delivery(
-            workspace / ".chemsmart-agent" / "runs" / "cycle-1"
+            workspace
+            / ".chemsmart-agent"
+            / "runs"
+            / "cycle-1"
             / "events.jsonl"
         )
     )

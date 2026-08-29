@@ -415,7 +415,5 @@ def test_a_nonboolean_thinking_switch_is_refused(tmp_path):
     )
     path.write_text(content, encoding="utf-8")
 
-    with pytest.raises(
-        ContractError, match="enable_thinking must be boolean"
-    ):
+    with pytest.raises(ContractError, match="enable_thinking must be boolean"):
         load_agent_provider_selection(path)
