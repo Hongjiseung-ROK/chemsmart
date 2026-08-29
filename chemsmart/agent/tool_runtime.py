@@ -4104,6 +4104,60 @@ class CommandCompiledToolHostV1:
             )
         return resolved
 
+    #: Selectors that constitute reading a geometry's structure rather
+    #: than its labels: positions is the gateway every distance, angle,
+    #: and dihedral expression consumes, and connectivity is the
+    #: perceived bond graph. The frontier's unread listing keys on these
+    #: and nothing else.
+    _STRUCTURAL_READ_SELECTORS = frozenset({"positions", "connectivity"})
+
+    def _artifacts_without_structural_read(self) -> tuple[str, ...]:
+        """Name structurally readable artifacts nothing has yet read.
+
+        Host bookkeeping over state already held: every registered
+        artifact whose kind a structural read could serve -- geometry
+        files and each registered reader's result kind, so an identity
+        audit over archived results is covered exactly like one over
+        supplied geometries -- minus those with an extraction receipt
+        whose request included a structural selector. The listing names
+        artifacts, never what a reading would say -- measuring stays the
+        session's act, and an id here is a question, not a verdict.
+        Scope is this session's own reads: a rehydrated host starts with
+        empty selector records because receipts do not carry selectors.
+        """
+
+        from chemsmart.agent.postprocessing import (
+            typed_result_artifact_kind,
+        )
+        from chemsmart.analysis.result_readers import (
+            registered_reader_programs,
+        )
+
+        readable_kinds = {"geometry_xyz"}
+        for program in registered_reader_programs():
+            try:
+                readable_kinds.add(typed_result_artifact_kind(program))
+            except Exception:
+                continue
+        read: set[str] = set()
+        for sha, selectors in self.quantity_extraction_selectors.items():
+            receipt = self.quantity_extractions.get(sha)
+            if receipt is None:
+                continue
+            if any(
+                selector in self._STRUCTURAL_READ_SELECTORS
+                for selector in selectors
+            ):
+                read.add(receipt.artifact_id)
+        return tuple(
+            sorted(
+                artifact_id
+                for artifact_id, artifact in self.artifacts.items()
+                if getattr(artifact, "kind", "") in readable_kinds
+                and artifact_id not in read
+            )
+        )
+
     def _inspect_workflow_frontier(self, turn_id: str, values: dict) -> Any:
         """Return the latest connected frontier for a named workflow."""
 
@@ -4164,6 +4218,9 @@ class CommandCompiledToolHostV1:
             result = {
                 "scientific_workflow_plan": scientific_v2,
                 "workflow_context": context,
+                "artifacts_without_structural_read": (
+                    self._artifacts_without_structural_read()
+                ),
             }
             if readiness is not None:
                 result["approval_readiness"] = readiness
@@ -4175,6 +4232,9 @@ class CommandCompiledToolHostV1:
         result = {
             "scientific_toolchain_plan": plan,
             "workflow_context": context,
+            "artifacts_without_structural_read": (
+                self._artifacts_without_structural_read()
+            ),
             "workflow_frontier": project_scientific_toolchain_frontier(
                 plan,
                 actionable_calculation_node_ids=actionable,

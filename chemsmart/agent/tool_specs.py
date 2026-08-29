@@ -929,7 +929,12 @@ def build_command_compiled_tool_surface(
             "inspect_workflow_frontier",
             (
                 "Inspect the current calculation-and-analysis frontier for a "
-                "previously planned scientific workflow."
+                "previously planned scientific workflow. The response also "
+                "names, as artifacts_without_structural_read, every "
+                "registered geometry or result artifact this session has not "
+                "yet read with a structural selector (positions or "
+                "connectivity) -- an id on that list is a measurement not "
+                "yet made, not a verdict."
             ),
             {"workflow_id": _public_identifier()},
             ("workflow_id",),

@@ -69,6 +69,7 @@ def test_calculation_only_plan_supports_frontier_and_prepare(tmp_path):
     assert set(frontier) == {
         "scientific_workflow_plan",
         "workflow_context",
+        "artifacts_without_structural_read",
     }
     assert (
         frontier["scientific_workflow_plan"]
