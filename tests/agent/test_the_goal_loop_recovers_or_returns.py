@@ -678,3 +678,43 @@ def test_goal_terms_are_restated_in_the_recency_slot(tmp_path):
     assert tail["role"] == "user"
     assert "restated for recency" in tail["content"]
     assert '"goal_id":"goal-t1"' in tail["content"].replace(" ", "")
+
+
+def test_a_typed_error_settles_instead_of_escaping(tmp_path):
+    """C5's live crash: a session attempted terminal completion against
+    a red gate, the ContractError escaped the loop, and the goal's
+    durable story ended at wake_composed with no settlement. A typed
+    contract error now settles returned_to_human naming the stage."""
+
+    def raising_session(workspace, kwargs):
+        raise ContractError("a required completion gate is red")
+
+    result = _loop(
+        tmp_path,
+        sessions=[raising_session],
+        executes=[],
+    )
+
+    assert result.settlement == "returned_to_human"
+    assert any(
+        "a required completion gate is red" in reason
+        for reason in result.reasons
+    )
+    ledger = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    )
+    assert ledger.entries()[-1]["kind"] == "goal_settled"
+
+
+def test_a_typed_engine_error_settles_the_same_way(tmp_path):
+    def raising_execute(run_directory):
+        raise ContractError("approval bundle names a missing artifact")
+
+    result = _loop(
+        tmp_path,
+        sessions=[_planning_session("live-1", review=_review_payload())],
+        executes=[raising_execute],
+    )
+
+    assert result.settlement == "returned_to_human"
+    assert any("approved execution" in reason for reason in result.reasons)

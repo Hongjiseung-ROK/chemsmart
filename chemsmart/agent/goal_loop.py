@@ -105,6 +105,37 @@ def _default_execute(
     )
 
 
+def _typed_error_settlement(
+    ledger: GoalLedger,
+    *,
+    goal_id: str,
+    cycles: int,
+    revisions_admitted: int,
+    stage: str,
+    error: ContractError,
+) -> GoalLoopResultV1:
+    """Settle a typed error instead of letting it escape unsettled.
+
+    Observed live (C5): a session attempted terminal completion against
+    a red gate, the event store's ContractError propagated through the
+    loop, the process died, and the goal's durable story ended at
+    wake_composed with no settlement -- violating "a goal settles into
+    one typed state". A typed contract error is an outcome the human
+    reads, not a crash; a non-contract exception stays a crash, because
+    a genuine defect must not be laundered into a settlement.
+    """
+
+    reason = f"cycle {cycles}, {stage}: {error}"
+    ledger.settle("returned_to_human", reasons=(reason,))
+    return GoalLoopResultV1(
+        goal_id=goal_id,
+        settlement="returned_to_human",
+        cycles=cycles,
+        revisions_admitted=revisions_admitted,
+        reasons=(reason,),
+    )
+
+
 def _review_record(review_file: Path) -> Mapping[str, Any]:
     return json.loads(Path(review_file).read_text(encoding="utf-8"))
 
@@ -526,18 +557,28 @@ def run_goal_loop(
                 "wake_composed",
                 {"cycle": cycles, "run": wake["previous_run"]},
             )
-        session = plan_session(
-            task=task,
-            provider=provider,
-            provider_config_file=provider_config_file,
-            workspace=workspace,
-            execution_enabled=False,
-            approval_file=None,
-            execution_envelope_file=execution_envelope_file,
-            analysis_completion_file=analysis_completion_file,
-            review_file=review_file,
-            goal_context=wake,
-        )
+        try:
+            session = plan_session(
+                task=task,
+                provider=provider,
+                provider_config_file=provider_config_file,
+                workspace=workspace,
+                execution_enabled=False,
+                approval_file=None,
+                execution_envelope_file=execution_envelope_file,
+                analysis_completion_file=analysis_completion_file,
+                review_file=review_file,
+                goal_context=wake,
+            )
+        except ContractError as exc:
+            return _typed_error_settlement(
+                ledger,
+                goal_id=goal_id,
+                cycles=cycles,
+                revisions_admitted=revisions_admitted,
+                stage="planning session",
+                error=exc,
+            )
         terminal = str(getattr(session, "terminal_state", "") or "")
         events_path = _session_events_path(session, workspace)
 
@@ -729,11 +770,21 @@ def run_goal_loop(
 
         run_directory = goal_dir / "runs" / f"cycle-{cycles}"
         run_directory.mkdir(parents=True, exist_ok=True)
-        execute_result = execute_bundle(
-            approval_file=bundle_file,
-            workspace=workspace,
-            run_directory=run_directory,
-        )
+        try:
+            execute_result = execute_bundle(
+                approval_file=bundle_file,
+                workspace=workspace,
+                run_directory=run_directory,
+            )
+        except ContractError as exc:
+            return _typed_error_settlement(
+                ledger,
+                goal_id=goal_id,
+                cycles=cycles,
+                revisions_admitted=revisions_admitted,
+                stage="approved execution",
+                error=exc,
+            )
         from chemsmart.agent.terminal_states import (
             derive_run_outcome,
             read_run_events,
