@@ -316,7 +316,16 @@ def test_a_ring_coordinate_is_refused_per_coordinate(tmp_path):
         )
 
 
-def test_the_refusal_points_at_the_route_that_works(tmp_path):
+def test_the_refusal_points_at_the_routes_that_work(tmp_path):
+    """The refusal steers, so every route it names must be takeable.
+
+    Measured live: a session quoted this message verbatim and obeyed it.
+    As first written it named modred first -- which previews but cannot
+    execute in this release -- and omitted the two-operation composition
+    entirely, so a substituent-position question was steered into a
+    relaxed scan that failed. The message now marks modred as
+    preview-only and names the composition beside the scan.
+    """
     host = _host_with(tmp_path, _ring_text(), "ring")
 
     with pytest.raises(ContractError) as caught:
@@ -331,7 +340,15 @@ def test_the_refusal_points_at_the_route_that_works(tmp_path):
             target_value=1.6,
         )
     message = str(caught.value)
-    assert "modred" in message and "scan" in message
+    # The executable driver of a ring coordinate.
+    assert "relaxed scan" in message
+    # modred may be mentioned only with its execution status attached.
+    assert "modred" in message
+    assert "does not execute in this release" in message
+    # The engine-free composition for substituent positions is named by
+    # both of its operations.
+    assert "derive_molecular_species" in message
+    assert "append_molecular_atom" in message
 
 
 def test_structural_refusals_name_what_is_wrong(tmp_path):

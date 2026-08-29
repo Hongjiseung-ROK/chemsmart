@@ -1330,9 +1330,20 @@ def transform_trusted_molecular_geometry(
     # the ring open, and each coordinate is trapped by a different bond: a
     # bond length by its own bond, a torsion by its central bond, an angle
     # only when both of its bonds are in the ring.
+    # This string steers: a live session quoted it verbatim and followed
+    # it, so every route it names must be one the session can actually
+    # take, and the cheap route must not be omitted. As first written it
+    # named modred first -- which previews but cannot execute in this
+    # release -- and never mentioned the two-operation composition, so a
+    # substituent-position question was steered into a relaxed scan that
+    # failed.
     ring_refusal = (
-        "; a ring coordinate is reached with a constrained optimisation "
-        "(modred) or a relaxed scan, which lets the rest of the ring respond"
+        "; a ring coordinate is driven with a relaxed scan, which lets "
+        "the rest of the ring respond (a constrained optimisation, "
+        "modred, previews but does not execute in this release); a "
+        "substituent is moved to the other side of a ring atom by "
+        "derive_molecular_species removing it and append_molecular_atom "
+        "placing it back, with no engine run"
     )
     if operation == "set_bond_length" and _in_ring(axis):
         raise ContractError(
