@@ -432,11 +432,13 @@ class AnalysisCompletionReceiptV1:
     findings: tuple[str, ...]
     receipt_sha256: str
     #: Required outputs whose producer the approved plan itself
-    #: declared blocked_unsupported. Not findings: a finding says what
-    #: went wrong, a limitation says what the chain stated up front it
-    #: could not produce and delivered without. A passed completion
-    #: may carry limitations; folding them into a bare "passed" is how
-    #: a live goal round settled an honest refusal as achieved.
+    #: declared blocked_unsupported, and (under the
+    #: ``declared_observable:`` prefix) session-declared observables no
+    #: delivered claim matched by dimension. Not findings: a finding
+    #: says what went wrong, a limitation says what the delivery stands
+    #: without. A passed completion may carry limitations; folding them
+    #: into a bare "passed" is how a live goal round settled an honest
+    #: refusal as achieved.
     limitation_output_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:

@@ -247,11 +247,13 @@ from chemsmart.analysis.literature_constants import (
     literature_constant,
 )
 from chemsmart.analysis.quantity_expressions import (
+    QuantityExpressionError,
     QuantityExpressionRequestV1,
     convert_normalized_value,
     expression_node_from_plan,
     normalize_numeric_value,
     quantity_expression_receipt_from_record,
+    unit_dimension,
 )
 from chemsmart.analysis.result_quantities import (
     QuantityExtractionReceiptV1,
@@ -1159,6 +1161,10 @@ class CommandCompiledToolHostV1:
         self.surface = tool_surface or command_surface
         self.artifacts = dict(artifacts)
         self.task_spec_sha256s = frozenset(task_spec_sha256s)
+        # The session's own restatement of what the task asks for:
+        # observable_id -> {unit, dimension, meaning}.  A commitment the
+        # completion gate checks by kind and unit, never value.
+        self.requested_observable_declarations: dict[str, dict[str, Any]] = {}
         self.approved_environment_identities = tuple(
             approved_environment_identities
         )
@@ -1803,6 +1809,9 @@ class CommandCompiledToolHostV1:
             ),
             "record_analysis_claims": self._record_analysis_claims,
             "record_scientific_decision": self._record_scientific_decision,
+            "declare_requested_observable": (
+                self._declare_requested_observable
+            ),
             "execute_approved_program_node": self._execute_approved_program_node,
             "consult_domain_skill": self._consult_domain_skill,
         }
@@ -1841,6 +1850,127 @@ class CommandCompiledToolHostV1:
         raise ContractError(
             f"{field_name} is required when multiple task specs are active"
         )
+
+    def _declare_requested_observable(self, turn_id: str, values: dict) -> Any:
+        """Bind the session's restatement of what the task asks for.
+
+        A declaration is a commitment, not a plan: the completion gate
+        later requires a delivered claim of each declared dimension --
+        kind and unit, never value -- and an undelivered declared
+        observable is named in the completion receipt exactly like a
+        plan output the chain could not fulfil.
+        """
+
+        declared = []
+        for item in values["observables"]:
+            observable_id = str(item["observable_id"])
+            require_identifier(observable_id, "observable_id")
+            unit = str(item["unit"]).strip()
+            meaning = str(item["meaning"]).strip()
+            if not meaning:
+                raise ContractError(
+                    "a declared observable requires one sentence of meaning"
+                )
+            try:
+                dimension = unit_dimension(unit)
+            except QuantityExpressionError as exc:
+                raise ContractError(
+                    f"declared unit {unit!r} is not in the typed unit "
+                    f"vocabulary: {exc}. Declare the unit the answer will "
+                    "be reported in, e.g. 'kcal/mol', 'eV', 'angstrom', "
+                    "'1' for a count."
+                ) from None
+            existing = self.requested_observable_declarations.get(
+                observable_id
+            )
+            if existing is not None:
+                if tuple(existing["dimension"]) != tuple(
+                    int(value) for value in dimension
+                ):
+                    raise ContractError(
+                        f"declared observable {observable_id!r} is already "
+                        f"bound to unit {existing['unit']!r}; a changed "
+                        "observable is a new declaration under a new "
+                        "identifier"
+                    )
+                continue
+            record = {
+                "observable_id": observable_id,
+                "unit": unit,
+                "dimension": tuple(int(value) for value in dimension),
+                "meaning": meaning,
+            }
+            self.requested_observable_declarations[observable_id] = record
+            declared.append(record)
+        if declared:
+            self.event_store.append(
+                turn_id=turn_id,
+                kind=EventKind.REQUESTED_OBSERVABLE_DECLARED.value,
+                payload={
+                    "observables": tuple(declared),
+                    "declared_total": len(
+                        self.requested_observable_declarations
+                    ),
+                },
+                idempotency_key=(
+                    "requested-observable:"
+                    + canonical_sha256(
+                        tuple(item["observable_id"] for item in declared)
+                    )
+                ),
+            )
+        return {
+            "declared": tuple(declared),
+            "declared_total": len(self.requested_observable_declarations),
+            "completion_consequence": (
+                "the completion gate requires a delivered claim of "
+                "matching dimension for every declared observable; kind "
+                "and unit are checked, values never are"
+            ),
+        }
+
+    def _declared_observable_completion(
+        self, *, task_spec_sha256: str
+    ) -> tuple[tuple[str, ...], tuple[str, ...]]:
+        """Match declared observables against delivered claim dimensions.
+
+        Kind and unit, never value: a declaration is satisfied by any
+        recorded claim on this task whose dimension equals the declared
+        unit's.  An unmatched declaration is a limitation on a green
+        receipt -- the delivery stands and states what it delivered
+        without -- never a finding, because findings mean the chain
+        itself broke.  Dimension vectors from different eras differ
+        only by trailing bases, so both sides are compared zero-padded.
+        Returns (human-readable misses for the event, limitation ids).
+        """
+
+        if not self.requested_observable_declarations:
+            return (), ()
+
+        def _padded(dimension: tuple[int, ...]) -> tuple[int, ...]:
+            values = tuple(int(value) for value in dimension)
+            return values + (0,) * (9 - len(values))
+
+        claim_dimensions = {
+            _padded(claim.dimension)
+            for record in self.analysis_claim_records.values()
+            if getattr(record, "task_spec_sha256", "") == task_spec_sha256
+            for claim in getattr(record, "claims", ())
+        }
+        misses = []
+        limitations = []
+        for observable_id, record in sorted(
+            self.requested_observable_declarations.items()
+        ):
+            if _padded(record["dimension"]) in claim_dimensions:
+                continue
+            misses.append(
+                f"declared observable {observable_id!r} "
+                f"({record['unit']}) has no delivered claim of matching "
+                "dimension"
+            )
+            limitations.append(f"declared_observable:{observable_id}")
+        return tuple(misses), tuple(limitations)
 
     def _consult_domain_skill(self, turn_id: str, values: dict) -> Any:
         """Return one skill body, as instructions the session now works under.
@@ -6564,6 +6694,14 @@ class CommandCompiledToolHostV1:
     ) -> tuple[str, ...]:
         """Record one toolchain-as-policy completion receipt and its event."""
 
+        declared_misses, declared_limitations = (
+            self._declared_observable_completion(
+                task_spec_sha256=task_spec_sha256
+            )
+        )
+        limitation_output_ids = tuple(
+            sorted(set(tuple(limitation_output_ids) + declared_limitations))
+        )
         body = {
             "schema_version": "chemsmart.analysis-completion-receipt.v1",
             # A scientific toolchain is already a visible, typed output
@@ -6602,6 +6740,7 @@ class CommandCompiledToolHostV1:
                 "status": completion.status,
                 "critical_finding_count": len(completion.findings),
                 "limitation_output_ids": completion.limitation_output_ids,
+                "declared_observable_misses": declared_misses,
                 "completion_kind": "scientific_toolchain",
                 "record": completion_record,
             },

@@ -254,6 +254,13 @@ def _previous_run_reference(ledger: GoalLedger) -> str:
 #: The closing act is adversarial and points at a tool call, never at
 #: re-reading one's own prose: intrinsic self-review without external
 #: feedback degrades, while one further typed observation can refute.
+_OBSERVABLE_RESTATEMENT_ASK = (
+    "As this cycle's first typed act, restate the requested observable "
+    "through declare_requested_observable -- identifier, reporting "
+    "unit, one sentence of meaning; the completion gate checks the "
+    "delivery against that declaration by kind and unit, never value. "
+)
+
 _ADVERSARIAL_CLOSE = (
     "Before recording the scientific decision, attempt to refute the "
     "delivery with one further typed read; a refutation that stands is "
@@ -313,6 +320,7 @@ def _goal_terms_context(
             "molecular identity, electronic state, or physical "
             "conditions later, or exceeds these budgets, returns to "
             "the human instead of running. "
+            + _OBSERVABLE_RESTATEMENT_ASK
             + _ADVERSARIAL_CLOSE
             + _REFUSAL_AFFORDANCE
         ),
@@ -406,6 +414,7 @@ def _wake_context(
             "molecular identity, electronic state, or physical "
             "conditions, or exceeds the budgets above, returns to the "
             "human instead of running. "
+            + _OBSERVABLE_RESTATEMENT_ASK
             + _ADVERSARIAL_CLOSE
             + _REFUSAL_AFFORDANCE
         ),

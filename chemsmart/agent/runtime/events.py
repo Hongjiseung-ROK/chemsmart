@@ -42,6 +42,7 @@ class EventKind(str, Enum):
     PROJECT_VALIDATED = "project_validated"
     PROJECT_PROMOTED = "project_artifact_promoted"
     SCIENTIFIC_DECISION_RECORDED = "scientific_decision_recorded"
+    REQUESTED_OBSERVABLE_DECLARED = "requested_observable_declared"
     WORKFLOW_PLANNED = "command_workflow_planned"
     COMMAND_COMPILED = "command_compiled"
     COMMAND_INSPECTED = "command_inspected"

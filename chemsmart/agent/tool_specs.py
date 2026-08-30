@@ -761,6 +761,64 @@ def build_command_compiled_tool_surface(
             ("skill_id",),
         ),
         _tool(
+            "declare_requested_observable",
+            (
+                "Restate the task's requested observables as your first "
+                "typed act, before planning: an identifier, the unit the "
+                "answer will be reported in, and one sentence of meaning "
+                "each. The host verifies the unit parses; the completion "
+                "gate later requires a delivered claim of matching "
+                "dimension for every declared observable -- kind and "
+                "unit are checked, values never are -- and an "
+                "undelivered declared observable is named in the "
+                "completion receipt like a plan output the chain could "
+                "not fulfil. A declaration cannot be rebound to a "
+                "different unit; later calls may add observables."
+            ),
+            {
+                "observables": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": (
+                        "The observables the task asks for, one entry " "each."
+                    ),
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "observable_id": {
+                                **_public_identifier(),
+                                "description": (
+                                    "Stable identifier for this "
+                                    "observable; it cannot be rebound "
+                                    "to a different unit later."
+                                ),
+                            },
+                            "unit": {
+                                **_string(),
+                                "description": (
+                                    "Unit the answer will be reported "
+                                    "in, from the typed unit vocabulary "
+                                    "(e.g. 'kcal/mol', 'eV', "
+                                    "'angstrom', '1' for a count)."
+                                ),
+                            },
+                            "meaning": {
+                                **_string(),
+                                "description": (
+                                    "One sentence saying what this "
+                                    "observable is, in scientific "
+                                    "terms."
+                                ),
+                            },
+                        },
+                        "required": ["observable_id", "unit", "meaning"],
+                        "additionalProperties": False,
+                    },
+                },
+            },
+            ("observables",),
+        ),
+        _tool(
             "plan_command_workflow",
             (
                 "Build a typed command DAG after binding scientific identity "
