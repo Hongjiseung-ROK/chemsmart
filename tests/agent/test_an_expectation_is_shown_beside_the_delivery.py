@@ -385,3 +385,90 @@ def test_the_report_shows_the_expectation_beside_the_delivery(tmp_path):
     assert "diverged" in report
     assert "sterics put the trans isomer lower" in report
     assert "displayed, never scored" in report
+
+
+def test_a_range_is_tested_beside_the_sign(tmp_path):
+    """Direction is the easy half; scale is the half that gets away.
+
+    Pinned to the pattern four live sessions showed: every sign a
+    session recorded held, and every magnitude range it stated in
+    prose was missed -- 1-2 kcal/mol delivered 0.669, 0.1-0.3 V
+    delivered 0.45 and 0.63, 0-15 kcal/mol delivered 21.9. A field
+    that only takes signs records the half the subject gets right.
+    """
+
+    host = _host(tmp_path)
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "isomerization_energy",
+                "unit": "kcal/mol",
+                "meaning": "E(trans) - E(cis)",
+                "expected_sign": "positive",
+                "expected_low": 1.0,
+                "expected_high": 2.0,
+                "expectation_basis": "the cis effect, at about 1-2 kcal/mol",
+            }
+        ],
+    )
+    source = _deliver(host, DELIVERED_KCAL)
+    _complete(host, source)
+    (row,) = _last_completion_payload(host)["declared_observable_predictions"]
+    # The sign held and the range did not; both were stated, so the
+    # row diverges and says what was expected.
+    assert row["expected_sign"] == "positive"
+    assert row["expected_low"] == pytest.approx(1.0)
+    assert row["agreement"] == "diverged"
+
+
+def test_a_range_in_another_unit_is_not_converted(tmp_path):
+    host = _host(tmp_path)
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "isomerization_energy",
+                "unit": "kJ/mol",
+                "meaning": "E(trans) - E(cis)",
+                "expected_low": 1.0,
+                "expected_high": 2.0,
+                "expectation_basis": "stated in kJ/mol",
+            }
+        ],
+    )
+    source = _deliver(host, DELIVERED_KCAL)
+    _complete(host, source)
+    (row,) = _last_completion_payload(host)["declared_observable_predictions"]
+    assert row["agreement"] == "not_comparable"
+
+
+def test_half_a_range_is_refused(tmp_path):
+    host = _host(tmp_path)
+    with pytest.raises(ContractError, match="both ends"):
+        _declare(
+            host,
+            [
+                {
+                    "observable_id": "isomerization_energy",
+                    "unit": "kcal/mol",
+                    "meaning": "E(trans) - E(cis)",
+                    "expected_low": 1.0,
+                    "expectation_basis": "half a range",
+                }
+            ],
+        )
+    with pytest.raises(ContractError, match="below expected_high"):
+        _declare(
+            host,
+            [
+                {
+                    "observable_id": "isomerization_energy",
+                    "unit": "kcal/mol",
+                    "meaning": "E(trans) - E(cis)",
+                    "expected_low": 2.0,
+                    "expected_high": 1.0,
+                    "expectation_basis": "inverted",
+                }
+            ],
+        )

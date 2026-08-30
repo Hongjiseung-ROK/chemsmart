@@ -1897,18 +1897,27 @@ class CommandCompiledToolHostV1:
                 continue
             expected_sign = str(item.get("expected_sign", "")).strip().lower()
             basis = str(item.get("expectation_basis", "")).strip()
+            low = item.get("expected_low")
+            high = item.get("expected_high")
+            if (low is None) != (high is None):
+                raise ContractError(
+                    "an expected range needs both ends: expected_low and "
+                    "expected_high, in the observable's own unit"
+                )
+            if low is not None and float(low) >= float(high):
+                raise ContractError("expected_low must be below expected_high")
             if expected_sign and expected_sign not in {"positive", "negative"}:
                 raise ContractError(
                     "expected_sign is 'positive' or 'negative'; the "
                     "vocabulary grows only when a loss class earns a new "
                     "comparator"
                 )
-            if expected_sign and not basis:
+            if (expected_sign or low is not None) and not basis:
                 raise ContractError(
-                    "an expected sign requires expectation_basis: what the "
-                    "expectation rests on. A sign without a reason is a "
-                    "coin flip, and the record would carry it as though it "
-                    "were reasoning"
+                    "an expectation requires expectation_basis: what it "
+                    "rests on. An expectation without a reason is a coin "
+                    "flip, and the record would carry it as though it were "
+                    "reasoning"
                 )
             record = {
                 "observable_id": observable_id,
@@ -1916,9 +1925,13 @@ class CommandCompiledToolHostV1:
                 "dimension": tuple(int(value) for value in dimension),
                 "meaning": meaning,
             }
+            if expected_sign or low is not None:
+                record["expectation_basis"] = basis
             if expected_sign:
                 record["expected_sign"] = expected_sign
-                record["expectation_basis"] = basis
+            if low is not None:
+                record["expected_low"] = float(low)
+                record["expected_high"] = float(high)
             self.requested_observable_declarations[observable_id] = record
             declared.append(record)
         if declared:
@@ -2019,7 +2032,7 @@ class CommandCompiledToolHostV1:
             for observable_id, record in (
                 self.requested_observable_declarations.items()
             )
-            if record.get("expected_sign")
+            if record.get("expected_sign") or "expected_low" in record
         }
         if not predicted:
             return ()
@@ -2046,7 +2059,9 @@ class CommandCompiledToolHostV1:
         for observable_id, record in sorted(predicted.items()):
             row = {
                 "observable_id": observable_id,
-                "expected_sign": record["expected_sign"],
+                "expected_sign": record.get("expected_sign", ""),
+                "expected_low": record.get("expected_low", ""),
+                "expected_high": record.get("expected_high", ""),
                 "expectation_basis": record["expectation_basis"],
                 "delivered_claim_id": "",
                 "delivered_value": "",
@@ -2083,14 +2098,31 @@ class CommandCompiledToolHostV1:
                 row["delivered_claim_id"] = claim.claim_id
                 row["delivered_value"] = claim.display_value
                 row["delivered_unit"] = claim.display_unit
-                if value == 0.0:
-                    row["agreement"] = "not_comparable"
-                else:
-                    delivered_sign = "positive" if value > 0.0 else "negative"
+                # Every stated expectation is tested and all must hold.
+                # A range is tested only in the unit it was declared in;
+                # inventing a conversion here would be arithmetic the
+                # expectation never authorised.
+                verdicts = []
+                sign = record.get("expected_sign", "")
+                if sign:
+                    verdicts.append(
+                        value != 0.0
+                        and (
+                            ("positive" if value > 0.0 else "negative") == sign
+                        )
+                    )
+                if "expected_low" in record:
+                    if claim.display_unit == record["unit"]:
+                        verdicts.append(
+                            record["expected_low"]
+                            <= value
+                            <= record["expected_high"]
+                        )
+                    else:
+                        verdicts.append(None)
+                if verdicts and None not in verdicts:
                     row["agreement"] = (
-                        "agreed"
-                        if delivered_sign == record["expected_sign"]
-                        else "diverged"
+                        "agreed" if all(verdicts) else "diverged"
                     )
             elif len(matches) > 1:
                 row["delivered_claim_id"] = ",".join(
@@ -7829,14 +7861,18 @@ class CommandCompiledToolHostV1:
                     "",
                     PREDICTIONS_HEADING,
                     "",
-                    "| Observable | Expected sign | Delivered | Unit | "
+                    "| Observable | Expected | Delivered | Unit | "
                     "Agreement | Basis |",
                     "|---|---|---:|---|---|---|",
                 )
             )
             for row in prediction_rows:
+                expected = row["expected_sign"]
+                if row["expected_low"] != "":
+                    band = f"{row['expected_low']}..{row['expected_high']}"
+                    expected = f"{expected} {band}".strip()
                 lines.append(
-                    f"| {row['observable_id']} | {row['expected_sign']} | "
+                    f"| {row['observable_id']} | {expected} | "
                     f"`{row['delivered_value']}` | {row['delivered_unit']} "
                     f"| {row['agreement']} | {row['expectation_basis']} |"
                 )

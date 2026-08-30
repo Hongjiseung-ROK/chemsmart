@@ -829,15 +829,37 @@ def build_command_compiled_tool_surface(
                                     "defect."
                                 ),
                             },
+                            "expected_low": {
+                                "type": "number",
+                                "description": (
+                                    "Optional, with expected_high: the "
+                                    "range you expect the delivered "
+                                    "magnitude to fall in, in this "
+                                    "observable's own unit. Direction "
+                                    "is the easy half of a prediction "
+                                    "and scale is the half that gets "
+                                    "away, so a range is worth "
+                                    "recording even when the sign feels "
+                                    "certain. Displayed, never scored."
+                                ),
+                            },
+                            "expected_high": {
+                                "type": "number",
+                                "description": (
+                                    "The upper end of that range, in "
+                                    "the same unit; both ends are given "
+                                    "together or neither is."
+                                ),
+                            },
                             "expectation_basis": {
                                 **_string(),
                                 "description": (
-                                    "Required when expected_sign is "
+                                    "Required when a sign or a range is "
                                     "given: what the expectation rests "
                                     "on (a mechanism, a trend, a "
-                                    "measured fact). A sign without a "
-                                    "reason is a coin flip and is "
-                                    "refused."
+                                    "measured fact). An expectation "
+                                    "without a reason is a coin flip "
+                                    "and is refused."
                                 ),
                             },
                         },
