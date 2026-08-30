@@ -209,8 +209,44 @@ def test_an_agreeing_expectation_reads_as_agreed(tmp_path):
     assert row["delivered_value"] == pytest.approx(DELIVERED_KCAL)
 
 
+def test_the_declared_identifier_resolves_a_shared_dimension(tmp_path):
+    """Three potentials in volts are three questions, not one.
+
+    Pinned to the first live use: a session declared a sign for each of
+    three volt-valued observables and named its claims after them. Every
+    row came back "not comparable" on dimension matching alone, with the
+    matching identifiers sitting right there.
+    """
+
+    host = _host(tmp_path)
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "e_benzoquinone_vs_she",
+                "unit": "V",
+                "meaning": "one-electron reduction potential vs SHE",
+                "expected_sign": "positive",
+                "expectation_basis": (
+                    "measured aqueous potentials place the quinone couple "
+                    "near or above 0 V vs SHE"
+                ),
+            }
+        ],
+    )
+    source = _deliver(
+        host, -0.351771717213137, unit="V", claim_id="e_benzoquinone_vs_she"
+    )
+    _deliver(host, -1.1101, unit="V", claim_id="e_nitrobenzene_vs_she")
+    _complete(host, source)
+    (row,) = _last_completion_payload(host)["declared_observable_predictions"]
+    # Two volt claims exist; the identifier says which one was predicted.
+    assert row["delivered_claim_id"] == "e_benzoquinone_vs_she"
+    assert row["agreement"] == "diverged"
+
+
 def test_an_ambiguous_dimension_is_not_guessed(tmp_path):
-    """Two scalar claims of one dimension identify no single number."""
+    """No matching identifier, two claims of the dimension: no guess."""
 
     host = _host(tmp_path)
     _declare(
@@ -225,7 +261,7 @@ def test_an_ambiguous_dimension_is_not_guessed(tmp_path):
             }
         ],
     )
-    source = _deliver(host, DELIVERED_KCAL)
+    source = _deliver(host, DELIVERED_KCAL, claim_id="delivered_gap")
     expression = host.dispatch(
         turn_id="turn-analysis",
         tool_name="evaluate_quantity_expression",
@@ -261,7 +297,7 @@ def test_an_ambiguous_dimension_is_not_guessed(tmp_path):
     _complete(host, source)
     (row,) = _last_completion_payload(host)["declared_observable_predictions"]
     assert row["agreement"] == "not_comparable"
-    assert "isomerization_energy" in row["delivered_claim_id"]
+    assert "delivered_gap" in row["delivered_claim_id"]
     assert "other_energy" in row["delivered_claim_id"]
 
 

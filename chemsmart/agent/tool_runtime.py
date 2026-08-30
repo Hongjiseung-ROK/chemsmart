@@ -2029,6 +2029,7 @@ class CommandCompiledToolHostV1:
             return values + (0,) * (9 - len(values))
 
         claims_by_dimension: dict[tuple[int, ...], list[Any]] = {}
+        claims_by_id: dict[str, Any] = {}
         for claim_record in self.analysis_claim_records.values():
             if (
                 getattr(claim_record, "task_spec_sha256", "")
@@ -2039,6 +2040,7 @@ class CommandCompiledToolHostV1:
                 claims_by_dimension.setdefault(
                     _padded(claim.dimension), []
                 ).append(claim)
+                claims_by_id.setdefault(claim.claim_id, claim)
 
         rows = []
         for observable_id, record in sorted(predicted.items()):
@@ -2051,14 +2053,30 @@ class CommandCompiledToolHostV1:
                 "delivered_unit": "",
                 "agreement": "not_comparable",
             }
-            matches = [
-                claim
-                for claim in claims_by_dimension.get(
-                    _padded(record["dimension"]), ()
-                )
-                if isinstance(claim.display_value, (int, float))
-                and not isinstance(claim.display_value, bool)
-            ]
+
+            def _scalar(claim: Any) -> bool:
+                return isinstance(
+                    claim.display_value, (int, float)
+                ) and not isinstance(claim.display_value, bool)
+
+            # The identifier first, the dimension only as a fallback.  A
+            # session names its claims after the observables it declared,
+            # and three potentials in volts are three different questions
+            # that a dimension cannot tell apart: the first live use
+            # declared a sign for each of three volt-valued observables
+            # and every row came back "not comparable" while the claims
+            # sat there carrying the very same identifiers.
+            named = claims_by_id.get(observable_id)
+            if named is not None and _scalar(named):
+                matches = [named]
+            else:
+                matches = [
+                    claim
+                    for claim in claims_by_dimension.get(
+                        _padded(record["dimension"]), ()
+                    )
+                    if _scalar(claim)
+                ]
             if len(matches) == 1:
                 claim = matches[0]
                 value = float(claim.display_value)
