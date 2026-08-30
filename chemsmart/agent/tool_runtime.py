@@ -191,6 +191,7 @@ from chemsmart.agent.report_format import (
     LITERATURE_CONSTANTS_HEADING,
     NO_DECISION_PREFIX,
     PARTIAL_STATUS_PREFIX,
+    PREDICTIONS_HEADING,
     RECOVERY_PREFIX,
     SOURCE_RECEIPT_COLUMN,
     SURVIVING_HEADING,
@@ -1894,12 +1895,30 @@ class CommandCompiledToolHostV1:
                         "identifier"
                     )
                 continue
+            expected_sign = str(item.get("expected_sign", "")).strip().lower()
+            basis = str(item.get("expectation_basis", "")).strip()
+            if expected_sign and expected_sign not in {"positive", "negative"}:
+                raise ContractError(
+                    "expected_sign is 'positive' or 'negative'; the "
+                    "vocabulary grows only when a loss class earns a new "
+                    "comparator"
+                )
+            if expected_sign and not basis:
+                raise ContractError(
+                    "an expected sign requires expectation_basis: what the "
+                    "expectation rests on. A sign without a reason is a "
+                    "coin flip, and the record would carry it as though it "
+                    "were reasoning"
+                )
             record = {
                 "observable_id": observable_id,
                 "unit": unit,
                 "dimension": tuple(int(value) for value in dimension),
                 "meaning": meaning,
             }
+            if expected_sign:
+                record["expected_sign"] = expected_sign
+                record["expectation_basis"] = basis
             self.requested_observable_declarations[observable_id] = record
             declared.append(record)
         if declared:
@@ -1971,6 +1990,96 @@ class CommandCompiledToolHostV1:
             )
             limitations.append(f"declared_observable:{observable_id}")
         return tuple(misses), tuple(limitations)
+
+    def _declared_observable_predictions(
+        self, *, task_spec_sha256: str
+    ) -> tuple[dict[str, Any], ...]:
+        """Restate each recorded expectation beside what was delivered.
+
+        A session that writes down what it expects before the evidence
+        exists has done the honest thing, and the host owes that
+        expectation the same visibility as the number that answers it:
+        a live session predicted one isomer lower on a steric argument,
+        the physics returned the other, and the record carried the
+        falsified premise beside the correct value with nothing joining
+        them.  What is compared is only the sign of a scalar claim of
+        the declared dimension, by arithmetic the host already owns.
+
+        Divergence is never a finding and never a limitation.  A wrong
+        prediction is a scientific result -- often the interesting one
+        -- while a finding means the chain itself broke; conflating
+        them would make a correct delivery look defective and teach
+        sessions to predict nothing.  When the dimension does not
+        identify one scalar claim the row says so rather than guessing
+        which number the expectation was about.
+        """
+
+        predicted = {
+            observable_id: record
+            for observable_id, record in (
+                self.requested_observable_declarations.items()
+            )
+            if record.get("expected_sign")
+        }
+        if not predicted:
+            return ()
+
+        def _padded(dimension: tuple[int, ...]) -> tuple[int, ...]:
+            values = tuple(int(value) for value in dimension)
+            return values + (0,) * (9 - len(values))
+
+        claims_by_dimension: dict[tuple[int, ...], list[Any]] = {}
+        for claim_record in self.analysis_claim_records.values():
+            if (
+                getattr(claim_record, "task_spec_sha256", "")
+                != task_spec_sha256
+            ):
+                continue
+            for claim in getattr(claim_record, "claims", ()):
+                claims_by_dimension.setdefault(
+                    _padded(claim.dimension), []
+                ).append(claim)
+
+        rows = []
+        for observable_id, record in sorted(predicted.items()):
+            row = {
+                "observable_id": observable_id,
+                "expected_sign": record["expected_sign"],
+                "expectation_basis": record["expectation_basis"],
+                "delivered_claim_id": "",
+                "delivered_value": "",
+                "delivered_unit": "",
+                "agreement": "not_comparable",
+            }
+            matches = [
+                claim
+                for claim in claims_by_dimension.get(
+                    _padded(record["dimension"]), ()
+                )
+                if isinstance(claim.display_value, (int, float))
+                and not isinstance(claim.display_value, bool)
+            ]
+            if len(matches) == 1:
+                claim = matches[0]
+                value = float(claim.display_value)
+                row["delivered_claim_id"] = claim.claim_id
+                row["delivered_value"] = claim.display_value
+                row["delivered_unit"] = claim.display_unit
+                if value == 0.0:
+                    row["agreement"] = "not_comparable"
+                else:
+                    delivered_sign = "positive" if value > 0.0 else "negative"
+                    row["agreement"] = (
+                        "agreed"
+                        if delivered_sign == record["expected_sign"]
+                        else "diverged"
+                    )
+            elif len(matches) > 1:
+                row["delivered_claim_id"] = ",".join(
+                    sorted(claim.claim_id for claim in matches)
+                )
+            rows.append(row)
+        return tuple(rows)
 
     def _consult_domain_skill(self, turn_id: str, values: dict) -> Any:
         """Return one skill body, as instructions the session now works under.
@@ -6699,6 +6808,12 @@ class CommandCompiledToolHostV1:
                 task_spec_sha256=task_spec_sha256
             )
         )
+        # Predictions ride the event beside the misses and never enter
+        # the receipt body: a falsified expectation is a result, not a
+        # defect, so it moves no status and no limitation.
+        declared_predictions = self._declared_observable_predictions(
+            task_spec_sha256=task_spec_sha256
+        )
         limitation_output_ids = tuple(
             sorted(set(tuple(limitation_output_ids) + declared_limitations))
         )
@@ -6741,6 +6856,7 @@ class CommandCompiledToolHostV1:
                 "critical_finding_count": len(completion.findings),
                 "limitation_output_ids": completion.limitation_output_ids,
                 "declared_observable_misses": declared_misses,
+                "declared_observable_predictions": declared_predictions,
                 "completion_kind": "scientific_toolchain",
                 "record": completion_record,
             },
@@ -7674,6 +7790,39 @@ class CommandCompiledToolHostV1:
                     f"| `{bound if bound is not None else ''}` | {unit} | "
                     f"{word} |"
                 )
+        prediction_rows = self._declared_observable_predictions(
+            task_spec_sha256=completion.task_spec_sha256
+        )
+        if prediction_rows:
+            # Beside the verdicts and never among them: a verdict is a
+            # criterion the delivery had to meet, an expectation is what
+            # a scientist thought beforehand, and only the first can
+            # fail.
+            lines.extend(
+                (
+                    "",
+                    PREDICTIONS_HEADING,
+                    "",
+                    "| Observable | Expected sign | Delivered | Unit | "
+                    "Agreement | Basis |",
+                    "|---|---|---:|---|---|---|",
+                )
+            )
+            for row in prediction_rows:
+                lines.append(
+                    f"| {row['observable_id']} | {row['expected_sign']} | "
+                    f"`{row['delivered_value']}` | {row['delivered_unit']} "
+                    f"| {row['agreement']} | {row['expectation_basis']} |"
+                )
+            lines.extend(
+                (
+                    "",
+                    "An expectation is displayed, never scored: a "
+                    "diverging row settles nothing and means the "
+                    "chemistry disagreed with the reasoning, which is a "
+                    "result the reader owns.",
+                )
+            )
         if decision is not None:
             sections = tuple(
                 zip(

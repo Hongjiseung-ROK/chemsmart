@@ -25,6 +25,7 @@ FINDINGS_HEADING = "## Analysis nodes that did not execute"
 ABSENCES_HEADING = "## Quantities the results do not carry"
 SURVIVING_HEADING = "## Surviving receipts (evidence, not claims)"
 VERDICTS_HEADING = "## Validation verdicts"
+PREDICTIONS_HEADING = "## Expected versus delivered"
 RECOVERY_PREFIX = "Recovery"
 
 EVIDENCE_COLUMN = "Evidence"

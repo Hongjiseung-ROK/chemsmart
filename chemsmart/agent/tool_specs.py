@@ -773,7 +773,10 @@ def build_command_compiled_tool_surface(
                 "undelivered declared observable is named in the "
                 "completion receipt like a plan output the chain could "
                 "not fulfil. A declaration cannot be rebound to a "
-                "different unit; later calls may add observables."
+                "different unit; later calls may add observables. You "
+                "may also record the sign you expect and what it rests "
+                "on; the host prints it beside the delivered number so "
+                "a reader sees both, and grades neither."
             ),
             {
                 "observables": {
@@ -808,6 +811,33 @@ def build_command_compiled_tool_surface(
                                     "One sentence saying what this "
                                     "observable is, in scientific "
                                     "terms."
+                                ),
+                            },
+                            "expected_sign": {
+                                "type": "string",
+                                "enum": ["positive", "negative", ""],
+                                "description": (
+                                    "Optional. The sign you expect the "
+                                    "delivered value to carry, recorded "
+                                    "before the evidence exists. The "
+                                    "host restates it beside the "
+                                    "delivered number and nothing else: "
+                                    "a prediction is displayed, never "
+                                    "scored, and a diverging one settles "
+                                    "nothing -- being wrong about the "
+                                    "chemistry is a result, not a "
+                                    "defect."
+                                ),
+                            },
+                            "expectation_basis": {
+                                **_string(),
+                                "description": (
+                                    "Required when expected_sign is "
+                                    "given: what the expectation rests "
+                                    "on (a mechanism, a trend, a "
+                                    "measured fact). A sign without a "
+                                    "reason is a coin flip and is "
+                                    "refused."
                                 ),
                             },
                         },
