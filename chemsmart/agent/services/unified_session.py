@@ -47,6 +47,7 @@ class UnifiedSessionRunner:
         request_context: RequestContextProvenanceV1,
         provider_budget: ProviderNetworkBudgetV1,
         should_stop: Callable[[], bool] | None = None,
+        reinjection_text: str = "",
     ) -> ToolLoopResultV1:
         if not messages or not all(
             isinstance(item, dict)
@@ -126,6 +127,7 @@ class UnifiedSessionRunner:
                     request_context=request_context,
                     provider_budget=provider_budget,
                     should_stop=should_stop,
+                    reinjection_text=reinjection_text,
                 )
             finally:
                 session.close()

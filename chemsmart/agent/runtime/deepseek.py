@@ -561,6 +561,25 @@ class DeepSeekV4ToolSession:
             self._history.append(deepcopy(result))
         self._outstanding_tool_call_ids = ()
 
+    def append_host_user_message(self, content: str) -> None:
+        """Append one host-authored user message between provider turns.
+
+        The vehicle for restating approved goal terms at a cadence
+        within a cycle: verbatim, already-displayed content only,
+        appended at the tail so the provider prefix cache survives.
+        Refused while tool results are outstanding, because the wire
+        contract places tool messages directly after their assistant
+        turn.
+        """
+
+        if self._outstanding_tool_call_ids:
+            raise ContractError(
+                "host messages may not interleave outstanding tool results"
+            )
+        if not isinstance(content, str) or not content.strip():
+            raise ContractError("a host user message requires text content")
+        self._history.append({"role": "user", "content": content})
+
     def public_history(self) -> list[dict[str, Any]]:
         """Return the only history shape permitted in events or artifacts."""
 

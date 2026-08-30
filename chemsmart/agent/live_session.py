@@ -991,6 +991,12 @@ def run_live_agent_session(
     # this call site is how the goal recency restatement -- built, tested
     # against the helper, and documented -- never reached a provider.
     messages = list(base_messages)
+    # The same restatement, verbatim, is what the loop re-appends at a
+    # fixed cadence within the cycle; a session without a goal sends ""
+    # and the vehicle is inert.
+    goal_recency_restatement = (
+        messages[2]["content"] if len(messages) == 3 else ""
+    )
     # The execution envelope bounds the provider-free execution episode
     # that a LATER `agent run` consumes; a live provider session is
     # planning-only by construction (execution_enabled raises above), so
@@ -1047,6 +1053,7 @@ def run_live_agent_session(
         request_context=request_context,
         provider_budget=provider_budget,
         should_stop=should_stop,
+        reinjection_text=goal_recency_restatement,
     )
 
     execution_review_record: dict[str, Any] = {}

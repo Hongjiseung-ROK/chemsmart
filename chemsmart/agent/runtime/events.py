@@ -84,6 +84,7 @@ class EventKind(str, Enum):
     WORKFLOW_NODE_STATE_CHANGED = "workflow_node_state_changed"
     TOOL_WAITING = "tool_waiting"
     TOOL_WOKE = "tool_woke"
+    HOST_CONTEXT_REINJECTED = "host_context_reinjected"
     RUNTIME_TERMINATED = "runtime_terminated"
 
 

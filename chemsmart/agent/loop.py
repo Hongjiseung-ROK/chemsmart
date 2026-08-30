@@ -112,6 +112,15 @@ _PROVIDER_POST_TURN_RESERVE_SECONDS = 30.0
 _PROVIDER_FAILURE_CONSECUTIVE_RETRIES = 2
 _PROVIDER_FAILURE_SESSION_BUDGET = 5
 
+#: Cadence, in completed tool turns, at which the loop re-appends the
+#: caller-supplied restatement of approved goal terms as a host-authored
+#: user message.  Measured plan-adherence work re-injected every ~5 steps
+#: and found influence decaying with trajectory length; the whole block
+#: travels verbatim because a partial plan measured worse than none.  The
+#: text is the already-displayed goal recency restatement -- never new
+#: directives -- and an empty text disables the vehicle entirely.
+_HOST_REINJECTION_TURN_INTERVAL = 5
+
 
 def estimate_request_input_tokens(request: Mapping[str, Any]) -> int:
     """Estimate the input size of a provider request before sending it.
@@ -175,6 +184,7 @@ class ToolLoopRunner:
         request_context: RequestContextProvenanceV1,
         provider_budget: ProviderNetworkBudgetV1,
         should_stop: Callable[[], bool] | None = None,
+        reinjection_text: str = "",
     ) -> ToolLoopResultV1:
         self._validate_run_contract(
             envelope=envelope,
@@ -232,6 +242,8 @@ class ToolLoopRunner:
         transport_ordinal = 0
         consecutive_provider_failures = 0
         total_provider_failures = 0
+        tool_turns_completed = 0
+        reinjection_ordinal = 0
         while True:
             if should_stop is not None and should_stop():
                 # The human withdrew the planning request.  Cancellation lands
@@ -705,6 +717,31 @@ class ToolLoopRunner:
                     }
                 )
             session.append_tool_results(tool_results)
+            tool_turns_completed += 1
+            if reinjection_text and (
+                tool_turns_completed % _HOST_REINJECTION_TURN_INTERVAL == 0
+            ):
+                # Tail-append only, after the turn's tool results are all
+                # in place: the provider prefix cache survives and the
+                # wire contract (tool messages directly after their
+                # assistant turn) is never interleaved.
+                session.append_host_user_message(reinjection_text)
+                reinjection_ordinal += 1
+                self.event_store.append(
+                    turn_id=envelope.turn_id,
+                    kind=EventKind.HOST_CONTEXT_REINJECTED.value,
+                    payload={
+                        "interval_turns": _HOST_REINJECTION_TURN_INTERVAL,
+                        "tool_turns_completed": tool_turns_completed,
+                        "ordinal": reinjection_ordinal,
+                        "content_sha256": canonical_sha256(reinjection_text),
+                        "reason": ("approved goal terms restated at cadence"),
+                    },
+                    idempotency_key=(
+                        f"host-reinjection:{envelope.turn_id}:"
+                        f"{reinjection_ordinal}"
+                    ),
+                )
         public_transcript = tuple(session.public_history())
         if _contains_private_reasoning(public_transcript):
             raise ContractError("provider sanitizer left private reasoning")
