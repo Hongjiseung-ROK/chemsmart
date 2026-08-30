@@ -987,10 +987,10 @@ def run_live_agent_session(
         bounded_review_requested=bounded_review_requested,
         task=task,
     )
-    messages = [
-        base_messages[0],
-        {"role": "user", "content": canonical_json(context)},
-    ]
+    # Consume the helper's list wholesale: rebuilding index 1 by hand at
+    # this call site is how the goal recency restatement -- built, tested
+    # against the helper, and documented -- never reached a provider.
+    messages = list(base_messages)
     # The execution envelope bounds the provider-free execution episode
     # that a LATER `agent run` consumes; a live provider session is
     # planning-only by construction (execution_enabled raises above), so
