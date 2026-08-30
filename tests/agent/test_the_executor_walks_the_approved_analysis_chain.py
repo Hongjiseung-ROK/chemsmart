@@ -474,12 +474,17 @@ def test_an_absent_quantity_settles_the_node_instead_of_crashing(tmp_path):
     assert CLAIMS_HEADING not in report
 
 
-def test_a_refused_completion_is_recorded_not_crashed(tmp_path):
-    """The l2b shape: every node executed, then the report renderer refused.
+def test_several_claim_records_complete_green(tmp_path):
+    """Two claim-rendering nodes are a whole delivery, not a broken one.
 
-    Two claim-rendering nodes are legal in the plan but the completion
-    binding admits one claim record; that refusal used to escape as a crash
-    after all the work was done. It is now durable evidence instead.
+    This shape used to crash, was repaired into a durable refusal, and the
+    refusal itself was still wrong: a live chain delivering two reduction
+    potentials and their difference recorded three claim records with every
+    node executed and every verdict passed, and the binding rule downgraded
+    it to "partial" over a finding about arity rather than chemistry -- in
+    a report that rendered all three records regardless. A chain that
+    breaks is named by its findings; the number of claim stages a healthy
+    plan chose says nothing about whether it broke.
     """
 
     from chemsmart.agent.scientific_toolchain import (
@@ -525,19 +530,19 @@ def test_a_refused_completion_is_recorded_not_crashed(tmp_path):
     assert all(
         record.state in {"executed", "blocked_unsupported"} for record in nodes
     )
-    assert status == "partial"
+    assert status == "completed"
     refusals = [
         event
         for event in executor.host.event_store.read_events()
         if event.kind == EventKind.WORKFLOW_ANALYSIS_COMPLETION_REFUSED.value
     ]
-    assert len(refusals) == 1
-    assert "at most one claim record" in refusals[0].payload["reason"]
-    # The envelope still delivers: a partial report rendering BOTH validated
-    # claim records, each under its own record label, with the refusal named.
-    assert report_path.endswith("partial-analysis-report.md")
+    assert refusals == []
+    # Both validated claim records render, each under its own label, in a
+    # report that no longer calls a whole delivery partial.
+    assert report_path.endswith("completed-analysis-report.md")
     report = Path(report_path).read_text()
-    assert "at most one claim record" in report
+    assert "at most one claim record" not in report
+    assert "Partial analysis" not in report
     assert report.count("Claim record:") == 2
     assert len(receipts) == 1
 

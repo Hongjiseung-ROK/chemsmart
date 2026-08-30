@@ -7385,16 +7385,24 @@ class CommandCompiledToolHostV1:
         if toolchain is not None:
             # The toolchain itself was the completion policy.  Claims are
             # rendered when a claim stage recorded them; a scientific decision
-            # is a session act and may legitimately not exist yet.  A green
-            # completion binds at most one of each; a partial completion
-            # renders every claim record that validated before the chain
-            # broke, each under its own record label.
-            if completion.status == "passed" and (
-                len(claim_records) > 1 or len(decisions) > 1
-            ):
+            # is a session act and may legitimately not exist yet.
+            #
+            # Several claim records are ordinary, not evidence of a break.
+            # A live chain delivered two reduction potentials and their
+            # difference from three claim stages, every node executed and
+            # every verdict passed, and refusing the render here downgraded
+            # that whole delivery to "partial" and manufactured a finding
+            # whose text was about a binding rule rather than about any
+            # chemistry -- while the report it then wrote rendered all
+            # three records anyway.  The refusal prevented nothing and
+            # mislabelled everything, so it is gone: each record renders
+            # under its own label whatever the status.  One decision still
+            # binds, because the renderer interprets through a single
+            # decision and silently picking the first of several is the
+            # ambiguity worth refusing.
+            if completion.status == "passed" and len(decisions) > 1:
                 raise ContractError(
-                    "a toolchain completion binds at most one claim record "
-                    "and one decision"
+                    "a toolchain completion binds at most one decision"
                 )
             return self._render_toolchain_analysis_report(
                 completion=completion,
