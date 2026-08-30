@@ -669,13 +669,27 @@ class ToolLoopRunner:
                         "error_class": type(exc).__name__,
                         "message": public_message,
                     }
-                    tool_event_kind = EventKind.TOOL_FAILED.value
                     tool_event_payload = {
                         "request_id": call_id,
                         "tool": tool_name,
                         "rule_ids": ("tool.dispatch.rejected",),
                         "error_class": type(exc).__name__,
                     }
+                    # A refusal message is an affordance: when the host
+                    # typed its cause and the next legal route, they ride
+                    # the rejection as fields the session can act on, and
+                    # the durable event carries the cause so refusals are
+                    # countable by class.
+                    refusal_cause = str(getattr(exc, "cause", "") or "")
+                    refusal_route = str(
+                        getattr(exc, "next_legal_route", "") or ""
+                    )
+                    if refusal_cause:
+                        result["cause"] = refusal_cause
+                        tool_event_payload["cause"] = refusal_cause
+                    if refusal_route:
+                        result["next_legal_route"] = refusal_route
+                    tool_event_kind = EventKind.TOOL_FAILED.value
                     tool_event_key = "tool-failed:" + call_id
                 if wait_emitted and wait_started is not None:
                     process_observation = _execution_process_observation(

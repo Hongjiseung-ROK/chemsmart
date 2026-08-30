@@ -54,8 +54,49 @@ ANALYSIS_VALIDATION_PREDICATES = (
 )
 
 
+#: The closed refusal-cause vocabulary. Every entry was earned by an
+#: observed loss class; a refusal outside the set raises without a
+#: cause rather than guessing one, and the set grows only when a new
+#: class has taught us its shape.
+TOOLCHAIN_REFUSAL_CAUSES = frozenset(
+    {
+        "expression_shape",
+        "unregistered_constant",
+        "expression_read_order",
+        "extraction_unit_dimension",
+        "expression_unit_dimension",
+    }
+)
+
+
 class ScientificToolchainContractError(ContractError):
-    """Raised when a proposed paper-level tool chain is inconsistent."""
+    """Raised when a proposed paper-level tool chain is inconsistent.
+
+    A refusal may carry a typed cause from the closed vocabulary and a
+    next-legal-route directive naming what would be admissible instead.
+    Both surface as structured fields on the tool rejection: a refusal
+    message is an affordance, and the steering belongs in a field the
+    session can act on, not only in prose. A route without a cause is
+    refused -- the class is what makes the steering auditable.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        cause: str = "",
+        next_legal_route: str = "",
+    ) -> None:
+        if cause and cause not in TOOLCHAIN_REFUSAL_CAUSES:
+            raise ContractError(
+                f"unknown toolchain refusal cause {cause!r}; the closed "
+                f"set is {sorted(TOOLCHAIN_REFUSAL_CAUSES)}"
+            )
+        if next_legal_route and not cause:
+            raise ContractError("a routed refusal names its cause")
+        super().__init__(message)
+        self.cause = cause
+        self.next_legal_route = next_legal_route
 
 
 def _identifier(value: str, field: str) -> str:
@@ -555,7 +596,15 @@ class AnalysisNodeIntentV1:
                 ) as exc:
                     raise ScientificToolchainContractError(
                         f"expression node "
-                        f"{str(item.get('node_id', '?'))!r}: {exc}"
+                        f"{str(item.get('node_id', '?'))!r}: {exc}",
+                        cause="expression_shape",
+                        next_legal_route=(
+                            "restate the arithmetic as nodes each taking "
+                            "its operation's own input count -- e.g. a "
+                            "many-term sum as chained two-input add nodes "
+                            "-- using only operations from the typed "
+                            "vocabulary"
+                        ),
                     ) from exc
             # A constant node names a host-owned registry entry; resolving
             # the name here makes an unregistered constant a plan-time
@@ -574,7 +623,14 @@ class AnalysisNodeIntentV1:
                 except UnknownLiteratureConstantError as exc:
                     raise ScientificToolchainContractError(
                         f"expression node "
-                        f"{str(item.get('node_id', '?'))!r}: {exc.args[0]}"
+                        f"{str(item.get('node_id', '?'))!r}: {exc.args[0]}",
+                        cause="unregistered_constant",
+                        next_legal_route=(
+                            "select a registered constant from the set "
+                            "the message lists, or compute the value from "
+                            "delivered quantities; a literal stays "
+                            "recorded as model-authored"
+                        ),
                     ) from exc
             # An expression node's inputs are resolved in list order while
             # the run evaluates, so a node placed before the node it reads
@@ -605,7 +661,13 @@ class AnalysisNodeIntentV1:
                         "analysis input provides. Expression nodes are "
                         "evaluated in the order given, so every node must "
                         "appear after the nodes and inputs it reads; "
-                        f"available at {node_id!r}: {sorted(available)}"
+                        f"available at {node_id!r}: {sorted(available)}",
+                        cause="expression_read_order",
+                        next_legal_route=(
+                            "reorder the expression nodes so each appears "
+                            "after everything it reads, or add the "
+                            "missing name as an analysis input"
+                        ),
                     )
                 available.add(node_id)
             declared = sorted({item.output_id for item in self.outputs})
@@ -842,7 +904,14 @@ def build_scientific_toolchain_plan(
                     "coordinate values, for example, are positional numbers "
                     "in the scan's own coordinate unit; a physical distance "
                     "or angle is measured from a geometry with the "
-                    "distance/angle/dihedral operations instead."
+                    "distance/angle/dihedral operations instead.",
+                    cause="extraction_unit_dimension",
+                    next_legal_route=(
+                        "declare the output in the selector's own "
+                        "dimension, or measure the physical coordinate "
+                        "from the delivered geometry with the "
+                        "distance/angle/dihedral operations"
+                    ),
                 )
 
     analysis_output_units = {
@@ -890,7 +959,14 @@ def build_scientific_toolchain_plan(
             except QuantityExpressionError as exc:
                 raise ScientificToolchainContractError(
                     f"expression node {expression_id!r} on "
-                    f"{node.node_id!r}: {exc}"
+                    f"{node.node_id!r}: {exc}",
+                    cause="expression_unit_dimension",
+                    next_legal_route=(
+                        "align the operation's input dimensions with its "
+                        "dimension rule, or route the value through an "
+                        "explicit conversion or domain-conversion "
+                        "operation"
+                    ),
                 ) from exc
         for output in node.outputs:
             computed = dimensions.get(output.output_id)
@@ -910,7 +986,14 @@ def build_scientific_toolchain_plan(
                     f"{canonical_unit_for_dimension(computed)!r}. The "
                     "declared unit is checkable from the plan alone; the "
                     "alternative is a claim render failing after every "
-                    "engine has finished."
+                    "engine has finished.",
+                    cause="expression_unit_dimension",
+                    next_legal_route=(
+                        "declare the output in a unit of the computed "
+                        "dimension the message names, or change the chain "
+                        "so it deliberately produces the declared "
+                        "dimension through an explicit conversion"
+                    ),
                 )
     normalized_analyses: list[AnalysisNodeIntentV1] = []
     for node in analyses:
