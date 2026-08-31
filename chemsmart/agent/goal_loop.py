@@ -155,6 +155,17 @@ def _settle_from_delivery(
             "the completion receipt names required outputs "
             "delivered without: " + ", ".join(delivery.limitation_output_ids),
         )
+    elif certified and delivery.unanswered_verdicts:
+        # The host itself rendered a verdict saying a delivered structure
+        # is not what the task required, and no recorded decision cites
+        # it. The required outputs are all present, so the completion
+        # gate is green and the goal is not "achieved" in any sense a
+        # scientist would sign: a human reads it.
+        settled = "returned_to_human"
+        reasons = (
+            "a validation verdict failed and no recorded decision cites "
+            "it: " + ", ".join(delivery.unanswered_verdicts),
+        )
     elif certified and delivery.claims:
         settled = "achieved"
         reasons = ("the host completion gate certified the delivery",)
@@ -267,6 +278,23 @@ _ADVERSARIAL_CLOSE = (
     "a finding to deliver, not a failure. "
 )
 
+_RECOVERY_ROUTE = (
+    " If deliverables names an unanswered failed verdict, the previous "
+    "run delivered a structure the host judged not to be what the task "
+    "required, and this cycle exists so that you can answer it. The "
+    "legal routes are ordinary work, not special permissions: step the "
+    "offending structure along the mode that is wrong with "
+    "displace_along_vibrational_mode and optimise again; change the "
+    "internal coordinate the mode moves with edit_molecular_geometry; "
+    "seed a transition-state search from a validated frequency-bearing "
+    "producer's Hessian; or, if you judge the delivery sound as it "
+    "stands, record a scientific decision citing that validation "
+    "receipt and say why. Recovering and standing by the result are "
+    "both answers. Leaving it unanswered is the one thing that is not, "
+    "and it returns the goal to the human. Nothing here tells you which "
+    "answer is right -- the physics does that, after you act."
+)
+
 _REFUSAL_AFFORDANCE = (
     "If the requested observable is unreachable from the admissible "
     "evidence, deliver what is reachable, retain the unreachable "
@@ -306,11 +334,12 @@ def _goal_terms_context(
             ),
             "revisions_remaining": int(max_revisions),
         },
-        "deliverables": {
-            "delivered_quantity_ids": (),
-            "limitation_output_ids": (),
-            "doubted_quantity_ids": (),
-        },
+        # Cycle 1 has delivered nothing yet, but it carries the same
+        # keys a wake does: one shape across every cycle is what lets a
+        # session read the record the same way each time.
+        "deliverables": _deliverables_record(
+            _AnalysisDelivery("", (), 0, 0, ())
+        ),
         "trajectory": (),
         "previous_run": "",
         "previous_run_outcome": {},
@@ -341,6 +370,7 @@ def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
         "delivered_quantity_ids": delivery.delivered_quantity_ids,
         "limitation_output_ids": delivery.limitation_output_ids,
         "doubted_quantity_ids": delivery.doubted_quantity_ids,
+        "unanswered_failed_verdicts": delivery.unanswered_verdicts,
     }
 
 
@@ -414,6 +444,7 @@ def _wake_context(
             "molecular identity, electronic state, or physical "
             "conditions, or exceeds the budgets above, returns to the "
             "human instead of running. "
+            + _RECOVERY_ROUTE
             + _OBSERVABLE_RESTATEMENT_ASK
             + _ADVERSARIAL_CLOSE
             + _REFUSAL_AFFORDANCE
@@ -444,6 +475,16 @@ class _AnalysisDelivery:
     doubted_quantity_ids: tuple[str, ...] = ()
     #: Every quantity a rendered claim delivered, by its own id.
     delivered_quantity_ids: tuple[str, ...] = ()
+    #: Host-rendered verdicts that failed and that no recorded decision
+    #: has cited. A failed verdict is the host saying the delivered
+    #: structure is not what the task required -- a minimum that is a
+    #: saddle, a transition state with the wrong imaginary-mode count.
+    #: It never made a goal partial and it never opened a cycle, so a
+    #: run could deliver every required output, display "failed" in its
+    #: own report, and settle achieved with budget in hand. A decision
+    #: that cites the validation receipt has answered it; one that does
+    #: not has left it open.
+    unanswered_verdicts: tuple[str, ...] = ()
 
 
 def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
@@ -459,6 +500,8 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
 
     completion_status = ""
     limitations: tuple[str, ...] = ()
+    failed_verdicts: list[tuple[str, str, str]] = []
+    decision_refs: set[str] = set()
     claims = 0
     decisions = 0
     receipts: list[str] = []
@@ -483,8 +526,14 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
             decisions += 1
             record = payload.get("record") or {}
             for reference in record.get("evidence_refs") or ():
-                if str(reference).startswith("doubt:"):
-                    doubt_refs.add(str(reference)[len("doubt:") :])
+                text_ref = str(reference)
+                if text_ref.startswith("doubt:"):
+                    doubt_refs.add(text_ref[len("doubt:") :])
+                # A decision that cites the validation receipt has looked
+                # at the failed verdict and stood by its delivery. That is
+                # the scientist's call to make, and citing the receipt is
+                # how it is made without the host grading prose.
+                decision_refs.add(text_ref.split(":")[-1])
         elif kind == "analysis_claims_recorded":
             claims += 1
             if digest:
@@ -505,15 +554,36 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
             )
             if digest:
                 receipts.append(digest)
+        elif kind == "scientific_validation_evaluated":
+            if digest:
+                receipts.append(digest)
+            if not bool(payload.get("all_rules_passed", True)):
+                node_id = str(payload.get("node_id") or "")
+                for rule in (payload.get("record") or {}).get(
+                    "rule_results"
+                ) or ():
+                    if not bool(rule.get("passed", True)):
+                        failed_verdicts.append(
+                            (
+                                node_id,
+                                str(rule.get("rule_id") or ""),
+                                digest,
+                            )
+                        )
         elif kind in {
             "result_quantities_extracted",
-            "scientific_validation_evaluated",
             "quantity_expression_evaluated",
             "thermochemistry_derived",
         }:
             if digest:
                 receipts.append(digest)
+    unanswered = tuple(
+        f"{node_id}/{rule_id}"
+        for node_id, rule_id, digest in failed_verdicts
+        if digest not in decision_refs
+    )
     return _AnalysisDelivery(
+        unanswered_verdicts=unanswered,
         completion_status=completion_status,
         limitation_output_ids=limitations,
         claims=claims,
@@ -865,6 +935,54 @@ def run_goal_loop(
             },
         )
 
+        run_delivery = _analysis_delivery(run_directory / "events.jsonl")
+        budgets = ledger.budgets(goal)
+        recovery_affordable = (
+            budgets.engine_calls_remaining > 0
+            and budgets.revisions_remaining > 0
+            and budgets.wall_seconds_remaining > 0
+        )
+        if (
+            _achieved(execute_result)
+            and run_delivery.unanswered_verdicts
+            and recovery_affordable
+        ):
+            # Every required output arrived and a host-rendered verdict
+            # says one of the structures behind them is not what the task
+            # required. Two live cases settled achieved here in one cycle
+            # with four engine calls unspent, so no session was ever asked
+            # whether it wanted to answer the failure it had just been
+            # shown. Withhold the word and wake another cycle while a
+            # recovery is still affordable; the session may recover, or
+            # cite the validation receipt in its decision and stand by
+            # the delivery. What it may not do is have the choice made
+            # for it by a settlement.
+            ledger.append(
+                "recovery_opened",
+                {
+                    "cycle": cycles,
+                    "verdicts": list(run_delivery.unanswered_verdicts),
+                    "engine_calls_remaining": (budgets.engine_calls_remaining),
+                },
+            )
+            continue
+        if _achieved(execute_result) and run_delivery.unanswered_verdicts:
+            # Same failure, nothing left to answer it with.
+            ledger.settle(
+                "returned_to_human",
+                reasons=(
+                    f"cycle {cycles}: a validation verdict failed and no "
+                    "budget remains to answer it: "
+                    + ", ".join(run_delivery.unanswered_verdicts),
+                ),
+            )
+            return GoalLoopResultV1(
+                goal_id=goal_id,
+                settlement="returned_to_human",
+                cycles=cycles,
+                revisions_admitted=revisions_admitted,
+                reasons=run_delivery.unanswered_verdicts,
+            )
         if _achieved(execute_result):
             ledger.settle(
                 "achieved",
@@ -880,7 +998,6 @@ def run_goal_loop(
                 revisions_admitted=revisions_admitted,
                 reasons=(),
             )
-        budgets = ledger.budgets(goal)
         if (
             budgets.revisions_remaining <= 0
             or budgets.engine_calls_remaining <= 0
