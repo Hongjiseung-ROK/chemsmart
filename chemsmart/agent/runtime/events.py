@@ -63,6 +63,7 @@ class EventKind(str, Enum):
     DATABASE_RECORD_EXTRACTED = "database_record_extracted"
     MOLECULAR_GEOMETRY_EDITED = "molecular_geometry_edited"
     MOLECULAR_ATOM_APPENDED = "molecular_atom_appended"
+    GEOMETRY_DISPLACED_ALONG_MODE = "geometry_displaced_along_mode"
     DOMAIN_SKILL_CONSULTED = "domain_skill_consulted"
     RUN_OUTCOME_INSPECTED = "run_outcome_inspected"
     WORKFLOW_ANALYSIS_REPORT_RENDERED = "workflow_analysis_report_rendered"

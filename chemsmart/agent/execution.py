@@ -1826,6 +1826,255 @@ class AtomAppendReceiptV1:
             raise ContractError("atom append digest mismatch")
 
 
+_MODE_DISPLACEMENT_ROLE = (
+    "starting structure displaced along a printed normal mode, "
+    "electronic state deliberately unbound"
+)
+
+
+@dataclass(frozen=True)
+class ModeDisplacementReceiptV1:
+    """Host-owned lineage of a geometry stepped along one normal mode.
+
+    When an optimisation converges onto a saddle, the move a chemist makes
+    is to step along the offending mode and relax again.  The displacement
+    vectors are the ones the program itself printed, and the host owns the
+    arithmetic; the model owns the mode and the amplitude.
+
+    Nothing here judges the choice.  A displaced geometry is a starting
+    structure, not a result: whether the step escaped the saddle is decided
+    by the optimisation that consumes it, in public, which is the same
+    discipline every other geometry-producing operation is held to.  Atom
+    count, order and formula are preserved by construction, so parent atom
+    *i* is displaced atom *i* and a later analysis can re-measure the same
+    coordinate on the relaxed structure.
+    """
+
+    schema_version: str
+    displaced_artifact_id: str
+    displaced_artifact_sha256: str
+    result_artifact_id: str
+    result_sha256: str
+    program: str
+    mode_index: int
+    mode_frequency_cm_1: float
+    mode_is_imaginary: bool
+    amplitude_angstrom: float
+    achieved_max_displacement_angstrom: float
+    moved_atoms: tuple[int, ...]
+    leading_atoms: tuple[int, ...]
+    atom_count: int
+    formula: str
+    min_interatomic_distance_angstrom: float
+    close_contact_pairs: tuple[dict[str, Any], ...]
+    connectivity_changed: bool
+    atom_order_note: str
+    starting_structure_role: str
+    status: str
+    receipt_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "chemsmart.mode-displacement.v1":
+            raise ContractError("unsupported mode displacement receipt")
+        for name, digest in (
+            ("displaced_artifact_sha256", self.displaced_artifact_sha256),
+            ("result_sha256", self.result_sha256),
+        ):
+            require_sha256(digest, name)
+        if self.mode_index < 1:
+            raise ContractError("a mode index is 1-based and positive")
+        if not (self.amplitude_angstrom > 0.0):
+            raise ContractError("a displacement amplitude is positive")
+        if not self.moved_atoms:
+            raise ContractError("a displacement moves at least one atom")
+        if self.starting_structure_role != _MODE_DISPLACEMENT_ROLE:
+            raise ContractError(
+                "a mode displacement receipt must state the "
+                "starting-structure role"
+            )
+        if self.status != "displaced":
+            raise ContractError("mode displacement must be displaced")
+        object.__setattr__(
+            self,
+            "close_contact_pairs",
+            tuple(
+                canonical_data(dict(item)) for item in self.close_contact_pairs
+            ),
+        )
+        body = {
+            key: value
+            for key, value in self.__dict__.items()
+            if key != "receipt_sha256"
+        }
+        if self.receipt_sha256 != canonical_sha256(body):
+            raise ContractError("mode displacement digest mismatch")
+
+
+def displace_trusted_geometry_along_mode(
+    *,
+    approved_workspace: str | Path,
+    displaced_artifact_id: str,
+    result_artifact: Any,
+    program: str,
+    mode_index: int,
+    amplitude_angstrom: float,
+) -> tuple[TrustedArtifactRefV1, ModeDisplacementReceiptV1]:
+    """Step a completed result's geometry along one of its own normal modes.
+
+    The modes are read from the program's own output, never supplied by the
+    model, and the displacement is applied to the structure that output
+    carries.  Refusals are structural only: a result with no printed modes,
+    a mode index the result does not have, a non-positive amplitude.  The
+    requested amplitude is never refused on scientific merit, because
+    grading it is what the consuming optimisation is for.
+    """
+
+    source = _require_current_artifact(result_artifact, "result")
+    program_name = str(program).strip().lower()
+    expected_kind = f"{program_name}_output"
+    if result_artifact.kind != expected_kind:
+        raise ContractError(
+            f"a mode displacement on {program_name} requires a "
+            f"{expected_kind} artifact"
+        )
+    index = int(mode_index)
+    if index < 1:
+        raise ContractError(
+            "mode_index is 1-based: mode 1 is the lowest printed mode, which "
+            "is the imaginary one on a saddle"
+        )
+    amplitude = float(amplitude_angstrom)
+    if not (amplitude > 0.0):
+        raise ContractError("amplitude_angstrom must be positive")
+
+    before = file_sha256(source)
+    try:
+        if program_name == "orca":
+            from chemsmart.io.orca.output import ORCAOutput
+
+            output = ORCAOutput(str(source))
+        else:
+            raise ContractError(
+                "mode displacement is declared for orca results only"
+            )
+        normal_termination = bool(output.normal_termination)
+        molecule = output.molecule
+        frequencies = list(output.vibrational_frequencies or ())
+    except ContractError:
+        raise
+    except (AttributeError, IndexError, OSError, TypeError, ValueError) as exc:
+        raise ContractError("the result is not readable") from exc
+    after = file_sha256(source)
+    if before != result_artifact.sha256 or after != before:
+        raise ContractError("the result changed while it was being read")
+    if not normal_termination:
+        raise ContractError(
+            "a mode displacement requires a normally terminated result"
+        )
+    modes = getattr(molecule, "vibrational_modes", None)
+    if not modes or not frequencies:
+        raise ContractError(
+            "this result prints no normal modes, so no displacement is "
+            "available from it; a frequency-bearing job is what carries them"
+        )
+    if index > len(frequencies):
+        raise ContractError(
+            f"the result carries {len(frequencies)} modes, so mode "
+            f"{index} does not exist"
+        )
+
+    frequency = float(frequencies[index - 1])
+    parent_symbols = [str(item) for item in molecule.chemical_symbols]
+    parent_positions = np.asarray(molecule.positions, dtype=float)
+    displaced = molecule.vibrationally_displaced(
+        index, amp=amplitude, normalize=True
+    )
+    symbols = [str(item) for item in displaced.chemical_symbols]
+    positions = np.asarray(displaced.positions, dtype=float)
+    if symbols != parent_symbols:
+        raise ContractError(
+            "a mode displacement preserves atom identity and order"
+        )
+
+    shifts = np.linalg.norm(positions - parent_positions, axis=1)
+    moved = tuple(
+        index_ + 1 for index_, shift in enumerate(shifts) if shift > 1.0e-8
+    )
+    if not moved:
+        raise ContractError(
+            "the displacement moved no atom; the mode is empty on this result"
+        )
+    ordered = sorted(
+        range(len(shifts)), key=lambda item: float(shifts[item]), reverse=True
+    )
+    leading = tuple(item + 1 for item in ordered[:3])
+    shortest, contacts = _close_contact_observations(symbols, positions)
+    connectivity_changed = set(
+        map(frozenset, _molecule_graph(molecule).edges)
+    ) != set(map(frozenset, _molecule_graph(displaced).edges))
+
+    payload = _xyz_payload(
+        symbols,
+        positions,
+        (
+            f"ChemSmart mode displacement; mode {index} at "
+            f"{frequency:.2f} cm^-1 stepped to a maximum atomic "
+            f"displacement of {amplitude:.4f} angstrom; "
+            f"{len(moved)} atoms moved; "
+            "starting structure, electronic state deliberately unbound"
+        ),
+    )
+    target = _target_below(
+        _absolute_workspace(approved_workspace),
+        "artifacts",
+        f"{require_identifier(displaced_artifact_id, 'artifact_id')}.xyz",
+    )
+    _write_exact_once(target, payload)
+    artifact = TrustedArtifactRefV1(
+        artifact_id=displaced_artifact_id,
+        kind="geometry_xyz",
+        sha256=file_sha256(target),
+        size_bytes=target.stat().st_size,
+        path=str(target),
+        cli_value=str(target),
+    )
+    body = {
+        "schema_version": "chemsmart.mode-displacement.v1",
+        "displaced_artifact_id": artifact.artifact_id,
+        "displaced_artifact_sha256": artifact.sha256,
+        "result_artifact_id": result_artifact.artifact_id,
+        "result_sha256": result_artifact.sha256,
+        "program": program_name,
+        "mode_index": index,
+        "mode_frequency_cm_1": float(f"{frequency:.6f}"),
+        "mode_is_imaginary": bool(frequency < 0.0),
+        "amplitude_angstrom": float(f"{amplitude:.6f}"),
+        # Recorded, not asserted: the library scales the mode so the largest
+        # per-atom displacement equals the amplitude, and a receipt that
+        # merely repeated the request would hide a convention change.
+        "achieved_max_displacement_angstrom": float(
+            f"{float(shifts.max()):.6f}"
+        ),
+        "moved_atoms": moved,
+        "leading_atoms": leading,
+        "atom_count": len(symbols),
+        "formula": displaced.get_chemical_formula(),
+        "min_interatomic_distance_angstrom": shortest,
+        "close_contact_pairs": contacts,
+        "connectivity_changed": connectivity_changed,
+        "atom_order_note": (
+            "atom count, order and formula are preserved: parent atom i is "
+            "displaced atom i"
+        ),
+        "starting_structure_role": _MODE_DISPLACEMENT_ROLE,
+        "status": "displaced",
+    }
+    receipt = ModeDisplacementReceiptV1(
+        **body, receipt_sha256=canonical_sha256(body)
+    )
+    return artifact, receipt
+
+
 def append_trusted_molecular_atom(
     *,
     approved_workspace: str | Path,

@@ -530,6 +530,76 @@ def build_command_compiled_tool_surface(
             ),
         ),
         _tool(
+            "displace_along_vibrational_mode",
+            (
+                "Step a completed result's geometry along one of its own "
+                "printed normal modes, producing a new starting structure. "
+                "This is the move to reach for when an optimisation "
+                "converges onto a saddle rather than a minimum, or when a "
+                "transition-state search returns the wrong number of "
+                "imaginary modes: read which mode is wrong, step along it, "
+                "and relax again. The displacement vectors are the ones the "
+                "program itself printed and the host owns the arithmetic; "
+                "you own which mode and how far. Mode 1 is the lowest "
+                "printed mode, which is the imaginary one on a saddle. Atom "
+                "count and order are preserved, so parent atom i is "
+                "displaced atom i. Displacing never infers an electronic "
+                "state, so bind charge and multiplicity explicitly "
+                "afterwards, and the optimisation that consumes the "
+                "structure is a new workflow needing its own review -- "
+                "whether the step escaped the saddle is decided there, by "
+                "physics, not here."
+            ),
+            {
+                "displaced_artifact_id": {
+                    **_public_identifier(),
+                    "description": (
+                        "Identifier for the displaced geometry this "
+                        "produces."
+                    ),
+                },
+                "result_artifact_id": {
+                    **_public_identifier(),
+                    "description": (
+                        "The completed, frequency-bearing result whose "
+                        "printed modes are used. A result with no "
+                        "frequencies carries no modes to step along."
+                    ),
+                },
+                "program": {
+                    **_string(),
+                    "description": (
+                        "The program that wrote the result; its modes are "
+                        "read with that program's reader."
+                    ),
+                },
+                "mode_index": {
+                    "type": "integer",
+                    "description": (
+                        "Which printed mode to step along, 1-based. Mode 1 "
+                        "is the lowest, which is the imaginary mode on a "
+                        "saddle."
+                    ),
+                },
+                "amplitude_angstrom": {
+                    "type": "number",
+                    "description": (
+                        "Largest atomic displacement, in angstrom, after "
+                        "the mode is scaled. A step is a starting guess: "
+                        "the consuming optimisation grades it, and nothing "
+                        "here refuses a value on scientific merit."
+                    ),
+                },
+            },
+            (
+                "displaced_artifact_id",
+                "result_artifact_id",
+                "program",
+                "mode_index",
+                "amplitude_angstrom",
+            ),
+        ),
+        _tool(
             "append_molecular_atom",
             (
                 "Add one atom to an identity-bound parent, placed by the "

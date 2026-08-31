@@ -116,6 +116,7 @@ from chemsmart.agent.execution import (
     compose_trusted_molecular_arrangement,
     derive_ready_node_ids,
     derive_trusted_molecular_species,
+    displace_trusted_geometry_along_mode,
     environment_review_summary,
     execution_path_placeholder,
     execution_server_profile_sha256,
@@ -1449,6 +1450,7 @@ class CommandCompiledToolHostV1:
             str, DatabaseRecordExtractionReceiptV1
         ] = {}
         self.geometry_edits: dict[str, GeometryEditReceiptV1] = {}
+        self.mode_displacements: dict[str, Any] = {}
         self.atom_appends: dict[str, AtomAppendReceiptV1] = {}
         self.invocations: dict[str, CanonicalCommandInvocationV1] = {}
         self.command_inspections: dict[str, CommandInspectionReceiptV1] = {}
@@ -1784,6 +1786,9 @@ class CommandCompiledToolHostV1:
             "derive_molecular_species": self._derive_molecular_species,
             "edit_molecular_geometry": self._edit_molecular_geometry,
             "append_molecular_atom": self._append_molecular_atom,
+            "displace_along_vibrational_mode": (
+                self._displace_along_vibrational_mode
+            ),
             "inspect_database_records": self._inspect_database_records,
             "extract_database_record_geometry": (
                 self._extract_database_record_geometry
@@ -2549,6 +2554,74 @@ class CommandCompiledToolHostV1:
                 "structure, and the stage that optimises it is a new workflow "
                 "needing its own review, where the coordinate you requested "
                 "can be measured against the relaxed result"
+            ),
+        }
+
+    def _displace_along_vibrational_mode(
+        self, turn_id: str, values: dict
+    ) -> Any:
+        """Step a completed result's geometry along one of its own modes.
+
+        This is the move a chemist makes when an optimisation converges onto
+        a saddle: read the offending mode, step along it, relax again. The
+        displacement vectors come from the program's own output and the host
+        owns the arithmetic; the model owns which mode and how far.
+
+        Nothing here decides whether the step was a good one. A displaced
+        geometry is a starting structure, and the optimisation that consumes
+        it is what grades the choice -- the same discipline every other
+        geometry-producing operation is held to.
+        """
+
+        if self.approved_workspace is None:
+            raise ContractError(
+                "a mode displacement requires an approved workspace to "
+                "write into"
+            )
+        displaced_artifact_id = self._unused_artifact_id(
+            values["displaced_artifact_id"]
+        )
+        result_artifact = self._artifact(values["result_artifact_id"])
+        artifact, receipt = displace_trusted_geometry_along_mode(
+            approved_workspace=self.approved_workspace,
+            displaced_artifact_id=displaced_artifact_id,
+            result_artifact=result_artifact,
+            program=str(values["program"]),
+            mode_index=int(values["mode_index"]),
+            amplitude_angstrom=float(values["amplitude_angstrom"]),
+        )
+        self.artifacts[artifact.artifact_id] = artifact
+        self.mode_displacements[artifact.sha256] = receipt
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.GEOMETRY_DISPLACED_ALONG_MODE.value,
+            payload={
+                "receipt_sha256": receipt.receipt_sha256,
+                "displaced_artifact_id": artifact.artifact_id,
+                "displaced_artifact_sha256": artifact.sha256,
+                "result_sha256": receipt.result_sha256,
+                "mode_index": receipt.mode_index,
+                "mode_frequency_cm_1": receipt.mode_frequency_cm_1,
+                "mode_is_imaginary": receipt.mode_is_imaginary,
+                "amplitude_angstrom": receipt.amplitude_angstrom,
+                "achieved_max_displacement_angstrom": (
+                    receipt.achieved_max_displacement_angstrom
+                ),
+                "leading_atoms": list(receipt.leading_atoms),
+                "connectivity_changed": receipt.connectivity_changed,
+            },
+            idempotency_key=("mode-displacement:" + receipt.receipt_sha256),
+        )
+        return {
+            "mode_displacement": receipt,
+            "artifact": artifact,
+            "next_action": (
+                "bind charge and multiplicity explicitly with "
+                "bind_scientific_identity -- a displacement does not change "
+                "or infer electronic state; the displaced geometry is a "
+                "starting structure, and the optimisation that relaxes it is "
+                "a new workflow needing its own review, where whether the "
+                "step escaped the saddle becomes an observation"
             ),
         }
 
