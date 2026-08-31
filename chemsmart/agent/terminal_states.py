@@ -36,6 +36,7 @@ NODE_TERMINAL_STATES = (
     "failed_nonconverged_scf",
     "failed_nonconverged_geometry",
     "failed_nonconverged_scan_step",
+    "failed_wrong_stationary_point",
     "timeout_terminated",
     "timeout_ambiguous",
     "memory_limit_terminated",
@@ -286,6 +287,15 @@ def _classify_failure(
         return "failed_nonconverged_geometry"
     if native_class == "scf_convergence":
         return "failed_nonconverged_scf"
+    # A search that converged cleanly onto the wrong kind of stationary
+    # point is not a generic native failure, and calling it one loses the
+    # only thing a reader can act on. A transition-state search that
+    # returns no imaginary mode has found a minimum; one that returns
+    # several has found a higher-order saddle. Both are answered by
+    # stepping along a mode and searching again, and neither is
+    # distinguishable from a crashed job under "failed_native".
+    if any(item.endswith(".ts_imaginary_mode_count") for item in findings):
+        return "failed_wrong_stationary_point"
     return "failed_native"
 
 

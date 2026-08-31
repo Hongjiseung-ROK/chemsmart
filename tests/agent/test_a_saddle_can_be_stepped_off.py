@@ -143,3 +143,55 @@ def test_a_non_orca_result_kind_is_refused(tmp_path):
             tmp_path,
             result_artifact=_result_artifact(_WATER_OPT, kind="xtb_output"),
         )
+
+
+def test_a_wrong_stationary_point_is_its_own_terminal_word():
+    """A TS that found a minimum is not a crashed job.
+
+    S12's transition-state search converged cleanly onto its own
+    ion-molecule complex: zero imaginary modes where one was required.
+    That landed in the generic `failed_native` bucket, indistinguishable
+    from a job that died in startup, so nothing downstream could key a
+    recovery on it.
+    """
+
+    from chemsmart.agent.terminal_states import (
+        NODE_TERMINAL_STATES,
+        _classify_failure,
+    )
+
+    assert "failed_wrong_stationary_point" in NODE_TERMINAL_STATES
+
+    def _classify(findings, **overrides):
+        kwargs = {
+            "jobtype": "ts",
+            "findings": findings,
+            "native_class": "",
+            "converged": True,
+            "reached": None,
+            "planned": None,
+        }
+        kwargs.update(overrides)
+        return _classify_failure(**kwargs)
+
+    assert (
+        _classify(("orca.result.ts_imaginary_mode_count",))
+        == "failed_wrong_stationary_point"
+    )
+    # Precedence: a real convergence or process failure is the more
+    # fundamental fact and still wins.
+    assert (
+        _classify(("orca.result.ts_imaginary_mode_count",), converged=False)
+        == "failed_nonconverged_geometry"
+    )
+    assert (
+        _classify(
+            (
+                "execution.process.timeout",
+                "orca.result.ts_imaginary_mode_count",
+            )
+        )
+        == "timeout_terminated"
+    )
+    # Everything else still reaches the generic word.
+    assert _classify(("orca.result.frequencies_missing",)) == "failed_native"
