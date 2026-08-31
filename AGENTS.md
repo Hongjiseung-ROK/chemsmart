@@ -211,8 +211,22 @@ analysis may re-measure the same coordinate on the relaxed result.
 ``append_molecular_atom`` is derivation's mirror: one atom, placed by
 the three internal coordinates that define its position against three
 anchor atoms; parent indices are unchanged and the appended atom is
-last. Both operations bind no electronic state — adding a hydrogen
-gives a cation or a radical depending on whether it brought an
+last. ``displace_along_vibrational_mode`` is the third of the family
+and the one a failed stationary point calls for: it steps a completed,
+frequency-bearing result's own geometry along one of the normal modes
+that result printed, which is what a chemist does when an optimisation
+converges onto a saddle rather than a minimum, or when a
+transition-state search returns the wrong number of imaginary modes.
+The displacement vectors are the program's own and the host owns the
+arithmetic, recording the largest displacement it actually achieved
+beside the one requested; the model owns which mode and how far. It is
+declared for ORCA results and is a starting-structure operation like
+the other two: refusals are structural only — a result printing no
+modes, a mode the result does not carry, a non-positive amplitude —
+and an amplitude is never refused on scientific merit, because whether
+the step escaped the saddle is decided by the optimisation that
+consumes it. All three operations bind no electronic state — adding a
+hydrogen gives a cation or a radical depending on whether it brought an
 electron — so charge and multiplicity are bound explicitly afterwards,
 the consuming stage is a new workflow, and the displayed review
 renders every hop of a built geometry's chain root-first, because the
