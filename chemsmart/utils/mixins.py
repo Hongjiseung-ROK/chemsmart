@@ -1431,56 +1431,20 @@ class ORCAFileMixin(FileMixin):
     def _orca_basis_values(self):
         """Read the last native or echoed ORCA ``%basis`` block.
 
-        The writer materialises a per-element basis here as
-        ``NewGTO <element> "<basis>" end`` while the route carries the
-        general set, so a mixed-basis study is expressible only through
-        this block.  Nothing parsed it back: ``read_settings`` returned
-        the defaults, preview validation compared a declared
-        ``heavy_elements`` against ``None``, and refused a correctly
-        generated input.  Four sessions attempting diffuse functions on
-        one halide were blocked that way and delivered an acknowledged
-        surrogate instead of the level they asked for.
-
-        Nesting matters here in a way it does not for ``%method``: each
-        ``NewGTO`` statement carries its own ``end`` and the block
-        carries another, so the terminator cannot simply be the first
-        ``end`` seen.
+        The parsing, the element ordering and the meaning of a missing
+        half all belong to ``ORCAPerElementBasis``; this only asks it.
         """
 
-        elements: list[str] = []
-        heavy_basis = None
-        in_block = False
-        echo_pattern = re.compile(r"^\|\s*\d+>\s?(.*)$")
-        for raw_line in self.contents:
-            stripped = raw_line.strip()
-            match = echo_pattern.match(stripped)
-            if match is not None:
-                stripped = match.group(1).strip()
-            stripped = stripped.split("#", 1)[0].strip()
-            if not stripped:
-                continue
-            fields = stripped.split()
-            if fields[0].casefold() == "%basis":
-                # A later block supersedes an earlier one, matching the
-                # "last block wins" reading used for %method.
-                elements, heavy_basis, in_block = [], None, True
-                fields = fields[1:]
-                if not fields:
-                    continue
-            if not in_block:
-                continue
-            if fields[0].casefold() == "end":
-                in_block = False
-                continue
-            if fields[0].casefold() == "newgto" and len(fields) >= 3:
-                elements.append(fields[1])
-                heavy_basis = fields[2].strip('"').strip("'")
-        if not elements or heavy_basis is None:
+        from chemsmart.io.orca.basis import ORCAPerElementBasis
+
+        specification = ORCAPerElementBasis.from_lines(self.contents)
+        if not specification.overrides:
             return {}
-        return {
-            "heavy_elements": elements,
-            "heavy_elements_basis": heavy_basis,
-        }
+        values = {"heavy_elements": specification.heavy_elements}
+        shared = specification.heavy_elements_basis
+        if shared is not None:
+            values["heavy_elements_basis"] = shared
+        return values
 
     @cached_property
     def _orca_geom_values(self):

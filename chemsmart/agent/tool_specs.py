@@ -462,7 +462,15 @@ def build_command_compiled_tool_surface(
                 "afterwards. Refusals are structural (an axis that is not a "
                 "bond, a ring a rigid motion would tear, collinear atoms); "
                 "for a coordinate inside a ring, use a constrained "
-                "optimisation or a relaxed scan instead."
+                "optimisation or a relaxed scan instead. The two atoms "
+                "must already be bonded to each other in the perceived "
+                "connectivity, because the axis is what tells the host "
+                "which side to carry: setting a distance between two "
+                "separate fragments -- a nucleophile and its substrate, "
+                "the approach in a transition-state guess -- is not an "
+                "edit at all, and compose_molecular_arrangement is the "
+                "operation that places unbound pieces at a chosen "
+                "contact and distance."
             ),
             {
                 "edited_artifact_id": {
@@ -2385,7 +2393,13 @@ def _workflow_node_schema() -> dict:
                 "items": {
                     "type": "object",
                     "properties": {
-                        "output_id": _string(),
+                        "output_id": _describe_string(
+                            "Name for one artifact this node produces. A "
+                            "consumer cites it as producer_output_id, and "
+                            "that edge resolves against this list, so a "
+                            "downstream node naming anything else is "
+                            "refused when planned."
+                        ),
                         "artifact_class": _string(),
                     },
                     "required": ["output_id", "artifact_class"],
@@ -2564,6 +2578,17 @@ def _analysis_intent_node_schema() -> dict:
             "outputs": {
                 "type": "array",
                 "minItems": 1,
+                "description": (
+                    "What this node produces, one entry per quantity a "
+                    "later node or claim can name. At least one is "
+                    "required, because a node that declares nothing "
+                    "produces nothing another node can cite and the "
+                    "plan is refused. An extraction node's outputs are "
+                    "the quantities its selectors read; a "
+                    "thermochemistry node's are the terms it derives; "
+                    "an expression node's are the values it computes. "
+                    "Downstream inputs cite these by output_id."
+                ),
                 "items": {
                     "type": "object",
                     "properties": {

@@ -321,15 +321,21 @@ class ORCAInputWriter(InputWriter):
         set on one centre than on its ligands.
         """
 
-        heavy_elements = getattr(self.settings, "heavy_elements", None) or ()
-        heavy_basis = getattr(self.settings, "heavy_elements_basis", None)
-        if not heavy_elements or not heavy_basis:
+        from chemsmart.io.orca.basis import ORCAPerElementBasis
+
+        specification = ORCAPerElementBasis.from_settings_fields(
+            basis=getattr(self.settings, "basis", None),
+            heavy_elements=getattr(self.settings, "heavy_elements", None),
+            heavy_elements_basis=getattr(
+                self.settings, "heavy_elements_basis", None
+            ),
+        )
+        lines = specification.block_lines()
+        if not lines:
             return
         logger.debug("Writing ORCA %basis block")
-        f.write("%basis\n")
-        for element in heavy_elements:
-            f.write(f'  NewGTO {element} "{heavy_basis}" end\n')
-        f.write("end\n")
+        for line in lines:
+            f.write(line)
 
     def _write_method_block(self, f):
         """Write the ``%method`` block carrying the frozen-core policy.
