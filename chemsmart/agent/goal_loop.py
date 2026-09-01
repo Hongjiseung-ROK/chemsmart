@@ -22,7 +22,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from chemsmart.agent._contracts import ContractError, canonical_data
 from chemsmart.agent.goal import (
@@ -293,6 +293,15 @@ _RECOVERY_ROUTE = (
     "both answers. Leaving it unanswered is the one thing that is not, "
     "and it returns the goal to the human. Nothing here tells you which "
     "answer is right -- the physics does that, after you act."
+    " Whatever you do about the structure, deliverables also names any "
+    "stale quantity: a number the previous run rendered from the "
+    "rejected result, whose arithmetic was sound and whose structure no "
+    "longer stands. Recovering the structure does not recover those "
+    "numbers. Re-derive each one on the result you end up standing "
+    "behind and render it as a claim, because an expression that is "
+    "evaluated and never claimed is not delivered; a live run recomputed "
+    "the right value, rendered nothing, and left the superseded number "
+    "as its answer."
 )
 
 _REFUSAL_AFFORDANCE = (
@@ -371,6 +380,7 @@ def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
         "limitation_output_ids": delivery.limitation_output_ids,
         "doubted_quantity_ids": delivery.doubted_quantity_ids,
         "unanswered_failed_verdicts": delivery.unanswered_verdicts,
+        "stale_quantity_ids": delivery.stale_quantity_ids,
     }
 
 
@@ -485,6 +495,94 @@ class _AnalysisDelivery:
     #: that cites the validation receipt has answered it; one that does
     #: not has left it open.
     unanswered_verdicts: tuple[str, ...] = ()
+    #: Delivered quantities whose own receipt lineage traces back to a
+    #: result a failed verdict rejected. A recovery cycle that replaces
+    #: the structure does not replace the numbers computed from the old
+    #: one, and the wake record used to name those numbers as delivered
+    #: in the same breath as the verdict invalidating them -- so a live
+    #: session cleared the verdict, recomputed the value into an
+    #: expression receipt, never rendered it as a claim, and settled
+    #: with the superseded number standing as the answer. Stale is not
+    #: wrong: the arithmetic held, the structure beneath it did not.
+    stale_quantity_ids: tuple[str, ...] = ()
+
+
+def _stale_quantity_ids(
+    *,
+    claim_pairs: Sequence[tuple[str, str]],
+    rejected_bindings: Sequence[tuple[str, str]],
+    expression_outputs: Sequence[tuple[str, str, tuple[str, ...]]],
+) -> tuple[str, ...]:
+    """Delivered quantities standing on a result its own verdict rejected.
+
+    The lineage is already in the stream and needs no new record: a
+    failed rule names the input bindings it read, each binding names the
+    receipt that produced it, and every expression names the receipts
+    behind each of its outputs.
+
+    What a verdict rejects is a *result*, not a number, so the seed
+    resolves to results before it propagates. A binding that names an
+    extraction receipt rejects that whole receipt, because every
+    quantity read out of one result describes the same structure. A
+    binding that names an expression output instead -- a rule reading an
+    imaginary-mode count some expression computed -- rejects the
+    receipts *that output* was computed from, not the expression's other
+    outputs: one live run computed a complexation energy and a barrier
+    in a single expression, and only the barrier stood on the structure
+    the verdict rejected.
+
+    Forward propagation then runs to a fixed point, conservatively in
+    the chain and precisely at the claim: a receipt carrying any
+    rejected output taints its consumers wholesale, because a receipt is
+    what a consumer cites, while a claim is judged on its own output id.
+    Over-naming a quantity costs a session one re-derivation;
+    under-naming one lets a superseded number stand as the delivery,
+    which is the loss this was written for. Nothing here is refused --
+    the record says which numbers no longer rest on anything, and the
+    session decides what to do.
+    """
+
+    sources_by_output = {
+        (receipt, output_id): sources
+        for receipt, output_id, sources in expression_outputs
+    }
+    tainted_outputs: set[tuple[str, str]] = set()
+    rejected_receipts: set[str] = set()
+    for receipt, quantity_id in rejected_bindings:
+        if not receipt:
+            continue
+        sources = sources_by_output.get((receipt, quantity_id))
+        if sources is None:
+            rejected_receipts.add(receipt)
+            continue
+        tainted_outputs.add((receipt, quantity_id))
+        rejected_receipts.update(item for item in sources if item)
+    tainted_receipts = set(rejected_receipts)
+    while True:
+        grew = False
+        for receipt, output_id, sources in expression_outputs:
+            if (receipt, output_id) in tainted_outputs:
+                continue
+            if not tainted_receipts.intersection(sources):
+                continue
+            tainted_outputs.add((receipt, output_id))
+            tainted_receipts.add(receipt)
+            grew = True
+        if not grew:
+            break
+    return tuple(
+        sorted(
+            {
+                quantity_id
+                for receipt, quantity_id in claim_pairs
+                if quantity_id
+                and (
+                    receipt in rejected_receipts
+                    or (receipt, quantity_id) in tainted_outputs
+                )
+            }
+        )
+    )
 
 
 def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
@@ -507,6 +605,8 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
     receipts: list[str] = []
     doubt_refs: set[str] = set()
     claim_pairs: list[tuple[str, str]] = []
+    rejected_bindings: list[tuple[str, str]] = []
+    expression_outputs: list[tuple[str, str, tuple[str, ...]]] = []
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -559,9 +659,15 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
                 receipts.append(digest)
             if not bool(payload.get("all_rules_passed", True)):
                 node_id = str(payload.get("node_id") or "")
-                for rule in (payload.get("record") or {}).get(
-                    "rule_results"
-                ) or ():
+                record = payload.get("record") or {}
+                bindings = {
+                    str(binding.get("input_id") or ""): (
+                        str(binding.get("source_receipt_sha256") or ""),
+                        str(binding.get("quantity_id") or ""),
+                    )
+                    for binding in record.get("input_bindings") or ()
+                }
+                for rule in record.get("rule_results") or ():
                     if not bool(rule.get("passed", True)):
                         failed_verdicts.append(
                             (
@@ -570,6 +676,14 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
                                 digest,
                             )
                         )
+                        # The rule read these receipts and rejected what
+                        # it found in them; everything else computed from
+                        # the same receipts describes the same rejected
+                        # structure.
+                        for input_id in rule.get("input_ids") or ():
+                            binding = bindings.get(str(input_id))
+                            if binding and binding[0]:
+                                rejected_bindings.append(binding)
         elif kind in {
             "result_quantities_extracted",
             "quantity_expression_evaluated",
@@ -577,10 +691,31 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
         }:
             if digest:
                 receipts.append(digest)
+            if kind == "quantity_expression_evaluated" and digest:
+                record = payload.get("record") or {}
+                for dependency in record.get("output_dependencies") or ():
+                    expression_outputs.append(
+                        (
+                            digest,
+                            str(dependency.get("output_id") or ""),
+                            tuple(
+                                str(item)
+                                for item in (
+                                    dependency.get("source_receipt_sha256s")
+                                    or ()
+                                )
+                            ),
+                        )
+                    )
     unanswered = tuple(
         f"{node_id}/{rule_id}"
         for node_id, rule_id, digest in failed_verdicts
         if digest not in decision_refs
+    )
+    stale = _stale_quantity_ids(
+        claim_pairs=claim_pairs,
+        rejected_bindings=rejected_bindings,
+        expression_outputs=expression_outputs,
     )
     return _AnalysisDelivery(
         unanswered_verdicts=unanswered,
@@ -603,10 +738,11 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
                 {
                     quantity_id
                     for _receipt, quantity_id in claim_pairs
-                    if quantity_id
+                    if quantity_id and quantity_id not in stale
                 }
             )
         ),
+        stale_quantity_ids=stale,
     )
 
 
@@ -672,6 +808,12 @@ def run_goal_loop(
     outcome = None
     cycles = 0
     revisions_admitted = 0
+    # Quantities a verdict invalidated in some earlier cycle and that no
+    # later cycle has re-rendered. It survives the cycle that raised it
+    # because the recovery happens in the next one: the run that fixes
+    # the structure is a different run from the one that delivered the
+    # number, and per-cycle facts alone cannot see across that gap.
+    stale_pending: set[str] = set()
 
     def _stopped() -> bool:
         return bool(stop_file and Path(stop_file).exists())
@@ -936,6 +1078,11 @@ def run_goal_loop(
         )
 
         run_delivery = _analysis_delivery(run_directory / "events.jsonl")
+        # A claim rendered clean this cycle answers an earlier staleness;
+        # a claim rendered stale again does not.
+        stale_pending.difference_update(run_delivery.delivered_quantity_ids)
+        stale_pending.update(run_delivery.stale_quantity_ids)
+        unrefreshed = tuple(sorted(stale_pending))
         budgets = ledger.budgets(goal)
         recovery_affordable = (
             budgets.engine_calls_remaining > 0
@@ -944,7 +1091,7 @@ def run_goal_loop(
         )
         if (
             _achieved(execute_result)
-            and run_delivery.unanswered_verdicts
+            and (run_delivery.unanswered_verdicts or unrefreshed)
             and recovery_affordable
         ):
             # Every required output arrived and a host-rendered verdict
@@ -962,26 +1109,36 @@ def run_goal_loop(
                 {
                     "cycle": cycles,
                     "verdicts": list(run_delivery.unanswered_verdicts),
+                    "stale_quantity_ids": list(unrefreshed),
                     "engine_calls_remaining": (budgets.engine_calls_remaining),
                 },
             )
             continue
-        if _achieved(execute_result) and run_delivery.unanswered_verdicts:
+        if _achieved(execute_result) and (
+            run_delivery.unanswered_verdicts or unrefreshed
+        ):
             # Same failure, nothing left to answer it with.
-            ledger.settle(
-                "returned_to_human",
-                reasons=(
+            if run_delivery.unanswered_verdicts:
+                reason = (
                     f"cycle {cycles}: a validation verdict failed and no "
                     "budget remains to answer it: "
-                    + ", ".join(run_delivery.unanswered_verdicts),
-                ),
-            )
+                    + ", ".join(run_delivery.unanswered_verdicts)
+                )
+                open_items = run_delivery.unanswered_verdicts
+            else:
+                reason = (
+                    f"cycle {cycles}: a verdict rejected the result these "
+                    "quantities were computed from and no budget remains "
+                    "to re-derive them: " + ", ".join(unrefreshed)
+                )
+                open_items = unrefreshed
+            ledger.settle("returned_to_human", reasons=(reason,))
             return GoalLoopResultV1(
                 goal_id=goal_id,
                 settlement="returned_to_human",
                 cycles=cycles,
                 revisions_admitted=revisions_admitted,
-                reasons=run_delivery.unanswered_verdicts,
+                reasons=open_items,
             )
         if _achieved(execute_result):
             ledger.settle(

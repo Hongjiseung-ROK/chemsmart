@@ -217,6 +217,7 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         "limitation_output_ids": (),
         "doubted_quantity_ids": (),
         "unanswered_failed_verdicts": (),
+        "stale_quantity_ids": (),
     }
     assert second["previous_run"] == "goals/goal-t1/runs/cycle-1"
     assert second["previous_run_outcome"]
@@ -233,6 +234,10 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         # what the task required now reaches the wake beside what was
         # delivered: it is exactly the gap the next action should follow.
         "unanswered_failed_verdicts",
+        # And beside it, the numbers that verdict took down with it --
+        # rendered from the rejected result, sound arithmetic, no
+        # structure left underneath.
+        "stale_quantity_ids",
     }
 
 
@@ -657,6 +662,7 @@ def test_the_wake_deliverables_come_from_the_previous_runs_stream(tmp_path):
         "limitation_output_ids": ("dg",),
         "doubted_quantity_ids": ("dg_solv",),
         "unanswered_failed_verdicts": (),
+        "stale_quantity_ids": (),
     }
 
 
