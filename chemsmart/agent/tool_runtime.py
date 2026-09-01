@@ -1901,8 +1901,18 @@ class CommandCompiledToolHostV1:
                     "be reported in, e.g. 'kcal/mol', 'eV', 'angstrom', "
                     "'1' for a count."
                 ) from None
+            # Both the committed declarations and the ones this call has
+            # already accepted: the commit is deferred to the end, so a
+            # duplicate inside one call is invisible to the dict.
             existing = self.requested_observable_declarations.get(
                 observable_id
+            ) or next(
+                (
+                    pending
+                    for pending in declared
+                    if pending["observable_id"] == observable_id
+                ),
+                None,
             )
             if existing is not None:
                 if tuple(existing["dimension"]) != tuple(
@@ -1952,8 +1962,20 @@ class CommandCompiledToolHostV1:
             if low is not None:
                 record["expected_low"] = float(low)
                 record["expected_high"] = float(high)
-            self.requested_observable_declarations[observable_id] = record
             declared.append(record)
+        # Commit nothing until every item has passed. The loop above used
+        # to write each record as it went, so a call that raised on a
+        # later item left the earlier ones in the host while the model was
+        # told the call was rejected -- and the event below, which is the
+        # only provenance this field has, was never appended. One live run
+        # declared seven observables, raised on the third, and the two
+        # carrying its entire headline reached the review packet, the
+        # approval bundle and the completion receipt while appearing in no
+        # declaration event anywhere.
+        for record in declared:
+            self.requested_observable_declarations[
+                str(record["observable_id"])
+            ] = record
         if declared:
             self.event_store.append(
                 turn_id=turn_id,
