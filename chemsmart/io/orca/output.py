@@ -691,6 +691,35 @@ class ORCAOutput(ORCAFileMixin):
         return None
 
     @property
+    def _last_thermochemistry_lines(self):
+        """Only the lines of the last complete thermochemistry block.
+
+        ORCA prints one thermochemistry block per Hessian, and a
+        transition-state search recomputes the Hessian as it goes: an
+        observed OptTS run printed four. A forward scan that returns its
+        first match therefore reports the *initial guess* geometry and
+        calls it the result.
+
+        Measured on that run: the first block's electronic energy sits
+        36.19 kcal/mol above the converged saddle's, and its zero-point
+        energy is 0.97 kcal/mol out. Worse, the accessors disagreed with
+        each other -- ``gibbs_free_energy`` already read the last block
+        through this section while ``electronic_energy`` and
+        ``zero_point_energy`` scanned from the top -- so one result
+        object returned a Gibbs energy from the saddle beside an
+        electronic energy from the guess, and any barrier composed from
+        the pair silently mixed two geometries.
+
+        Falling back to the whole file when no complete section is
+        parsed keeps a single-block output reading exactly as before.
+        """
+
+        section = self._last_complete_thermochemistry_section
+        if section is None:
+            return self.contents
+        return self.contents[section.start_index : section.end_index + 1]
+
+    @property
     def thermochemistry_jobtype(self):
         section = self._last_complete_thermochemistry_section
         if section is None or section.route_string is None:
@@ -3491,9 +3520,9 @@ class ORCAOutput(ORCAFileMixin):
         E(trans)- is the translational thermal energy.
         Default units are Hartree.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "INNER ENERGY" in line_i:
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Total thermal energy" in line_j:
                         line_j_elements = line_j.split()
                         internal_energy_in_Hartree = float(line_j_elements[-2])
@@ -3511,9 +3540,9 @@ class ORCAOutput(ORCAFileMixin):
         Total energy from the electronic structure calculation.
         Defaults to Hartree.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "INNER ENERGY" in line_i:
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Electronic energy" in line_j:
                         line_j_elements = line_j.split()
                         electronic_energy_in_Hartree = float(
@@ -3531,9 +3560,9 @@ class ORCAOutput(ORCAFileMixin):
         """E(ZPE)  - the zero temperature vibrational
         energy from the frequency calculation.
         Default units are Hartree."""
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if "INNER ENERGY" in line_i:
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Zero point energy" in line_j:
                         line_j_elements = line_j.split()
                         zpe_in_Hartree = float(line_j_elements[-4])
@@ -3648,9 +3677,9 @@ class ORCAOutput(ORCAFileMixin):
         kB is Boltzmann's constant.
         Default units are Hartree.
         """
-        for i, line_i in enumerate(self.contents):
+        for i, line_i in enumerate(self._last_thermochemistry_lines):
             if line_i == "ENTHALPY":
-                for line_j in self.contents[i:]:
+                for line_j in self._last_thermochemistry_lines[i:]:
                     if "Total Enthalpy" in line_j:
                         line_j_elements = line_j.split()
                         enthalpy_in_Hartree = float(line_j_elements[-2])
