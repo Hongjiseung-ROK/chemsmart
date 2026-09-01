@@ -786,6 +786,37 @@ def _settings_match(parsed, expected, *, native_input=None):
         if native_input is not None and field == "basis":
             if str(value).strip().lower() in route_tokens:
                 continue
+        if (
+            native_input is not None
+            and field == "jobtype"
+            and str(value).strip().lower() == "opt"
+            and str(getattr(parsed, "jobtype", "")).strip().lower() == "freq"
+        ):
+            # ORCA cannot optimise a molecule with no degrees of freedom,
+            # so the writer removes ``opt`` from a monoatomic route by
+            # design. The validator did not know that about its own host
+            # and reported the deliberate degradation as a mismatch,
+            # refusing a correct input red on every atomic species.
+            #
+            # Observed live: an F- + CH3CH2Cl profile planned one uniform
+            # opt+freq protocol across nine species -- which is what a
+            # chemist does -- and had exactly the two atoms, F- and Cl-,
+            # refused while all seven polyatomics passed. There is no
+            # plan that satisfies both the declaration and the writer,
+            # so the comparison is what has to give.
+            #
+            # Narrow on purpose: only this direction, and only when the
+            # input's own geometry carries a single atom.
+            from chemsmart.io.orca.input import ORCAInput
+
+            try:
+                monoatomic = ORCAInput(
+                    str(native_input)
+                ).molecule.is_monoatomic
+            except Exception:  # pragma: no cover - defensive
+                monoatomic = False
+            if monoatomic:
+                continue
         if native_input is not None and field == "additional_route_parameters":
             required = {
                 item.lower() for item in str(value).split() if item.strip()
