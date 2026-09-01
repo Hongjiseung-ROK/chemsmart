@@ -1172,7 +1172,8 @@ class CommandCompiledToolHostV1:
         #
         # The declarations are made on the planning session's host and the
         # gate runs on the provider-free executor's, which is a different
-        # process built from the approval bundle.  Left unseeded there, the
+        # host object built from the approval bundle rather than handed
+        # down from the session.  Left unseeded there, the
         # gate and the expectation rows took their empty branch on every
         # execution this product has ever performed, so a declaration was
         # advertised as a commitment and never once checked.  The approved

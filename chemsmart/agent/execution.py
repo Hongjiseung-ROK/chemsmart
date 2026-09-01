@@ -6601,9 +6601,10 @@ class WorkflowExecutionApprovalBundleV1:
     #: reviewed packet; None for every bundle approved before it existed.
     scientific_toolchain_plan: ScientificToolchainPlanV1 | None = None
     #: The requested observables the reviewed packet declared, verbatim.  The
-    #: provider-free executor builds its own tool host from this bundle, so
-    #: without them the completion gate and the expectation rows read an
-    #: empty declaration set and pass silently.
+    #: provider-free executor builds its own tool host -- a fresh object,
+    #: constructed from this bundle rather than inherited from the planning
+    #: session -- so without them the completion gate and the expectation
+    #: rows read an empty declaration set and pass silently.
     requested_observable_declarations: tuple[dict[str, Any], ...] = ()
 
     def __post_init__(self) -> None:

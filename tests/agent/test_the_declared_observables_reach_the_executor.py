@@ -10,8 +10,9 @@ expectation beside the number that answered it.
 
 Both read ``requested_observable_declarations`` off the tool host. The
 declarations are recorded on the *planning session's* host; both methods
-run on the *provider-free executor's* host, a separate process built
-fresh from the approval bundle. The field was in-memory only, so both
+run on the *provider-free executor's* host -- a different host object,
+built fresh from the approval bundle rather than inherited from the
+planning session, so it starts with an empty declaration set. The field was in-memory only, so both
 took their empty branch on every execution ever performed here: across
 61 recorded campaign runs ``declared_observable_misses`` was ``[]`` and
 ``declared_observable_predictions`` was ``0``, every time, including a

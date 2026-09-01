@@ -848,13 +848,14 @@ def build_command_compiled_tool_surface(
                 "on; the host prints it beside the delivered number so "
                 "a reader sees both, and grades neither. To print them "
                 "beside each other the host must know which claim "
-                "answers which observable, and it joins them by "
-                "identifier: give the claim that answers an observable "
-                "that observable's own id. Without that it falls back "
-                "to matching the dimension, which cannot separate two "
-                "energies or three potentials -- the ordinary shape of "
-                "a comparison -- and the row reports the expectation "
-                "with no number beside it rather than guess."
+                "answers which observable, and it joins them on the "
+                "claim's ``claim_id``: give the claim that answers an "
+                "observable that observable's own id as its claim_id. "
+                "Without that it falls back to matching the dimension, "
+                "which cannot separate two energies or three potentials "
+                "-- the ordinary shape of a comparison -- and the row "
+                "reports the expectation with no number beside it "
+                "rather than guess."
             ),
             {
                 "observables": {
@@ -1556,10 +1557,12 @@ def build_command_compiled_tool_surface(
                 "Bind reportable numerical claims to exact typed receipt "
                 "quantities. Supply identifiers and display units only; the "
                 "host copies and converts the values. Where a claim "
-                "answers an observable you declared, name it with that "
-                "observable's id: the expectation you recorded is "
-                "printed beside the delivered number only when the two "
-                "identifiers meet."
+                "answers an observable you declared, set its "
+                "``claim_id`` to that observable's id -- the "
+                "expectation you recorded is printed beside the "
+                "delivered number only when those two meet, and "
+                "``quantity_id`` names the receipt quantity, not the "
+                "observable."
             ),
             {
                 "task_spec_sha256": digest,
