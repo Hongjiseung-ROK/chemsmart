@@ -112,6 +112,24 @@ _PROVIDER_POST_TURN_RESERVE_SECONDS = 30.0
 _PROVIDER_FAILURE_CONSECUTIVE_RETRIES = 2
 _PROVIDER_FAILURE_SESSION_BUDGET = 5
 
+#: Seconds to wait before re-asking after a failed provider attempt, by
+#: consecutive-failure count. Three attempts fired back to back are not
+#: three observations of the network; they are one, repeated. A transient
+#: outage that outlives the burst therefore ends a session that could
+#: have continued.
+#:
+#: Observed live: three 30 s connect timeouts inside about 90 seconds
+#: ended a session that had made 73 tool calls, planned four workflows
+#: and composed both of its transition-state guess geometries. The
+#: endpoint answered in 2.7 s soon after, and the harness's own transport
+#: answered in 2.9 s -- nothing was broken but the timing.
+#:
+#: Spacing, never volume: the attempt budget is unchanged, so a provider
+#: that is genuinely down still ends the session, just not inside one
+#: blink. The registered lesson from a self-inflicted 429 is that a retry
+#: loop must read the error and wait, not ask harder.
+_PROVIDER_RETRY_BACKOFF_SECONDS = (5.0, 20.0)
+
 #: Cadence, in completed tool turns, at which the loop re-appends the
 #: caller-supplied restatement of approved goal terms as a host-authored
 #: user message.  Measured plan-adherence work re-injected every ~5 steps
@@ -171,10 +189,12 @@ class ToolLoopRunner:
         host: CommandCompiledToolHostV1,
         event_store: RuntimeEventStore,
         clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.host = host
         self.event_store = event_store
         self.clock = clock
+        self.sleep = sleep
 
     def run(
         self,
@@ -355,6 +375,13 @@ class ToolLoopRunner:
                 retry_decision = (
                     "retried_independently" if will_retry else "not_retried"
                 )
+                backoff_seconds = 0.0
+                if will_retry:
+                    index = min(
+                        consecutive_provider_failures - 1,
+                        len(_PROVIDER_RETRY_BACKOFF_SECONDS) - 1,
+                    )
+                    backoff_seconds = _PROVIDER_RETRY_BACKOFF_SECONDS[index]
                 protocol_observation = None
                 transport_observation = None
                 if isinstance(exc, DeepSeekProtocolError):
@@ -365,6 +392,9 @@ class ToolLoopRunner:
                         _public_transport_failure(session, exc)
                     )
                     transport_observation["retry_decision"] = retry_decision
+                    transport_observation["retry_backoff_seconds"] = (
+                        backoff_seconds
+                    )
                 self._emit_attempt(
                     envelope.turn_id,
                     attempt,
@@ -372,6 +402,8 @@ class ToolLoopRunner:
                     transport_observation=transport_observation,
                 )
                 if will_retry:
+                    if backoff_seconds:
+                        self.sleep(backoff_seconds)
                     continue
                 terminal_state = "failed"
                 final_text = str(exc)
