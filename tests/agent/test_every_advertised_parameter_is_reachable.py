@@ -34,7 +34,15 @@ from chemsmart.settings.capabilities import PROJECT_OWNED_PARAMETERS
 _SETTINGS_CLASSES = {
     "orca": (
         "chemsmart.jobs.orca.settings",
-        ("ORCAJobSettings", "ORCAIRCJobSettings", "ORCANEBJobSettings"),
+        (
+            "ORCAJobSettings",
+            "ORCAIRCJobSettings",
+            "ORCANEBJobSettings",
+            # A saddle search has its own class for the same reason irc
+            # and neb do, and the loader lifts a ``ts:`` section into it.
+            # That is asserted below by loading one, not assumed here.
+            "ORCATSJobSettings",
+        ),
     ),
     "gaussian": (
         "chemsmart.jobs.gaussian.settings",
@@ -94,3 +102,42 @@ def test_the_controls_that_were_lost_are_back_where_they_belong():
     ):
         assert control not in gaussian
         assert control in orca
+
+
+@pytest.mark.parametrize(
+    "jobtype,class_name",
+    [
+        ("ts", "ORCATSJobSettings"),
+        ("irc", "ORCAIRCJobSettings"),
+        ("neb", "ORCANEBJobSettings"),
+    ],
+)
+def test_the_loader_really_lifts_the_section_into_its_own_class(
+    tmp_path, jobtype, class_name
+):
+    """Membership in the list above is a claim; this is the evidence.
+
+    A jobtype's fields are legitimately advertised only if the project
+    loader lifts that section into the class carrying them. Listing the
+    class proves nothing on its own -- ``ts`` was in exactly that state,
+    its settings class present and its section not dispatched, so a
+    project setting a TS control was rejected with "Keyword 'inhess' is
+    not in list of keywords" while the capability list said nothing was
+    wrong.
+
+    Checking it by loading a project keeps the list above honest against
+    a dispatch table it does not share.
+    """
+
+    from chemsmart.settings.orca import YamlORCAProjectSettingsBuilder
+
+    path = tmp_path / "probe.yaml"
+    path.write_text(
+        f"{jobtype}:\n  functional: b3lyp\n  basis: def2-svp\n",
+        encoding="utf-8",
+    )
+
+    project = YamlORCAProjectSettingsBuilder(filename=str(path)).build()
+    settings = getattr(project, f"{jobtype}_settings")()
+
+    assert type(settings).__name__ == class_name

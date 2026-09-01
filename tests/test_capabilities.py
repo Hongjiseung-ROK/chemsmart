@@ -153,7 +153,12 @@ def test_declared_capabilities_preserve_project_ownership_contract():
         (
             "orca",
             "chemsmart.jobs.orca.settings",
-            ("ORCAJobSettings", "ORCAIRCJobSettings", "ORCANEBJobSettings"),
+            (
+                "ORCAJobSettings",
+                "ORCAIRCJobSettings",
+                "ORCANEBJobSettings",
+                "ORCATSJobSettings",
+            ),
         ),
         (
             "gaussian",

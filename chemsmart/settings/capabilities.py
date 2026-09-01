@@ -261,6 +261,20 @@ _ORCA_PROJECT_PARAMETERS = tuple(
             "response_method",
             "ri_approximation",
             "state_manifold",
+            # A saddle search's tuning controls. These are method
+            # rationale and reusable across molecules, which is what
+            # project YAML is for. Deliberately absent: the
+            # hybrid-Hessian atom subset and the ScanTS coordinate,
+            # which are facts about one molecule in one calculation and
+            # belong on the workflow node, by the same reasoning that
+            # keeps a scan's driven coordinate off the project; and the
+            # initial-Hessian file pair, which arrives as a producer
+            # edge and whose writer asserts the file exists.
+            "full_scan",
+            "numhess",
+            "recalc_hess",
+            "trust_radius",
+            "tssearch_type",
             "vpt2",
             "vpt2_anharmonic_displacement",
             "vpt2_hessian_cutoff",
@@ -270,7 +284,12 @@ _ORCA_PROJECT_PARAMETERS = tuple(
 _ORCA_PROJECT_PARAMETERS = _settable_parameters(
     _ORCA_PROJECT_PARAMETERS,
     "chemsmart.jobs.orca.settings",
-    ("ORCAJobSettings", "ORCAIRCJobSettings", "ORCANEBJobSettings"),
+    (
+        "ORCAJobSettings",
+        "ORCAIRCJobSettings",
+        "ORCANEBJobSettings",
+        "ORCATSJobSettings",
+    ),
 )
 
 # Gaussian exposes scientific controls the shared union omitted.

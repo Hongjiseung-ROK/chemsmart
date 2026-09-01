@@ -1483,6 +1483,81 @@ class ORCAFileMixin(FileMixin):
         }
 
     @cached_property
+    def _orca_geom_values(self):
+        """Read the last native or echoed ORCA ``%geom`` block.
+
+        A transition-state search's control parameters live here: whether
+        an initial Hessian is read and from which file, how often it is
+        recomputed, the trust radius, and the hybrid-Hessian atom subset.
+        The writer emits every one of them and nothing read them back, so
+        preview validation compared a declared setting against an absent
+        attribute and refused a correctly generated input red -- three
+        findings on the probe that found this. It is the same defect that
+        blocked four per-element-basis sessions, in the block a saddle
+        search actually uses.
+
+        ``Hybrid_Hess {...} end`` carries its own ``end`` inside the
+        block, so as with ``%basis`` the terminator is an ``end`` that
+        begins a line rather than the first one seen.
+        """
+
+        values: dict = {}
+        in_block = False
+        echo_pattern = re.compile(r"^\|\s*\d+>\s?(.*)$")
+        for raw_line in self.contents:
+            stripped = raw_line.strip()
+            match = echo_pattern.match(stripped)
+            if match is not None:
+                stripped = match.group(1).strip()
+            stripped = stripped.split("#", 1)[0].strip()
+            if not stripped:
+                continue
+            fields = stripped.split()
+            if fields[0].casefold() == "%geom":
+                # A later block supersedes an earlier one, matching the
+                # "last block wins" reading used for %basis and %method.
+                values, in_block = {}, True
+                fields = fields[1:]
+                if not fields:
+                    continue
+            if not in_block:
+                continue
+            if fields[0].casefold() == "end":
+                in_block = False
+                continue
+            keyword = fields[0].casefold()
+            argument = fields[1] if len(fields) >= 2 else None
+            try:
+                if keyword == "inhess" and argument is not None:
+                    values["inhess"] = argument.casefold() == "read"
+                elif keyword == "inhessname" and argument is not None:
+                    values["inhess_filename"] = argument.strip('"').strip("'")
+                elif keyword == "hybrid_hess":
+                    # ORCA numbers atoms from zero here and the settings
+                    # carry the chemist's 1-based indices, the same
+                    # convention the writer converts on the way out.
+                    values["hybrid_hess"] = True
+                    values["hybrid_hess_atoms"] = [
+                        int(token) + 1
+                        for token in re.findall(r"\d+", stripped)
+                    ]
+                elif keyword == "numhess" and argument is not None:
+                    values["numhess"] = argument.casefold() == "true"
+                elif keyword == "recalc_hess" and argument is not None:
+                    values["recalc_hess"] = int(argument)
+                elif keyword == "trust" and argument is not None:
+                    values["trust_radius"] = float(argument)
+                elif keyword == "fullscan" and argument is not None:
+                    values["full_scan"] = argument.casefold() == "true"
+            except ValueError:
+                # A %geom block also carries constraint and scan syntax
+                # this reader does not claim; a token that will not parse
+                # as the number its keyword implies is left unread rather
+                # than taking the whole block down.
+                continue
+        return values
+
+    @cached_property
     def _orca_solvent_block_lines(self):
         """Lines inside the last native or echoed ``%cpcm``/``%cosmors`` block.
 

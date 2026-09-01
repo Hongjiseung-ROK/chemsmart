@@ -284,6 +284,32 @@ class ORCAInput(ORCAFileMixin):
                     return False
         return None
 
+    def read_settings(self):
+        """Read ordinary ORCA settings, promoting a saddle search.
+
+        A transition-state search's ``%geom`` controls belong to the TS
+        settings class, so reading them back means returning that class --
+        exactly as an NEB input returns its own. Without the promotion the
+        parsed values have nowhere to land, and preview validation compares
+        each declared control against an absent attribute and refuses a
+        correctly generated input.
+        """
+
+        settings = super().read_settings()
+        if settings.jobtype != "ts":
+            return settings
+        from chemsmart.jobs.orca.settings import ORCATSJobSettings
+
+        return ORCATSJobSettings(
+            **settings.__dict__,
+            tssearch_type=(
+                "scants"
+                if "scants" in self.route_object.route_keywords
+                else "optts"
+            ),
+            **self._orca_geom_values,
+        )
+
 
 class ORCAQMMMInput(ORCAInput):
 
