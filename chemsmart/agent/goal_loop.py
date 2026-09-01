@@ -381,6 +381,7 @@ def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
         "doubted_quantity_ids": delivery.doubted_quantity_ids,
         "unanswered_failed_verdicts": delivery.unanswered_verdicts,
         "stale_quantity_ids": delivery.stale_quantity_ids,
+        "unclaimed_output_ids": delivery.unclaimed_output_ids,
     }
 
 
@@ -515,6 +516,14 @@ class _AnalysisDelivery:
     #: a recovery that fixed the structure and claimed nothing left the
     #: superseded number standing as the goal's answer.
     claims_rendered: bool = False
+    #: Quantities an expression exported and no claim ever rendered. The
+    #: host computed them from real program output and no reader of the
+    #: delivery can see them: across the recorded campaign 89 of 242
+    #: exported quantities were never claimed, and five goals exported
+    #: quantities and claimed none at all -- four of those settled
+    #: achieved with engine calls still unspent. An expression that is
+    #: evaluated and never claimed is not delivered.
+    unclaimed_output_ids: tuple[str, ...] = ()
 
 
 def _stale_quantity_ids(
@@ -770,7 +779,20 @@ def _analysis_delivery(
         artifact_by_receipt=artifact_by_receipt,
         inherited_rejected_artifacts=inherited_rejected_artifacts,
     )
+    # An expression's exported outputs, as opposed to the intermediate
+    # node_values it computed on the way: the receipt contract pins
+    # output_dependencies' ids to outputs' quantity_ids, in order, so the
+    # lineage already collected names exactly what was exported.
+    claimed_ids = {
+        quantity_id for _receipt, quantity_id in claim_pairs if quantity_id
+    }
+    exported_output_ids = {
+        output_id
+        for _digest, output_id, _sources in expression_outputs
+        if output_id
+    }
     return _AnalysisDelivery(
+        unclaimed_output_ids=tuple(sorted(exported_output_ids - claimed_ids)),
         unanswered_verdicts=unanswered,
         completion_status=completion_status,
         limitation_output_ids=limitations,
@@ -1152,7 +1174,11 @@ def run_goal_loop(
         )
         if (
             _achieved(execute_result)
-            and (run_delivery.unanswered_verdicts or unrefreshed)
+            and (
+                run_delivery.unanswered_verdicts
+                or unrefreshed
+                or run_delivery.unclaimed_output_ids
+            )
             and recovery_affordable
         ):
             # Every required output arrived and a host-rendered verdict
@@ -1171,12 +1197,17 @@ def run_goal_loop(
                     "cycle": cycles,
                     "verdicts": list(run_delivery.unanswered_verdicts),
                     "stale_quantity_ids": list(unrefreshed),
+                    "unclaimed_output_ids": list(
+                        run_delivery.unclaimed_output_ids
+                    ),
                     "engine_calls_remaining": (budgets.engine_calls_remaining),
                 },
             )
             continue
         if _achieved(execute_result) and (
-            run_delivery.unanswered_verdicts or unrefreshed
+            run_delivery.unanswered_verdicts
+            or unrefreshed
+            or run_delivery.unclaimed_output_ids
         ):
             # Same failure, nothing left to answer it with.
             if run_delivery.unanswered_verdicts:
@@ -1186,13 +1217,23 @@ def run_goal_loop(
                     + ", ".join(run_delivery.unanswered_verdicts)
                 )
                 open_items = run_delivery.unanswered_verdicts
-            else:
+            elif unrefreshed:
                 reason = (
                     f"cycle {cycles}: a verdict rejected the result these "
                     "quantities were computed from and no budget remains "
                     "to re-derive them: " + ", ".join(unrefreshed)
                 )
                 open_items = unrefreshed
+            else:
+                # The host computed these from real program output and no
+                # reader of the delivery can see them.
+                reason = (
+                    f"cycle {cycles}: these quantities were computed and "
+                    "never rendered as a claim, and no budget remains to "
+                    "deliver them: "
+                    + ", ".join(run_delivery.unclaimed_output_ids)
+                )
+                open_items = run_delivery.unclaimed_output_ids
             ledger.settle("returned_to_human", reasons=(reason,))
             return GoalLoopResultV1(
                 goal_id=goal_id,

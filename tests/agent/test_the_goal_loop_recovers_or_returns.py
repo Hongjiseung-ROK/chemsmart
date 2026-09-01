@@ -218,6 +218,7 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         "doubted_quantity_ids": (),
         "unanswered_failed_verdicts": (),
         "stale_quantity_ids": (),
+        "unclaimed_output_ids": (),
     }
     assert second["previous_run"] == "goals/goal-t1/runs/cycle-1"
     assert second["previous_run_outcome"]
@@ -238,6 +239,8 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         # rendered from the rejected result, sound arithmetic, no
         # structure left underneath.
         "stale_quantity_ids",
+        # And what the host computed and no claim ever showed a reader.
+        "unclaimed_output_ids",
     }
 
 
@@ -663,6 +666,7 @@ def test_the_wake_deliverables_come_from_the_previous_runs_stream(tmp_path):
         "doubted_quantity_ids": ("dg_solv",),
         "unanswered_failed_verdicts": (),
         "stale_quantity_ids": (),
+        "unclaimed_output_ids": (),
     }
 
 
