@@ -2044,6 +2044,18 @@ def _walk_constrain(name: str, schema: dict) -> dict:
     return updated
 
 
+def _describe_string(description: str) -> dict:
+    """A free-form string that states what it must join to.
+
+    The plan-time joins are enforced and were unstated, which is how a
+    finished nine-species profile lost every claim: the rule existed,
+    the refusal named it, and the field where the id gets chosen said
+    nothing. Point of use is where a sentence changes behaviour.
+    """
+
+    return {"type": "string", "description": description}
+
+
 def _string() -> dict:
     return {"type": "string"}
 
@@ -2090,21 +2102,38 @@ def _nullable_positive_number() -> dict:
     }
 
 
-def _public_identifier() -> dict:
+def _public_identifier(joins: str | None = None) -> dict:
+    """A public identifier, optionally stating what it must join to.
+
+    The spelling rule is shared by every identifier on this surface.
+    What an id must *match* is not: an extraction output names a
+    selector on its own node, a producer_output_id names an output on
+    another node, a validation rule names an input on its own node.
+    Those joins are enforced when the plan is checked, and a session
+    that learns of one from a refusal has already spent the engines.
+
+    A live nine-species reaction profile validated every node and then
+    lost every claim to exactly this, so the join belongs on the field
+    where the id is chosen rather than only in the error after it.
+    """
+
+    description = (
+        "Lower-case public identifier; use dots, dashes, or underscores "
+        "instead of spaces, parentheses, hashes, or placeholder syntax. "
+        "It must begin with a letter, so a name taken from a compound "
+        "whose locants come first needs a leading word: "
+        "'dfe-12-rotamers', not '12-difluoroethane'. Chemical notation is "
+        "mixed case and this field is not: unit symbols and quantity "
+        "names must be folded down, so write 'gap-adiab-ev' not "
+        "'gap-adiab-eV', 'delta-e' not 'dE', and 'ddg-compose' not "
+        "'compose-ddG'. Fold the case; do not drop the letters."
+    )
+    if joins:
+        description = f"{description} {joins}"
     return {
         "type": "string",
         "pattern": "^[a-z][a-z0-9_.-]*$",
-        "description": (
-            "Lower-case public identifier; use dots, dashes, or underscores "
-            "instead of spaces, parentheses, hashes, or placeholder syntax. "
-            "It must begin with a letter, so a name taken from a compound "
-            "whose locants come first needs a leading word: "
-            "'dfe-12-rotamers', not '12-difluoroethane'. Chemical notation is "
-            "mixed case and this field is not: unit symbols and quantity "
-            "names must be folded down, so write 'gap-adiab-ev' not "
-            "'gap-adiab-eV', 'delta-e' not 'dE', and 'ddg-compose' not "
-            "'compose-ddG'. Fold the case; do not drop the letters."
-        ),
+        "description": description,
     }
 
 
@@ -2276,7 +2305,20 @@ def _workflow_node_schema() -> dict:
                 ),
             },
             "internal_coordinates": _internal_coordinates_schema(),
-            "dependencies": {"type": "array", "items": _string()},
+            "dependencies": {
+                "type": "array",
+                "description": (
+                    "Node ids this node runs after. Two rules bind "
+                    "here and both are refused when planned: list the "
+                    "nodes in topological order, so every dependency "
+                    "appears earlier in this list than the node naming "
+                    "it; and every producer_node_id on this node's "
+                    "inputs must ALSO appear here, because a data edge "
+                    "does not imply the ordering edge -- a producer "
+                    "that is not a direct dependency is refused."
+                ),
+                "items": _string(),
+            },
             "inputs": {
                 "type": "array",
                 "items": {
@@ -2312,8 +2354,22 @@ def _workflow_node_schema() -> dict:
                         },
                         "artifact_id": _string(),
                         "artifact_class": _string(),
-                        "producer_node_id": _string(),
-                        "producer_output_id": _string(),
+                        "producer_node_id": _describe_string(
+                            "The node_id whose output this binding "
+                            "consumes. It must be a node earlier in "
+                            "this plan and must also be listed in this "
+                            "node's dependencies; naming a producer "
+                            "without the matching dependency is "
+                            "refused when planned."
+                        ),
+                        "producer_output_id": _describe_string(
+                            "Which of that producer's expected_outputs "
+                            "this binding reads, by its output_id. It "
+                            "must be an output_id the named producer "
+                            "itself declares -- the edge resolves "
+                            "against that node's own list, so a name "
+                            "invented for the quantity is refused."
+                        ),
                     },
                     "required": [
                         "binding_id",
@@ -2422,6 +2478,14 @@ def _analysis_intent_node_schema() -> dict:
             },
             "dependencies": {
                 "type": "array",
+                "description": (
+                    "Ordering-only edges, named by node_id. Every id must "
+                    "be a node in this same plan -- a calculation node or "
+                    "another analysis node -- and an id that matches "
+                    "nothing is refused when planned. Data edges belong in "
+                    "inputs; use this only to sequence work that carries "
+                    "no value between the nodes."
+                ),
                 "items": _public_identifier(),
             },
             "artifact_id": {
@@ -2457,8 +2521,24 @@ def _analysis_intent_node_schema() -> dict:
                                 "calculation's typed result-reader output."
                             ),
                         },
-                        "producer_node_id": _public_identifier(),
-                        "producer_output_id": _public_identifier(),
+                        "producer_node_id": _public_identifier(
+                            "The node_id producing this input. It must "
+                            "name a node in this same plan, and "
+                            "source_kind must match what that node is: "
+                            "program_output for a calculation node, "
+                            "analysis_output for an analysis node. A "
+                            "producer nothing declares is refused when "
+                            "planned."
+                        ),
+                        "producer_output_id": _public_identifier(
+                            "Which of that producer's declared outputs "
+                            "this input reads, named by its output_id. It "
+                            "must be an output the named producer itself "
+                            "declares -- naming the quantity you want "
+                            "rather than the output that carries it is "
+                            "refused when planned, because the edge is "
+                            "resolved against the producer's own list."
+                        ),
                     },
                     "required": [
                         "input_id",
@@ -2487,7 +2567,18 @@ def _analysis_intent_node_schema() -> dict:
                 "items": {
                     "type": "object",
                     "properties": {
-                        "output_id": _public_identifier(),
+                        "output_id": _public_identifier(
+                            "Public name for this output. When the node "
+                            "carries more than one selector, each "
+                            "output_id must equal one of this node's own "
+                            "selector quantity_ids: with several "
+                            "selectors the host cannot tell which "
+                            "extracted quantity an unmatched name meant, "
+                            "so it is refused when planned and the "
+                            "message names the selectors available. "
+                            "Downstream inputs cite this id as "
+                            "producer_output_id."
+                        ),
                         "quantity_kind": _public_identifier(),
                         "unit": _unit_string(
                             "Physical unit this output is declared in."
@@ -2568,6 +2659,18 @@ def _analysis_intent_node_schema() -> dict:
                         "input_ids": {
                             "type": "array",
                             "minItems": 1,
+                            "description": (
+                                "Which of this validation node's own "
+                                "declared inputs the predicate reads, by "
+                                "input_id. Every id must be an input_id "
+                                "listed on this same node -- not a "
+                                "quantity name, not an upstream output_id "
+                                "-- and a rule naming anything else is "
+                                "refused when planned, naming the rule "
+                                "and the unknown ids. Bind the value as "
+                                "an input first, then cite that input_id "
+                                "here."
+                            ),
                             "items": _public_identifier(),
                         },
                         "threshold": {"type": "number"},
