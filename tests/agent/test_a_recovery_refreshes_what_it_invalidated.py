@@ -32,6 +32,9 @@ _EXTRACTION = "1" * 64
 _EXPRESSION = "2" * 64
 _VALIDATION = "3" * 64
 _CLAIMS = "4" * 64
+#: The optimisation the extraction read. A verdict rejects the result,
+#: not the read of it, so this is what the rule keys on.
+_ARTIFACT = "e" * 64
 
 
 def _write(tmp_path, *events):
@@ -51,7 +54,11 @@ def _extraction():
         "payload": {
             "receipt_sha256": _EXTRACTION,
             "quantity_ids": ["e-cis", "freqs-cis"],
-            "record": {"artifact_id": "result.cis-opt.1"},
+            "artifact_sha256": _ARTIFACT,
+            "record": {
+                "artifact_id": "result.cis-opt.1",
+                "artifact_sha256": _ARTIFACT,
+            },
         },
     }
 
@@ -293,6 +300,7 @@ def test_a_sibling_output_of_the_same_expression_is_not_stale(tmp_path):
             "kind": "result_quantities_extracted",
             "payload": {
                 "receipt_sha256": complex_extract,
+                "artifact_sha256": "1" * 63 + "a",
                 "record": {"artifact_id": "result.complex-opt.1"},
             },
         },
@@ -300,6 +308,7 @@ def test_a_sibling_output_of_the_same_expression_is_not_stale(tmp_path):
             "kind": "result_quantities_extracted",
             "payload": {
                 "receipt_sha256": ts_extract,
+                "artifact_sha256": "1" * 63 + "b",
                 "record": {"artifact_id": "result.ts-opt.1"},
             },
         },
@@ -307,6 +316,7 @@ def test_a_sibling_output_of_the_same_expression_is_not_stale(tmp_path):
             "kind": "result_quantities_extracted",
             "payload": {
                 "receipt_sha256": reagent_extract,
+                "artifact_sha256": "1" * 63 + "c",
                 "record": {"artifact_id": "result.reagent-sp.1"},
             },
         },
@@ -393,3 +403,139 @@ def test_a_sibling_output_of_the_same_expression_is_not_stale(tmp_path):
 
     assert delivery.stale_quantity_ids == ("barrier-kcal",)
     assert delivery.delivered_quantity_ids == ("complexation-kcal",)
+
+
+def test_a_second_read_of_the_rejected_result_is_also_stale(tmp_path):
+    """A verdict rejects a result, not the read of it.
+
+    Observed live: one eclipsed-ethane saddle was read by two extraction
+    calls -- frequencies in one, coordinates in the other. The failed
+    strict-minimum rule touched only the first, so the zero-point energy
+    was correctly withheld while the HCCH torsion of the same rejected
+    structure -- the task's own requested observable -- was reported as
+    delivered. Keying the seed on the receipt let every other read of one
+    result escape.
+    """
+
+    other_receipt = "7" * 64
+    events = [
+        _extraction(),
+        {
+            "kind": "result_quantities_extracted",
+            "payload": {
+                "receipt_sha256": other_receipt,
+                "quantity_ids": ["pos-cis"],
+                # The same optimisation, read a second time.
+                "artifact_sha256": _ARTIFACT,
+                "record": {"artifact_id": "result.cis-opt.1"},
+            },
+        },
+        {
+            "kind": "quantity_expression_evaluated",
+            "payload": {
+                "receipt_sha256": "8" * 64,
+                "record": {
+                    "expression_id": "expr-torsion",
+                    "output_dependencies": [
+                        {
+                            "output_id": "tau-cis",
+                            "source_receipt_sha256s": [other_receipt],
+                        }
+                    ],
+                },
+            },
+        },
+        _validation(False),
+        {
+            "kind": "analysis_claims_recorded",
+            "payload": {
+                "receipt_sha256": _CLAIMS,
+                "record": {
+                    "claims": [
+                        {
+                            "claim_id": "c-tau",
+                            "quantity_id": "tau-cis",
+                            "source_receipt_sha256": "8" * 64,
+                        }
+                    ]
+                },
+            },
+        },
+        _completion(),
+    ]
+
+    delivery = _analysis_delivery(_write(tmp_path, *events))
+
+    # The failed rule never read `other_receipt`; it read the frequencies.
+    assert delivery.stale_quantity_ids == ("tau-cis",)
+    assert delivery.delivered_quantity_ids == ()
+    assert delivery.rejected_artifact_sha256s == (_ARTIFACT,)
+
+
+def test_a_later_cycle_may_rename_the_number_it_replaces(tmp_path):
+    """Staleness clears on a delivery, not on a repeated identifier.
+
+    Observed live on the round's own flagship recovery: the session fixed
+    the structure and re-derived the torsion under a new id
+    (`cis-torsion` -> `amide-torsion`). A rule that waits for the old id
+    to reappear holds a correct goal open forever over a number it has
+    already replaced -- so what stands is whatever the most recent
+    claim-rendering cycle said.
+    """
+
+    cycle_one = tmp_path / "cycle-1"
+    cycle_one.mkdir()
+    first = _analysis_delivery(
+        _write(
+            cycle_one,
+            _extraction(),
+            _expression(),
+            _validation(False),
+            _claims(),
+            _completion(),
+        )
+    )
+    assert first.stale_quantity_ids == ("delta-e-kcal",)
+    assert first.claims_rendered is True
+
+    # A later cycle on a different result, claiming under new names.
+    clean_artifact = "f" * 64
+    clean_receipt = "9" * 64
+    cycle_two = tmp_path / "cycle-2"
+    cycle_two.mkdir()
+    second = _analysis_delivery(
+        _write(
+            cycle_two,
+            {
+                "kind": "result_quantities_extracted",
+                "payload": {
+                    "receipt_sha256": clean_receipt,
+                    "artifact_sha256": clean_artifact,
+                    "record": {"artifact_id": "result.cis-reopt.1"},
+                },
+            },
+            {
+                "kind": "analysis_claims_recorded",
+                "payload": {
+                    "receipt_sha256": "b" * 64,
+                    "record": {
+                        "claims": [
+                            {
+                                "claim_id": "c-gap",
+                                "quantity_id": "amide-gap",
+                                "source_receipt_sha256": clean_receipt,
+                            }
+                        ]
+                    },
+                },
+            },
+            _completion(),
+        ),
+        inherited_rejected_artifacts=first.rejected_artifact_sha256s,
+    )
+
+    # The rejection is carried forward, and still nothing here stands on
+    # it, so the standing delivery is clean under a different name.
+    assert second.claims_rendered is True
+    assert second.stale_quantity_ids == ()
+    assert second.delivered_quantity_ids == ("amide-gap",)

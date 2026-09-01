@@ -505,6 +505,16 @@ class _AnalysisDelivery:
     #: with the superseded number standing as the answer. Stale is not
     #: wrong: the arithmetic held, the structure beneath it did not.
     stale_quantity_ids: tuple[str, ...] = ()
+    #: Artifact digests a verdict rejected. A rejection is a fact about
+    #: bytes and does not expire, so a goal carries these across cycles:
+    #: a later cycle may render a claim from a result an earlier cycle
+    #: already rejected.
+    rejected_artifact_sha256s: tuple[str, ...] = ()
+    #: Whether this run rendered any claim at all. A run that rendered
+    #: none did not replace the standing delivery -- which is exactly how
+    #: a recovery that fixed the structure and claimed nothing left the
+    #: superseded number standing as the goal's answer.
+    claims_rendered: bool = False
 
 
 def _stale_quantity_ids(
@@ -512,52 +522,75 @@ def _stale_quantity_ids(
     claim_pairs: Sequence[tuple[str, str]],
     rejected_bindings: Sequence[tuple[str, str]],
     expression_outputs: Sequence[tuple[str, str, tuple[str, ...]]],
-) -> tuple[str, ...]:
+    artifact_by_receipt: Mapping[str, str],
+    inherited_rejected_artifacts: Sequence[str] = (),
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Delivered quantities standing on a result its own verdict rejected.
 
-    The lineage is already in the stream and needs no new record: a
-    failed rule names the input bindings it read, each binding names the
-    receipt that produced it, and every expression names the receipts
-    behind each of its outputs.
+    What a verdict rejects is a **result**, and a result is not a
+    receipt: one finished calculation is routinely read by several
+    extraction calls, each with its own receipt.  Keying the rejection
+    on the receipt the failed rule happened to read lets every other
+    read of the same result escape -- one live run extracted
+    frequencies and coordinates from one saddle in two calls, and the
+    torsion of that rejected structure, which was the task's own
+    requested observable, was reported as delivered beside the
+    zero-point energy that was correctly withheld.  So the seed
+    resolves to artifact digests and taints every receipt that read
+    them.
 
-    What a verdict rejects is a *result*, not a number, so the seed
-    resolves to results before it propagates. A binding that names an
-    extraction receipt rejects that whole receipt, because every
-    quantity read out of one result describes the same structure. A
-    binding that names an expression output instead -- a rule reading an
-    imaginary-mode count some expression computed -- rejects the
-    receipts *that output* was computed from, not the expression's other
-    outputs: one live run computed a complexation energy and a barrier
-    in a single expression, and only the barrier stood on the structure
-    the verdict rejected.
+    A rule that reads an expression output rather than an extraction
+    resolves backwards through that output's own sources, because the
+    verdict is about the structure underneath, not about the
+    arithmetic: one run computed a complexation energy and a barrier in
+    a single expression, and only the barrier stood on the rejected
+    result.
 
-    Forward propagation then runs to a fixed point, conservatively in
-    the chain and precisely at the claim: a receipt carrying any
-    rejected output taints its consumers wholesale, because a receipt is
-    what a consumer cites, while a claim is judged on its own output id.
-    Over-naming a quantity costs a session one re-derivation;
-    under-naming one lets a superseded number stand as the delivery,
-    which is the loss this was written for. Nothing here is refused --
-    the record says which numbers no longer rest on anything, and the
-    session decides what to do.
+    Returns the stale quantity ids and the rejected artifact digests,
+    the latter so a goal can carry them across cycles -- a rejection is
+    a fact about bytes and does not expire.
     """
 
     sources_by_output = {
         (receipt, output_id): sources
         for receipt, output_id, sources in expression_outputs
     }
-    tainted_outputs: set[tuple[str, str]] = set()
-    rejected_receipts: set[str] = set()
+    rejected_artifacts = {
+        str(item) for item in inherited_rejected_artifacts if item
+    }
+
+    def _resolve(receipt: str, quantity_id: str, depth: int = 0) -> None:
+        """Name the results a rejected binding ultimately rests on."""
+
+        if depth > 8:
+            return
+        artifact = artifact_by_receipt.get(receipt)
+        if artifact:
+            rejected_artifacts.add(artifact)
+            return
+        for source in sources_by_output.get((receipt, quantity_id), ()):
+            if not source:
+                continue
+            producer = artifact_by_receipt.get(source)
+            if producer:
+                rejected_artifacts.add(producer)
+                continue
+            for other, output_id in sources_by_output:
+                if other == source:
+                    _resolve(other, output_id, depth + 1)
+
     for receipt, quantity_id in rejected_bindings:
-        if not receipt:
-            continue
-        sources = sources_by_output.get((receipt, quantity_id))
-        if sources is None:
-            rejected_receipts.add(receipt)
-            continue
-        tainted_outputs.add((receipt, quantity_id))
-        rejected_receipts.update(item for item in sources if item)
-    tainted_receipts = set(rejected_receipts)
+        if receipt:
+            _resolve(receipt, quantity_id)
+
+    # Every read of a rejected result, not only the one the rule saw.
+    tainted_receipts = {
+        receipt
+        for receipt, artifact in artifact_by_receipt.items()
+        if artifact in rejected_artifacts
+    }
+    seeded = set(tainted_receipts)
+    tainted_outputs: set[tuple[str, str]] = set()
     while True:
         grew = False
         for receipt, output_id, sources in expression_outputs:
@@ -570,22 +603,27 @@ def _stale_quantity_ids(
             grew = True
         if not grew:
             break
-    return tuple(
+    stale = tuple(
         sorted(
             {
                 quantity_id
                 for receipt, quantity_id in claim_pairs
                 if quantity_id
                 and (
-                    receipt in rejected_receipts
+                    receipt in seeded
                     or (receipt, quantity_id) in tainted_outputs
                 )
             }
         )
     )
+    return stale, tuple(sorted(rejected_artifacts))
 
 
-def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
+def _analysis_delivery(
+    events_path: Path,
+    *,
+    inherited_rejected_artifacts: Sequence[str] = (),
+) -> _AnalysisDelivery:
     """Read the delivery facts a settlement stands on.
 
     Every field is a typed record the host itself wrote: the
@@ -607,6 +645,7 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
     claim_pairs: list[tuple[str, str]] = []
     rejected_bindings: list[tuple[str, str]] = []
     expression_outputs: list[tuple[str, str, tuple[str, ...]]] = []
+    artifact_by_receipt: dict[str, str] = {}
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -691,6 +730,18 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
         }:
             if digest:
                 receipts.append(digest)
+            if kind == "result_quantities_extracted" and digest:
+                # The result this receipt read. A verdict rejects the
+                # result, and one result is routinely read by several
+                # extraction calls.
+                record = payload.get("record") or {}
+                artifact = str(
+                    payload.get("artifact_sha256")
+                    or record.get("artifact_sha256")
+                    or ""
+                )
+                if artifact:
+                    artifact_by_receipt[digest] = artifact
             if kind == "quantity_expression_evaluated" and digest:
                 record = payload.get("record") or {}
                 for dependency in record.get("output_dependencies") or ():
@@ -712,10 +763,12 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
         for node_id, rule_id, digest in failed_verdicts
         if digest not in decision_refs
     )
-    stale = _stale_quantity_ids(
+    stale, rejected_artifacts = _stale_quantity_ids(
         claim_pairs=claim_pairs,
         rejected_bindings=rejected_bindings,
         expression_outputs=expression_outputs,
+        artifact_by_receipt=artifact_by_receipt,
+        inherited_rejected_artifacts=inherited_rejected_artifacts,
     )
     return _AnalysisDelivery(
         unanswered_verdicts=unanswered,
@@ -743,6 +796,8 @@ def _analysis_delivery(events_path: Path) -> _AnalysisDelivery:
             )
         ),
         stale_quantity_ids=stale,
+        rejected_artifact_sha256s=rejected_artifacts,
+        claims_rendered=bool(claims),
     )
 
 
@@ -808,12 +863,16 @@ def run_goal_loop(
     outcome = None
     cycles = 0
     revisions_admitted = 0
-    # Quantities a verdict invalidated in some earlier cycle and that no
-    # later cycle has re-rendered. It survives the cycle that raised it
-    # because the recovery happens in the next one: the run that fixes
-    # the structure is a different run from the one that delivered the
-    # number, and per-cycle facts alone cannot see across that gap.
-    stale_pending: set[str] = set()
+    # A rejection is a fact about bytes and does not expire, so the
+    # rejected results accumulate; the *standing* delivery is whatever
+    # the most recent claim-rendering cycle said, because that is what
+    # the goal currently answers with. Keying this on quantity ids
+    # instead would ask a later cycle to reuse an earlier cycle's names:
+    # one live recovery re-derived a torsion correctly under a new id
+    # and would have been held open forever over a number it had
+    # already replaced.
+    rejected_artifacts: set[str] = set()
+    standing_stale: tuple[str, ...] = ()
 
     def _stopped() -> bool:
         return bool(stop_file and Path(stop_file).exists())
@@ -1077,12 +1136,14 @@ def run_goal_loop(
             },
         )
 
-        run_delivery = _analysis_delivery(run_directory / "events.jsonl")
-        # A claim rendered clean this cycle answers an earlier staleness;
-        # a claim rendered stale again does not.
-        stale_pending.difference_update(run_delivery.delivered_quantity_ids)
-        stale_pending.update(run_delivery.stale_quantity_ids)
-        unrefreshed = tuple(sorted(stale_pending))
+        run_delivery = _analysis_delivery(
+            run_directory / "events.jsonl",
+            inherited_rejected_artifacts=tuple(sorted(rejected_artifacts)),
+        )
+        rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
+        if run_delivery.claims_rendered:
+            standing_stale = run_delivery.stale_quantity_ids
+        unrefreshed = standing_stale
         budgets = ledger.budgets(goal)
         recovery_affordable = (
             budgets.engine_calls_remaining > 0
