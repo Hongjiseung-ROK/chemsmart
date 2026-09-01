@@ -792,6 +792,29 @@ def _settings_match(parsed, expected, *, native_input=None):
             }
             if required.issubset(route_tokens):
                 continue
+        if native_input is not None and field in {
+            "custom_solvent",
+            "additional_solvent_options",
+        }:
+            # Both are free-form bodies the writer pours into one
+            # %cpcm/%cosmors block, in order, so neither is separable
+            # from the other by reading the block back. Verify by line
+            # membership instead -- the same compensation the Gaussian
+            # TD route fields already use -- rather than leave a written
+            # parameter permanently unverifiable.
+            declared_lines = {
+                line.strip().casefold()
+                for line in str(value).splitlines()
+                if line.strip()
+            }
+            written_lines = {
+                line.strip().casefold()
+                for line in ORCAInput(
+                    str(native_input)
+                )._orca_solvent_block_lines
+            }
+            if declared_lines and declared_lines.issubset(written_lines):
+                continue
         if not hasattr(parsed, field):
             findings.append(
                 _mismatch(

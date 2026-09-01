@@ -142,11 +142,43 @@ def test_declared_capabilities_preserve_project_ownership_contract():
     # frozen-core and DLPNO controls that Gaussian has no equivalent for, and
     # while the union was shared those settings could not be declared at all --
     # a live run reported them as capability gaps that were declaration gaps.
-    # The shared names remain a subset of both, so nothing was removed.
-    for program in ("gaussian", "orca"):
-        assert set(CURRENT_HARNESS_PROJECT_PARAMETERS) <= set(
-            PROJECT_OWNED_PARAMETERS[program]
-        )
+    # The shared union is no longer a subset of either program: a name is
+    # advertised only where some settings class for that program can
+    # actually accept it. Thirteen shared names could be set by nothing --
+    # four for ORCA, nine for Gaussian, including four core SCF controls --
+    # so a model following the capability list wrote a key the project
+    # loader then rejected. What survives is the stronger statement: every
+    # shared name a program CAN set, it advertises.
+    for program, module_name, class_names in (
+        (
+            "orca",
+            "chemsmart.jobs.orca.settings",
+            ("ORCAJobSettings", "ORCAIRCJobSettings", "ORCANEBJobSettings"),
+        ),
+        (
+            "gaussian",
+            "chemsmart.jobs.gaussian.settings",
+            (
+                "GaussianJobSettings",
+                "GaussianTDDFTJobSettings",
+                "GaussianLinkJobSettings",
+            ),
+        ),
+    ):
+        import importlib
+
+        module = importlib.import_module(module_name)
+        settable = set()
+        for class_name in class_names:
+            settable.update(getattr(module, class_name).default().__dict__)
+        advertised = set(PROJECT_OWNED_PARAMETERS[program])
+        assert {
+            name
+            for name in CURRENT_HARNESS_PROJECT_PARAMETERS
+            if name in settable
+        } <= advertised
+        # And nothing is advertised that cannot be set.
+        assert advertised <= settable
     assert "relativistic" in PROJECT_OWNED_PARAMETERS["orca"]
     assert "relativistic" not in PROJECT_OWNED_PARAMETERS["gaussian"]
     assert "states" in PROJECT_OWNED_PARAMETERS["gaussian"]

@@ -310,6 +310,29 @@ class ORCARoute:
         return None
 
     @property
+    def relativistic(self):
+        """Return ChemSmart's name for a scalar-relativistic Hamiltonian.
+
+        DKH, DKH2 and ZORA are simple route keywords, and the writer puts
+        them on the ``!`` line -- but nothing read them back, so a project
+        declaring one was compared against ``None`` and refused. Matching
+        is exact rather than by substring: ``DKH`` is a prefix of ``DKH2``
+        and a containment test would report the wrong Hamiltonian.
+        """
+
+        from chemsmart.jobs.orca.settings import ORCA_RELATIVISTIC_KEYWORDS
+
+        by_keyword = {
+            keyword.casefold(): name
+            for name, keyword in ORCA_RELATIVISTIC_KEYWORDS.items()
+        }
+        for route_input in self.route_inputs:
+            name = by_keyword.get(str(route_input).strip().casefold())
+            if name is not None:
+                return name
+        return None
+
+    @property
     def jobtype(self):
         """
         Extract job type from route keywords.

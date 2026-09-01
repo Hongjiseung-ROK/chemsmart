@@ -190,6 +190,42 @@ _CURRENT_HARNESS_PROJECT_PARAMETERS = (
     "solventfilename",
 )
 
+
+def _settable_parameters(names, module_name, class_names):
+    """Keep only names some settings class for this program can accept.
+
+    A project-owned parameter is advertised to the model as something it
+    may set, and the model can only set one through project YAML -- where
+    the loader refuses any key absent from the stage defaults. A name on
+    this list that no settings class carries is therefore an instruction
+    that cannot be followed: the model reads the capability, writes the
+    key, and the loader rejects the project.
+
+    Thirteen names were in that state -- four for ORCA and nine for
+    Gaussian, the latter including four core SCF controls. Filtering here
+    rather than by hand-editing the tuples keeps the guarantee true as
+    the settings classes change, instead of true on the day someone last
+    checked.
+
+    Subclasses count, because the loader lifts a section into its own
+    settings class for the jobtypes that have one.
+    """
+
+    import importlib
+
+    module = importlib.import_module(module_name)
+    settable: set[str] = set()
+    for class_name in class_names:
+        cls = getattr(module, class_name, None)
+        if cls is None:
+            continue
+        try:
+            settable.update(cls.default().__dict__)
+        except Exception:  # pragma: no cover - defensive
+            settable.update(getattr(cls, "__dataclass_fields__", {}) or {})
+    return tuple(sorted(name for name in names if name in settable))
+
+
 # ORCA has typed method controls that are scientifically stronger than the
 # generic route-string escape hatch.  Advertising them through the canonical
 # capability registry lets an agent choose explicit scalar-relativistic,
@@ -231,6 +267,11 @@ _ORCA_PROJECT_PARAMETERS = tuple(
         }
     )
 )
+_ORCA_PROJECT_PARAMETERS = _settable_parameters(
+    _ORCA_PROJECT_PARAMETERS,
+    "chemsmart.jobs.orca.settings",
+    ("ORCAJobSettings", "ORCAIRCJobSettings", "ORCANEBJobSettings"),
+)
 
 # Gaussian exposes scientific controls the shared union omitted.
 _GAUSSIAN_PROJECT_PARAMETERS = tuple(
@@ -253,6 +294,15 @@ _GAUSSIAN_PROJECT_PARAMETERS = tuple(
             "states",
         )
     )
+)
+_GAUSSIAN_PROJECT_PARAMETERS = _settable_parameters(
+    _GAUSSIAN_PROJECT_PARAMETERS,
+    "chemsmart.jobs.gaussian.settings",
+    (
+        "GaussianJobSettings",
+        "GaussianTDDFTJobSettings",
+        "GaussianLinkJobSettings",
+    ),
 )
 
 _PYSCF_PROJECT_PARAMETERS = (

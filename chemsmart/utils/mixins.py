@@ -1345,6 +1345,12 @@ class ORCAFileMixin(FileMixin):
         return self.route_object.scf_tol
 
     @property
+    def relativistic(self):
+        """Scalar-relativistic Hamiltonian named on the ORCA route."""
+
+        return self.route_object.relativistic
+
+    @property
     def scf_algorithm(self):
         """
         Get SCF algorithm from ORCA route string.
@@ -1475,6 +1481,52 @@ class ORCAFileMixin(FileMixin):
             "heavy_elements": elements,
             "heavy_elements_basis": heavy_basis,
         }
+
+    @cached_property
+    def _orca_solvent_block_lines(self):
+        """Lines inside the last native or echoed ``%cpcm``/``%cosmors`` block.
+
+        The writer puts a solvent filename, a custom solvent body and any
+        additional solvent options into one block, in that order. Only the
+        filename is separable afterwards -- it is a distinct quoted
+        keyword -- so that is the only one parsed back here; the two
+        free-form bodies are verified by line membership at the preview
+        instead, the same compensation Gaussian already uses for its TD
+        route fields.
+        """
+
+        lines: list[str] = []
+        in_block = False
+        echo_pattern = re.compile(r"^\|\s*\d+>\s?(.*)$")
+        for raw_line in self.contents:
+            stripped = raw_line.strip()
+            match = echo_pattern.match(stripped)
+            if match is not None:
+                stripped = match.group(1).strip()
+            if not stripped:
+                continue
+            head = stripped.split()[0].casefold()
+            if head in {"%cpcm", "%cosmors"}:
+                lines, in_block = [], True
+                continue
+            if not in_block:
+                continue
+            if head == "end":
+                in_block = False
+                continue
+            lines.append(stripped)
+        return tuple(lines)
+
+    @property
+    def solventfilename(self):
+        """The ``solventfilename "name"`` a COSMO-RS block declares."""
+
+        for line in self._orca_solvent_block_lines:
+            fields = line.split(None, 1)
+            if fields and fields[0].casefold() == "solventfilename":
+                if len(fields) > 1:
+                    return fields[1].strip().strip('"').strip("'")
+        return None
 
     @property
     def heavy_elements(self):
@@ -1867,6 +1919,7 @@ class ORCAFileMixin(FileMixin):
             ri_approximation=self.ri_approximation,
             scf_tol=self.scf_tol,
             scf_algorithm=self.scf_algorithm,
+            relativistic=self.relativistic,
             scf_maxiter=self.scf_maxiter,
             scf_convergence=self.scf_convergence,
             reference=self.reference,
@@ -1898,6 +1951,7 @@ class ORCAFileMixin(FileMixin):
             heavy_elements_basis=self.heavy_elements_basis,
             light_elements_basis=self.light_elements_basis,
             custom_solvent=dv.custom_solvent,
+            solventfilename=self.solventfilename,
             forces=dv.forces,
         )
         if settings.jobtype == "irc":
