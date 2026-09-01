@@ -2511,6 +2511,21 @@ def _analysis_intent_node_schema() -> dict:
             },
             "expression_output_node_ids": {
                 "type": "array",
+                "description": (
+                    "Which of this node's own expression nodes are the "
+                    "reported outputs; the rest are intermediates. Every "
+                    "id here must be the node_id of a node listed above -- "
+                    "the receipt keys each produced quantity by the node "
+                    "that computed it, so an output naming anything else "
+                    "cannot be recorded and the whole expression is "
+                    "refused. Name the observable on the node that "
+                    "produces it rather than inventing a separate "
+                    "reporting name; a live run computed a complete "
+                    "nine-species reaction profile and lost every claim "
+                    "to this, because its outputs were named after the "
+                    "quantities it wanted rather than after the nodes it "
+                    "had written."
+                ),
                 "items": _public_identifier(),
             },
             "validation_rules": {

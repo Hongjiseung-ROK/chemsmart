@@ -68,11 +68,11 @@ def test_an_unknown_key_is_still_refused():
 def test_the_tool_surface_still_names_the_field_it_demands():
     """If the instruction is reworded, this test should be revisited."""
 
+    import json
+
     from chemsmart.agent.tool_specs import (
         build_command_compiled_tool_surface,
     )
-
-    import json
 
     surface = build_command_compiled_tool_surface()
     # The instruction lives in a nested property description, not on the
