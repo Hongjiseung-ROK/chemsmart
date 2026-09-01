@@ -562,21 +562,34 @@ def read_molecular_job_yaml(filename, program="gaussian"):
         if job not in all_project_configs:
             all_project_configs[job] = stage_defaults(job)
             all_project_configs[job]["jobtype"] = job
-        if program == "orca" and job in {"irc", "neb"}:
+        if program == "orca" and job in {"irc", "neb", "ts"}:
             # The shared ORCA defaults describe one-geometry jobs and do not
             # contain the settings owned by path calculations.  Lift an
             # explicit path stage into its real settings class before
             # applying it.  Otherwise ``irc: {direction: both}`` and
             # ``neb: {nimages: ...}`` are rejected as unknown keys even though
             # their CLI jobs and native writers support them.
+            #
+            # ``ts`` belongs here for the same reason and was missing. The
+            # model-visible tool surface instructs that a transition-state
+            # search seeded from a validated producer's Hessian "must set
+            # inhess: true" in its project ts section -- and ``inhess`` lives
+            # on ORCATSJobSettings, not on the shared defaults, so that
+            # instruction raised `Keyword 'inhess' is not in list of
+            # keywords`. The producer rule it belongs to is recorded in the
+            # charter as admitted intent that has never executed; an
+            # instruction the loader refuses is why.
             from chemsmart.jobs.orca.settings import (
                 ORCAIRCJobSettings,
                 ORCANEBJobSettings,
+                ORCATSJobSettings,
             )
 
-            settings_class = (
-                ORCAIRCJobSettings if job == "irc" else ORCANEBJobSettings
-            )
+            settings_class = {
+                "irc": ORCAIRCJobSettings,
+                "neb": ORCANEBJobSettings,
+                "ts": ORCATSJobSettings,
+            }[job]
             all_project_configs[job] = settings_class(
                 **all_project_configs[job]
             ).__dict__.copy()
