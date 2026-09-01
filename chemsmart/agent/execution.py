@@ -6198,6 +6198,16 @@ class WorkflowExecutionReviewV1:
     #: reviewer: it carries no readiness or accuracy authority, and no gate
     #: consumes it.  Empty consultations keep the original canonical body.
     consulted_domain_knowledge: tuple[dict[str, Any], ...] = ()
+    #: What the planning session declared this workflow is for: each
+    #: requested observable's meaning, unit, dimension, and any expectation
+    #: it recorded before the evidence existed.  Unlike the consultation
+    #: records this is consumed -- the completion gate requires a delivered
+    #: claim of matching dimension for every entry and states an unmatched
+    #: one as a limitation.  It was RAM-only in the planning session, so the
+    #: gate the declaration tool promises ran against an empty set on every
+    #: execution and no declaration has ever been checked.  Empty
+    #: declarations keep the original canonical body.
+    requested_observable_declarations: tuple[dict[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.workflow-execution-review.v1":
@@ -6234,6 +6244,14 @@ class WorkflowExecutionReviewV1:
             tuple(
                 canonical_data(dict(item))
                 for item in self.consulted_domain_knowledge
+            ),
+        )
+        object.__setattr__(
+            self,
+            "requested_observable_declarations",
+            tuple(
+                canonical_data(dict(item))
+                for item in self.requested_observable_declarations
             ),
         )
         if self.request.workflow_id != self.scientific_plan.workflow_id:
@@ -6427,6 +6445,8 @@ class WorkflowExecutionReviewV1:
             body.pop("scientific_toolchain_plan", None)
         if not self.consulted_domain_knowledge:
             body.pop("consulted_domain_knowledge", None)
+        if not self.requested_observable_declarations:
+            body.pop("requested_observable_declarations", None)
         return body
 
 
@@ -6443,6 +6463,7 @@ def build_workflow_execution_review(
     non_executable_node_ids: Sequence[str] = (),
     scientific_toolchain_plan: ScientificToolchainPlanV1 | None = None,
     consulted_domain_knowledge: Sequence[Mapping[str, Any]] = (),
+    requested_observable_declarations: Sequence[Mapping[str, Any]] = (),
 ) -> WorkflowExecutionReviewV1:
     """Assemble one self-verifying review packet without granting authority.
 
@@ -6475,6 +6496,12 @@ def build_workflow_execution_review(
     )
     if consulted:
         body["consulted_domain_knowledge"] = consulted
+    declared = tuple(
+        canonical_data(dict(item))
+        for item in requested_observable_declarations
+    )
+    if declared:
+        body["requested_observable_declarations"] = declared
     return WorkflowExecutionReviewV1(
         **body, review_sha256=canonical_sha256(body)
     )
@@ -6573,6 +6600,11 @@ class WorkflowExecutionApprovalBundleV1:
     #: The typed analysis chain the same approval covers, verbatim from the
     #: reviewed packet; None for every bundle approved before it existed.
     scientific_toolchain_plan: ScientificToolchainPlanV1 | None = None
+    #: The requested observables the reviewed packet declared, verbatim.  The
+    #: provider-free executor builds its own tool host from this bundle, so
+    #: without them the completion gate and the expectation rows read an
+    #: empty declaration set and pass silently.
+    requested_observable_declarations: tuple[dict[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if (
@@ -6595,6 +6627,14 @@ class WorkflowExecutionApprovalBundleV1:
             tuple(self.approved_environment_identities),
         )
         object.__setattr__(self, "node_reviews", tuple(self.node_reviews))
+        object.__setattr__(
+            self,
+            "requested_observable_declarations",
+            tuple(
+                canonical_data(dict(item))
+                for item in self.requested_observable_declarations
+            ),
+        )
         if self.resolution.decision != "approve":
             raise ContractError(
                 "execution bundle requires an approve resolution"
@@ -6831,6 +6871,8 @@ class WorkflowExecutionApprovalBundleV1:
             body.pop("non_executable_node_ids", None)
         if self.scientific_toolchain_plan is None:
             body.pop("scientific_toolchain_plan", None)
+        if not self.requested_observable_declarations:
+            body.pop("requested_observable_declarations", None)
         return body
 
     def node_review(self, node_id: str) -> WorkflowExecutionNodeReviewV1:
@@ -6928,6 +6970,10 @@ def approve_workflow_execution_review(
         body["non_executable_node_ids"] = review.non_executable_node_ids
     if review.scientific_toolchain_plan is not None:
         body["scientific_toolchain_plan"] = review.scientific_toolchain_plan
+    if review.requested_observable_declarations:
+        body["requested_observable_declarations"] = (
+            review.requested_observable_declarations
+        )
     return WorkflowExecutionApprovalBundleV1(
         **body, bundle_sha256=canonical_sha256(body)
     )

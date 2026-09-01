@@ -1904,6 +1904,12 @@ def _execution_inputs_from_bundle(
         "approved_scientific_toolchain_plan": getattr(
             bundle, "scientific_toolchain_plan", None
         ),
+        # Without these the completion gate and the expectation rows read
+        # an empty declaration set: they are recorded on the planning
+        # session's tool host and evaluated on this one.
+        "approved_requested_observable_declarations": getattr(
+            bundle, "requested_observable_declarations", ()
+        ),
         # The displayed budget must be the executing budget.  This
         # envelope was parsed above for the scratch root and then
         # dropped, so the provider-free executor ran with no episode

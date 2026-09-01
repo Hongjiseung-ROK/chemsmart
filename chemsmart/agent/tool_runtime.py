@@ -1123,6 +1123,9 @@ class CommandCompiledToolHostV1:
         stationary_point_policy: (
             StationaryPointValidationPolicyV1 | None
         ) = None,
+        approved_requested_observable_declarations: Sequence[
+            Mapping[str, Any]
+        ] = (),
         approved_scientific_toolchain_plan: (
             ScientificToolchainPlanV1 | None
         ) = None,
@@ -1166,7 +1169,19 @@ class CommandCompiledToolHostV1:
         # The session's own restatement of what the task asks for:
         # observable_id -> {unit, dimension, meaning}.  A commitment the
         # completion gate checks by kind and unit, never value.
-        self.requested_observable_declarations: dict[str, dict[str, Any]] = {}
+        #
+        # The declarations are made on the planning session's host and the
+        # gate runs on the provider-free executor's, which is a different
+        # process built from the approval bundle.  Left unseeded there, the
+        # gate and the expectation rows took their empty branch on every
+        # execution this product has ever performed, so a declaration was
+        # advertised as a commitment and never once checked.  The approved
+        # bundle carries them across.
+        self.requested_observable_declarations: dict[str, dict[str, Any]] = {
+            str(item["observable_id"]): dict(item)
+            for item in approved_requested_observable_declarations
+            if item.get("observable_id")
+        }
         self.approved_environment_identities = tuple(
             approved_environment_identities
         )
@@ -9703,6 +9718,12 @@ class CommandCompiledToolHostV1:
             stationary_point_policy=self.stationary_point_policy,
             non_executable_node_ids=tuple(sorted(non_executable_ids)),
             scientific_toolchain_plan=self._toolchain_plan_for_review(plan),
+            requested_observable_declarations=tuple(
+                record
+                for _observable_id, record in sorted(
+                    self.requested_observable_declarations.items()
+                )
+            ),
             consulted_domain_knowledge=tuple(
                 sorted(
                     self.consulted_skill_records.values(),

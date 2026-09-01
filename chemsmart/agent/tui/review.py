@@ -794,6 +794,52 @@ def _advisory_knowledge_panel(
     )
 
 
+def _declared_observable_panel(
+    review: "WorkflowExecutionReviewV1",
+) -> Any | None:
+    """What this workflow is for, and what the session expected.
+
+    These are the session's own commitments, and unlike the consultation
+    records they are consumed: the completion gate requires a delivered
+    claim of matching dimension for every entry and states an unmatched
+    one as a limitation.  Showing them beside the plan puts a recorded
+    expectation in front of the reviewer *before* the grant, which is the
+    only moment at which a wrong premise is still cheap.  An expectation
+    is never a criterion -- only the validation verdicts are -- so it is
+    displayed and never refused.
+    """
+
+    records = getattr(review, "requested_observable_declarations", ())
+    if not records:
+        return None
+    lines = []
+    for item in records:
+        line = (
+            f"{item.get('observable_id', '?')} "
+            f"[{item.get('unit', '?')}] -- {item.get('meaning', '')}"
+        )
+        low, high = item.get("expected_low"), item.get("expected_high")
+        sign = item.get("expected_sign", "")
+        if sign or low is not None:
+            expected = []
+            if sign:
+                expected.append(str(sign))
+            if low is not None:
+                expected.append(f"{low} to {high}")
+            line += "\n    expected: " + ", ".join(expected)
+            basis = item.get("expectation_basis", "")
+            if basis:
+                line += f"\n    basis: {basis}"
+        lines.append(line)
+    return Panel(
+        Text("\n".join(lines)),
+        title=(
+            "Requested observables declared "
+            "(expectations are displayed, never scored)"
+        ),
+    )
+
+
 def _shown_value(value: Any) -> Any:
     """Display a measured coordinate without a signed zero.
 
@@ -943,6 +989,9 @@ def render_review_blocks(
     constants_table = _literature_constants_renderable(review)
     if constants_table is not None:
         blocks.append(constants_table)
+    declared_panel = _declared_observable_panel(review)
+    if declared_panel is not None:
+        blocks.append(declared_panel)
     knowledge_panel = _advisory_knowledge_panel(review)
     if knowledge_panel is not None:
         blocks.append(knowledge_panel)
