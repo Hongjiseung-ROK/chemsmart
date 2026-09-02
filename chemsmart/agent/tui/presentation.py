@@ -42,7 +42,6 @@ _VISIBLE_TOOLS = frozenset(
         "read_project_yaml",
         "validate_project_yaml",
         # Calculation and analysis DAG construction and repair.
-        "plan_command_workflow",
         "plan_scientific_workflow",
         "amend_scientific_workflow",
         "inspect_workflow_frontier",

@@ -1762,7 +1762,6 @@ class CommandCompiledToolHostV1:
             ),
             "read_project_yaml": self._read_project_yaml,
             "validate_project_yaml": self._validate_project_yaml,
-            "plan_command_workflow": self._plan_command_workflow,
             "plan_scientific_workflow": self._plan_scientific_workflow,
             "amend_scientific_workflow": self._amend_scientific_workflow,
             "inspect_workflow_frontier": self._inspect_workflow_frontier,

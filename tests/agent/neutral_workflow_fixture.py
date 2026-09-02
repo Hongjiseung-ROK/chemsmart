@@ -141,13 +141,24 @@ def build_neutral_workflow_fixture(root: Path) -> NeutralWorkflowFixtureV1:
         },
     ]
     action = SimpleNamespace(
-        tool_name="plan_command_workflow",
+        tool_name="plan_scientific_workflow",
         fields=tuple(
             sorted(
                 {
+                    "plan_id": "plan-neutral-opt-hess",
                     "workflow_id": "workflow-neutral-opt-hess",
                     "task_spec_id": task_spec_sha256,
-                    "nodes": nodes,
+                    "calculation_nodes": [
+                        {
+                            **node,
+                            "produces_observables": [],
+                            "support_state": "planned",
+                            "blocked_reason": "",
+                        }
+                        for node in nodes
+                    ],
+                    "analysis_nodes": [],
+                    "required_output_ids": [],
                 }.items()
             )
         ),

@@ -30,11 +30,17 @@ def _host(tmp_path, *, artifacts=None):
 
 def _calculation_only_plan():
     return {
+        "plan_id": "plan-neutral-energy",
         "workflow_id": "workflow-neutral-energy",
         "task_spec_id": "a" * 64,
-        "nodes": [
+        "analysis_nodes": [],
+        "required_output_ids": [],
+        "calculation_nodes": [
             {
                 "node_id": "energy-node",
+                "produces_observables": [],
+                "support_state": "planned",
+                "blocked_reason": "",
                 "program": "xtb",
                 "jobtype": "sp",
                 "project_role": "project-neutral",
@@ -52,42 +58,21 @@ def _calculation_only_plan():
     }
 
 
-def test_calculation_only_plan_supports_frontier_and_prepare(tmp_path):
+def test_a_calculation_only_plan_must_anchor_a_molecule(tmp_path):
+    """One planner for every DAG: a calculation-only plan is legal, but a
+    node that consumes no identity-bound geometry is refused when planned,
+    naming the repair, rather than surfacing later as a clarification."""
+
     host = _host(tmp_path)
-    arguments = _calculation_only_plan()
-    planned = host.dispatch(
-        turn_id="turn-1",
-        tool_name="plan_command_workflow",
-        arguments=arguments,
-    )["result"]
-
-    frontier = host.dispatch(
-        turn_id="turn-1",
-        tool_name="inspect_workflow_frontier",
-        arguments={"workflow_id": arguments["workflow_id"]},
-    )["result"]
-    assert set(frontier) == {
-        "scientific_workflow_plan",
-        "workflow_context",
-        "artifacts_without_structural_read",
-    }
-    assert (
-        frontier["scientific_workflow_plan"]
-        == planned["scientific_workflow_plan"]
-    )
-
-    prepared = host.dispatch(
-        turn_id="turn-1",
-        tool_name="prepare_program_node",
-        arguments={
-            "workflow_id": arguments["workflow_id"],
-            "node_id": "energy-node",
-        },
-    )["result"]
-    assert prepared["workflow_id"] == arguments["workflow_id"]
-    assert prepared["node_id"] == "energy-node"
-    assert prepared["status"] == "needs_clarification"
-    assert prepared["finding"] == "program node declares no molecular input"
+    with pytest.raises(ContractError) as excinfo:
+        host.dispatch(
+            turn_id="turn-1",
+            tool_name="plan_scientific_workflow",
+            arguments=_calculation_only_plan(),
+        )
+    message = str(excinfo.value)
+    assert "bind_scientific_identity" in message
+    assert "workflow.scientific_identity.unbound" in message
 
 
 def _plan_registered_xyz_analysis(host, artifact_id):

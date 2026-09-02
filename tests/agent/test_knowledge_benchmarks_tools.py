@@ -62,7 +62,7 @@ def test_model_tool_surface_uses_registry_programs_and_has_no_execution_tools(
     plan_workflow = next(
         item
         for item in surface.tool_definitions
-        if item["function"]["name"] == "plan_command_workflow"
+        if item["function"]["name"] == "plan_scientific_workflow"
     )
     assert (
         "never a project YAML or result"

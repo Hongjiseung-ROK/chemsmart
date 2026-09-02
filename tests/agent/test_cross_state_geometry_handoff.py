@@ -383,11 +383,11 @@ def test_model_workflow_state_reaches_command_and_scientific_dags(tmp_path):
     action = next(
         item
         for item in fixture.public_context.next_actions
-        if item.tool_name == "plan_command_workflow"
+        if item.tool_name == "plan_scientific_workflow"
     )
     fields = dict(action.fields)
     raw_nodes = []
-    for raw_node in fields["nodes"]:
+    for raw_node in fields["calculation_nodes"]:
         state = (
             {"charge": -1, "multiplicity": 2}
             if raw_node["node_id"] == "node.hess"
@@ -397,8 +397,8 @@ def test_model_workflow_state_reaches_command_and_scientific_dags(tmp_path):
 
     host.dispatch(
         turn_id="turn-1",
-        tool_name="plan_command_workflow",
-        arguments={**fields, "nodes": raw_nodes},
+        tool_name="plan_scientific_workflow",
+        arguments={**fields, "calculation_nodes": raw_nodes},
     )
 
     draft = next(iter(host.workflow_drafts.values()))

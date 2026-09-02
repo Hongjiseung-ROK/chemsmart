@@ -949,32 +949,19 @@ def build_command_compiled_tool_surface(
             ("observables",),
         ),
         _tool(
-            "plan_command_workflow",
-            (
-                "Build a typed command DAG after binding scientific identity "
-                "to every initial geometry. Every node needs at least one "
-                "expected output. Future producer outputs remain unresolved. "
-                "A null scientific_workflow_plan means the binding must be "
-                "repaired and this tool called again."
-            ),
-            {
-                "workflow_id": _string(),
-                "task_spec_id": _string(),
-                "nodes": {
-                    "type": "array",
-                    "items": _workflow_node_schema(),
-                },
-            },
-            ("workflow_id", "nodes"),
-        ),
-        _tool(
             "plan_scientific_workflow",
             (
                 "Plan one connected scientific tool chain containing any "
                 "required program calculations and deterministic analysis "
                 "stages. For an analysis-only task over registered results, "
                 "calculation_nodes may be empty; do not invent a documentary "
-                "or blocked calculation placeholder. "
+                "or blocked calculation placeholder. For a calculation-only "
+                "task, analysis_nodes and required_output_ids may be empty. "
+                "Bind scientific identity to every initial geometry first; "
+                "every calculation node needs at least one expected output, "
+                "and future producer outputs remain unresolved. A null "
+                "scientific_workflow_plan means the binding must be repaired "
+                "and this tool called again. "
                 "Future analysis inputs name producer node/output pairs; they "
                 "do not require artifact or receipt hashes before execution. "
                 "A result-extraction or thermochemistry root may instead "
@@ -998,13 +985,13 @@ def build_command_compiled_tool_surface(
                 },
                 "analysis_nodes": {
                     "type": "array",
-                    "minItems": 1,
+                    "minItems": 0,
                     "maxItems": 128,
                     "items": _analysis_intent_node_schema(),
                 },
                 "required_output_ids": {
                     "type": "array",
-                    "minItems": 1,
+                    "minItems": 0,
                     "maxItems": 64,
                     "items": _public_identifier(),
                 },

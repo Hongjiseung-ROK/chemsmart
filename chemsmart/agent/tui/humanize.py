@@ -298,11 +298,6 @@ _REGISTRY: dict[str, tuple[str, str, Summarizer]] = {
         "deriving a species from its parent",
         _derive,
     ),
-    "plan_command_workflow": (
-        "✱",
-        "planning the command workflow",
-        _plan_workflow,
-    ),
     "plan_scientific_workflow": (
         "✱",
         "planning the scientific workflow",

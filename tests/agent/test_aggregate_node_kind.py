@@ -147,8 +147,10 @@ def test_the_command_tool_schema_keeps_aggregate_in_the_analysis_plane():
     plan = next(
         item
         for item in surface.tool_definitions
-        if item["function"]["name"] == "plan_command_workflow"
+        if item["function"]["name"] == "plan_scientific_workflow"
     )
-    node = plan["function"]["parameters"]["properties"]["nodes"]["items"]
+    node = plan["function"]["parameters"]["properties"]["calculation_nodes"][
+        "items"
+    ]
     assert "aggregate" not in node["properties"]["node_kind"]["enum"]
     assert node["properties"]["node_kind"]["enum"] == ["program_call"]
