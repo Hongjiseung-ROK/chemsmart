@@ -33,7 +33,15 @@ def test_the_planning_surface_exposes_the_merged_tools_only():
     }
     assert set(MERGED_PLANNING_TOOLS) <= planning
     assert not (withdrawn & planning), sorted(withdrawn & planning)
-    assert len(planning) == 24
+    assert len(planning) == 16, "the stem"
+    from chemsmart.agent.guides import GUIDES
+
+    everything = _names(
+        build_command_compiled_tool_surface(
+            guides=tuple(guide.guide_id for guide in GUIDES)
+        )
+    )
+    assert len(everything) == 24, "the stem with every leaf open"
 
 
 def test_the_executor_keeps_its_step_by_step_surface():

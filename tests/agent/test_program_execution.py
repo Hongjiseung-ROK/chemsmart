@@ -1504,5 +1504,14 @@ def test_live_prompt_preserves_typed_edges_and_evidence_bounded_alternatives():
     assert "Bind scientific identity only to a geometry_xyz" in prompt
     assert "a workflow_draft alone is not the typed scientific DAG" in prompt
     assert "loader-supported, preview-conformant" in prompt
-    assert "do not assert quantitative accuracy, cost" in prompt.lower()
-    assert "unmaterialized alternative" in prompt
+    # The project-level rules moved to the point of use: the project tool.
+    from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
+
+    project_tool = next(
+        item["function"]["description"]
+        for item in build_command_compiled_tool_surface().tool_definitions
+        if item["function"]["name"] == "project_yaml"
+    )
+    assert "do not assert quantitative accuracy, cost" in project_tool.lower()
+    assert "unmaterialized alternative" in project_tool
+    assert "do not assert quantitative accuracy" not in prompt.lower()

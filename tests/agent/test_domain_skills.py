@@ -168,7 +168,7 @@ def test_skills_off_restores_historical_prompt_and_tool_surface(monkeypatch):
     _, documents = activated_skill_documents(_CH2_TASK)
     assert documents
     enabled_surface = build_command_compiled_tool_surface()
-    assert "consult_domain_skill" in {
+    assert "open_guide" in {
         item["function"]["name"] for item in enabled_surface.tool_definitions
     }
 
@@ -176,14 +176,15 @@ def test_skills_off_restores_historical_prompt_and_tool_surface(monkeypatch):
     _, disabled_documents = activated_skill_documents(_CH2_TASK)
     assert disabled_documents == ()
     disabled_surface = build_command_compiled_tool_surface()
-    assert "consult_domain_skill" not in {
+    # Guides are the host's own family units and do not switch off with
+    # the advisory skills; open_guide stays, and the surface is the same.
+    assert "open_guide" in {
         item["function"]["name"] for item in disabled_surface.tool_definitions
     }
-    # A skills-off session is byte-identical to the pre-skill surface.
     assert _system_prompt({}, skill_index=()) == _system_prompt({})
     assert (
         disabled_surface.tool_schema_sha256
-        != enabled_surface.tool_schema_sha256
+        == enabled_surface.tool_schema_sha256
     )
 
 

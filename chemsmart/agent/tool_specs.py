@@ -14,7 +14,6 @@ from chemsmart.agent.rules import render_rules
 from chemsmart.agent.scientific_toolchain import (
     ANALYSIS_VALIDATION_PREDICATES,
 )
-from chemsmart.agent.skills import skills_enabled
 from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
 from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
 from chemsmart.analysis.result_quantities import SUPPORTED_SELECTORS
@@ -40,6 +39,8 @@ class AgentToolSurfaceV1:
 
 def _legacy_tool_definitions(
     registry: ProgramCapabilityRegistryV1 | None = None,
+    *,
+    operations: tuple[str, ...] | None = None,
 ) -> tuple[dict, ...]:
     """Every tool the host implements, one definition each, before the
     model-facing merge. The provider-free executor drives nodes through
@@ -835,16 +836,20 @@ def _legacy_tool_definitions(
             ("project_artifact_id", "capability_receipt_sha256"),
         ),
         _tool(
-            "consult_domain_skill",
+            "open_guide",
             (
-                "Read an advisory domain-knowledge skill listed in the system "
-                "prompt. Returns conventions, definitions, and established "
-                "facts. It is knowledge only: it never establishes readiness, "
+                "Open one guide named in the system prompt -- a family unit "
+                "of tools, operations and guidance (structure, scan, "
+                "constants, cbs, ensemble, spectroscopy, database, "
+                "crossprogram, recovery, saddle) -- or one advisory "
+                "domain-knowledge skill. Returns the text and, for a guide, "
+                "the tools and operations that join the surface on the next "
+                "turn. Guidance only: it never establishes readiness, "
                 "approval, terminal state, or an accuracy claim, and never "
                 "substitutes for a typed host receipt."
             ),
-            {"skill_id": _public_identifier()},
-            ("skill_id",),
+            {"guide_id": _public_identifier()},
+            ("guide_id",),
         ),
         _tool(
             "declare_requested_observable",
@@ -1004,7 +1009,9 @@ def _legacy_tool_definitions(
                     "type": "array",
                     "minItems": 0,
                     "maxItems": 128,
-                    "items": _analysis_intent_node_schema(),
+                    "items": _analysis_intent_node_schema(
+                        operations=operations
+                    ),
                 },
                 "required_output_ids": {
                     "type": "array",
@@ -1510,7 +1517,9 @@ def _legacy_tool_definitions(
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 128,
-                    "items": _quantity_expression_node_schema(),
+                    "items": _quantity_expression_node_schema(
+                        operations=operations
+                    ),
                 },
                 "output_node_ids": {
                     "type": "array",
@@ -1766,19 +1775,43 @@ def _merge_planning_tools(tools: tuple[dict, ...]) -> tuple[dict, ...]:
     return tuple(result)
 
 
+def stem_operations(guides: tuple[str, ...] = ()) -> tuple[str, ...]:
+    """The operation vocabulary the surface exposes: every operation that
+    belongs to no leaf, plus the operations of the open guides."""
+
+    from chemsmart.agent.guides import LEAF_OPERATIONS
+
+    active = set(guides)
+    return tuple(
+        sorted(
+            name
+            for name in OPERATION_DESCRIPTIONS
+            if LEAF_OPERATIONS.get(name) is None
+            or LEAF_OPERATIONS[name] in active
+        )
+    )
+
+
 def build_command_compiled_tool_surface(
     registry: ProgramCapabilityRegistryV1 | None = None,
+    *,
+    guides: tuple[str, ...] = (),
 ) -> AgentToolSurfaceV1:
-    """The planning surface the model reads."""
+    """The planning surface the model reads: the stem, plus the tools and
+    operations of every open guide."""
 
-    tools = _merge_planning_tools(_legacy_tool_definitions(registry))
-    if not skills_enabled():
-        # Keep the model-visible surface aligned with the host feature state.
-        tools = tuple(
-            item
-            for item in tools
-            if item["function"]["name"] != "consult_domain_skill"
-        )
+    from chemsmart.agent.guides import LEAF_TOOLS
+
+    active = set(guides)
+    tools = _merge_planning_tools(
+        _legacy_tool_definitions(registry, operations=stem_operations(guides))
+    )
+    tools = tuple(
+        item
+        for item in tools
+        if LEAF_TOOLS.get(item["function"]["name"]) is None
+        or LEAF_TOOLS[item["function"]["name"]] in active
+    )
     # Advertise only what this runtime can actually deliver.  The handlers and
     # contracts stay, so restoring one of these is a producer away.
     tools = tuple(
@@ -2646,7 +2679,9 @@ def _scientific_workflow_node_schema() -> dict:
     return schema
 
 
-def _analysis_intent_node_schema() -> dict:
+def _analysis_intent_node_schema(
+    *, operations: tuple[str, ...] | None = None
+) -> dict:
     """Planning-only analysis node; artifacts are bound after producers run."""
 
     return {
@@ -2802,7 +2837,9 @@ def _analysis_intent_node_schema() -> dict:
                     "input or expression node provides, or nodes that read "
                     "each other in a cycle, naming the node and the name."
                 ),
-                "items": _quantity_expression_node_schema(compact=True),
+                "items": _quantity_expression_node_schema(
+                    compact=True, operations=operations
+                ),
             },
             "expression_output_node_ids": {
                 "type": "array",
@@ -2993,7 +3030,9 @@ def _analysis_intent_node_schema() -> dict:
     }
 
 
-def _quantity_expression_node_schema(*, compact: bool = False) -> dict:
+def _quantity_expression_node_schema(
+    *, compact: bool = False, operations: tuple[str, ...] | None = None
+) -> dict:
     """The expression node, in full on evaluate_quantity_expression and
     compact on the planner: the same fields and enums, with the operation
     semantics and the constant purposes stated once. The full form was
@@ -3014,7 +3053,15 @@ def _quantity_expression_node_schema(*, compact: bool = False) -> dict:
             + " | ".join(
                 f"{name}: {text}"
                 for name, text in sorted(OPERATION_DESCRIPTIONS.items())
+                if operations is None or name in set(operations)
             )
+        )
+    )
+    exposed = (
+        sorted(OPERATION_DESCRIPTIONS)
+        if operations is None
+        else sorted(
+            name for name in OPERATION_DESCRIPTIONS if name in set(operations)
         )
     )
     return {
@@ -3023,7 +3070,7 @@ def _quantity_expression_node_schema(*, compact: bool = False) -> dict:
             "node_id": _public_identifier(),
             "operation": {
                 "type": "string",
-                "enum": sorted(OPERATION_DESCRIPTIONS),
+                "enum": exposed,
                 "description": operation_description,
             },
             "input_ids": {
@@ -3160,6 +3207,7 @@ def _tool(
 
 __all__ = [
     "MERGED_PLANNING_TOOLS",
+    "stem_operations",
     "PROJECT_YAML_ACTIONS",
     "PROJECT_YAML_ACTION_ARGUMENTS",
     "AgentToolSurfaceV1",

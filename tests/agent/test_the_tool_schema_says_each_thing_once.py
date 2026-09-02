@@ -14,8 +14,13 @@ from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
 from chemsmart.analysis.result_readers import registered_reader_selectors
 
 
-def _surface_json() -> str:
-    return json.dumps(build_command_compiled_tool_surface().tool_definitions)
+def _surface_json(*, every_leaf: bool = False) -> str:
+    from chemsmart.agent.guides import GUIDES
+
+    guides = tuple(guide.guide_id for guide in GUIDES) if every_leaf else ()
+    return json.dumps(
+        build_command_compiled_tool_surface(guides=guides).tool_definitions
+    )
 
 
 def test_each_guidance_block_is_serialised_once():
@@ -30,7 +35,7 @@ def test_each_guidance_block_is_serialised_once():
 
 
 def test_nothing_was_lost_and_the_surface_fits_the_budget():
-    text = _surface_json()
+    text = _surface_json(every_leaf=True)
     for name in OPERATION_DESCRIPTIONS:
         assert f'"{name}"' in text, name
     for name in LITERATURE_CONSTANTS:
@@ -38,6 +43,7 @@ def test_nothing_was_lost_and_the_surface_fits_the_budget():
     for selectors in registered_reader_selectors().values():
         for selector in selectors:
             assert selector in text, selector
-    # 139,229 bytes before de-duplication, 110,525 after; the ceiling
-    # keeps the stem from growing back while leaves take the rest out.
+    # 139,229 bytes before de-duplication, 110,525 after, 100,408 after
+    # the merge; with every leaf open the ceiling keeps the whole tree in
+    # bounds, and the stem alone is pinned below 90,000 in the guides test.
     assert len(text) < 115_000, len(text)

@@ -9,7 +9,7 @@ added, moved, or retired in one place and a test can say whether every
 rule renders exactly once.
 
 Placement vocabulary: ``stem`` (every session), ``leaf:<id>`` (a family
-guide; rendered in the stem until leaves are activated separately),
+guide's own rules, rendered inside that guide's body when it opens),
 ``wake`` (every goal cycle), ``wake:recovery`` (a wake after a run),
 ``tool:<name>`` (appended to that tool's description).
 """
@@ -158,7 +158,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "project.functional_and_density_fitting",
-        "leaf:project",
+        "tool:project_yaml",
         "T1",
         "Do not assert quantitative accuracy, cost, or density-fitting "
         "effects without typed evidence, and do not claim an RI/DF path "
@@ -178,7 +178,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "project.unmaterialized_alternatives",
-        "leaf:project",
+        "tool:project_yaml",
         "T0",
         "Present an alternative as runnable only when the current project "
         "loader, command preview, and observed environment support it; "
@@ -187,7 +187,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "project.stage_keys_and_phases",
-        "leaf:project",
+        "tool:project_yaml",
         "T0",
         "PySCF project stage keys are exactly sp, opt, hess, and "
         "preview-only td; xTB project stage keys are exactly sp, opt, and "
@@ -294,7 +294,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "analysis.result_functional_resolution",
-        "leaf:analysis",
+        "tool:extract_result_quantities",
         "T1",
         "A structured result's requested/applied functional distinction may "
         "be cited only through its exact result_functional_resolution "

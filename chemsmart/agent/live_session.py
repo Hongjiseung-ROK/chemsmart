@@ -776,7 +776,31 @@ def run_live_agent_session(
     # surface belongs to the provider-free executor.
     approved_project_records: tuple[dict[str, Any], ...] = ()
     approved_workflow_record: dict[str, Any] = {}
-    surface = build_command_compiled_tool_surface(registry)
+    # The leaves open before the first turn from what is already known:
+    # the task text, the workspace, and -- under a goal -- how the previous
+    # run's nodes ended. The plan opens more as it is made.
+    from chemsmart.agent.guides import (
+        guides_from_states,
+        guides_from_text,
+        guides_from_workspace,
+    )
+
+    active_guides = set(guides_from_text(task))
+    if database_observations:
+        active_guides.update(guides_from_workspace(("chemsmart_db",)))
+    previous_outcome = dict(
+        (goal_context or {}).get("previous_run_outcome") or {}
+    )
+    active_guides.update(
+        guides_from_states(
+            str(node.get("state") or "")
+            for node in previous_outcome.get("nodes", ())
+            if isinstance(node, Mapping)
+        )
+    )
+    surface = build_command_compiled_tool_surface(
+        registry, guides=tuple(sorted(active_guides))
+    )
 
     event_store = RuntimeEventStore(
         run_directory / "events.jsonl", session_id=session_id
@@ -808,6 +832,7 @@ def run_live_agent_session(
         "compute_environment_receipts": compute_receipts,
         "component_conformance_receipts": conformance,
         "tool_surface": surface,
+        "active_guides": tuple(sorted(active_guides)),
         "registry": registry,
         "live_schema": live_schema,
         "task_spec_sha256s": (task_spec_sha256,),
@@ -879,6 +904,7 @@ def run_live_agent_session(
         approved_workflow=approved_workflow_record,
         bounded_review_requested=bounded_review_requested,
         task=task,
+        active_guides=tuple(sorted(active_guides)),
     )
     # Consume the helper's list wholesale: rebuilding index 1 by hand at
     # this call site is how the goal recency restatement -- built, tested
@@ -1196,6 +1222,7 @@ def _coordinator_base_messages(
     approved_workflow: Mapping[str, Any] | None,
     bounded_review_requested: bool = False,
     task: str = "",
+    active_guides: tuple[str, ...] = (),
 ) -> list[dict[str, str]]:
     _, documents = activated_skill_documents(task)
     messages = [
@@ -1205,6 +1232,7 @@ def _coordinator_base_messages(
                 approved_workflow,
                 bounded_review_requested=bounded_review_requested,
                 skill_index=tuple(item.index_entry() for item in documents),
+                active_guides=active_guides,
             ),
         },
         {"role": "user", "content": canonical_json(context)},
@@ -3000,6 +3028,7 @@ def _system_prompt(
     *,
     bounded_review_requested: bool = False,
     skill_index: tuple[str, ...] = (),
+    active_guides: tuple[str, ...] = (),
 ) -> str:
     # A planning session never holds an approved workflow: execution is the
     # provider-free executor's, so the prompt states that and nothing more.
@@ -3032,12 +3061,14 @@ def _system_prompt(
             "any required unavailable observable as blocked_unsupported. "
         )
     )
-    skill_sentence = ""
+    from chemsmart.agent.guides import guide_index_sentence
+
+    skill_sentence = guide_index_sentence(active_guides)
     if skill_index:
         listing = " ".join(f"({item})" for item in skill_index)
-        skill_sentence = (
+        skill_sentence += (
             " Domain-knowledge skills are available through "
-            "consult_domain_skill(skill_id). Available now: "
+            "open_guide(guide_id). Available now: "
             f"{listing}. Consult the relevant skill before you commit to a "
             "reporting convention, an electronic-state assignment, or a "
             "workflow shape it covers; before you judge whether a method, "

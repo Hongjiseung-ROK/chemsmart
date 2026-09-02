@@ -87,6 +87,7 @@ class EventKind(str, Enum):
     TOOL_WAITING = "tool_waiting"
     TOOL_WOKE = "tool_woke"
     HOST_CONTEXT_REINJECTED = "host_context_reinjected"
+    GUIDE_ACTIVATED = "guide_activated"
     RUNTIME_TERMINATED = "runtime_terminated"
 
 

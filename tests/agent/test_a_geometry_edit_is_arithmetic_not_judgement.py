@@ -446,7 +446,7 @@ def test_the_advertised_operations_are_the_ones_the_host_implements(tmp_path):
         build_command_compiled_tool_surface,
     )
 
-    surface = build_command_compiled_tool_surface()
+    surface = build_command_compiled_tool_surface(guides=("structure",))
     definition = next(
         item
         for item in surface.tool_definitions

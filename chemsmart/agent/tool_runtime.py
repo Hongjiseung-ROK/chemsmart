@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from chemsmart.agent._contracts import (
     ContractError,
@@ -132,6 +132,7 @@ from chemsmart.agent.execution import (
     transform_trusted_molecular_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
+from chemsmart.agent.guides import guide_for_tool
 from chemsmart.agent.identity import (
     ApprovedMolecularIdentityV1,
     refuse_impossible_electronic_state,
@@ -1233,6 +1234,7 @@ class CommandCompiledToolHostV1:
         execution_server_file_sha256: str = "",
         execution_environment: Mapping[str, str] = {},
         execution_environment_remove: tuple[str, ...] = (),
+        active_guides: Iterable[str] = (),
     ) -> None:
         self.event_store = event_store
         self.registry = registry or load_program_capabilities()
@@ -1242,18 +1244,17 @@ class CommandCompiledToolHostV1:
             conformance_receipts=component_conformance_receipts,
             live_schema=self.live_schema,
         )
-        command_surface = build_command_compiled_tool_surface(self.registry)
+        self.active_guides: set[str] = set(active_guides)
+        command_surface = build_command_compiled_tool_surface(
+            self.registry, guides=tuple(sorted(self.active_guides))
+        )
         execution_surface = build_approved_execution_tool_surface(
             self.registry
         )
-        if (
-            tool_surface is not None
-            and tool_surface.tool_schema_sha256
-            not in {
-                command_surface.tool_schema_sha256,
-                execution_surface.tool_schema_sha256,
-            }
-        ):
+        if tool_surface is not None and tool_surface.profile not in {
+            command_surface.profile,
+            execution_surface.profile,
+        }:
             raise ContractError(
                 "injected tool surface is not a canonical profile"
             )
@@ -1840,6 +1841,11 @@ class CommandCompiledToolHostV1:
         """Validate a call and invoke exactly one approved host operation."""
 
         values = dict(arguments)
+        # A leaf tool called by name before its guide opened: the model
+        # asked, so the guide opens on that signal and the call proceeds.
+        owner = guide_for_tool(tool_name)
+        if owner and owner not in self.active_guides:
+            self.activate_guides(turn_id, (owner,), signal="model_call")
         _validate_tool_arguments(self.surface, tool_name, values)
         handlers = {
             "inspect_program": self._inspect_program,
@@ -1892,17 +1898,130 @@ class CommandCompiledToolHostV1:
             ),
             "execute_approved_program_node": self._execute_approved_program_node,
             "consult_domain_skill": self._consult_domain_skill,
+            "open_guide": self._open_guide,
         }
         handler = handlers.get(tool_name)
         if handler is None:
             raise ContractError("tool is absent from command-compiled profile")
         result = handler(turn_id, values)
-        return {
+        reply = {
             "schema_version": "chemsmart.tool-result.v1",
             "tool": tool_name,
             "status": "ok",
             "result": _model_visible_data(canonical_data(result)),
         }
+        opened = self._guides_from_planning(turn_id, tool_name, result)
+        if opened:
+            reply["guides_opened"] = tuple(
+                self._guide_record(guide) for guide in opened
+            )
+        return reply
+
+    # -- guides: the leaves of the surface ---------------------------------
+
+    def activate_guides(
+        self, turn_id: str, guide_ids: Iterable[str], *, signal: str
+    ) -> tuple[Any, ...]:
+        """Open guides not yet open; rebuild the surface; record each."""
+
+        from chemsmart.agent.guides import GUIDES_BY_ID
+
+        opened = []
+        for guide_id in guide_ids:
+            guide = GUIDES_BY_ID.get(str(guide_id))
+            if guide is None or guide.guide_id in self.active_guides:
+                continue
+            self.active_guides.add(guide.guide_id)
+            opened.append(guide)
+        if not opened:
+            return ()
+        if self.surface.profile == "command_compiled_preview":
+            self.surface = build_command_compiled_tool_surface(
+                self.registry, guides=tuple(sorted(self.active_guides))
+            )
+        for guide in opened:
+            self.event_store.append(
+                turn_id=turn_id,
+                kind=EventKind.GUIDE_ACTIVATED.value,
+                payload={
+                    "guide_id": guide.guide_id,
+                    "signal": signal,
+                    "tools": list(guide.tools),
+                    "operations": list(guide.operations),
+                    "tool_schema_sha256": self.surface.tool_schema_sha256,
+                },
+                idempotency_key=f"guide:{turn_id}:{guide.guide_id}:{signal}",
+            )
+        return tuple(opened)
+
+    @staticmethod
+    def _guide_record(guide: Any) -> dict[str, Any]:
+        return {
+            "guide_id": guide.guide_id,
+            "title": guide.title,
+            "body": guide.body,
+            "tools_now_available": list(guide.tools),
+            "operations_now_available": list(guide.operations),
+        }
+
+    def _guides_from_planning(
+        self, turn_id: str, tool_name: str, result: Any
+    ) -> tuple[Any, ...]:
+        """The plan-derived signal: what the DAG the model just planned
+        needs. Read from the typed plan, never from prose."""
+
+        from chemsmart.agent.guides import guides_from_plan
+
+        if tool_name not in {
+            "plan_scientific_workflow",
+            "amend_scientific_workflow",
+            "declare_requested_observable",
+        }:
+            return ()
+        jobtypes: set[str] = set()
+        operations: set[str] = set()
+        constants: set[str] = set()
+        for plan in self.scientific_workflow_plans.values():
+            for node in getattr(plan, "nodes", ()):
+                jobtypes.add(str(getattr(node, "jobtype", "")))
+        for toolchain in self.scientific_toolchain_plans.values():
+            for node in getattr(toolchain, "analysis_nodes", ()):
+                for item in getattr(node, "expression_nodes", ()):
+                    operations.add(str(item.get("operation", "")))
+                    if str(item.get("operation", "")) == "constant":
+                        constants.add(str(item.get("constant_name", "")))
+        wanted = guides_from_plan(
+            jobtypes=jobtypes, operations=operations, constants=constants
+        )
+        return self.activate_guides(turn_id, wanted, signal="plan")
+
+    def _open_guide(self, turn_id: str, values: dict) -> Any:
+        """The model-pull path: a guide, or an advisory skill."""
+
+        from chemsmart.agent.guides import GUIDES_BY_ID
+        from chemsmart.agent.skills import available_skill_ids
+
+        guide_id = require_identifier(values["guide_id"], "guide_id")
+        guide = GUIDES_BY_ID.get(guide_id)
+        if guide is not None:
+            self.activate_guides(turn_id, (guide_id,), signal="model")
+            return {
+                "schema_version": "chemsmart.guide-opened.v1",
+                **self._guide_record(guide),
+                "guidance": (
+                    "You opened this guide, so work under it from here. Its "
+                    "tools and operations are on the surface now. It settles "
+                    "no scientific status: readiness, approval, terminal "
+                    "state, validity and accuracy come only from typed host "
+                    "receipts."
+                ),
+            }
+        if guide_id in available_skill_ids():
+            return self._consult_domain_skill(turn_id, {"skill_id": guide_id})
+        raise ContractError(
+            f"unknown guide {guide_id!r}; guides: {sorted(GUIDES_BY_ID)}; "
+            f"skills: {list(available_skill_ids())}"
+        )
 
     def execution_wait_timeout_seconds(self) -> float:
         """Return the bounded wait advertised before an engine launch."""

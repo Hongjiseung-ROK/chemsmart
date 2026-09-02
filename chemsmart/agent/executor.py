@@ -620,6 +620,10 @@ class ApprovedWorkflowExecutor:
         with the failure named.
         """
 
+        # The approved plan opens the guides its own operations need, so
+        # the chain never meets the stem's leaf gate; the activation is
+        # recorded like any other, with its signal.
+        from chemsmart.agent.guides import guides_from_plan
         from chemsmart.agent.runtime.events import EventKind
         from chemsmart.agent.scientific_toolchain import (
             RegisteredResultInputIntentV1,
@@ -632,6 +636,25 @@ class ApprovedWorkflowExecutor:
             canonical_thermochemistry_quantity,
         )
 
+        expression_items = [
+            item
+            for node in toolchain.analysis_nodes
+            for item in getattr(node, "expression_nodes", ())
+        ]
+        self.host.activate_guides(
+            f"exec-analysis-{toolchain.plan_sha256[:8]}",
+            guides_from_plan(
+                operations=[
+                    str(item.get("operation", "")) for item in expression_items
+                ],
+                constants=[
+                    str(item.get("constant_name", ""))
+                    for item in expression_items
+                    if str(item.get("operation", "")) == "constant"
+                ],
+            ),
+            signal="approved_plan",
+        )
         program_by_kind = {
             "pyscf_hdf5": "pyscf",
             "orca_output": "orca",
