@@ -214,6 +214,10 @@ from chemsmart.agent.scientific_validation import (
     scientific_validation_receipt_from_record,
 )
 from chemsmart.agent.skills import resolve_skill
+from chemsmart.agent.terminal_states import (
+    consequential_imaginary_mode_count,
+    stationary_point_order_finding,
+)
 from chemsmart.agent.tool_specs import (
     REGISTRY_PRODUCERS,
     AgentToolSurfaceV1,
@@ -1059,6 +1063,69 @@ def _runner_defers_hessian_classification(
             )
         )
     )
+
+
+def _spin_square_observation(output: Any, multiplicity: Any) -> dict[str, Any]:
+    """<S^2> as the program printed it beside what the bound state implies.
+
+    An observation, deliberately not a finding: contamination is a fact
+    about the method a scientist weighs, and the analysis chain's own
+    predicates are where a threshold belongs.
+    """
+
+    try:
+        history = tuple(output.spin_square_history())
+    except Exception:  # noqa: BLE001 - a reader without the table
+        return {}
+    if not history:
+        return {}
+    observed = float(history[-1])
+    record: dict[str, Any] = {"spin_square_observed": observed}
+    try:
+        spin = (int(multiplicity) - 1) / 2.0
+    except (TypeError, ValueError):
+        return record
+    expected = spin * (spin + 1.0)
+    record["spin_square_expected"] = expected
+    record["spin_square_deviation"] = observed - expected
+    return record
+
+
+def _xtb_receipt_frequencies(record: Mapping[str, Any]) -> tuple[float, ...]:
+    """The frequencies an xTB result receipt carries, wherever it keeps them."""
+
+    for container in (
+        record,
+        record.get("result") or {},
+        record.get("output") or {},
+    ):
+        if not isinstance(container, Mapping):
+            continue
+        values = container.get("vibrational_frequencies")
+        if isinstance(values, (list, tuple)):
+            try:
+                return tuple(float(item) for item in values)
+            except (TypeError, ValueError):
+                return ()
+    return ()
+
+
+def _observed_imaginary_mode_count(
+    observation: Mapping[str, Any], program: str
+) -> int | None:
+    """The consequential imaginary-mode count a program's observation
+    carries, or None when the run printed no frequencies."""
+
+    block = observation.get(program)
+    if not isinstance(block, Mapping):
+        return None
+    if program == "gaussian":
+        rows = tuple(block.get("outputs") or ())
+        if len(rows) != 1 or not isinstance(rows[0], Mapping):
+            return None
+        block = rows[0]
+    value = block.get("consequential_imaginary_mode_count")
+    return int(value) if isinstance(value, int) else None
 
 
 class CommandCompiledToolHostV1:
@@ -10898,8 +10965,13 @@ class CommandCompiledToolHostV1:
                             "energy_hartree": output.final_energy,
                             "vibrational_mode_count": len(frequencies),
                             "transition_count": len(transitions),
-                            "consequential_imaginary_mode_count": len(
-                                consequential_imaginary_modes
+                            "consequential_imaginary_mode_count": (
+                                len(consequential_imaginary_modes)
+                                if frequencies
+                                else None
+                            ),
+                            **_spin_square_observation(
+                                output, output.multiplicity
                             ),
                         }
                     )
@@ -11046,6 +11118,17 @@ class CommandCompiledToolHostV1:
                 )
                 observation["xtb"] = xtb_observation
                 findings.extend(xtb_findings)
+                try:
+                    receipt_record = json.loads(
+                        receipts[0].read_text(encoding="utf-8")
+                    )
+                except (OSError, json.JSONDecodeError):
+                    receipt_record = {}
+                xtb_observation["consequential_imaginary_mode_count"] = (
+                    consequential_imaginary_mode_count(
+                        _xtb_receipt_frequencies(receipt_record)
+                    )
+                )
             # The receipt says whether the run satisfied its contract; it
             # does not say what xTB itself complained about.  xTB is one of
             # the three programs this release executes, so a failed run
@@ -11225,9 +11308,17 @@ class CommandCompiledToolHostV1:
                                 "basis": output.basis,
                                 "energy_hartree": energy,
                                 "vibrational_mode_count": len(frequencies),
+                                "consequential_imaginary_mode_count": (
+                                    consequential_imaginary_mode_count(
+                                        frequencies
+                                    )
+                                ),
                                 "transition_count": len(transitions),
                                 "wavefunction_stability_history": (
                                     stability_history
+                                ),
+                                **_spin_square_observation(
+                                    output, output.multiplicity
                                 ),
                             }
                         )
@@ -11305,6 +11396,16 @@ class CommandCompiledToolHostV1:
             observation["gaussian"] = gaussian_observation
         elif program not in {"pyscf", "xtb", "orca", "gaussian"}:
             findings.append("execution.program.validator_unavailable")
+        # One program-neutral verdict on the order of the stationary point,
+        # from the frequencies the program itself printed and the jobtype
+        # the human approved. ORCA's transition-state check above stays;
+        # this one also covers a minimum that landed on a saddle, and the
+        # other programs, so the same physics gets the same word.
+        order_finding = stationary_point_order_finding(
+            jobtype, _observed_imaginary_mode_count(observation, program)
+        )
+        if order_finding:
+            findings.append(order_finding)
         normalized_findings = tuple(sorted(set(findings)))
         validator_schema_version = str(
             (observation.get("result_validation") or {}).get("schema_version")

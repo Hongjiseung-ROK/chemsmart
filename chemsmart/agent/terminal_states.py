@@ -26,6 +26,69 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+#: The one program-neutral validity finding: a converged search landed on
+#: a stationary point of the wrong order for what the approved plan
+#: declared -- a minimum with an imaginary mode, a transition state with
+#: none or several. Declared by the jobtype the human approved, never by
+#: prose, and counted with the same 20 cm-1 convention the
+#: thermochemistry uses for numerical noise.
+STATIONARY_POINT_ORDER_FINDING = "result.stationary_point_order"
+
+#: Modes above this magnitude below zero are imaginary in earnest;
+#: smaller ones are the rotor and translation noise thermochemistry
+#: already treats as zero.
+CONSEQUENTIAL_IMAGINARY_MODE_CM1 = -20.0
+
+
+def expected_imaginary_mode_count(jobtype: str) -> int | None:
+    """How many imaginary modes the declared jobtype promises: one for a
+    transition-state search, none for a minimum, and no promise at all
+    for a jobtype that computes no Hessian or makes no claim."""
+
+    if jobtype == "ts":
+        return 1
+    if jobtype in {"opt", "hess", "freq"}:
+        return 0
+    return None
+
+
+def consequential_imaginary_mode_count(
+    frequencies: tuple[float, ...] | list[float] | None,
+) -> int | None:
+    """The imaginary modes that count, or None when nothing was printed."""
+
+    if not frequencies:
+        return None
+    values = []
+    for value in frequencies:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            return None
+        if number != number:  # NaN
+            return None
+        values.append(number)
+    return sum(
+        1 for value in values if value < CONSEQUENTIAL_IMAGINARY_MODE_CM1
+    )
+
+
+def stationary_point_order_finding(
+    jobtype: str, observed_imaginary_modes: int | None
+) -> str:
+    """The finding to record, or "" when the result matches its claim or
+    makes none."""
+
+    expected = expected_imaginary_mode_count(jobtype)
+    if expected is None or observed_imaginary_modes is None:
+        return ""
+    return (
+        ""
+        if observed_imaginary_modes == expected
+        else STATIONARY_POINT_ORDER_FINDING
+    )
+
+
 #: The shared, program-neutral endings. Layer 2 -- the program-native
 #: dotted finding codes and native-failure classes -- rides beneath
 #: every one of them, verbatim.
@@ -294,7 +357,11 @@ def _classify_failure(
     # several has found a higher-order saddle. Both are answered by
     # stepping along a mode and searching again, and neither is
     # distinguishable from a crashed job under "failed_native".
-    if any(item.endswith(".ts_imaginary_mode_count") for item in findings):
+    if any(
+        item.endswith(".ts_imaginary_mode_count")
+        or item == STATIONARY_POINT_ORDER_FINDING
+        for item in findings
+    ):
         return "failed_wrong_stationary_point"
     return "failed_native"
 

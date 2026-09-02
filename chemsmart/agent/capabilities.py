@@ -458,13 +458,25 @@ class CapabilityQueryV1:
 
 @dataclass(frozen=True)
 class JobResultSelectorCoverageV1:
-    """Job-scoped selectors the parser supports when the engine emits them."""
+    """Job-scoped selectors the parser supports when the engine emits them,
+    and the coverage matrix cell they make: which typed axes are readable
+    and which host validity rules apply.
+
+    Capability is measured here, not by the CLI verb list: a jobtype the
+    agent can run but cannot read or judge is a cell that says
+    ``unsupported`` out loud.
+    """
 
     jobtype: str
     artifact_kind: str
     parser_id: str
     selectors: tuple[str, ...]
     coverage_semantics: str = "parser_supported_when_emitted"
+    #: (axis, state) pairs over COVERAGE_AXES: "readable", "validated",
+    #: or "unsupported".
+    axes: tuple[tuple[str, str], ...] = ()
+    #: Host validity rules that apply to this (program, jobtype).
+    validity_rules: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         require_identifier(self.jobtype, "jobtype")
@@ -476,6 +488,63 @@ class JobResultSelectorCoverageV1:
             raise ContractError(
                 "unsupported result selector coverage semantics"
             )
+        _require_sorted_unique(
+            tuple(axis for axis, _state in self.axes), "coverage axes"
+        )
+        _require_sorted_unique(self.validity_rules, "validity rules")
+
+
+#: The typed axes a result can be read on. Progress is filled cells.
+COVERAGE_AXES = (
+    "electronic",
+    "geometry",
+    "identity",
+    "spin",
+    "thermochemistry",
+)
+
+#: Programs whose results the host validator compares against the bound
+#: charge and multiplicity and whose convergence it reads.
+_VALIDATED_PROGRAMS = frozenset({"gaussian", "orca", "pyscf", "xtb"})
+
+
+def coverage_for(
+    program: str, jobtype: str, selectors: tuple[str, ...]
+) -> tuple[tuple[tuple[str, str], ...], tuple[str, ...]]:
+    """The coverage cell for one (program, jobtype): axis states and the
+    host validity rules, derived from the reader's declared selectors and
+    the validator's own reach -- never asserted per program by hand."""
+
+    declared = set(selectors)
+    validated = program in _VALIDATED_PROGRAMS
+    axes = {
+        "identity": "validated" if validated else "unsupported",
+        "spin": "readable" if "spin_square" in declared else "unsupported",
+        "thermochemistry": (
+            "readable"
+            if "vibrational_frequencies" in declared
+            else "unsupported"
+        ),
+        "electronic": "readable" if "energy" in declared else "unsupported",
+        "geometry": "readable" if "positions" in declared else "unsupported",
+    }
+    rules: list[str] = []
+    if validated:
+        rules.append("state_match")
+    if validated and jobtype in {"opt", "scan", "ts"}:
+        rules.append("convergence")
+    if (
+        program in {"gaussian", "orca", "xtb"}
+        and jobtype in {"hess", "opt", "ts"}
+        and "vibrational_frequencies" in declared
+    ):
+        # PySCF's frequencies are read through its structured result and
+        # its validation is delegated to the runner's policy, so the host
+        # rule does not reach it yet: that cell says so.
+        rules.append("stationary_point_order")
+    if program in {"gaussian", "orca"} and "spin_square" in declared:
+        rules.append("spin_square_observed")
+    return tuple(sorted(axes.items())), tuple(sorted(rules))
 
 
 @dataclass(frozen=True)
@@ -1421,11 +1490,16 @@ def query_capability(
         if reader is not None:
             selectors = reader.selectors_for_jobtype(query.jobtype)
             if selectors is not None:
+                axes, validity_rules = coverage_for(
+                    query.program, query.jobtype, selectors
+                )
                 job_result_selector_coverage = JobResultSelectorCoverageV1(
                     jobtype=query.jobtype,
                     artifact_kind=reader.artifact_kind,
                     parser_id=reader.parser_id,
                     selectors=selectors,
+                    axes=axes,
+                    validity_rules=validity_rules,
                 )
 
     body = {
@@ -2065,6 +2139,8 @@ def _sha256_existing_file(path: Path) -> str:
 
 
 __all__ = [
+    "COVERAGE_AXES",
+    "coverage_for",
     "AgentProgramSupportOverlayV1",
     "CapabilityQueryReceiptV1",
     "CapabilityQueryStatus",
