@@ -2581,12 +2581,11 @@ def _analysis_intent_node_schema() -> dict:
             "expression_nodes": {
                 "type": "array",
                 "description": (
-                    "The typed expression DAG, evaluated strictly in the "
-                    "order given: a node may only read analysis inputs and "
-                    "nodes listed before it, so define a value before the "
-                    "node that uses it. Writing the headline quantity first "
-                    "and its parts underneath is refused when planned, "
-                    "naming the node and what it could not resolve."
+                    "The typed expression DAG. Give the nodes in any order: "
+                    "the host orders them so each follows what it reads, "
+                    "and refuses when planned only a name that no analysis "
+                    "input or expression node provides, or nodes that read "
+                    "each other in a cycle, naming the node and the name."
                 ),
                 "items": _quantity_expression_node_schema(),
             },
@@ -2663,15 +2662,37 @@ def _analysis_intent_node_schema() -> dict:
                             ),
                             "items": _public_identifier(),
                         },
-                        "threshold": {"type": "number"},
+                        "threshold": {
+                            "type": "number",
+                            "description": (
+                                "Only for maximum_absolute_less_equal, "
+                                "minimum_greater_equal and symmetric_within, "
+                                "each of which also requires unit."
+                            ),
+                        },
                         # No schema-level minimum: count_equals enforces
                         # non-negativity in its own contract, while
                         # integer_equals exists precisely for negative
                         # state labels (an anion's charge of -1) -- a bound
                         # here made that case unreachable at the tool
                         # surface.
-                        "expected_count": {"type": "integer"},
-                        "unit": _string(),
+                        "expected_count": {
+                            "type": "integer",
+                            "description": (
+                                "Only for count_equals (non-negative) and "
+                                "integer_equals (any integer, e.g. an "
+                                "anion's charge of -1)."
+                            ),
+                        },
+                        "unit": {
+                            **_string(),
+                            "description": (
+                                "The unit of threshold; required with it "
+                                "and accepted by nothing else. all_equal, "
+                                "all_equal_text and all_finite take "
+                                "input_ids alone."
+                            ),
+                        },
                     },
                     "required": ["rule_id", "predicate", "input_ids"],
                     "additionalProperties": False,

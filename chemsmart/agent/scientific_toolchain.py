@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from chemsmart.agent._contracts import (
     DIMENSIONLESS_UNIT_HINT,
@@ -104,6 +104,81 @@ def _identifier(value: str, field: str) -> str:
         return require_identifier(value, field)
     except ContractError as exc:
         raise ScientificToolchainContractError(str(exc)) from exc
+
+
+def _expression_references(item: Mapping[str, Any]) -> tuple[str, ...]:
+    """Every name one expression node reads: its inputs and its reference."""
+
+    referenced = [
+        str(value) for value in (item.get("input_ids") or ()) if str(value)
+    ]
+    reference = str(item.get("reference", "") or "")
+    if reference:
+        referenced.append(reference)
+    return tuple(referenced)
+
+
+def _order_expression_nodes(
+    nodes: Sequence[Mapping[str, Any]], *, available: set[str]
+) -> tuple[Mapping[str, Any], ...]:
+    """Order expression nodes so each follows everything it reads.
+
+    The given order is kept wherever it already satisfies that, so a
+    plan written in evaluation order is returned unchanged. A node whose
+    reads can never be satisfied is refused with the name it reads; a set
+    of nodes that read each other is refused as a cycle.
+    """
+
+    provided = set(available)
+    pending = list(nodes)
+    ordered: list[Mapping[str, Any]] = []
+    while pending:
+        progressed = False
+        for item in list(pending):
+            if all(name in provided for name in _expression_references(item)):
+                ordered.append(item)
+                provided.add(str(item.get("node_id", "?")))
+                pending.remove(item)
+                progressed = True
+        if progressed:
+            continue
+        pending_ids = {str(item.get("node_id", "?")) for item in pending}
+        unprovided = sorted(
+            {
+                name
+                for item in pending
+                for name in _expression_references(item)
+                if name not in provided and name not in pending_ids
+            }
+        )
+        if unprovided:
+            readers = sorted(
+                str(item.get("node_id", "?"))
+                for item in pending
+                if any(
+                    name in unprovided for name in _expression_references(item)
+                )
+            )
+            raise ScientificToolchainContractError(
+                f"expression node(s) {readers} read {unprovided}, which no "
+                "expression node or analysis input provides; "
+                f"available: {sorted(provided)}",
+                cause="expression_read_order",
+                next_legal_route=(
+                    "add the missing name as an analysis input or as an "
+                    "expression node that computes it"
+                ),
+            )
+        raise ScientificToolchainContractError(
+            f"expression nodes {sorted(pending_ids)} read each other in a "
+            "cycle, so no evaluation order exists",
+            cause="expression_read_order",
+            next_legal_route=(
+                "break the cycle: each value must be computed from analysis "
+                "inputs and nodes that do not read it back"
+            ),
+        )
+    return tuple(ordered)
 
 
 def _sorted_unique(values: Sequence[str], field: str) -> tuple[str, ...]:
@@ -634,42 +709,21 @@ class AnalysisNodeIntentV1:
                     ) from exc
             # An expression node's inputs are resolved in list order while
             # the run evaluates, so a node placed before the node it reads
-            # raises "references an unavailable prior value" -- and only
-            # then, once every engine has already finished. That is the same
-            # class of loss the constant check above exists to prevent, and
-            # the fix is the same: it is a structural fact about the DAG,
-            # fully determinable now, so refuse it now and name the node and
-            # the reference rather than spend an hour of compute first.
-            available = {item.input_id for item in self.inputs}
-            for item in self.expression_nodes:
-                node_id = str(item.get("node_id", "?"))
-                referenced = [
-                    str(value)
-                    for value in (item.get("input_ids") or ())
-                    if str(value)
-                ]
-                reference = str(item.get("reference", "") or "")
-                if reference:
-                    referenced.append(reference)
-                missing = [
-                    name for name in referenced if name not in available
-                ]
-                if missing:
-                    raise ScientificToolchainContractError(
-                        f"expression node {node_id!r} reads "
-                        f"{sorted(set(missing))}, which no earlier node or "
-                        "analysis input provides. Expression nodes are "
-                        "evaluated in the order given, so every node must "
-                        "appear after the nodes and inputs it reads; "
-                        f"available at {node_id!r}: {sorted(available)}",
-                        cause="expression_read_order",
-                        next_legal_route=(
-                            "reorder the expression nodes so each appears "
-                            "after everything it reads, or add the "
-                            "missing name as an analysis input"
-                        ),
-                    )
-                available.add(node_id)
+            # used to raise "references an unavailable prior value" -- and
+            # only then, once every engine had finished. The order is a
+            # structural fact about the DAG, fully determinable now, and
+            # the host can settle it itself: the nodes are put into an
+            # order in which every node follows what it reads, and the
+            # refusal is kept only for what no order can fix -- a name
+            # that nothing provides, or nodes that read each other.
+            object.__setattr__(
+                self,
+                "expression_nodes",
+                _order_expression_nodes(
+                    self.expression_nodes,
+                    available={item.input_id for item in self.inputs},
+                ),
+            )
             declared = sorted({item.output_id for item in self.outputs})
             exported = sorted(set(self.expression_output_node_ids))
             if declared != exported:
