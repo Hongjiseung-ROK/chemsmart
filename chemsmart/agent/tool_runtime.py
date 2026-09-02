@@ -1091,18 +1091,54 @@ def _spin_square_observation(output: Any, multiplicity: Any) -> dict[str, Any]:
     return record
 
 
-def _xtb_receipt_frequencies(record: Mapping[str, Any]) -> tuple[float, ...]:
-    """The frequencies an xTB result receipt carries, wherever it keeps them."""
+def _output_artifact_kind(program: str, path: Path) -> str:
+    """The typed kind of one file an engine left behind.
 
-    for container in (
-        record,
-        record.get("result") or {},
-        record.get("output") or {},
-    ):
-        if not isinstance(container, Mapping):
+    xTB writes g98.out beside its own log -- a Gaussian-98-style
+    frequency table for other tools -- and registering it as a second
+    xtb_output made a live hess node's analysis refuse to choose
+    between two logs. It is a sidecar, and reads as one.
+    """
+
+    suffix = path.suffix.lower()
+    if suffix == ".h5":
+        return "pyscf_hdf5"
+    if suffix == ".xyz":
+        return "geometry_xyz"
+    if program == "orca" and suffix == ".hess":
+        return "orca_hessian"
+    if suffix == ".json":
+        return "json"
+    if program == "xtb" and suffix == ".out":
+        if path.name.lower() == "g98.out":
+            return "program_output"
+        return "xtb_output"
+    if program == "orca" and suffix == ".out":
+        return "orca_output"
+    if program == "gaussian" and suffix in {".log", ".out"}:
+        return "gaussian_output"
+    return "program_output"
+
+
+def _xtb_log_frequencies(logs: tuple[Any, ...]) -> tuple[float, ...]:
+    """The frequencies an xTB log printed, read by the same parser the
+    typed layer uses; empty when the run printed none or the log is
+    unreadable, which the rule treats as no claim. Accepts registered
+    artifacts (rehashed before reading) or bare paths."""
+
+    from chemsmart.io.xtb.file import XTBMainOut
+
+    for artifact in logs:
+        try:
+            path = (
+                Path(artifact)
+                if isinstance(artifact, (str, Path))
+                else _current_artifact_path(artifact, field_name="xTB log")
+            )
+            values = XTBMainOut(str(path)).vibrational_frequencies
+        except Exception:  # noqa: BLE001 - an unreadable log makes no claim
             continue
-        values = container.get("vibrational_frequencies")
-        if isinstance(values, (list, tuple)):
+        if values:
             try:
                 return tuple(float(item) for item in values)
             except (TypeError, ValueError):
@@ -10561,22 +10597,7 @@ class CommandCompiledToolHostV1:
                 # _staged_auxiliary_input_findings below.
                 continue
             ordinal += 1
-            suffix = path.suffix.lower()
-            kind = "program_output"
-            if suffix == ".h5":
-                kind = "pyscf_hdf5"
-            elif suffix == ".xyz":
-                kind = "geometry_xyz"
-            elif program == "orca" and suffix == ".hess":
-                kind = "orca_hessian"
-            elif suffix == ".json":
-                kind = "json"
-            elif program == "xtb" and suffix == ".out":
-                kind = "xtb_output"
-            elif program == "orca" and suffix == ".out":
-                kind = "orca_output"
-            elif program == "gaussian" and suffix in {".log", ".out"}:
-                kind = "gaussian_output"
+            kind = _output_artifact_kind(program, path)
             before = path.stat()
             observed_sha256 = file_sha256(path)
             after = path.stat()
@@ -11118,17 +11139,6 @@ class CommandCompiledToolHostV1:
                 )
                 observation["xtb"] = xtb_observation
                 findings.extend(xtb_findings)
-                try:
-                    receipt_record = json.loads(
-                        receipts[0].read_text(encoding="utf-8")
-                    )
-                except (OSError, json.JSONDecodeError):
-                    receipt_record = {}
-                xtb_observation["consequential_imaginary_mode_count"] = (
-                    consequential_imaginary_mode_count(
-                        _xtb_receipt_frequencies(receipt_record)
-                    )
-                )
             # The receipt says whether the run satisfied its contract; it
             # does not say what xTB itself complained about.  xTB is one of
             # the three programs this release executes, so a failed run
@@ -11147,6 +11157,15 @@ class CommandCompiledToolHostV1:
                 for artifact in output_artifacts
                 if artifact.kind == "xtb_output"
                 and Path(artifact.path).suffix.lower() != ".err"
+            )
+            # The receipt carries no frequencies; the log does, and the
+            # typed layer's own parser reads them. Observed live (W1): a
+            # hess node's count came back None from the receipt and the
+            # stationary-point rule never reached xTB.
+            observation.setdefault("xtb", {})[
+                "consequential_imaginary_mode_count"
+            ] = consequential_imaginary_mode_count(
+                _xtb_log_frequencies(xtb_logs)
             )
             if xtb_logs:
                 from chemsmart.io.native_failure import (

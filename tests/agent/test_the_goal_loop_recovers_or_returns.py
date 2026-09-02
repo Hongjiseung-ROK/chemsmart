@@ -801,7 +801,7 @@ def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(
         return SimpleNamespace(
             scheduler="SLURM",
             job_id="191",
-            submitted_at="2026-09-02T12:39:50+00:00",
+            submitted_at="2026-09-01T00:00:00+00:00",
             submit_script=str(kwargs["run_directory"] / "sub.sh"),
         )
 
@@ -871,7 +871,7 @@ def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(
         if entry["kind"] == "run_recorded"
     ]
     assert recorded[-1]["payload"]["cycle"] == 1
-    assert "queue_wait_seconds" in recorded[-1]["payload"]
+    assert recorded[-1]["payload"]["queue_wait_seconds"] > 0.0
 
     # Settled goals do not resume, and a goal with no parked run does not.
     with pytest.raises(ContractError, match="is settled"):

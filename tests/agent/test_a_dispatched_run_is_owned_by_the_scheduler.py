@@ -147,7 +147,7 @@ def test_waiting_ends_on_the_result_file_or_a_terminal_job(tmp_path):
             DispatchReceiptV1(
                 scheduler="SLURM",
                 job_id="191",
-                submitted_at="2026-09-02T12:39:50+00:00",
+                submitted_at="2026-09-01T00:00:00+00:00",
                 submit_command="sbatch x.sh",
                 submit_script=str(run_directory / "x.sh"),
                 run_directory=str(run_directory),
@@ -189,7 +189,7 @@ def _park_a_goal(tmp_path):
         return SimpleNamespace(
             scheduler="SLURM",
             job_id="191",
-            submitted_at="2026-09-02T12:39:50+00:00",
+            submitted_at="2026-09-01T00:00:00+00:00",
             submit_script=str(kwargs["run_directory"] / "sub.sh"),
         )
 

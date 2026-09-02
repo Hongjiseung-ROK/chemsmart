@@ -131,3 +131,37 @@ def test_the_capability_receipt_carries_the_cell():
     assert coverage is not None
     assert "stationary_point_order" in coverage.validity_rules
     assert dict(coverage.axes)["geometry"] == "readable"
+
+
+def test_the_xtb_sidecar_is_not_a_second_log_and_the_log_gives_the_count():
+    """Observed live (W1, methanol xTB opt+hess): g98.out registered as a
+    second xtb_output and the analysis walker refused to choose; and the
+    result receipt carries no frequencies, so the count came back None
+    and the stationary-point rule never reached xTB. The log is the
+    source, read by the typed layer's own parser."""
+
+    from pathlib import Path
+
+    from chemsmart.agent.tool_runtime import (
+        _output_artifact_kind,
+        _xtb_log_frequencies,
+    )
+
+    assert _output_artifact_kind("xtb", Path("run/g98.out")) == (
+        "program_output"
+    )
+    assert _output_artifact_kind("xtb", Path("run/meoh_hess.out")) == (
+        "xtb_output"
+    )
+    assert _output_artifact_kind("orca", Path("run/a.hess")) == "orca_hessian"
+    assert _output_artifact_kind("orca", Path("run/a.out")) == "orca_output"
+
+    log = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "XTBTests"
+        / ("outputs/co2_ohess/co2_ohess.out")
+    )
+    frequencies = _xtb_log_frequencies((log,))
+    assert frequencies, "the archived hess log prints frequencies"
+    assert consequential_imaginary_mode_count(frequencies) == 0

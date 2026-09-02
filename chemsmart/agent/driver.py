@@ -1789,6 +1789,12 @@ class GoalDriver:
             {
                 "cycle": self.cycles,
                 "terminal_states": dict(sorted(repairable.items())),
+                # Observed live (W1): every node validated and the
+                # analysis chain was partial, so the entry named no
+                # node; say what opened the cycle.
+                "analysis_status": str(
+                    getattr(self.execute_result, "analysis_status", "") or ""
+                ),
                 "verdicts": [],
                 "stale_quantity_ids": list(unrefreshed),
                 "unclaimed_output_ids": list(
@@ -1845,8 +1851,13 @@ def _queue_wait_seconds(receipt: Any, events_path: Path) -> float | None:
     if not submitted:
         return None
     try:
-        first = events_path.read_text(encoding="utf-8").splitlines()[0]
-        started = str(json.loads(first).get("at") or "")
+        first = json.loads(
+            events_path.read_text(encoding="utf-8").splitlines()[0]
+        )
+        # The runtime stream stamps each event as ``timestamp``; the
+        # goal ledger stamps its own entries as ``at``. Observed live:
+        # reading the ledger's word here left every queue wait None.
+        started = str(first.get("timestamp") or first.get("at") or "")
         start = datetime.fromisoformat(started)
         submit = datetime.fromisoformat(submitted)
     except (OSError, IndexError, ValueError, json.JSONDecodeError):
