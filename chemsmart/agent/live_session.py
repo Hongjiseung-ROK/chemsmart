@@ -872,6 +872,11 @@ def run_live_agent_session(
     )
     if remaining is not None:
         host_kwargs["engine_calls_remaining"] = int(remaining)
+    declared = tuple((goal_context or {}).get("declared_observables") or ())
+    if declared and "approved_requested_observable_declarations" not in (
+        host_kwargs
+    ):
+        host_kwargs["approved_requested_observable_declarations"] = declared
     host = CommandCompiledToolHostV1(**host_kwargs)
     # Guides open before the first turn are opened on the host, so each
     # leaves the same event as one opened mid-session -- with its signal.

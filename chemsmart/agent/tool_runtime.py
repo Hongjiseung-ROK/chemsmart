@@ -2065,6 +2065,7 @@ class CommandCompiledToolHostV1:
         """
 
         declared = []
+        kept_prior: list[str] = []
         for item in values["observables"]:
             observable_id = str(item["observable_id"])
             require_identifier(observable_id, "observable_id")
@@ -2106,6 +2107,12 @@ class CommandCompiledToolHostV1:
                         "observable is a new declaration under a new "
                         "identifier"
                     )
+                # The first declaration stands, and the reply says so: a
+                # woken session re-declared its expectations with a
+                # flipped sign convention and wider bands, and the
+                # completion row printed agreed over a falsified first
+                # prior (live, 2026-09-02).
+                kept_prior.append(observable_id)
                 continue
             expected_sign = str(item.get("expected_sign", "")).strip().lower()
             basis = str(item.get("expectation_basis", "")).strip()
@@ -2130,6 +2137,20 @@ class CommandCompiledToolHostV1:
                     "expected_sign is 'positive' or 'negative'; the "
                     "vocabulary grows only when a loss class earns a new "
                     "comparator"
+                )
+            # A sign the band excludes can never agree: five correct zero
+            # imaginary-mode counts printed "diverged" because their
+            # expectation carried expected_sign positive with a 0..0 band
+            # (live, 2026-09-02). A zero has no sign.
+            if low is not None and (
+                (expected_sign == "positive" and float(high) <= 0.0)
+                or (expected_sign == "negative" and float(low) >= 0.0)
+            ):
+                raise ContractError(
+                    f"expected_sign {expected_sign!r} contradicts the band "
+                    f"[{float(low):g}, {float(high):g}]: a zero has no sign, "
+                    "so omit expected_sign for a zero-valued expectation and "
+                    "let the band speak"
                 )
             if (expected_sign or low is not None) and not basis:
                 raise ContractError(
@@ -2185,6 +2206,14 @@ class CommandCompiledToolHostV1:
         return {
             "declared": tuple(declared),
             "declared_total": len(self.requested_observable_declarations),
+            "kept_prior": tuple(kept_prior),
+            "kept_prior_meaning": (
+                "the goal's first declaration of an observable stands; an "
+                "expectation written after the physics exists is not a "
+                "prediction"
+                if kept_prior
+                else ""
+            ),
             "completion_consequence": (
                 "the completion gate requires a delivered claim of "
                 "matching dimension for every declared observable; kind "

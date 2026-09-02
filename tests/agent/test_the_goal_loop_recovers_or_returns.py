@@ -856,6 +856,73 @@ def test_a_refused_review_is_named_by_the_settlement(tmp_path):
     )
 
 
+def test_the_goals_first_declarations_ride_the_wake(tmp_path):
+    """Session 1's expectations are the goal's; a woken session is
+    seeded with them (the host keeps the first) and the ledger carries
+    them from the cycle that declared them."""
+
+    contexts = []
+
+    def capture(inner):
+        def step(workspace, kwargs):
+            contexts.append(kwargs["goal_context"])
+            return inner(workspace, kwargs)
+
+        return step
+
+    declared = {
+        "kind": "requested_observable_declared",
+        "payload": {
+            "observables": [
+                {
+                    "observable_id": "cis-barrier",
+                    "unit": "kcal/mol",
+                    "dimension": [1, 0, 0, 0, 0, 0],
+                    "meaning": "syn barrier above anti",
+                    "expectation_basis": "torsional barriers",
+                    "expected_sign": "positive",
+                    "expected_low": 3.0,
+                    "expected_high": 8.0,
+                }
+            ],
+            "declared_total": 1,
+        },
+    }
+    _loop(
+        tmp_path,
+        sessions=[
+            capture(
+                _planning_session(
+                    "live-1",
+                    review=_review_payload(),
+                    wake_rows=[
+                        {"kind": "session_started", "payload": {}},
+                        declared,
+                    ],
+                )
+            ),
+            capture(_planning_session("live-2", review=_review_payload())),
+        ],
+        executes=[
+            _execute(
+                tmp_path, failed=True, status="partial", analysis="partial"
+            ),
+            _execute(tmp_path, failed=False, status="completed"),
+        ],
+    )
+
+    assert contexts[0]["declared_observables"] == ()
+    assert [
+        item["observable_id"] for item in contexts[1]["declared_observables"]
+    ] == ["cis-barrier"]
+    assert contexts[1]["declared_observables"][0]["expected_high"] == 8.0
+    ledger = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    )
+    kinds = [entry["kind"] for entry in ledger.entries()]
+    assert kinds.index("goal_created") < kinds.index("observables_declared")
+
+
 def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(
     tmp_path,
 ):

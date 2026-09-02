@@ -221,3 +221,69 @@ def test_a_point_expectation_is_a_band_with_equal_ends(tmp_path):
                 ]
             },
         )
+
+
+def test_a_sign_the_band_excludes_is_refused(tmp_path):
+    """Five correct zero imaginary-mode counts printed "diverged"
+    because their expectation carried expected_sign positive with a
+    0..0 band; a zero has no sign."""
+
+    host = _host(tmp_path)
+    with pytest.raises(ContractError, match="a zero has no sign"):
+        host.dispatch(
+            turn_id="t1",
+            tool_name="declare_requested_observable",
+            arguments={
+                "observables": [
+                    {
+                        "observable_id": "n-imag",
+                        "unit": "1",
+                        "meaning": "imaginary modes below -20 cm^-1",
+                        "expected_sign": "positive",
+                        "expected_low": 0,
+                        "expected_high": 0,
+                        "expectation_basis": "a minimum has none",
+                    }
+                ]
+            },
+        )
+
+
+def test_the_goals_first_declaration_stands(tmp_path):
+    """A woken session re-declared its expectations with a flipped
+    sign and wider bands and the completion row printed agreed over a
+    falsified first prior. The host is seeded with the goal's first
+    declarations; a re-declaration keeps them and the reply says so."""
+
+    first = {
+        "observable_id": "cis-barrier",
+        "unit": "kcal/mol",
+        "dimension": (1, 0, 0, 0, 0, 0),
+        "meaning": "syn barrier above anti",
+        "expectation_basis": "torsional barriers of chloroethanes",
+        "expected_sign": "positive",
+        "expected_low": 3.0,
+        "expected_high": 8.0,
+    }
+    host = _host(tmp_path, approved_requested_observable_declarations=[first])
+    reply = host.dispatch(
+        turn_id="t1",
+        tool_name="declare_requested_observable",
+        arguments={
+            "observables": [
+                {
+                    "observable_id": "cis-barrier",
+                    "unit": "kcal/mol",
+                    "meaning": "syn barrier above anti",
+                    "expected_sign": "positive",
+                    "expected_low": 5.0,
+                    "expected_high": 9.0,
+                    "expectation_basis": "widened after the fact",
+                }
+            ]
+        },
+    )["result"]
+    assert list(reply["kept_prior"]) == ["cis-barrier"]
+    assert list(reply["declared"]) == []
+    kept = host.requested_observable_declarations["cis-barrier"]
+    assert (kept["expected_low"], kept["expected_high"]) == (3.0, 8.0)

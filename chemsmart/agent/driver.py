@@ -386,6 +386,7 @@ def _goal_terms_context(
         "trajectory": (),
         "previous_run": "",
         "previous_run_outcome": {},
+        "declared_observables": (),
         "authority": (
             "This session plans cycle 1 of an approved goal; the "
             "budgets above are the whole grant. A plan that changes "
@@ -417,6 +418,50 @@ def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
         "stale_quantity_ids": delivery.stale_quantity_ids,
         "unclaimed_output_ids": delivery.unclaimed_output_ids,
     }
+
+
+def _first_declarations(ledger: GoalLedger) -> tuple[dict[str, Any], ...]:
+    """The goal's first declaration of each observable, in ledger order.
+
+    A woken session re-declared its expectations with a flipped sign
+    convention and wider bands, and the completion row printed agreed
+    over a falsified first prior (live, 2026-09-02). An expectation is
+    a prediction only if it predates the physics, so the earliest
+    declaration of an id is the one every later session's host is
+    seeded with.
+    """
+
+    first: dict[str, dict[str, Any]] = {}
+    for entry in ledger.entries():
+        if entry["kind"] != "observables_declared":
+            continue
+        for record in entry["payload"].get("observables") or ():
+            observable_id = str(record.get("observable_id") or "")
+            if observable_id and observable_id not in first:
+                first[observable_id] = dict(record)
+    return tuple(first.values())
+
+
+def _session_declarations(events_path: Path | None) -> tuple[dict, ...]:
+    """Every observable a session stream declared, in stream order."""
+
+    if events_path is None:
+        return ()
+    try:
+        lines = events_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return ()
+    declared: list[dict] = []
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("kind") != "requested_observable_declared":
+            continue
+        for record in (event.get("payload") or {}).get("observables") or ():
+            declared.append(dict(record))
+    return tuple(declared)
 
 
 def _wake_context(
@@ -500,6 +545,7 @@ def _wake_context(
             outcome.public_record() if outcome is not None else {}
         ),
         "repair_menu": repair_menu,
+        "declared_observables": _first_declarations(ledger),
         "authority": (
             "This session runs under an approved goal. The previous "
             "run's typed outcome is embedded above and inspect_run "
@@ -1094,6 +1140,7 @@ class GoalDriver:
         self.bundle_file: Path | None = None
         self.run_directory: Path | None = None
         self.execute_result: Any = None
+        self._pending_declarations: tuple[dict[str, Any], ...] = ()
         self.dispatch_receipt: Any = None
 
     # -- public surface ---------------------------------------------------
@@ -1283,6 +1330,37 @@ class GoalDriver:
         self.phase = "settled"
         return self.result
 
+    def _record_declarations(self) -> None:
+        """Enter this cycle's new observable declarations in the ledger."""
+
+        known = {
+            str(record.get("observable_id") or "")
+            for record in _first_declarations(self.ledger)
+        }
+        fresh = tuple(
+            record
+            for record in _session_declarations(self.events_path)
+            if str(record.get("observable_id") or "") not in known
+        )
+        if self.goal is None:
+            # Cycle 1 declares before the goal record exists; the entry
+            # follows goal_created.
+            self._pending_declarations = fresh
+            return
+        if fresh:
+            self.ledger.append(
+                "observables_declared",
+                {"cycle": self.cycles, "observables": fresh},
+            )
+
+    def _flush_declarations(self) -> None:
+        fresh, self._pending_declarations = self._pending_declarations, ()
+        if fresh:
+            self.ledger.append(
+                "observables_declared",
+                {"cycle": self.cycles, "observables": fresh},
+            )
+
     def _settle_delivery(self, terminal: str) -> GoalLoopResultV1:
         if self.events_path is None:
             # Nothing durable to read a delivery from: the goal still ends
@@ -1400,6 +1478,7 @@ class GoalDriver:
             # prepared a review; it cannot settle a delivery or carry the
             # evidence a revision must cite, and those paths say so.
             self.events_path = None
+        self._record_declarations()
         if terminal != "waiting_for_approval":
             # No executable partition was planned. Either the session
             # delivered over registered results, refused with receipts,
@@ -1411,6 +1490,7 @@ class GoalDriver:
                     review_sha256="",
                 )
                 self.ledger.create(self.goal)
+                self._flush_declarations()
             self._settle_delivery(terminal)
             return
         self.phase = "decide"
@@ -1464,6 +1544,7 @@ class GoalDriver:
                 review_sha256=review_sha256,
             )
             self.ledger.create(self.goal)
+            self._flush_declarations()
             self.phase = "execute"
             return
         if self.events_path is None:
