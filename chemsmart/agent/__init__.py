@@ -12,14 +12,6 @@ from chemsmart.agent.capabilities import (
     ResolvedProgramBindingV1,
     ResolvedProgramEngineBindingV1,
 )
-from chemsmart.agent.dependency_context import (
-    ContextSelectionReceiptV1,
-    PredecessorEvidenceRefV1,
-    TaskDependencyContextPolicyV2,
-    TaskDependencyContextV2,
-    bind_selected_public_records,
-    build_dependency_context_public_projection,
-)
 from chemsmart.agent.execution import (
     FrozenMaterializedNodePreviewV1,
     FrozenProducerEdgeRuleV1,
@@ -67,7 +59,6 @@ __all__ = [
     "CommandNodeV1",
     "CommandWorkflowDraftV1",
     "CommandWorkflowSpecV1",
-    "ContextSelectionReceiptV1",
     "FrozenWorkflowApprovalV1",
     "FrozenMaterializedNodePreviewV1",
     "FrozenProducerEdgeRuleV1",
@@ -80,7 +71,6 @@ __all__ = [
     "ProgramComponentConformanceReceiptV1",
     "ProgramNodePreflightReceiptV1",
     "ProgramNodePreflightRequestV1",
-    "PredecessorEvidenceRefV1",
     "ProgramResultValidationReceiptV1",
     "ResolvedEngineBindingV1",
     "ResolvedProgramEngineBindingV1",
@@ -88,10 +78,6 @@ __all__ = [
     "ScientificToolchainPlanV1",
     "ScientificWorkflowPlanV2",
     "StationaryPointValidationPolicyV1",
-    "TaskDependencyContextPolicyV2",
-    "TaskDependencyContextV2",
     "WorkflowRunStateV1",
     "ValidatedDataEdgeBindingV1",
-    "bind_selected_public_records",
-    "build_dependency_context_public_projection",
 ]

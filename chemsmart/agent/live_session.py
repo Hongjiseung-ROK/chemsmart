@@ -65,11 +65,6 @@ from chemsmart.agent.capabilities import (
 )
 from chemsmart.agent.cli_schema import build_live_click_schema
 from chemsmart.agent.commands import build_scientific_identity_binding
-from chemsmart.agent.dependency_context import (
-    ContextSelectionReceiptV1,
-    TaskDependencyContextV2,
-    build_dependency_context_public_projection,
-)
 from chemsmart.agent.execution import (
     ApprovedNodeBindingV1,
     ExecutionResourceSpecV1,
@@ -126,7 +121,6 @@ from chemsmart.agent.skills import (
 )
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from chemsmart.agent.tool_specs import (
-    build_approved_execution_tool_surface,
     build_command_compiled_tool_surface,
 )
 from chemsmart.agent.workflows import (
@@ -607,11 +601,6 @@ def run_live_agent_session(
     approved_molecular_identity: ApprovedMolecularIdentityV1 | None = None,
     approved_molecular_identities: Iterable[ApprovedMolecularIdentityV1] = (),
     approved_molecular_inputs: Iterable[ApprovedMolecularInputV1] = (),
-    dependency_context: TaskDependencyContextV2 | None = None,
-    dependency_context_selection_receipt: (
-        ContextSelectionReceiptV1 | None
-    ) = None,
-    dependency_public_records: Mapping[str, Mapping[str, Any]] | None = None,
     review_file: str | Path | None = None,
     on_run_directory: Callable[[Path], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
@@ -632,30 +621,6 @@ def run_live_agent_session(
     )
     profile = selection.active_profile
     normalized_provider = profile.provider
-    if (dependency_context is None) != (
-        dependency_context_selection_receipt is None
-    ):
-        raise ContractError(
-            "dependency context and selection receipt must be supplied together"
-        )
-    if dependency_context is None:
-        if dependency_public_records:
-            raise ContractError(
-                "dependency public records require a selected dependency context"
-            )
-        dependency_context_public_projection: dict[str, Any] = {}
-    else:
-        if dependency_public_records is None:
-            raise ContractError(
-                "selected dependency context requires exact public record payloads"
-            )
-        dependency_context_public_projection = (
-            build_dependency_context_public_projection(
-                context=dependency_context,
-                selection_receipt=dependency_context_selection_receipt,
-                records=dependency_public_records,
-            )
-        )
     task = str(task).strip()
     if not task:
         raise ContractError("live agent task must not be empty")
@@ -807,14 +772,11 @@ def run_live_agent_session(
             )
         )
 
-    use_execution_surface = False
+    # A live provider session plans and previews only; the approved-execution
+    # surface belongs to the provider-free executor.
     approved_project_records: tuple[dict[str, Any], ...] = ()
     approved_workflow_record: dict[str, Any] = {}
-    surface = (
-        build_approved_execution_tool_surface(registry)
-        if use_execution_surface
-        else build_command_compiled_tool_surface(registry)
-    )
+    surface = build_command_compiled_tool_surface(registry)
 
     event_store = RuntimeEventStore(
         run_directory / "events.jsonl", session_id=session_id
@@ -868,10 +830,6 @@ def run_live_agent_session(
             if item.program == "pyscf"
         },
         "analysis_completion_policy": analysis_completion_policy,
-        "dependency_context": dependency_context,
-        "dependency_context_selection_receipt": (
-            dependency_context_selection_receipt
-        ),
     }
     if bounded_envelope is not None:
         _validate_bounded_envelope_against_registry(
@@ -879,66 +837,6 @@ def run_live_agent_session(
         )
         host_kwargs["execution_resources"] = bounded_envelope.resources
         host_kwargs["bounded_execution_envelope"] = bounded_envelope
-    if use_execution_surface and approval_file is not None:
-        execution_inputs = _execution_composition_inputs(
-            host_type=CommandCompiledToolHostV1,
-            workspace=workspace_path,
-            run_directory=run_directory,
-            approval_file=Path(approval_file),
-            task_spec_sha256=task_spec_sha256,
-        )
-        approved_plan = execution_inputs.pop("approved_scientific_plan")
-        approved_workflow_record = _public_workflow_approval(
-            execution_inputs["workflow_execution_approval"],
-            approved_plan=approved_plan,
-        )
-        if approved_plan is not None:
-            # Execution resolves the exact reviewed DAG by its frozen digest.
-            host_kwargs["scientific_workflow_plan"] = approved_plan
-        approved_materialization = execution_inputs.pop(
-            "approved_materialized_workflow"
-        )
-        if approved_materialization is not None:
-            # Execution resolves the reviewed materialization by its digest.
-            host_kwargs["materialized_workflow"] = approved_materialization
-        approved_projects = execution_inputs.pop("approved_project_artifacts")
-        host_kwargs["artifacts"].update(
-            {item.artifact_id: item for item in approved_projects}
-        )
-        approved_project_records = tuple(
-            {
-                "artifact_id": item.artifact_id,
-                "artifact_class": item.kind,
-                "sha256": item.sha256,
-                "size_bytes": item.size_bytes,
-                "approval_status": "workflow_bound",
-            }
-            for item in approved_projects
-        )
-        host_kwargs.update(execution_inputs)
-    elif use_execution_surface and bounded_envelope is not None:
-        _validate_bounded_envelope_against_registry(
-            bounded_envelope, registry=registry
-        )
-        host_kwargs.update(
-            _bounded_execution_composition_inputs(
-                workspace=workspace_path,
-                run_directory=run_directory,
-                envelope=bounded_envelope,
-            )
-        )
-    if use_execution_surface:
-        provider_secret_labels = {
-            profile.api_key_env,
-            *(
-                label
-                for labels in DEFAULT_KEY_LABELS.values()
-                for label in labels
-            ),
-        }
-        host_kwargs["execution_environment_remove"] = tuple(
-            sorted(provider_secret_labels)
-        )
     host = CommandCompiledToolHostV1(**host_kwargs)
 
     context = _public_context(
@@ -953,7 +851,7 @@ def run_live_agent_session(
         registry_sha256=registry.registry_sha256,
         live_schema_sha256=live_schema.schema_sha256,
         execution_requested=execution_enabled,
-        execution_available=use_execution_surface,
+        execution_available=False,
         execution_review_requested=bounded_review_requested,
         bounded_execution_record=(
             bounded_envelope.public_record()
@@ -976,11 +874,6 @@ def run_live_agent_session(
             else None
         ),
     )
-    if dependency_context is not None:
-        context = {
-            **context,
-            **dependency_context_public_projection,
-        }
     base_messages = _coordinator_base_messages(
         context=context,
         approved_workflow=approved_workflow_record,
@@ -1017,7 +910,6 @@ def run_live_agent_session(
         provider_budget=provider_budget,
         provider_profile_sha256=profile.profile_sha256,
         execution_requested=execution_enabled,
-        dependency_context=dependency_context,
     )
     envelope = _task_envelope(
         session_id=session_id,
@@ -1028,7 +920,7 @@ def run_live_agent_session(
             for item in (*observations, *result_observations)
         ),
         tool_schema_sha256=surface.tool_schema_sha256,
-        execution_enabled=use_execution_surface,
+        execution_enabled=False,
         provider_profile=profile,
         wall_time_seconds=_SESSION_WALL_TIME_SECONDS,
         chemistry_engine_calls=0,
@@ -3074,18 +2966,6 @@ def _approved_execution_context(
 ) -> dict[str, Any]:
     """Describe execution mechanics without inventing scientific settings."""
 
-    if public_workflow.get("authorization_mode") in {
-        "bounded_local",
-        "bounded_continuous",
-    }:
-        return {
-            "authorization_mode": "bounded_local",
-            "scientific_settings_authority": "task_and_project_yaml",
-            "producer_input_policy": "validated_exact_data_edge_only",
-            "operating_bounds": dict(
-                public_workflow.get("operating_bounds") or {}
-            ),
-        }
     nodes = tuple(public_workflow.get("nodes", ()))
     if not nodes:
         return {}
@@ -3121,41 +3001,12 @@ def _system_prompt(
     bounded_review_requested: bool = False,
     skill_index: tuple[str, ...] = (),
 ) -> str:
-    execution_available = bool(approved_workflow)
-    bounded_execution = bool(
-        approved_workflow
-        and approved_workflow.get("authorization_mode")
-        in {"bounded_local", "bounded_continuous"}
-    )
-    bounded_review = bool(bounded_review_requested or bounded_execution)
+    # A planning session never holds an approved workflow: execution is the
+    # provider-free executor's, so the prompt states that and nothing more.
+    bounded_review = bool(bounded_review_requested)
     execution_sentence = (
-        "Execution is exposed as execute_approved_program_node(node_id) under "
-        "science-free operating bounds. First express the complete scientific "
-        "DAG through the normal workflow tools. Validate projects and obtain a "
-        "green preview/preflight for every initial calculation node before the "
-        "first execution request. The host then freezes only that current "
-        "ChemSmart plan and its exact evidence; it refuses programs, engines, "
-        "resources, dependencies, or calls outside operating_bounds. Execute "
-        "producer nodes before their consumers and use only validated returned "
-        "handoffs. Continue parsing and postprocessing in this same conversation."
-        if bounded_execution
-        else (
-            "Execution is exposed only as execute_approved_program_node(node_id). "
-            "Use the exact approved_workflow node IDs and listed order, and stop on "
-            "any red result. When an approved producer edge exists, execute its "
-            "producer first; after validation, consume the returned produced_handoffs "
-            "artifact and scientific identity before compiling, previewing, "
-            "preflighting, and executing that edge's consumer. "
-            "Reuse the listed approved project artifact rather than promoting a new "
-            "copy. Treat the execution receipt's deterministic validators as the live "
-            "result gate; do not call inspect_calculation_artifact for newly executed "
-            "nodes because this composition has no separate legacy settings/run IDs."
-            if execution_available
-            else (
-                "Execution is not exposed. Finish with a useful planned or "
-                "previewed state."
-            )
-        )
+        "Execution is not exposed. Finish with a useful planned or "
+        "previewed state."
     )
     approval_readiness_sentence = (
         "The supplied operating bounds request an inert exact workflow review "
@@ -3371,17 +3222,15 @@ def _request_context(
     provider_budget: ProviderNetworkBudgetV1,
     provider_profile_sha256: str,
     execution_requested: bool,
-    dependency_context: TaskDependencyContextV2 | None = None,
 ) -> RequestContextProvenanceV1:
     configuration_sha256 = canonical_sha256(
         {
             "provider_profile_sha256": provider_profile_sha256,
             "execution_requested": bool(execution_requested),
-            "dependency_context_sha256": (
-                dependency_context.context_sha256
-                if dependency_context is not None
-                else ""
-            ),
+            # The retired dependency-context plane contributed an empty
+            # digest here; the key stays so recorded provenance digests
+            # remain comparable across the removal.
+            "dependency_context_sha256": "",
         }
     )
     return build_request_context_provenance(
@@ -3479,266 +3328,6 @@ def _validate_bounded_envelope_against_registry(
                 f"bounded execution has no executable jobs for {program} "
                 "engine(s): " + ", ".join(unavailable)
             )
-
-
-def _bounded_execution_composition_inputs(
-    *,
-    workspace: Path,
-    run_directory: Path,
-    envelope: BoundedExecutionEnvelopeV1,
-) -> dict[str, Any]:
-    """Compose a deferred execution host from user-owned operating bounds."""
-
-    requested_scratch_root = Path(envelope.scratch_root)
-    if requested_scratch_root.is_symlink():
-        raise ContractError(
-            "bounded execution scratch root cannot be a symlink"
-        )
-    scratch_root = requested_scratch_root.resolve()
-    scratch_root.mkdir(parents=True, exist_ok=True)
-    server_profile = _write_execution_server_profile(
-        run_directory,
-        envelope.resources,
-        scratch_root=scratch_root,
-    )
-    path_value = os.environ.get("PATH", "")
-    xtb_executable = os.environ.get(
-        "CHEMSMART_XTB_EXECUTABLE"
-    ) or shutil.which("xtb")
-    executable_directory = (
-        str(Path(xtb_executable).expanduser().parent) if xtb_executable else ""
-    )
-    environment = {
-        "PATH": (
-            path_value
-            if not executable_directory
-            else (
-                executable_directory
-                if not path_value
-                else executable_directory + os.pathsep + path_value
-            )
-        ),
-        "PYTHONNOUSERSITE": "1",
-    }
-    return {
-        "approved_workspace": workspace,
-        "run_evidence_root": workspace,
-        "execution_resources": envelope.resources,
-        "execution_server": str(server_profile),
-        "execution_environment": environment,
-        "bounded_execution_envelope": envelope,
-    }
-
-
-def _execution_composition_inputs(
-    *,
-    host_type: type[CommandCompiledToolHostV1],
-    workspace: Path,
-    run_directory: Path,
-    approval_file: Path,
-    task_spec_sha256: str,
-) -> dict[str, Any]:
-    """Load one exact workflow approval and its explicit resource profile."""
-
-    if not _execution_composition_available():
-        raise ContractError("approval-bound execution host is unavailable")
-    expected_parameters = {
-        "approved_workspace",
-        "execution_resources",
-        "workflow_execution_approval",
-        "execution_server",
-        "execution_environment",
-    }
-    if not expected_parameters.issubset(
-        inspect.signature(host_type).parameters
-    ):
-        raise ContractError("execution host composition API is incomplete")
-    if not approval_file.is_file() or approval_file.is_symlink():
-        raise ContractError("approval file must be a current regular file")
-    try:
-        payload = json.loads(approval_file.read_text(encoding="utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ContractError("approval file is not valid JSON") from exc
-    if not isinstance(payload, Mapping):
-        raise ContractError("approval file root must be an object")
-    if "workflow_execution_approval_bundle" in payload:
-        bundle = load_workflow_execution_approval_bundle(approval_file)
-        approval = bundle.workflow_approval
-        frozen = bundle.frozen_workflow_approval
-        resources = bundle.execution_resources
-        if Path(approval.workspace).resolve() != workspace:
-            raise ContractError(
-                "execution approval bundle targets another workspace"
-            )
-        if task_spec_sha256 and approval.task_spec_sha256 != task_spec_sha256:
-            raise ContractError(
-                "execution approval bundle targets another task spec"
-            )
-        envelope = _parse_bounded_execution_envelope_record(
-            bundle.execution_envelope,
-            resources=resources,
-        )
-        requested_scratch_root = Path(envelope.scratch_root)
-        if requested_scratch_root.is_symlink():
-            raise ContractError("approved scratch root cannot be a symlink")
-        scratch_root = requested_scratch_root.resolve()
-        scratch_root.mkdir(parents=True, exist_ok=True)
-        server_profile = _write_execution_server_profile(
-            run_directory,
-            resources,
-            scratch_root=scratch_root,
-        )
-        path_value = os.environ.get("PATH", "")
-        xtb_executable = os.environ.get(
-            "CHEMSMART_XTB_EXECUTABLE"
-        ) or shutil.which("xtb")
-        executable_directory = (
-            str(Path(xtb_executable).expanduser().parent)
-            if xtb_executable
-            else ""
-        )
-        environment = {
-            "PATH": (
-                path_value
-                if not executable_directory
-                else (
-                    executable_directory
-                    if not path_value
-                    else executable_directory + os.pathsep + path_value
-                )
-            ),
-            "PYTHONNOUSERSITE": "1",
-        }
-        approved_projects = _approved_project_artifacts(workspace, approval)
-        return {
-            "approved_workspace": workspace,
-            "run_evidence_root": workspace,
-            "execution_resources": resources,
-            "workflow_execution_approval": approval,
-            "frozen_workflow_approval": frozen,
-            "execution_server": str(server_profile),
-            "execution_environment": environment,
-            "approved_project_artifacts": approved_projects,
-            "approved_scientific_plan": bundle.approved_scientific_plan,
-            "approved_materialized_workflow": (
-                bundle.approved_materialized_workflow
-            ),
-            "approved_environment_identities": (
-                bundle.approved_environment_identities
-            ),
-            "stationary_point_policy": bundle.stationary_point_policy,
-        }
-    raw_approval = payload.get("workflow_approval", payload)
-    if not isinstance(raw_approval, Mapping):
-        raise ContractError("workflow approval must be an object")
-    approval = _parse_workflow_approval(raw_approval)
-    raw_resources = payload.get("execution_resources")
-    if not isinstance(raw_resources, Mapping):
-        raise ContractError(
-            "approval file requires explicit execution_resources"
-        )
-    resources = _parse_execution_resources(raw_resources)
-    if Path(approval.workspace).resolve() != workspace:
-        raise ContractError("workflow approval targets another workspace")
-    if approval.task_spec_sha256 != task_spec_sha256:
-        raise ContractError("workflow approval targets another task spec")
-    if approval.resource_sha256 != resources.resource_sha256:
-        raise ContractError(
-            "workflow approval resources differ from supplied resources"
-        )
-    server_profile = _write_execution_server_profile(run_directory, resources)
-    path_value = os.environ.get("PATH", "")
-    xtb_executable = os.environ.get(
-        "CHEMSMART_XTB_EXECUTABLE"
-    ) or shutil.which("xtb")
-    executable_directory = (
-        str(Path(xtb_executable).expanduser().parent) if xtb_executable else ""
-    )
-    environment = {
-        "PATH": (
-            path_value
-            if not executable_directory
-            else (
-                executable_directory
-                if not path_value
-                else executable_directory + os.pathsep + path_value
-            )
-        ),
-        "PYTHONNOUSERSITE": "1",
-    }
-    approved_projects = _approved_project_artifacts(workspace, approval)
-    composed: dict[str, Any] = {
-        "approved_workspace": workspace,
-        "run_evidence_root": workspace,
-        "execution_resources": resources,
-        "workflow_execution_approval": approval,
-        "execution_server": str(server_profile),
-        "execution_environment": environment,
-        "approved_project_artifacts": approved_projects,
-    }
-    # The execution tool requires the Runtime V2 body as well; without it the
-    # V1 approval is preview-only and no node can run. Carrying it is what
-    # makes ``agent run --approval-file`` a reachable path rather than an
-    # advertised one. Its absence stays legal so an approval that deliberately
-    # authorises preview alone keeps working.
-    raw_frozen = payload.get("frozen_workflow_approval")
-    composed["approved_scientific_plan"] = None
-    composed["approved_materialized_workflow"] = None
-    if raw_frozen is not None:
-        if not isinstance(raw_frozen, Mapping):
-            raise ContractError("frozen workflow approval must be an object")
-        frozen = _parse_frozen_workflow_approval(raw_frozen)
-        if frozen.task_spec_sha256 != task_spec_sha256:
-            raise ContractError(
-                "frozen workflow approval targets another task spec"
-            )
-        composed["frozen_workflow_approval"] = frozen
-        # The plan body is optional, and self-verifying: it is disclosed only
-        # when it hashes to the digest the frozen approval already pins, so a
-        # reviewer cannot show the session one plan while approving another.
-        raw_plan = payload.get("approved_scientific_plan")
-        if raw_plan is not None:
-            if not isinstance(raw_plan, Mapping):
-                raise ContractError(
-                    "approved scientific plan must be an object"
-                )
-            plan = _parse_scientific_workflow_plan(raw_plan)
-            if plan.plan_sha256 != frozen.plan_sha256:
-                raise ContractError(
-                    "approved scientific plan is not the plan that was frozen"
-                )
-            composed["approved_scientific_plan"] = plan
-        raw_material = payload.get("approved_materialized_workflow")
-        if raw_material is not None:
-            if not isinstance(raw_material, Mapping):
-                raise ContractError(
-                    "approved materialized workflow must be an object"
-                )
-            material = _parse_materialized_workflow(raw_material)
-            if material.materialized_sha256 != (
-                frozen.materialized_workflow_sha256
-            ):
-                raise ContractError(
-                    "approved materialization is not the one that was frozen"
-                )
-            composed["approved_materialized_workflow"] = material
-        # The environment the reviewer approved, identified by machine rather
-        # than by receipt digest. A receipt digest folds in its capability
-        # receipt, which changes with the active overlay, so the digest a plan
-        # session records is never the one execution computes even on the same
-        # interpreter. The reviewer holds the plan session's receipts and can
-        # state their identity; without it, only an exact digest match passes.
-        raw_identities = payload.get("approved_environment_identities")
-        if raw_identities is not None:
-            if not isinstance(raw_identities, (list, tuple)):
-                raise ContractError(
-                    "approved environment identities must be a list"
-                )
-            composed["approved_environment_identities"] = tuple(
-                require_sha256(item, "approved environment identity")
-                for item in raw_identities
-            )
-    return composed
 
 
 def _parse_materialized_workflow(

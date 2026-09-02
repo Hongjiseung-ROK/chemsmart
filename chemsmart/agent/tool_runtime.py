@@ -64,7 +64,6 @@ from chemsmart.agent.cli_schema import (
 )
 from chemsmart.agent.commands import (
     CanonicalCommandInvocationV1,
-    CommandCounterexampleV1,
     CommandInspectionReceiptV1,
     CommandProposalV1,
     ScientificIdentityBindingV1,
@@ -72,10 +71,6 @@ from chemsmart.agent.commands import (
     compile_command,
     inspect_command,
     native_coordinate_options,
-)
-from chemsmart.agent.dependency_context import (
-    ContextSelectionReceiptV1,
-    TaskDependencyContextV2,
 )
 from chemsmart.agent.execution import (
     DEFERRABLE_GEOMETRY_PRODUCER_STAGES,
@@ -1135,10 +1130,6 @@ class CommandCompiledToolHostV1:
         execution_server_file_sha256: str = "",
         execution_environment: Mapping[str, str] = {},
         execution_environment_remove: tuple[str, ...] = (),
-        dependency_context: TaskDependencyContextV2 | None = None,
-        dependency_context_selection_receipt: (
-            ContextSelectionReceiptV1 | None
-        ) = None,
     ) -> None:
         self.event_store = event_store
         self.registry = registry or load_program_capabilities()
@@ -1233,28 +1224,6 @@ class CommandCompiledToolHostV1:
             raise ContractError(
                 "execution environment removals must be sorted, unique labels"
             )
-        if (dependency_context is None) != (
-            dependency_context_selection_receipt is None
-        ):
-            raise ContractError(
-                "dependency context and selection receipt must be supplied together"
-            )
-        if dependency_context is not None:
-            if (
-                dependency_context.context_sha256
-                != dependency_context_selection_receipt.context_sha256
-                or dependency_context.policy_sha256
-                != dependency_context_selection_receipt.policy_sha256
-                or dependency_context.plan_sha256
-                != dependency_context_selection_receipt.plan_sha256
-            ):
-                raise ContractError(
-                    "dependency context differs from its selection receipt"
-                )
-        self.dependency_context = dependency_context
-        self.dependency_context_selection_receipt = (
-            dependency_context_selection_receipt
-        )
         if self.surface.profile == "command_compiled_approved_execution":
             if self.approved_workspace is None:
                 raise ContractError(
@@ -1489,7 +1458,6 @@ class CommandCompiledToolHostV1:
         ] = {}
         self.analysis_claim_records: dict[str, Any] = {}
         self.analysis_completion_receipts: dict[str, Any] = {}
-        self.counterexamples: dict[str, CommandCounterexampleV1] = {}
         self.workflow_drafts: dict[str, CommandWorkflowDraftV1] = {}
         self.scientific_toolchain_plans: dict[
             str, ScientificToolchainPlanV1
@@ -1762,23 +1730,6 @@ class CommandCompiledToolHostV1:
                 program=receipt.program,
                 jobtype=receipt.jobtype,
             )
-        if self.dependency_context_selection_receipt is not None:
-            receipt = self.dependency_context_selection_receipt
-            self._emit(
-                turn_id,
-                EventKind.TASK_DEPENDENCY_CONTEXT_SELECTED,
-                receipt.receipt_sha256,
-                status=receipt.status,
-                workflow_id=receipt.workflow_id,
-                target_node_id=receipt.target_node_id,
-                policy_sha256=receipt.policy_sha256,
-                context_sha256=receipt.context_sha256,
-            )
-
-    def register_counterexample(self, value: CommandCounterexampleV1) -> None:
-        """Register a deterministic counterexample; never model-authored here."""
-
-        self.counterexamples[value.counterexample_id] = value
 
     def dispatch(
         self, *, turn_id: str, tool_name: str, arguments: Mapping[str, Any]
@@ -1817,7 +1768,6 @@ class CommandCompiledToolHostV1:
             "inspect_workflow_frontier": self._inspect_workflow_frontier,
             "prepare_program_node": self._prepare_program_node,
             "synthesize_command": self._synthesize_command,
-            "repair_command": self._repair_command,
             "preview_command": self._preview_command,
             "preflight_program_node": self._preflight_program_node,
             "inspect_calculation_artifact": self._inspect_calculation_artifact,
@@ -6346,54 +6296,6 @@ class CommandCompiledToolHostV1:
             project_validation=validation,
             input_artifact=input_artifact,
             scientific_identity=identity,
-        )
-        return self._record_compiled_command(turn_id, invocation, context)
-
-    def _repair_command(self, turn_id: str, values: dict) -> Any:
-        parent = self._get(
-            self.invocations,
-            values["invocation_sha256"],
-            "canonical invocation",
-        )
-        context = self._get(
-            self._command_contexts,
-            parent.invocation_sha256,
-            "command context",
-        )
-        counterexample = self._get(
-            self.counterexamples,
-            values["counterexample_id"],
-            "counterexample",
-        )
-        if counterexample.invocation_sha256 != parent.invocation_sha256:
-            raise ContractError("counterexample targets another invocation")
-        if (
-            counterexample.task_spec_sha256
-            != context.scientific_identity.task_spec_sha256
-        ):
-            raise ContractError("counterexample targets another task spec")
-        invocation = compile_command(
-            context.proposal,
-            capability=context.capability,
-            binding=context.engine_binding,
-            project=context.project_artifact,
-            project_validation=context.project_validation,
-            input_artifact=context.input_artifact,
-            scientific_identity=context.scientific_identity,
-            job_artifact_options=dict(context.job_artifact_options),
-            job_option_values=native_coordinate_options(
-                context.proposal.program, context.internal_coordinates
-            ),
-            live_schema=self.live_schema,
-            server=(
-                self.execution_server
-                if self.surface.profile
-                == "command_compiled_approved_execution"
-                else self.preview_server
-            ),
-            repair_parent_sha256=parent.invocation_sha256,
-            counterexample_sha256=counterexample.counterexample_sha256,
-            repair_attempt=parent.repair_attempt + 1,
         )
         return self._record_compiled_command(turn_id, invocation, context)
 

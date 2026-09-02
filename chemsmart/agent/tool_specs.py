@@ -37,15 +37,6 @@ class AgentToolSurfaceV1:
             raise ContractError("agent tool schema digest mismatch")
 
 
-#: ``repair_command`` is implemented internally but is not advertised because
-#: the public Runtime does not create its prerequisite counterexample record.
-_REPAIR_COMMAND_TOOL_SOURCE = """_tool(
-            "repair_command",
-            (
-                "Apply one constrained counterexample patch without changing "
-                "bindings. PRECONDITION: a counterexample must already"""
-
-
 def build_command_compiled_tool_surface(
     registry: ProgramCapabilityRegistryV1 | None = None,
 ) -> AgentToolSurfaceV1:
@@ -1685,11 +1676,6 @@ ARGUMENT_DESCRIPTIONS: dict[str, str] = {
         "Read scan_point_indices with scan_coordinate_values and "
         "scan_energies first; the choice is yours and is recorded as such."
     ),
-    "counterexample_id": (
-        "ID of a counterexample the host produced when a compiled command "
-        "failed inspection, safe preview or program validation. One exists "
-        "only after such a failure."
-    ),
     "decision_id": (
         "Stable identifier for this decision, lower case. Reuse it when you "
         "revise the same decision so the record supersedes rather than "
@@ -1860,7 +1846,6 @@ def _describe(name: str, schema: dict) -> dict:
 IDENTIFIER_ARGUMENTS = frozenset(
     {
         "artifact_class",
-        "counterexample_id",
         "jobtype",
         "node_id",
         "output_id",
@@ -1915,11 +1900,6 @@ REGISTRY_PRODUCERS: dict[str, str] = {
     "capability receipt": "by inspecting a program capability",
     "command context": "by preparing a program node",
     "command inspection receipt": "by compiling a program node",
-    "counterexample": (
-        "by the host when a compiled command fails inspection, safe preview, "
-        "or program validation -- do not reference one before a failure has "
-        "produced it"
-    ),
     "engine binding": "by inspecting the program environment",
     "functional equivalence receipt": "by validating a project document",
     "program binding": "by inspecting the program environment",
@@ -1937,12 +1917,10 @@ REGISTRY_PRODUCERS: dict[str, str] = {
 
 #: Which host registry each late-bound argument indexes.  A tool taking one of
 #: these cannot succeed until something else has run, and saying so only in the
-#: rejection means the model learns it by failing.  Observed across six live
-#: sessions: repair_command called with no counterexample bound (four times)
-#: and assess_program_candidate called with no claim evidence bound.
+#: rejection means the model learns it by failing.  Observed live:
+#: assess_program_candidate called with no claim evidence bound.
 LATE_BOUND_ARGUMENTS: dict[str, str] = {
     "command_inspection_receipt_sha256": "command inspection receipt",
-    "counterexample_id": "counterexample",
     "invocation_sha256": "canonical invocation",
     "render_receipt_sha256": "project render receipt",
     "run_receipt_id": "run receipt",

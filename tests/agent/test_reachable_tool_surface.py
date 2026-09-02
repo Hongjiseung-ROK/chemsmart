@@ -43,7 +43,6 @@ _SURFACES = (
 #: a host registry now appears, and the test below asserts that too, so the
 #: next omission fails rather than passing silently.
 _REGISTRY_ATTRIBUTES = {
-    "counterexample": "counterexamples",
     "canonical invocation": "invocations",
     "command inspection receipt": "command_inspections",
     "run receipt": "run_receipts",
@@ -91,27 +90,6 @@ def test_no_exposed_tool_depends_on_a_registry_nothing_fills(build):
         "these tools are advertised but cannot succeed, because nothing in "
         f"the runtime fills the registry they read: {sorted(set(unreachable))}"
     )
-
-
-def test_the_counterexample_registry_still_has_no_producer():
-    """Pins the reason repair_command is withheld.
-
-    When a producer is wired this test fails, which is the signal to re-expose
-    the tool in the same change.
-    """
-
-    source = inspect.getsource(tool_runtime)
-    assert "self.counterexamples[" in source, "the registry write exists"
-    assert source.count("register_counterexample") == 1, (
-        "register_counterexample is defined once and called nowhere; if that "
-        "changed, re-expose repair_command"
-    )
-
-
-@pytest.mark.parametrize("build", _SURFACES)
-def test_repair_command_is_not_offered_while_it_cannot_work(build):
-    exposed = {item["function"]["name"] for item in build().tool_definitions}
-    assert "repair_command" not in exposed
 
 
 def test_the_legacy_seeded_verifier_is_offered_by_neither_surface():
@@ -179,14 +157,3 @@ def test_tools_needing_an_unbound_registry_keep_their_handlers():
         assert (
             handler in source
         ), f"{handler} must survive so re-exposing it is a surface change"
-
-
-def test_the_handler_and_contract_are_kept_so_re_enabling_is_one_change():
-    """Withholding the tool must not mean deleting the feature."""
-
-    from chemsmart.agent.commands import CommandCounterexampleV1
-
-    assert CommandCounterexampleV1 is not None
-    assert "repair_command" in inspect.getsource(
-        tool_runtime
-    ), "the runtime handler must survive so re-exposing is a surface change"

@@ -1983,9 +1983,9 @@ def _execute_workflow_bundle(
         registry=registry,
         live_schema=live_schema,
         task_spec_sha256s=(effective_task_spec_sha256,),
-        # ``_execution_composition_inputs`` already writes and supplies the
-        # execution server profile; naming it again here would be a second
-        # source of truth for where real jobs are launched.
+        # ``inputs`` already carries the execution server profile from the
+        # bundle; naming it again here would be a second source of truth for
+        # where real jobs are launched.
         scientific_workflow_plan=plan,
         materialized_workflow=materialized,
         approved_environment_identities=environment_identities,
