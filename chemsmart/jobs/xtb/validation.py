@@ -1358,7 +1358,18 @@ def audit_xtb_result_receipt(
         "charge": expected_charge,
         "multiplicity": expected_multiplicity,
     }
-    required_settings.update(dict(expected_settings or {}))
+    # The bound identity is the authority for the electronic state. A
+    # project's *resolved* settings carry a default charge and
+    # multiplicity (0/1) whenever the project declares none, and merging
+    # them over the identity typed three correct charged and open-shell
+    # runs as state mismatches (live, 2026-09-02): the anion, the
+    # radical and the radical cation had run with the right --chrg/--uhf
+    # and said so in their receipts. Settings other than the state still
+    # come from the project.
+    for field, value in dict(expected_settings or {}).items():
+        if field in {"charge", "multiplicity"}:
+            continue
+        required_settings[field] = value
     for field, expected in sorted(required_settings.items()):
         if requested.get(field, _MISSING) != expected:
             rule_ids.append(f"xtb.result.requested_settings.{field}_mismatch")

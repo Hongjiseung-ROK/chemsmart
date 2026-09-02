@@ -121,7 +121,9 @@ def _artifact_manifest_record(path):
     }
 
 
-def _write_auditable_scratch_xtb_receipt(tmp_path, *, keep_original=False):
+def _write_auditable_scratch_xtb_receipt(
+    tmp_path, *, keep_original=False, charge=0, multiplicity=1
+):
     receipt_dir = tmp_path / "durable"
     receipt_dir.mkdir()
     scratch_dir = tmp_path / "scratch"
@@ -150,15 +152,17 @@ def _write_auditable_scratch_xtb_receipt(tmp_path, *, keep_original=False):
             "findings": [],
         },
     )
-    settings = XTBJobSettings(jobtype="sp")
+    settings = XTBJobSettings(
+        jobtype="sp", charge=charge, multiplicity=multiplicity
+    )
     requested = {
         name: getattr(settings, name) for name in sorted(settings.FIELDS)
     }
     molecule = {
         "symbols": ["H", "H"],
         "positions_angstrom": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.7]],
-        "charge": 0,
-        "multiplicity": 1,
+        "charge": charge,
+        "multiplicity": multiplicity,
     }
     execution_input = bind_xtb_execution_input(original_input)
     provenance = {
@@ -208,6 +212,53 @@ def _write_auditable_scratch_xtb_receipt(tmp_path, *, keep_original=False):
     if not keep_original:
         original_input.unlink()
     return receipt_path, receipt, original_input, durable_input
+
+
+@pytest.mark.capability("rule:xtb.result.requested_settings")
+@pytest.mark.parametrize(("charge", "multiplicity"), [(-1, 1), (0, 2), (1, 2)])
+def test_xtb_audit_lets_the_bound_identity_outrank_project_defaults(
+    tmp_path, charge, multiplicity
+):
+    """A resolved project default is not a fact about the molecule.
+
+    An xTB project that declares no state resolves to charge 0 and
+    multiplicity 1; merging those over the bound identity typed three
+    correct charged and open-shell runs as state mismatches.
+    """
+    receipt_path, _, _, _ = _write_auditable_scratch_xtb_receipt(
+        tmp_path, charge=charge, multiplicity=multiplicity
+    )
+    resolved_project = {
+        name: getattr(XTBJobSettings(jobtype="sp"), name)
+        for name in sorted(XTBJobSettings.FIELDS)
+    }
+    assert (resolved_project["charge"], resolved_project["multiplicity"]) == (
+        0,
+        1,
+    )
+    _, findings = audit_xtb_result_receipt(
+        receipt_path,
+        expected_jobtype="sp",
+        expected_charge=charge,
+        expected_multiplicity=multiplicity,
+        expected_settings=resolved_project,
+    )
+    assert not [rule for rule in findings if "requested_settings." in rule]
+    _, findings = audit_xtb_result_receipt(
+        receipt_path,
+        expected_jobtype="sp",
+        expected_charge=0,
+        expected_multiplicity=1,
+        expected_settings=resolved_project,
+    )
+    assert {rule for rule in findings if "requested_settings." in rule} == {
+        f"xtb.result.requested_settings.{field}_mismatch"
+        for field, expected, bound in (
+            ("charge", 0, charge),
+            ("multiplicity", 1, multiplicity),
+        )
+        if expected != bound
+    }
 
 
 def _audit_synthetic_xtb_receipt(receipt_path):
