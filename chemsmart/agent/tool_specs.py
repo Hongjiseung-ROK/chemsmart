@@ -10,6 +10,7 @@ from chemsmart.agent.capabilities import (
     load_program_capabilities,
 )
 from chemsmart.agent.execution import EDITABLE_COORDINATE_OPERATIONS
+from chemsmart.agent.rules import render_rules
 from chemsmart.agent.scientific_toolchain import (
     ANALYSIS_VALIDATION_PREDICATES,
 )
@@ -2185,6 +2186,9 @@ def _describe_tool_definitions(
         sentence = _precondition_sentence(parameters.get("properties") or {})
         if sentence and "PRECONDITION" not in function.get("description", ""):
             function["description"] = function["description"] + sentence
+        placed = render_rules(f"tool:{function['name']}")
+        if placed and placed not in function.get("description", ""):
+            function["description"] = function["description"] + " " + placed
         described.append({**item, "function": function})
     return tuple(described)
 

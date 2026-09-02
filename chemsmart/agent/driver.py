@@ -41,6 +41,7 @@ from chemsmart.agent.goal import (
     admit_revision,
     conditions_from_review,
 )
+from chemsmart.agent.rules import rules_by_id
 
 
 def _utc_now() -> str:
@@ -274,44 +275,13 @@ def _previous_run_reference(ledger: GoalLedger) -> str:
 #: The closing act is adversarial and points at a tool call, never at
 #: re-reading one's own prose: intrinsic self-review without external
 #: feedback degrades, while one further typed observation can refute.
-_OBSERVABLE_RESTATEMENT_ASK = (
-    "As this cycle's first typed act, restate the requested observable "
-    "through declare_requested_observable -- identifier, reporting "
-    "unit, one sentence of meaning; the completion gate checks the "
-    "delivery against that declaration by kind and unit, never value. "
-)
-
-_ADVERSARIAL_CLOSE = (
-    "Before recording the scientific decision, attempt to refute the "
-    "delivery with one further typed read; a refutation that stands is "
-    "a finding to deliver, not a failure. "
-)
-
-_RECOVERY_ROUTE = (
-    " If deliverables names an unanswered failed verdict, the previous "
-    "run delivered a structure the host judged not to be what the task "
-    "required, and this cycle exists so that you can answer it. The "
-    "legal routes are ordinary work, not special permissions: step the "
-    "offending structure along the mode that is wrong with "
-    "displace_along_vibrational_mode and optimise again; change the "
-    "internal coordinate the mode moves with edit_molecular_geometry; "
-    "seed a transition-state search from a validated frequency-bearing "
-    "producer's Hessian; or, if you judge the delivery sound as it "
-    "stands, record a scientific decision citing that validation "
-    "receipt and say why. Recovering and standing by the result are "
-    "both answers. Leaving it unanswered is the one thing that is not, "
-    "and it returns the goal to the human. Nothing here tells you which "
-    "answer is right -- the physics does that, after you act."
-    " Whatever you do about the structure, deliverables also names any "
-    "stale quantity: a number the previous run rendered from the "
-    "rejected result, whose arithmetic was sound and whose structure no "
-    "longer stands. Recovering the structure does not recover those "
-    "numbers. Re-derive each one on the result you end up standing "
-    "behind and render it as a claim, because an expression that is "
-    "evaluated and never claimed is not delivered; a live run recomputed "
-    "the right value, rendered nothing, and left the superseded number "
-    "as its answer."
-)
+#: The wake's rules render from the registry (chemsmart.agent.rules), so
+#: they have ids and provenance there and a test can find them.
+_WAKE_RULES = rules_by_id()
+_OBSERVABLE_RESTATEMENT_ASK = _WAKE_RULES["wake.restate_observable"].text + " "
+_ADVERSARIAL_CLOSE = _WAKE_RULES["wake.adversarial_close"].text + " "
+_RECOVERY_ROUTE = " " + _WAKE_RULES["wake.recovery_route"].text
+_REFUSAL_AFFORDANCE = _WAKE_RULES["wake.refusal_is_a_deliverable"].text
 
 #: Node endings a revision can answer with ordinary work, and what that
 #: work is. The host names the route; the physics decides whether it was
@@ -367,15 +337,6 @@ REPAIR_MENU: Mapping[str, str] = {
 
 #: Node endings a revision can answer (the repair menu's keys).
 REPAIRABLE_TERMINAL_STATES = frozenset(REPAIR_MENU)
-
-_REFUSAL_AFFORDANCE = (
-    "If the requested observable is unreachable from the admissible "
-    "evidence, deliver what is reachable, retain the unreachable "
-    "observable as a blocked analysis intent naming its required "
-    "producer, and record the scientific decision citing its "
-    "receipts; the goal then settles as a typed refusal, which is a "
-    "deliverable."
-)
 
 
 def _goal_terms_context(
