@@ -602,9 +602,12 @@ def _legacy_tool_definitions(
                     "type": "number",
                     "description": (
                         "Largest atomic displacement, in angstrom, after "
-                        "the mode is scaled. A step is a starting guess: "
-                        "the consuming optimisation grades it, and nothing "
-                        "here refuses a value on scientific merit."
+                        "the mode is scaled; the sign chooses the "
+                        "direction, so +0.3 and -0.3 are the two sides of "
+                        "a saddle along its imaginary mode. A step is a "
+                        "starting guess: the consuming optimisation grades "
+                        "it, and nothing here refuses a value on "
+                        "scientific merit."
                     ),
                 },
             },

@@ -1883,8 +1883,8 @@ class ModeDisplacementReceiptV1:
             require_sha256(digest, name)
         if self.mode_index < 1:
             raise ContractError("a mode index is 1-based and positive")
-        if not (self.amplitude_angstrom > 0.0):
-            raise ContractError("a displacement amplitude is positive")
+        if self.amplitude_angstrom == 0.0:
+            raise ContractError("a displacement amplitude is nonzero")
         if not self.moved_atoms:
             raise ContractError("a displacement moves at least one atom")
         if self.starting_structure_role != _MODE_DISPLACEMENT_ROLE:
@@ -1924,7 +1924,8 @@ def displace_trusted_geometry_along_mode(
     The modes are read from the program's own output, never supplied by the
     model, and the displacement is applied to the structure that output
     carries.  Refusals are structural only: a result with no printed modes,
-    a mode index the result does not have, a non-positive amplitude.  The
+    a mode index the result does not have, a zero amplitude.  The sign of
+    the amplitude chooses the direction along the printed mode.  The
     requested amplitude is never refused on scientific merit, because
     grading it is what the consuming optimisation is for.
     """
@@ -1944,8 +1945,16 @@ def displace_trusted_geometry_along_mode(
             "is the imaginary one on a saddle"
         )
     amplitude = float(amplitude_angstrom)
-    if not (amplitude > 0.0):
-        raise ContractError("amplitude_angstrom must be positive")
+    # The sign chooses the branch: the two directions along an imaginary
+    # mode are the two sides of the saddle, and a session that could step
+    # only one way had to argue the other by linearity (live, 2026-09-02).
+    # The magnitude is the largest atomic displacement, as before.
+    if not math.isfinite(amplitude) or amplitude == 0.0:
+        raise ContractError(
+            "amplitude_angstrom must be a nonzero number: its magnitude is "
+            "the largest atomic displacement and its sign chooses the "
+            "direction along the printed mode"
+        )
 
     before = file_sha256(source)
     try:
@@ -2019,7 +2028,9 @@ def displace_trusted_geometry_along_mode(
         (
             f"ChemSmart mode displacement; mode {index} at "
             f"{frequency:.2f} cm^-1 stepped to a maximum atomic "
-            f"displacement of {amplitude:.4f} angstrom; "
+            f"displacement of {abs(amplitude):.4f} angstrom "
+            f"{'along' if amplitude > 0.0 else 'against'} the printed "
+            "direction; "
             f"{len(moved)} atoms moved; "
             "starting structure, electronic state deliberately unbound"
         ),
