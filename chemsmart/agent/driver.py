@@ -534,7 +534,7 @@ def _wake_context(
         "repair_menu": repair_menu,
         "authority": (
             "This session runs under an approved goal. The previous "
-            "run's typed outcome is embedded above and inspect_run_outcome "
+            "run's typed outcome is embedded above and inspect_run "
             "re-reads it or any earlier run; a revision that changes "
             "molecular identity, electronic state, or physical "
             "conditions, or exceeds the budgets above, returns to the "

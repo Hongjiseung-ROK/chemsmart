@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
 from chemsmart.agent._contracts import canonical_json
@@ -26,42 +27,31 @@ if TYPE_CHECKING:
     from chemsmart.agent.live_session import LiveAgentSessionResultV1
 
 
-_VISIBLE_TOOLS = frozenset(
-    {
-        # Capability, environment, and program-choice evidence.
-        "inspect_program_capability",
-        "inspect_program_environment",
-        "assess_program_candidate",
-        "consult_domain_skill",
-        # Molecular identity and project-YAML authority.
-        "render_project_yaml",
-        "promote_project_yaml",
-        "bind_scientific_identity",
-        "compose_molecular_arrangement",
-        "derive_molecular_species",
-        "read_project_yaml",
-        "validate_project_yaml",
-        # Calculation and analysis DAG construction and repair.
-        "plan_scientific_workflow",
-        "amend_scientific_workflow",
-        "inspect_workflow_frontier",
-        # Live CLI compilation, safe preview, and preflight.
-        "prepare_program_node",
-        "synthesize_command",
-        "compile_command",
-        "inspect_compiled_command",
-        "preview_command",
-        "preflight_program_node",
-        # Existing-result inspection and typed scientific analysis.
-        "inspect_calculation_artifact",
-        "extract_result_quantities",
-        "derive_thermochemistry",
-        "evaluate_quantity_expression",
-        "evaluate_scientific_validation",
-        "record_analysis_claims",
-        "record_scientific_decision",
+@lru_cache(maxsize=1)
+def _visible_tools() -> frozenset[str]:
+    """Every tool either surface exposes, derived rather than hand-listed:
+    a retired name never lingers here and a new tool never goes missing.
+    Cached because building a surface loads the registry."""
+
+    from chemsmart.agent.tool_specs import (
+        MERGED_PLANNING_TOOLS,
+        build_approved_execution_tool_surface,
+        build_command_compiled_tool_surface,
+    )
+
+    names = {
+        item["function"]["name"]
+        for surface in (
+            build_command_compiled_tool_surface(),
+            build_approved_execution_tool_surface(),
+        )
+        for item in surface.tool_definitions
     }
-)
+    # Streams recorded before the merge name the tools they called.
+    names.update(
+        legacy for group in MERGED_PLANNING_TOOLS.values() for legacy in group
+    )
+    return frozenset(names)
 
 
 @dataclass(frozen=True)
@@ -152,7 +142,7 @@ def session_evidence_blocks(
                     )
                 )
                 seen.add(marker)
-        if tool_name not in _VISIBLE_TOOLS:
+        if tool_name not in _visible_tools():
             continue
         text = canonical_json(record)
         marker = (tool_name, text)

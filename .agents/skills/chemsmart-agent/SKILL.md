@@ -187,7 +187,7 @@ revision budgets, and the complete initial plan. Under that grant the
 host may admit a revised workflow without a returning human action, but
 only when the revision preserves identity, state, and conditions, stays
 inside the envelope, and its session read the previous run's typed
-terminal outcome (``inspect_run_outcome``) -- an evidence-free revision
+terminal outcome (``inspect_run``) -- an evidence-free revision
 returns to the human. Every admission is recorded with the composite
 actor ``goal-approval:<goal-id>`` beside the human ``granted_by``; the
 model never approves. A reviewer may freeze the exact initial plan and

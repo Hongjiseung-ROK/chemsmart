@@ -267,6 +267,12 @@ def _skill(record: Mapping[str, Any]) -> str:
 
 
 _REGISTRY: dict[str, tuple[str, str, Summarizer]] = {
+    # The merged planning tools the model calls today.
+    "inspect_program": ("⚛", "inspecting the program", _capability),
+    "project_yaml": ("▤", "working the project YAML", None),
+    "compile_command": ("←", "compiling the node", _command),
+    "inspect_run": ("⌕", "reading the run", None),
+    # The legacy names the executor still drives nodes through.
     "inspect_program_capability": (
         "⚛",
         "checking program capability",
@@ -315,12 +321,6 @@ _REGISTRY: dict[str, tuple[str, str, Summarizer]] = {
     ),
     "prepare_program_node": ("⚛", "preparing a program node", _prepared_node),
     "synthesize_command": ("←", "synthesizing the command", _command),
-    "compile_command": ("←", "compiling the command", _command),
-    "inspect_compiled_command": (
-        "→",
-        "inspecting the compiled command",
-        _command,
-    ),
     "preview_command": ("✱", "running the safe preview", _preview),
     "preflight_program_node": ("✱", "preflighting the node", _preflight),
     "inspect_calculation_artifact": (

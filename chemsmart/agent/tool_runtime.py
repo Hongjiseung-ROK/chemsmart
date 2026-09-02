@@ -1842,6 +1842,10 @@ class CommandCompiledToolHostV1:
         values = dict(arguments)
         _validate_tool_arguments(self.surface, tool_name, values)
         handlers = {
+            "inspect_program": self._inspect_program,
+            "project_yaml": self._project_yaml,
+            "compile_command": self._prepare_program_node,
+            "inspect_run": self._inspect_run,
             "inspect_program_capability": self._inspect_program_capability,
             "inspect_program_environment": self._inspect_program_environment,
             "assess_program_candidate": self._assess_program_candidate,
@@ -2999,6 +3003,68 @@ class CommandCompiledToolHostV1:
                 "positions -- measure a coordinate before assuming its value"
             ),
         }
+
+    def _inspect_program(self, turn_id: str, values: dict) -> Any:
+        """Capability and environment in one call; every receipt returned."""
+
+        capability = self._inspect_program_capability(turn_id, values)
+        environment = self._inspect_program_environment(
+            turn_id, {"capability_receipt_sha256": capability.receipt_sha256}
+        )
+        record = (
+            dict(environment)
+            if isinstance(environment, Mapping)
+            else {"environment": environment}
+        )
+        return {"capability": capability, **record}
+
+    def _project_yaml(self, turn_id: str, values: dict) -> Any:
+        """One project tool; the action names which of the five steps."""
+
+        from chemsmart.agent.tool_specs import PROJECT_YAML_ACTION_ARGUMENTS
+
+        action = str(values.get("action") or "").strip()
+        if action not in PROJECT_YAML_ACTION_ARGUMENTS:
+            raise ContractError(
+                f"project_yaml action must be one of "
+                f"{sorted(PROJECT_YAML_ACTION_ARGUMENTS)}, not {action!r}"
+            )
+        needed = PROJECT_YAML_ACTION_ARGUMENTS[action]
+        missing = [name for name in needed if name not in values]
+        if missing:
+            raise ContractError(
+                f"project_yaml(action={action}) needs {list(needed)}; "
+                f"missing {missing}"
+            )
+        arguments = {name: values[name] for name in needed}
+        handler = {
+            "establish": self._establish_project,
+            "render": self._render_project_yaml,
+            "promote": self._promote_project_yaml,
+            "read": self._read_project_yaml,
+            "validate": self._validate_project_yaml,
+        }[action]
+        return handler(turn_id, arguments)
+
+    def _inspect_run(self, turn_id: str, values: dict) -> Any:
+        """A run's typed outcome, or one finished result's selectors."""
+
+        if values.get("artifact_id"):
+            if not values.get("program"):
+                raise ContractError(
+                    "inspect_run with artifact_id also needs program, the "
+                    "reader that opens the result"
+                )
+            return self._inspect_result_selectors(
+                turn_id,
+                {
+                    "program": values["program"],
+                    "artifact_id": values["artifact_id"],
+                },
+            )
+        return self._inspect_run_outcome(
+            turn_id, {"run": str(values.get("run") or "")}
+        )
 
     def _inspect_program_capability(self, turn_id: str, values: dict) -> Any:
         receipt = query_capability(

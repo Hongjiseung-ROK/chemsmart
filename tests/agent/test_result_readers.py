@@ -98,7 +98,7 @@ def test_model_tool_surface_exposes_the_registered_result_plane():
     tool = next(
         item
         for item in surface.tool_definitions
-        if item["function"]["name"] == "inspect_result_selectors"
+        if item["function"]["name"] == "inspect_run"
     )
     # The per-program selector union is stated once, on the tool whose
     # job is listing selectors; extract_result_quantities points here.

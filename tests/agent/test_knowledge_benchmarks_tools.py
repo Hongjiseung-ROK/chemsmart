@@ -33,26 +33,24 @@ def test_model_tool_surface_uses_registry_programs_and_has_no_execution_tools(
     names = {item["function"]["name"] for item in surface.tool_definitions}
     blob = str(surface.tool_definitions)
 
-    assert "synthesize_command" in names
-    assert "inspect_program_capability" in names
+    assert "compile_command" in names
+    assert "inspect_program" in names
     assert "run_local" not in names
     assert "submit_hpc" not in names
     assert "native_input" not in blob
-    synthesize = next(
+    compile_command = next(
         item
         for item in surface.tool_definitions
-        if item["function"]["name"] == "synthesize_command"
+        if item["function"]["name"] == "compile_command"
     )
-    preflight = next(
-        item
-        for item in surface.tool_definitions
-        if item["function"]["name"] == "preflight_program_node"
-    )
-    assert "execution_target" not in (
-        synthesize["function"]["parameters"]["properties"]
-    )
-    assert "validator_receipt_sha256s" not in (
-        preflight["function"]["parameters"]["properties"]
+    # The merged compile tool takes a planned node, never execution
+    # facts: the host resolves the target and every receipt itself.
+    assert set(compile_command["function"]["parameters"]["properties"]) == {
+        "workflow_id",
+        "node_id",
+    }
+    assert "execution_target" not in blob.replace(
+        "execution_target is host policy", ""
     )
     bind_identity = next(
         item

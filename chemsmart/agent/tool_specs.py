@@ -37,9 +37,14 @@ class AgentToolSurfaceV1:
             raise ContractError("agent tool schema digest mismatch")
 
 
-def build_command_compiled_tool_surface(
+def _legacy_tool_definitions(
     registry: ProgramCapabilityRegistryV1 | None = None,
-) -> AgentToolSurfaceV1:
+) -> tuple[dict, ...]:
+    """Every tool the host implements, one definition each, before the
+    model-facing merge. The provider-free executor drives nodes through
+    these names; the planning surface the model reads is built from them
+    by :func:`_merge_planning_tools`."""
+
     registry = registry or load_program_capabilities()
     programs = [item.program for item in registry.programs]
     program = {"type": "string", "enum": programs}
@@ -56,7 +61,7 @@ def build_command_compiled_tool_surface(
             "program-wide reader selector union (not a promise for every job "
             "type): "
             f"{reader_selector_inventory}. PySCF uses its structured HDF5 "
-            "result registry. Query inspect_program_capability for job-scoped "
+            "result registry. Query inspect_program for job-scoped "
             "parser support where declared; the selected method/settings must "
             "still emit the quantity."
         ),
@@ -67,7 +72,7 @@ def build_command_compiled_tool_surface(
         "description": (
             "Select the parser matching the registered artifact. Which "
             "selectors each program serves, per job type, is listed on "
-            "inspect_result_selectors.program and on the capability "
+            "inspect_run.program (with artifact_id) and on the capability "
             "receipt's coverage; the selected method/settings must still "
             "emit the quantity."
         ),
@@ -223,7 +228,7 @@ def build_command_compiled_tool_surface(
                 "needs a project: it is the same three steps in the same "
                 "order, and doing them separately costs three turns per node "
                 "for no additional evidence. Section rules are exactly those "
-                "of render_project_yaml."
+                "of project_yaml(action=render)."
             ),
             {
                 "program": program,
@@ -1590,6 +1595,182 @@ def build_command_compiled_tool_surface(
             ("claims",),
         ),
     )
+    return tools
+
+
+#: Legacy tool names each merged planning tool replaces, in surface order.
+MERGED_PLANNING_TOOLS: dict[str, tuple[str, ...]] = {
+    "inspect_program": (
+        "inspect_program_capability",
+        "inspect_program_environment",
+        "assess_program_candidate",
+    ),
+    "project_yaml": (
+        "render_project_yaml",
+        "promote_project_yaml",
+        "establish_project",
+        "read_project_yaml",
+        "validate_project_yaml",
+    ),
+    "compile_command": (
+        "prepare_program_node",
+        "synthesize_command",
+        "preview_command",
+        "preflight_program_node",
+    ),
+    "inspect_run": ("inspect_run_outcome", "inspect_result_selectors"),
+}
+
+PROJECT_YAML_ACTIONS = ("establish", "render", "promote", "read", "validate")
+
+#: What each project_yaml action needs, beyond ``action`` itself.
+PROJECT_YAML_ACTION_ARGUMENTS: dict[str, tuple[str, ...]] = {
+    "establish": (
+        "program",
+        "sections",
+        "artifact_id",
+        "capability_receipt_sha256",
+    ),
+    "render": ("program", "sections"),
+    "promote": ("render_receipt_sha256", "artifact_id"),
+    "read": ("program", "project_artifact_id"),
+    "validate": ("project_artifact_id", "capability_receipt_sha256"),
+}
+
+
+def _merge_planning_tools(tools: tuple[dict, ...]) -> tuple[dict, ...]:
+    """The model-facing surface: four gate-feeding groups become one tool
+    each. Eleven of the withdrawn tools existed mainly so the model could
+    carry a receipt digest from one call to the next; the merged tool does
+    the join and returns every receipt it produced, so a red preview costs
+    one turn instead of four.
+    """
+
+    by_name = {item["function"]["name"]: item for item in tools}
+
+    def parameters(name: str) -> dict:
+        return dict(by_name[name]["function"]["parameters"])
+
+    def properties(name: str) -> dict:
+        return dict(parameters(name).get("properties") or {})
+
+    capability = by_name["inspect_program_capability"]["function"]
+    inspect_program = _tool(
+        "inspect_program",
+        (
+            "Inspect one program, job type and engine in a single call: "
+            "the capability query (what the registry, the live CLI and the "
+            "conformance overlay say, with the coverage cell naming which "
+            "typed axes and validity rules the host reaches) and the "
+            "environment query (which installed program and engine bind "
+            "here). Returns the capability receipt, the environment receipt "
+            "and the program and engine bindings; the capability receipt "
+            "digest is what project_yaml(validate/establish) takes. "
+            + str(capability.get("description") or "")
+        ),
+        properties("inspect_program_capability"),
+        tuple(parameters("inspect_program_capability").get("required", ())),
+    )
+    project_properties: dict = {
+        "action": {
+            "type": "string",
+            "enum": list(PROJECT_YAML_ACTIONS),
+            "description": (
+                "establish = render + promote + validate in one turn, the "
+                "ordinary route for a new node; render/promote/validate are "
+                "the same three steps one at a time, for repairing one; "
+                "read returns an existing project artifact's document. "
+                + "; ".join(
+                    f"{action} needs {', '.join(names)}"
+                    for action, names in PROJECT_YAML_ACTION_ARGUMENTS.items()
+                )
+                + "."
+            ),
+        }
+    }
+    for legacy in MERGED_PLANNING_TOOLS["project_yaml"]:
+        for key, schema in properties(legacy).items():
+            project_properties.setdefault(key, schema)
+    project_yaml = _tool(
+        "project_yaml",
+        (
+            "The one channel for program settings: a project YAML document "
+            "per node, rendered from typed sections, promoted into the "
+            "workspace as an artifact, and validated against the capability "
+            "receipt for its program and job type. "
+            + str(
+                by_name["establish_project"]["function"].get("description")
+                or ""
+            )
+        ),
+        project_properties,
+        ("action",),
+    )
+    prepare = by_name["prepare_program_node"]["function"]
+    compile_command = _tool(
+        "compile_command",
+        (
+            "Compile one planned calculation node: the host joins the "
+            "recorded capability, environment, project, identity and "
+            "artifact records, compiles argv through the live Click schema, "
+            "runs the safe preview, and preflights the node, returning every "
+            "receipt in one reply. A red finding names the field that needs "
+            "repair; a node whose producer has not run yet returns "
+            "waiting_for_artifact with the producer named. "
+            + str(prepare.get("description") or "")
+        ),
+        properties("prepare_program_node"),
+        tuple(parameters("prepare_program_node").get("required", ())),
+    )
+    selectors = by_name["inspect_result_selectors"]["function"]
+    outcome = by_name["inspect_run_outcome"]["function"]
+    inspect_run_properties = {
+        **properties("inspect_run_outcome"),
+        **properties("inspect_result_selectors"),
+    }
+    inspect_run = _tool(
+        "inspect_run",
+        (
+            "Read what a run left behind. Without arguments it lists the "
+            "recorded runs; with run it returns that run's typed outcome, "
+            "how each node ended and why; with program and artifact_id it "
+            "returns which selectors one finished result actually resolves. "
+            + str(outcome.get("description") or "")
+            + " "
+            + str(selectors.get("description") or "")
+        ),
+        inspect_run_properties,
+        (),
+    )
+    merged = {
+        "inspect_program": inspect_program,
+        "project_yaml": project_yaml,
+        "compile_command": compile_command,
+        "inspect_run": inspect_run,
+    }
+    withdrawn = {
+        legacy for names in MERGED_PLANNING_TOOLS.values() for legacy in names
+    }
+    first_member = {
+        names[0]: merged_name
+        for merged_name, names in MERGED_PLANNING_TOOLS.items()
+    }
+    result: list[dict] = []
+    for item in tools:
+        name = item["function"]["name"]
+        if name in first_member:
+            result.append(merged[first_member[name]])
+        elif name not in withdrawn:
+            result.append(item)
+    return tuple(result)
+
+
+def build_command_compiled_tool_surface(
+    registry: ProgramCapabilityRegistryV1 | None = None,
+) -> AgentToolSurfaceV1:
+    """The planning surface the model reads."""
+
+    tools = _merge_planning_tools(_legacy_tool_definitions(registry))
     if not skills_enabled():
         # Keep the model-visible surface aligned with the host feature state.
         tools = tuple(
@@ -1621,7 +1802,9 @@ def build_approved_execution_tool_surface(
     compiled and approved node by its stable identifier.
     """
 
-    full = build_command_compiled_tool_surface(registry)
+    # The executor drives nodes through the legacy names one step at a
+    # time (executor.PROGRAM_NODE_SEQUENCE); it never reads this surface as
+    # a prompt, so the model-facing merge does not apply here.
     # ``inspect_calculation_artifact`` belongs to the legacy externally
     # seeded verifier surface: it requires separate settings-object and run
     # receipt IDs. Runtime V2 execution instead creates a typed program result
@@ -1630,8 +1813,9 @@ def build_approved_execution_tool_surface(
     # models guess impossible identifiers after an otherwise valid run.
     tools = tuple(
         item
-        for item in full.tool_definitions
+        for item in _legacy_tool_definitions(registry)
         if item["function"]["name"] != "inspect_calculation_artifact"
+        and not _requires_an_unbound_registry(item)
     ) + (
         _tool(
             "execute_approved_program_node",
@@ -1725,7 +1909,7 @@ ARGUMENT_DESCRIPTIONS: dict[str, str] = {
     ),
     "capability_receipt_sha256": (
         "Digest of the capability receipt returned by "
-        "inspect_program_capability for this program and engine."
+        "inspect_program for this program and engine."
     ),
     "charge": "Total molecular charge as an integer.",
     "diagnostics": (
@@ -1894,18 +2078,18 @@ def _constrain(name: str, schema: dict) -> dict:
 #: "no <label> is bound yet; one is bound <producer>".  A caller told only
 #: that a registry is empty cannot act; a caller told what fills it can.
 REGISTRY_PRODUCERS: dict[str, str] = {
-    "canonical invocation": "by compiling a prepared program node",
-    "capability receipt": "by inspecting a program capability",
-    "command context": "by preparing a program node",
-    "command inspection receipt": "by compiling a program node",
-    "engine binding": "by inspecting the program environment",
+    "canonical invocation": "by compile_command",
+    "capability receipt": "by inspect_program",
+    "command context": "by compile_command",
+    "command inspection receipt": "by compile_command",
+    "engine binding": "by inspect_program",
     "functional equivalence receipt": "by validating a project document",
-    "program binding": "by inspecting the program environment",
-    "program validator receipt": "by safe-previewing a compiled command",
-    "project render receipt": "by rendering a project YAML document",
-    "project validation receipt": "by validating a rendered project",
+    "program binding": "by inspect_program",
+    "program validator receipt": "by compile_command",
+    "project render receipt": "by project_yaml(action=render)",
+    "project validation receipt": "by project_yaml(action=validate or establish)",
     "run receipt": "by executing an approved node",
-    "safe preview receipt": "by safe-previewing a compiled command",
+    "safe preview receipt": "by compile_command",
     "scientific claim evidence": "by extracting quantities from a result",
     "scientific identity": "by binding an approved molecular identity",
     "settings object": "by validating a project document",
@@ -2420,7 +2604,7 @@ def _workflow_node_schema() -> dict:
                 "description": (
                     "Scientific quantities produced by this calculation. Match "
                     "the loader-effective settings returned by "
-                    "validate_project_yaml. In particular, when that tool says "
+                    "project_yaml(action=validate). In particular, when that tool says "
                     "the project already requests frequencies, put "
                     "vibrational_frequencies on this node instead of scheduling "
                     "a duplicate Hessian at the same geometry and method."
@@ -2971,6 +3155,9 @@ def _tool(
 
 
 __all__ = [
+    "MERGED_PLANNING_TOOLS",
+    "PROJECT_YAML_ACTIONS",
+    "PROJECT_YAML_ACTION_ARGUMENTS",
     "AgentToolSurfaceV1",
     "build_approved_execution_tool_surface",
     "build_command_compiled_tool_surface",
