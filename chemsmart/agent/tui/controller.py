@@ -1,4 +1,14 @@
-"""Provider-neutral controller shared by the Textual presentation layer."""
+"""Provider-neutral controller shared by the Textual presentation layer.
+
+The terminal interface is a view of the goal driver: planning is the
+driver's plan phase, the human's /approve is the one decision the driver
+consumes, and everything after it -- execution, reading the outcome,
+recovery cycles within the approved budgets, settlement -- is the same
+step machine ``chemsmart agent goal`` runs. What the controller adds is
+only what a screen needs: UI-thread guards that refuse before any banner
+appears, worker-thread bodies for the heavy host calls, and durable
+per-review decision scopes so a restart can never replay an approval.
+"""
 
 from __future__ import annotations
 
@@ -8,11 +18,12 @@ import uuid
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from chemsmart.agent._contracts import ContractError
 
 if TYPE_CHECKING:
+    from chemsmart.agent.driver import GoalDriver, GoalLoopResultV1
     from chemsmart.agent.execution import WorkflowExecutionReviewV1
     from chemsmart.agent.executor import WorkflowExecutionResultV1
     from chemsmart.agent.live_session import LiveAgentSessionResultV1
@@ -39,6 +50,9 @@ class AgentSessionConfigV1:
     review_file: Path | None = None
     identity_manifest: Path | None = None
     analysis_completion_file: Path | None = None
+    #: How many host-admitted recovery cycles one /approve covers. The
+    #: budgets in the envelope bound them; this is the revision count.
+    max_revisions: int = 5
 
     def __post_init__(self) -> None:
         workspace = self.workspace.expanduser().resolve()
@@ -76,7 +90,7 @@ class AgentSessionConfigV1:
 
 
 class AgentTuiController:
-    """Human-driven state machine; provider turns cannot grant approval.
+    """Human-driven view of the goal driver; provider turns cannot approve.
 
     The guards run on the UI thread (`begin_planning`, `begin_execution`) so
     a refused action refuses *before* any banner or worker starts; the heavy
@@ -91,13 +105,53 @@ class AgentTuiController:
         self.plan_result: LiveAgentSessionResultV1 | None = None
         self.prepared_execution: WorkflowExecutionReviewV1 | None = None
         self.execution_result: WorkflowExecutionResultV1 | None = None
+        self.settlement: GoalLoopResultV1 | None = None
         self.execution_id = ""
         self.execution_run_directory: Path | None = None
         #: Set by the view when the human double-escapes a planning session.
         self.cancel_planning = threading.Event()
         #: Set by the view to observe the planning run directory (event tail).
         self.on_run_directory: Callable[[Path], None] | None = None
+        self.driver: GoalDriver | None = None
         self._begun_execution: WorkflowExecutionReviewV1 | None = None
+
+    # -- the driver --------------------------------------------------------
+
+    def _session_kwargs(self) -> dict[str, Any]:
+        from chemsmart.agent.identity import (
+            load_approved_molecular_input_manifest,
+        )
+
+        approved_inputs = (
+            load_approved_molecular_input_manifest(
+                self.config.identity_manifest,
+                workspace=self.config.workspace,
+            )
+            if self.config.identity_manifest is not None
+            else ()
+        )
+        return {
+            "secret_file": self.config.secret_file,
+            "approved_molecular_inputs": approved_inputs,
+            "on_run_directory": self.on_run_directory,
+            "should_stop": self.cancel_planning.is_set,
+        }
+
+    def _driver_kwargs(self, *, goal_id: str) -> dict[str, Any]:
+        return {
+            "workspace": self.config.workspace,
+            "execution_envelope_file": self.config.execution_envelope_file,
+            "goal_id": goal_id,
+            "granted_by": getpass.getuser() or "local-user",
+            "max_revisions": self.config.max_revisions,
+            "provider": (
+                self.config.provider.lower() if self.config.provider else None
+            ),
+            "provider_config_file": self.config.provider_config_file,
+            "analysis_completion_file": self.config.analysis_completion_file,
+            "resolve_review": self._resolve_review,
+            "session_kwargs": self._session_kwargs(),
+        }
 
     # -- planning ----------------------------------------------------------
 
@@ -113,49 +167,25 @@ class AgentTuiController:
         return normalized
 
     def run_planning(self, task: str) -> LiveAgentSessionResultV1:
-        """Worker-thread body: the live provider session."""
+        """Worker-thread body: the driver's plan phase."""
 
-        from chemsmart.agent.identity import (
-            load_approved_molecular_input_manifest,
-        )
-        from chemsmart.agent.live_session import run_live_agent_session
+        from chemsmart.agent.driver import GoalDriver
 
-        approved_inputs = (
-            load_approved_molecular_input_manifest(
-                self.config.identity_manifest,
-                workspace=self.config.workspace,
-            )
-            if self.config.identity_manifest is not None
-            else ()
-        )
+        self.execution_id = "tui-" + uuid.uuid4().hex
         try:
-            result = run_live_agent_session(
-                task=task,
-                provider=(
-                    self.config.provider.lower()
-                    if self.config.provider
-                    else None
-                ),
-                provider_config_file=self.config.provider_config_file,
-                secret_file=self.config.secret_file,
-                workspace=self.config.workspace,
-                execution_enabled=False,
-                approval_file=None,
-                execution_envelope_file=self.config.execution_envelope_file,
-                analysis_completion_file=(
-                    self.config.analysis_completion_file
-                ),
-                approved_molecular_inputs=approved_inputs,
-                review_file=self.config.review_file,
-                on_run_directory=self.on_run_directory,
-                should_stop=self.cancel_planning.is_set,
+            driver = GoalDriver(
+                task=task, **self._driver_kwargs(goal_id=self.execution_id)
             )
+            driver.step()
         except Exception:
             self.phase = AgentTuiPhase.ERROR
             raise
+        self.driver = driver
+        result = driver.session
         self.plan_result = result
-        self.prepared_execution = result.prepared_execution
+        self.prepared_execution = getattr(result, "prepared_execution", None)
         self.execution_result = None
+        self.settlement = driver.result
         self.review_copy_note = ""
         if self.prepared_execution is not None:
             try:
@@ -166,7 +196,7 @@ class AgentTuiController:
                     "The workspace review copy could not be written "
                     f"({exc}); resume will not re-present this review."
                 )
-        if self.prepared_execution is not None:
+        if self.prepared_execution is not None and driver.phase == "decide":
             self.phase = AgentTuiPhase.REQUEST_REVIEWED
         elif result.terminal_state in {"complete", "planned"}:
             self.phase = AgentTuiPhase.COMPLETE
@@ -181,6 +211,13 @@ class AgentTuiController:
     def decline(self) -> None:
         """Decline the displayed workflow without creating run authority."""
 
+        driver = self.driver
+        if driver is not None and driver.phase == "decide":
+            # The goal's one decision is "no": the driver settles it
+            # returned_to_human so the story ends in a typed state.
+            driver.initial_decision = "deny"
+            driver.step()
+            self.settlement = driver.result
         self.prepared_execution = None
         self.phase = (
             AgentTuiPhase.PREVIEW_READY
@@ -218,6 +255,56 @@ class AgentTuiController:
             / review.review_sha256[:16]
         )
 
+    def _resolve_review(
+        self,
+        *,
+        review_file: Path,
+        workspace: Path,
+        decision: str,
+        actor: str,
+        approval_id: str,
+    ) -> tuple[str, Path]:
+        """The driver's decision seam, writing the TUI's durable scope.
+
+        Cycle 1 is the human's /approve under the execution id; a later
+        cycle is the host-admitted revision under the same grant, and
+        its scope is the review it decides on, exactly as for cycle 1.
+        """
+
+        from chemsmart.agent.live_session import (
+            inspect_workflow_execution_replay,
+            resolve_workflow_execution_review,
+        )
+
+        report = inspect_workflow_execution_replay(
+            review_file=review_file, workspace=workspace, task_spec_sha256=""
+        )
+        review_sha256 = str(report["review_sha256"])
+        scope = (
+            self.config.workspace
+            / ".chemsmart-agent"
+            / "decisions"
+            / review_sha256[:16]
+        )
+        scope.mkdir(parents=True, exist_ok=True, mode=0o700)
+        chosen = (
+            self.execution_id
+            if approval_id.endswith("-cycle-1") and self.execution_id
+            else approval_id
+        )
+        resolve_workflow_execution_review(
+            review_file=review_file,
+            reviewed_sha256=review_sha256,
+            decision=decision,
+            actor=actor,
+            output_file=(
+                scope / "bundle.json" if decision == "approve" else None
+            ),
+            decision_log=scope / "decisions.jsonl",
+            approval_id=chosen,
+        )
+        return review_sha256, scope / "bundle.json"
+
     def restore_prepared_execution(
         self, review: WorkflowExecutionReviewV1
     ) -> None:
@@ -228,6 +315,7 @@ class AgentTuiController:
                 "finish the current host operation before restoring a review"
             )
         self.prepared_execution = review
+        self.driver = None
         self.phase = AgentTuiPhase.REQUEST_REVIEWED
 
     def begin_execution(self) -> WorkflowExecutionReviewV1:
@@ -264,12 +352,15 @@ class AgentTuiController:
                 "workspace; plan it again, or record a deliberate second "
                 "decision with 'chemsmart agent review'"
             )
-        self.execution_id = "tui-" + uuid.uuid4().hex
+        if self.driver is None or self.driver.phase != "decide":
+            self.execution_id = "tui-" + uuid.uuid4().hex
         self.execution_run_directory = (
             self.config.workspace
             / ".chemsmart-agent"
-            / "executions"
+            / "goals"
             / self.execution_id
+            / "runs"
+            / "cycle-1"
         )
         self.phase = AgentTuiPhase.EXECUTING
         self.prepared_execution = None
@@ -277,17 +368,17 @@ class AgentTuiController:
         return prepared
 
     def execute_begun(self) -> WorkflowExecutionResultV1:
-        """Worker-thread body: decide durably, then run provider-free.
+        """Worker-thread body: decide durably, then drive to settlement.
 
         Every TUI approval leaves the same evidence the file pipeline
         leaves: a decision log, a one-shot bundle, and a workspace
         consumption ledger -- so the one-shot rule survives a restart.
+        After the approved run the driver reads its outcome and, within
+        the approved budgets, wakes recovery cycles exactly as
+        ``chemsmart agent goal`` does.
         """
 
-        from chemsmart.agent.executor import execute_approved_workflow
-        from chemsmart.agent.live_session import (
-            resolve_workflow_execution_review,
-        )
+        from chemsmart.agent.driver import GoalDriver
 
         prepared = self._begun_execution
         if prepared is None or self.execution_run_directory is None:
@@ -295,29 +386,34 @@ class AgentTuiController:
         self._begun_execution = None
         try:
             review_copy = self._ensure_review_copy(prepared)
-            scope = self._decision_scope(prepared)
-            scope.mkdir(parents=True, exist_ok=True, mode=0o700)
-            _resolution, _bundle = resolve_workflow_execution_review(
-                review_file=review_copy,
-                reviewed_sha256=prepared.review_sha256,
-                decision="approve",
-                actor=getpass.getuser() or "local-user",
-                output_file=scope / "bundle.json",
-                decision_log=scope / "decisions.jsonl",
-                approval_id=self.execution_id,
-            )
-            result = execute_approved_workflow(
-                approval_file=scope / "bundle.json",
-                workspace=self.config.workspace,
-                run_directory=self.execution_run_directory,
-            )
+            driver = self.driver
+            if driver is None or driver.phase != "decide":
+                driver = GoalDriver.from_review(
+                    review_file=review_copy,
+                    task_spec_sha256=getattr(prepared, "task_spec_sha256", ""),
+                    task=self.task,
+                    **self._driver_kwargs(goal_id=self.execution_id),
+                )
+                self.driver = driver
+            first_result: WorkflowExecutionResultV1 | None = None
+            while driver.phase not in {"settled", "parked"}:
+                driver.step()
+                if first_result is None and driver.execute_result is not None:
+                    first_result = driver.execute_result
         except Exception:
             self.phase = AgentTuiPhase.ERROR
             raise
+        self.settlement = driver.result
+        result = driver.execute_result or first_result
+        if result is None:
+            raise ContractError(
+                "the goal settled without an executed run: "
+                + "; ".join(driver.result.reasons if driver.result else ())
+            )
         self.execution_result = result
         self.phase = (
             AgentTuiPhase.COMPLETE
-            if result.status == "completed"
+            if str(getattr(result, "status", "")) == "completed"
             else AgentTuiPhase.BLOCKED
         )
         return result

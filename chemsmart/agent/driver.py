@@ -1,4 +1,12 @@
-"""The goal-directed loop: plan, one human decision, execute, read, revise.
+"""The goal driver: plan, one human decision, execute, read, revise.
+
+Every entry point that drives a goal -- ``chemsmart agent goal``, the
+terminal interface, a scheduler job re-entering a parked run -- is a
+view of this one step machine. Each phase boundary is a durable ledger
+entry, so a process may stop after any step and a later process may
+resume from the ledger: that is what lets an approved partition be
+submitted to a scheduler, the driver exit, and the job's own tail wake
+the goal when the engines are done.
 
 The driver cycles the existing authority chain -- ``run_live_agent_session``
 for planning, the stored-review resolution for the decision, the
@@ -22,6 +30,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable, Mapping, Sequence
 
 from chemsmart.agent._contracts import ContractError, canonical_data
@@ -337,9 +346,11 @@ def _goal_terms_context(
         "granted_by": granted_by,
         "conditions": {},
         "budgets": {
-            "engine_calls_remaining": int(envelope_record["max_engine_calls"]),
+            "engine_calls_remaining": int(
+                envelope_record.get("max_engine_calls") or 0
+            ),
             "wall_seconds_remaining": float(
-                envelope_record["episode_wall_time_seconds"]
+                envelope_record.get("episode_wall_time_seconds") or 0.0
             ),
             "revisions_remaining": int(max_revisions),
         },
@@ -834,293 +845,617 @@ def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
     return {}
 
 
-def run_goal_loop(
-    *,
-    task: str,
-    workspace: str | Path,
-    execution_envelope_file: str | Path,
-    goal_id: str,
-    granted_by: str,
-    max_revisions: int = 5,
-    provider: str | None = None,
-    provider_config_file: str | Path | None = None,
-    analysis_completion_file: str | Path | None = None,
-    plan_session: Callable[..., Any] = _default_plan_session,
-    resolve_review: Callable[..., tuple[str, Path]] = _default_resolve,
-    execute_bundle: Callable[..., Any] = _default_execute,
-    initial_decision: str = "approve",
-    stop_file: str | Path | None = None,
-) -> GoalLoopResultV1:
-    """Drive one goal to settlement under one human decision.
+#: The goal's task text, kept beside its ledger so a resumed driver plans
+#: the next cycle against exactly what the human asked.
+TASK_FILE = "task.md"
+
+#: The phases one goal cycle passes through, in order. ``parked`` and
+#: ``settled`` are where a process may stop: a parked goal has a run in
+#: a scheduler's hands and resumes at ``outcome``; a settled goal is
+#: finished.
+GOAL_PHASES = (
+    "plan",
+    "decide",
+    "execute",
+    "outcome",
+    "settle",
+    "parked",
+    "settled",
+)
+
+
+@dataclass(frozen=True)
+class GoalStepV1:
+    """One phase the driver just performed."""
+
+    phase: str
+    next_phase: str
+    cycle: int
+    result: GoalLoopResultV1 | None = None
+
+
+class GoalDriver:
+    """Drive one goal to settlement under one human decision, one step at
+    a time.
 
     ``initial_decision`` is the human's: "approve" records it under
     ``granted_by`` exactly as ``agent review --decision approve`` would,
     and anything else settles the goal ``returned_to_human`` before any
-    engine runs. Every later cycle's decision is host-admitted under
-    the goal and recorded with the composite actor.
+    engine runs. Every later cycle's decision is host-admitted under the
+    goal and recorded with the composite actor.
+
+    ``dispatch_run``, when given, replaces the in-process engine walk:
+    it hands the approved bundle and run directory to a scheduler and
+    returns a receipt naming the job; the driver records
+    ``run_dispatched`` and parks. :meth:`resume` rebuilds a driver from
+    the ledger at the ``outcome`` phase once the job has finished.
     """
 
-    workspace = Path(workspace).resolve()
-    goal_dir = workspace / ".chemsmart-agent" / "goals" / goal_id
-    ledger = GoalLedger(goal_dir)
-    ledger.directory.mkdir(parents=True, exist_ok=True)
-    if ledger.goal_path.exists():
-        raise ContractError(
-            "this goal already exists; a goal is one human decision, "
-            "not a resumable queue"
+    def __init__(
+        self,
+        *,
+        task: str,
+        workspace: str | Path,
+        execution_envelope_file: str | Path | None,
+        goal_id: str,
+        granted_by: str,
+        max_revisions: int = 5,
+        provider: str | None = None,
+        provider_config_file: str | Path | None = None,
+        analysis_completion_file: str | Path | None = None,
+        plan_session: Callable[..., Any] = _default_plan_session,
+        resolve_review: Callable[..., tuple[str, Path]] = _default_resolve,
+        execute_bundle: Callable[..., Any] = _default_execute,
+        dispatch_run: Callable[..., Any] | None = None,
+        initial_decision: str = "approve",
+        stop_file: str | Path | None = None,
+        session_kwargs: Mapping[str, Any] | None = None,
+        _resuming: bool = False,
+    ) -> None:
+        self.task = task
+        self.workspace = Path(workspace).resolve()
+        self.goal_id = goal_id
+        self.granted_by = granted_by
+        self.max_revisions = max_revisions
+        self.provider = provider
+        self.provider_config_file = provider_config_file
+        self.execution_envelope_file = execution_envelope_file
+        self.analysis_completion_file = analysis_completion_file
+        self.plan_session = plan_session
+        self.resolve_review = resolve_review
+        self.execute_bundle = execute_bundle
+        self.dispatch_run = dispatch_run
+        self.initial_decision = initial_decision
+        self.stop_file = stop_file
+        self.session_kwargs = dict(session_kwargs or {})
+
+        self.goal_dir = self.workspace / ".chemsmart-agent" / "goals" / goal_id
+        self.ledger = GoalLedger(self.goal_dir)
+        self.ledger.directory.mkdir(parents=True, exist_ok=True)
+        if not _resuming and self.ledger.goal_path.exists():
+            raise ContractError(
+                "this goal already exists; a goal is one human decision, "
+                "not a resumable queue. A parked goal is resumed with "
+                "GoalDriver.resume (chemsmart agent wake)."
+            )
+        if not _resuming:
+            # The task text is what every later cycle plans against; a
+            # process that resumes a parked goal reads it from here.
+            (self.goal_dir / TASK_FILE).write_text(str(task), encoding="utf-8")
+
+        self.envelope = None
+        self.envelope_record: dict[str, Any] = {}
+        if execution_envelope_file is not None:
+            from chemsmart.agent.execution_envelope import (
+                load_bounded_execution_envelope,
+            )
+
+            self.envelope = load_bounded_execution_envelope(
+                execution_envelope_file
+            )
+            self.envelope_record = {
+                "allowed_program_engines": (
+                    self.envelope.allowed_program_engines
+                ),
+                "max_engine_calls": self.envelope.max_engine_calls,
+                "episode_wall_time_seconds": (
+                    self.envelope.episode_wall_time_seconds
+                ),
+            }
+
+        self.goal: GoalRecordV1 | None = None
+        self.outcome: Any = None
+        self.cycles = 0
+        self.revisions_admitted = 0
+        # A rejection is a fact about bytes and does not expire, so the
+        # rejected results accumulate; the *standing* delivery is
+        # whatever the most recent claim-rendering cycle said, because
+        # that is what the goal currently answers with. Keying this on
+        # quantity ids instead would ask a later cycle to reuse an
+        # earlier cycle's names: one live recovery re-derived a torsion
+        # correctly under a new id and would have been held open forever
+        # over a number it had already replaced.
+        self.rejected_artifacts: set[str] = set()
+        self.standing_stale: tuple[str, ...] = ()
+
+        self.phase = "plan"
+        self.result: GoalLoopResultV1 | None = None
+        self.wake: dict[str, Any] | None = None
+        self.session: Any = None
+        self.events_path: Path | None = None
+        self.review_file: Path | None = None
+        self.bundle_file: Path | None = None
+        self.run_directory: Path | None = None
+        self.execute_result: Any = None
+        self.dispatch_receipt: Any = None
+
+    # -- public surface ---------------------------------------------------
+
+    @classmethod
+    def resume(
+        cls, *, workspace: str | Path, goal_id: str, **kwargs: Any
+    ) -> "GoalDriver":
+        """Rebuild a parked goal's driver from its ledger, at ``outcome``.
+
+        Admitted only when the ledger's last run was dispatched and never
+        recorded, and the goal is not settled: the same one human
+        decision continues in its own run directory, and nothing here
+        creates a second one.
+        """
+
+        driver = cls(
+            task=str(kwargs.pop("task", "")),
+            workspace=workspace,
+            goal_id=goal_id,
+            _resuming=True,
+            **kwargs,
+        )
+        if not driver.ledger.goal_path.exists():
+            raise ContractError(f"goal {goal_id!r} has no ledger to resume")
+        entries = driver.ledger.entries()
+        if any(entry["kind"] == "goal_settled" for entry in entries):
+            raise ContractError(f"goal {goal_id!r} is settled")
+        dispatched = [
+            entry for entry in entries if entry["kind"] == "run_dispatched"
+        ]
+        recorded_cycles = {
+            int(entry["payload"].get("cycle", 0))
+            for entry in entries
+            if entry["kind"] == "run_recorded"
+        }
+        parked = [
+            entry
+            for entry in dispatched
+            if int(entry["payload"].get("cycle", 0)) not in recorded_cycles
+        ]
+        if not parked:
+            raise ContractError(
+                f"goal {goal_id!r} has no parked run to resume"
+            )
+        entry = parked[-1]
+        driver.goal = driver.ledger.load()
+        if not driver.task:
+            try:
+                driver.task = (driver.goal_dir / TASK_FILE).read_text(
+                    encoding="utf-8"
+                )
+            except OSError as exc:
+                raise ContractError(
+                    f"goal {goal_id!r} has no recorded task text to resume"
+                ) from exc
+        driver.cycles = int(entry["payload"]["cycle"])
+        driver.revisions_admitted = sum(
+            1 for item in entries if item["kind"] == "revision_admitted"
+        )
+        # Replay the standing delivery from every earlier recorded run, in
+        # order, so a rejection made in cycle 1 still taints cycle 3.
+        for item in entries:
+            if item["kind"] != "run_recorded":
+                continue
+            delivery = _analysis_delivery(
+                driver.workspace
+                / ".chemsmart-agent"
+                / Path(*str(item["payload"].get("run") or "").split("/"))
+                / "events.jsonl",
+                inherited_rejected_artifacts=tuple(
+                    sorted(driver.rejected_artifacts)
+                ),
+            )
+            driver.rejected_artifacts.update(
+                delivery.rejected_artifact_sha256s
+            )
+            if delivery.claims_rendered:
+                driver.standing_stale = delivery.stale_quantity_ids
+        driver.run_directory = (
+            driver.goal_dir / "runs" / f"cycle-{driver.cycles}"
+        )
+        driver.dispatch_receipt = dict(entry["payload"])
+        driver.execute_result = _recorded_execution_result(
+            driver.run_directory
+        )
+        driver.phase = "outcome"
+        return driver
+
+    @classmethod
+    def from_review(
+        cls,
+        *,
+        review_file: str | Path,
+        task_spec_sha256: str = "",
+        **kwargs: Any,
+    ) -> "GoalDriver":
+        """A driver at ``decide`` over a review a session already wrote.
+
+        This is how a stored review is re-presented for one fresh human
+        decision -- the terminal interface's resume, `agent review` --
+        without planning again: the review file stands in for cycle 1's
+        session, and everything from the decision on is the same
+        machine.
+        """
+
+        driver = cls(**kwargs)
+        driver.cycles = 1
+        driver.review_file = Path(review_file)
+        driver.session = SimpleNamespace(
+            terminal_state="waiting_for_approval",
+            task_spec_sha256=str(task_spec_sha256 or ""),
+        )
+        driver.phase = "decide"
+        return driver
+
+    def run(self) -> GoalLoopResultV1:
+        """Step until the goal settles or parks."""
+
+        while self.phase not in {"settled", "parked"}:
+            self.step()
+        assert self.result is not None
+        return self.result
+
+    def step(self) -> GoalStepV1:
+        """Perform exactly one phase and say which comes next."""
+
+        phase = self.phase
+        if phase in {"settled", "parked"}:
+            raise ContractError(f"goal {self.goal_id!r} is {phase}")
+        handler = {
+            "plan": self._plan,
+            "decide": self._decide,
+            "execute": self._execute,
+            "outcome": self._outcome,
+            "settle": self._settle,
+        }[phase]
+        handler()
+        return GoalStepV1(
+            phase=phase,
+            next_phase=self.phase,
+            cycle=self.cycles,
+            result=self.result,
         )
 
-    from chemsmart.agent.execution_envelope import (
-        load_bounded_execution_envelope,
-    )
+    # -- phases -------------------------------------------------------------
 
-    envelope = load_bounded_execution_envelope(execution_envelope_file)
-    envelope_record = {
-        "allowed_program_engines": envelope.allowed_program_engines,
-        "max_engine_calls": envelope.max_engine_calls,
-        "episode_wall_time_seconds": envelope.episode_wall_time_seconds,
-    }
+    def _stopped(self) -> bool:
+        return bool(self.stop_file and Path(self.stop_file).exists())
 
-    goal: GoalRecordV1 | None = None
-    outcome = None
-    cycles = 0
-    revisions_admitted = 0
-    # A rejection is a fact about bytes and does not expire, so the
-    # rejected results accumulate; the *standing* delivery is whatever
-    # the most recent claim-rendering cycle said, because that is what
-    # the goal currently answers with. Keying this on quantity ids
-    # instead would ask a later cycle to reuse an earlier cycle's names:
-    # one live recovery re-derived a torsion correctly under a new id
-    # and would have been held open forever over a number it had
-    # already replaced.
-    rejected_artifacts: set[str] = set()
-    standing_stale: tuple[str, ...] = ()
+    def _settled(
+        self, settlement: str, reasons: tuple[str, ...]
+    ) -> GoalLoopResultV1:
+        self.result = GoalLoopResultV1(
+            goal_id=self.goal_id,
+            settlement=settlement,
+            cycles=self.cycles,
+            revisions_admitted=self.revisions_admitted,
+            reasons=reasons,
+        )
+        self.phase = "settled"
+        return self.result
 
-    def _stopped() -> bool:
-        return bool(stop_file and Path(stop_file).exists())
-
-    while True:
-        cycles += 1
-        if _stopped():
-            ledger.append(
-                "cancelled_by_human", {"cycle": cycles, "at": _utc_now()}
+    def _settle_delivery(self, terminal: str) -> GoalLoopResultV1:
+        if self.events_path is None:
+            # Nothing durable to read a delivery from: the goal still ends
+            # in a typed state, and the reason says why a human reads it.
+            reason = (
+                f"session terminal state: {terminal}; the planning session "
+                "left no event stream"
             )
-            ledger.settle(
+            self.ledger.settle("returned_to_human", reasons=(reason,))
+            return self._settled("returned_to_human", (reason,))
+        self.result = _settle_from_delivery(
+            self.ledger,
+            goal_id=self.goal_id,
+            cycles=self.cycles,
+            revisions_admitted=self.revisions_admitted,
+            events_path=self.events_path,
+            terminal=terminal,
+        )
+        self.phase = "settled"
+        return self.result
+
+    def _typed_error(self, stage: str, error: ContractError) -> None:
+        self.result = _typed_error_settlement(
+            self.ledger,
+            goal_id=self.goal_id,
+            cycles=self.cycles,
+            revisions_admitted=self.revisions_admitted,
+            stage=stage,
+            error=error,
+        )
+        self.phase = "settled"
+
+    def _goal_record(
+        self,
+        *,
+        identity: str,
+        conditions: Mapping[str, Any],
+        review_sha256: str,
+    ) -> GoalRecordV1:
+        return GoalRecordV1(
+            schema_version=GOAL_SCHEMA_VERSION,
+            goal_id=self.goal_id,
+            task_spec_sha256=str(
+                getattr(self.session, "task_spec_sha256", "") or ""
+            ),
+            scientific_identity_sha256=identity,
+            conditions=conditions,
+            envelope=self.envelope_record,
+            max_revisions=self.max_revisions,
+            granted_by=self.granted_by,
+            initial_review_sha256=review_sha256,
+            created_at=_utc_now(),
+        )
+
+    def _plan(self) -> None:
+        self.cycles += 1
+        if self._stopped():
+            self.ledger.append(
+                "cancelled_by_human",
+                {"cycle": self.cycles, "at": _utc_now()},
+            )
+            self.ledger.settle(
                 "returned_to_human",
                 reasons=("cancelled by the human's stop file",),
             )
-            return GoalLoopResultV1(
-                goal_id=goal_id,
-                settlement="returned_to_human",
-                cycles=cycles,
-                revisions_admitted=revisions_admitted,
-                reasons=("cancelled",),
+            self._settled("returned_to_human", ("cancelled",))
+            return
+        self.review_file = (
+            self.goal_dir / "reviews" / f"cycle-{self.cycles}.json"
+        )
+        self.review_file.parent.mkdir(parents=True, exist_ok=True)
+        self.wake = (
+            _wake_context(
+                self.goal, self.ledger, self.outcome, workspace=self.workspace
             )
-        review_file = goal_dir / "reviews" / f"cycle-{cycles}.json"
-        review_file.parent.mkdir(parents=True, exist_ok=True)
-        wake = (
-            _wake_context(goal, ledger, outcome, workspace=workspace)
-            if goal is not None
+            if self.goal is not None
             else _goal_terms_context(
-                goal_id=goal_id,
-                granted_by=granted_by,
-                envelope_record=envelope_record,
-                max_revisions=max_revisions,
+                goal_id=self.goal_id,
+                granted_by=self.granted_by,
+                envelope_record=self.envelope_record,
+                max_revisions=self.max_revisions,
             )
         )
-        if wake is not None and wake.get("previous_run"):
+        if self.wake is not None and self.wake.get("previous_run"):
             # Host attestation for the evidence gate: this cycle's
             # session was handed the named run's typed outcome.
-            ledger.append(
+            self.ledger.append(
                 "wake_composed",
-                {"cycle": cycles, "run": wake["previous_run"]},
+                {"cycle": self.cycles, "run": self.wake["previous_run"]},
             )
         try:
-            session = plan_session(
-                task=task,
-                provider=provider,
-                provider_config_file=provider_config_file,
-                workspace=workspace,
+            self.session = self.plan_session(
+                task=self.task,
+                provider=self.provider,
+                provider_config_file=self.provider_config_file,
+                workspace=self.workspace,
                 execution_enabled=False,
                 approval_file=None,
-                execution_envelope_file=execution_envelope_file,
-                analysis_completion_file=analysis_completion_file,
-                review_file=review_file,
-                goal_context=wake,
+                execution_envelope_file=self.execution_envelope_file,
+                analysis_completion_file=self.analysis_completion_file,
+                review_file=self.review_file,
+                goal_context=self.wake,
+                **self.session_kwargs,
             )
         except ContractError as exc:
-            return _typed_error_settlement(
-                ledger,
-                goal_id=goal_id,
-                cycles=cycles,
-                revisions_admitted=revisions_admitted,
-                stage="planning session",
-                error=exc,
+            self._typed_error("planning session", exc)
+            return
+        terminal = str(getattr(self.session, "terminal_state", "") or "")
+        try:
+            self.events_path = _session_events_path(
+                self.session, self.workspace
             )
-        terminal = str(getattr(session, "terminal_state", "") or "")
-        events_path = _session_events_path(session, workspace)
-
+        except ContractError:
+            # A session that left no stream can still be decided on if it
+            # prepared a review; it cannot settle a delivery or carry the
+            # evidence a revision must cite, and those paths say so.
+            self.events_path = None
         if terminal != "waiting_for_approval":
             # No executable partition was planned. Either the session
             # delivered over registered results, refused with receipts,
             # or stopped; each settles the goal from durable evidence.
-            if goal is None:
-                goal = GoalRecordV1(
-                    schema_version=GOAL_SCHEMA_VERSION,
-                    goal_id=goal_id,
-                    task_spec_sha256=str(
-                        getattr(session, "task_spec_sha256", "") or ""
-                    ),
-                    scientific_identity_sha256="",
+            if self.goal is None:
+                self.goal = self._goal_record(
+                    identity="",
                     conditions={"solvents": (), "thermochemistry": ()},
-                    envelope=envelope_record,
-                    max_revisions=max_revisions,
-                    granted_by=granted_by,
-                    initial_review_sha256="",
-                    created_at=_utc_now(),
+                    review_sha256="",
                 )
-                ledger.create(goal)
-            return _settle_from_delivery(
-                ledger,
-                goal_id=goal_id,
-                cycles=cycles,
-                revisions_admitted=revisions_admitted,
-                events_path=events_path,
-                terminal=terminal,
-            )
+                self.ledger.create(self.goal)
+            self._settle_delivery(terminal)
+            return
+        self.phase = "decide"
 
-        review = _review_record(review_file)
-        if goal is None:
-            if initial_decision != "approve":
-                ledger_goal = GoalRecordV1(
-                    schema_version=GOAL_SCHEMA_VERSION,
-                    goal_id=goal_id,
-                    task_spec_sha256=str(
-                        getattr(session, "task_spec_sha256", "") or ""
+    def _decide(self) -> None:
+        assert self.review_file is not None
+        review = _review_record(self.review_file)
+        if self.goal is None:
+            if not self.envelope_record:
+                # No envelope file was given (the terminal interface
+                # over a stored review): the envelope the human is
+                # deciding on is the one the review itself displays.
+                shown = dict(review.get("execution_envelope") or {})
+                self.envelope_record = {
+                    "allowed_program_engines": canonical_data(
+                        shown.get("allowed_program_engines") or ()
                     ),
-                    scientific_identity_sha256=_plan_identity_sha256(review),
-                    conditions=conditions_from_review(review),
-                    envelope=envelope_record,
-                    max_revisions=max_revisions,
-                    granted_by=granted_by,
-                    initial_review_sha256="",
-                    created_at=_utc_now(),
+                    "max_engine_calls": int(
+                        shown.get("max_engine_calls") or 0
+                    ),
+                    "episode_wall_time_seconds": float(
+                        shown.get("episode_wall_time_seconds") or 0.0
+                    ),
+                }
+            if self.initial_decision != "approve":
+                self.ledger.create(
+                    self._goal_record(
+                        identity=_plan_identity_sha256(review),
+                        conditions=conditions_from_review(review),
+                        review_sha256="",
+                    )
                 )
-                ledger.create(ledger_goal)
-                ledger.settle(
+                self.ledger.settle(
                     "returned_to_human",
                     reasons=("the human declined the initial review",),
                 )
-                return GoalLoopResultV1(
-                    goal_id=goal_id,
-                    settlement="returned_to_human",
-                    cycles=cycles,
-                    revisions_admitted=revisions_admitted,
-                    reasons=("initial review declined",),
+                self._settled(
+                    "returned_to_human", ("initial review declined",)
                 )
-            review_sha256, bundle_file = resolve_review(
-                review_file=review_file,
-                workspace=workspace,
+                return
+            review_sha256, self.bundle_file = self.resolve_review(
+                review_file=self.review_file,
+                workspace=self.workspace,
                 decision="approve",
-                actor=granted_by,
-                approval_id=f"goal-{goal_id}-cycle-{cycles}",
+                actor=self.granted_by,
+                approval_id=f"goal-{self.goal_id}-cycle-{self.cycles}",
             )
-            goal = GoalRecordV1(
-                schema_version=GOAL_SCHEMA_VERSION,
-                goal_id=goal_id,
-                task_spec_sha256=str(
-                    getattr(session, "task_spec_sha256", "") or ""
-                ),
-                scientific_identity_sha256=_plan_identity_sha256(review),
+            self.goal = self._goal_record(
+                identity=_plan_identity_sha256(review),
                 conditions=conditions_from_review(review),
-                envelope=envelope_record,
-                max_revisions=max_revisions,
-                granted_by=granted_by,
-                initial_review_sha256=review_sha256,
-                created_at=_utc_now(),
+                review_sha256=review_sha256,
             )
-            ledger.create(goal)
-        else:
-            budgets = ledger.budgets(goal)
-            verdict = admit_revision(
-                goal=goal,
-                budgets=budgets,
-                revision_review=review,
-                revision_scientific_identity_sha256=(
-                    _plan_identity_sha256(review)
+            self.ledger.create(self.goal)
+            self.phase = "execute"
+            return
+        if self.events_path is None:
+            raise ContractError(
+                "a revision must come from a session with an event stream"
+            )
+        budgets = self.ledger.budgets(self.goal)
+        verdict = admit_revision(
+            goal=self.goal,
+            budgets=budgets,
+            revision_review=review,
+            revision_scientific_identity_sha256=_plan_identity_sha256(review),
+            session_events_path=self.events_path,
+            prior_outcome_evidence_hashes=tuple(
+                digest
+                for node in (self.outcome.nodes if self.outcome else ())
+                for digest in node.evidence_event_hashes
+            ),
+            previous_run_reference=_previous_run_reference(self.ledger),
+            wake_embedded_run=str((self.wake or {}).get("previous_run") or ""),
+        )
+        if not verdict.admitted:
+            self.ledger.append(
+                "revision_returned",
+                {"cycle": self.cycles, "reasons": verdict.reasons},
+            )
+            self.ledger.settle("returned_to_human", reasons=verdict.reasons)
+            self._settled("returned_to_human", verdict.reasons)
+            return
+        review_sha256, self.bundle_file = self.resolve_review(
+            review_file=self.review_file,
+            workspace=self.workspace,
+            decision="approve",
+            actor=self.goal.actor,
+            approval_id=f"goal-{self.goal_id}-cycle-{self.cycles}",
+        )
+        self.revisions_admitted += 1
+        self.ledger.append(
+            "revision_admitted",
+            {
+                "cycle": self.cycles,
+                "review_sha256": review_sha256,
+                "actor": self.goal.actor,
+                "granted_by": self.goal.granted_by,
+                "checks": dict(verdict.checks),
+                "cited_evidence_event_hashes": (
+                    verdict.cited_evidence_event_hashes
                 ),
-                session_events_path=events_path,
-                prior_outcome_evidence_hashes=tuple(
-                    digest
-                    for node in (outcome.nodes if outcome else ())
-                    for digest in node.evidence_event_hashes
-                ),
-                previous_run_reference=_previous_run_reference(ledger),
-                wake_embedded_run=str((wake or {}).get("previous_run") or ""),
-            )
-            if not verdict.admitted:
-                ledger.append(
-                    "revision_returned",
-                    {"cycle": cycles, "reasons": verdict.reasons},
-                )
-                ledger.settle("returned_to_human", reasons=verdict.reasons)
-                return GoalLoopResultV1(
-                    goal_id=goal_id,
-                    settlement="returned_to_human",
-                    cycles=cycles,
-                    revisions_admitted=revisions_admitted,
-                    reasons=verdict.reasons,
-                )
-            review_sha256, bundle_file = resolve_review(
-                review_file=review_file,
-                workspace=workspace,
-                decision="approve",
-                actor=goal.actor,
-                approval_id=f"goal-{goal_id}-cycle-{cycles}",
-            )
-            revisions_admitted += 1
-            ledger.append(
-                "revision_admitted",
-                {
-                    "cycle": cycles,
-                    "review_sha256": review_sha256,
-                    "actor": goal.actor,
-                    "granted_by": goal.granted_by,
-                    "checks": dict(verdict.checks),
-                    "cited_evidence_event_hashes": (
-                        verdict.cited_evidence_event_hashes
-                    ),
-                },
-            )
+            },
+        )
+        self.phase = "execute"
 
-        run_directory = goal_dir / "runs" / f"cycle-{cycles}"
-        run_directory.mkdir(parents=True, exist_ok=True)
+    def _execute(self) -> None:
+        assert self.bundle_file is not None
+        self.run_directory = self.goal_dir / "runs" / f"cycle-{self.cycles}"
+        self.run_directory.mkdir(parents=True, exist_ok=True)
+        run_reference = f"goals/{self.goal_id}/runs/cycle-{self.cycles}"
+        if self.dispatch_run is not None:
+            try:
+                receipt = self.dispatch_run(
+                    approval_file=self.bundle_file,
+                    workspace=self.workspace,
+                    run_directory=self.run_directory,
+                    goal_id=self.goal_id,
+                    cycle=self.cycles,
+                )
+            except ContractError as exc:
+                self._typed_error("scheduler dispatch", exc)
+                return
+            self.dispatch_receipt = receipt
+            payload = {
+                "cycle": self.cycles,
+                "run": run_reference,
+                **{
+                    key: value
+                    for key, value in _record_of(receipt).items()
+                    if key
+                    in {
+                        "scheduler",
+                        "job_id",
+                        "submitted_at",
+                        "submit_script",
+                        "wake_job_id",
+                    }
+                },
+            }
+            self.ledger.append("run_dispatched", payload)
+            self.result = GoalLoopResultV1(
+                goal_id=self.goal_id,
+                settlement="parked",
+                cycles=self.cycles,
+                revisions_admitted=self.revisions_admitted,
+                reasons=(
+                    f"cycle {self.cycles} submitted as "
+                    f"{payload.get('scheduler', 'scheduler')} job "
+                    f"{payload.get('job_id', '?')}; resume with "
+                    f"chemsmart agent wake --goal {self.goal_id}",
+                ),
+            )
+            self.phase = "parked"
+            return
         try:
-            execute_result = execute_bundle(
-                approval_file=bundle_file,
-                workspace=workspace,
-                run_directory=run_directory,
+            self.execute_result = self.execute_bundle(
+                approval_file=self.bundle_file,
+                workspace=self.workspace,
+                run_directory=self.run_directory,
             )
         except ContractError as exc:
-            return _typed_error_settlement(
-                ledger,
-                goal_id=goal_id,
-                cycles=cycles,
-                revisions_admitted=revisions_admitted,
-                stage="approved execution",
-                error=exc,
-            )
+            self._typed_error("approved execution", exc)
+            return
+        self.phase = "outcome"
+
+    def _outcome(self) -> None:
+        assert self.run_directory is not None
         from chemsmart.agent.terminal_states import (
             derive_run_outcome,
             read_run_events,
         )
 
+        run_reference = f"goals/{self.goal_id}/runs/cycle-{self.cycles}"
+        events_path = self.run_directory / "events.jsonl"
         try:
-            outcome = derive_run_outcome(
-                read_run_events(run_directory / "events.jsonl")
-            )
-        except ValueError as exc:
-            if "found 0" not in str(exc):
+            self.outcome = derive_run_outcome(read_run_events(events_path))
+        except (ValueError, OSError) as exc:
+            if isinstance(exc, ValueError) and "found 0" not in str(exc):
                 raise
             # An admitted revision whose approved bundle launched no
             # engine: the executor walked the analysis chain into the
@@ -1129,140 +1464,138 @@ def run_goal_loop(
             # letting the derivation's own contract error escape left
             # the goal unsettled. Settle from the run stream's typed
             # delivery, exactly as a no-partition planning cycle does.
-            ledger.append(
+            self.ledger.append(
                 "run_recorded",
                 {
-                    "cycle": cycles,
-                    "run": f"goals/{goal_id}/runs/cycle-{cycles}",
+                    "cycle": self.cycles,
+                    "run": run_reference,
                     "workflow_state": "analysis_only",
                     "engine_calls_consumed": 0,
                     "engine_wall_seconds": 0.0,
                 },
             )
-            return _settle_from_delivery(
-                ledger,
-                goal_id=goal_id,
-                cycles=cycles,
-                revisions_admitted=revisions_admitted,
-                events_path=run_directory / "events.jsonl",
-                terminal="complete",
+            self.events_path = events_path
+            self._settle_delivery("complete")
+            return
+        payload = {
+            "cycle": self.cycles,
+            "run": run_reference,
+            "workflow_state": self.outcome.workflow_state,
+            "engine_calls_consumed": self.outcome.engine_calls_consumed,
+            "engine_wall_seconds": self.outcome.engine_wall_seconds,
+        }
+        if self.dispatch_receipt is not None:
+            payload["queue_wait_seconds"] = _queue_wait_seconds(
+                self.dispatch_receipt, events_path
             )
-        ledger.append(
-            "run_recorded",
-            {
-                "cycle": cycles,
-                "run": f"goals/{goal_id}/runs/cycle-{cycles}",
-                "workflow_state": outcome.workflow_state,
-                "engine_calls_consumed": outcome.engine_calls_consumed,
-                "engine_wall_seconds": outcome.engine_wall_seconds,
-            },
-        )
+        self.ledger.append("run_recorded", payload)
+        if self.execute_result is None:
+            self.execute_result = _recorded_execution_result(
+                self.run_directory
+            ) or SimpleNamespace(
+                status=(
+                    "completed"
+                    if self.outcome.workflow_state == "completed"
+                    else self.outcome.workflow_state
+                ),
+                analysis_status="",
+            )
+        self.phase = "settle"
 
+    def _settle(self) -> None:
+        assert self.run_directory is not None and self.goal is not None
         run_delivery = _analysis_delivery(
-            run_directory / "events.jsonl",
-            inherited_rejected_artifacts=tuple(sorted(rejected_artifacts)),
+            self.run_directory / "events.jsonl",
+            inherited_rejected_artifacts=tuple(
+                sorted(self.rejected_artifacts)
+            ),
         )
-        rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
+        self.rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
         if run_delivery.claims_rendered:
-            standing_stale = run_delivery.stale_quantity_ids
-        unrefreshed = standing_stale
-        budgets = ledger.budgets(goal)
+            self.standing_stale = run_delivery.stale_quantity_ids
+        unrefreshed = self.standing_stale
+        budgets = self.ledger.budgets(self.goal)
         recovery_affordable = (
             budgets.engine_calls_remaining > 0
             and budgets.revisions_remaining > 0
             and budgets.wall_seconds_remaining > 0
         )
-        if (
-            _achieved(execute_result)
-            and (
-                run_delivery.unanswered_verdicts
-                or unrefreshed
-                or run_delivery.unclaimed_output_ids
-            )
-            and recovery_affordable
-        ):
+        open_delivery = bool(
+            run_delivery.unanswered_verdicts
+            or unrefreshed
+            or run_delivery.unclaimed_output_ids
+        )
+        achieved = _achieved(self.execute_result)
+        if achieved and open_delivery and recovery_affordable:
             # Every required output arrived and a host-rendered verdict
-            # says one of the structures behind them is not what the task
-            # required. Two live cases settled achieved here in one cycle
-            # with four engine calls unspent, so no session was ever asked
-            # whether it wanted to answer the failure it had just been
-            # shown. Withhold the word and wake another cycle while a
-            # recovery is still affordable; the session may recover, or
-            # cite the validation receipt in its decision and stand by
-            # the delivery. What it may not do is have the choice made
-            # for it by a settlement.
-            ledger.append(
+            # says one of the structures behind them is not what the
+            # task required. Two live cases settled achieved here in one
+            # cycle with four engine calls unspent, so no session was
+            # ever asked whether it wanted to answer the failure it had
+            # just been shown. Withhold the word and wake another cycle
+            # while a recovery is still affordable; the session may
+            # recover, or cite the validation receipt in its decision
+            # and stand by the delivery. What it may not do is have the
+            # choice made for it by a settlement.
+            self.ledger.append(
                 "recovery_opened",
                 {
-                    "cycle": cycles,
+                    "cycle": self.cycles,
                     "verdicts": list(run_delivery.unanswered_verdicts),
                     "stale_quantity_ids": list(unrefreshed),
                     "unclaimed_output_ids": list(
                         run_delivery.unclaimed_output_ids
                     ),
-                    "engine_calls_remaining": (budgets.engine_calls_remaining),
+                    "engine_calls_remaining": budgets.engine_calls_remaining,
                 },
             )
-            continue
-        if _achieved(execute_result) and (
-            run_delivery.unanswered_verdicts
-            or unrefreshed
-            or run_delivery.unclaimed_output_ids
-        ):
+            self.phase = "plan"
+            return
+        if achieved and open_delivery:
             # Same failure, nothing left to answer it with.
             if run_delivery.unanswered_verdicts:
                 reason = (
-                    f"cycle {cycles}: a validation verdict failed and no "
-                    "budget remains to answer it: "
+                    f"cycle {self.cycles}: a validation verdict failed and "
+                    "no budget remains to answer it: "
                     + ", ".join(run_delivery.unanswered_verdicts)
                 )
                 open_items = run_delivery.unanswered_verdicts
             elif unrefreshed:
                 reason = (
-                    f"cycle {cycles}: a verdict rejected the result these "
-                    "quantities were computed from and no budget remains "
-                    "to re-derive them: " + ", ".join(unrefreshed)
+                    f"cycle {self.cycles}: a verdict rejected the result "
+                    "these quantities were computed from and no budget "
+                    "remains to re-derive them: " + ", ".join(unrefreshed)
                 )
                 open_items = unrefreshed
             else:
-                # The host computed these from real program output and no
-                # reader of the delivery can see them.
+                # The host computed these from real program output and
+                # no reader of the delivery can see them.
                 reason = (
-                    f"cycle {cycles}: these quantities were computed and "
-                    "never rendered as a claim, and no budget remains to "
-                    "deliver them: "
+                    f"cycle {self.cycles}: these quantities were computed "
+                    "and never rendered as a claim, and no budget remains "
+                    "to deliver them: "
                     + ", ".join(run_delivery.unclaimed_output_ids)
                 )
                 open_items = run_delivery.unclaimed_output_ids
-            ledger.settle("returned_to_human", reasons=(reason,))
-            return GoalLoopResultV1(
-                goal_id=goal_id,
-                settlement="returned_to_human",
-                cycles=cycles,
-                revisions_admitted=revisions_admitted,
-                reasons=open_items,
-            )
-        if _achieved(execute_result):
-            ledger.settle(
+            self.ledger.settle("returned_to_human", reasons=(reason,))
+            self._settled("returned_to_human", open_items)
+            return
+        if achieved:
+            self.ledger.settle(
                 "achieved",
                 reasons=(
-                    f"cycle {cycles}: workflow completed with its "
+                    f"cycle {self.cycles}: workflow completed with its "
                     "analysis chain",
                 ),
             )
-            return GoalLoopResultV1(
-                goal_id=goal_id,
-                settlement="achieved",
-                cycles=cycles,
-                revisions_admitted=revisions_admitted,
-                reasons=(),
-            )
+            self._settled("achieved", ())
+            return
         if (
             budgets.revisions_remaining <= 0
             or budgets.engine_calls_remaining <= 0
             or budgets.wall_seconds_remaining <= 0
         ):
-            ledger.settle(
+            self.ledger.settle(
                 "exhausted",
                 reasons=(
                     f"engine calls remaining "
@@ -1272,13 +1605,75 @@ def run_goal_loop(
                     f"{budgets.revisions_remaining}",
                 ),
             )
-            return GoalLoopResultV1(
-                goal_id=goal_id,
-                settlement="exhausted",
-                cycles=cycles,
-                revisions_admitted=revisions_admitted,
-                reasons=("budgets exhausted",),
-            )
+            self._settled("exhausted", ("budgets exhausted",))
+            return
+        # A run that did not complete, with budget in hand: the next
+        # cycle's session reads the typed outcome and may revise.
+        self.phase = "plan"
 
 
-__all__ = ["GoalLoopResultV1", "run_goal_loop"]
+def _record_of(receipt: Any) -> dict[str, Any]:
+    """A receipt's public fields, whatever kind of object carries them."""
+
+    if isinstance(receipt, Mapping):
+        return dict(receipt)
+    if hasattr(receipt, "public_record"):
+        return dict(receipt.public_record())
+    if hasattr(receipt, "__dataclass_fields__"):
+        from dataclasses import asdict
+
+        return asdict(receipt)
+    return dict(vars(receipt))
+
+
+#: Where a dispatched run's job writes the executor's own result record,
+#: so the driver that resumes it reads the same status words a local run
+#: returns in memory.
+EXECUTION_RESULT_FILE = "execution-result.json"
+
+
+def _recorded_execution_result(run_directory: Path) -> Any:
+    path = Path(run_directory) / EXECUTION_RESULT_FILE
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(record, Mapping):
+        return None
+    return SimpleNamespace(
+        status=str(record.get("status") or ""),
+        analysis_status=str(record.get("analysis_status") or ""),
+    )
+
+
+def _queue_wait_seconds(receipt: Any, events_path: Path) -> float | None:
+    """Seconds between submission and the run's first recorded event."""
+
+    submitted = str(_record_of(receipt).get("submitted_at") or "")
+    if not submitted:
+        return None
+    try:
+        first = events_path.read_text(encoding="utf-8").splitlines()[0]
+        started = str(json.loads(first).get("at") or "")
+        start = datetime.fromisoformat(started)
+        submit = datetime.fromisoformat(submitted)
+    except (OSError, IndexError, ValueError, json.JSONDecodeError):
+        return None
+    return max(0.0, (start - submit).total_seconds())
+
+
+def run_goal_loop(**kwargs: Any) -> GoalLoopResultV1:
+    """Drive one goal to settlement or parking in this process."""
+
+    return GoalDriver(**kwargs).run()
+
+
+__all__ = [
+    "EXECUTION_RESULT_FILE",
+    "TASK_FILE",
+    "GOAL_PHASES",
+    "GoalDriver",
+    "GoalLoopResultV1",
+    "GoalStepV1",
+    "run_goal_loop",
+]

@@ -12,9 +12,9 @@ from types import SimpleNamespace
 import pytest
 
 from chemsmart.agent._contracts import ContractError
+from chemsmart.agent.driver import run_goal_loop
 from chemsmart.agent.execution import build_program_execution_receipt
 from chemsmart.agent.goal import GoalLedger
-from chemsmart.agent.goal_loop import run_goal_loop
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
 
 from .test_runtime_v2_launch_fence import _reserve
@@ -635,7 +635,7 @@ def test_the_wake_deliverables_come_from_the_previous_runs_stream(tmp_path):
     session sees what already stands delivered, what the chain declared
     it could not produce, and what its own decisions doubt."""
 
-    from chemsmart.agent.goal_loop import (
+    from chemsmart.agent.driver import (
         _analysis_delivery,
         _deliverables_record,
     )
@@ -770,3 +770,112 @@ def test_an_engineless_cycle_settles_from_its_delivery(tmp_path):
         entry for entry in ledger.entries() if entry["kind"] == "run_recorded"
     ]
     assert run_rows[-1]["payload"]["workflow_state"] == "analysis_only"
+
+
+def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(
+    tmp_path,
+):
+    """The one human decision continues in its own run directory.
+
+    With a scheduler in the loop the driver does not wait: it records
+    the job it submitted, parks, and a later process -- the job's own
+    tail, or a human's `agent wake` -- rebuilds the driver from the
+    ledger at the outcome phase and settles from the run's durable
+    record. Nothing here creates a second decision.
+    """
+
+    from chemsmart.agent.driver import (
+        EXECUTION_RESULT_FILE,
+        GoalDriver,
+        GoalLoopResultV1,
+    )
+
+    workspace = tmp_path / "ws"
+    workspace.mkdir(exist_ok=True)
+    submitted: dict = {}
+
+    def dispatch_run(**kwargs):
+        submitted.update(kwargs)
+        return SimpleNamespace(
+            scheduler="SLURM",
+            job_id="191",
+            submitted_at="2026-09-02T12:39:50+00:00",
+            submit_script=str(kwargs["run_directory"] / "sub.sh"),
+        )
+
+    def never_execute(**_kwargs):
+        raise AssertionError("a dispatched run is not executed in-process")
+
+    driver = GoalDriver(
+        task="the goal task",
+        workspace=workspace,
+        execution_envelope_file=_envelope_file(tmp_path),
+        goal_id="goal-parked",
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=lambda **kw: _planning_session(
+            "live-1", review=_review_payload()
+        )(workspace, kw),
+        resolve_review=lambda **_kw: ("d" * 64, tmp_path / "bundle.json"),
+        execute_bundle=never_execute,
+        dispatch_run=dispatch_run,
+    )
+    parked = driver.run()
+    assert isinstance(parked, GoalLoopResultV1)
+    assert parked.settlement == "parked"
+    assert "job 191" in parked.reasons[0]
+    assert submitted["cycle"] == 1
+    kinds = [entry["kind"] for entry in driver.ledger.entries()]
+    assert kinds[-1] == "run_dispatched"
+    assert "goal_settled" not in kinds
+    assert (driver.goal_dir / "task.md").read_text() == "the goal task"
+
+    # A fresh process may not start the goal over ...
+    with pytest.raises(ContractError, match="already exists"):
+        GoalDriver(
+            task="the goal task",
+            workspace=workspace,
+            execution_envelope_file=_envelope_file(tmp_path),
+            goal_id="goal-parked",
+            granted_by="claude-owner-delegated-reviewer",
+        )
+
+    # ... but it resumes it once the job has written the run's record.
+    run_directory = driver.run_directory
+    _engine_stream(tmp_path, run_directory, failed=False)
+    (run_directory / EXECUTION_RESULT_FILE).write_text(
+        json.dumps({"status": "completed", "analysis_status": ""}),
+        encoding="utf-8",
+    )
+
+    def no_session(**_kw):
+        raise AssertionError("no new session is needed to settle")
+
+    resumed = GoalDriver.resume(
+        workspace=workspace,
+        goal_id="goal-parked",
+        execution_envelope_file=_envelope_file(tmp_path),
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=no_session,
+        execute_bundle=never_execute,
+    )
+    assert resumed.phase == "outcome"
+    assert resumed.task == "the goal task"
+    assert resumed.cycles == 1
+    result = resumed.run()
+    assert result.settlement == "achieved"
+    recorded = [
+        entry
+        for entry in resumed.ledger.entries()
+        if entry["kind"] == "run_recorded"
+    ]
+    assert recorded[-1]["payload"]["cycle"] == 1
+    assert "queue_wait_seconds" in recorded[-1]["payload"]
+
+    # Settled goals do not resume, and a goal with no parked run does not.
+    with pytest.raises(ContractError, match="is settled"):
+        GoalDriver.resume(
+            workspace=workspace,
+            goal_id="goal-parked",
+            execution_envelope_file=_envelope_file(tmp_path),
+            granted_by="claude-owner-delegated-reviewer",
+        )

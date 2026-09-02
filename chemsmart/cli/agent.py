@@ -187,10 +187,19 @@ def plan(
     review_file,
     as_json,
 ):
-    """Create and safely preview a command-compiled research workflow."""
+    """Create and safely preview a command-compiled research workflow.
 
+    This is the goal driver's plan phase and nothing more: one planning
+    session, its review written for a later human decision, no engine.
+    """
+
+    import getpass
+    import shutil
+    import uuid
+
+    from chemsmart.agent._contracts import ContractError
+    from chemsmart.agent.driver import GoalDriver
     from chemsmart.agent.identity import load_approved_molecular_input_manifest
-    from chemsmart.agent.live_session import run_live_agent_session
 
     approved_inputs = (
         load_approved_molecular_input_manifest(
@@ -199,19 +208,31 @@ def plan(
         if identity_manifest is not None
         else ()
     )
-
-    result = run_live_agent_session(
-        task=_read_task(task, task_file),
-        provider=provider.lower() if provider else None,
-        provider_config_file=provider_config,
-        workspace=workspace,
-        execution_enabled=False,
-        approval_file=None,
-        execution_envelope_file=execution_envelope,
-        analysis_completion_file=analysis_completion_file,
-        approved_molecular_inputs=approved_inputs,
-        review_file=review_file.resolve() if review_file is not None else None,
-    )
+    try:
+        driver = GoalDriver(
+            task=_read_task(task, task_file),
+            workspace=workspace,
+            execution_envelope_file=execution_envelope,
+            goal_id="plan-" + uuid.uuid4().hex[:12],
+            # A plan is proposed by whoever runs it; the decision that
+            # grants a goal is a later, separate act.
+            granted_by=getpass.getuser() or "local-user",
+            provider=provider.lower() if provider else None,
+            provider_config_file=provider_config,
+            analysis_completion_file=analysis_completion_file,
+            session_kwargs={"approved_molecular_inputs": approved_inputs},
+        )
+        driver.step()
+    except ContractError as exc:
+        raise click.ClickException(str(exc)) from exc
+    result = driver.session
+    if (
+        review_file is not None
+        and driver.review_file is not None
+        and driver.review_file.is_file()
+    ):
+        review_file.resolve().parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(driver.review_file, review_file.resolve())
     if as_json:
         click.echo(result.public_summary_json())
         return
@@ -454,7 +475,7 @@ def goal(
     """
 
     from chemsmart.agent._contracts import ContractError
-    from chemsmart.agent.goal_loop import run_goal_loop
+    from chemsmart.agent.driver import run_goal_loop
 
     if bool(task) == bool(task_file):
         raise click.ClickException(
