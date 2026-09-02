@@ -867,6 +867,11 @@ def run_live_agent_session(
         )
         host_kwargs["execution_resources"] = bounded_envelope.resources
         host_kwargs["bounded_execution_envelope"] = bounded_envelope
+    remaining = ((goal_context or {}).get("budgets") or {}).get(
+        "engine_calls_remaining"
+    )
+    if remaining is not None:
+        host_kwargs["engine_calls_remaining"] = int(remaining)
     host = CommandCompiledToolHostV1(**host_kwargs)
     # Guides open before the first turn are opened on the host, so each
     # leaves the same event as one opened mid-session -- with its signal.

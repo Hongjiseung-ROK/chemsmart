@@ -1217,6 +1217,7 @@ class CommandCompiledToolHostV1:
         workflow_execution_approval: WorkflowExecutionApprovalV1 | None = None,
         frozen_workflow_approval: FrozenWorkflowApprovalV1 | None = None,
         bounded_execution_envelope: BoundedExecutionEnvelopeV1 | None = None,
+        engine_calls_remaining: int | None = None,
         approved_environment_identities: tuple[str, ...] = (),
         materialized_workflow: MaterializedWorkflowV1 | None = None,
         stationary_point_policy: (
@@ -1300,6 +1301,14 @@ class CommandCompiledToolHostV1:
         self.workflow_execution_approval = workflow_execution_approval
         self.frozen_workflow_approval = frozen_workflow_approval
         self.bounded_execution_envelope = bounded_execution_envelope
+        #: What the goal has left of its engine-call budget after earlier
+        #: cycles, when a wake carries it; the envelope alone bounds a
+        #: first cycle.
+        self.engine_calls_remaining = (
+            None
+            if engine_calls_remaining is None
+            else int(engine_calls_remaining)
+        )
         self._bounded_execution_started_at = time.monotonic()
         self.stationary_point_policy = stationary_point_policy
         _validate_stationary_point_policy_binding(
@@ -3759,6 +3768,42 @@ class CommandCompiledToolHostV1:
         )
         return record
 
+    def _refuse_plan_beyond_engine_budget(self, plan: Any) -> None:
+        """Refuse, at plan time, more executable nodes than calls remain.
+
+        The review builder refuses this at session end, which is the
+        right contract at the wrong moment: a woken session planned
+        twelve engine nodes against the five calls its wake context said
+        remained, the frontier called the plan approvable, and the goal
+        returned to the human (live, 2026-09-02). The plan alone proves
+        the count, so the plan is where it is refused, against the
+        smaller of the envelope and what the goal has left.
+        """
+
+        limits = []
+        if self.bounded_execution_envelope is not None:
+            limits.append(
+                int(self.bounded_execution_envelope.max_engine_calls)
+            )
+        if self.engine_calls_remaining is not None:
+            limits.append(int(self.engine_calls_remaining))
+        if not limits:
+            return
+        limit = min(limits)
+        non_executable = self._release_non_executable_node_ids(plan)
+        executable = tuple(
+            node.node_id
+            for node in plan.nodes
+            if node.node_id not in non_executable
+        )
+        if len(executable) > limit:
+            raise ContractError(
+                "scientific workflow exceeds the engine-call budget: "
+                f"{len(executable)} executable nodes for {limit} remaining "
+                "calls; plan within the budget, reading registered results "
+                "where they already stand instead of re-running them"
+            )
+
     def _refuse_occupied_node_ids(self, node_ids: tuple[str, ...]) -> None:
         """Refuse, at plan time, a node id whose workspace holds outputs.
 
@@ -3905,6 +3950,7 @@ class CommandCompiledToolHostV1:
             else None
         )
         if scientific_plan is not None:
+            self._refuse_plan_beyond_engine_budget(scientific_plan)
             self.scientific_workflow_plans[scientific_plan.plan_sha256] = (
                 scientific_plan
             )
