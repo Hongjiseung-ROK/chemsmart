@@ -301,3 +301,58 @@ def test_an_activation_term_matches_whole_words_only():
     assert "database" in opened
     assert "constants" not in opened
     assert "constants" in guides_from_text("the reference acid's pKa")
+
+
+def test_a_declared_observable_is_answered_only_by_a_claim_carrying_its_id(
+    tmp_path,
+):
+    """The completion gate certified a delivery whose declared endo:exo
+    ratio had no claim, because two imaginary-mode counts share its
+    dimension, and the expectation row printed agreed on a number the
+    session had relabelled. A dimension is not an identity."""
+
+    from types import SimpleNamespace
+
+    ratio = {
+        "observable_id": "endo-exo-ratio",
+        "unit": "1",
+        "dimension": (0, 0, 0, 0, 0, 0),
+        "meaning": "endo over exo at 298 K",
+        "expectation_basis": "the endo rule",
+        "expected_low": 1.2,
+        "expected_high": 150.0,
+    }
+    host = _host(tmp_path, approved_requested_observable_declarations=[ratio])
+    claim = SimpleNamespace(
+        claim_id="n-imag-ts-a",
+        dimension=(0, 0, 0, 0, 0, 0),
+        display_value=1.0,
+        display_unit="1",
+    )
+    host.analysis_claim_records["r1"] = SimpleNamespace(
+        task_spec_sha256="a" * 64, claims=(claim,)
+    )
+    misses, limitations = host._declared_observable_completion(
+        task_spec_sha256="a" * 64
+    )
+    assert limitations == ("declared_observable:endo-exo-ratio",)
+    assert "no delivered claim named 'endo-exo-ratio'" in misses[0]
+    (row,) = host._declared_observable_predictions(task_spec_sha256="a" * 64)
+    assert row["agreement"] == "not_comparable"
+    assert row["delivered_claim_id"] == ""
+
+    named = SimpleNamespace(
+        claim_id="endo-exo-ratio",
+        dimension=(0, 0, 0, 0, 0, 0),
+        display_value=37.0,
+        display_unit="1",
+    )
+    host.analysis_claim_records["r2"] = SimpleNamespace(
+        task_spec_sha256="a" * 64, claims=(named,)
+    )
+    assert host._declared_observable_completion(task_spec_sha256="a" * 64) == (
+        (),
+        (),
+    )
+    (row,) = host._declared_observable_predictions(task_spec_sha256="a" * 64)
+    assert row["agreement"] == "agreed"

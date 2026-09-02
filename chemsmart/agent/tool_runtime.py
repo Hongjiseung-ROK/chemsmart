@@ -2215,9 +2215,10 @@ class CommandCompiledToolHostV1:
                 else ""
             ),
             "completion_consequence": (
-                "the completion gate requires a delivered claim of "
-                "matching dimension for every declared observable; kind "
-                "and unit are checked, values never are"
+                "the completion gate requires, for every declared "
+                "observable, a delivered claim carrying its id in its "
+                "dimension; values are never checked, and a declared "
+                "observable you cannot deliver is stated as a limitation"
             ),
         }
 
@@ -2243,23 +2244,39 @@ class CommandCompiledToolHostV1:
             values = tuple(int(value) for value in dimension)
             return values + (0,) * (9 - len(values))
 
-        claim_dimensions = {
-            _padded(claim.dimension)
-            for record in self.analysis_claim_records.values()
-            if getattr(record, "task_spec_sha256", "") == task_spec_sha256
-            for claim in getattr(record, "claims", ())
-        }
+        # A dimension is not an identity. Matching by dimension certified
+        # a delivery whose declared endo:exo ratio had no claim, because
+        # two imaginary-mode counts share its dimension, while the session
+        # had deliberately relabelled its number as a conformer difference
+        # (live, 2026-09-03). A claim answers a declaration by carrying
+        # its id; the dimension is then checked, never used to guess.
+        claims_by_id: dict[str, tuple[int, ...]] = {}
+        for record in self.analysis_claim_records.values():
+            if getattr(record, "task_spec_sha256", "") != task_spec_sha256:
+                continue
+            for claim in getattr(record, "claims", ()):
+                claims_by_id.setdefault(
+                    str(claim.claim_id), _padded(claim.dimension)
+                )
         misses = []
         limitations = []
         for observable_id, record in sorted(
             self.requested_observable_declarations.items()
         ):
-            if _padded(record["dimension"]) in claim_dimensions:
+            delivered = claims_by_id.get(observable_id)
+            if delivered is not None and delivered == _padded(
+                record["dimension"]
+            ):
                 continue
             misses.append(
                 f"declared observable {observable_id!r} "
-                f"({record['unit']}) has no delivered claim of matching "
-                "dimension"
+                f"({record['unit']}) has no delivered claim named "
+                f"{observable_id!r}"
+                + (
+                    " of matching dimension"
+                    if delivered is not None
+                    else "; a claim answers a declaration by carrying its id"
+                )
             )
             limitations.append(f"declared_observable:{observable_id}")
         return tuple(misses), tuple(limitations)
@@ -2301,7 +2318,6 @@ class CommandCompiledToolHostV1:
             values = tuple(int(value) for value in dimension)
             return values + (0,) * (9 - len(values))
 
-        claims_by_dimension: dict[tuple[int, ...], list[Any]] = {}
         claims_by_id: dict[str, Any] = {}
         for claim_record in self.analysis_claim_records.values():
             if (
@@ -2310,9 +2326,6 @@ class CommandCompiledToolHostV1:
             ):
                 continue
             for claim in getattr(claim_record, "claims", ()):
-                claims_by_dimension.setdefault(
-                    _padded(claim.dimension), []
-                ).append(claim)
                 claims_by_id.setdefault(claim.claim_id, claim)
 
         rows = []
@@ -2341,17 +2354,12 @@ class CommandCompiledToolHostV1:
             # declared a sign for each of three volt-valued observables
             # and every row came back "not comparable" while the claims
             # sat there carrying the very same identifiers.
+            # By identifier only. The dimension fallback joined a
+            # declared endo:exo difference to a number the session had
+            # relabelled a conformer difference and printed "agreed"
+            # (live, 2026-09-03); a dimension is not an identity.
             named = claims_by_id.get(observable_id)
-            if named is not None and _scalar(named):
-                matches = [named]
-            else:
-                matches = [
-                    claim
-                    for claim in claims_by_dimension.get(
-                        _padded(record["dimension"]), ()
-                    )
-                    if _scalar(claim)
-                ]
+            matches = [named] if named is not None and _scalar(named) else []
             if len(matches) == 1:
                 claim = matches[0]
                 value = float(claim.display_value)
