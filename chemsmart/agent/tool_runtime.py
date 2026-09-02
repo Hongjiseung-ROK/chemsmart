@@ -3759,6 +3759,36 @@ class CommandCompiledToolHostV1:
         )
         return record
 
+    def _refuse_occupied_node_ids(self, node_ids: tuple[str, ...]) -> None:
+        """Refuse, at plan time, a node id whose workspace holds outputs.
+
+        Every node runs in ``<workspace>/nodes/<node_id>``, and the launch
+        guard refuses a directory that already contains outputs so no
+        evidence is ever overwritten. A revision that reused a failed
+        node's id passed admission and met that guard only at launch,
+        after the one-shot bundle was spent (live, 2026-09-02). The plan
+        is where the id is chosen, so the plan is where the refusal
+        names the route.
+        """
+
+        root = self.run_evidence_root
+        if root is None:
+            return
+        occupied = tuple(
+            node_id
+            for node_id in node_ids
+            if (root / "nodes" / node_id).is_dir()
+            and any((root / "nodes" / node_id).iterdir())
+        )
+        if occupied:
+            raise ContractError(
+                "node id(s) "
+                + ", ".join(repr(item) for item in occupied)
+                + " name a node workspace that already holds outputs from "
+                "an earlier run; a re-run takes a fresh node id, and the "
+                "earlier directory stays as evidence"
+            )
+
     def _plan_command_workflow(
         self,
         turn_id: str,
@@ -3773,6 +3803,9 @@ class CommandCompiledToolHostV1:
         declared_programs = {
             item.program: item for item in self.registry.programs
         }
+        self._refuse_occupied_node_ids(
+            tuple(str(raw_node["node_id"]) for raw_node in values["nodes"])
+        )
         for raw_node in values["nodes"]:
             inputs = tuple(
                 sorted(
