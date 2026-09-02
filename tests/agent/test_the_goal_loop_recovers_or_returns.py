@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import pytest
 
 from chemsmart.agent._contracts import ContractError
-from chemsmart.agent.driver import run_goal_loop
+from chemsmart.agent.driver import GoalDriver, run_goal_loop
 from chemsmart.agent.execution import build_program_execution_receipt
 from chemsmart.agent.goal import GoalLedger
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
@@ -263,7 +263,12 @@ def test_cycle_one_approves_runs_and_settles_achieved(tmp_path):
         tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
     )
     kinds = [entry["kind"] for entry in ledger.entries()]
-    assert kinds == ["goal_created", "run_recorded", "goal_settled"]
+    assert kinds == [
+        "goal_created",
+        "run_started",
+        "run_recorded",
+        "goal_settled",
+    ]
 
 
 def test_a_failed_run_wakes_a_revision_that_recovers(tmp_path):
@@ -921,6 +926,88 @@ def test_the_goals_first_declarations_ride_the_wake(tmp_path):
     )
     kinds = [entry["kind"] for entry in ledger.entries()]
     assert kinds.index("goal_created") < kinds.index("observables_declared")
+
+
+def test_an_interrupted_local_run_resumes_through_wake(tmp_path):
+    """A launcher timeout killed a goal mid-engine in its second cycle
+    and nothing could resume it: wake knew only parked (dispatched)
+    runs. The execute boundary is now a ledger entry naming the run and
+    its bundle, and resume re-enters the execute phase with them."""
+
+    workspace = tmp_path / "ws"
+    workspace.mkdir(exist_ok=True)
+    calls = []
+
+    def killed(*, approval_file, workspace, run_directory):
+        calls.append("killed")
+        _engine_stream(tmp_path, run_directory, failed=False)
+        raise KeyboardInterrupt
+
+    def continued(*, approval_file, workspace, run_directory):
+        calls.append(("continued", approval_file.name, run_directory.name))
+        return SimpleNamespace(status="completed", analysis_status="")
+
+    common = dict(
+        execution_envelope_file=_envelope_file(tmp_path, 6),
+        goal_id="goal-t1",
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=lambda **kw: _planning_session(
+            "live-1", review=_review_payload()
+        )(workspace, kw),
+        resolve_review=lambda **_kw: ("d" * 64, tmp_path / "bundle.json"),
+    )
+    driver = GoalDriver(
+        task="the goal task",
+        workspace=workspace,
+        execute_bundle=killed,
+        **common,
+    )
+    with pytest.raises(KeyboardInterrupt):
+        driver.run()
+    ledger = GoalLedger(workspace / ".chemsmart-agent" / "goals" / "goal-t1")
+    kinds = [entry["kind"] for entry in ledger.entries()]
+    assert "run_started" in kinds and "run_recorded" not in kinds
+
+    resumed = GoalDriver.resume(
+        workspace=workspace,
+        goal_id="goal-t1",
+        execute_bundle=continued,
+        plan_session=common["plan_session"],
+        resolve_review=common["resolve_review"],
+    )
+    assert resumed.phase == "execute"
+    result = resumed.run()
+    assert calls == ["killed", ("continued", "bundle.json", "cycle-1")]
+    assert result.settlement == "achieved"
+    with pytest.raises(ContractError, match="is settled"):
+        GoalDriver.resume(workspace=workspace, goal_id="goal-t1")
+
+
+def test_retained_intent_is_not_an_ending(tmp_path):
+    """Four hess nodes a session retained as declared non-executable
+    intent derived not_launched, and the settlement called them a state
+    no revision can answer while every executable node had validated.
+    The cycle's displayed review says which ids were retained."""
+
+    workspace = tmp_path / "ws"
+    driver = GoalDriver(
+        task="the goal task",
+        workspace=workspace,
+        execution_envelope_file=_envelope_file(tmp_path, 6),
+        goal_id="goal-t1",
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=lambda **kw: None,
+        resolve_review=lambda **_kw: ("d" * 64, tmp_path / "bundle.json"),
+        execute_bundle=lambda **_kw: None,
+    )
+    driver.cycles = 1
+    assert driver._declared_non_executable_ids() == ()
+    review = _review_payload()
+    review["non_executable_node_ids"] = ["hess-a", "hess-b"]
+    reviews = driver.goal_dir / "reviews"
+    reviews.mkdir(parents=True)
+    (reviews / "cycle-1.json").write_text(json.dumps(review))
+    assert driver._declared_non_executable_ids() == ("hess-a", "hess-b")
 
 
 def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(

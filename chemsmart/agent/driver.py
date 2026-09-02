@@ -1208,11 +1208,21 @@ class GoalDriver:
             for entry in dispatched
             if int(entry["payload"].get("cycle", 0)) not in recorded_cycles
         ]
-        if not parked:
+        dispatched_cycles = {
+            int(entry["payload"].get("cycle", 0)) for entry in dispatched
+        }
+        interrupted = [
+            entry
+            for entry in entries
+            if entry["kind"] == "run_started"
+            and int(entry["payload"].get("cycle", 0)) not in recorded_cycles
+            and int(entry["payload"].get("cycle", 0)) not in dispatched_cycles
+        ]
+        if not parked and not interrupted:
             raise ContractError(
-                f"goal {goal_id!r} has no parked run to resume"
+                f"goal {goal_id!r} has no parked or interrupted run to resume"
             )
-        entry = parked[-1]
+        entry = (parked or interrupted)[-1]
         driver.goal = driver.ledger.load()
         if not driver.task:
             try:
@@ -1246,6 +1256,13 @@ class GoalDriver:
             )
             if delivery.claims_rendered:
                 driver.standing_stale = delivery.stale_quantity_ids
+        if entry["kind"] == "run_started":
+            # An interrupted local run: re-enter the execute phase with the
+            # same bundle and run directory; the executor's continuation
+            # replays finished nodes and names the interrupted one.
+            driver.bundle_file = Path(str(entry["payload"]["approval_file"]))
+            driver.phase = "execute"
+            return driver
         driver.run_directory = (
             driver.goal_dir / "runs" / f"cycle-{driver.cycles}"
         )
@@ -1360,6 +1377,19 @@ class GoalDriver:
                 "observables_declared",
                 {"cycle": self.cycles, "observables": fresh},
             )
+
+    def _declared_non_executable_ids(self) -> tuple[str, ...]:
+        """Node ids the cycle's displayed review retained as intent only."""
+
+        review_file = self.goal_dir / "reviews" / f"cycle-{self.cycles}.json"
+        try:
+            review = _review_record(review_file)
+        except (OSError, json.JSONDecodeError):
+            return ()
+        packet = review.get("workflow_execution_review") or review
+        return tuple(
+            str(item) for item in packet.get("non_executable_node_ids") or ()
+        )
 
     def _settle_delivery(self, terminal: str) -> GoalLoopResultV1:
         if self.events_path is None:
@@ -1646,6 +1676,21 @@ class GoalDriver:
             )
             self.phase = "parked"
             return
+        # The execute boundary is a ledger entry like every other, so a
+        # process killed mid-engine leaves a run that agent wake can
+        # re-enter: the run directory and the one-shot bundle are named
+        # here, and the executor's own continuation replays what
+        # finished (live, 2026-09-03: a launcher timeout killed a goal
+        # three relaxations into its second cycle and nothing could
+        # resume it).
+        self.ledger.append(
+            "run_started",
+            {
+                "cycle": self.cycles,
+                "run": run_reference,
+                "approval_file": str(self.bundle_file),
+            },
+        )
         try:
             self.execute_result = self.execute_bundle(
                 approval_file=self.bundle_file,
@@ -1854,10 +1899,19 @@ class GoalDriver:
         # ordinary work; a launch that never happened, an admission
         # refusal, a cancellation or an ambiguous termination are not
         # evidence a revision can stand on, and the human reads them.
+        # A stage the plan declared non-executable was displayed with the
+        # review, never approved and never launched: it has no ending to
+        # answer. Counting its not_launched as one returned a goal whose
+        # every executable node had validated (live, 2026-09-03).
+        retained = set(self._declared_non_executable_ids())
         terminal_states = {
             str(node.node_id): str(node.state)
             for node in (self.outcome.nodes if self.outcome else ())
             if str(node.state) != "validated"
+            and not (
+                str(node.state) == "not_launched"
+                and str(node.node_id) in retained
+            )
         }
         repairable = {
             node_id: state
