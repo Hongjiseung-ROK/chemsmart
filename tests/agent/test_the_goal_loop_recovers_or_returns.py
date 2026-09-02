@@ -71,7 +71,9 @@ def _write_session_stream(workspace, name, rows):
     )
 
 
-def _engine_stream(tmp_path, target, *, failed):
+def _engine_stream(
+    tmp_path, target, *, failed, findings=("execution.process.timeout",)
+):
     build_dir = tmp_path / f"build-{target.name}"
     store = RuntimeEventStore(
         build_dir / "events.jsonl", session_id="water-session"
@@ -84,7 +86,7 @@ def _engine_stream(tmp_path, target, *, failed):
         child_exit_status=1 if failed else 0,
         engine_complete=not failed,
         validated=False,
-        findings=("execution.process.timeout",) if failed else (),
+        findings=tuple(findings) if failed else (),
         started_at="2026-08-04T00:00:00+00:00",
         finished_at="2026-08-04T00:00:05+00:00",
     )
@@ -879,3 +881,103 @@ def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(
             execution_envelope_file=_envelope_file(tmp_path),
             granted_by="claude-owner-delegated-reviewer",
         )
+
+
+def test_a_failed_run_opens_a_typed_recovery_with_a_repair_menu(tmp_path):
+    """A timeout is ordinary work: the ledger says a recovery opened and
+    names how each node ended, and the next wake carries the route that
+    answers it. The host names the route; the physics grades it."""
+
+    from chemsmart.agent.driver import REPAIR_MENU, GoalDriver
+
+    workspace = tmp_path / "ws"
+    workspace.mkdir(exist_ok=True)
+    wakes: list = []
+
+    def plan_session(**kwargs):
+        wakes.append(kwargs["goal_context"])
+        name = f"live-{len(wakes)}"
+        rows = list(_READ_OUTCOME_ROWS) if len(wakes) > 1 else ()
+        return _planning_session(
+            name, review=_review_payload(), wake_rows=rows
+        )(workspace, kwargs)
+
+    executes = iter(
+        (
+            _execute(tmp_path, failed=True, status="failed"),
+            _execute(tmp_path, failed=False, status="completed"),
+        )
+    )
+    driver = GoalDriver(
+        task="the goal task",
+        workspace=workspace,
+        execution_envelope_file=_envelope_file(tmp_path),
+        goal_id="goal-repair",
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=plan_session,
+        resolve_review=lambda **_kw: ("d" * 64, tmp_path / "bundle.json"),
+        execute_bundle=lambda **kw: next(executes)(kw["run_directory"]),
+    )
+    result = driver.run()
+    assert result.settlement == "achieved"
+    assert result.cycles == 2
+    opened = [
+        entry
+        for entry in driver.ledger.entries()
+        if entry["kind"] == "recovery_opened"
+    ]
+    assert len(opened) == 1
+    assert opened[0]["payload"]["cycle"] == 1
+    assert set(opened[0]["payload"]["terminal_states"].values()) == {
+        "timeout_terminated"
+    }
+    second_wake = wakes[1]
+    assert second_wake["repair_menu"] == {
+        "timeout_terminated": REPAIR_MENU["timeout_terminated"]
+    }
+    assert "repair_menu names" in second_wake["authority"]
+    assert wakes[0]["deliverables"]["delivered_quantity_ids"] == ()
+
+
+def test_a_run_no_revision_can_answer_returns_to_the_human(tmp_path):
+    """A launch that never happened is not evidence a revision can stand
+    on; re-planning over it would spend budget on the host's own gap."""
+
+    from chemsmart.agent.driver import GoalDriver
+
+    workspace = tmp_path / "ws"
+    workspace.mkdir(exist_ok=True)
+
+    def execute(run_directory):
+        _engine_stream(
+            tmp_path,
+            run_directory,
+            failed=True,
+            findings=("execution.process.launch_failed",),
+        )
+        return SimpleNamespace(status="failed", analysis_status="")
+
+    sessions = 0
+
+    def plan_session(**kwargs):
+        nonlocal sessions
+        sessions += 1
+        return _planning_session("live-1", review=_review_payload())(
+            workspace, kwargs
+        )
+
+    driver = GoalDriver(
+        task="the goal task",
+        workspace=workspace,
+        execution_envelope_file=_envelope_file(tmp_path),
+        goal_id="goal-unanswerable",
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=plan_session,
+        resolve_review=lambda **_kw: ("d" * 64, tmp_path / "bundle.json"),
+        execute_bundle=lambda **kw: execute(kw["run_directory"]),
+    )
+    result = driver.run()
+    assert result.settlement == "returned_to_human"
+    assert "no revision can answer" in result.reasons[0]
+    assert "launch_failed" in result.reasons[0]
+    assert sessions == 1, "no second planning session was started"

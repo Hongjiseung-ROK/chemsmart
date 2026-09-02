@@ -313,6 +313,61 @@ _RECOVERY_ROUTE = (
     "as its answer."
 )
 
+#: Node endings a revision can answer with ordinary work, and what that
+#: work is. The host names the route; the physics decides whether it was
+#: right, after the session acts. Endings absent here -- a launch that
+#: never happened, an admission refusal, a cancellation, any ambiguous
+#: termination -- are not evidence a revision can stand on and return to
+#: the human.
+REPAIR_MENU: Mapping[str, str] = {
+    "failed_wrong_stationary_point": (
+        "The search converged onto a stationary point of the wrong order. "
+        "Read which atoms move in the offending mode "
+        "(vibrational_mode_atom_participation), step the structure along "
+        "it with displace_along_vibrational_mode and optimise again, or "
+        "change the internal coordinate that mode moves with "
+        "edit_molecular_geometry; for a transition state, seed the search "
+        "from a validated frequency-bearing producer's Hessian."
+    ),
+    "failed_nonconverged_scf": (
+        "An SCF that will not converge is usually a state problem before "
+        "it is a solver problem: check the multiplicity and charge you "
+        "bound against the chemistry, then change the initial guess or "
+        "the convergence route within the approved conditions."
+    ),
+    "failed_nonconverged_geometry": (
+        "Restart from the last geometry the run reached rather than the "
+        "original coordinates -- a fresh start repeats the same path -- "
+        "and consider the optimiser settings the project exposes."
+    ),
+    "failed_nonconverged_scan_step": (
+        "A scan step failed to converge: restart the scan from the last "
+        "converged point, or loosen the step's own optimisation "
+        "controls; the surface reached so far is readable as it stands."
+    ),
+    "timeout_terminated": (
+        "The engine ran out of the time the envelope granted. Restart "
+        "from the geometry the run reached inside the remaining budget, "
+        "or reduce the method's cost within the approved conditions; "
+        "conditions themselves may not move."
+    ),
+    "memory_limit_terminated": (
+        "The engine exceeded its memory. Reduce what it holds -- basis, "
+        "auxiliary basis, integral storage -- within the approved "
+        "conditions, or split the calculation; the resources are the "
+        "envelope's and cannot be raised here."
+    ),
+    "failed_native": (
+        "The program stopped on its own error. Read the native findings "
+        "and the engine's last lines on the run outcome; a program error "
+        "that names a setting is repaired in project YAML, one that "
+        "names the molecule is a new decision for the human."
+    ),
+}
+
+#: Node endings a revision can answer (the repair menu's keys).
+REPAIRABLE_TERMINAL_STATES = frozenset(REPAIR_MENU)
+
 _REFUSAL_AFFORDANCE = (
     "If the requested observable is unreachable from the admissible "
     "evidence, deliver what is reachable, retain the unreachable "
@@ -443,6 +498,23 @@ def _wake_context(
                 / "events.jsonl"
             )
         )
+    repair_menu = {
+        state: REPAIR_MENU[state]
+        for state in sorted(
+            {
+                str(getattr(node, "state", "") or "")
+                for node in (outcome.nodes if outcome is not None else ())
+            }
+        )
+        if state in REPAIR_MENU
+    }
+    repair_sentence = (
+        " repair_menu names, for each way a node of the previous run "
+        "ended, the ordinary route that answers it; the host does not "
+        "say which route is right, the next run does. "
+        if repair_menu
+        else ""
+    )
     return {
         "schema_version": "chemsmart.goal-wake-context.v1",
         "goal_id": goal.goal_id,
@@ -459,6 +531,7 @@ def _wake_context(
         "previous_run_outcome": (
             outcome.public_record() if outcome is not None else {}
         ),
+        "repair_menu": repair_menu,
         "authority": (
             "This session runs under an approved goal. The previous "
             "run's typed outcome is embedded above and inspect_run_outcome "
@@ -467,6 +540,7 @@ def _wake_context(
             "conditions, or exceeds the budgets above, returns to the "
             "human instead of running. "
             + _RECOVERY_ROUTE
+            + repair_sentence
             + _OBSERVABLE_RESTATEMENT_ASK
             + _ADVERSARIAL_CLOSE
             + _REFUSAL_AFFORDANCE
@@ -1682,8 +1756,47 @@ class GoalDriver:
             )
             self._settled("exhausted", ("budgets exhausted",))
             return
-        # A run that did not complete, with budget in hand: the next
-        # cycle's session reads the typed outcome and may revise.
+        # A run that did not complete, with budget in hand. Which way
+        # its nodes ended decides whether a revision can answer it:
+        # a wrong stationary point, a convergence failure, a timeout are
+        # ordinary work; a launch that never happened, an admission
+        # refusal, a cancellation or an ambiguous termination are not
+        # evidence a revision can stand on, and the human reads them.
+        terminal_states = {
+            str(node.node_id): str(node.state)
+            for node in (self.outcome.nodes if self.outcome else ())
+            if str(node.state) != "validated"
+        }
+        repairable = {
+            node_id: state
+            for node_id, state in terminal_states.items()
+            if state in REPAIRABLE_TERMINAL_STATES
+        }
+        if terminal_states and not repairable:
+            reason = (
+                f"cycle {self.cycles}: the run ended in a state no revision "
+                "can answer: "
+                + ", ".join(
+                    f"{node_id}={state}"
+                    for node_id, state in sorted(terminal_states.items())
+                )
+            )
+            self.ledger.settle("returned_to_human", reasons=(reason,))
+            self._settled("returned_to_human", (reason,))
+            return
+        self.ledger.append(
+            "recovery_opened",
+            {
+                "cycle": self.cycles,
+                "terminal_states": dict(sorted(repairable.items())),
+                "verdicts": [],
+                "stale_quantity_ids": list(unrefreshed),
+                "unclaimed_output_ids": list(
+                    run_delivery.unclaimed_output_ids
+                ),
+                "engine_calls_remaining": budgets.engine_calls_remaining,
+            },
+        )
         self.phase = "plan"
 
 
@@ -1748,6 +1861,8 @@ def run_goal_loop(**kwargs: Any) -> GoalLoopResultV1:
 
 
 __all__ = [
+    "REPAIRABLE_TERMINAL_STATES",
+    "REPAIR_MENU",
     "DISPATCH_MODES",
     "DRIVER_FILE",
     "EXECUTION_RESULT_FILE",
