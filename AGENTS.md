@@ -13,6 +13,51 @@ choose a defensible method, program, decomposition, and interpretation when a
 task leaves them open. It must not bypass ChemSmart by inventing native input,
 shell commands, execution status, or result values.
 
+## Architecture
+
+One driver runs every goal, and every entry point is a view of it: the
+``goal`` command, the ``plan`` command, and the terminal interface. Solid
+edges are code-enforced; dotted edges are where the model chooses and the
+host checks only the result.
+
+```mermaid
+flowchart TD
+    U["HUMAN: task + envelope + granted-by"] --> SP
+    SP["MODEL: planning session"] -.->|language| TOOLS
+    TOOLS["HOST: typed tools over the live CLI"] --> YAML
+    YAML["HOST: project YAML render, promote, validate"] --> DAG
+    DAG["MODEL: plan_scientific_workflow: one DAG, analysis optional"] -.->|language| CC
+    CC["HOST: compile through live Click, preview, preflight"] --> REV
+    REV["HOST: execution review + digest"] --> DEC
+    DEC{"HUMAN: one decision per goal"} -->|approve| GOAL
+    DEC -->|deny| SET
+    GOAL["HOST: goal ledger + one-shot bundle"] --> DISP
+    DISP{"HOST: dispatch"} -->|local| LOC
+    DISP -->|scheduler| SUB
+    LOC["HOST: executor in this process"] --> ANA
+    SUB["HOST: job script: executor, then agent wake"] --> PARK
+    PARK["HOST: goal parks; the job's tail wakes it"] --> WAKE
+    WAKE["HOST: agent wake: resume at outcome"] --> ANA
+    ANA["HOST: typed analysis chain, provider-free"] --> VER
+    VER{"HOST: validity verdict per coverage cell"} -->|valid| SET
+    VER -->|repairable + budget| MENU
+    VER -->|no budget or unanswerable| SET
+    MENU["HOST: wake context + repair menu"] -.->|language| REP
+    REP["MODEL: repair design"] -.->|language| ADM
+    ADM["HOST: revision admission: identity, state, conditions, budget"] --> DAG
+    SET["HOST: settlement: achieved, exhausted, unreachable, returned"] --> HUM
+    HUM["HUMAN: reads receipts"]
+```
+
+The driver is a step machine -- plan, decide, execute, outcome, settle --
+and every phase boundary is a ledger entry, so a process may stop after
+any step and a later process may resume from the ledger. That is what
+lets an approved run be handed to a scheduler: the job script runs the
+same provider-free executor inside the allocation and its own tail runs
+``chemsmart agent wake``, which rebuilds the driver at the outcome phase.
+No poller, no scheduler accounting, and no second decision are involved;
+the same one-shot bundle continues in its own run directory.
+
 ## Product boundary for version 3.1.4
 
 The production Agent supports:
@@ -507,6 +552,29 @@ do not grant engine authority. Real calculation follows this chain:
    workflow approved without an analysis chain keeps the prior behavior, and
    a later explicit analysis request may always read completed results.
 
+Where the approved partition runs is host policy under the same decision:
+in the deciding process, or, with ``--dispatch scheduler``, submitted to
+the server profile's scheduler through the ordinary submitters. The
+driver then records the job it created and parks; the job runs the
+executor's continuation in its own run directory and wakes the goal from
+its tail. Engine wall time is charged from the run's own receipts and
+queue wait is recorded beside it, never against the engine budget.
+
+Every executed result is judged on one program-neutral rule beside its
+program's own validator: the approved jobtype promises a count of
+imaginary modes -- one for a transition-state search, none for a minimum
+-- and the program's own printed frequencies deliver one under the
+20 cm-1 convention thermochemistry uses for numerical noise. A mismatch
+is a typed failure, ``failed_wrong_stationary_point``, for every program
+whose frequencies the host reads; a run that printed none makes no
+claim. The spin expectation value is recorded as an observation beside
+the bound multiplicity, never as a gate. Capability is measured as
+filled coverage cells rather than CLI verbs: the capability receipt
+names, per program and jobtype, which typed axes -- electronic,
+geometry, identity, spin, thermochemistry -- are readable or validated,
+and which host validity rules apply, so a jobtype the agent can run but
+cannot judge says ``unsupported`` out loud.
+
 There is no permanent calculation grant, session-wide "always allow", command
 prefix allow-list, or model-created approval. The unit of human decision is
 the goal: one displayed decision covering the requested observables, every
@@ -534,6 +602,17 @@ failed batch record may be revised record-locally while budgets remain;
 one record's failure settles that record once recovery within the goal's
 budgets is exhausted, and a revision of a failed record touches no other
 record's settlement.
+
+A run that did not complete opens a typed recovery when the way its nodes
+ended is one a revision can answer -- a wrong stationary point, an SCF,
+geometry, or scan-step convergence failure, a timeout, a memory limit, a
+native program error -- and budget remains: the ledger records which node
+ended how, and the next session's wake context carries a repair menu
+naming, for each such ending, the ordinary route that answers it. The
+host names the route and never chooses it; the next run's physics does.
+A launch that never happened, an admission refusal, a cancellation, an
+interruption mid-engine, or an ambiguous termination is not evidence a
+revision can stand on, and the goal returns to the human naming it.
 
 A goal settles into one typed state. It is achieved when the host
 completion gate certified the delivery; unreachable from evidence when

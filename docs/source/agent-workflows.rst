@@ -251,6 +251,44 @@ a failed or completed run requires a fresh plan and human review before another 
 Use ``--review-file /absolute/path/review.json`` only when an audit application needs an exported copy of the displayed
 workflow. The file is optional and is not the execution authority for the terminal interface.
 
+***********************************
+ Goals, scheduler dispatch, waking
+***********************************
+
+``chemsmart agent goal`` drives one goal to settlement under one human decision: the plan is reviewed and displayed,
+execution is provider-free, and after each run the session reads the typed terminal outcome and may revise its route
+within the envelope's budgets. Every entry point -- the ``goal`` command, ``chemsmart agent plan``, and the terminal
+interface -- is a view of the same driver.
+
+.. code:: bash
+
+   chemsmart agent goal \
+     --task-file /absolute/path/TASK.md \
+     --workspace /absolute/path/goal-workspace \
+     --execution-envelope /absolute/path/resources.yaml \
+     --goal-id GOAL-ID \
+     --granted-by HUMAN \
+     --dispatch scheduler
+
+With ``--dispatch scheduler`` the approved run is submitted through the current server profile's scheduler (or the one
+named by ``--server``) using the same submitters as ``chemsmart sub``. The command records the job it created in
+``dispatch.receipt.json`` inside the run directory and parks the goal. The job script runs the provider-free executor in
+that run directory, writes its result as ``execution-result.json``, and then runs:
+
+.. code:: bash
+
+   chemsmart agent wake --workspace /absolute/path/goal-workspace --goal GOAL-ID
+
+which rebuilds the driver from the goal's own ledger and settles the goal or wakes its next cycle under the budgets the
+human approved. A human may run the same command; ``--wait`` polls the scheduler until the job is over first. A settled
+goal and a goal with no parked run are refused. Engine wall time is charged from the run's receipts; queue wait is
+recorded beside it and never against the engine budget.
+
+A run that ended in a state a revision can answer -- a stationary point of the wrong order, a convergence failure, a
+timeout, a memory limit, a program error -- opens a typed recovery when budget remains, and the next session's wake
+context carries a repair menu naming the ordinary route for each such ending. A run that ended in a state no revision
+can stand on returns the goal to the human.
+
 ********************
  Molecular identity
 ********************

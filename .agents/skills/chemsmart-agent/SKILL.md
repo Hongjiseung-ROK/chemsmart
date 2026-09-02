@@ -192,7 +192,29 @@ returns to the human. Every admission is recorded with the composite
 actor ``goal-approval:<goal-id>`` beside the human ``granted_by``; the
 model never approves. A reviewer may freeze the exact initial plan and
 keep the frozen grain for that goal, and a stop file cancels at the
-next boundary. How each executed node ended is one typed vocabulary
+next boundary. One driver runs every goal and the ``goal`` command,
+the ``plan`` command, and the terminal interface are views of it; with
+``--dispatch scheduler`` the approved run is submitted through the
+server profile's scheduler, the goal parks, and the job's own tail
+runs ``chemsmart agent wake`` to resume it at the outcome phase. A run
+that ended in a repairable state (wrong stationary point, convergence
+failure, timeout, memory limit, native error) opens a typed recovery
+whose wake carries a repair menu; one that ended unanswerably returns
+to the human. Every executed result is judged on the program-neutral
+stationary-point rule beside its program's validator, and the
+capability receipt's coverage cell says which typed axes and validity
+rules the host reaches for that program and jobtype. One driver runs every goal and the ``goal`` command,
+the ``plan`` command, and the terminal interface are views of it; with
+``--dispatch scheduler`` the approved run is submitted through the
+server profile's scheduler, the goal parks, and the job's own tail
+runs ``chemsmart agent wake`` to resume it at the outcome phase. A run
+that ended in a repairable state (wrong stationary point, convergence
+failure, timeout, memory limit, native error) opens a typed recovery
+whose wake carries a repair menu; one that ended unanswerably returns
+to the human. Every executed result is judged on the program-neutral
+stationary-point rule beside its program's validator, and the
+capability receipt's coverage cell says which typed axes and validity
+rules the host reaches for that program and jobtype. How each executed node ended is one typed vocabulary
 derived from the sealed run stream; a failed output is nameable as a
 ``failed_result`` for inspection and never admissible for extraction or
 geometry handoff.
