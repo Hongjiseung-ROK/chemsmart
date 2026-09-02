@@ -477,6 +477,9 @@ class JobResultSelectorCoverageV1:
     axes: tuple[tuple[str, str], ...] = ()
     #: Host validity rules that apply to this (program, jobtype).
     validity_rules: tuple[str, ...] = ()
+    #: Whether the reader declared this jobtype at all. False is the cell
+    #: that says unsupported out loud.
+    declared: bool = True
 
     def __post_init__(self) -> None:
         require_identifier(self.jobtype, "jobtype")
@@ -520,9 +523,13 @@ def coverage_for(
     axes = {
         "identity": "validated" if validated else "unsupported",
         "spin": "readable" if "spin_square" in declared else "unsupported",
+        # Readable when the reader serves a Gibbs energy, or serves the
+        # frequencies the host's own RRHO derivation needs; xtb/opt declares
+        # the former and not the latter, orca/opt the reverse.
         "thermochemistry": (
             "readable"
-            if "vibrational_frequencies" in declared
+            if "gibbs_free_energy" in declared
+            or "vibrational_frequencies" in declared
             else "unsupported"
         ),
         "electronic": "readable" if "energy" in declared else "unsupported",
@@ -1487,20 +1494,29 @@ def query_capability(
         from chemsmart.analysis.result_readers import reader_for
 
         reader = reader_for(query.program)
-        if reader is not None:
-            selectors = reader.selectors_for_jobtype(query.jobtype)
-            if selectors is not None:
-                axes, validity_rules = coverage_for(
-                    query.program, query.jobtype, selectors
-                )
-                job_result_selector_coverage = JobResultSelectorCoverageV1(
-                    jobtype=query.jobtype,
-                    artifact_kind=reader.artifact_kind,
-                    parser_id=reader.parser_id,
-                    selectors=selectors,
-                    axes=axes,
-                    validity_rules=validity_rules,
-                )
+        selectors = (
+            reader.selectors_for_jobtype(query.jobtype)
+            if reader is not None
+            else None
+        )
+        # A jobtype the agent can run but no reader has declared is a cell
+        # that says unsupported out loud, not an absent field: gaussian
+        # irc/link/modred/scan/td, orca modred/neb and pyscf td planned and
+        # previewed with coverage silently None.
+        axes, validity_rules = coverage_for(
+            query.program, query.jobtype, selectors or ()
+        )
+        job_result_selector_coverage = JobResultSelectorCoverageV1(
+            jobtype=query.jobtype,
+            artifact_kind=(
+                reader.artifact_kind if reader is not None else "unsupported"
+            ),
+            parser_id=(reader.parser_id if reader is not None else "none"),
+            selectors=tuple(selectors or ()),
+            axes=axes,
+            validity_rules=validity_rules if selectors is not None else (),
+            declared=selectors is not None,
+        )
 
     body = {
         "schema_version": "chemsmart.capability-query-receipt.v1",

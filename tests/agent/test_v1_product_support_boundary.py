@@ -16,6 +16,8 @@ from chemsmart.agent.cli_schema import build_live_click_schema
 from chemsmart.agent.live_session import _preview_server_profile
 from chemsmart.settings.capabilities import PROGRAM_CAPABILITIES
 
+pytestmark = pytest.mark.capability("program_jobtype:*")
+
 
 def test_v1_agent_programs_exclude_human_only_programs_and_gpu_execution():
     records = {

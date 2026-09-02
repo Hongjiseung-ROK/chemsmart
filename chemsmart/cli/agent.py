@@ -537,6 +537,58 @@ def _goal_result_json(result) -> str:
     )
 
 
+@agent.command("capabilities")
+@click.option(
+    "--kind",
+    type=click.Choice(
+        [
+            "program_jobtype",
+            "tool",
+            "selector",
+            "operation",
+            "predicate",
+            "constant",
+            "skill",
+            "guide",
+            "rule",
+        ]
+    ),
+    default=None,
+    help="Show one kind only.",
+)
+@click.option(
+    "--tests",
+    "tests_root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="The tests directory to read capability markers from.",
+)
+@click.option("--json", "as_json", is_flag=True, help="Machine-readable.")
+def capabilities(kind, tests_root, as_json):
+    """Every capability of the agent on one ladder: declared, wired,
+    advertised, tested, qualified. A cell the agent can run but cannot
+    judge, or a claim without a run behind it, says so out loud."""
+
+    from chemsmart.agent.capability_registry import (
+        build_capability_registry,
+        render_capability_matrix,
+    )
+
+    records = build_capability_registry(tests_root=tests_root)
+    if kind:
+        records = tuple(item for item in records if item.kind == kind)
+    if as_json:
+        click.echo(
+            json.dumps(
+                [item.public_record() for item in records],
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return
+    click.echo(render_capability_matrix(records))
+
+
 @agent.command("wake")
 @click.option(
     "--workspace",

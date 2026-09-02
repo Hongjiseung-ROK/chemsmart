@@ -7,6 +7,8 @@ from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 
 TASK_SPEC_SHA256 = "a" * 64
 
+pytestmark = pytest.mark.capability("predicate:*")
+
 
 def _host(tmp_path, store):
     return CommandCompiledToolHostV1(

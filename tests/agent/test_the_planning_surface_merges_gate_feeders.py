@@ -21,6 +21,8 @@ from chemsmart.agent.tool_specs import (
     build_command_compiled_tool_surface,
 )
 
+pytestmark = pytest.mark.capability("tool:*")
+
 
 def _names(surface):
     return {item["function"]["name"] for item in surface.tool_definitions}

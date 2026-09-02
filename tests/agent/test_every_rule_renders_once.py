@@ -9,10 +9,14 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from chemsmart.agent import driver
 from chemsmart.agent.live_session import _system_prompt
 from chemsmart.agent.rules import POLICY_RULES, rules_by_id, rules_for
 from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
+
+pytestmark = pytest.mark.capability("rule:*")
 
 
 def test_rule_ids_are_unique_and_placements_valid():

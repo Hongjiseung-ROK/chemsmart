@@ -33,6 +33,8 @@ _ALL_GUIDES = tuple(guide.guide_id for guide in GUIDES)
 # geometry in cc-pVDZ, cc-pVTZ and cc-pVQZ, computed by ChemSmart.
 _SERIES = (-76.026798697, -76.057168515, -76.064835339)
 
+pytestmark = pytest.mark.capability("operation:*")
+
 
 def _measured(quantity_id, value):
     return make_quantity_value(

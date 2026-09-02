@@ -1835,6 +1835,52 @@ class CommandCompiledToolHostV1:
                 jobtype=receipt.jobtype,
             )
 
+    #: Every tool the host handles, by the method that handles it. The
+    #: capability registry reads this to say a tool is wired.
+    TOOL_HANDLERS: Mapping[str, str] = {
+        "inspect_program": "_inspect_program",
+        "project_yaml": "_project_yaml",
+        "compile_command": "_prepare_program_node",
+        "inspect_run": "_inspect_run",
+        "inspect_program_capability": "_inspect_program_capability",
+        "inspect_program_environment": "_inspect_program_environment",
+        "assess_program_candidate": "_assess_program_candidate",
+        "render_project_yaml": "_render_project_yaml",
+        "promote_project_yaml": "_promote_project_yaml",
+        "establish_project": "_establish_project",
+        "bind_scientific_identity": "_bind_scientific_identity",
+        "bind_scan_point_geometry": "_bind_scan_point_geometry",
+        "compose_molecular_arrangement": "_compose_molecular_arrangement",
+        "derive_molecular_species": "_derive_molecular_species",
+        "edit_molecular_geometry": "_edit_molecular_geometry",
+        "append_molecular_atom": "_append_molecular_atom",
+        "displace_along_vibrational_mode": "_displace_along_vibrational_mode",
+        "inspect_database_records": "_inspect_database_records",
+        "extract_database_record_geometry": "_extract_database_record_geometry",
+        "read_project_yaml": "_read_project_yaml",
+        "validate_project_yaml": "_validate_project_yaml",
+        "plan_scientific_workflow": "_plan_scientific_workflow",
+        "amend_scientific_workflow": "_amend_scientific_workflow",
+        "inspect_workflow_frontier": "_inspect_workflow_frontier",
+        "prepare_program_node": "_prepare_program_node",
+        "synthesize_command": "_synthesize_command",
+        "preview_command": "_preview_command",
+        "preflight_program_node": "_preflight_program_node",
+        "inspect_calculation_artifact": "_inspect_calculation_artifact",
+        "inspect_result_selectors": "_inspect_result_selectors",
+        "inspect_run_outcome": "_inspect_run_outcome",
+        "extract_result_quantities": "_extract_result_quantities",
+        "derive_thermochemistry": "_derive_thermochemistry",
+        "evaluate_quantity_expression": "_evaluate_quantity_expression",
+        "evaluate_scientific_validation": "_evaluate_scientific_validation",
+        "record_analysis_claims": "_record_analysis_claims",
+        "record_scientific_decision": "_record_scientific_decision",
+        "declare_requested_observable": "_declare_requested_observable",
+        "execute_approved_program_node": "_execute_approved_program_node",
+        "consult_domain_skill": "_consult_domain_skill",
+        "open_guide": "_open_guide",
+    }
+
     def dispatch(
         self, *, turn_id: str, tool_name: str, arguments: Mapping[str, Any]
     ) -> dict[str, Any]:
@@ -1848,57 +1894,8 @@ class CommandCompiledToolHostV1:
             self.activate_guides(turn_id, (owner,), signal="model_call")
         _validate_tool_arguments(self.surface, tool_name, values)
         handlers = {
-            "inspect_program": self._inspect_program,
-            "project_yaml": self._project_yaml,
-            "compile_command": self._prepare_program_node,
-            "inspect_run": self._inspect_run,
-            "inspect_program_capability": self._inspect_program_capability,
-            "inspect_program_environment": self._inspect_program_environment,
-            "assess_program_candidate": self._assess_program_candidate,
-            "render_project_yaml": self._render_project_yaml,
-            "promote_project_yaml": self._promote_project_yaml,
-            "establish_project": self._establish_project,
-            "bind_scientific_identity": self._bind_scientific_identity,
-            "bind_scan_point_geometry": self._bind_scan_point_geometry,
-            "compose_molecular_arrangement": (
-                self._compose_molecular_arrangement
-            ),
-            "derive_molecular_species": self._derive_molecular_species,
-            "edit_molecular_geometry": self._edit_molecular_geometry,
-            "append_molecular_atom": self._append_molecular_atom,
-            "displace_along_vibrational_mode": (
-                self._displace_along_vibrational_mode
-            ),
-            "inspect_database_records": self._inspect_database_records,
-            "extract_database_record_geometry": (
-                self._extract_database_record_geometry
-            ),
-            "read_project_yaml": self._read_project_yaml,
-            "validate_project_yaml": self._validate_project_yaml,
-            "plan_scientific_workflow": self._plan_scientific_workflow,
-            "amend_scientific_workflow": self._amend_scientific_workflow,
-            "inspect_workflow_frontier": self._inspect_workflow_frontier,
-            "prepare_program_node": self._prepare_program_node,
-            "synthesize_command": self._synthesize_command,
-            "preview_command": self._preview_command,
-            "preflight_program_node": self._preflight_program_node,
-            "inspect_calculation_artifact": self._inspect_calculation_artifact,
-            "inspect_result_selectors": self._inspect_result_selectors,
-            "inspect_run_outcome": self._inspect_run_outcome,
-            "extract_result_quantities": self._extract_result_quantities,
-            "derive_thermochemistry": self._derive_thermochemistry,
-            "evaluate_quantity_expression": self._evaluate_quantity_expression,
-            "evaluate_scientific_validation": (
-                self._evaluate_scientific_validation
-            ),
-            "record_analysis_claims": self._record_analysis_claims,
-            "record_scientific_decision": self._record_scientific_decision,
-            "declare_requested_observable": (
-                self._declare_requested_observable
-            ),
-            "execute_approved_program_node": self._execute_approved_program_node,
-            "consult_domain_skill": self._consult_domain_skill,
-            "open_guide": self._open_guide,
+            name: getattr(self, method)
+            for name, method in self.TOOL_HANDLERS.items()
         }
         handler = handlers.get(tool_name)
         if handler is None:

@@ -30,6 +30,8 @@ _CH2_TASK = (
     "through ChemSmart."
 )
 
+pytestmark = pytest.mark.capability("skill:*")
+
 
 def _write_overlay(root, skill_id, description, body):
     target = root / skill_id

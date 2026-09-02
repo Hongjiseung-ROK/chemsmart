@@ -1612,6 +1612,29 @@ class GoalDriver:
             )
         self.phase = "settle"
 
+    def _record_qualification(self) -> None:
+        """An achieved goal is live evidence: write it to the goal ledger
+        and the host's qualification store, so "qualified" is a fact the
+        capability registry can read rather than a claim."""
+
+        from chemsmart.agent.capability_registry import (
+            record_host_qualification,
+        )
+
+        entries = _qualification_entries(
+            self.outcome,
+            goal_id=self.goal_id,
+            run=f"goals/{self.goal_id}/runs/cycle-{self.cycles}",
+        )
+        for entry in entries:
+            self.ledger.append("qualified", entry)
+        try:
+            record_host_qualification(entries)
+        except OSError:
+            # The host store is a convenience mirror; the ledger is the
+            # durable record.
+            pass
+
     def _settle(self) -> None:
         assert self.run_directory is not None and self.goal is not None
         run_delivery = _analysis_delivery(
@@ -1698,6 +1721,7 @@ class GoalDriver:
                     "analysis chain",
                 ),
             )
+            self._record_qualification()
             self._settled("achieved", ())
             return
         if (
@@ -1769,6 +1793,36 @@ class GoalDriver:
 
 def _resolved_or_none(path: str | Path | None) -> str | None:
     return str(Path(path).resolve()) if path is not None else None
+
+
+def _qualification_entries(
+    outcome: Any, *, goal_id: str, run: str
+) -> tuple[dict[str, Any], ...]:
+    """What an achieved run qualifies: every validated node's program,
+    engine and jobtype, with the run and receipts that say so."""
+
+    entries: list[dict[str, Any]] = []
+    for node in getattr(outcome, "nodes", ()):
+        if str(getattr(node, "state", "")) != "validated":
+            continue
+        program = str(getattr(node, "program", "") or "")
+        jobtype = str(getattr(node, "jobtype", "") or "")
+        if not program or not jobtype:
+            continue
+        entries.append(
+            {
+                "kind": "program_jobtype",
+                "id": f"{program}:cpu:{jobtype}",
+                "goal": goal_id,
+                "run": run,
+                "node": str(getattr(node, "node_id", "")),
+                "evidence_event_hashes": list(
+                    getattr(node, "evidence_event_hashes", ())
+                ),
+                "date": _utc_now(),
+            }
+        )
+    return tuple(entries)
 
 
 def _record_of(receipt: Any) -> dict[str, Any]:

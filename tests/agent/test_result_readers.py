@@ -42,6 +42,8 @@ _GAUSSIAN_TD_LOG = (
 _ORCA_DLPNO_LOG = "tests/data/ORCATests/outputs/water_dlpno_ccsdt_sp.out"
 _ORCA_ERROR_LOG = "tests/data/ORCATests/error_files/GTOInt_error.out"
 
+pytestmark = pytest.mark.capability("selector:*")
+
 
 def _artifact(path, program, artifact_id="result"):
     resolved = Path(path).resolve()

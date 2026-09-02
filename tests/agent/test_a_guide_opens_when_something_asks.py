@@ -26,6 +26,8 @@ from chemsmart.agent.runtime.events import EventKind
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
 
+pytestmark = pytest.mark.capability("guide:*")
+
 
 def _names(surface):
     return {item["function"]["name"] for item in surface.tool_definitions}

@@ -20,6 +20,8 @@ from chemsmart.analysis.quantity_expressions import normalize_numeric_value
 
 KCAL_PER_KJ = 1.0 / 4.184
 
+pytestmark = pytest.mark.capability("constant:*")
+
 
 def test_every_entry_resolves_through_the_unit_layer():
     for entry in LITERATURE_CONSTANTS.values():
