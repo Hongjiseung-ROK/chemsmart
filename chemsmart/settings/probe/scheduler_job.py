@@ -71,6 +71,7 @@ def parse_submission(returncode: int, stdout: str, stderr: str) -> str:
     nonzero or printed no id is refused with the scheduler's own words.
     """
 
+    stdout, stderr = stdout or "", stderr or ""
     if returncode != 0:
         raise ProbeUnitError(
             f"submission exited {returncode}: {stderr.strip() or 'no output'}"
@@ -142,6 +143,7 @@ def parse_scontrol_job(
     """State from ``scontrol show job``; unknown when the scheduler has
     forgotten the job (``Invalid job id specified``)."""
 
+    stdout, stderr = stdout or "", stderr or ""
     if returncode != 0 or "Invalid job id" in stderr:
         return _unknown(job_id)
     fields: dict[str, str] = {}
@@ -171,7 +173,7 @@ def parse_squeue_job(
 
     if returncode != 0:
         return _unknown(job_id)
-    for line in stdout.splitlines():
+    for line in (stdout or "").splitlines():
         parts = [part.strip() for part in line.split("|")]
         if len(parts) != 6 or parts[0] != str(job_id):
             continue

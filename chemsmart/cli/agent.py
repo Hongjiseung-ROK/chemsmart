@@ -448,6 +448,22 @@ def review(
     default=None,
     help="Touch this file to cancel the goal at the next cycle boundary.",
 )
+@click.option(
+    "--dispatch",
+    type=click.Choice(["local", "scheduler"]),
+    default="local",
+    show_default=True,
+    help="Where an approved run executes: in this process, or submitted "
+    "to the server profile's scheduler, after which this command parks "
+    "the goal and the job wakes it when the engines are done.",
+)
+@click.option(
+    "--server",
+    type=str,
+    default=None,
+    help="Server profile for scheduler dispatch; defaults to the current "
+    "server.",
+)
 def goal(
     task,
     task_file,
@@ -461,6 +477,8 @@ def goal(
     analysis_completion_file,
     initial_decision,
     stop_file,
+    dispatch,
+    server,
 ):
     """Drive one goal to settlement under one human decision.
 
@@ -497,22 +515,89 @@ def goal(
             analysis_completion_file=analysis_completion_file,
             initial_decision=initial_decision,
             stop_file=stop_file,
+            dispatch=dispatch,
+            server=server,
         )
     except ContractError as exc:
         raise click.ClickException(str(exc)) from exc
-    click.echo(
-        json.dumps(
-            {
-                "goal_id": result.goal_id,
-                "settlement": result.settlement,
-                "cycles": result.cycles,
-                "revisions_admitted": result.revisions_admitted,
-                "reasons": list(result.reasons),
-            },
-            indent=2,
-            sort_keys=True,
-        )
+    click.echo(_goal_result_json(result))
+
+
+def _goal_result_json(result) -> str:
+    return json.dumps(
+        {
+            "goal_id": result.goal_id,
+            "settlement": result.settlement,
+            "cycles": result.cycles,
+            "revisions_admitted": result.revisions_admitted,
+            "reasons": list(result.reasons),
+        },
+        indent=2,
+        sort_keys=True,
     )
+
+
+@agent.command("wake")
+@click.option(
+    "--workspace",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+    help="The goal workspace.",
+)
+@click.option(
+    "--goal", "goal_id", type=str, required=True, help="The parked goal."
+)
+@click.option(
+    "--wait/--no-wait",
+    default=False,
+    show_default=True,
+    help="Poll the scheduler until the dispatched job is over before "
+    "resuming; without it a job that is still running is left alone.",
+)
+@click.option(
+    "--poll-seconds",
+    type=float,
+    default=30.0,
+    show_default=True,
+    help="Seconds between scheduler polls with --wait.",
+)
+def wake(workspace, goal_id, wait, poll_seconds):
+    """Resume a goal whose approved run was handed to a scheduler.
+
+    The same one human decision continues: the driver is rebuilt from
+    the goal's own ledger at the outcome phase, reads the run's durable
+    record, and settles or wakes the next cycle under the budgets the
+    human approved. A settled goal and a goal with no parked run are
+    refused. This is what a dispatched job's own tail runs.
+    """
+
+    from chemsmart.agent._contracts import ContractError
+    from chemsmart.agent.dispatch import (
+        EXECUTION_RESULT_FILE,
+        wait_for_dispatched_run,
+    )
+    from chemsmart.agent.driver import GoalDriver
+
+    try:
+        driver = GoalDriver.resume(workspace=workspace, goal_id=goal_id)
+        run_directory = driver.run_directory
+        if run_directory is not None:
+            if wait:
+                click.echo(
+                    wait_for_dispatched_run(
+                        run_directory, poll_seconds=poll_seconds
+                    )
+                )
+            elif not (run_directory / EXECUTION_RESULT_FILE).is_file():
+                raise click.ClickException(
+                    f"goal {goal_id!r}: cycle {driver.cycles} has not "
+                    "written its result yet; pass --wait to poll the "
+                    "scheduler, or run this again when the job is over"
+                )
+        result = driver.run()
+    except ContractError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(_goal_result_json(result))
 
 
 @agent.command("tui")

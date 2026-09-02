@@ -603,6 +603,12 @@ class Server(RegistryMixin):
         submitter = self.get_submitter(job, **kwargs)
         submitter.write(cli_args)
 
+    def submit_prepared(self, job):
+        """Submit a job whose scripts are already written; return the
+        receipt naming what the scheduler created."""
+
+        return self._submit_job(job)
+
     def _submit_job(self, job):
         """
         Submit the job to the scheduler and return what it was named.

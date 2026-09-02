@@ -849,6 +849,14 @@ def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
 #: the next cycle against exactly what the human asked.
 TASK_FILE = "task.md"
 
+#: How the driver was constructed -- envelope, grant, provider, dispatch
+#: -- so a process that wakes the goal needs only the workspace and id.
+DRIVER_FILE = "driver.json"
+
+#: Where an approved run is executed: in this process, or handed to the
+#: server profile's scheduler with the job waking the goal when done.
+DISPATCH_MODES = ("local", "scheduler")
+
 #: The phases one goal cycle passes through, in order. ``parked`` and
 #: ``settled`` are where a process may stop: a parked goal has a run in
 #: a scheduler's hands and resumes at ``outcome``; a settled goal is
@@ -907,11 +915,18 @@ class GoalDriver:
         resolve_review: Callable[..., tuple[str, Path]] = _default_resolve,
         execute_bundle: Callable[..., Any] = _default_execute,
         dispatch_run: Callable[..., Any] | None = None,
+        dispatch: str = "local",
+        server: str | None = None,
         initial_decision: str = "approve",
         stop_file: str | Path | None = None,
         session_kwargs: Mapping[str, Any] | None = None,
         _resuming: bool = False,
     ) -> None:
+        if dispatch not in DISPATCH_MODES:
+            raise ContractError(
+                f"unsupported dispatch mode {dispatch!r}; "
+                f"choose one of {DISPATCH_MODES}"
+            )
         self.task = task
         self.workspace = Path(workspace).resolve()
         self.goal_id = goal_id
@@ -924,6 +939,14 @@ class GoalDriver:
         self.plan_session = plan_session
         self.resolve_review = resolve_review
         self.execute_bundle = execute_bundle
+        self.dispatch = dispatch
+        self.server = server
+        if dispatch_run is None and dispatch == "scheduler":
+            from functools import partial
+
+            from chemsmart.agent.dispatch import dispatch_run_to_scheduler
+
+            dispatch_run = partial(dispatch_run_to_scheduler, server=server)
         self.dispatch_run = dispatch_run
         self.initial_decision = initial_decision
         self.stop_file = stop_file
@@ -940,8 +963,34 @@ class GoalDriver:
             )
         if not _resuming:
             # The task text is what every later cycle plans against; a
-            # process that resumes a parked goal reads it from here.
+            # process that resumes a parked goal reads it from here, and
+            # the construction record beside it says how to drive on.
             (self.goal_dir / TASK_FILE).write_text(str(task), encoding="utf-8")
+            (self.goal_dir / DRIVER_FILE).write_text(
+                json.dumps(
+                    {
+                        "schema_version": "chemsmart.goal-driver.v1",
+                        "execution_envelope_file": _resolved_or_none(
+                            execution_envelope_file
+                        ),
+                        "granted_by": granted_by,
+                        "max_revisions": int(max_revisions),
+                        "provider": provider,
+                        "provider_config_file": _resolved_or_none(
+                            provider_config_file
+                        ),
+                        "analysis_completion_file": _resolved_or_none(
+                            analysis_completion_file
+                        ),
+                        "dispatch": dispatch,
+                        "server": server,
+                        "stop_file": _resolved_or_none(stop_file),
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
 
         self.envelope = None
         self.envelope_record: dict[str, Any] = {}
@@ -1003,6 +1052,32 @@ class GoalDriver:
         creates a second one.
         """
 
+        goal_dir = (
+            Path(workspace).resolve() / ".chemsmart-agent" / "goals" / goal_id
+        )
+        try:
+            recorded = json.loads(
+                (goal_dir / DRIVER_FILE).read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError):
+            recorded = {}
+        for key in (
+            "execution_envelope_file",
+            "granted_by",
+            "max_revisions",
+            "provider",
+            "provider_config_file",
+            "analysis_completion_file",
+            "dispatch",
+            "server",
+            "stop_file",
+        ):
+            if key not in kwargs and recorded.get(key) is not None:
+                kwargs[key] = recorded[key]
+        if "granted_by" not in kwargs:
+            raise ContractError(
+                f"goal {goal_id!r} has no recorded grant to resume under"
+            )
         driver = cls(
             task=str(kwargs.pop("task", "")),
             workspace=workspace,
@@ -1612,6 +1687,10 @@ class GoalDriver:
         self.phase = "plan"
 
 
+def _resolved_or_none(path: str | Path | None) -> str | None:
+    return str(Path(path).resolve()) if path is not None else None
+
+
 def _record_of(receipt: Any) -> dict[str, Any]:
     """A receipt's public fields, whatever kind of object carries them."""
 
@@ -1669,6 +1748,8 @@ def run_goal_loop(**kwargs: Any) -> GoalLoopResultV1:
 
 
 __all__ = [
+    "DISPATCH_MODES",
+    "DRIVER_FILE",
     "EXECUTION_RESULT_FILE",
     "TASK_FILE",
     "GOAL_PHASES",
