@@ -253,3 +253,30 @@ def test_a_second_run_cannot_even_be_forged_into_a_stream(tmp_path):
                 },
             },
         )
+
+
+def test_an_engine_complete_receipt_with_a_failed_validation_is_a_failure(
+    tmp_path,
+):
+    """Observed live (R2, hydrogen peroxide from a planar start): the
+    engine finished, the validator recorded result.stationary_point_order,
+    the node row went to failed -- and the derivation, preferring the
+    receipt's engine_complete over the row, called it unvalidated. A
+    refused result is a failure with a cause, and the cause is what the
+    goal driver's recovery reads."""
+
+    from chemsmart.agent.terminal_states import STATIONARY_POINT_ORDER_FINDING
+
+    path = _stream_with_receipt(
+        tmp_path,
+        findings=(STATIONARY_POINT_ORDER_FINDING,),
+        execution_state="engine_complete",
+    )
+    (node,) = derive_run_outcome(read_run_events(path)).nodes
+    assert node.state == "failed_wrong_stationary_point"
+
+    clean = _stream_with_receipt(
+        tmp_path / "clean", findings=(), execution_state="engine_complete"
+    )
+    (node,) = derive_run_outcome(read_run_events(clean)).nodes
+    assert node.state == "engine_complete_unvalidated"

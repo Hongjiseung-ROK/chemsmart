@@ -492,9 +492,18 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
                 effective_state = receipt_state
         if effective_state == "validated":
             terminal = "validated"
-        elif effective_state == "engine_complete":
+        elif effective_state == "engine_complete" and not (
+            findings or node_state == "failed"
+        ):
             terminal = "engine_complete_unvalidated"
-        elif effective_state == "failed":
+        elif effective_state in {"engine_complete", "failed"}:
+            # The engine finished and the validator then refused the
+            # result: the receipt says engine_complete, the node row
+            # says failed, and the findings say why. Preferring the
+            # receipt's word here labelled a live saddle -- one
+            # imaginary mode on an opt+freq, the rule firing exactly as
+            # designed -- "unvalidated", which no revision can answer,
+            # and the goal returned to the human instead of recovering.
             terminal = _classify_failure(
                 jobtype=jobtype,
                 findings=findings,
