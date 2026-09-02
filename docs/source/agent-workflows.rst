@@ -289,6 +289,26 @@ timeout, a memory limit, a program error -- opens a typed recovery when budget r
 context carries a repair menu naming the ordinary route for each such ending. A run that ended in a state no revision
 can stand on returns the goal to the human.
 
+*************************
+ Guides and capabilities
+*************************
+
+The tools the model reads are a stem and leaves. Every session reads the stem: the core tools, the operations that
+belong to no family, and the universal rules. A guide is a family unit -- ``structure``, ``scan``, ``constants``,
+``cbs``, ``ensemble``, ``spectroscopy``, ``database``, ``crossprogram``, ``recovery``, ``saddle`` -- of extra tools,
+extra operations, and a few hundred words of guidance. The host opens a guide when the task text, the workspace, the
+planned workflow, or a previous run's ending calls for it, and the model may open any guide itself with ``open_guide``.
+Each activation is recorded with the tool-schema digest it produced.
+
+.. code:: bash
+
+   chemsmart agent capabilities [--kind tool|program_jobtype|operation|...] [--json]
+
+lists every capability of the agent on one ladder -- declared, wired, advertised, tested, qualified -- computed from the
+registries that own each kind. An executable program and job type is qualified when a live run stands behind it in the
+release record; a claim without a recorded run is displayed as a claim, and a job type the agent can run but cannot read
+or judge is displayed as unsupported.
+
 ********************
  Molecular identity
 ********************

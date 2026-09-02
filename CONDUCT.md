@@ -24,11 +24,14 @@ A test exists for exactly one of three reasons:
   scientific or authority invariant.
 
 A test that pins wording, a single observed stream shape, a private
-helper, or a historical defect a general invariant already covers is
-not written; if it exists, it is deleted. A defect earns one general
-test at the invariant it broke, never a test of the case. Tests verify
-mechanics; a real observation through the public surface establishes
-behaviour, and no test is ever cited as engine execution.
+helper, or a historical defect a general invariant already covers is not
+written; if it exists, it is deleted. A test says what it pins with a
+``capability(...)`` marker (``kind:id``, a trailing ``*`` for a kind),
+which is how the capability ladder learns that a capability is tested. A
+defect earns one general test at the invariant it broke, never a test of
+the case. Tests verify mechanics; a real observation through the public
+surface establishes behaviour, and no test is ever cited as engine
+execution.
 
 ## 2. What a gate may be
 
@@ -51,11 +54,13 @@ language cannot compute or that an optimising model would erode:
   carries a finding is the cheapest way to clear it.
 
 Everything else is a sentence at the point of use: on the tool whose
-argument it governs, in the wake context that carries it, or in a skill
-the session consults. Before a gate is added, its reachability from the
-model is measured by a direct probe; a check the host already normalises
-away is not a gate and gets no sentence. A gate earned by a live loss
-names that loss in a comment.
+argument it governs, in the wake context that carries it, or in a guide
+the host opens. A sentence is a registered rule with an id, a placement,
+and the provenance that earned it (``chemsmart/agent/rules.py``); prose
+that lives nowhere else is not a rule. Before a gate is added, its
+reachability from the model is measured by a direct probe; a check the
+host already normalises away is not a gate and gets no sentence. A gate
+earned by a live loss names that loss in a comment.
 
 ## 3. How large a change may be
 

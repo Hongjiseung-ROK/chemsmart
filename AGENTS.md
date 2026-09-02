@@ -58,6 +58,34 @@ same provider-free executor inside the allocation and its own tail runs
 No poller, no scheduler accounting, and no second decision are involved;
 the same one-shot bundle continues in its own run directory.
 
+The surface the model reads is a tree, not a list. A stem of sixteen
+tools, the operations that belong to no family, and the universal rules
+is what every session reads; a guide is a family unit -- structure,
+scan, constants, cbs, ensemble, spectroscopy, database, crossprogram,
+recovery, saddle -- of extra tools, extra operations, a few hundred
+words of guidance, and the rules placed on it. The host opens a guide on
+four signals, each recorded with the new tool-schema digest: the task
+text, the workspace, the planned DAG's own jobtypes and operations, and
+the previous run's terminal states under a goal; the model may open any
+guide itself with ``open_guide``. Opening a guide changes what the model
+can express and how much it reads, never what the host approves.
+
+Every natural-language rule the host places in front of the model is a
+registered capability with an id, a placement (stem, a guide, the goal
+wake, or one tool's description), the tier that first needs it, and the
+provenance that earned it; the system prompt, the wake context, and the
+tool descriptions render from that registry. And every capability of
+every kind -- program job types, tools, selectors, operations,
+predicates, constants, skills, guides, rules -- climbs one ladder,
+declared, wired, advertised, tested, qualified, computed from the
+registries that own each kind: wired from the host's handler table and
+the readers, tested from the ``capability`` markers tests carry,
+qualified from a curated release record of the live runs behind each
+executable program job type and from the host's own store, which the
+driver writes at every achieved settlement. ``chemsmart agent
+capabilities`` renders the ladder; a cell the agent can run but cannot
+judge, and a claim without a run behind it, say so out loud.
+
 ## Product boundary for version 3.1.4
 
 The production Agent supports:
@@ -267,10 +295,11 @@ arithmetic, recording the largest displacement it actually achieved
 beside the one requested; the model owns which mode and how far. It is
 declared for ORCA results and is a starting-structure operation like
 the other two: refusals are structural only — a result printing no
-modes, a mode the result does not carry, a non-positive amplitude —
-and an amplitude is never refused on scientific merit, because whether
-the step escaped the saddle is decided by the optimisation that
-consumes it. All three operations bind no electronic state — adding a
+modes, a mode the result does not carry, a zero amplitude — and an
+amplitude is never refused on scientific merit, because whether the
+step escaped the saddle is decided by the optimisation that consumes
+it. The sign of the amplitude chooses the direction along the printed
+mode, so the two sides of a saddle are two steps of opposite sign. All three operations bind no electronic state — adding a
 hydrogen gives a cation or a radical depending on whether it brought an
 electron — so charge and multiplicity are bound explicitly afterwards,
 the consuming stage is a new workflow, and the displayed review
@@ -477,6 +506,16 @@ job type detected from the stored spec. What the merge does not claim is
 any new execution surface: PySCF ``sp/opt/hess`` was already
 release-qualified and remains exactly that.
 
+The first charged, open-shell xTB runs under the Agent found a defect
+the merge had carried: the xTB result audit merged the project's
+*resolved* settings over the bound identity, and a project that declares
+no state resolves to charge 0, multiplicity 1, so three correct runs —
+an anion, a neutral radical, a radical cation, each with the right
+``--chrg`` and ``--uhf`` in its own receipt — were typed as state
+mismatches while the neutral one passed. The bound identity is now the
+only authority for charge and multiplicity in every program's audit; a
+project field participates only when it is explicit.
+
 A geometry may cross programs and a number may not follow it freely. The
 optimised-geometry handoff is keyed on the producing program and refuses
 any change of atom identity or order, so an xTB optimisation feeding an
@@ -612,7 +651,18 @@ naming, for each such ending, the ordinary route that answers it. The
 host names the route and never chooses it; the next run's physics does.
 A launch that never happened, an admission refusal, a cancellation, an
 interruption mid-engine, or an ambiguous termination is not evidence a
-revision can stand on, and the goal returns to the human naming it.
+revision can stand on, and the goal returns to the human naming it: a
+launch the executor refused and a review the host refused to build are
+events in their streams, and the settlement quotes them. Two refusals
+that used to arrive at that point now arrive when the plan is made,
+because the plan alone proves them: a node id whose workspace already
+holds outputs from an earlier run (a re-run takes a fresh id; the
+earlier directory is evidence), and more executable nodes than engine
+calls remain under the goal. The goal's first declaration of each
+requested observable is the one every later cycle's host is seeded
+with, so an expectation re-declared after the physics exists is kept
+as the first and the reply says so; a declared sign the declared band
+excludes is refused where it is written, because a zero has no sign.
 
 A goal settles into one typed state. It is achieved when the host
 completion gate certified the delivery; unreachable from evidence when
