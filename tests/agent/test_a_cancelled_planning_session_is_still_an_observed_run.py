@@ -17,7 +17,7 @@ from chemsmart.agent.runtime.alibaba import (
     Qwen38MaxToolSession,
 )
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
-from tests.agent.test_provider_protocol_failure_evidence import (
+from tests.agent.provider_fakes import (
     _DispatchSpyHost,
     _run_contracts,
 )
