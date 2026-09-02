@@ -84,6 +84,8 @@ class EventKind(str, Enum):
     WORKFLOW_LAUNCH_RESERVED = "workflow_node_launch_reserved"
     WORKFLOW_DATA_EDGE_BOUND = "workflow_data_edge_bound"
     WORKFLOW_NODE_STATE_CHANGED = "workflow_node_state_changed"
+    WORKFLOW_NODE_LAUNCH_REFUSED = "workflow_node_launch_refused"
+    EXECUTION_REVIEW_REFUSED = "execution_review_refused"
     TOOL_WAITING = "tool_waiting"
     TOOL_WOKE = "tool_woke"
     HOST_CONTEXT_REINJECTED = "host_context_reinjected"

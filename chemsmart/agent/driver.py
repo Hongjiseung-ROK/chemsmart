@@ -179,6 +179,13 @@ def _settle_from_delivery(
     elif certified and delivery.claims:
         settled = "achieved"
         reasons = ("the host completion gate certified the delivery",)
+    elif delivery.stopped_by:
+        # The stream says what stopped the run before a delivery could
+        # exist -- a launch the executor refused, a review the host
+        # refused to build. Quote it: a returned goal that names nothing
+        # has not settled (two live goals, 2026-09-02).
+        settled = "returned_to_human"
+        reasons = delivery.stopped_by
     elif delivery.claims or delivery.decisions:
         # Something was recorded, but the host never certified
         # completion -- a human reads it, whatever the session's
@@ -570,6 +577,11 @@ class _AnalysisDelivery:
     #: achieved with engine calls still unspent. An expression that is
     #: evaluated and never claimed is not delivered.
     unclaimed_output_ids: tuple[str, ...] = ()
+    #: What stopped the run before a delivery could exist: a node the
+    #: executor refused to launch, or an execution review the session's
+    #: host refused to build. Each is one sentence the settlement quotes,
+    #: because a returned goal that names nothing has not settled.
+    stopped_by: tuple[str, ...] = ()
 
 
 def _stale_quantity_ids(
@@ -701,6 +713,7 @@ def _analysis_delivery(
     rejected_bindings: list[tuple[str, str]] = []
     expression_outputs: list[tuple[str, str, tuple[str, ...]]] = []
     artifact_by_receipt: dict[str, str] = {}
+    stopped_by: list[str] = []
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -740,6 +753,15 @@ def _analysis_delivery(
                         str(claim.get("quantity_id") or ""),
                     )
                 )
+        elif kind == "workflow_node_launch_refused":
+            stopped_by.append(
+                f"node {payload.get('node_id')} never launched: "
+                f"{payload.get('reason')}"
+            )
+        elif kind == "execution_review_refused":
+            stopped_by.append(
+                f"execution review refused: {payload.get('reason')}"
+            )
         elif kind == "analysis_completion_evaluated":
             completion_status = str(payload.get("status") or "")
             limitations = tuple(
@@ -839,6 +861,7 @@ def _analysis_delivery(
     }
     return _AnalysisDelivery(
         unclaimed_output_ids=tuple(sorted(exported_output_ids - claimed_ids)),
+        stopped_by=tuple(stopped_by),
         unanswered_verdicts=unanswered,
         completion_status=completion_status,
         limitation_output_ids=limitations,
@@ -1582,6 +1605,9 @@ class GoalDriver:
                     "workflow_state": "analysis_only",
                     "engine_calls_consumed": 0,
                     "engine_wall_seconds": 0.0,
+                    "stopped_by": list(
+                        _analysis_delivery(events_path).stopped_by
+                    ),
                 },
             )
             self.events_path = events_path

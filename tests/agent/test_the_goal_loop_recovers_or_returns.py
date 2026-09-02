@@ -774,6 +774,88 @@ def test_an_engineless_cycle_settles_from_its_delivery(tmp_path):
     assert run_rows[-1]["payload"]["workflow_state"] == "analysis_only"
 
 
+def test_a_refused_launch_is_named_by_the_settlement(tmp_path):
+    """A revision reused a failed node's id, the node-workspace guard
+    refused the launch, the executor kept the refusal in memory, and
+    the goal settled naming only the session's terminal word. The
+    refusal is now a run-stream event and the settlement quotes it."""
+
+    def refused_execute(run_directory):
+        store = RuntimeEventStore(
+            run_directory / "events.jsonl", session_id="exec-1"
+        )
+        store.append(
+            turn_id="t1",
+            kind="session_started",
+            payload={"phase": "route", "task_id": "t"},
+        )
+        store.append(
+            turn_id="exec-refused-ts_b",
+            kind="workflow_node_launch_refused",
+            payload={
+                "node_id": "ts_b",
+                "program": "orca",
+                "jobtype": "ts",
+                "reason": "execution workspace already contains outputs",
+            },
+        )
+        return SimpleNamespace(status="partial", analysis_status="partial")
+
+    result = _loop(
+        tmp_path,
+        sessions=[_planning_session("live-1", review=_review_payload())],
+        executes=[refused_execute],
+    )
+
+    assert result.settlement == "returned_to_human"
+    assert result.reasons == (
+        "node ts_b never launched: execution workspace already contains "
+        "outputs",
+    )
+    ledger = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    )
+    run_rows = [
+        entry for entry in ledger.entries() if entry["kind"] == "run_recorded"
+    ]
+    assert run_rows[-1]["payload"]["stopped_by"] == list(result.reasons)
+
+
+def test_a_refused_review_is_named_by_the_settlement(tmp_path):
+    """A woken session planned twelve engine nodes against five
+    remaining calls; the frontier called it approvable, the review
+    builder refused it at session end into a log line, and the goal
+    returned naming nothing. The refusal is now a session event and
+    the settlement quotes it."""
+
+    rows = [
+        {"kind": "session_started", "payload": {}},
+        {
+            "kind": "execution_review_refused",
+            "payload": {
+                "workflow_id": "w",
+                "reason": (
+                    "scientific workflow exceeds bounded engine-call "
+                    "budget: 12 nodes for 5 calls"
+                ),
+            },
+        },
+    ]
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session("live-1", terminal="complete", wake_rows=rows)
+        ],
+        executes=[],
+    )
+
+    assert result.settlement == "returned_to_human"
+    assert result.reasons == (
+        "execution review refused: scientific workflow exceeds bounded "
+        "engine-call budget: 12 nodes for 5 calls",
+    )
+
+
 def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(
     tmp_path,
 ):

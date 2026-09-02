@@ -593,6 +593,24 @@ class ApprovedWorkflowExecutor:
                 invocation_sha256=_field(receipt, "invocation_sha256"),
             )
         except ContractError as error:
+            # A refusal that lives only in this process is
+            # indistinguishable, afterwards, from a node that was never
+            # approved: a revision that reused a failed node's id met the
+            # node-workspace guard, the outcome stayed in memory, and the
+            # goal settled naming nothing (live, 2026-09-02). The word goes
+            # into the run stream before anything else happens.
+            from chemsmart.agent.runtime.events import EventKind
+
+            self.host.event_store.append(
+                turn_id=f"exec-refused-{node_id}",
+                kind=EventKind.WORKFLOW_NODE_LAUNCH_REFUSED.value,
+                payload={
+                    "node_id": node_id,
+                    "program": binding.program,
+                    "jobtype": binding.jobtype,
+                    "reason": str(error),
+                },
+            )
             return ExecutedNodeV1(
                 node_id=node_id,
                 program=binding.program,

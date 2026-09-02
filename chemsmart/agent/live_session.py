@@ -1036,6 +1036,21 @@ def run_live_agent_session(
             # widen the envelope or narrow the plan.  Record the reason and let
             # the existing preview-only status carry it.
             logger.warning("execution review refused: %s", exc)
+            # The refusal is the session's ending and a goal settles on
+            # it, so it is an event, not only a log line: a twelve-node
+            # re-plan against five remaining engine calls was refused
+            # here and the goal returned to the human naming nothing
+            # (live, 2026-09-02).
+            from chemsmart.agent.runtime.events import EventKind
+
+            host.event_store.append(
+                turn_id="session-review",
+                kind=EventKind.EXECUTION_REVIEW_REFUSED.value,
+                payload={
+                    "workflow_id": latest_calculation_plan.workflow_id,
+                    "reason": str(exc),
+                },
+            )
             execution_ineligible_nodes = execution_ineligible_nodes + (
                 f"workflow ({latest_calculation_plan.workflow_id}: {exc})",
             )
