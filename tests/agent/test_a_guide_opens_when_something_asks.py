@@ -180,3 +180,44 @@ def test_no_rule_is_placed_on_a_leaf_that_does_not_exist():
     for rule in POLICY_RULES:
         if rule.placement.startswith("leaf:"):
             assert rule.placement.split(":", 1)[1] in guide_ids, rule.rule_id
+
+
+def test_a_point_expectation_is_a_band_with_equal_ends(tmp_path):
+    """Observed live (W1c, R2c): every session declared is_minimum 1..1
+    or imaginary count 0..0 and was refused; one retried three times."""
+
+    host = _host(tmp_path)
+    reply = host.dispatch(
+        turn_id="t1",
+        tool_name="declare_requested_observable",
+        arguments={
+            "observables": [
+                {
+                    "observable_id": "is-minimum",
+                    "unit": "1",
+                    "meaning": "one when every frequency is real",
+                    "expected_low": 1,
+                    "expected_high": 1,
+                    "expectation_basis": "the task asks for a minimum",
+                }
+            ]
+        },
+    )
+    assert reply["status"] == "ok"
+    with pytest.raises(ContractError, match="must not exceed"):
+        host.dispatch(
+            turn_id="t2",
+            tool_name="declare_requested_observable",
+            arguments={
+                "observables": [
+                    {
+                        "observable_id": "zpe",
+                        "unit": "kcal/mol",
+                        "meaning": "harmonic zero-point energy",
+                        "expected_low": 35,
+                        "expected_high": 30,
+                        "expectation_basis": "a typo",
+                    }
+                ]
+            },
+        )

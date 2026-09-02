@@ -2107,8 +2107,15 @@ class CommandCompiledToolHostV1:
                     "an expected range needs both ends: expected_low and "
                     "expected_high, in the observable's own unit"
                 )
-            if low is not None and float(low) >= float(high):
-                raise ContractError("expected_low must be below expected_high")
+            # A point expectation -- a count of exactly one imaginary mode,
+            # a yes-or-no observable -- is a band whose ends coincide.
+            # Observed live (W1c, R2c): both sessions declared one and were
+            # refused for it, one refusal each, on an otherwise clean turn.
+            if low is not None and float(low) > float(high):
+                raise ContractError(
+                    "expected_low must not exceed expected_high; a point "
+                    "expectation is written with both ends equal"
+                )
             if expected_sign and expected_sign not in {"positive", "negative"}:
                 raise ContractError(
                     "expected_sign is 'positive' or 'negative'; the "

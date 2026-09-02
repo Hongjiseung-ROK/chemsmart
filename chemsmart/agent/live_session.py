@@ -785,19 +785,25 @@ def run_live_agent_session(
         guides_from_workspace,
     )
 
-    active_guides = set(guides_from_text(task))
-    if database_observations:
-        active_guides.update(guides_from_workspace(("chemsmart_db",)))
     previous_outcome = dict(
         (goal_context or {}).get("previous_run_outcome") or {}
     )
-    active_guides.update(
-        guides_from_states(
+    session_guides: dict[str, tuple[str, ...]] = {
+        "task": guides_from_text(task),
+        "workspace": (
+            guides_from_workspace(("chemsmart_db",))
+            if database_observations
+            else ()
+        ),
+        "states": guides_from_states(
             str(node.get("state") or "")
             for node in previous_outcome.get("nodes", ())
             if isinstance(node, Mapping)
-        )
-    )
+        ),
+    }
+    active_guides = {
+        guide for guides in session_guides.values() for guide in guides
+    }
     surface = build_command_compiled_tool_surface(
         registry, guides=tuple(sorted(active_guides))
     )
@@ -832,7 +838,6 @@ def run_live_agent_session(
         "compute_environment_receipts": compute_receipts,
         "component_conformance_receipts": conformance,
         "tool_surface": surface,
-        "active_guides": tuple(sorted(active_guides)),
         "registry": registry,
         "live_schema": live_schema,
         "task_spec_sha256s": (task_spec_sha256,),
@@ -863,6 +868,13 @@ def run_live_agent_session(
         host_kwargs["execution_resources"] = bounded_envelope.resources
         host_kwargs["bounded_execution_envelope"] = bounded_envelope
     host = CommandCompiledToolHostV1(**host_kwargs)
+    # Guides open before the first turn are opened on the host, so each
+    # leaves the same event as one opened mid-session -- with its signal.
+    # Observed live (R2c): the leaves were open and the stream showed none.
+    for signal, guides in session_guides.items():
+        if guides:
+            host.activate_guides("session-start", guides, signal=signal)
+    surface = host.surface
 
     context = _public_context(
         task=task,

@@ -948,7 +948,10 @@ def _legacy_tool_definitions(
                                 "description": (
                                     "The upper end of that range, in "
                                     "the same unit; both ends are given "
-                                    "together or neither is."
+                                    "together or neither is. A point "
+                                    "expectation -- exactly one imaginary "
+                                    "mode, a yes-or-no verdict -- is "
+                                    "written with both ends equal."
                                 ),
                             },
                             "expectation_basis": {

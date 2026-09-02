@@ -1,7 +1,7 @@
 """A rejected call must leave no state behind.
 
 Observed live. One session declared seven requested observables in one
-call; the third carried ``expected_low == expected_high``, which is
+call; the third carried ``expected_low > expected_high``, which is
 refused. The handler wrote each record as it went, so the two accepted
 before the raise stayed in the host while the model was told the call
 was rejected -- and the declaration event, which is the only provenance
@@ -63,7 +63,7 @@ def test_a_raise_on_a_later_item_keeps_no_earlier_one(tmp_path):
                 _observable(
                     "preference_preserved",
                     unit="1",
-                    expected_low=0.0,
+                    expected_low=1.0,
                     expected_high=0.0,
                     expectation_basis="An inversion is expected.",
                 ),
