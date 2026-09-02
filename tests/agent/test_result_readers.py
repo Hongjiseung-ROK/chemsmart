@@ -98,8 +98,10 @@ def test_model_tool_surface_exposes_the_registered_result_plane():
     tool = next(
         item
         for item in surface.tool_definitions
-        if item["function"]["name"] == "extract_result_quantities"
+        if item["function"]["name"] == "inspect_result_selectors"
     )
+    # The per-program selector union is stated once, on the tool whose
+    # job is listing selectors; extract_result_quantities points here.
     properties = tool["function"]["parameters"]["properties"]
     assert properties["program"]["enum"] == [
         "gaussian",
@@ -112,6 +114,12 @@ def test_model_tool_surface_exposes_the_registered_result_plane():
         "xyz: connectivity, energy, positions, symbols"
         in properties["program"]["description"]
     )
+    extract = next(
+        item
+        for item in surface.tool_definitions
+        if item["function"]["name"] == "extract_result_quantities"
+    )
+    properties = extract["function"]["parameters"]["properties"]
     selectors = properties["selectors"]["items"]["properties"]["selector"][
         "enum"
     ]

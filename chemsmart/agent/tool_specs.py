@@ -61,6 +61,17 @@ def build_command_compiled_tool_surface(
             "still emit the quantity."
         ),
     }
+    structured_result_program_brief = {
+        "type": "string",
+        "enum": list(result_programs),
+        "description": (
+            "Select the parser matching the registered artifact. Which "
+            "selectors each program serves, per job type, is listed on "
+            "inspect_result_selectors.program and on the capability "
+            "receipt's coverage; the selected method/settings must still "
+            "emit the quantity."
+        ),
+    }
     thermochemistry_program = {
         "type": "string",
         # A geometry-only XYZ artifact can provide coordinates and an
@@ -970,7 +981,7 @@ def build_command_compiled_tool_surface(
             ),
             {
                 "plan_id": _public_identifier(),
-                "workflow_id": _public_identifier(),
+                "workflow_id": _public_identifier(spelling_rule=True),
                 "task_spec_id": _string(),
                 "calculation_nodes": {
                     "type": "array",
@@ -1345,7 +1356,7 @@ def build_command_compiled_tool_surface(
                 "never a file path."
             ),
             {
-                "program": structured_result_program,
+                "program": structured_result_program_brief,
                 "artifact_id": _string(),
                 "selectors": {
                     "type": "array",
@@ -2075,7 +2086,25 @@ def _nullable_positive_number() -> dict:
     }
 
 
-def _public_identifier(joins: str | None = None) -> dict:
+#: The spelling rule every public identifier follows. Stated in full on
+#: one field (plan_scientific_workflow.workflow_id); every other field
+#: points there. It appeared verbatim 42 times, 12 KB per turn.
+_IDENTIFIER_SPELLING_RULE = (
+    "Lower-case public identifier; use dots, dashes, or underscores "
+    "instead of spaces, parentheses, hashes, or placeholder syntax. "
+    "It must begin with a letter, so a name taken from a compound "
+    "whose locants come first needs a leading word: "
+    "'dfe-12-rotamers', not '12-difluoroethane'. Chemical notation is "
+    "mixed case and this field is not: unit symbols and quantity "
+    "names must be folded down, so write 'gap-adiab-ev' not "
+    "'gap-adiab-eV', 'delta-e' not 'dE', and 'ddg-compose' not "
+    "'compose-ddG'. Fold the case; do not drop the letters."
+)
+
+
+def _public_identifier(
+    joins: str | None = None, *, spelling_rule: bool = False
+) -> dict:
     """A public identifier, optionally stating what it must join to.
 
     The spelling rule is shared by every identifier on this surface.
@@ -2091,15 +2120,13 @@ def _public_identifier(joins: str | None = None) -> dict:
     """
 
     description = (
-        "Lower-case public identifier; use dots, dashes, or underscores "
-        "instead of spaces, parentheses, hashes, or placeholder syntax. "
-        "It must begin with a letter, so a name taken from a compound "
-        "whose locants come first needs a leading word: "
-        "'dfe-12-rotamers', not '12-difluoroethane'. Chemical notation is "
-        "mixed case and this field is not: unit symbols and quantity "
-        "names must be folded down, so write 'gap-adiab-ev' not "
-        "'gap-adiab-eV', 'delta-e' not 'dE', and 'ddg-compose' not "
-        "'compose-ddG'. Fold the case; do not drop the letters."
+        _IDENTIFIER_SPELLING_RULE
+        if spelling_rule
+        else (
+            "Lower-case identifier: a letter first, then letters, digits, "
+            "dots, dashes, underscores; case folded (the full spelling "
+            "rule is on plan_scientific_workflow.workflow_id)."
+        )
     )
     if joins:
         description = f"{description} {joins}"
@@ -2587,7 +2614,7 @@ def _analysis_intent_node_schema() -> dict:
                     "input or expression node provides, or nodes that read "
                     "each other in a cycle, naming the node and the name."
                 ),
-                "items": _quantity_expression_node_schema(),
+                "items": _quantity_expression_node_schema(compact=True),
             },
             "expression_output_node_ids": {
                 "type": "array",
@@ -2778,7 +2805,30 @@ def _analysis_intent_node_schema() -> dict:
     }
 
 
-def _quantity_expression_node_schema() -> dict:
+def _quantity_expression_node_schema(*, compact: bool = False) -> dict:
+    """The expression node, in full on evaluate_quantity_expression and
+    compact on the planner: the same fields and enums, with the operation
+    semantics and the constant purposes stated once. The full form was
+    serialised twice, 31 KB of the surface every turn."""
+
+    operation_description = (
+        "Operation name; its meaning, arity, and conventions are stated "
+        "on evaluate_quantity_expression.nodes.operation, and the named "
+        "convention operations there are preferred over rebuilding a "
+        "convention from arithmetic."
+        if compact
+        else (
+            "Pick the operation that owns the step. Where a named "
+            "operation exists for a scientific convention, use it "
+            "rather than rebuilding the convention from arithmetic "
+            "primitives: the named one carries the convention, its "
+            "validity conditions, and its provenance. "
+            + " | ".join(
+                f"{name}: {text}"
+                for name, text in sorted(OPERATION_DESCRIPTIONS.items())
+            )
+        )
+    )
     return {
         "type": "object",
         "properties": {
@@ -2786,19 +2836,7 @@ def _quantity_expression_node_schema() -> dict:
             "operation": {
                 "type": "string",
                 "enum": sorted(OPERATION_DESCRIPTIONS),
-                "description": (
-                    "Pick the operation that owns the step. Where a named "
-                    "operation exists for a scientific convention, use it "
-                    "rather than rebuilding the convention from arithmetic "
-                    "primitives: the named one carries the convention, its "
-                    "validity conditions, and its provenance. "
-                    + " | ".join(
-                        f"{name}: {text}"
-                        for name, text in sorted(
-                            OPERATION_DESCRIPTIONS.items()
-                        )
-                    )
-                ),
+                "description": operation_description,
             },
             "input_ids": {
                 "type": "array",
@@ -2844,7 +2882,11 @@ def _quantity_expression_node_schema() -> dict:
                 "type": "string",
                 "enum": sorted(LITERATURE_CONSTANTS),
                 "description": (
-                    "For constant, the registered literature-constant name. "
+                    "For constant, the registered literature-constant name; "
+                    "units, convention families and purposes are listed on "
+                    "evaluate_quantity_expression.nodes.constant_name."
+                    if compact
+                    else "For constant, the registered literature-constant name. "
                     "The host owns the value, unit, and standard-state "
                     "convention; an unregistered name is refused when "
                     "planned. Other operations omit this. Registered names, "

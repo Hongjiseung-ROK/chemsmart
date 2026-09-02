@@ -120,11 +120,11 @@ def test_every_operation_the_model_may_choose_says_what_it_computes():
     definition = next(
         item["function"]
         for item in surface.tool_definitions
-        if item["function"]["name"] == "plan_scientific_workflow"
+        if item["function"]["name"] == "evaluate_quantity_expression"
     )
-    node_schema = definition["parameters"]["properties"]["analysis_nodes"][
-        "items"
-    ]["properties"]["expression_nodes"]["items"]
+    # The operation semantics are stated once, on the evaluator; the
+    # planner's expression nodes carry the same enum and point here.
+    node_schema = definition["parameters"]["properties"]["nodes"]["items"]
     operation = node_schema["properties"]["operation"]
     assert set(operation["enum"]) == set(OPERATION_DESCRIPTIONS)
     for name in operation["enum"]:
@@ -136,13 +136,11 @@ def test_the_schema_tells_the_model_to_prefer_the_named_convention():
     definition = next(
         item["function"]
         for item in surface.tool_definitions
-        if item["function"]["name"] == "plan_scientific_workflow"
+        if item["function"]["name"] == "evaluate_quantity_expression"
     )
-    description = definition["parameters"]["properties"]["analysis_nodes"][
-        "items"
-    ]["properties"]["expression_nodes"]["items"]["properties"]["operation"][
-        "description"
-    ]
+    description = definition["parameters"]["properties"]["nodes"]["items"][
+        "properties"
+    ]["operation"]["description"]
     assert "rather than rebuilding" in description
     assert "three equally spaced cardinal numbers" in description
 
