@@ -15,6 +15,7 @@ digest, so a reading can count them.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Iterable, Mapping
 
@@ -147,7 +148,11 @@ GUIDES: tuple[GuideV1, ...] = (
             "scan grid does not locate a stationary point: optimise the "
             "minima you find and characterise them by frequencies before "
             "calling any of them a minimum, and count the distinct "
-            "stationary points with their orders."
+            "stationary points with their orders. scan_coordinate_values is "
+            "dimensionless -- positional numbers in the scan's own unit -- "
+            "so declare it with unit '1'; a physical distance or angle is "
+            "measured from a delivered geometry with the "
+            "distance/angle/dihedral operations."
         ),
     ),
     GuideV1(
@@ -431,12 +436,19 @@ def guides_from_text(text: str) -> tuple[str, ...]:
     """Guides the task text asks for, by substring in the pack convention."""
 
     lowered = " ".join(str(text or "").lower().split())
+    # A term matches as whole words: "base" inside "database" opened the
+    # constants guide on a task with no constant in it (live, 2026-09-02).
     found = [
         guide.guide_id
         for guide in GUIDES
-        if any(term in lowered for term in guide.activation_terms)
+        if any(_term_in_text(term, lowered) for term in guide.activation_terms)
     ]
     return tuple(sorted(set(found)))
+
+
+def _term_in_text(term: str, lowered: str) -> bool:
+    pattern = r"(?<![a-z0-9])" + re.escape(term.lower()) + r"(?![a-z0-9])"
+    return re.search(pattern, lowered) is not None
 
 
 def guides_from_workspace(kinds: Iterable[str]) -> tuple[str, ...]:

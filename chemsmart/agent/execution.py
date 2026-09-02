@@ -896,7 +896,10 @@ def derive_trusted_molecular_species(
     if not removed:
         raise ContractError(
             "a derivation must remove at least one parent atom; keeping all "
-            f"{count} would copy the parent rather than derive from it"
+            f"{count} would copy the parent rather than derive from it. A "
+            "new electronic state on the parent's own geometry -- a radical "
+            "cation, a triplet -- is a new bind_scientific_identity on the "
+            "parent artifact, not a derivation"
         )
 
     derived = Molecule(

@@ -287,3 +287,17 @@ def test_the_goals_first_declaration_stands(tmp_path):
     assert list(reply["declared"]) == []
     kept = host.requested_observable_declarations["cis-barrier"]
     assert (kept["expected_low"], kept["expected_high"]) == (3.0, 8.0)
+
+
+def test_an_activation_term_matches_whole_words_only():
+    """ "base" inside "database" opened the constants guide on a task
+    with no constant in it."""
+
+    from chemsmart.agent.guides import guides_from_text
+
+    opened = guides_from_text(
+        "five radicals from a workspace database; opt+freq each record"
+    )
+    assert "database" in opened
+    assert "constants" not in opened
+    assert "constants" in guides_from_text("the reference acid's pKa")

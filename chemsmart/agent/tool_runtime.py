@@ -4850,7 +4850,20 @@ class CommandCompiledToolHostV1:
 
         resolved = self._latest_program_workflows.get(workflow_id)
         if resolved is None:
-            raise ContractError("unknown scientific workflow ID")
+            # Name what exists: a woken session guessed the previous
+            # cycle's workflow id twice in one goal, and the bare refusal
+            # left it guessing (live, 2026-09-02).
+            known = sorted(self._latest_program_workflows)
+            raise ContractError(
+                f"unknown scientific workflow ID {workflow_id!r}; this "
+                "session holds "
+                + (
+                    "workflow(s) " + ", ".join(repr(item) for item in known)
+                    if known
+                    else "no workflow yet -- plan one first; an earlier "
+                    "cycle's workflow is read through inspect_run"
+                )
+            )
         if (
             self.workflow_drafts.get(resolved.draft.draft_sha256)
             is not resolved.draft
