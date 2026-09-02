@@ -3,10 +3,11 @@ import os
 import shlex
 import subprocess
 import sys
+from datetime import datetime, timezone
 from functools import lru_cache
 
 from chemsmart.io.yaml import YAMLFile
-from chemsmart.settings.submitters import Submitter
+from chemsmart.settings.submitters import SubmissionReceiptV1, Submitter
 from chemsmart.settings.user import CHEMSMARTUserSettings
 from chemsmart.utils.mixins import RegistryMixin, cached_property
 
@@ -544,6 +545,10 @@ class Server(RegistryMixin):
                 Defaults to False.
             cli_args: Command line arguments for the job.
             **kwargs: Additional submission parameters.
+
+        Returns:
+            SubmissionReceiptV1 | None: What the scheduler named the job,
+            or None when only the scripts were written.
         """
         # First check that the job to be
         # submitted is not already queued/running
@@ -551,8 +556,9 @@ class Server(RegistryMixin):
         # Then write the submission script
         self._write_submission_script(job=job, cli_args=cli_args, **kwargs)
         # Submit the job
-        if not test:
-            self._submit_job(job)
+        if test:
+            return None
+        return self._submit_job(job)
 
     @staticmethod
     def _check_running_jobs(job):
@@ -599,20 +605,27 @@ class Server(RegistryMixin):
 
     def _submit_job(self, job):
         """
-        Submit the job to the scheduler.
+        Submit the job to the scheduler and return what it was named.
 
         Executes the submission command to queue the job in the scheduler.
         Handles both simple commands and complex shell commands with operators.
+        The scheduler's answer is captured rather than left on the terminal:
+        ``sbatch`` prints ``Submitted batch job N`` and that ``N`` is the only
+        handle anything can later use to ask how the job is doing.
 
         Args:
             job: Job instance to submit.
 
         Returns:
-            int: Exit code from the submission command.
+            SubmissionReceiptV1: The scheduler, the job id it assigned, and
+            the exact command and script that produced it.
 
         Raises:
             ValueError: If no submission command is defined for this server.
+            ProbeUnitError: If the submission failed or named no job.
         """
+        from chemsmart.settings.probe.scheduler_job import parse_submission
+
         submitter = self.get_submitter(job)
         command = self.submit_command
         if command is None:
@@ -624,10 +637,37 @@ class Server(RegistryMixin):
         logger.info(f"Submitting job with command: {command}")
         if "<" in command or ">" in command or "|" in command:
             # Use shell=True if the command has shell operators
-            p = subprocess.Popen(command, shell=True, cwd=job.folder)
+            completed = subprocess.run(
+                command,
+                shell=True,
+                cwd=job.folder,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
         else:
-            p = subprocess.Popen(shlex.split(command), cwd=job.folder)
-        return p.wait()
+            completed = subprocess.run(
+                shlex.split(command),
+                cwd=job.folder,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        if completed.stdout.strip():
+            logger.info(completed.stdout.strip())
+        if completed.stderr.strip():
+            logger.warning(completed.stderr.strip())
+        job_id = parse_submission(
+            completed.returncode, completed.stdout, completed.stderr
+        )
+        return SubmissionReceiptV1(
+            scheduler=str(self.scheduler),
+            job_id=job_id,
+            submit_command=command,
+            submit_script=os.path.join(job.folder, submitter.submit_script),
+            submitted_at=datetime.now(timezone.utc).isoformat(),
+            stdout=completed.stdout,
+        )
 
     def submit_array_job(
         self, jobs, num_nodes=None, test=False, cli_args=None, **kwargs

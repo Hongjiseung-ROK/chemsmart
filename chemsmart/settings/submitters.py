@@ -2,6 +2,7 @@ import inspect
 import logging
 import os
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Optional
 
 from chemsmart.settings.executable import (  # noqa: F401
@@ -19,6 +20,23 @@ user_settings = CHEMSMARTUserSettings()
 
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class SubmissionReceiptV1:
+    """What a scheduler answered when a script was submitted.
+
+    The job id is the one handle a later process can use to ask the
+    scheduler about the job; the command and script say exactly what was
+    submitted, and the timestamp is when.
+    """
+
+    scheduler: str
+    job_id: str
+    submit_command: str
+    submit_script: str
+    submitted_at: str
+    stdout: str = ""
 
 
 class RunScript:
