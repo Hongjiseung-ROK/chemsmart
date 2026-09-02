@@ -157,7 +157,10 @@ def test_gaussian_is_neither_declared_nor_advertised():
 
 
 def test_the_programs_that_do_declare_it_declare_it_for_frequency_jobs():
-    for program, jobtypes in (("orca", {"opt", "ts"}), ("xtb", {"hess"})):
+    for program, jobtypes in (
+        ("orca", {"freq", "opt", "ts"}),
+        ("xtb", {"hess"}),
+    ):
         reader = RESULT_READERS[program]
         assert _PARTICIPATION in registered_reader_selectors()[program]
         declared = {

@@ -1874,6 +1874,55 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # to answer.
         jobtype_selectors=(
             (
+                "freq",
+                (
+                    # A frequency job at a fixed geometry: everything an
+                    # optimisation's output means minus the optimisation
+                    # claim. ORCA reads `! Freq` without `Opt` as this
+                    # jobtype, and a budget-bound session that folded its
+                    # frequencies into a single-point stage had every
+                    # extraction refused for want of it (live, 2026-09-03).
+                    "ab_initio",
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "basis",
+                    "beta_homo",
+                    "beta_lumo",
+                    "charge",
+                    "connectivity",
+                    "correlation_energy",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "dispersion_energy",
+                    "effective_multiplicity",
+                    "energies",
+                    "energy",
+                    "functional",
+                    "gap",
+                    "hirshfeld_atomic_charges",
+                    "homo",
+                    "loewdin_atomic_charges",
+                    "lumo",
+                    "mulliken_atomic_charges",
+                    "multiplicity",
+                    "positions",
+                    "reference_energy",
+                    "scf_energy",
+                    "solvation_cavity_surface_area",
+                    "solvation_electrostatic_energy",
+                    "solvation_model",
+                    "solvation_nonelectrostatic_energy",
+                    "solvent",
+                    "spin_square",
+                    "spin_square_deviation",
+                    "spin_square_target",
+                    "symbols",
+                    "vibrational_frequencies",
+                    "vibrational_mode_atom_participation",
+                    "vibrational_mode_degeneracy_group",
+                ),
+            ),
+            (
                 # ORCA writes the reaction path to XYZ sidecars rather than
                 # into the log, so the ``trajectory_*`` family is deliberately
                 # absent here: an IRC log parses to a single structure, and
