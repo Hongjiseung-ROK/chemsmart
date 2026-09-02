@@ -1653,9 +1653,20 @@ def _node_value(
                 raise QuantityExpressionError(
                     f"{operation} requires identical dimensions"
                 )
-            if left_value.shape != right_value.shape:
+            # A scalar broadcasts across a vector, as it already does for
+            # multiply and divide: a relaxed scan's profile against its own
+            # minimum is subtract(energies, min(energies)), and refusing it
+            # here after every engine had run lost a delivery's whole
+            # analysis chain (live, 2026-09-02). Two vectors still need
+            # identical shapes.
+            if (
+                left_value.ndim
+                and right_value.ndim
+                and left_value.shape != right_value.shape
+            ):
                 raise QuantityExpressionError(
-                    f"{operation} requires identical numeric shapes"
+                    f"{operation} accepts scalar broadcasting or identical "
+                    "shapes"
                 )
             result = (
                 left_value + right_value
