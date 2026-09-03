@@ -105,3 +105,38 @@ def test_a_bond_made_or_broken_is_recorded_with_its_atoms(tmp_path):
     assert "geometry.connectivity_changed" in signals
     assert signals["geometry.connectivity_changed"]["bonds_made"]
     assert heavy  # the fixture carries heavy atoms to align on
+
+
+@pytest.mark.capability("predicate:geometry.connectivity_changed")
+def test_an_equilibrium_bond_to_hydrogen_is_a_bond_to_the_perceiver():
+    """The perceiver shrank every X-H buffer to 0.05 A, so the PH3
+    minimum's 1.430 A P-H bond (cutoff 1.07+0.31+0.05) was "broken" on
+    every repaired phosphine and a mode-displaced start's stretched N-H
+    was "made" on every repaired ammonia (E4 window, 2026-09-03). The
+    sensor asks whether topology changed; hydrogens get the same buffer
+    as every other atom."""
+
+    from chemsmart.agent.execution import _molecule_graph
+    from chemsmart.io.molecules.structure import Molecule
+
+    phosphine = Molecule(
+        symbols=["P", "H", "H", "H"],
+        positions=[
+            [0.0, 0.0, 0.0],
+            [1.430, 0.0, 0.0],
+            [-0.715, 1.2384, 0.0],
+            [-0.715, -1.2384, 0.0],
+        ],
+    )
+    assert sorted(_molecule_graph(phosphine).edges) == [(1, 2), (1, 3), (1, 4)]
+    # A start stepped 0.15 A along the umbrella mode keeps its bonds.
+    stretched = Molecule(
+        symbols=["N", "H", "H", "H"],
+        positions=[
+            [0.0, 0.0, 0.2],
+            [1.15, 0.0, -0.1],
+            [-0.575, 0.996, -0.1],
+            [-0.575, -0.996, -0.1],
+        ],
+    )
+    assert sorted(_molecule_graph(stretched).edges) == [(1, 2), (1, 3), (1, 4)]

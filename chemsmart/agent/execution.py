@@ -1238,8 +1238,15 @@ def _molecule_graph(molecule: Any) -> Any:
 
     from chemsmart.io.molecules import DEFAULT_BUFFER as CONNECTIVITY_BUFFER
 
+    # adjust_H shrinks every X-H buffer to 0.05 A, which puts an
+    # equilibrium P-H bond (1.430 A; cutoff 1.07+0.31+0.05) outside
+    # "bonded" and a mode-displaced start's stretched X-H likewise, so
+    # the basin sensor reported bonds broken on every PH3 minimum and
+    # bonds made on every repaired NH3 (E4 window, 2026-09-03). The
+    # sensor asks whether topology changed, not how a drawing looks:
+    # hydrogens get the same buffer as every other atom.
     zero_based = molecule.to_graph(
-        bond_cutoff_buffer=CONNECTIVITY_BUFFER, adjust_H=True
+        bond_cutoff_buffer=CONNECTIVITY_BUFFER, adjust_H=False
     )
     # ``to_graph`` numbers its nodes from zero while every scientific atom
     # index the model, the review and the receipts speak is one-based.  The
