@@ -2153,9 +2153,11 @@ class CommandCompiledToolHostV1:
         jobtypes: set[str] = set()
         operations: set[str] = set()
         constants: set[str] = set()
+        programs: set[str] = set()
         for plan in self.scientific_workflow_plans.values():
             for node in getattr(plan, "nodes", ()):
                 jobtypes.add(str(getattr(node, "jobtype", "")))
+                programs.add(str(getattr(node, "program", "")))
         for toolchain in self.scientific_toolchain_plans.values():
             for node in getattr(toolchain, "analysis_nodes", ()):
                 for item in getattr(node, "expression_nodes", ()):
@@ -2163,7 +2165,10 @@ class CommandCompiledToolHostV1:
                     if str(item.get("operation", "")) == "constant":
                         constants.add(str(item.get("constant_name", "")))
         wanted = guides_from_plan(
-            jobtypes=jobtypes, operations=operations, constants=constants
+            jobtypes=jobtypes,
+            operations=operations,
+            constants=constants,
+            programs=programs,
         )
         return self.activate_guides(turn_id, wanted, signal="plan")
 

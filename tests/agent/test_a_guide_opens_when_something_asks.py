@@ -85,6 +85,13 @@ def test_the_four_signals():
     }
     assert guides_from_states(("timeout_terminated",)) == ("recovery",)
     assert guides_from_states(("validated",)) == ()
+    # Two programs in one DAG is the crossprogram signal; one program
+    # spelled two ways is not.
+    assert guides_from_plan(programs=("xtb", "orca")) == ("crossprogram",)
+    assert guides_from_plan(programs=("orca", "ORCA")) == ()
+    assert "crossprogram" in guides_from_text(
+        "GFN2 optimisation, then B3LYP single points on those geometries"
+    )
 
 
 def _host(tmp_path, **kwargs):

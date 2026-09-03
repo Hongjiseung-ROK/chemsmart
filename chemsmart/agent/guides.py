@@ -312,6 +312,9 @@ GUIDES: tuple[GuideV1, ...] = (
             "cheaper",
             "semi-empirical",
             "single point on",
+            "single points on",
+            "on those geometries",
+            "geometries from",
             "mixed level",
             "composite",
             "gfn2 then",
@@ -470,10 +473,16 @@ def guides_from_plan(
     operations: Iterable[str] = (),
     constants: Iterable[str] = (),
     tools: Iterable[str] = (),
+    programs: Iterable[str] = (),
 ) -> tuple[str, ...]:
-    """Guides a planned DAG needs: by jobtype, by operation, by tool."""
+    """Guides a planned DAG needs: by jobtype, operation, tool, program."""
 
     found: set[str] = set()
+    # Two programs in one DAG is the crossprogram guide's own signal; the
+    # task text that named two programs never matched its phrase-shaped
+    # terms (audit, 2026-09-03).
+    if len({str(item).lower() for item in programs if str(item)}) >= 2:
+        found.add("crossprogram")
     jobs = {str(item).lower() for item in jobtypes}
     ops = {str(item) for item in operations}
     for guide in GUIDES:
