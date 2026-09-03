@@ -475,6 +475,36 @@ def test_a_stated_limitation_settles_as_the_typed_refusal(tmp_path):
     assert settled["payload"]["evidence"]["receipt_sha256s"]
 
 
+def test_a_certified_delivery_with_observations_carries_the_word(tmp_path):
+    """The one word a human reads first must not hide what the run
+    found: a certified delivery whose completion receipt names host
+    anomaly observations settles achieved_with_observations, on
+    receipts, at the delivery path."""
+
+    rows = _delivery_rows()
+    for row in rows:
+        if row["kind"] == "analysis_completion_evaluated":
+            row["payload"]["anomaly_output_ids"] = (
+                "anomaly:stationary_point.unexpected_order:unreplicated:"
+                "0a1b2c3d",
+            )
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session("live-1", terminal="complete", wake_rows=rows),
+        ],
+        executes=[],
+    )
+    assert result.settlement == "achieved_with_observations"
+    assert "stationary_point.unexpected_order" in result.reasons[0]
+    ledger = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    )
+    settled = ledger.entries()[-1]
+    assert settled["payload"]["state"] == "achieved_with_observations"
+    assert settled["payload"]["evidence"]["receipt_sha256s"]
+
+
 def test_a_certified_clean_delivery_settles_achieved(tmp_path):
     """The live r1 shape: completion passed with no limitations."""
 

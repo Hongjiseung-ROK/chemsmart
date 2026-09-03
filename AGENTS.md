@@ -45,7 +45,7 @@ flowchart TD
     MENU["HOST: wake context + repair menu"] -.->|language| REP
     REP["MODEL: repair design"] -.->|language| ADM
     ADM["HOST: revision admission: identity, state, conditions, budget"] --> DAG
-    SET["HOST: settlement: achieved, exhausted, unreachable, returned"] --> HUM
+    SET["HOST: settlement: achieved, achieved_with_observations, exhausted, unreachable, returned"] --> HUM
     HUM["HUMAN: reads receipts"]
 ```
 
@@ -665,7 +665,12 @@ as the first and the reply says so; a declared sign the declared band
 excludes is refused where it is written, because a zero has no sign.
 
 A goal settles into one typed state. It is achieved when the host
-completion gate certified the delivery; unreachable from evidence when
+completion gate certified the delivery and the host recorded nothing it
+could not explain; achieved with observations when the certified
+delivery carries anomaly receipts — surprises the host detected on the
+run's own nodes, whether or not they were asked for, each with the
+numbers that tripped it — so the one word a human reads first never
+hides what the run found; unreachable from evidence when
 the certified completion names required outputs the plan itself declared
 blocked and the recorded scientific decision carries the receipts — a
 typed refusal is a deliverable, not a failure; exhausted when the

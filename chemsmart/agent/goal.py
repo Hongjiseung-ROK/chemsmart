@@ -43,6 +43,7 @@ GOAL_SCHEMA_VERSION = "chemsmart.goal.v1"
 #: there requires receipts, never prose alone.
 GOAL_SETTLEMENTS = (
     "achieved",
+    "achieved_with_observations",
     "exhausted",
     "unreachable_from_evidence",
     "returned_to_human",
@@ -304,10 +305,12 @@ class GoalLedger:
     ) -> None:
         if state not in GOAL_SETTLEMENTS:
             raise ContractError(f"unsupported goal settlement: {state!r}")
-        if state == "unreachable_from_evidence" and not (evidence or {}):
+        if state in {
+            "unreachable_from_evidence",
+            "achieved_with_observations",
+        } and not (evidence or {}):
             raise ContractError(
-                "unreachable_from_evidence settles on receipts, never "
-                "prose alone"
+                f"{state} settles on receipts, never prose alone"
             )
         self.append(
             "goal_settled",

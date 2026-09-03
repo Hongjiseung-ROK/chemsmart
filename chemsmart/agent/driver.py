@@ -116,6 +116,29 @@ def _default_execute(
     )
 
 
+def _achieved_word(
+    delivery: "_AnalysisDelivery",
+) -> tuple[str, tuple[str, ...]]:
+    """The settlement word for a certified delivery.
+
+    Plain ``achieved`` means the host saw nothing it could not explain;
+    a delivery that carries host-recorded observations settles with the
+    word that says so, because the one word a human reads first must
+    not hide what the run found (owner ruling, 2026-09-03).
+    """
+
+    if delivery.anomaly_output_ids:
+        return (
+            "achieved_with_observations",
+            (
+                "the host completion gate certified the delivery; the "
+                "host also recorded observations nobody asked for: "
+                + ", ".join(delivery.anomaly_output_ids),
+            ),
+        )
+    return "achieved", ("the host completion gate certified the delivery",)
+
+
 def _settle_from_delivery(
     ledger: GoalLedger,
     *,
@@ -178,8 +201,7 @@ def _settle_from_delivery(
             "it: " + ", ".join(delivery.unanswered_verdicts),
         )
     elif certified and delivery.claims:
-        settled = "achieved"
-        reasons = ("the host completion gate certified the delivery",)
+        settled, reasons = _achieved_word(delivery)
     elif delivery.stopped_by:
         # The stream says what stopped the run before a delivery could
         # exist -- a launch the executor refused, a review the host
@@ -636,6 +658,9 @@ class _AnalysisDelivery:
     #: achieved with engine calls still unspent. An expression that is
     #: evaluated and never claimed is not delivered.
     unclaimed_output_ids: tuple[str, ...] = ()
+    #: What the host observed that nobody asked for, from the completion
+    #: receipt; a certified delivery carrying any settles with the word.
+    anomaly_output_ids: tuple[str, ...] = ()
     #: What stopped the run before a delivery could exist: a node the
     #: executor refused to launch, or an execution review the session's
     #: host refused to build. Each is one sentence the settlement quotes,
@@ -773,6 +798,7 @@ def _analysis_delivery(
     expression_outputs: list[tuple[str, str, tuple[str, ...]]] = []
     artifact_by_receipt: dict[str, str] = {}
     stopped_by: list[str] = []
+    anomaly_ids: tuple[str, ...] = ()
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -826,6 +852,9 @@ def _analysis_delivery(
             limitations = tuple(
                 str(item)
                 for item in (payload.get("limitation_output_ids") or ())
+            )
+            anomaly_ids = tuple(
+                str(item) for item in (payload.get("anomaly_output_ids") or ())
             )
             if digest:
                 receipts.append(digest)
@@ -921,6 +950,7 @@ def _analysis_delivery(
     return _AnalysisDelivery(
         unclaimed_output_ids=tuple(sorted(exported_output_ids - claimed_ids)),
         stopped_by=tuple(stopped_by),
+        anomaly_output_ids=anomaly_ids,
         unanswered_verdicts=unanswered,
         completion_status=completion_status,
         limitation_output_ids=limitations,
@@ -1879,15 +1909,17 @@ class GoalDriver:
             self._settled("returned_to_human", open_items)
             return
         if achieved:
+            word, why = _achieved_word(run_delivery)
             self.ledger.settle(
-                "achieved",
+                word,
                 reasons=(
                     f"cycle {self.cycles}: workflow completed with its "
-                    "analysis chain",
+                    "analysis chain; " + why[0],
                 ),
+                evidence=_settlement_evidence(run_delivery),
             )
             self._record_qualification()
-            self._settled("achieved", ())
+            self._settled(word, ())
             return
         if (
             budgets.revisions_remaining <= 0
