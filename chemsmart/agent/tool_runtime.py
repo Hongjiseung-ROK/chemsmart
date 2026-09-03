@@ -9194,6 +9194,10 @@ class CommandCompiledToolHostV1:
                 source_receipt_sha256=(
                     result_validation_receipt.receipt_sha256
                 ),
+                flagged_artifact_sha256s=tuple(
+                    item.sha256
+                    for item in result_validation_receipt.output_artifacts
+                ),
             )
             self.anomaly_observations[observation_receipt.receipt_sha256] = (
                 observation_receipt

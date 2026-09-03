@@ -162,14 +162,21 @@ def _achieved_word(
         )
     )
     if observed:
-        return (
-            "achieved_with_observations",
-            (
-                "the host completion gate certified the delivery; the "
-                "host also recorded observations nobody asked for: "
-                + ", ".join(observed),
-            ),
+        reasons = (
+            "the host completion gate certified the delivery; the "
+            "host also recorded observations nobody asked for: "
+            + ", ".join(observed),
         )
+        if delivery.flagged_quantity_ids:
+            # Naming the anomaly is not naming the number. Five
+            # deliveries across two windows reported a structure the
+            # host had flagged as the answer, and the word said only
+            # that something somewhere was observed (E4', 2026-09-03).
+            reasons = reasons + (
+                "delivered from the flagged result: "
+                + ", ".join(delivery.flagged_quantity_ids),
+            )
+        return ("achieved_with_observations", reasons)
     return "achieved", ("the host completion gate certified the delivery",)
 
 
@@ -192,7 +199,12 @@ def _settle_from_delivery(
     ending, not a defect.
     """
 
-    delivery = _analysis_delivery(events_path)
+    delivery = _analysis_delivery(
+        events_path,
+        flagged_artifact_sha256s=_flagged_artifact_sha256s(
+            _goal_anomalies(ledger)
+        ),
+    )
     evidence = _settlement_evidence(delivery)
     # The completion receipt is the host's certification; the session's
     # terminal word is its posture at exit. A live session delivered its
@@ -533,6 +545,7 @@ def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
         "undelivered_declared_observable_ids": (
             delivery.undelivered_declared_ids
         ),
+        "flagged_quantity_ids": delivery.flagged_quantity_ids,
     }
 
 
@@ -548,6 +561,23 @@ def _goal_anomalies(ledger: GoalLedger) -> tuple[dict[str, Any], ...]:
             if digest and digest not in seen:
                 seen[digest] = dict(record)
     return tuple(seen.values())
+
+
+def _flagged_artifact_sha256s(
+    records: Sequence[Mapping[str, Any]],
+) -> tuple[str, ...]:
+    """Artifacts of every node an anomaly still standing has flagged."""
+
+    return tuple(
+        sorted(
+            {
+                str(digest)
+                for record in anomaly_standing(records)
+                for digest in record.get("flagged_artifact_sha256s") or ()
+                if digest
+            }
+        )
+    )
 
 
 def _anomaly_output_ids_from_records(
@@ -738,6 +768,11 @@ class _AnalysisDelivery:
     doubted_quantity_ids: tuple[str, ...] = ()
     #: Every quantity a rendered claim delivered, by its own id.
     delivered_quantity_ids: tuple[str, ...] = ()
+    #: Delivered quantities that descend from a node the host flagged
+    #: with an anomaly. Never a verdict: the flagged run may be exactly
+    #: right. It is the join a reader needs, because the settlement word
+    #: named the anomaly and never said the number came from it.
+    flagged_quantity_ids: tuple[str, ...] = ()
     #: Host-rendered verdicts that failed and that no recorded decision
     #: has cited. A failed verdict is the host saying the delivered
     #: structure is not what the task required -- a minimum that is a
@@ -920,6 +955,7 @@ def _analysis_delivery(
     events_path: Path,
     *,
     inherited_rejected_artifacts: Sequence[str] = (),
+    flagged_artifact_sha256s: Sequence[str] = (),
 ) -> _AnalysisDelivery:
     """Read the delivery facts a settlement stands on.
 
@@ -1081,6 +1117,16 @@ def _analysis_delivery(
         artifact_by_receipt=artifact_by_receipt,
         inherited_rejected_artifacts=inherited_rejected_artifacts,
     )
+    # The same walk, seeded with the artifacts of every node an anomaly
+    # flagged: which delivered numbers stand on a flagged result. Not a
+    # verdict and not a rejection -- the flagged run may be right.
+    flagged, _flagged_artifacts = _stale_quantity_ids(
+        claim_pairs=claim_pairs,
+        rejected_bindings=(),
+        expression_outputs=expression_outputs,
+        artifact_by_receipt=artifact_by_receipt,
+        inherited_rejected_artifacts=flagged_artifact_sha256s,
+    )
     # An expression's exported outputs, as opposed to the intermediate
     # node_values it computed on the way: the receipt contract pins
     # output_dependencies' ids to outputs' quantity_ids, in order, so the
@@ -1122,6 +1168,7 @@ def _analysis_delivery(
             )
         ),
         stale_quantity_ids=stale,
+        flagged_quantity_ids=flagged,
         rejected_artifact_sha256s=rejected_artifacts,
         claims_rendered=bool(claims),
     )
@@ -2004,6 +2051,9 @@ class GoalDriver:
             inherited_rejected_artifacts=tuple(
                 sorted(self.rejected_artifacts)
             ),
+            flagged_artifact_sha256s=_flagged_artifact_sha256s(
+                _goal_anomalies(self.ledger)
+            ),
         )
         self.rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
         if run_delivery.claims_rendered:
@@ -2104,6 +2154,10 @@ class GoalDriver:
                 reasons=(
                     f"cycle {self.cycles}: workflow completed with its "
                     "analysis chain; " + why[0],
+                    # Every reason the word carries, not only the first:
+                    # the second one names which delivered number stands
+                    # on a flagged result.
+                    *why[1:],
                 ),
                 evidence=evidence,
             )

@@ -227,6 +227,7 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         "stale_quantity_ids": (),
         "unclaimed_output_ids": (),
         "undelivered_declared_observable_ids": (),
+        "flagged_quantity_ids": (),
     }
     assert second["previous_run"] == "goals/goal-t1/runs/cycle-1"
     assert second["previous_run_outcome"]
@@ -250,6 +251,8 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         # And what the host computed and no claim ever showed a reader.
         "unclaimed_output_ids",
         "undelivered_declared_observable_ids",
+        # And which delivered number stands on a result the host flagged.
+        "flagged_quantity_ids",
     }
 
 
@@ -712,6 +715,7 @@ def test_the_wake_deliverables_come_from_the_previous_runs_stream(tmp_path):
         "stale_quantity_ids": (),
         "unclaimed_output_ids": (),
         "undelivered_declared_observable_ids": (),
+        "flagged_quantity_ids": (),
     }
 
 
@@ -1505,3 +1509,74 @@ def test_the_goal_keeps_every_budget_line_the_envelope_granted(tmp_path):
     assert budgets.excursion_calls_remaining == 2
     wake = _wake_context(goal, driver.ledger, None, workspace=tmp_path / "ws")
     assert wake["budgets"]["excursion_calls_remaining"] == 2
+
+
+def test_the_word_names_the_delivered_number_that_came_from_a_flagged_node(
+    tmp_path,
+):
+    """Naming the anomaly is not naming the number. Five deliveries in
+    two cyclohexane windows reported a structure the basin sensor had
+    flagged as "the minimum", and the settlement said only that
+    something somewhere had been observed. The host knows which claim
+    descends from the flagged result: the anomaly names that node's
+    artifacts, and the delivery walk already follows claims back to
+    artifacts."""
+
+    artifact = "9" * 64
+    rows = [
+        {
+            "kind": "result_quantities_extracted",
+            "payload": {
+                "receipt_sha256": "e" * 64,
+                "artifact_sha256": artifact,
+                "status": "extracted",
+            },
+        },
+        {
+            "kind": "analysis_claims_recorded",
+            "payload": {
+                "receipt_sha256": "a1" + "a" * 62,
+                "status": "recorded",
+                "record": {
+                    "claims": (
+                        {
+                            "source_receipt_sha256": "e" * 64,
+                            "quantity_id": "gibbs-298",
+                        },
+                    )
+                },
+            },
+        },
+        {
+            "kind": "analysis_completion_evaluated",
+            "payload": {
+                "receipt_sha256": "c1" + "c" * 62,
+                "status": "passed",
+                "limitation_output_ids": [],
+            },
+        },
+    ]
+    driver = _driver_after_run(tmp_path, calls=1, failed=False, rows=rows)
+    driver.ledger.append(
+        "anomalies_observed",
+        {
+            "cycle": 1,
+            "anomalies": [
+                {
+                    "receipt_sha256": "d" * 64,
+                    "signal_id": "geometry.heavy_atom_rmsd_ge_0.3",
+                    "status": "unreplicated",
+                    "node_id": "opt",
+                    "flagged_artifact_sha256s": [artifact],
+                }
+            ],
+        },
+    )
+    driver.phase = "settle"
+    driver._settle()
+
+    settled = driver.ledger.entries()[-1]
+    assert settled["payload"]["state"] == "achieved_with_observations"
+    reasons = " ".join(settled["payload"]["reasons"])
+    assert "geometry.heavy_atom_rmsd_ge_0.3" in reasons
+    assert "delivered from the flagged result: gibbs-298" in reasons

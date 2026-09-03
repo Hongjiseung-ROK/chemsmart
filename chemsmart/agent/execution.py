@@ -3179,6 +3179,12 @@ class AnomalyObservationV1:
     status: str
     supersedes_sha256: str
     receipt_sha256: str
+    #: The output artifacts of the node this observation flagged, so a
+    #: later stream can join a delivered claim to the flagged result
+    #: without holding the validation receipt. Omitted from the digest
+    #: body when empty, so every receipt minted before the field
+    #: existed verifies under one arithmetic.
+    flagged_artifact_sha256s: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.anomaly-observation.v1":
@@ -3205,6 +3211,11 @@ class AnomalyObservationV1:
             "source_receipt_sha256": self.source_receipt_sha256,
             "status": self.status,
             "supersedes_sha256": self.supersedes_sha256,
+            **(
+                {"flagged_artifact_sha256s": self.flagged_artifact_sha256s}
+                if self.flagged_artifact_sha256s
+                else {}
+            ),
         }
 
 
@@ -3252,6 +3263,7 @@ def build_anomaly_observation(
     source_receipt_sha256: str,
     status: str = "unreplicated",
     supersedes_sha256: str = "",
+    flagged_artifact_sha256s: Sequence[str] = (),
 ) -> AnomalyObservationV1:
     body = {
         "schema_version": "chemsmart.anomaly-observation.v1",
@@ -3264,6 +3276,9 @@ def build_anomaly_observation(
         "status": status,
         "supersedes_sha256": supersedes_sha256,
     }
+    flagged = tuple(sorted({str(item) for item in flagged_artifact_sha256s}))
+    if flagged:
+        body["flagged_artifact_sha256s"] = flagged
     return AnomalyObservationV1(**body, receipt_sha256=canonical_sha256(body))
 
 
