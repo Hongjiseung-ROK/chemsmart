@@ -1154,6 +1154,68 @@ def _xtb_log_frequencies(logs: tuple[Any, ...]) -> tuple[float, ...]:
     return ()
 
 
+def _basin_sensor_inputs(
+    input_artifact: TrustedArtifactRefV1 | None, output: Any, jobtype: str
+) -> dict[str, Any]:
+    """How far an optimisation walked from the structure it was given.
+
+    A converged minimum is a valid minimum whatever basin it lies in,
+    and the stationary-point rule types the order of a point, never
+    which structure it is: a planar cyclohexane relaxed to the
+    twist-boat in two live arms and both delivered its energy as "the
+    minimum" with budget unspent (E2 window, 2026-09-03). The host
+    measures the walk -- heavy-atom RMSD after Kabsch alignment and
+    any bond made or broken -- and records the numbers; what the walk
+    means is the scientist's.
+    """
+
+    if jobtype not in {"opt", "ts"}:
+        return {}
+    symbols, positions = _pyscf_input_geometry(input_artifact)
+    if not symbols:
+        return {}
+    try:
+        import numpy as np
+
+        from chemsmart.agent.execution import _molecule_graph
+        from chemsmart.io.molecules.structure import Molecule
+        from chemsmart.utils.utils import kabsch_align
+
+        molecule = output.molecule
+        out_symbols = tuple(str(item) for item in molecule.chemical_symbols)
+        out_positions = np.asarray(molecule.positions, dtype=float)
+    except Exception:
+        return {}
+    if out_symbols != tuple(symbols) or len(out_positions) != len(symbols):
+        return {}
+    heavy = [index for index, symbol in enumerate(symbols) if symbol != "H"]
+    inputs: dict[str, Any] = {}
+    if len(heavy) >= 3:
+        before = np.asarray(positions, dtype=float)[heavy]
+        after = out_positions[heavy]
+        *_rest, rmsd = kabsch_align(before, after)
+        inputs["heavy_atom_rmsd_angstrom"] = float(f"{float(rmsd):.4f}")
+    try:
+        before_graph = _molecule_graph(
+            Molecule(
+                symbols=list(symbols),
+                positions=[list(row) for row in positions],
+            )
+        )
+        after_graph = _molecule_graph(molecule)
+        before_edges = {frozenset(edge) for edge in before_graph.edges}
+        after_edges = {frozenset(edge) for edge in after_graph.edges}
+        inputs["bonds_made"] = sorted(
+            sorted(edge) for edge in after_edges - before_edges
+        )
+        inputs["bonds_broken"] = sorted(
+            sorted(edge) for edge in before_edges - after_edges
+        )
+    except Exception:
+        return inputs
+    return inputs
+
+
 def _imaginary_mode_sensor_inputs(
     output: Any, frequencies: tuple[float, ...]
 ) -> dict[str, Any]:
@@ -11438,6 +11500,9 @@ class CommandCompiledToolHostV1:
                     sensor_inputs.update(
                         _imaginary_mode_sensor_inputs(output, frequencies)
                     )
+                    sensor_inputs["basin"] = _basin_sensor_inputs(
+                        expected_input_artifact, output, jobtype
+                    )
                     finite_frequencies = bool(frequencies) and all(
                         math.isfinite(float(value)) for value in frequencies
                     )
@@ -11896,6 +11961,19 @@ class CommandCompiledToolHostV1:
         if order_finding:
             findings.append(order_finding)
         anomalies: list[dict[str, Any]] = []
+        basin = dict(sensor_inputs.pop("basin", {}) or {})
+        rmsd = basin.get("heavy_atom_rmsd_angstrom")
+        if rmsd is not None and float(rmsd) >= 0.3:
+            anomalies.append(
+                {
+                    "signal_id": "geometry.heavy_atom_rmsd_ge_0.3",
+                    **basin,
+                }
+            )
+        if basin.get("bonds_made") or basin.get("bonds_broken"):
+            anomalies.append(
+                {"signal_id": "geometry.connectivity_changed", **basin}
+            )
         if order_finding:
             # The verdict says the run failed its promise; the observation
             # says what the structure is. Both are true, and the second
