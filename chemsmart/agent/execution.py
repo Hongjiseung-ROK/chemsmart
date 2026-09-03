@@ -2430,8 +2430,13 @@ class ApprovedNodeBindingV1:
     #: Optional and omitted from the canonical body when absent, so every
     #: already-recorded approval keeps its digest and stays replayable.
     internal_coordinates: Mapping[str, Any] | None = None
+    #: The anomaly this node investigates, when it is an excursion; the
+    #: launch charges it to the grant's own line. Omitted when empty.
+    excursion: str = ""
 
     def __post_init__(self) -> None:
+        if self.excursion:
+            require_sha256(self.excursion, "excursion")
         for name, value in (
             ("node_id", self.node_id),
             ("program", self.program),
@@ -2494,6 +2499,8 @@ def _approved_node_binding_body(
         body["internal_coordinates"] = canonical_data(
             binding.internal_coordinates
         )
+    if binding.excursion:
+        body["excursion"] = binding.excursion
     return body
 
 

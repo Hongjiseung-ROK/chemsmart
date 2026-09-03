@@ -130,10 +130,19 @@ class CommandNodeIntentV1:
     #: and not in the project.  Carried as canonical data so the draft digest
     #: covers it; the host renders it into each program's own idiom.
     internal_coordinates: Mapping[str, Any] | None = None
+    #: The digest of a host-recorded anomaly observation this node
+    #: investigates. A tagged node is charged to the envelope's excursion
+    #: line, never to the engine-call budget, and may feed no untagged
+    #: node, so the deliverable is never bought with the grant. Empty for
+    #: every ordinary node and omitted from the digest, so recorded
+    #: workflows keep their identity.
+    excursion: str = ""
 
     def __post_init__(self) -> None:
         require_identifier(self.node_id, "node_id")
         require_identifier(self.program, "program")
+        if self.excursion:
+            require_sha256(self.excursion, "excursion")
         self._validate_node_kind()
         self._validate_internal_coordinates()
         _validate_optional_electronic_state(
@@ -322,6 +331,8 @@ def _draft_node_digest_body(node: CommandNodeIntentV1) -> dict:
         # identities when they are unused.
         body.pop("charge")
         body.pop("multiplicity")
+    if not body.get("excursion"):
+        body.pop("excursion", None)
     return body
 
 
@@ -640,9 +651,14 @@ class ScientificWorkflowNodeV2:
     #: authorizes a state rebind on the exact producer geometry.
     charge: int | None = None
     multiplicity: int | None = None
+    #: See ``CommandNodeIntentV1.excursion``; carried into the plan so the
+    #: review, the admission and the executor read one fact.
+    excursion: str = ""
 
     def __post_init__(self) -> None:
         self._validate_identity()
+        if self.excursion:
+            require_sha256(self.excursion, "excursion")
         _validate_optional_electronic_state(
             self.charge,
             self.multiplicity,
@@ -862,6 +878,8 @@ def _scientific_node_digest_body(node: ScientificWorkflowNodeV2) -> dict:
     if body.get("charge") is None and body.get("multiplicity") is None:
         body.pop("charge")
         body.pop("multiplicity")
+    if not body.get("excursion"):
+        body.pop("excursion", None)
     return body
 
 

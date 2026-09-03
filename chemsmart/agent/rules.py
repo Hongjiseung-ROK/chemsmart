@@ -157,6 +157,17 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "status from another.",
     ),
     _r(
+        "plan.excursion_grant",
+        "tool:plan_scientific_workflow",
+        "T2",
+        "A node tagged excursion investigates one host-recorded anomaly "
+        "(cite its receipt digest) and is charged to the envelope's "
+        "excursion line, never to the engine-call budget; it may feed no "
+        "untagged node, so the asked observable stays owed. With no line "
+        "granted, no excursion runs, and a plain revision is the route.",
+        "STANDING round, 2026-09-03; the default is decided by E4",
+    ),
+    _r(
         "project.functional_and_density_fitting",
         "tool:project_yaml",
         "T1",

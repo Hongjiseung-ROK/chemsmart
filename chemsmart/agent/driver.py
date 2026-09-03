@@ -592,6 +592,7 @@ def _wake_context(
                 in {
                     "cycle",
                     "engine_calls_consumed",
+                    "excursion_calls_consumed",
                     "engine_wall_seconds",
                     "workflow_state",
                     "run",
@@ -646,6 +647,7 @@ def _wake_context(
             "engine_calls_remaining": budgets.engine_calls_remaining,
             "wall_seconds_remaining": budgets.wall_seconds_remaining,
             "revisions_remaining": budgets.revisions_remaining,
+            "excursion_calls_remaining": budgets.excursion_calls_remaining,
         },
         "deliverables": deliverables,
         "trajectory": trajectory,
@@ -1870,6 +1872,9 @@ class GoalDriver:
             "workflow_state": self.outcome.workflow_state,
             "engine_calls_consumed": self.outcome.engine_calls_consumed,
             "engine_wall_seconds": self.outcome.engine_wall_seconds,
+            "excursion_calls_consumed": (
+                self.outcome.excursion_calls_consumed
+            ),
         }
         if self.dispatch_receipt is not None:
             payload["queue_wait_seconds"] = _queue_wait_seconds(

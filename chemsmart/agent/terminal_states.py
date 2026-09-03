@@ -212,6 +212,9 @@ class RunOutcomeV1:
     engine_wall_seconds: float = 0.0
     stream_head_hash: str = ""
     stream_tail_hash: str = ""
+    #: Launches charged to the excursion grant, counted apart so the
+    #: engine-call budget never pays for an investigation.
+    excursion_calls_consumed: int = 0
 
     def public_record(self) -> dict[str, Any]:
         return {
@@ -221,6 +224,7 @@ class RunOutcomeV1:
             "nodes": tuple(item.public_record() for item in self.nodes),
             "engine_calls_consumed": self.engine_calls_consumed,
             "engine_wall_seconds": self.engine_wall_seconds,
+            "excursion_calls_consumed": self.excursion_calls_consumed,
         }
 
 
@@ -433,6 +437,7 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
     anomalies_by_node: dict[str, list[dict[str, Any]]] = {}
     event_hashes_by_node: dict[str, list[str]] = {}
     reservations: set[str] = set()
+    excursion_nodes: set[str] = set()
     for event in events:
         payload = event.payload or {}
         node_id = str(
@@ -444,6 +449,8 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
             continue
         if event.kind == "program_execution_observed":
             execution_by_node[node_id] = payload.get("record") or {}
+            if payload.get("excursion"):
+                excursion_nodes.add(node_id)
             event_hashes_by_node.setdefault(node_id, []).append(
                 event.event_hash
             )
@@ -483,6 +490,7 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
 
     nodes: list[NodeTerminalStateV1] = []
     engine_calls = 0
+    excursion_calls = 0
     engine_wall = 0.0
     for row in node_rows:
         node_id = str(row.get("node_id") or "")
@@ -513,7 +521,10 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
         jobtype = str(validation.get("jobtype") or "")
         wall = None
         if execution:
-            engine_calls += 1
+            if node_id in excursion_nodes:
+                excursion_calls += 1
+            else:
+                engine_calls += 1
             wall = _wall_seconds(
                 execution.get("started_at") or "",
                 execution.get("finished_at") or "",
@@ -622,6 +633,7 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
         workflow_state=str(run_record.get("state") or ""),
         nodes=tuple(nodes),
         engine_calls_consumed=engine_calls,
+        excursion_calls_consumed=excursion_calls,
         engine_wall_seconds=engine_wall,
         stream_head_hash=events[0].event_hash if events else "",
         stream_tail_hash=events[-1].event_hash if events else "",

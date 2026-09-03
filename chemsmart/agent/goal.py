@@ -206,6 +206,9 @@ class GoalBudgetsV1:
     engine_calls_remaining: int
     wall_seconds_remaining: float
     revisions_remaining: int
+    #: The excursion grant's own line; it never lends to, or borrows
+    #: from, the engine-call budget.
+    excursion_calls_remaining: int = 0
 
 
 class GoalLedger:
@@ -278,12 +281,16 @@ class GoalLedger:
 
         envelope = dict(record.envelope)
         calls = int(envelope.get("max_engine_calls") or 0)
+        excursions = int(envelope.get("max_excursion_calls") or 0)
         wall = float(envelope.get("episode_wall_time_seconds") or 0.0)
         revisions = record.max_revisions
         for entry in self.entries():
             if entry["kind"] == "run_recorded":
                 calls -= int(
                     entry["payload"].get("engine_calls_consumed") or 0
+                )
+                excursions -= int(
+                    entry["payload"].get("excursion_calls_consumed") or 0
                 )
                 wall -= float(
                     entry["payload"].get("engine_wall_seconds") or 0.0
@@ -294,6 +301,7 @@ class GoalLedger:
             engine_calls_remaining=max(calls, 0),
             wall_seconds_remaining=max(wall, 0.0),
             revisions_remaining=max(revisions, 0),
+            excursion_calls_remaining=max(excursions, 0),
         )
 
     def settle(
@@ -441,10 +449,29 @@ def admit_revision(
             "envelope"
         )
 
-    executable = tuple(
+    # An excursion node is charged to its own line: the plan record
+    # names which nodes carry the tag, so the two counts never mix.
+    excursion_ids = {
+        str(node.get("node_id") or "")
+        for node in (
+            (revision_review.get("scientific_plan") or {}).get("nodes") or ()
+        )
+        if isinstance(node, Mapping) and node.get("excursion")
+    }
+    reviewed = tuple(
         item
         for item in (revision_review.get("node_reviews") or ())
         if isinstance(item, Mapping)
+    )
+    executable = tuple(
+        item
+        for item in reviewed
+        if str(item.get("node_id") or "") not in excursion_ids
+    )
+    excursions = tuple(
+        item
+        for item in reviewed
+        if str(item.get("node_id") or "") in excursion_ids
     )
     checks["engine_budget_remains"] = (
         len(executable) <= budgets.engine_calls_remaining
@@ -453,6 +480,14 @@ def admit_revision(
         reasons.append(
             f"the revision plans {len(executable)} engine calls with "
             f"{budgets.engine_calls_remaining} remaining in the grant"
+        )
+    checks["excursion_budget_remains"] = (
+        len(excursions) <= budgets.excursion_calls_remaining
+    )
+    if not checks["excursion_budget_remains"]:
+        reasons.append(
+            f"the revision plans {len(excursions)} excursion calls with "
+            f"{budgets.excursion_calls_remaining} remaining in the grant"
         )
 
     checks["revision_budget_remains"] = budgets.revisions_remaining > 0

@@ -325,7 +325,7 @@ def test_absent_state_preserves_legacy_command_and_scientific_plan_digests():
         nodes=(command_node,),
     )
     legacy_command_node = canonical_data(command_node)
-    for field in ("node_kind", "charge", "multiplicity"):
+    for field in ("node_kind", "charge", "multiplicity", "excursion"):
         legacy_command_node.pop(field)
     assert draft.draft_sha256 == canonical_sha256(
         {
@@ -353,7 +353,7 @@ def test_absent_state_preserves_legacy_command_and_scientific_plan_digests():
         nodes=(scientific_node,),
     )
     legacy_scientific_node = canonical_data(scientific_node)
-    for field in ("charge", "multiplicity"):
+    for field in ("charge", "multiplicity", "excursion"):
         legacy_scientific_node.pop(field)
     assert plan.plan_sha256 == canonical_sha256(
         {

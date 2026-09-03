@@ -1217,6 +1217,11 @@ def _legacy_tool_definitions(
                 # through this tool, so the coordinate has to be expressible
                 # here or it cannot survive into the launched command.
                 "internal_coordinates": _internal_coordinates_schema(),
+                # Optional: the digest of a host-recorded anomaly this node
+                # investigates. Charged to the envelope's excursion line, never
+                # to the engine-call budget; it may feed no untagged node, so the
+                # asked observable stays owed to the budget.
+                "excursion": digest,
             },
             (
                 "node_id",
@@ -2544,6 +2549,11 @@ def _workflow_node_schema() -> dict:
                 ),
             },
             "internal_coordinates": _internal_coordinates_schema(),
+            # Optional: the digest of a host-recorded anomaly this node
+            # investigates. Charged to the envelope's excursion line, never
+            # to the engine-call budget; it may feed no untagged node, so the
+            # asked observable stays owed to the budget.
+            "excursion": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
             "dependencies": {
                 "type": "array",
                 "description": (

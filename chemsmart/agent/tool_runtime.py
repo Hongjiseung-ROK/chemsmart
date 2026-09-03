@@ -300,6 +300,8 @@ class _CommandContext:
     #: approved binding can record them. Without that the executor has nothing
     #: to rebuild a scan's range from.
     internal_coordinates: Mapping[str, Any] | None = None
+    #: The anomaly this node investigates, when it is an excursion.
+    excursion: str = ""
 
 
 def _undeferrable_producer_finding(
@@ -1363,6 +1365,7 @@ class CommandCompiledToolHostV1:
         frozen_workflow_approval: FrozenWorkflowApprovalV1 | None = None,
         bounded_execution_envelope: BoundedExecutionEnvelopeV1 | None = None,
         engine_calls_remaining: int | None = None,
+        excursion_calls_remaining: int | None = None,
         prior_anomaly_observations: Sequence[Mapping[str, Any]] = (),
         approved_environment_identities: tuple[str, ...] = (),
         materialized_workflow: MaterializedWorkflowV1 | None = None,
@@ -1450,6 +1453,11 @@ class CommandCompiledToolHostV1:
         #: What the goal has left of its engine-call budget after earlier
         #: cycles, when a wake carries it; the envelope alone bounds a
         #: first cycle.
+        self.excursion_calls_remaining = (
+            None
+            if excursion_calls_remaining is None
+            else int(excursion_calls_remaining)
+        )
         self.engine_calls_remaining = (
             None
             if engine_calls_remaining is None
@@ -4005,13 +4013,20 @@ class CommandCompiledToolHostV1:
         smaller of the envelope and what the goal has left.
         """
 
+        self._refuse_unfounded_excursions(plan)
         limits = []
+        excursion_limits = []
         if self.bounded_execution_envelope is not None:
             limits.append(
                 int(self.bounded_execution_envelope.max_engine_calls)
             )
+            excursion_limits.append(
+                int(self.bounded_execution_envelope.max_excursion_calls)
+            )
         if self.engine_calls_remaining is not None:
             limits.append(int(self.engine_calls_remaining))
+        if self.excursion_calls_remaining is not None:
+            excursion_limits.append(int(self.excursion_calls_remaining))
         if not limits:
             return
         limit = min(limits)
@@ -4019,7 +4034,12 @@ class CommandCompiledToolHostV1:
         executable = tuple(
             node.node_id
             for node in plan.nodes
-            if node.node_id not in non_executable
+            if node.node_id not in non_executable and not node.excursion
+        )
+        excursions = tuple(
+            node.node_id
+            for node in plan.nodes
+            if node.node_id not in non_executable and node.excursion
         )
         if len(executable) > limit:
             raise ContractError(
@@ -4028,6 +4048,49 @@ class CommandCompiledToolHostV1:
                 "calls; plan within the budget, reading registered results "
                 "where they already stand instead of re-running them"
             )
+        excursion_limit = min(excursion_limits) if excursion_limits else 0
+        if len(excursions) > excursion_limit:
+            raise ContractError(
+                "scientific workflow exceeds the excursion grant: "
+                f"{len(excursions)} excursion nodes for {excursion_limit} "
+                "remaining excursion calls; an excursion is charged to its "
+                "own displayed line and never to the engine-call budget"
+            )
+
+    def _refuse_unfounded_excursions(self, plan: Any) -> None:
+        """An excursion cites a recorded anomaly and feeds no deliverable.
+
+        The grant pays for investigation, not delivery: a tagged node
+        whose output an untagged node consumes would buy the asked
+        observable with the free line, and a tag citing no receipt the
+        host minted is a model-authored anomaly.
+        """
+
+        tagged = {node.node_id: node.excursion for node in plan.nodes}
+        tagged = {k: v for k, v in tagged.items() if v}
+        if not tagged:
+            return
+        known = set(self.anomaly_observations) | {
+            str(item.get("receipt_sha256") or "")
+            for item in self.prior_anomaly_observations
+        }
+        for node_id, digest in sorted(tagged.items()):
+            if digest not in known:
+                raise ContractError(
+                    f"node {node_id!r} is tagged as an excursion citing "
+                    f"anomaly {digest[:8]}, which the host never recorded; "
+                    "an excursion investigates an anomaly observation the "
+                    "wake context or a validation receipt named"
+                )
+        for edge in getattr(plan, "edges", ()):
+            source = str(getattr(edge, "source_node_id", "") or "")
+            target = str(getattr(edge, "target_node_id", "") or "")
+            if source in tagged and target and target not in tagged:
+                raise ContractError(
+                    f"excursion node {source!r} feeds {target!r}, which is "
+                    "not an excursion; the grant may investigate an anomaly "
+                    "and may never produce the asked observable"
+                )
 
     def _refuse_occupied_node_ids(self, node_ids: tuple[str, ...]) -> None:
         """Refuse, at plan time, a node id whose workspace holds outputs.
@@ -4123,6 +4186,7 @@ class CommandCompiledToolHostV1:
                     if raw_node.get("internal_coordinates")
                     else None
                 ),
+                excursion=str(raw_node.get("excursion") or ""),
             )
             if node.node_kind == "aggregate":
                 # ChemSmart performs the arithmetic, so there is no program
@@ -6035,6 +6099,7 @@ class CommandCompiledToolHostV1:
         )
         context = _CommandContext(
             internal_coordinates=getattr(node, "internal_coordinates", None),
+            excursion=str(getattr(node, "excursion", "") or ""),
             proposal=proposal,
             capability=capability,
             program_binding=program_binding,
@@ -6388,6 +6453,7 @@ class CommandCompiledToolHostV1:
                     blocked_reason=blocked_reason,
                     charge=node.charge,
                     multiplicity=node.multiplicity,
+                    excursion=node.excursion,
                 )
             )
         edges = []
@@ -6473,10 +6539,13 @@ class CommandCompiledToolHostV1:
         if previous is None:
             return
         current_ids = {node.node_id for node in plan.nodes}
+        # An excursion was never a stage the task asked for; dropping it
+        # next cycle is not a regression of the deliverable.
         dropped = sorted(
             node.node_id
             for node in previous.nodes
             if node.node_id not in current_ids
+            and not getattr(node, "excursion", "")
         )
         if dropped:
             raise ContractError(
@@ -6896,6 +6965,7 @@ class CommandCompiledToolHostV1:
         )
         context = _CommandContext(
             internal_coordinates=coordinates,
+            excursion=str(values.get("excursion") or ""),
             proposal=proposal,
             capability=capability,
             program_binding=program_binding,
@@ -8770,7 +8840,15 @@ class CommandCompiledToolHostV1:
             raise ContractError(
                 "frozen workflow approval has no canonical materialization"
             )
-        effective_timeout_seconds = self._require_bounded_launch_budget()
+        excursion_node_ids = frozenset(
+            binding.node_id
+            for binding in frozen_approval.node_bindings
+            if getattr(binding, "excursion", "")
+        )
+        effective_timeout_seconds = self._require_bounded_launch_budget(
+            excursion=node_id in excursion_node_ids,
+            excursion_node_ids=excursion_node_ids,
+        )
         fence = self.event_store.reserve_workflow_node_launch(
             turn_id=turn_id,
             plan=scientific_plan,
@@ -9068,6 +9146,7 @@ class CommandCompiledToolHostV1:
             workflow_id=scientific_plan.workflow_id,
             run_id=v2_run_id,
             receipt=receipt,
+            excursion=node_id in excursion_node_ids,
         )
         self.execution_receipts[node_id] = receipt
         produced_handoffs = []
@@ -9468,19 +9547,37 @@ class CommandCompiledToolHostV1:
             "result_validation": result_validation_receipt,
         }
 
-    def _require_bounded_launch_budget(self) -> float:
+    def _require_bounded_launch_budget(
+        self,
+        *,
+        excursion: bool = False,
+        excursion_node_ids: frozenset[str] = frozenset(),
+    ) -> float:
         """Return this launch's timeout while preserving analysis time.
 
         The envelope's node timeout is an upper bound, not a requirement that
         the full duration remain available before every node.  Planning and
         earlier nodes may consume part of the episode; a later launch receives
         the smaller live window left after reserving postprocessing time.
+        An excursion launch is counted against the grant's own line, and
+        the engine-call line never sees it.
         """
 
         envelope = self.bounded_execution_envelope
         if envelope is None:
             return float(self.execution_resources.node_timeout_seconds)
-        if len(self.execution_receipts) >= envelope.max_engine_calls:
+        excursions_used = sum(
+            1
+            for launched in self.execution_receipts
+            if launched in excursion_node_ids
+        )
+        plain_used = len(self.execution_receipts) - excursions_used
+        if excursion:
+            if excursions_used >= envelope.max_excursion_calls:
+                raise ContractError(
+                    "bounded execution excursion grant exhausted"
+                )
+        elif plain_used >= envelope.max_engine_calls:
             raise ContractError(
                 "bounded execution engine-call budget exhausted"
             )
@@ -10265,6 +10362,7 @@ class CommandCompiledToolHostV1:
                         edge.edge_sha256 if edge is not None else ""
                     ),
                     internal_coordinates=context.internal_coordinates,
+                    excursion=context.excursion,
                     auxiliary_input_bindings=(
                         self._latest_invocation_for_node(
                             planned_node.node_id,
@@ -10616,6 +10714,7 @@ class CommandCompiledToolHostV1:
                         edge.edge_sha256 if edge is not None else ""
                     ),
                     internal_coordinates=context.internal_coordinates,
+                    excursion=context.excursion,
                     auxiliary_input_bindings=(
                         self._latest_invocation_for_node(
                             planned_node.node_id,
@@ -10847,6 +10946,7 @@ class CommandCompiledToolHostV1:
         )
         return _CommandContext(
             internal_coordinates=getattr(node, "internal_coordinates", None),
+            excursion=str(getattr(node, "excursion", "") or ""),
             proposal=CommandProposalV1(
                 node_id=planned_node.node_id,
                 execution_target="run",
@@ -13562,6 +13662,7 @@ def _scientific_plan_from_v1_approval(
             engine=node.engine,
             project_role="approved." + node.program,
             unresolved_fields=(),
+            excursion=node.excursion,
         )
         for node in approval.node_bindings
     )

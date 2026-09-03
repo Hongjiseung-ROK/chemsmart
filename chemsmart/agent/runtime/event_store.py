@@ -777,8 +777,13 @@ class RuntimeEventStore:
         workflow_id: str,
         run_id: str,
         receipt: ProgramExecutionReceiptV1,
+        excursion: bool = False,
     ) -> RuntimeEvent:
-        """Persist the full terminal receipt against its exact reservation."""
+        """Persist the full terminal receipt against its exact reservation.
+
+        ``excursion`` marks the payload (never the digest-bound receipt)
+        so the run outcome charges the call to the grant's own line.
+        """
 
         with self._locked_handle(exclusive=True) as handle:
             events = self._read_locked(handle)
@@ -815,6 +820,7 @@ class RuntimeEventStore:
                     "workflow_id": workflow_id,
                     "run_id": run_id,
                     "node_id": receipt.node_id,
+                    **({"excursion": True} if excursion else {}),
                     "record": canonical_record(receipt),
                 },
                 idempotency_key=(

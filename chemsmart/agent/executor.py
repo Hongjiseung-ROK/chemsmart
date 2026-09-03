@@ -523,6 +523,11 @@ class ApprovedWorkflowExecutor:
                 capability_receipt_sha256=capability_sha256,
                 engine_binding_sha256=engine_binding_sha256,
                 **(
+                    {"excursion": binding.excursion}
+                    if binding.excursion
+                    else {}
+                ),
+                **(
                     {"internal_coordinates": binding.internal_coordinates}
                     if binding.internal_coordinates
                     else {}

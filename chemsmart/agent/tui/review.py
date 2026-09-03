@@ -111,8 +111,15 @@ def _overview_table(review: "WorkflowExecutionReviewV1") -> Table:
                 f"{identity.get('charge')} / "
                 f"{identity.get('multiplicity')}"
             )
-            execution_state = "Executable"
-            reason = "reviewed below"
+            execution_state = (
+                "Excursion" if planned.excursion else "Executable"
+            )
+            reason = (
+                f"investigates anomaly {planned.excursion[:8]}; charged "
+                "to the excursion line"
+                if planned.excursion
+                else "reviewed below"
+            )
         else:
             molecule = planned.project_role
             program_engine = f"{planned.program} / {planned.engine}"
@@ -191,15 +198,21 @@ def _environment_table(review: "WorkflowExecutionReviewV1") -> Table:
 
 def _bounds_panel(review: "WorkflowExecutionReviewV1") -> Panel:
     resources = review.execution_resources
-    return Panel(
-        f"cores: {resources.cores}\n"
-        f"memory: {resources.memory_gb:g} GB\n"
-        f"GPUs: {resources.gpu_count}\n"
-        f"node timeout: {resources.node_timeout_seconds} s\n"
+    excursions = review.execution_envelope.get("max_excursion_calls")
+    lines = [
+        f"cores: {resources.cores}",
+        f"memory: {resources.memory_gb:g} GB",
+        f"GPUs: {resources.gpu_count}",
+        f"node timeout: {resources.node_timeout_seconds} s",
         f"engine-call limit: "
         f"{review.execution_envelope.get('max_engine_calls')}",
-        title="Execution bounds",
-    )
+    ]
+    if excursions:
+        lines.append(
+            f"excursion-call limit: {excursions} (investigation of a "
+            "recorded anomaly; never the deliverable)"
+        )
+    return Panel("\n".join(lines), title="Execution bounds")
 
 
 def _edges_table(review: "WorkflowExecutionReviewV1") -> Table:

@@ -34,6 +34,9 @@ _ROOT_FIELDS = frozenset(
         "scratch_root",
     }
 )
+#: Root keys an envelope may state and older envelopes never did; each
+#: has a default that keeps every recorded envelope's meaning and digest.
+_OPTIONAL_ROOT_FIELDS = frozenset({"max_excursion_calls"})
 _RESOURCE_FIELDS = frozenset(
     {
         "execution_target",
@@ -55,10 +58,13 @@ def _mapping(value: Any, label: str) -> Mapping[str, Any]:
 
 
 def _exact_fields(
-    value: Mapping[str, Any], expected: frozenset[str], label: str
+    value: Mapping[str, Any],
+    expected: frozenset[str],
+    label: str,
+    optional: frozenset[str] = frozenset(),
 ) -> None:
     missing = sorted(expected.difference(value))
-    unknown = sorted(set(value).difference(expected))
+    unknown = sorted(set(value).difference(expected | optional))
     if missing:
         raise ContractError(f"{label} is missing fields: {', '.join(missing)}")
     if unknown:
@@ -94,6 +100,12 @@ class BoundedExecutionEnvelopeV1:
     postprocess_reserve_seconds: int
     max_engine_calls: int
     scratch_root: str
+    #: A displayed, non-fungible line for nodes that investigate a
+    #: recorded anomaly rather than produce the asked observable. Default
+    #: zero: no excursion may run unless the human grants one. It is a
+    #: budget under the same decision, identities, states, conditions and
+    #: preview as every other node -- never a second approval.
+    max_excursion_calls: int = 0
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.bounded-execution-envelope.v1":
@@ -176,6 +188,8 @@ class BoundedExecutionEnvelopeV1:
         # permits an engine call instead of forbidding one.
         if self.max_engine_calls < 0:
             raise ContractError("max_engine_calls must be non-negative")
+        if self.max_excursion_calls < 0:
+            raise ContractError("max_excursion_calls must be non-negative")
         scratch = Path(self.scratch_root)
         if not scratch.is_absolute() or scratch == Path("/"):
             raise ContractError("scratch_root must be a narrow absolute path")
@@ -197,7 +211,7 @@ class BoundedExecutionEnvelopeV1:
     def public_record(self) -> dict[str, Any]:
         """Expose operating bounds without leaking an absolute host path."""
 
-        return {
+        record = {
             "schema_version": "chemsmart.public-bounded-execution-envelope.v1",
             "mode": self.mode,
             "allowed_program_engines": {
@@ -216,6 +230,9 @@ class BoundedExecutionEnvelopeV1:
             "postprocess_reserve_seconds": self.postprocess_reserve_seconds,
             "max_engine_calls": self.max_engine_calls,
         }
+        if self.max_excursion_calls:
+            record["max_excursion_calls"] = self.max_excursion_calls
+        return record
 
 
 def load_bounded_execution_envelope(
@@ -235,7 +252,12 @@ def load_bounded_execution_envelope(
             "execution envelope is not valid UTF-8 YAML"
         ) from exc
     root = _mapping(payload, "execution envelope")
-    _exact_fields(root, _ROOT_FIELDS, "execution envelope")
+    _exact_fields(
+        root,
+        _ROOT_FIELDS,
+        "execution envelope",
+        optional=_OPTIONAL_ROOT_FIELDS,
+    )
     resources = _mapping(root["resources"], "execution resources")
     _exact_fields(resources, _RESOURCE_FIELDS, "execution resources")
     raw_allowlist = _mapping(
@@ -290,6 +312,9 @@ def load_bounded_execution_envelope(
             root["max_engine_calls"], "max_engine_calls"
         ),
         scratch_root=str(root["scratch_root"]).strip(),
+        max_excursion_calls=_integer(
+            root.get("max_excursion_calls", 0), "max_excursion_calls"
+        ),
     )
 
 

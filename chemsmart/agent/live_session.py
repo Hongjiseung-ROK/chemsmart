@@ -872,6 +872,11 @@ def run_live_agent_session(
     )
     if remaining is not None:
         host_kwargs["engine_calls_remaining"] = int(remaining)
+    excursions_remaining = ((goal_context or {}).get("budgets") or {}).get(
+        "excursion_calls_remaining"
+    )
+    if excursions_remaining is not None:
+        host_kwargs["excursion_calls_remaining"] = int(excursions_remaining)
     prior_anomalies = tuple(
         {**dict(anomaly), "node_id": str(node.get("node_id") or "")}
         for node in (
@@ -3698,6 +3703,7 @@ def _parse_bounded_execution_envelope_record(
             ),
             max_engine_calls=int(raw["max_engine_calls"]),
             scratch_root=str(raw["scratch_root"]),
+            max_excursion_calls=int(raw.get("max_excursion_calls", 0)),
         )
     except ContractError:
         raise
@@ -3705,6 +3711,9 @@ def _parse_bounded_execution_envelope_record(
         raise ContractError(
             "execution envelope record does not match the v1 schema"
         ) from exc
+    # A record minted before the grant existed states no excursion line;
+    # its meaning is zero, and it must keep verifying.
+    raw.setdefault("max_excursion_calls", 0)
     if canonical_data(parsed) != canonical_data(raw):
         raise ContractError(
             "execution envelope record contains unknown fields"
