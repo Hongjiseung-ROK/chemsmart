@@ -158,6 +158,7 @@ class RuntimeState:
     previous_command: str = ""
     unresolved_slots: list[str] = field(default_factory=list)
     exposed_tools: list[str] = field(default_factory=list)
+    active_guides: list[str] = field(default_factory=list)
     active_tool_calls: dict[str, str] = field(default_factory=dict)
     completed_tools: list[str] = field(default_factory=list)
     completed_tool_receipts: list[dict[str, str]] = field(default_factory=list)
@@ -388,6 +389,10 @@ def reduce_event(state: RuntimeState, event: RuntimeEvent) -> RuntimeState:
         ]
         if event.payload.get("phase"):
             state.phase = str(event.payload["phase"])
+    elif event.kind == "guide_activated":
+        guide_id = str(event.payload.get("guide_id") or "")
+        if guide_id and guide_id not in state.active_guides:
+            state.active_guides.append(guide_id)
     elif event.kind == "tool_started":
         request_id = str(event.payload.get("request_id") or event.event_id)
         state.active_tool_calls[request_id] = str(

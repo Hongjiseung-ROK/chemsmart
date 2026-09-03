@@ -249,6 +249,7 @@ class ToolLoopRunner:
             },
             idempotency_key="tool-exposure:" + envelope.turn_id,
         )
+        exposed_digest = self.host.surface.tool_schema_sha256
         self.host.record_seeded_evidence(envelope.turn_id)
         start = self.clock()
         attempts: list[ProviderAttemptReceiptV1] = []
@@ -300,6 +301,28 @@ class ToolLoopRunner:
             if timeout_setter is not None:
                 timeout_setter(provider_turn_allowance)
             transport_ordinal += 1
+            # A guide opened mid-session changes the wire payload; the
+            # exposure record used to fire once, so the recorded digest
+            # went stale the moment a leaf opened (audit, 2026-09-03).
+            if self.host.surface.tool_schema_sha256 != exposed_digest:
+                exposed_digest = self.host.surface.tool_schema_sha256
+                self.event_store.append(
+                    turn_id=envelope.turn_id,
+                    kind=EventKind.EXPOSURE_PLANNED.value,
+                    payload={
+                        "tools": tuple(
+                            item["function"]["name"]
+                            for item in self.host.surface.tool_definitions
+                        ),
+                        "tool_schema_sha256": exposed_digest,
+                    },
+                    idempotency_key=(
+                        "tool-exposure:"
+                        + envelope.turn_id
+                        + ":"
+                        + exposed_digest
+                    ),
+                )
             request = session.request_payload(
                 tools=list(self.host.surface.tool_definitions)
             )

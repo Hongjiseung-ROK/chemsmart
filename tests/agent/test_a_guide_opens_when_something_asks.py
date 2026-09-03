@@ -23,6 +23,7 @@ from chemsmart.agent.guides import (
 from chemsmart.agent.rules import POLICY_RULES
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.runtime.events import EventKind
+from chemsmart.agent.runtime.reducer import replay_events
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
 
@@ -132,6 +133,9 @@ def test_opening_a_guide_extends_the_surface_and_records_the_digest(tmp_path):
     assert activated[0]["payload"]["tool_schema_sha256"] == (
         host.surface.tool_schema_sha256
     )
+    assert replay_events(host.event_store.read_events()).active_guides == [
+        "structure"
+    ]
     # Opening it again is idempotent: no second event, same digest.
     host.dispatch(
         turn_id="t2",
