@@ -4093,6 +4093,69 @@ class CommandCompiledToolHostV1:
                     "and may never produce the asked observable"
                 )
 
+    def _refuse_excursion_producing_required_output(
+        self, draft: Any, toolchain: Any
+    ) -> None:
+        """The grant investigates; it never delivers the asked observable.
+
+        The edge rule catches a tagged node feeding another calculation
+        node, and a probe showed what it misses: a tagged LEAF node,
+        whose result the analysis chain reads and claims, buys the asked
+        observable with the free line (2026-09-03). Reading an excursion
+        is its whole point -- a replication receipt needs its numbers --
+        so the refusal is narrower than "no analysis may read it": no
+        required output may descend from a tagged node.
+        """
+
+        tagged = {
+            node.node_id
+            for node in getattr(draft, "nodes", ())
+            if getattr(node, "excursion", "")
+        }
+        if not tagged:
+            return
+        analysis_nodes = {
+            node.node_id: node
+            for node in getattr(toolchain, "analysis_nodes", ())
+        }
+        produced_by = {
+            output.output_id: node.node_id
+            for node in analysis_nodes.values()
+            for output in getattr(node, "outputs", ())
+        }
+
+        def _sources(node_id: str, seen: frozenset[str]) -> set[str]:
+            """Calculation nodes an analysis node's outputs stand on."""
+
+            node = analysis_nodes.get(node_id)
+            if node is None or node_id in seen:
+                return set()
+            seen = seen | {node_id}
+            found: set[str] = set()
+            for item in getattr(node, "inputs", ()):
+                producer = str(getattr(item, "producer_node_id", "") or "")
+                if not producer:
+                    continue
+                if getattr(item, "source_kind", "") == "analysis_output":
+                    found |= _sources(producer, seen)
+                else:
+                    found.add(producer)
+            return found
+
+        for output_id in getattr(toolchain, "required_output_ids", ()):
+            owner = produced_by.get(str(output_id))
+            if owner is None:
+                continue
+            offenders = sorted(_sources(owner, frozenset()) & tagged)
+            if offenders:
+                raise ContractError(
+                    f"required output {output_id!r} descends from excursion "
+                    f"node(s) {', '.join(offenders)}; the grant investigates "
+                    "an anomaly and never produces the asked observable -- "
+                    "produce it with an ordinary node and keep the tagged "
+                    "node's own reading separate"
+                )
+
     def _refuse_occupied_node_ids(self, node_ids: tuple[str, ...]) -> None:
         """Refuse, at plan time, a node id whose workspace holds outputs.
 
@@ -4475,6 +4538,7 @@ class CommandCompiledToolHostV1:
             analysis_nodes=analysis_nodes,
             required_output_ids=values["required_output_ids"],
         )
+        self._refuse_excursion_producing_required_output(draft, plan)
         self.scientific_toolchain_plans[plan.plan_sha256] = plan
         self._scientific_toolchain_command_results[plan.plan_sha256] = (
             command_result
