@@ -417,6 +417,36 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "R1 0/3 -> 3/3; the stale-number live run",
     ),
     _r(
+        "plan.claim_carries_declared_id",
+        "tool:plan_scientific_workflow",
+        "T1",
+        "A declared observable is answered only by a claim whose claim id "
+        "is exactly the declared observable_id. Give the claim node's "
+        "claim ids the declared ids, verbatim; a claim under any other "
+        "name, however right its number, leaves the declaration "
+        "undelivered and the goal cannot settle achieved.",
+        "E4 window: 9/9 first-cycle completions missed on ids",
+    ),
+    _r(
+        "declare.claim_carries_declared_id",
+        "tool:declare_requested_observable",
+        "T1",
+        "The observable_id you declare here is the claim id the delivery "
+        "must carry, verbatim; choose it as the name of the claim you will "
+        "render, and declare before you plan the chain that claims it.",
+        "E4 window: 6/11 goals never claimed a declared id",
+    ),
+    _r(
+        "wake.claim_by_id_costs_no_engine_call",
+        "wake:recovery",
+        "T1",
+        "If deliverables names undelivered_declared_observable_ids, those "
+        "observables were declared and no claim carries their id. Claim "
+        "each by that exact id from the receipts already in hand -- that "
+        "costs no engine call, and this cycle may have none to spend.",
+        "E4 window: two goals settled exhausted with every receipt on disk",
+    ),
+    _r(
         "wake.disposition_branch",
         "wake:recovery",
         "T4",

@@ -358,6 +358,7 @@ _OBSERVABLE_RESTATEMENT_ASK = _WAKE_RULES["wake.restate_observable"].text + " "
 _ADVERSARIAL_CLOSE = _WAKE_RULES["wake.adversarial_close"].text + " "
 _RECOVERY_ROUTE = " " + _WAKE_RULES["wake.recovery_route"].text
 _DISPOSITION_BRANCH = " " + _WAKE_RULES["wake.disposition_branch"].text + " "
+_CLAIM_BY_ID = " " + _WAKE_RULES["wake.claim_by_id_costs_no_engine_call"].text
 _REFUSAL_AFFORDANCE = _WAKE_RULES["wake.refusal_is_a_deliverable"].text
 
 #: Node endings a revision can answer with ordinary work, and what that
@@ -671,6 +672,7 @@ def _wake_context(
             + _RECOVERY_ROUTE
             + repair_sentence
             + _DISPOSITION_BRANCH
+            + _CLAIM_BY_ID
             + _OBSERVABLE_RESTATEMENT_ASK
             + _ADVERSARIAL_CLOSE
             + _REFUSAL_AFFORDANCE
