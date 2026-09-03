@@ -8901,9 +8901,14 @@ class CommandCompiledToolHostV1:
             raise ContractError(
                 "frozen workflow approval has no canonical materialization"
             )
+        # The approved node bindings live on the one-shot approval, not
+        # on the frozen approval; reading them off the wrong object
+        # crashed every launch of a whole sealed window (void E4 window
+        # 1, 2026-09-03) while the suite stayed green, because no test
+        # drives a node through this method past the approval checks.
         excursion_node_ids = frozenset(
             binding.node_id
-            for binding in frozen_approval.node_bindings
+            for binding in approval.node_bindings
             if getattr(binding, "excursion", "")
         )
         effective_timeout_seconds = self._require_bounded_launch_budget(

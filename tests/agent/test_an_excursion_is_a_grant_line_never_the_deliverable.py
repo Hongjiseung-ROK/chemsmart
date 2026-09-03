@@ -17,7 +17,10 @@ import pytest
 import yaml
 
 from chemsmart.agent._contracts import ContractError, canonical_data
-from chemsmart.agent.execution import build_program_execution_receipt
+from chemsmart.agent.execution import (
+    ApprovedNodeBindingV1,
+    build_program_execution_receipt,
+)
 from chemsmart.agent.execution_envelope import (
     load_bounded_execution_envelope,
 )
@@ -292,3 +295,49 @@ def test_a_run_charges_an_excursion_launch_to_its_own_line(tmp_path):
     assert outcome.engine_calls_consumed == 0
     assert outcome.excursion_calls_consumed == 1
     assert outcome.engine_wall_seconds == pytest.approx(5.0)
+
+
+def test_the_launch_gate_counts_each_line_apart(tmp_path):
+    """At launch, receipts of each kind are counted against their own
+    line: an excursion never spends an engine call, and an exhausted
+    engine line still admits the granted excursion."""
+
+    from types import SimpleNamespace
+
+    envelope = _envelope(tmp_path, max_engine_calls=1, max_excursion_calls=1)
+    host = object.__new__(CommandCompiledToolHostV1)
+    host.bounded_execution_envelope = envelope
+    host.execution_resources = envelope.resources
+    host.execution_receipts = {}
+    host._bounded_execution_started_at = __import__("time").monotonic()
+    excursions = frozenset({"probe"})
+
+    assert host._require_bounded_launch_budget(excursion_node_ids=excursions)
+    host.execution_receipts["opt"] = SimpleNamespace(validated=True)
+    with pytest.raises(ContractError, match="engine-call budget exhausted"):
+        host._require_bounded_launch_budget(excursion_node_ids=excursions)
+    assert host._require_bounded_launch_budget(
+        excursion=True, excursion_node_ids=excursions
+    )
+    host.execution_receipts["probe"] = SimpleNamespace(validated=True)
+    with pytest.raises(ContractError, match="excursion grant exhausted"):
+        host._require_bounded_launch_budget(
+            excursion=True, excursion_node_ids=excursions
+        )
+    # The excursion receipt did not touch the engine line's count.
+    with pytest.raises(ContractError, match="engine-call budget exhausted"):
+        host._require_bounded_launch_budget(excursion_node_ids=excursions)
+
+
+def test_the_bindings_the_launch_reads_carry_the_tag():
+    """The one-shot approval carries the node bindings the launch gate
+    reads; the frozen approval never did (void window 1)."""
+
+    from chemsmart.agent.execution import (
+        FrozenWorkflowApprovalV1,
+        WorkflowExecutionApprovalV1,
+    )
+
+    assert "node_bindings" in WorkflowExecutionApprovalV1.__dataclass_fields__
+    assert "node_bindings" not in FrozenWorkflowApprovalV1.__dataclass_fields__
+    assert "excursion" in ApprovedNodeBindingV1.__dataclass_fields__
