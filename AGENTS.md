@@ -65,10 +65,14 @@ scan, constants, cbs, ensemble, spectroscopy, database, crossprogram,
 recovery, saddle -- of extra tools, extra operations, a few hundred
 words of guidance, and the rules placed on it. The host opens a guide on
 four signals, each recorded with the new tool-schema digest: the task
-text, the workspace, the planned DAG's own jobtypes and operations, and
-the previous run's terminal states under a goal; the model may open any
-guide itself with ``open_guide``. Opening a guide changes what the model
-can express and how much it reads, never what the host approves.
+text, the workspace, the planned DAG's own jobtypes, operations and
+programs (a DAG naming two programs opens ``crossprogram``), and the
+previous run's terminal states under a goal; the model may open any
+guide itself with ``open_guide``. The exposure record follows the
+surface each request is actually built from, so a guide opened
+mid-session is recorded with the digest it produced. Opening a guide
+changes what the model can express and how much it reads, never what
+the host approves.
 
 Every natural-language rule the host places in front of the model is a
 registered capability with an id, a placement (stem, a guide, the goal
@@ -565,7 +569,12 @@ is accepted as configuration and refuses execution until its adapter is
 registered. A user-selected profile supplies the provider, endpoint, model,
 reasoning setting, and credential label; source code and documentation must
 not impose a default model. Credentials resolve from the environment or the
-managed key store and never live in agent.yaml or in Git.
+managed key store and never live in agent.yaml or in Git. A profile may state
+``record_reasoning: true`` for a campaign that studies the model: the host
+then keeps each turn's provider-native reasoning in the private run directory
+at mode 0600, the event stream records the artifact by digest and never by
+content, and the turn receipt says it was kept. Hidden reasoning remains
+never scientific evidence and never reaches the public transcript.
 
 ## Authority and approval chain
 
@@ -599,6 +608,17 @@ executor's continuation in its own run directory and wakes the goal from
 its tail. Engine wall time is charged from the run's own receipts and
 queue wait is recorded beside it, never against the engine budget.
 
+The envelope may grant a displayed excursion line, ``max_excursion_calls``,
+default zero. A plan node tagged with the digest of an anomaly the host
+recorded investigates that anomaly and is charged to the line at
+planning, at launch, in the run outcome and in the goal ledger, never to
+the engine-call budget; it may feed no untagged node, so the asked
+observable is never bought with the grant, and a tag citing no receipt
+the host minted is refused where it is planned. The review names the
+line and marks each excursion node, the tag rides the reviewed plan and
+the one-shot bundle, and no second approval exists. The default stays
+zero until a sealed observation decides otherwise.
+
 Every executed result is judged on one program-neutral rule beside its
 program's own validator: the approved jobtype promises a count of
 imaginary modes -- one for a transition-state search, none for a minimum
@@ -606,8 +626,16 @@ imaginary modes -- one for a transition-state search, none for a minimum
 20 cm-1 convention thermochemistry uses for numerical noise. A mismatch
 is a typed failure, ``failed_wrong_stationary_point``, for every program
 whose frequencies the host reads; a run that printed none makes no
-claim. The spin expectation value is recorded as an observation beside
-the bound multiplicity, never as a gate. Capability is measured as
+claim. The spin expectation value is read from the program's own table
+and recorded as an observation beside the bound multiplicity, never as
+a gate; a deviation of 0.2 or more from S(S+1) is an anomaly
+observation carrying its number, ``spin.s2_deviation_ge_0.2``, named
+for the measurement and not for an expectation, because a requested
+broken-symmetry state is not a surprise. That observation had been
+empty on every ORCA and Gaussian result until this round -- the readers
+expose the table as a property and the host called it as a method -- so
+a charter sentence with no consumer is treated as an unverified claim
+until something reads it. Capability is measured as
 filled coverage cells rather than CLI verbs: the capability receipt
 names, per program and jobtype, which typed axes -- electronic,
 geometry, identity, spin, thermochemistry -- are readable or validated,
@@ -669,8 +697,15 @@ completion gate certified the delivery and the host recorded nothing it
 could not explain; achieved with observations when the certified
 delivery carries anomaly receipts — surprises the host detected on the
 run's own nodes, whether or not they were asked for, each with the
-numbers that tripped it — so the one word a human reads first never
-hides what the run found; unreachable from evidence when
+numbers that tripped it, and beside them a pre-registered expectation
+the physics left, which is a result and never a defect — so the one
+word a human reads first never hides what the run found. An anomaly
+receipt is immutable; replication before belief is a second receipt
+that supersedes it: an excursion node cites the anomaly it
+investigates, and when its verdict lands the same sensor either trips
+again (``replicated``) or stays silent (``refuted``), and every word and
+output id carries the head of the chain. The host names the standing
+and never the meaning. A goal is unreachable from evidence when
 the certified completion names required outputs the plan itself declared
 blocked and the recorded scientific decision carries the receipts — a
 typed refusal is a deliverable, not a failure; exhausted when the

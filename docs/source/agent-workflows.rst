@@ -165,9 +165,11 @@ the selected account and model.
        reasoning_effort: REPLACE_WITH_SUPPORTED_REASONING_VALUE
        preserve_thinking: true
 
-Both token limits are required positive integers and ``max_output_tokens`` cannot exceed ``context_tokens``.
-``fallback`` must be empty because ChemSmart does not switch providers inside one session. After a provider failure,
-start a new, explicitly attributed attempt with another profile.
+Both token limits are required positive integers and ``max_output_tokens`` cannot exceed ``context_tokens``. A profile
+may add ``record_reasoning: true`` to keep each turn's provider reasoning in the private run directory for that
+campaign; it never enters the public transcript, and the turn receipt says whether it was kept. ``fallback`` must be
+empty because ChemSmart does not switch providers inside one session. After a provider failure, start a new, explicitly
+attributed attempt with another profile.
 
 The managed key store contains the label selected by the active profile:
 
@@ -226,7 +228,9 @@ calls on the listed programs. It is a bound on a possible run, not permission to
 
 The envelope supplies the explicit per-run cores, memory, and GPU allocation, overriding ordinary server defaults. The
 human review displays that allocation; the selected program, operating system, and any external scheduler must still be
-able to provide it. Open the terminal interface with the envelope:
+able to provide it. An optional ``max_excursion_calls`` (default 0) grants a separate, displayed line for nodes that
+investigate an anomaly the host recorded: such a node is tagged with the anomaly receipt's digest, is charged to that
+line and never to ``max_engine_calls``, and may feed no untagged node. Open the terminal interface with the envelope:
 
 .. code:: bash
 
@@ -289,6 +293,12 @@ timeout, a memory limit, a program error -- opens a typed recovery when budget r
 context carries a repair menu naming the ordinary route for each such ending. A run that ended in a state no revision
 can stand on returns the goal to the human.
 
+A surprise the host detects on a completed node -- a stationary point of the wrong order, a walk to another basin, a
+spin expectation value far from the bound state -- is recorded as an anomaly observation with its numbers beneath the
+verdict, whether or not it was asked for. A certified delivery that carries one settles ``achieved_with_observations``
+and its report names each observation; an excursion that re-runs the sensor marks the observation ``replicated`` or
+``refuted``, and the latest receipt speaks for it.
+
 *************************
  Guides and capabilities
 *************************
@@ -297,8 +307,9 @@ The tools the model reads are a stem and leaves. Every session reads the stem: t
 belong to no family, and the universal rules. A guide is a family unit -- ``structure``, ``scan``, ``constants``,
 ``cbs``, ``ensemble``, ``spectroscopy``, ``database``, ``crossprogram``, ``recovery``, ``saddle`` -- of extra tools,
 extra operations, and a few hundred words of guidance. The host opens a guide when the task text, the workspace, the
-planned workflow, or a previous run's ending calls for it, and the model may open any guide itself with ``open_guide``.
-Each activation is recorded with the tool-schema digest it produced.
+planned workflow (its job types, operations, or a second program), or a previous run's ending calls for it, and the
+model may open any guide itself with ``open_guide``. Each activation is recorded with the tool-schema digest it
+produced.
 
 .. code:: bash
 
