@@ -20,11 +20,16 @@ from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from .test_runtime_v2_launch_fence import _reserve
 
 
-def _envelope_file(tmp_path, calls=6):
+def _envelope_file(tmp_path, calls=6, excursions=0):
     target = tmp_path / "execution-envelope.yaml"
     target.write_text(
         "\n".join(
             (
+                *(
+                    (f"max_excursion_calls: {excursions}",)
+                    if excursions
+                    else ()
+                ),
                 "schema_version: chemsmart.bounded-execution-envelope.v1",
                 "mode: bounded-local",
                 "allowed_program_engines:",
@@ -1468,3 +1473,35 @@ def test_a_failed_run_with_receipts_in_hand_is_not_exhausted(tmp_path):
     assert opened["payload"]["undelivered_declared_observable_ids"] == [
         "rel-energy-scis"
     ]
+
+
+def test_the_goal_keeps_every_budget_line_the_envelope_granted(tmp_path):
+    """Two hand-listed copies of the goal's envelope record dropped the
+    excursion line: every woken cycle of every excursion arm in two
+    sealed windows read zero excursions remaining and the plan gate
+    refused the line the human had granted (E4, E4', 2026-09-03)."""
+
+    from chemsmart.agent.driver import _wake_context
+
+    driver = GoalDriver(
+        task="the goal task",
+        workspace=tmp_path / "ws",
+        execution_envelope_file=_envelope_file(tmp_path, 3, excursions=2),
+        goal_id="goal-t1",
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=lambda **kw: None,
+        resolve_review=lambda **_kw: ("d" * 64, tmp_path / "bundle.json"),
+        execute_bundle=lambda **_kw: None,
+    )
+    assert driver.envelope_record["max_excursion_calls"] == 2
+    goal = driver._goal_record(
+        identity="b" * 64,
+        conditions={"solvents": (), "thermochemistry": ((298.15, 1.0, None),)},
+        review_sha256="c" * 64,
+    )
+    driver.ledger.create(goal)
+    budgets = driver.ledger.budgets(goal)
+    assert budgets.engine_calls_remaining == 3
+    assert budgets.excursion_calls_remaining == 2
+    wake = _wake_context(goal, driver.ledger, None, workspace=tmp_path / "ws")
+    assert wake["budgets"]["excursion_calls_remaining"] == 2

@@ -491,6 +491,28 @@ def _goal_terms_context(
     }
 
 
+def _goal_envelope_record(shown: Mapping[str, Any]) -> dict[str, Any]:
+    """The budget lines a goal is granted, from the envelope it was shown.
+
+    Two hand-listed copies of this record dropped the excursion line, so
+    every woken cycle of every excursion arm in two sealed windows was
+    told it had zero excursions remaining and the plan gate refused the
+    line the human had granted (E4, E4', 2026-09-03). One record, every
+    line the ledger's budgets read.
+    """
+
+    return {
+        "allowed_program_engines": canonical_data(
+            shown.get("allowed_program_engines") or ()
+        ),
+        "max_engine_calls": int(shown.get("max_engine_calls") or 0),
+        "episode_wall_time_seconds": float(
+            shown.get("episode_wall_time_seconds") or 0.0
+        ),
+        "max_excursion_calls": int(shown.get("max_excursion_calls") or 0),
+    }
+
+
 def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
     """What the previous run's own stream says stands delivered.
 
@@ -1273,15 +1295,18 @@ class GoalDriver:
             self.envelope = load_bounded_execution_envelope(
                 execution_envelope_file
             )
-            self.envelope_record = {
-                "allowed_program_engines": (
-                    self.envelope.allowed_program_engines
-                ),
-                "max_engine_calls": self.envelope.max_engine_calls,
-                "episode_wall_time_seconds": (
-                    self.envelope.episode_wall_time_seconds
-                ),
-            }
+            self.envelope_record = _goal_envelope_record(
+                {
+                    "allowed_program_engines": (
+                        self.envelope.allowed_program_engines
+                    ),
+                    "max_engine_calls": self.envelope.max_engine_calls,
+                    "episode_wall_time_seconds": (
+                        self.envelope.episode_wall_time_seconds
+                    ),
+                    "max_excursion_calls": self.envelope.max_excursion_calls,
+                }
+            )
 
         self.goal: GoalRecordV1 | None = None
         self.outcome: Any = None
@@ -1701,17 +1726,7 @@ class GoalDriver:
                 # over a stored review): the envelope the human is
                 # deciding on is the one the review itself displays.
                 shown = dict(review.get("execution_envelope") or {})
-                self.envelope_record = {
-                    "allowed_program_engines": canonical_data(
-                        shown.get("allowed_program_engines") or ()
-                    ),
-                    "max_engine_calls": int(
-                        shown.get("max_engine_calls") or 0
-                    ),
-                    "episode_wall_time_seconds": float(
-                        shown.get("episode_wall_time_seconds") or 0.0
-                    ),
-                }
+                self.envelope_record = _goal_envelope_record(shown)
             if self.initial_decision != "approve":
                 self.ledger.create(
                     self._goal_record(
