@@ -6,6 +6,31 @@ a change may be, and how a change is proven. `AGENTS.md` is the product
 charter; this is the working discipline beneath it. When the two
 disagree, the charter wins and this file is wrong.
 
+## 0. The values, in the order they win
+
+When two of these conflict, the earlier one wins, and the conflict is
+written down.
+
+1. **The host's word is true.** Every verdict, settlement, match and
+   refusal is backed by a receipt and means what the physics means. A
+   word that can be false for a real structure is a defect: `failed`
+   for a quasi-planar radical whose inversion barrier lies below the
+   zero-point level, `achieved` over an undelivered headline, `agreed`
+   by dimension alone.
+2. **One human decision per goal.** Displayed, one-shot, digest-bound;
+   a delegated approval is disclosed on every record it touches.
+3. **Replication before belief.** An anomaly, a number or a claim
+   stands after it reproduces under a stated perturbation; N runs are
+   N observations, and a weak run is never re-rolled.
+4. **Freedom of route.** Any chemically valid route, decomposition or
+   interpretation is admissible; a gate exists only where language
+   cannot compute an invariant, and a refusal names the route.
+5. **The anomaly has standing.** What the host detects it records with
+   the numbers that tripped it, whether or not it was asked for; the
+   model interprets, the human judges, and a gate is never loosened to
+   buy a discovery.
+6. **Errors first, receipts always, the seal is the method.**
+
 ## 1. What a test may exist for
 
 A test exists for exactly one of three reasons:
