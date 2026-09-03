@@ -117,6 +117,12 @@ earned by a live loss names that loss in a comment.
 - Errors are reported as loudly as wins, in the first section. An
   inferred mechanism reported as fact is corrected in place.
 - An insight is registered in the memory ledger the day it is read.
+- A planted gem is checked to survive the optimiser before issue, a
+  planted false gem is checked to exist, and the task text never asks
+  for the observation the change under test is meant to elicit (the
+  first STANDING window: a planar cyclohexane relaxed to the
+  twist-boat unplanted, MMFF benzenes gave no imaginary modes, and
+  both arms reported saddle character because the text asked).
 
 ## 5. The invariants every session carries
 
