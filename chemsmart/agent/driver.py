@@ -193,9 +193,12 @@ def _settle_from_delivery(
 
     delivery = _analysis_delivery(events_path)
     evidence = _settlement_evidence(delivery)
-    certified = (
-        terminal == "complete" and delivery.completion_status == "passed"
-    )
+    # The completion receipt is the host's certification; the session's
+    # terminal word is its posture at exit. A live session delivered its
+    # claims, passed the gate, then left an analysis-only draft and
+    # ended "planned", and the goal returned to the human saying the
+    # gate had not passed (E2 window, 2026-09-03). The receipt decides.
+    certified = delivery.completion_status == "passed"
     if delivery.doubted_quantity_ids:
         # The session claimed from a receipt its own recorded decision
         # doubts. Whatever the completion word says -- partial by the
@@ -238,6 +241,12 @@ def _settle_from_delivery(
         settled, reasons = _achieved_word(delivery, goal_anomalies)
         if settled == "achieved_with_observations":
             evidence = _anomaly_evidence(evidence, goal_anomalies)
+        if terminal != "complete":
+            reasons = reasons + (
+                f"the session ended {terminal!r} after the completion "
+                "passed; what it left unmaterialised is not part of the "
+                "delivery",
+            )
     elif delivery.stopped_by:
         # The stream says what stopped the run before a delivery could
         # exist -- a launch the executor refused, a review the host

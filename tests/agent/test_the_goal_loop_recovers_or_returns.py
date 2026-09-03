@@ -1114,6 +1114,25 @@ def test_an_anomaly_belongs_to_the_goal_not_to_the_cycle(tmp_path):
     assert "anomalies_observed" in kinds
 
 
+def test_the_completion_receipt_certifies_not_the_terminal_word(tmp_path):
+    """A session delivered its claims, passed the gate, then left an
+    analysis-only draft and ended 'planned'; the goal returned saying
+    the gate had not passed. The receipt decides, and the posture at
+    exit is a note on the settlement."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1", terminal="planned", wake_rows=_delivery_rows()
+            ),
+        ],
+        executes=[],
+    )
+    assert result.settlement == "achieved"
+    assert any("ended 'planned'" in reason for reason in result.reasons)
+
+
 def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(
     tmp_path,
 ):
