@@ -884,6 +884,17 @@ def run_live_agent_session(
         for anomaly in (node.get("anomalies") or ())
         if isinstance(anomaly, Mapping)
     )
+    goal_wide = tuple(
+        dict(item)
+        for item in ((goal_context or {}).get("anomalies") or ())
+        if isinstance(item, Mapping)
+    )
+    seen = {str(item.get("receipt_sha256") or "") for item in goal_wide}
+    prior_anomalies = goal_wide + tuple(
+        item
+        for item in prior_anomalies
+        if str(item.get("receipt_sha256") or "") not in seen
+    )
     if prior_anomalies:
         host_kwargs["prior_anomaly_observations"] = prior_anomalies
     declared = tuple((goal_context or {}).get("declared_observables") or ())

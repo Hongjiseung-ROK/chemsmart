@@ -1040,6 +1040,80 @@ def test_retained_intent_is_not_an_ending(tmp_path):
     assert driver._declared_non_executable_ids() == ("hess-a", "hess-b")
 
 
+def test_an_anomaly_belongs_to_the_goal_not_to_the_cycle(tmp_path):
+    """Two live goals settled plain achieved over anomalies recorded a
+    cycle earlier: the receipt died with its cycle. The ledger carries
+    every anomaly, the wake re-seeds later hosts, the run directory
+    hands them to the executor, and the word consults the ledger."""
+
+    from chemsmart.agent.terminal_states import (
+        PRIOR_ANOMALIES_FILE,
+        derive_run_outcome,
+        read_run_events,
+    )
+
+    contexts = []
+
+    def capture(inner):
+        def step(workspace, kwargs):
+            contexts.append(kwargs["goal_context"])
+            return inner(workspace, kwargs)
+
+        return step
+
+    def failed_with_anomaly(run_directory):
+        _engine_stream(tmp_path, run_directory, failed=True)
+        events = run_directory / "events.jsonl"
+        node = derive_run_outcome(read_run_events(events)).nodes[0]
+        session_id = json.loads(events.read_text().splitlines()[0])[
+            "session_id"
+        ]
+        RuntimeEventStore(events, session_id=session_id).append(
+            turn_id="exec-anomaly",
+            kind="anomaly_observed",
+            payload={
+                "receipt_sha256": "c" * 64,
+                "status": "unreplicated",
+                "node_id": node.node_id,
+                "signal_id": "stationary_point.unexpected_order",
+                "record": {
+                    "signal_id": "stationary_point.unexpected_order",
+                    "status": "unreplicated",
+                    "values": {"observed_imaginary_modes": 1},
+                },
+            },
+        )
+        return SimpleNamespace(status="partial", analysis_status="partial")
+
+    seen_prior = {}
+
+    def clean(run_directory):
+        seen_prior["file"] = (run_directory / PRIOR_ANOMALIES_FILE).exists()
+        _engine_stream(tmp_path, run_directory, failed=False)
+        return SimpleNamespace(status="completed", analysis_status="")
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            capture(_planning_session("live-1", review=_review_payload())),
+            capture(_planning_session("live-2", review=_review_payload())),
+        ],
+        executes=[failed_with_anomaly, clean],
+    )
+
+    assert result.settlement == "achieved_with_observations"
+    assert "stationary_point.unexpected_order" in result.reasons[0]
+    assert seen_prior["file"] is True
+    assert [a["signal_id"] for a in contexts[1]["anomalies"]] == [
+        "stationary_point.unexpected_order"
+    ]
+    ledger = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    )
+    kinds = [entry["kind"] for entry in ledger.entries()]
+    assert "anomalies_observed" in kinds
+
+
 def test_a_dispatched_run_parks_the_goal_and_resumes_at_its_outcome(
     tmp_path,
 ):

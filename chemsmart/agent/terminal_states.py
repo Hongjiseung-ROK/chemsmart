@@ -34,6 +34,11 @@ from typing import Any, Mapping
 #: thermochemistry uses for numerical noise.
 STATIONARY_POINT_ORDER_FINDING = "result.stationary_point_order"
 
+#: Anomalies earlier cycles of a goal recorded, handed to a run's host
+#: through its own run directory so the completion receipt it mints can
+#: carry them (a dispatched job reads the same file).
+PRIOR_ANOMALIES_FILE = "prior-anomalies.json"
+
 #: Node endings a revision can answer with ordinary work. The repair
 #: menu in the driver and the recovery guide both key on this set, so a
 #: new repairable ending is added here once.

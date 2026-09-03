@@ -1962,6 +1962,20 @@ def _execution_inputs_from_bundle(
     }
 
 
+def _prior_anomalies(run_directory: Path) -> tuple[dict[str, Any], ...]:
+    """Anomalies earlier cycles recorded, handed down through the run
+    directory so this run's completion receipt can carry them."""
+
+    from chemsmart.agent.terminal_states import PRIOR_ANOMALIES_FILE
+
+    path = Path(run_directory) / PRIOR_ANOMALIES_FILE
+    try:
+        records = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ()
+    return tuple(dict(item) for item in records if isinstance(item, Mapping))
+
+
 def _execute_workflow_bundle(
     *,
     bundle: WorkflowExecutionApprovalBundleV1,
@@ -2024,6 +2038,7 @@ def _execute_workflow_bundle(
         registry=registry,
         live_schema=live_schema,
         task_spec_sha256s=(effective_task_spec_sha256,),
+        prior_anomaly_observations=_prior_anomalies(run_directory),
         # ``inputs`` already carries the execution server profile from the
         # bundle; naming it again here would be a second source of truth for
         # where real jobs are launched.

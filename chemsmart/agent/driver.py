@@ -42,7 +42,10 @@ from chemsmart.agent.goal import (
     conditions_from_review,
 )
 from chemsmart.agent.rules import rules_by_id
-from chemsmart.agent.terminal_states import REPAIRABLE_NODE_STATES
+from chemsmart.agent.terminal_states import (
+    PRIOR_ANOMALIES_FILE,
+    REPAIRABLE_NODE_STATES,
+)
 
 
 def _utc_now() -> str:
@@ -116,8 +119,32 @@ def _default_execute(
     )
 
 
+def _anomaly_evidence(
+    evidence: Mapping[str, Any] | None,
+    ledger_anomalies: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """The receipts a settlement with observations stands on.
+
+    The anomaly receipts are the observation's own evidence: decisions
+    live in a session's stream and the executor's run stream carries
+    none, so a word that requires receipts must bring its own.
+    """
+
+    digests = {
+        str(item.get("receipt_sha256") or "")
+        for item in ledger_anomalies
+        if str(item.get("receipt_sha256") or "")
+    }
+    merged = dict(evidence or {})
+    receipts = set(merged.get("receipt_sha256s") or ()) | digests
+    if receipts:
+        merged["receipt_sha256s"] = tuple(sorted(receipts))
+    return merged
+
+
 def _achieved_word(
     delivery: "_AnalysisDelivery",
+    ledger_anomalies: Sequence[Mapping[str, Any]] = (),
 ) -> tuple[str, tuple[str, ...]]:
     """The settlement word for a certified delivery.
 
@@ -127,13 +154,19 @@ def _achieved_word(
     not hide what the run found (owner ruling, 2026-09-03).
     """
 
-    if delivery.anomaly_output_ids:
+    observed = tuple(
+        sorted(
+            set(delivery.anomaly_output_ids)
+            | set(_anomaly_output_ids_from_records(ledger_anomalies))
+        )
+    )
+    if observed:
         return (
             "achieved_with_observations",
             (
                 "the host completion gate certified the delivery; the "
                 "host also recorded observations nobody asked for: "
-                + ", ".join(delivery.anomaly_output_ids),
+                + ", ".join(observed),
             ),
         )
     return "achieved", ("the host completion gate certified the delivery",)
@@ -201,7 +234,10 @@ def _settle_from_delivery(
             "it: " + ", ".join(delivery.unanswered_verdicts),
         )
     elif certified and delivery.claims:
-        settled, reasons = _achieved_word(delivery)
+        goal_anomalies = _goal_anomalies(ledger)
+        settled, reasons = _achieved_word(delivery, goal_anomalies)
+        if settled == "achieved_with_observations":
+            evidence = _anomaly_evidence(evidence, goal_anomalies)
     elif delivery.stopped_by:
         # The stream says what stopped the run before a delivery could
         # exist -- a launch the executor refused, a review the host
@@ -454,6 +490,36 @@ def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
     }
 
 
+def _goal_anomalies(ledger: GoalLedger) -> tuple[dict[str, Any], ...]:
+    """Every anomaly any cycle of the goal recorded, one per receipt."""
+
+    seen: dict[str, dict[str, Any]] = {}
+    for entry in ledger.entries():
+        if entry["kind"] != "anomalies_observed":
+            continue
+        for record in entry["payload"].get("anomalies") or ():
+            digest = str(record.get("receipt_sha256") or "")
+            if digest and digest not in seen:
+                seen[digest] = dict(record)
+    return tuple(seen.values())
+
+
+def _anomaly_output_ids_from_records(
+    records: Sequence[Mapping[str, Any]],
+) -> tuple[str, ...]:
+    return tuple(
+        sorted(
+            {
+                "anomaly:"
+                f"{record.get('signal_id')}:{record.get('status')}:"
+                f"{str(record.get('receipt_sha256') or '')[:8]}"
+                for record in records
+                if record.get("signal_id") and record.get("receipt_sha256")
+            }
+        )
+    )
+
+
 def _first_declarations(ledger: GoalLedger) -> tuple[dict[str, Any], ...]:
     """The goal's first declaration of each observable, in ledger order.
 
@@ -580,6 +646,7 @@ def _wake_context(
         ),
         "repair_menu": repair_menu,
         "declared_observables": _first_declarations(ledger),
+        "anomalies": _goal_anomalies(ledger),
         "authority": (
             "This session runs under an approved goal. The previous "
             "run's typed outcome is embedded above and inspect_run "
@@ -1726,6 +1793,12 @@ class GoalDriver:
         # finished (live, 2026-09-03: a launcher timeout killed a goal
         # three relaxations into its second cycle and nothing could
         # resume it).
+        prior = _goal_anomalies(self.ledger)
+        if prior:
+            (self.run_directory / PRIOR_ANOMALIES_FILE).write_text(
+                json.dumps(canonical_data(prior), sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
         self.ledger.append(
             "run_started",
             {
@@ -1794,6 +1867,25 @@ class GoalDriver:
                 self.dispatch_receipt, events_path
             )
         self.ledger.append("run_recorded", payload)
+        # What the host detected belongs to the goal, not to the host
+        # that detected it: two live goals settled plain "achieved" over
+        # recorded anomalies because the receipt died with its cycle
+        # (E2 window, 2026-09-03). The ledger carries every anomaly and
+        # every later host is seeded from it.
+        observed = tuple(
+            {**dict(item), "node_id": node.node_id}
+            for node in self.outcome.nodes
+            for item in node.anomalies
+        )
+        if observed:
+            self.ledger.append(
+                "anomalies_observed",
+                {
+                    "cycle": self.cycles,
+                    "run": run_reference,
+                    "anomalies": observed,
+                },
+            )
         if self.execute_result is None:
             self.execute_result = _recorded_execution_result(
                 self.run_directory
@@ -1909,17 +2001,21 @@ class GoalDriver:
             self._settled("returned_to_human", open_items)
             return
         if achieved:
-            word, why = _achieved_word(run_delivery)
+            goal_anomalies = _goal_anomalies(self.ledger)
+            word, why = _achieved_word(run_delivery, goal_anomalies)
+            evidence = _settlement_evidence(run_delivery)
+            if word == "achieved_with_observations":
+                evidence = _anomaly_evidence(evidence, goal_anomalies)
             self.ledger.settle(
                 word,
                 reasons=(
                     f"cycle {self.cycles}: workflow completed with its "
                     "analysis chain; " + why[0],
                 ),
-                evidence=_settlement_evidence(run_delivery),
+                evidence=evidence,
             )
             self._record_qualification()
-            self._settled(word, ())
+            self._settled(word, why)
             return
         if (
             budgets.revisions_remaining <= 0
