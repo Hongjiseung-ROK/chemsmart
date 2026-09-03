@@ -34,6 +34,21 @@ from typing import Any, Mapping
 #: thermochemistry uses for numerical noise.
 STATIONARY_POINT_ORDER_FINDING = "result.stationary_point_order"
 
+#: Node endings a revision can answer with ordinary work. The repair
+#: menu in the driver and the recovery guide both key on this set, so a
+#: new repairable ending is added here once.
+REPAIRABLE_NODE_STATES = frozenset(
+    {
+        "failed_wrong_stationary_point",
+        "failed_nonconverged_scf",
+        "failed_nonconverged_geometry",
+        "failed_nonconverged_scan_step",
+        "timeout_terminated",
+        "memory_limit_terminated",
+        "failed_native",
+    }
+)
+
 #: Modes above this magnitude below zero are imaginary in earnest;
 #: smaller ones are the rotor and translation noise thermochemistry
 #: already treats as zero.

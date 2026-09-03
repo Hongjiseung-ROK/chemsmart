@@ -20,19 +20,10 @@ from dataclasses import dataclass, field
 from typing import Iterable, Mapping
 
 from chemsmart.agent._contracts import ContractError
+from chemsmart.agent.terminal_states import REPAIRABLE_NODE_STATES
 
 #: The typed terminal states that open the recovery guide.
-_RECOVERY_STATES = frozenset(
-    {
-        "failed_wrong_stationary_point",
-        "failed_nonconverged_scf",
-        "failed_nonconverged_geometry",
-        "failed_nonconverged_scan_step",
-        "timeout_terminated",
-        "memory_limit_terminated",
-        "failed_native",
-    }
-)
+_RECOVERY_STATES = REPAIRABLE_NODE_STATES
 
 
 @dataclass(frozen=True)
@@ -369,7 +360,18 @@ GUIDES: tuple[GuideV1, ...] = (
             "Recovering the structure does not recover numbers computed "
             "from the rejected one: re-derive and re-claim them. Standing by "
             "a result with a cited validation receipt is also an answer; "
-            "leaving the failure unanswered is the one thing that is not."
+            "leaving the failure unanswered is the one thing that is not. "
+            "Beside every repair route stands a disposition: the ending may "
+            "itself be the finding. A saddle where a minimum was promised is "
+            "a stationary point of that surface with an energy -- an "
+            "inversion, a symmetry breaking, a hidden reaction coordinate -- "
+            "and the run outcome's anomalies name its mode and which heavy "
+            "atoms carry it; an SCF that will not settle may be an "
+            "instability; a geometry that walked away may have found another "
+            "basin. Read the anomaly, say what the structure is in the "
+            "decision citing its receipt, and then repair, stand by, or "
+            "both. What the host records here is an observation, never a "
+            "verdict; naming it is yours."
         ),
     ),
     GuideV1(

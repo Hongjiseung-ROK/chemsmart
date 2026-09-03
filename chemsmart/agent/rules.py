@@ -405,6 +405,25 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "answer.",
         "R1 0/3 -> 3/3; the stale-number live run",
     ),
+    _r(
+        "wake.disposition_branch",
+        "wake:recovery",
+        "T4",
+        "Beside every route in repair_menu stands a second branch: the "
+        "ending may itself be the finding. A structure that converged onto "
+        "a saddle where a minimum was promised is a stationary point of "
+        "that surface with an energy, and the previous run's anomalies "
+        "(on each node of previous_run_outcome) name its imaginary mode "
+        "and the heavy atoms that carry it; an SCF that would not settle "
+        "may be an instability, a geometry that walked away another basin. "
+        "Before you repair, say in the decision what the structure is, "
+        "citing the anomaly receipt (anomaly:<sha256>), and then repair, "
+        "stand by, or do both. The host records the observation; naming "
+        "what it means is yours, and an unexpected finding delivered beside "
+        "the asked observable is a deliverable, not a defect.",
+        "retrospective audit 2026-09-03: 24 structural saddles, 21 named "
+        "as failures, 0 delivered as findings",
+    ),
     # Tool-placed rules.
     _r(
         "tool.amend_keeps_every_observable",

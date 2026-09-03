@@ -42,6 +42,7 @@ from chemsmart.agent.goal import (
     conditions_from_review,
 )
 from chemsmart.agent.rules import rules_by_id
+from chemsmart.agent.terminal_states import REPAIRABLE_NODE_STATES
 
 
 def _utc_now() -> str:
@@ -288,6 +289,7 @@ _WAKE_RULES = rules_by_id()
 _OBSERVABLE_RESTATEMENT_ASK = _WAKE_RULES["wake.restate_observable"].text + " "
 _ADVERSARIAL_CLOSE = _WAKE_RULES["wake.adversarial_close"].text + " "
 _RECOVERY_ROUTE = " " + _WAKE_RULES["wake.recovery_route"].text
+_DISPOSITION_BRANCH = " " + _WAKE_RULES["wake.disposition_branch"].text + " "
 _REFUSAL_AFFORDANCE = _WAKE_RULES["wake.refusal_is_a_deliverable"].text
 
 #: Node endings a revision can answer with ordinary work, and what that
@@ -304,18 +306,25 @@ REPAIR_MENU: Mapping[str, str] = {
         "it with displace_along_vibrational_mode and optimise again, or "
         "change the internal coordinate that mode moves with "
         "edit_molecular_geometry; for a transition state, seed the search "
-        "from a validated frequency-bearing producer's Hessian."
+        "from a validated frequency-bearing producer's Hessian. Or the "
+        "saddle is the finding: its energy, its mode and the heavy atoms "
+        "that carry it are on the node's anomalies -- name what it is "
+        "before you decide whether to leave it."
     ),
     "failed_nonconverged_scf": (
         "An SCF that will not converge is usually a state problem before "
         "it is a solver problem: check the multiplicity and charge you "
         "bound against the chemistry, then change the initial guess or "
-        "the convergence route within the approved conditions."
+        "the convergence route within the approved conditions. Or the "
+        "failure is the finding: an SCF oscillating between two solutions "
+        "or unstable under analysis is telling you about the state."
     ),
     "failed_nonconverged_geometry": (
         "Restart from the last geometry the run reached rather than the "
         "original coordinates -- a fresh start repeats the same path -- "
-        "and consider the optimiser settings the project exposes."
+        "and consider the optimiser settings the project exposes. Or the "
+        "walk is the finding: a geometry that keeps moving may have left "
+        "one basin for another, and the reached geometry says which."
     ),
     "failed_nonconverged_scan_step": (
         "A scan step failed to converge: restart the scan from the last "
@@ -342,8 +351,11 @@ REPAIR_MENU: Mapping[str, str] = {
     ),
 }
 
-#: Node endings a revision can answer (the repair menu's keys).
-REPAIRABLE_TERMINAL_STATES = frozenset(REPAIR_MENU)
+#: Node endings a revision can answer (the repair menu's keys), which
+#: are the one set terminal_states owns; the menu may not drift from it.
+REPAIRABLE_TERMINAL_STATES = REPAIRABLE_NODE_STATES
+if frozenset(REPAIR_MENU) != REPAIRABLE_TERMINAL_STATES:  # pragma: no cover
+    raise ImportError("the repair menu and the repairable endings differ")
 
 
 def _goal_terms_context(
@@ -555,6 +567,7 @@ def _wake_context(
             "human instead of running. "
             + _RECOVERY_ROUTE
             + repair_sentence
+            + _DISPOSITION_BRANCH
             + _OBSERVABLE_RESTATEMENT_ASK
             + _ADVERSARIAL_CLOSE
             + _REFUSAL_AFFORDANCE

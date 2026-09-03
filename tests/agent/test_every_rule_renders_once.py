@@ -70,6 +70,7 @@ def test_wake_rules_render_in_the_wake_and_not_the_prompt():
         + driver._ADVERSARIAL_CLOSE
         + driver._REFUSAL_AFFORDANCE
         + driver._RECOVERY_ROUTE
+        + driver._DISPOSITION_BRANCH
     )
     for rule in rules_for("wake") + rules_for("wake:recovery"):
         assert rule.text.strip() in wake_text, rule.rule_id
