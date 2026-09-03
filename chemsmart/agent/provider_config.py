@@ -68,6 +68,12 @@ def _validate_profile_limits(profile: Any) -> None:
     )
 
 
+#: Profile fields that mean "not stated" when None and stay out of the
+#: digest body, so every profile minted before a field existed verifies
+#: under one arithmetic. Both profile classes read this one tuple.
+UNSTATED_PROFILE_FIELDS = ("enable_thinking", "record_reasoning")
+
+
 @dataclass(frozen=True)
 class AgentProviderProfileV1:
     """One public provider profile; credentials remain in the secret file.
@@ -94,6 +100,10 @@ class AgentProviderProfileV1:
     #: digest body, so every profile minted before the field existed
     #: verifies under one arithmetic.
     enable_thinking: bool | None = None
+    #: Per-campaign opt-in: keep each turn's provider-native reasoning in
+    #: the private run directory. None means "not stated" and stays out
+    #: of the digest body like ``enable_thinking``.
+    record_reasoning: bool | None = None
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.agent-provider-profile.v1":
@@ -103,7 +113,7 @@ class AgentProviderProfileV1:
             key: value
             for key, value in self.__dict__.items()
             if key != "profile_sha256"
-            and not (key == "enable_thinking" and value is None)
+            and not (key in UNSTATED_PROFILE_FIELDS and value is None)
         }
         if self.profile_sha256 != canonical_sha256(body):
             raise ContractError("agent provider profile digest mismatch")
@@ -129,6 +139,7 @@ class AgentProviderProfileV1:
                 context_tokens=self.context_tokens,
                 max_output_tokens=self.max_output_tokens,
                 turn_deadlines=turn_deadlines,
+                record_reasoning=bool(self.record_reasoning),
             )
         if self.provider == "deepseek":
             return DeepSeekV4FlashConfigV1(
@@ -138,6 +149,7 @@ class AgentProviderProfileV1:
                 context_tokens=self.context_tokens,
                 max_output_tokens=self.max_output_tokens,
                 turn_deadlines=turn_deadlines,
+                record_reasoning=bool(self.record_reasoning),
             )
         if self.provider == "openai":
             from chemsmart.agent.runtime.openai_compat import (
@@ -151,6 +163,7 @@ class AgentProviderProfileV1:
                 context_tokens=self.context_tokens,
                 max_output_tokens=self.max_output_tokens,
                 turn_deadlines=turn_deadlines,
+                record_reasoning=bool(self.record_reasoning),
             )
         declaration = PROVIDERS.get(self.provider)
         if declaration is not None and not declaration.runnable:
@@ -176,7 +189,7 @@ class AgentProviderProfileV2(AgentProviderProfileV1):
             key: value
             for key, value in self.__dict__.items()
             if key not in {"profile_sha256", "transport_deadlines"}
-            and not (key == "enable_thinking" and value is None)
+            and not (key in UNSTATED_PROFILE_FIELDS and value is None)
         }
         body["transport_deadlines"] = (
             self.transport_deadlines.configuration_record()
@@ -362,6 +375,9 @@ def _build_profile(
     enable_thinking = entry.get("enable_thinking")
     if enable_thinking is not None and not isinstance(enable_thinking, bool):
         raise ContractError("enable_thinking must be boolean when stated")
+    record_reasoning = entry.get("record_reasoning")
+    if record_reasoning is not None and not isinstance(record_reasoning, bool):
+        raise ContractError("record_reasoning must be boolean when stated")
     context_tokens, max_output_tokens = _explicit_token_limits(entry)
     raw_deadlines = entry.get("transport_deadlines")
     if raw_deadlines is None:
@@ -438,6 +454,8 @@ def _build_profile(
     }
     if enable_thinking is not None:
         body["enable_thinking"] = enable_thinking
+    if record_reasoning is not None:
+        body["record_reasoning"] = record_reasoning
     if transport_deadlines is not None:
         body["transport_deadlines"] = (
             transport_deadlines.configuration_record()

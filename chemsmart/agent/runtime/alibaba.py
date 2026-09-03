@@ -45,6 +45,7 @@ class AlibabaTokenPlanConfigV1:
     reasoning_effort: str = "xhigh"
     preserve_thinking: bool = True
     sdk_max_retries: int = 0
+    record_reasoning: bool = False
     turn_deadlines: ProviderTurnDeadlinesV1 = field(
         default_factory=ProviderTurnDeadlinesV1
     )
@@ -161,11 +162,13 @@ class AlibabaTokenPlanToolSession(DeepSeekV4ToolSession):
         transport,
         messages: list[dict[str, Any]],
         config: AlibabaTokenPlanConfigV1,
+        reasoning_sink=None,
     ) -> None:
         super().__init__(
             transport=transport,
             messages=messages,
             config=config,
+            reasoning_sink=reasoning_sink,
         )
 
     @property
@@ -175,6 +178,7 @@ class AlibabaTokenPlanToolSession(DeepSeekV4ToolSession):
             model=self.config.model,
             context_tokens=self.config.context_tokens,
             max_output_tokens=self.config.max_output_tokens,
+            private_reasoning_persisted=self._reasoning_sink is not None,
         )
 
     def request_payload(
@@ -214,11 +218,13 @@ class Qwen38MaxToolSession(AlibabaTokenPlanToolSession):
         transport,
         messages: list[dict[str, Any]],
         config: Qwen38MaxConfigV1 | None = None,
+        reasoning_sink=None,
     ) -> None:
         super().__init__(
             transport=transport,
             messages=messages,
             config=config or Qwen38MaxConfigV1(),
+            reasoning_sink=reasoning_sink,
         )
 
 

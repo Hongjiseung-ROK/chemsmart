@@ -326,10 +326,6 @@ class ProviderCapabilitiesV1:
             context_tokens=self.context_tokens,
             max_output_tokens=self.max_output_tokens,
         )
-        if self.private_reasoning_persisted:
-            raise ContractError(
-                "private provider reasoning cannot be persisted"
-            )
 
 
 @dataclass(frozen=True)
@@ -351,6 +347,10 @@ class DeepSeekV4FlashConfigV1:
     turn_deadlines: ProviderTurnDeadlinesV1 = field(
         default_factory=ProviderTurnDeadlinesV1
     )
+    #: Profile-supplied, per campaign: when true the host installs a sink
+    #: that keeps each turn's provider-native reasoning in the private run
+    #: directory. The public plane never carries it either way.
+    record_reasoning: bool = False
 
     def __post_init__(self) -> None:
         if self.provider != "deepseek":
@@ -394,10 +394,11 @@ class ProviderTurnReceiptV1:
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.provider-turn-receipt.v1":
             raise ContractError("unsupported provider turn receipt schema")
-        if self.private_reasoning_persisted:
-            raise ContractError(
-                "private provider reasoning cannot be persisted"
-            )
+        # ``private_reasoning_persisted`` is a true word: it is set only
+        # after a host sink wrote the turn's reasoning to the private run
+        # directory. Where it may not go is guarded where it could go --
+        # the public transcript refuses it, and the sink writes beside
+        # the event stream and nowhere else.
         expected = canonical_sha256(
             {
                 "schema_version": self.schema_version,
@@ -430,9 +431,11 @@ class DeepSeekV4ToolSession:
         transport: Callable[[dict[str, Any]], Mapping[str, Any]],
         messages: list[dict[str, Any]],
         config: DeepSeekV4FlashConfigV1,
+        reasoning_sink: Callable[..., Any] | None = None,
     ) -> None:
         self.config = config
         self._transport = transport
+        self._reasoning_sink = reasoning_sink
         self._history = deepcopy(messages)
         self._receipts: list[ProviderTurnReceiptV1] = []
         self._outstanding_tool_call_ids: tuple[str, ...] = ()
@@ -445,6 +448,7 @@ class DeepSeekV4ToolSession:
             model=self.config.model,
             context_tokens=self.config.context_tokens,
             max_output_tokens=self.config.max_output_tokens,
+            private_reasoning_persisted=self._reasoning_sink is not None,
         )
 
     @property
@@ -523,17 +527,43 @@ class DeepSeekV4ToolSession:
         # Preserve the entire provider message. In particular, do not trim or
         # summarize reasoning_content before the next tool-result subturn.
         self._history.append(deepcopy(assistant))
+        persisted = self._persist_private_reasoning(
+            request=request, assistant=assistant
+        )
         receipt = _turn_receipt(
             request=request,
             response=payload,
             assistant=assistant,
             tools=tools or [],
             config=self.config,
+            private_reasoning_persisted=persisted,
         )
         self._receipts.append(receipt)
         self._outstanding_tool_call_ids = tool_call_ids
         self._seen_tool_call_ids.update(tool_call_ids)
         return public_provider_response(payload), receipt
+
+    def _persist_private_reasoning(
+        self, *, request: Mapping[str, Any], assistant: Mapping[str, Any]
+    ) -> bool:
+        """Hand this turn's reasoning to the host's sink, if one is installed.
+
+        The sink is host policy (where the bytes may live); the adapter only
+        knows the wire. A sink that fails raises before any receipt claims
+        the reasoning was kept.
+        """
+
+        if self._reasoning_sink is None:
+            return False
+        reasoning = assistant.get("reasoning_content")
+        if not isinstance(reasoning, str) or not reasoning:
+            return False
+        self._reasoning_sink(
+            ordinal=len(self._receipts) + 1,
+            request_sha256=canonical_sha256(public_provider_request(request)),
+            reasoning_content=reasoning,
+        )
+        return True
 
     def append_tool_results(self, results: list[dict[str, Any]]) -> None:
         """Append OpenAI-shaped tool results after the preserved assistant."""
@@ -787,6 +817,7 @@ def _turn_receipt(
     assistant: dict[str, Any],
     tools: list[dict[str, Any]],
     config: Any,
+    private_reasoning_persisted: bool = False,
 ) -> ProviderTurnReceiptV1:
     choices = response.get("choices") or [{}]
     choice = choices[0] if isinstance(choices[0], Mapping) else {}
@@ -813,7 +844,7 @@ def _turn_receipt(
         "reasoning_continuation_present": isinstance(
             assistant.get("reasoning_content"), str
         ),
-        "private_reasoning_persisted": False,
+        "private_reasoning_persisted": bool(private_reasoning_persisted),
     }
     return ProviderTurnReceiptV1(**body, receipt_sha256=canonical_sha256(body))
 

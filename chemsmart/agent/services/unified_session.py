@@ -18,6 +18,7 @@ from chemsmart.agent.runtime.deepseek import (
     DeepSeekV4ToolSession,
 )
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
+from chemsmart.agent.runtime.events import EventKind
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 
 
@@ -72,6 +73,13 @@ class UnifiedSessionRunner:
                 max_output_tokens=approved_output_limit,
             )
             turn_deadlines = bound_config.turn_deadlines
+            reasoning_sink = (
+                _private_reasoning_sink(
+                    self.event_store, turn_id=envelope.turn_id
+                )
+                if getattr(bound_config, "record_reasoning", False)
+                else None
+            )
             if bound_config.provider == "deepseek":
                 transport = DeepSeekHttpsTransport(
                     api_key=secret,
@@ -82,6 +90,7 @@ class UnifiedSessionRunner:
                     transport=transport,
                     messages=messages,
                     config=bound_config,
+                    reasoning_sink=reasoning_sink,
                 )
             elif bound_config.provider == "alibaba-token-plan":
                 from chemsmart.agent.runtime.alibaba import (
@@ -98,6 +107,7 @@ class UnifiedSessionRunner:
                     transport=transport,
                     messages=messages,
                     config=bound_config,
+                    reasoning_sink=reasoning_sink,
                 )
             elif bound_config.provider == "openai":
                 from chemsmart.agent.runtime.openai_compat import (
@@ -114,6 +124,7 @@ class UnifiedSessionRunner:
                     transport=transport,
                     messages=messages,
                     config=bound_config,
+                    reasoning_sink=reasoning_sink,
                 )
             else:
                 raise ContractError("active provider has no registered runner")
@@ -137,3 +148,35 @@ class UnifiedSessionRunner:
 
 
 __all__ = ["UnifiedSessionRunner"]
+
+
+def _private_reasoning_sink(event_store, *, turn_id: str):
+    """The host's place for provider reasoning: the private run directory.
+
+    Each turn's text goes beside the event stream at 0600 and the stream
+    records the artifact by path and digest, never by content, so a
+    reading can find it and a transcript can never contain it.
+    """
+
+    def sink(*, ordinal: int, request_sha256: str, reasoning_content: str):
+        record = event_store.persist_private_reasoning(
+            turn_id=turn_id,
+            ordinal=ordinal,
+            request_sha256=request_sha256,
+            reasoning_content=reasoning_content,
+        )
+        event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.ARTIFACT_RECORDED.value,
+            payload={
+                "artifact_id": record["artifact_id"],
+                "kind": "private_reasoning",
+                "artifact_sha256": record["artifact_sha256"],
+                "request_sha256": record["request_sha256"],
+                "ordinal": record["ordinal"],
+            },
+            idempotency_key="private-reasoning:" + record["artifact_id"],
+        )
+        return record
+
+    return sink

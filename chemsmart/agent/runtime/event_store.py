@@ -1013,6 +1013,83 @@ class RuntimeEventStore:
                 existing_events=events,
             )
 
+    def persist_private_reasoning(
+        self,
+        *,
+        turn_id: str,
+        ordinal: int,
+        request_sha256: str,
+        reasoning_content: str,
+    ) -> dict[str, Any]:
+        """Keep one turn's provider-native reasoning beside the event stream.
+
+        Opt-in per campaign through the provider profile. The file lives in
+        the private run directory only, at 0600, is never rendered, and is
+        joined to its turn receipt by the public request digest. The record
+        returned carries the path and the digest and never the text.
+        """
+
+        body = {
+            "schema_version": "chemsmart.private-reasoning.v1",
+            "session_id": self.session_id,
+            "turn_id": str(turn_id),
+            "ordinal": int(ordinal),
+            "request_sha256": str(request_sha256),
+            "reasoning_content": str(reasoning_content),
+        }
+        encoded = (
+            json.dumps(body, sort_keys=True, indent=2, ensure_ascii=False)
+            + "\n"
+        ).encode("utf-8")
+        suffix = canonical_sha256(
+            {"turn_id": str(turn_id), "ordinal": int(ordinal)}
+        )[:16]
+        destination = self.path.with_name(f"private-reasoning-{suffix}.json")
+        self._write_private_artifact(destination, encoded)
+        return {
+            "schema_version": "chemsmart.private-reasoning-artifact.v1",
+            "artifact_id": "private_reasoning." + suffix,
+            "path": str(destination),
+            "artifact_sha256": hashlib.sha256(encoded).hexdigest(),
+            "request_sha256": str(request_sha256),
+            "ordinal": int(ordinal),
+        }
+
+    def _write_private_artifact(self, destination: Path, encoded: bytes):
+        """Create ``destination`` at 0600 exactly once, or match its bytes."""
+
+        temporary = destination.with_name(
+            "." + destination.name + f".tmp-{os.getpid()}"
+        )
+        with self._locked_handle(exclusive=True):
+            if os.path.lexists(destination):
+                existing = _secure_open_text(destination)
+                try:
+                    existing.seek(0)
+                    observed = existing.read().encode("utf-8")
+                finally:
+                    existing.close()
+                if observed != encoded:
+                    raise ContractError("private artifact conflicts")
+                return
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+            if hasattr(os, "O_NOFOLLOW"):
+                flags |= os.O_NOFOLLOW
+            descriptor = os.open(temporary, flags, 0o600)
+            try:
+                with os.fdopen(descriptor, "wb") as handle:
+                    descriptor = -1
+                    handle.write(encoded)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary, destination)
+                os.chmod(destination, 0o600)
+            finally:
+                if descriptor >= 0:
+                    os.close(descriptor)
+                if temporary.exists():
+                    temporary.unlink()
+
     def persist_public_transcript(
         self, *, turn_id: str, transcript: Iterable[Mapping[str, Any]]
     ) -> dict[str, Any]:

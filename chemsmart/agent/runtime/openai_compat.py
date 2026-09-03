@@ -42,6 +42,7 @@ class OpenAICompatibleConfigV1:
     turn_deadlines: ProviderTurnDeadlinesV1 = field(
         default_factory=ProviderTurnDeadlinesV1
     )
+    record_reasoning: bool = False
 
     def __post_init__(self) -> None:
         if self.provider != "openai":

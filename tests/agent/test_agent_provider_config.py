@@ -6,6 +6,7 @@ import pytest
 
 from chemsmart.agent._contracts import ContractError, canonical_sha256
 from chemsmart.agent.provider_config import (
+    UNSTATED_PROFILE_FIELDS,
     AgentProviderProfileV1,
     load_agent_provider_selection,
 )
@@ -105,7 +106,7 @@ def test_historical_provider_profile_v1_digest_is_byte_compatible():
     assert profile.__dict__ == {
         **body,
         "profile_sha256": canonical_sha256(body),
-        "enable_thinking": None,
+        **{name: None for name in UNSTATED_PROFILE_FIELDS},
     }
 
 
@@ -387,8 +388,8 @@ def test_a_profile_without_the_switch_keeps_its_digest(tmp_path):
     body = {
         key: value
         for key, value in profile.__dict__.items()
-        if key
-        not in {"profile_sha256", "transport_deadlines", "enable_thinking"}
+        if key not in {"profile_sha256", "transport_deadlines"}
+        and key not in UNSTATED_PROFILE_FIELDS
     }
     assert profile.profile_sha256 == canonical_sha256(body)
 
