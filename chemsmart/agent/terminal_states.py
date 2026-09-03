@@ -143,6 +143,10 @@ class NodeTerminalStateV1:
     #: citation a revision carries.
     evidence_event_hashes: tuple[str, ...] = ()
     evidence_artifact_sha256s: tuple[str, ...] = ()
+    #: Host-detected surprises recorded beneath this node's verdict:
+    #: signal id, status, the numbers that tripped it, the receipt
+    #: digest. Empty for streams that predate the sensor.
+    anomalies: tuple[Mapping[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if self.state not in NODE_TERMINAL_STATES:
@@ -170,6 +174,7 @@ class NodeTerminalStateV1:
             "child_exit_status": self.child_exit_status,
             "evidence_event_hashes": self.evidence_event_hashes,
             "evidence_artifact_sha256s": self.evidence_artifact_sha256s,
+            "anomalies": tuple(dict(item) for item in self.anomalies),
         }
 
 
@@ -405,6 +410,7 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
 
     execution_by_node: dict[str, Mapping[str, Any]] = {}
     validation_by_node: dict[str, Mapping[str, Any]] = {}
+    anomalies_by_node: dict[str, list[dict[str, Any]]] = {}
     event_hashes_by_node: dict[str, list[str]] = {}
     reservations: set[str] = set()
     for event in events:
@@ -423,6 +429,25 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
             )
         elif event.kind == "program_result_verified":
             validation_by_node[node_id] = payload.get("record") or {}
+            event_hashes_by_node.setdefault(node_id, []).append(
+                event.event_hash
+            )
+        elif event.kind == "anomaly_observed":
+            record = payload.get("record") or {}
+            anomalies_by_node.setdefault(node_id, []).append(
+                {
+                    "signal_id": str(
+                        payload.get("signal_id")
+                        or record.get("signal_id")
+                        or ""
+                    ),
+                    "status": str(
+                        payload.get("status") or record.get("status") or ""
+                    ),
+                    "values": dict(record.get("values") or {}),
+                    "receipt_sha256": str(payload.get("receipt_sha256") or ""),
+                }
+            )
             event_hashes_by_node.setdefault(node_id, []).append(
                 event.event_hash
             )
@@ -565,6 +590,7 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
                     event_hashes_by_node.get(node_id, ())
                 ),
                 evidence_artifact_sha256s=artifact_digests,
+                anomalies=tuple(anomalies_by_node.get(node_id, ())),
             )
         )
 

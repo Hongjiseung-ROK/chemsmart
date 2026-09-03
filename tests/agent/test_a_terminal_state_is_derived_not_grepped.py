@@ -280,3 +280,40 @@ def test_an_engine_complete_receipt_with_a_failed_validation_is_a_failure(
     )
     (node,) = derive_run_outcome(read_run_events(clean)).nodes
     assert node.state == "engine_complete_unvalidated"
+
+
+def test_an_anomaly_rides_its_node_into_the_outcome(tmp_path):
+    """A host-detected surprise recorded beneath a node's verdict reaches
+    the run outcome -- and so the wake context and inspect_run -- with
+    its signal, status, numbers and receipt digest; a stream without
+    the sensor derives an empty tuple."""
+
+    path = _stream_with_receipt(
+        tmp_path, findings=("result.stationary_point_order",)
+    )
+    before = derive_run_outcome(read_run_events(path))
+    (node,) = before.nodes
+    assert node.anomalies == ()
+    store = RuntimeEventStore(path, session_id="water-session")
+    store.append(
+        turn_id="turn-1",
+        kind="anomaly_observed",
+        payload={
+            "receipt_sha256": "c" * 64,
+            "status": "unreplicated",
+            "node_id": node.node_id,
+            "signal_id": "stationary_point.unexpected_order",
+            "record": {
+                "signal_id": "stationary_point.unexpected_order",
+                "status": "unreplicated",
+                "values": {"observed_imaginary_modes": 1},
+            },
+        },
+    )
+    after = derive_run_outcome(read_run_events(path))
+    (node,) = after.nodes
+    (anomaly,) = node.anomalies
+    assert anomaly["signal_id"] == "stationary_point.unexpected_order"
+    assert anomaly["values"] == {"observed_imaginary_modes": 1}
+    assert anomaly["receipt_sha256"] == "c" * 64
+    assert after.public_record()["nodes"][0]["anomalies"] == (anomaly,)
