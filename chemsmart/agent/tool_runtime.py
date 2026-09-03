@@ -7510,7 +7510,17 @@ class CommandCompiledToolHostV1:
         limitation_output_ids = tuple(
             sorted(set(tuple(limitation_output_ids) + declared_limitations))
         )
-        anomaly_output_ids = self._anomaly_output_ids()
+        # A falsified pre-registration is a result, never a defect: it
+        # rides the observation list under its own prefix, so the word
+        # carries it and no status or limitation moves.
+        falsified = tuple(
+            f"falsified_expectation:{row.get('observable_id')}"
+            for row in declared_predictions
+            if row.get("agreement") == "diverged" and row.get("observable_id")
+        )
+        anomaly_output_ids = tuple(
+            sorted(set(self._anomaly_output_ids()) | set(falsified))
+        )
         body = {
             "schema_version": "chemsmart.analysis-completion-receipt.v1",
             # A scientific toolchain is already a visible, typed output

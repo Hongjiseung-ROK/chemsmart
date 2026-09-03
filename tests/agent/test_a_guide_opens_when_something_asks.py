@@ -358,6 +358,54 @@ def test_a_declared_observable_is_answered_only_by_a_claim_carrying_its_id(
     assert row["agreement"] == "agreed"
 
 
+def test_a_falsified_expectation_is_an_observation_never_a_limitation(
+    tmp_path,
+):
+    """A pre-registered band the physics left is a result: the completion
+    carries it under its own prefix in the observation list, stays passed,
+    and names no limitation, so the settlement word carries it."""
+
+    from types import SimpleNamespace
+
+    barrier = {
+        "observable_id": "cis-barrier",
+        "unit": "kcal/mol",
+        "dimension": (1, 0, 0, 0, 0, 0),
+        "meaning": "syn barrier above anti",
+        "expectation_basis": "torsional barriers of chloroethanes",
+        "expected_sign": "positive",
+        "expected_low": 3.0,
+        "expected_high": 8.0,
+    }
+    host = _host(
+        tmp_path, approved_requested_observable_declarations=[barrier]
+    )
+    host.analysis_claim_records["r1"] = SimpleNamespace(
+        task_spec_sha256="a" * 64,
+        claims=(
+            SimpleNamespace(
+                claim_id="cis-barrier",
+                dimension=(1, 0, 0, 0, 0, 0),
+                display_value=12.0,
+                display_unit="kcal/mol",
+            ),
+        ),
+    )
+    (row,) = host._declared_observable_predictions(task_spec_sha256="a" * 64)
+    assert row["agreement"] == "diverged"
+    (digest,) = host._record_toolchain_completion(
+        SimpleNamespace(plan_sha256="b" * 64),
+        task_spec_sha256="a" * 64,
+        source_receipt_sha256s=("c" * 64,),
+    )
+    completion = host.analysis_completion_receipts[digest]
+    assert completion.status == "passed"
+    assert completion.limitation_output_ids == ()
+    assert completion.anomaly_output_ids == (
+        "falsified_expectation:cis-barrier",
+    )
+
+
 def test_a_host_opened_guide_delivers_its_body_once(tmp_path):
     """36 host activations in one day's sessions exposed their tools and
     delivered no body; every body that reached the model was a manual
