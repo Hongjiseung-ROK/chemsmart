@@ -16,7 +16,10 @@ from chemsmart.agent.scientific_toolchain import (
 )
 from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
 from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
-from chemsmart.analysis.result_quantities import SUPPORTED_SELECTORS
+from chemsmart.analysis.result_quantities import (
+    SUPPORTED_SELECTORS,
+    derivable_thermochemistry_quantities,
+)
 from chemsmart.analysis.result_readers import (
     registered_reader_programs,
     registered_reader_selectors,
@@ -2329,6 +2332,15 @@ _IDENTIFIER_SPELLING_RULE = (
 )
 
 
+#: The quantity kinds a thermochemistry node can declare as outputs.
+#: Two live sessions declared a Gibbs correction as kind "energy", were
+#: refused when planned with the list in the message, and repeated it
+#: in a later session; the list belongs on the field.
+_THERMOCHEMISTRY_KINDS = tuple(
+    sorted(derivable_thermochemistry_quantities("rrho"))
+)
+
+
 def _public_identifier(
     joins: str | None = None, *, spelling_rule: bool = False
 ) -> dict:
@@ -2825,7 +2837,16 @@ def _analysis_intent_node_schema(
                             "Downstream inputs cite this id as "
                             "producer_output_id."
                         ),
-                        "quantity_kind": _public_identifier(),
+                        "quantity_kind": _public_identifier(
+                            "For a thermochemistry node, one of the kinds "
+                            "the derivation produces -- "
+                            + ", ".join(_THERMOCHEMISTRY_KINDS)
+                            + " -- so a Gibbs correction is "
+                            "thermal_gibbs_correction and a free energy is "
+                            "gibbs_free_energy, never a bare 'energy'. "
+                            "Extraction and expression outputs name their "
+                            "own kinds."
+                        ),
                         "unit": _unit_string(
                             "Physical unit this output is declared in."
                         ),
