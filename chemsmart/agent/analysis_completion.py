@@ -440,6 +440,12 @@ class AnalysisCompletionReceiptV1:
     #: into a bare "passed" is how a live goal round settled an honest
     #: refusal as achieved.
     limitation_output_ids: tuple[str, ...] = ()
+    #: What the host observed that nobody asked for: anomaly receipts on
+    #: this task's nodes, each id carrying the signal and the standing
+    #: status (``anomaly:<signal>:<status>:<digest>``), and falsified
+    #: pre-registrations. Neither a finding nor a limitation: a passed
+    #: completion stays passed, and the settlement word carries them.
+    anomaly_output_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.analysis-completion-receipt.v1":
@@ -468,6 +474,12 @@ class AnalysisCompletionReceiptV1:
         ) or any(not str(item) for item in self.limitation_output_ids):
             raise ContractError(
                 "limitation output ids must be non-empty, sorted, unique"
+            )
+        if self.anomaly_output_ids != tuple(
+            sorted(set(self.anomaly_output_ids))
+        ) or any(not str(item) for item in self.anomaly_output_ids):
+            raise ContractError(
+                "anomaly output ids must be non-empty, sorted, unique"
             )
         if self.status == "passed":
             if self.findings:
@@ -508,6 +520,8 @@ def _completion_receipt_body(
     # one digest arithmetic.
     if receipt.limitation_output_ids:
         body["limitation_output_ids"] = receipt.limitation_output_ids
+    if receipt.anomaly_output_ids:
+        body["anomaly_output_ids"] = receipt.anomaly_output_ids
     return body
 
 

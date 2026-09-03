@@ -1269,6 +1269,7 @@ class CommandCompiledToolHostV1:
         frozen_workflow_approval: FrozenWorkflowApprovalV1 | None = None,
         bounded_execution_envelope: BoundedExecutionEnvelopeV1 | None = None,
         engine_calls_remaining: int | None = None,
+        prior_anomaly_observations: Sequence[Mapping[str, Any]] = (),
         approved_environment_identities: tuple[str, ...] = (),
         materialized_workflow: MaterializedWorkflowV1 | None = None,
         stationary_point_policy: (
@@ -1658,6 +1659,11 @@ class CommandCompiledToolHostV1:
             str, ProgramResultValidationReceiptV1
         ] = {}
         self.anomaly_observations: dict[str, AnomalyObservationV1] = {}
+        #: Anomalies earlier cycles recorded, seeded from the wake so a
+        #: claim-only cycle can cite and carry them.
+        self.prior_anomaly_observations: tuple[Mapping[str, Any], ...] = tuple(
+            dict(item) for item in prior_anomaly_observations
+        )
         self.handoffs: dict[str, OptimizedGeometryHandoffV1] = {}
         self.hessian_handoffs: dict[str, ORCAHessianHandoffV1] = {}
         self._command_contexts: dict[str, _CommandContext] = {}
@@ -7340,6 +7346,33 @@ class CommandCompiledToolHostV1:
             )
         )
 
+    def _anomaly_output_ids(self) -> tuple[str, ...]:
+        """Every anomaly the host recorded on this task, as output ids.
+
+        The status rides in the id, so an unreplicated observation is a
+        true word rather than a hidden one; the digest prefix names the
+        receipt a decision may cite.
+        """
+
+        records: list[Mapping[str, Any]] = [
+            dict(item) for item in self.prior_anomaly_observations
+        ]
+        records.extend(
+            canonical_data(receipt)
+            for receipt in self.anomaly_observations.values()
+        )
+        return tuple(
+            sorted(
+                {
+                    "anomaly:"
+                    f"{record.get('signal_id')}:{record.get('status')}:"
+                    f"{str(record.get('receipt_sha256') or '')[:8]}"
+                    for record in records
+                    if record.get("signal_id") and record.get("receipt_sha256")
+                }
+            )
+        )
+
     def _record_toolchain_completion(
         self,
         plan: ScientificToolchainPlanV1,
@@ -7366,6 +7399,7 @@ class CommandCompiledToolHostV1:
         limitation_output_ids = tuple(
             sorted(set(tuple(limitation_output_ids) + declared_limitations))
         )
+        anomaly_output_ids = self._anomaly_output_ids()
         body = {
             "schema_version": "chemsmart.analysis-completion-receipt.v1",
             # A scientific toolchain is already a visible, typed output
@@ -7379,6 +7413,8 @@ class CommandCompiledToolHostV1:
         }
         if limitation_output_ids:
             body["limitation_output_ids"] = tuple(limitation_output_ids)
+        if anomaly_output_ids:
+            body["anomaly_output_ids"] = anomaly_output_ids
         completion = AnalysisCompletionReceiptV1(
             **body, receipt_sha256=canonical_sha256(body)
         )
@@ -7392,6 +7428,8 @@ class CommandCompiledToolHostV1:
             # non-empty, so pre-field records and full deliveries share
             # one arithmetic.
             completion_record.pop("limitation_output_ids", None)
+        if not completion.anomaly_output_ids:
+            completion_record.pop("anomaly_output_ids", None)
         turn_id = self.event_store.state().turn_id or "analysis-toolchain"
         self.event_store.append(
             turn_id=turn_id,
@@ -7404,6 +7442,7 @@ class CommandCompiledToolHostV1:
                 "status": completion.status,
                 "critical_finding_count": len(completion.findings),
                 "limitation_output_ids": completion.limitation_output_ids,
+                "anomaly_output_ids": completion.anomaly_output_ids,
                 "declared_observable_misses": declared_misses,
                 "declared_observable_predictions": declared_predictions,
                 "completion_kind": "scientific_toolchain",

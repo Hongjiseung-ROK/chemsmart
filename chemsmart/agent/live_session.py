@@ -872,6 +872,20 @@ def run_live_agent_session(
     )
     if remaining is not None:
         host_kwargs["engine_calls_remaining"] = int(remaining)
+    prior_anomalies = tuple(
+        {**dict(anomaly), "node_id": str(node.get("node_id") or "")}
+        for node in (
+            ((goal_context or {}).get("previous_run_outcome") or {}).get(
+                "nodes"
+            )
+            or ()
+        )
+        if isinstance(node, Mapping)
+        for anomaly in (node.get("anomalies") or ())
+        if isinstance(anomaly, Mapping)
+    )
+    if prior_anomalies:
+        host_kwargs["prior_anomaly_observations"] = prior_anomalies
     declared = tuple((goal_context or {}).get("declared_observables") or ())
     if declared and "approved_requested_observable_declarations" not in (
         host_kwargs
