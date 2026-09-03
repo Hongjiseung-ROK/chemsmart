@@ -356,3 +356,65 @@ def test_a_declared_observable_is_answered_only_by_a_claim_carrying_its_id(
     )
     (row,) = host._declared_observable_predictions(task_spec_sha256="a" * 64)
     assert row["agreement"] == "agreed"
+
+
+def test_a_host_opened_guide_delivers_its_body_once(tmp_path):
+    """36 host activations in one day's sessions exposed their tools and
+    delivered no body; every body that reached the model was a manual
+    re-read. The session-start helper returns each opened guide's record,
+    body included, exactly once."""
+
+    from chemsmart.agent.live_session import (
+        _open_session_guides,
+        _public_context,
+    )
+
+    host = _host(tmp_path)
+    records = _open_session_guides(
+        host, {"task": ("saddle", "structure"), "states": ("saddle",)}
+    )
+    assert [item["guide_id"] for item in records] == ["saddle", "structure"]
+    assert all(item["body"] for item in records)
+    assert _open_session_guides(host, {"task": ("saddle",)}) == ()
+    context = _public_context(
+        task="t",
+        task_spec_sha256="a" * 64,
+        observations=(),
+        conformance_records=(),
+        registry_sha256="b" * 64,
+        live_schema_sha256="c" * 64,
+        execution_requested=False,
+        execution_available=False,
+        open_guides=records,
+    )
+    assert [item["guide_id"] for item in context["open_guides"]] == [
+        "saddle",
+        "structure",
+    ]
+    bare = _public_context(
+        task="t",
+        task_spec_sha256="a" * 64,
+        observations=(),
+        conformance_records=(),
+        registry_sha256="b" * 64,
+        live_schema_sha256="c" * 64,
+        execution_requested=False,
+        execution_available=False,
+    )
+    assert "open_guides" not in bare
+
+
+def test_a_leaf_tool_called_by_name_returns_its_guide_with_the_body(
+    tmp_path,
+):
+    host = _host(tmp_path)
+    host._inspect_database_records = lambda turn_id, values: {"records": []}
+    assert "database" not in host.active_guides
+    reply = host.dispatch(
+        turn_id="t1",
+        tool_name="inspect_database_records",
+        arguments={"database_artifact_id": "db-1"},
+    )
+    (opened,) = reply["guides_opened"]
+    assert opened["guide_id"] == "database" and opened["body"]
+    assert "database" in host.active_guides

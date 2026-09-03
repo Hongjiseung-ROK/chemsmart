@@ -1899,8 +1899,11 @@ class CommandCompiledToolHostV1:
         # A leaf tool called by name before its guide opened: the model
         # asked, so the guide opens on that signal and the call proceeds.
         owner = guide_for_tool(tool_name)
+        opened_by_call: tuple[Any, ...] = ()
         if owner and owner not in self.active_guides:
-            self.activate_guides(turn_id, (owner,), signal="model_call")
+            opened_by_call = self.activate_guides(
+                turn_id, (owner,), signal="model_call"
+            )
         _validate_tool_arguments(self.surface, tool_name, values)
         handlers = {
             name: getattr(self, method)
@@ -1916,7 +1919,11 @@ class CommandCompiledToolHostV1:
             "status": "ok",
             "result": _model_visible_data(canonical_data(result)),
         }
-        opened = self._guides_from_planning(turn_id, tool_name, result)
+        # Every guide this call opened travels back with its body, whether
+        # the call itself asked (a leaf tool by name) or the plan did.
+        opened = tuple(opened_by_call) + tuple(
+            self._guides_from_planning(turn_id, tool_name, result)
+        )
         if opened:
             reply["guides_opened"] = tuple(
                 self._guide_record(guide) for guide in opened

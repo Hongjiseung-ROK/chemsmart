@@ -881,15 +881,18 @@ def run_live_agent_session(
     # Guides open before the first turn are opened on the host, so each
     # leaves the same event as one opened mid-session -- with its signal.
     # Observed live (R2c): the leaves were open and the stream showed none.
-    for signal, guides in session_guides.items():
-        if guides:
-            host.activate_guides("session-start", guides, signal=signal)
+    # The body travels with the tools: a host-opened guide used to expose
+    # its tools and deliver no guidance at all -- 36 activations over one
+    # day's sessions, and every body that reached the model was a manual
+    # re-read through open_guide (audit, 2026-09-03).
+    open_guide_records = _open_session_guides(host, session_guides)
     surface = host.surface
 
     context = _public_context(
         task=task,
         task_spec_sha256=task_spec_sha256,
         observations=observations,
+        open_guides=tuple(open_guide_records),
         result_observations=result_observations,
         failed_result_observations=failed_result_observations,
         database_observations=database_observations,
@@ -2957,6 +2960,29 @@ def _record_sort_key(value: Mapping[str, Any]) -> tuple[str, str, str]:
     )
 
 
+def _open_session_guides(
+    host: Any, session_guides: Mapping[str, tuple[str, ...]]
+) -> tuple[dict[str, Any], ...]:
+    """Open the host's session-start guides and return their records.
+
+    Each activation leaves the same event as one opened mid-session,
+    with its signal, and each opened guide's record -- body included --
+    is returned so the context can carry it: exposing a guide's tools
+    without its guidance is a surface change wearing a guidance label.
+    """
+
+    records: list[dict[str, Any]] = []
+    for signal, guides in session_guides.items():
+        if guides:
+            records.extend(
+                host._guide_record(guide)
+                for guide in host.activate_guides(
+                    "session-start", guides, signal=signal
+                )
+            )
+    return tuple(records)
+
+
 def _public_context(
     *,
     task: str,
@@ -2979,6 +3005,7 @@ def _public_context(
     approved_identity_records: tuple[dict[str, Any], ...] = (),
     approved_input_records: tuple[dict[str, Any], ...] = (),
     analysis_completion_record: Mapping[str, Any] | None = None,
+    open_guides: tuple[Mapping[str, Any], ...] = (),
 ) -> dict[str, Any]:
     public_workflow = dict(approved_workflow_record or {})
     return {
@@ -3005,6 +3032,14 @@ def _public_context(
         # cycle -- a present-empty "goal" outside one names a concept
         # the session is not running under.
         **({"goal": dict(goal_record)} if goal_record else {}),
+        # Guides the host opened before the first turn, body included:
+        # a key rather than a message, because the recency slot and the
+        # transcript reader find their messages by index.
+        **(
+            {"open_guides": tuple(dict(item) for item in open_guides)}
+            if open_guides
+            else {}
+        ),
         "approved_molecular_identities": approved_identity_records,
         "approved_molecular_inputs": approved_input_records,
         "approved_project_artifacts": approved_project_records,
