@@ -3201,6 +3201,40 @@ class AnomalyObservationV1:
         }
 
 
+def anomaly_standing(
+    records: Sequence[Any],
+) -> tuple[dict[str, Any], ...]:
+    """The current standing of every anomaly: the head of each chain.
+
+    A receipt is immutable; replication or refutation is a second receipt
+    that supersedes it. Standing is therefore derived by replay: a record
+    that a later record supersedes is history, and the latest receipt in
+    each chain speaks for the anomaly. Records may be receipts or their
+    canonical dicts; the result is canonical dicts in first-seen order.
+    """
+
+    canonical: list[dict[str, Any]] = []
+    for item in records:
+        record = item if isinstance(item, Mapping) else canonical_data(item)
+        record = dict(record)
+        if str(record.get("receipt_sha256") or ""):
+            canonical.append(record)
+    superseded = {
+        str(record.get("supersedes_sha256") or "")
+        for record in canonical
+        if str(record.get("supersedes_sha256") or "")
+    }
+    seen: set[str] = set()
+    heads: list[dict[str, Any]] = []
+    for record in canonical:
+        digest = str(record["receipt_sha256"])
+        if digest in superseded or digest in seen:
+            continue
+        seen.add(digest)
+        heads.append(record)
+    return tuple(heads)
+
+
 def build_anomaly_observation(
     *,
     node_id: str,

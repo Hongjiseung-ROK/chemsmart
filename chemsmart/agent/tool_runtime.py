@@ -95,6 +95,7 @@ from chemsmart.agent.execution import (
     WorkflowExecutionReviewV1,
     WorkflowNodeRunStateV1,
     WorkflowRunStateV1,
+    anomaly_standing,
     append_trusted_molecular_atom,
     bind_project_promotion_validation,
     build_anomaly_observation,
@@ -7532,12 +7533,71 @@ class CommandCompiledToolHostV1:
             )
         )
 
+    def _replication_receipt(
+        self,
+        *,
+        node_id: str,
+        context: Any,
+        anomalies: Sequence[Mapping[str, Any]],
+        source_receipt_sha256: str,
+    ) -> AnomalyObservationV1 | None:
+        """Replication before belief, as a superseding receipt.
+
+        An excursion node cites the anomaly it investigates. When it
+        ends with a verdict, the host compares the same sensor on the
+        new result: the signal tripping again is ``replicated``, its
+        silence is ``refuted``, and either is a second immutable receipt
+        that supersedes the first. The host names the standing and
+        never the meaning; whether a replicated anomaly is a discovery
+        stays the scientist's claim.
+        """
+
+        cited = str(getattr(context, "excursion", "") or "")
+        if not cited:
+            return None
+        known: dict[str, Mapping[str, Any]] = {
+            str(item.get("receipt_sha256") or ""): item
+            for item in self.prior_anomaly_observations
+        }
+        known.update(
+            (digest, canonical_data(receipt))
+            for digest, receipt in self.anomaly_observations.items()
+        )
+        source = known.get(cited)
+        if source is None:
+            return None
+        signal_id = str(source.get("signal_id") or "")
+        again = next(
+            (
+                item
+                for item in anomalies
+                if str(item.get("signal_id") or "") == signal_id
+            ),
+            None,
+        )
+        values = (
+            {k: v for k, v in dict(again).items() if k != "signal_id"}
+            if again is not None
+            else {"signal_tripped": False}
+        )
+        return build_anomaly_observation(
+            node_id=node_id,
+            program=context.proposal.program,
+            jobtype=context.proposal.jobtype,
+            signal_id=signal_id,
+            values=values,
+            source_receipt_sha256=source_receipt_sha256,
+            status="replicated" if again is not None else "refuted",
+            supersedes_sha256=cited,
+        )
+
     def _anomaly_output_ids(self) -> tuple[str, ...]:
         """Every anomaly the host recorded on this task, as output ids.
 
         The status rides in the id, so an unreplicated observation is a
         true word rather than a hidden one; the digest prefix names the
-        receipt a decision may cite.
+        receipt a decision may cite. A superseded receipt is history:
+        the chain's latest receipt carries the standing.
         """
 
         records: list[Mapping[str, Any]] = [
@@ -7547,6 +7607,7 @@ class CommandCompiledToolHostV1:
             canonical_data(receipt)
             for receipt in self.anomaly_observations.values()
         )
+        records = list(anomaly_standing(records))
         return tuple(
             sorted(
                 {
@@ -9076,6 +9137,23 @@ class CommandCompiledToolHostV1:
                 node_id=node_id,
                 signal_id=observation_receipt.signal_id,
                 record=canonical_data(observation_receipt),
+            )
+        replication = self._replication_receipt(
+            node_id=node_id,
+            context=context,
+            anomalies=evaluation.anomalies,
+            source_receipt_sha256=result_validation_receipt.receipt_sha256,
+        )
+        if replication is not None:
+            self.anomaly_observations[replication.receipt_sha256] = replication
+            self._emit(
+                turn_id,
+                EventKind.ANOMALY_OBSERVED,
+                replication.receipt_sha256,
+                status=replication.status,
+                node_id=node_id,
+                signal_id=replication.signal_id,
+                record=canonical_data(replication),
             )
         validated = result_validation_receipt.state == "valid"
         validator_sha256s = (result_validation_receipt.receipt_sha256,)

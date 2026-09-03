@@ -125,3 +125,111 @@ def test_an_anomaly_cites_its_verdict_and_names_its_status(tmp_path):
     )
     state = replay_events(store.read_events())
     assert state.anomaly_records == [receipt.receipt_sha256]
+
+
+def _prior(digest: str, signal_id: str) -> dict:
+    return {
+        "receipt_sha256": digest,
+        "signal_id": signal_id,
+        "status": "unreplicated",
+        "supersedes_sha256": "",
+        "node_id": "opt-a",
+    }
+
+
+def test_the_latest_receipt_in_a_chain_speaks_for_the_anomaly():
+    """Replication before belief: a receipt is immutable, so replication
+    or refutation is a second receipt superseding the first, and the
+    standing any word or id carries is the head of the chain."""
+
+    from chemsmart.agent.driver import _anomaly_output_ids_from_records
+    from chemsmart.agent.execution import anomaly_standing
+
+    first = build_anomaly_observation(
+        node_id="opt-a",
+        program="orca",
+        jobtype="opt",
+        signal_id="stationary_point.unexpected_order",
+        values={"observed_imaginary_modes": 1},
+        source_receipt_sha256="a" * 64,
+    )
+    second = build_anomaly_observation(
+        node_id="opt-b",
+        program="orca",
+        jobtype="opt",
+        signal_id="stationary_point.unexpected_order",
+        values={"signal_tripped": False},
+        source_receipt_sha256="b" * 64,
+        status="refuted",
+        supersedes_sha256=first.receipt_sha256,
+    )
+    (head,) = anomaly_standing((first, second))
+    assert head["receipt_sha256"] == second.receipt_sha256
+    assert head["status"] == "refuted"
+    (output_id,) = _anomaly_output_ids_from_records(
+        [dict(item) for item in anomaly_standing((second, first))]
+    )
+    assert output_id == (
+        "anomaly:stationary_point.unexpected_order:refuted:"
+        + second.receipt_sha256[:8]
+    )
+
+
+def test_an_excursion_verdict_replicates_or_refutes_what_it_cites(tmp_path):
+    """The node that investigates an anomaly cites it; when its verdict
+    lands, the same sensor either trips again or stays silent, and the
+    host mints the superseding receipt with the numbers. It names the
+    standing, never the meaning."""
+
+    from types import SimpleNamespace
+
+    cited = "c" * 64
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events.jsonl", session_id="s"
+        ),
+        artifacts={},
+        task_spec_sha256s=("a" * 64,),
+        approved_workspace=tmp_path / "workspace",
+        prior_anomaly_observations=[
+            _prior(cited, "stationary_point.unexpected_order")
+        ],
+    )
+    context = SimpleNamespace(
+        excursion=cited,
+        proposal=SimpleNamespace(program="orca", jobtype="opt"),
+    )
+    tripped = host._replication_receipt(
+        node_id="opt-b",
+        context=context,
+        anomalies=(
+            {
+                "signal_id": "stationary_point.unexpected_order",
+                "observed_imaginary_modes": 1,
+                "expected_imaginary_modes": 0,
+            },
+        ),
+        source_receipt_sha256="d" * 64,
+    )
+    assert tripped.status == "replicated"
+    assert tripped.supersedes_sha256 == cited
+    assert tripped.values["observed_imaginary_modes"] == 1
+    silent = host._replication_receipt(
+        node_id="opt-b",
+        context=context,
+        anomalies=(),
+        source_receipt_sha256="d" * 64,
+    )
+    assert silent.status == "refuted"
+    assert silent.values == {"signal_tripped": False}
+    # An ordinary node cites nothing and mints nothing.
+    plain = SimpleNamespace(excursion="", proposal=context.proposal)
+    assert (
+        host._replication_receipt(
+            node_id="opt-c",
+            context=plain,
+            anomalies=(),
+            source_receipt_sha256="d" * 64,
+        )
+        is None
+    )

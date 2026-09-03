@@ -34,6 +34,7 @@ from types import SimpleNamespace
 from typing import Any, Callable, Mapping, Sequence
 
 from chemsmart.agent._contracts import ContractError, canonical_data
+from chemsmart.agent.execution import anomaly_standing
 from chemsmart.agent.goal import (
     GOAL_SCHEMA_VERSION,
     GoalLedger,
@@ -516,13 +517,15 @@ def _goal_anomalies(ledger: GoalLedger) -> tuple[dict[str, Any], ...]:
 def _anomaly_output_ids_from_records(
     records: Sequence[Mapping[str, Any]],
 ) -> tuple[str, ...]:
+    # Standing is the head of each chain: a replicated or refuted
+    # receipt speaks for the anomaly it supersedes.
     return tuple(
         sorted(
             {
                 "anomaly:"
                 f"{record.get('signal_id')}:{record.get('status')}:"
                 f"{str(record.get('receipt_sha256') or '')[:8]}"
-                for record in records
+                for record in anomaly_standing(records)
                 if record.get("signal_id") and record.get("receipt_sha256")
             }
         )
