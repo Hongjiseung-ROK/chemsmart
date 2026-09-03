@@ -25,13 +25,24 @@ def test_rule_ids_are_unique_and_placements_valid():
     assert set(rules_by_id()) == set(ids)
 
 
-def test_every_stem_and_leaf_rule_renders_once_in_the_prompt():
+def test_every_stem_rule_renders_once_and_leaf_rules_only_in_their_guide():
+    """A leaf rule used to render in the stem of every session whether
+    or not its guide was open; it renders once, inside its guide's
+    record, when the guide opens."""
+
+    from chemsmart.agent.guides import GUIDES_BY_ID
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
     prompt = _system_prompt({})
     for rule in POLICY_RULES:
-        if rule.placement == "stem" or rule.placement.startswith("leaf:"):
+        if rule.placement == "stem":
             assert prompt.count(rule.text.strip()) == 1, rule.rule_id
         else:
             assert rule.text.strip() not in prompt, rule.rule_id
+        if rule.placement.startswith("leaf:"):
+            guide = GUIDES_BY_ID[rule.placement.split(":", 1)[1]]
+            body = CommandCompiledToolHostV1._guide_record(guide)["body"]
+            assert body.count(rule.text.strip()) == 1, rule.rule_id
 
 
 def test_the_owners_policing_rules_are_in_the_stem():

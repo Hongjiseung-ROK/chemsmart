@@ -1969,10 +1969,17 @@ class CommandCompiledToolHostV1:
 
     @staticmethod
     def _guide_record(guide: Any) -> dict[str, Any]:
+        # The guide's own rules render inside its body, once, when it
+        # opens; they used to render in the stem for every session.
+        from chemsmart.agent.rules import render_rules
+
+        leaf_rules = render_rules(f"leaf:{guide.guide_id}")
         return {
             "guide_id": guide.guide_id,
             "title": guide.title,
-            "body": guide.body,
+            "body": (
+                guide.body + " " + leaf_rules if leaf_rules else guide.body
+            ),
             "tools_now_available": list(guide.tools),
             "operations_now_available": list(guide.operations),
         }

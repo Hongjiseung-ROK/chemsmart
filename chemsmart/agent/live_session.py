@@ -3153,16 +3153,16 @@ def _system_prompt(
             "never replaces a typed host receipt."
         )
     # The body renders from the rules registry (chemsmart.agent.rules):
-    # every sentence has an id, a placement and a provenance there. Leaf
-    # rules render in the stem until leaves are activated by family.
-    from chemsmart.agent.rules import leaf_placements, render_rules
+    # every sentence has an id, a placement and a provenance there. A
+    # leaf rule renders inside its guide's body when the guide opens
+    # (see CommandCompiledToolHostV1._guide_record), never in the stem.
+    from chemsmart.agent.rules import render_rules
 
     return (
         render_rules("stem")
         + " "
         + approval_readiness_sentence
         + _workflow_context_sentence()
-        + render_rules(*leaf_placements())
         + " "
         + execution_sentence
         + skill_sentence
