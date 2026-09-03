@@ -10340,6 +10340,20 @@ class CommandCompiledToolHostV1:
                     )
                     cursor = append_receipt.parent_sha256
                     continue
+                # A structure stepped off a saddle along one of its own
+                # modes is a hop like any other, and the one a re-optimised
+                # displaced structure's review had been missing: the walk
+                # ends on the result the step was taken from.
+                displacement_receipt = self.mode_displacements.get(cursor)
+                if displacement_receipt is not None:
+                    geometry_lineage.append(
+                        {
+                            "kind": "mode_displacement",
+                            **canonical_data(displacement_receipt),
+                        }
+                    )
+                    cursor = displacement_receipt.result_sha256
+                    continue
                 break
             derivation_receipt = self.molecular_derivations.get(cursor)
             if derivation_receipt is not None:

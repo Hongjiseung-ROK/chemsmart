@@ -923,6 +923,38 @@ def _geometry_lineage_panels(
                     "contact -- observations, not verdicts",
                 ]
                 title_kind = "appended atom"
+            elif record.get("kind") == "mode_displacement":
+                moved = list(record.get("moved_atoms") or ())
+                leading = list(record.get("leading_atoms") or ())
+                contacts = list(record.get("close_contact_pairs") or ())
+                character = (
+                    "imaginary" if record.get("mode_is_imaginary") else "real"
+                )
+                lines = [
+                    f"from result {record.get('result_artifact_id')} "
+                    f"({record.get('program')}; {record.get('formula')}, "
+                    f"{record.get('atom_count')} atoms)",
+                    f"stepped along mode {record.get('mode_index')} "
+                    f"({_shown_value(record.get('mode_frequency_cm_1'))} "
+                    f"cm^-1, {character}) by "
+                    f"{_shown_value(record.get('amplitude_angstrom'))} "
+                    "angstrom (largest atom displacement achieved "
+                    f"{_shown_value(record.get('achieved_max_displacement_angstrom'))})",
+                    f"{len(moved)} atom(s) moved; leading atoms "
+                    f"{', '.join(str(index) for index in leading)}; "
+                    f"{record.get('atom_order_note')}",
+                    "closest contact "
+                    f"{_shown_value(record.get('min_interatomic_distance_angstrom'))}"
+                    f" angstrom; {len(contacts)} pair(s) inside covalent "
+                    "contact; connectivity "
+                    + (
+                        "changed"
+                        if record.get("connectivity_changed")
+                        else "unchanged"
+                    )
+                    + " -- observations, not verdicts",
+                ]
+                title_kind = "mode displacement"
             else:
                 atoms = list(record.get("coordinate_atoms") or ())
                 symbols = list(record.get("coordinate_symbols") or ())

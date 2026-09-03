@@ -718,3 +718,52 @@ def test_the_review_builder_attaches_the_whole_chain(tmp_path):
     ]
     # The root parent is the workspace geometry, not another edit.
     assert cursor not in host.geometry_edits
+
+
+def test_a_mode_step_is_a_hop_on_the_decision_surface():
+    """A structure stepped off a saddle along one of its own modes and
+    re-optimised is a built geometry like any edit, and the review had
+    been missing that hop: it renders with the mode, the amplitude and
+    what actually moved, ending on the result the step was taken from."""
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent.tui.review import _geometry_lineage_panels
+
+    step = {
+        "kind": "mode_displacement",
+        "result_artifact_id": "result.saddle",
+        "program": "orca",
+        "formula": "C2H6O",
+        "atom_count": 9,
+        "mode_index": 1,
+        "mode_frequency_cm_1": -422.6,
+        "mode_is_imaginary": True,
+        "amplitude_angstrom": 0.3,
+        "achieved_max_displacement_angstrom": 0.21,
+        "moved_atoms": (1, 2, 3, 4, 5, 6, 7, 8, 9),
+        "leading_atoms": (7, 3),
+        "min_interatomic_distance_angstrom": 0.98,
+        "close_contact_pairs": (),
+        "connectivity_changed": False,
+        "atom_order_note": "atom order preserved",
+    }
+    review = _duck_review(
+        (
+            SimpleNamespace(
+                node_id="opt-min",
+                molecular_identity={
+                    "charge": 0,
+                    "multiplicity": 2,
+                    "geometry_lineage": (step,),
+                },
+            ),
+        )
+    )
+    (panel,) = _geometry_lineage_panels(review)
+    text = _rendered(panel)
+    assert "from result result.saddle" in text
+    assert "mode 1 (-422.6 cm^-1, imaginary)" in text
+    assert "by 0.3 angstrom" in text
+    assert "9 atom(s) moved; leading atoms 7, 3" in text
+    assert "connectivity unchanged" in text
