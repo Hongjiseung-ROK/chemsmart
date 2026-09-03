@@ -3134,6 +3134,91 @@ def build_program_execution_invocation(
     )
 
 
+ANOMALY_STATUSES = ("unreplicated", "replicated", "refuted")
+
+
+@dataclass(frozen=True)
+class AnomalyObservationV1:
+    """One host-detected surprise, recorded with the numbers that tripped it.
+
+    An anomaly is an observation beneath the claim ladder, never a verdict:
+    it moves no validation state, no finding and no terminal word, and it
+    is never model-authored. It cites the validation receipt it was read
+    from. A receipt is immutable; replication under a stated perturbation
+    is a second receipt that supersedes this one, and the standing status
+    is the latest receipt in that chain.
+
+    Earned by a retrospective audit (2026-09-03): twenty-four archived
+    optimisations ended on a structural saddle, every one named only as a
+    failure to repair, none delivered as the stationary point it was --
+    two of them inversion transition states the harness had computed for
+    free, one below the zero-point level.
+    """
+
+    schema_version: str
+    node_id: str
+    program: str
+    jobtype: str
+    signal_id: str
+    values: Mapping[str, Any]
+    source_receipt_sha256: str
+    status: str
+    supersedes_sha256: str
+    receipt_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "chemsmart.anomaly-observation.v1":
+            raise ContractError("unsupported anomaly observation schema")
+        require_identifier(self.node_id, "node_id")
+        if not str(self.signal_id).strip():
+            raise ContractError("an anomaly names the signal that tripped it")
+        if self.status not in ANOMALY_STATUSES:
+            raise ContractError("unknown anomaly status")
+        require_sha256(self.source_receipt_sha256, "source_receipt_sha256")
+        if self.supersedes_sha256:
+            require_sha256(self.supersedes_sha256, "supersedes_sha256")
+        if self.receipt_sha256 != canonical_sha256(self._body()):
+            raise ContractError("anomaly observation digest mismatch")
+
+    def _body(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "node_id": self.node_id,
+            "program": self.program,
+            "jobtype": self.jobtype,
+            "signal_id": self.signal_id,
+            "values": canonical_data(self.values),
+            "source_receipt_sha256": self.source_receipt_sha256,
+            "status": self.status,
+            "supersedes_sha256": self.supersedes_sha256,
+        }
+
+
+def build_anomaly_observation(
+    *,
+    node_id: str,
+    program: str,
+    jobtype: str,
+    signal_id: str,
+    values: Mapping[str, Any],
+    source_receipt_sha256: str,
+    status: str = "unreplicated",
+    supersedes_sha256: str = "",
+) -> AnomalyObservationV1:
+    body = {
+        "schema_version": "chemsmart.anomaly-observation.v1",
+        "node_id": node_id,
+        "program": program,
+        "jobtype": jobtype,
+        "signal_id": signal_id,
+        "values": canonical_data(values),
+        "source_receipt_sha256": source_receipt_sha256,
+        "status": status,
+        "supersedes_sha256": supersedes_sha256,
+    }
+    return AnomalyObservationV1(**body, receipt_sha256=canonical_sha256(body))
+
+
 @dataclass(frozen=True)
 class ProgramResultValidationReceiptV1:
     """Canonical, resolvable evidence for one post-execution validation.

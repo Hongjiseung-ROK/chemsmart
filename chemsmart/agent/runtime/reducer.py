@@ -13,6 +13,7 @@ from chemsmart.agent._contracts import (
 from chemsmart.agent.runtime.events import (
     ANALYSIS_CLAIMS_RECORDED,
     ANALYSIS_COMPLETION_EVALUATED,
+    ANOMALY_OBSERVED,
     CAPABILITY_QUERIED,
     COMMAND_COMPILED,
     COMMAND_INSPECTED,
@@ -88,6 +89,7 @@ class RuntimeState:
     preflight_receipts: list[str] = field(default_factory=list)
     substitution_receipts: list[str] = field(default_factory=list)
     result_verification_receipts: list[str] = field(default_factory=list)
+    anomaly_records: list[str] = field(default_factory=list)
     result_quantity_receipts: list[str] = field(default_factory=list)
     thermochemistry_receipts: list[str] = field(default_factory=list)
     quantity_expression_receipts: list[str] = field(default_factory=list)
@@ -224,6 +226,7 @@ def reduce_event(state: RuntimeState, event: RuntimeEvent) -> RuntimeState:
         PROGRAM_PREFLIGHTED: state.preflight_receipts,
         SUBSTITUTION_ASSESSED: state.substitution_receipts,
         RESULT_VERIFIED: state.result_verification_receipts,
+        ANOMALY_OBSERVED: state.anomaly_records,
         RESULT_QUANTITIES_EXTRACTED: state.result_quantity_receipts,
         THERMOCHEMISTRY_DERIVED: state.thermochemistry_receipts,
         QUANTITY_EXPRESSION_EVALUATED: state.quantity_expression_receipts,

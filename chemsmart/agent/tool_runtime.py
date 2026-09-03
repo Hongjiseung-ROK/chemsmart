@@ -74,6 +74,7 @@ from chemsmart.agent.commands import (
 )
 from chemsmart.agent.execution import (
     DEFERRABLE_GEOMETRY_PRODUCER_STAGES,
+    AnomalyObservationV1,
     ApprovedNodeBindingV1,
     AtomAppendReceiptV1,
     DatabaseRecordExtractionReceiptV1,
@@ -96,6 +97,7 @@ from chemsmart.agent.execution import (
     WorkflowRunStateV1,
     append_trusted_molecular_atom,
     bind_project_promotion_validation,
+    build_anomaly_observation,
     build_frozen_workflow_approval,
     build_producer_edge_rule,
     build_program_execution_invocation,
@@ -217,6 +219,7 @@ from chemsmart.agent.scientific_validation import (
 from chemsmart.agent.skills import resolve_skill
 from chemsmart.agent.terminal_states import (
     consequential_imaginary_mode_count,
+    expected_imaginary_mode_count,
     stationary_point_order_finding,
 )
 from chemsmart.agent.tool_specs import (
@@ -431,6 +434,10 @@ class _ExecutionValidationEvaluation:
     findings: tuple[str, ...]
     run_environment_receipt_sha256: str = ""
     environment_validation_sha256: str = ""
+    #: Host-detected surprises, each a signal id with the numbers that
+    #: tripped it. They ride beside the verdict and never enter it: the
+    #: validation receipt is built from observations and findings alone.
+    anomalies: tuple[Mapping[str, Any], ...] = ()
 
     @property
     def validated(self) -> bool:
@@ -1147,6 +1154,50 @@ def _xtb_log_frequencies(logs: tuple[Any, ...]) -> tuple[float, ...]:
     return ()
 
 
+def _imaginary_mode_sensor_inputs(
+    output: Any, frequencies: tuple[float, ...]
+) -> dict[str, Any]:
+    """What the lowest imaginary mode is, for the anomaly sensor.
+
+    The magnitude and the heavy atoms sharing the mode's motion separate
+    a structural saddle (an inversion, a symmetry breaking, a hidden
+    reaction coordinate) from a rotor: an inversion mode spreads over
+    several heavy atoms, a methyl rotor lives on three hydrogens. Absent
+    modes leave the spread unknown, never guessed.
+    """
+
+    imaginary = [
+        (index, float(value))
+        for index, value in enumerate(frequencies)
+        if math.isfinite(float(value)) and float(value) < -20.0
+    ]
+    if not imaginary:
+        return {}
+    index, lowest = min(imaginary, key=lambda item: item[1])
+    inputs: dict[str, Any] = {"lowest_imaginary_cm1": float(f"{lowest:.2f}")}
+    try:
+        from chemsmart.analysis.result_readers import (
+            _vibrational_mode_atom_participation,
+        )
+
+        shares = _vibrational_mode_atom_participation(output)[index]
+        symbols = list(getattr(output.molecule, "chemical_symbols", ()))
+    except Exception:
+        return inputs
+    heavy_shares = [
+        (atom + 1, float(share))
+        for atom, share in enumerate(shares)
+        if atom < len(symbols) and symbols[atom] != "H"
+    ]
+    inputs["participating_heavy_atoms"] = [
+        atom for atom, share in heavy_shares if share >= 0.05
+    ]
+    inputs["heavy_atom_share"] = float(
+        f"{sum(share for _atom, share in heavy_shares):.3f}"
+    )
+    return inputs
+
+
 def _observed_imaginary_mode_count(
     observation: Mapping[str, Any], program: str
 ) -> int | None:
@@ -1606,6 +1657,7 @@ class CommandCompiledToolHostV1:
         self.result_validation_receipts: dict[
             str, ProgramResultValidationReceiptV1
         ] = {}
+        self.anomaly_observations: dict[str, AnomalyObservationV1] = {}
         self.handoffs: dict[str, OptimizedGeometryHandoffV1] = {}
         self.hessian_handoffs: dict[str, ORCAHessianHandoffV1] = {}
         self._command_contexts: dict[str, _CommandContext] = {}
@@ -8755,6 +8807,33 @@ class CommandCompiledToolHostV1:
             node_id=node_id,
             record=canonical_data(result_validation_receipt),
         )
+        for anomaly in evaluation.anomalies:
+            observation_receipt = build_anomaly_observation(
+                node_id=node_id,
+                program=context.proposal.program,
+                jobtype=context.proposal.jobtype,
+                signal_id=str(anomaly["signal_id"]),
+                values={
+                    key: value
+                    for key, value in dict(anomaly).items()
+                    if key != "signal_id"
+                },
+                source_receipt_sha256=(
+                    result_validation_receipt.receipt_sha256
+                ),
+            )
+            self.anomaly_observations[observation_receipt.receipt_sha256] = (
+                observation_receipt
+            )
+            self._emit(
+                turn_id,
+                EventKind.ANOMALY_OBSERVED,
+                observation_receipt.receipt_sha256,
+                status=observation_receipt.status,
+                node_id=node_id,
+                signal_id=observation_receipt.signal_id,
+                record=canonical_data(observation_receipt),
+            )
         validated = result_validation_receipt.state == "valid"
         validator_sha256s = (result_validation_receipt.receipt_sha256,)
         findings = result_validation_receipt.findings
@@ -10977,6 +11056,7 @@ class CommandCompiledToolHostV1:
         process_observation: ProcessObservationV1 | None = None,
     ) -> _ExecutionValidationEvaluation:
         findings: list[str] = []
+        sensor_inputs: dict[str, Any] = {}
         observation: dict[str, Any] = {
             "program": program,
             "jobtype": jobtype,
@@ -11299,6 +11379,9 @@ class CommandCompiledToolHostV1:
                             )
                     frequencies = tuple(output.vibrational_frequencies or ())
                     transitions = tuple(output.excited_state_records or ())
+                    sensor_inputs.update(
+                        _imaginary_mode_sensor_inputs(output, frequencies)
+                    )
                     finite_frequencies = bool(frequencies) and all(
                         math.isfinite(float(value)) for value in frequencies
                     )
@@ -11752,11 +11835,25 @@ class CommandCompiledToolHostV1:
         # the human approved. ORCA's transition-state check above stays;
         # this one also covers a minimum that landed on a saddle, and the
         # other programs, so the same physics gets the same word.
-        order_finding = stationary_point_order_finding(
-            jobtype, _observed_imaginary_mode_count(observation, program)
-        )
+        observed_order = _observed_imaginary_mode_count(observation, program)
+        order_finding = stationary_point_order_finding(jobtype, observed_order)
         if order_finding:
             findings.append(order_finding)
+        anomalies: list[dict[str, Any]] = []
+        if order_finding:
+            # The verdict says the run failed its promise; the observation
+            # says what the structure is. Both are true, and the second
+            # used to have nowhere to live.
+            anomalies.append(
+                {
+                    "signal_id": "stationary_point.unexpected_order",
+                    "expected_imaginary_modes": expected_imaginary_mode_count(
+                        jobtype
+                    ),
+                    "observed_imaginary_modes": observed_order,
+                    **sensor_inputs,
+                }
+            )
         normalized_findings = tuple(sorted(set(findings)))
         validator_schema_version = str(
             (observation.get("result_validation") or {}).get("schema_version")
@@ -11787,6 +11884,7 @@ class CommandCompiledToolHostV1:
             validator_version="1",
             observations=canonical_data(observation),
             findings=normalized_findings,
+            anomalies=tuple(anomalies),
             run_environment_receipt_sha256=str(
                 environment_validation.get(
                     "run_environment_receipt_sha256", ""

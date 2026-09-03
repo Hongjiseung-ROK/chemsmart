@@ -51,6 +51,7 @@ class EventKind(str, Enum):
     PROGRAM_PREFLIGHTED = "program_node_preflighted"
     SUBSTITUTION_ASSESSED = "program_substitution_assessed"
     RESULT_VERIFIED = "program_result_verified"
+    ANOMALY_OBSERVED = "anomaly_observed"
     RESULT_QUANTITIES_EXTRACTED = "result_quantities_extracted"
     THERMOCHEMISTRY_DERIVED = "thermochemistry_derived"
     QUANTITY_EXPRESSION_EVALUATED = "quantity_expression_evaluated"
@@ -108,6 +109,7 @@ VALIDATOR_OBSERVED = EventKind.VALIDATOR_OBSERVED.value
 PROGRAM_PREFLIGHTED = EventKind.PROGRAM_PREFLIGHTED.value
 SUBSTITUTION_ASSESSED = EventKind.SUBSTITUTION_ASSESSED.value
 RESULT_VERIFIED = EventKind.RESULT_VERIFIED.value
+ANOMALY_OBSERVED = EventKind.ANOMALY_OBSERVED.value
 RESULT_QUANTITIES_EXTRACTED = EventKind.RESULT_QUANTITIES_EXTRACTED.value
 THERMOCHEMISTRY_DERIVED = EventKind.THERMOCHEMISTRY_DERIVED.value
 QUANTITY_EXPRESSION_EVALUATED = EventKind.QUANTITY_EXPRESSION_EVALUATED.value
@@ -155,6 +157,7 @@ _RECEIPT_EVENTS = frozenset(
         PROGRAM_PREFLIGHTED,
         SUBSTITUTION_ASSESSED,
         RESULT_VERIFIED,
+        ANOMALY_OBSERVED,
         RESULT_QUANTITIES_EXTRACTED,
         THERMOCHEMISTRY_DERIVED,
         QUANTITY_EXPRESSION_EVALUATED,
@@ -435,6 +438,10 @@ def _validate_typed_receipt_payload(
         RESULT_VERIFIED: (
             "status",
             {"valid", "invalid", "verifier_unavailable"},
+        ),
+        ANOMALY_OBSERVED: (
+            "status",
+            {"unreplicated", "replicated", "refuted"},
         ),
         PROGRAM_EXECUTED: (
             "execution_state",
