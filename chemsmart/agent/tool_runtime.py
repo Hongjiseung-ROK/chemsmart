@@ -1081,13 +1081,25 @@ def _spin_square_observation(output: Any, multiplicity: Any) -> dict[str, Any]:
     predicates are where a threshold belongs.
     """
 
+    # The readers expose the table as a property; calling it raised a
+    # swallowed TypeError, so this observation had been empty on every
+    # ORCA and Gaussian result since it was written (audit, 2026-09-03).
     try:
-        history = tuple(output.spin_square_history())
+        history = getattr(output, "spin_square_history", None)
+        if callable(history):
+            history = history()
+        history = tuple(history or ())
+        if not history:
+            return {}
+        last = history[-1]
+        if isinstance(last, Mapping):
+            # Gaussian records the SCF value before and after
+            # annihilation; the wavefunction's own value is the
+            # diagnostic, the annihilated one is a projected estimate.
+            last = last.get("before_annihilation")
+        observed = float(last)
     except Exception:  # noqa: BLE001 - a reader without the table
         return {}
-    if not history:
-        return {}
-    observed = float(history[-1])
     record: dict[str, Any] = {"spin_square_observed": observed}
     try:
         spin = (int(multiplicity) - 1) / 2.0
@@ -1258,6 +1270,26 @@ def _imaginary_mode_sensor_inputs(
         f"{sum(share for _atom, share in heavy_shares):.3f}"
     )
     return inputs
+
+
+def _observed_spin_deviation(
+    observation: Mapping[str, Any], program: str
+) -> float | None:
+    """The ⟨S²⟩ deviation a program's observation carries, or None."""
+
+    block = observation.get(program)
+    if not isinstance(block, Mapping):
+        return None
+    if program == "gaussian":
+        rows = tuple(block.get("outputs") or ())
+        if len(rows) != 1 or not isinstance(rows[0], Mapping):
+            return None
+        block = rows[0]
+    value = block.get("spin_square_deviation")
+    try:
+        return float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _observed_imaginary_mode_count(
@@ -11973,6 +12005,18 @@ class CommandCompiledToolHostV1:
         if basin.get("bonds_made") or basin.get("bonds_broken"):
             anomalies.append(
                 {"signal_id": "geometry.connectivity_changed", **basin}
+            )
+        deviation = _observed_spin_deviation(observation, program)
+        if deviation is not None and abs(deviation) >= 0.2:
+            # ⟨S²⟩ is an observation, never a gate; a deviation this size
+            # is the surprise a scientist weighs (a wrong state, a
+            # multireference character), recorded with its numbers.
+            anomalies.append(
+                {
+                    "signal_id": "spin.s2_deviation_ge_0.2",
+                    "spin_square_deviation": float(f"{deviation:.4f}"),
+                    "bound_multiplicity": multiplicity,
+                }
             )
         if order_finding:
             # The verdict says the run failed its promise; the observation
