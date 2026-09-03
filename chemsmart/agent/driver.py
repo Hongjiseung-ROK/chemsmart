@@ -213,7 +213,7 @@ def _settle_from_delivery(
         )
     elif (
         certified
-        and delivery.limitation_output_ids
+        and delivery.blocked_output_ids
         and delivery.decisions
         and evidence
     ):
@@ -224,7 +224,17 @@ def _settle_from_delivery(
         settled = "unreachable_from_evidence"
         reasons = (
             "the completion receipt names required outputs "
-            "delivered without: " + ", ".join(delivery.limitation_output_ids),
+            "delivered without: " + ", ".join(delivery.blocked_output_ids),
+        )
+    elif certified and delivery.undelivered_declared_ids:
+        # The chain's kernels ran clean, and the headline the goal
+        # declared was never claimed by its id. That is not a delivery
+        # a scientist would sign, whatever the completion word says.
+        settled = "returned_to_human"
+        reasons = (
+            "the completion certified the chain, but these declared "
+            "observables have no claim carrying their id: "
+            + ", ".join(delivery.undelivered_declared_ids),
         )
     elif certified and delivery.unanswered_verdicts:
         # The host itself rendered a verdict saying a delivered structure
@@ -498,6 +508,9 @@ def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
         "unanswered_failed_verdicts": delivery.unanswered_verdicts,
         "stale_quantity_ids": delivery.stale_quantity_ids,
         "unclaimed_output_ids": delivery.unclaimed_output_ids,
+        "undelivered_declared_observable_ids": (
+            delivery.undelivered_declared_ids
+        ),
     }
 
 
@@ -744,6 +757,34 @@ class _AnalysisDelivery:
     #: What the host observed that nobody asked for, from the completion
     #: receipt; a certified delivery carrying any settles with the word.
     anomaly_output_ids: tuple[str, ...] = ()
+
+    @property
+    def undelivered_declared_ids(self) -> tuple[str, ...]:
+        """Declared observables no claim carried by id.
+
+        They ride the completion's limitation list under their own
+        prefix. They are not a declared-blocked producer (a typed
+        refusal) and they are not a delivered headline: two live goals
+        settled achieved over them (E4 window, 2026-09-03).
+        """
+
+        prefix = "declared_observable:"
+        return tuple(
+            item[len(prefix) :]
+            for item in self.limitation_output_ids
+            if item.startswith(prefix)
+        )
+
+    @property
+    def blocked_output_ids(self) -> tuple[str, ...]:
+        """Limitations that are declared-blocked producers, not id misses."""
+
+        return tuple(
+            item
+            for item in self.limitation_output_ids
+            if not item.startswith("declared_observable:")
+        )
+
     #: What stopped the run before a delivery could exist: a node the
     #: executor refused to launch, or an execution review the session's
     #: host refused to build. Each is one sentence the settlement quotes,
@@ -1954,15 +1995,22 @@ class GoalDriver:
             self.standing_stale = run_delivery.stale_quantity_ids
         unrefreshed = self.standing_stale
         budgets = self.ledger.budgets(self.goal)
+        # A verdict or a stale number needs an engine to answer it; a
+        # claim that was never rendered, or a declared observable no
+        # claim carries by id, is answered from receipts already in
+        # hand and costs no engine call. Two goals settled exhausted
+        # with every receipt they needed on disk (E4 window).
+        engine_needed = bool(run_delivery.unanswered_verdicts or unrefreshed)
         recovery_affordable = (
-            budgets.engine_calls_remaining > 0
-            and budgets.revisions_remaining > 0
+            budgets.revisions_remaining > 0
             and budgets.wall_seconds_remaining > 0
+            and (budgets.engine_calls_remaining > 0 or not engine_needed)
         )
         open_delivery = bool(
             run_delivery.unanswered_verdicts
             or unrefreshed
             or run_delivery.unclaimed_output_ids
+            or run_delivery.undelivered_declared_ids
         )
         achieved = _achieved(self.execute_result)
         if achieved and open_delivery and recovery_affordable:
@@ -1985,6 +2033,9 @@ class GoalDriver:
                     "unclaimed_output_ids": list(
                         run_delivery.unclaimed_output_ids
                     ),
+                    "undelivered_declared_observable_ids": list(
+                        run_delivery.undelivered_declared_ids
+                    ),
                     "engine_calls_remaining": budgets.engine_calls_remaining,
                 },
             )
@@ -2006,7 +2057,7 @@ class GoalDriver:
                     "remains to re-derive them: " + ", ".join(unrefreshed)
                 )
                 open_items = unrefreshed
-            else:
+            elif run_delivery.unclaimed_output_ids:
                 # The host computed these from real program output and
                 # no reader of the delivery can see them.
                 reason = (
@@ -2016,6 +2067,14 @@ class GoalDriver:
                     + ", ".join(run_delivery.unclaimed_output_ids)
                 )
                 open_items = run_delivery.unclaimed_output_ids
+            else:
+                reason = (
+                    f"cycle {self.cycles}: these declared observables have "
+                    "no claim carrying their id, and no revision remains "
+                    "to claim them: "
+                    + ", ".join(run_delivery.undelivered_declared_ids)
+                )
+                open_items = run_delivery.undelivered_declared_ids
             self.ledger.settle("returned_to_human", reasons=(reason,))
             self._settled("returned_to_human", open_items)
             return
@@ -2035,6 +2094,29 @@ class GoalDriver:
             )
             self._record_qualification()
             self._settled(word, why)
+            return
+        if (
+            budgets.engine_calls_remaining <= 0
+            and budgets.revisions_remaining > 0
+            and budgets.wall_seconds_remaining > 0
+            and run_delivery.undelivered_declared_ids
+        ):
+            # The engine line is spent and the run did not complete,
+            # yet declared observables sit unclaimed with receipts in
+            # hand: an analysis-only cycle can still claim them by id,
+            # and the plan-time budget gate refuses any engine node.
+            self.ledger.append(
+                "recovery_opened",
+                {
+                    "cycle": self.cycles,
+                    "undelivered_declared_observable_ids": list(
+                        run_delivery.undelivered_declared_ids
+                    ),
+                    "engine_calls_remaining": 0,
+                    "analysis_only": True,
+                },
+            )
+            self.phase = "plan"
             return
         if (
             budgets.revisions_remaining <= 0

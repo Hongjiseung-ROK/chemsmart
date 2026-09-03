@@ -221,6 +221,7 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         "unanswered_failed_verdicts": (),
         "stale_quantity_ids": (),
         "unclaimed_output_ids": (),
+        "undelivered_declared_observable_ids": (),
     }
     assert second["previous_run"] == "goals/goal-t1/runs/cycle-1"
     assert second["previous_run_outcome"]
@@ -243,6 +244,7 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         "stale_quantity_ids",
         # And what the host computed and no claim ever showed a reader.
         "unclaimed_output_ids",
+        "undelivered_declared_observable_ids",
     }
 
 
@@ -704,6 +706,7 @@ def test_the_wake_deliverables_come_from_the_previous_runs_stream(tmp_path):
         "unanswered_failed_verdicts": (),
         "stale_quantity_ids": (),
         "unclaimed_output_ids": (),
+        "undelivered_declared_observable_ids": (),
     }
 
 
@@ -1340,3 +1343,128 @@ def test_a_run_no_revision_can_answer_returns_to_the_human(tmp_path):
     assert "no revision can answer" in result.reasons[0]
     assert "launch_failed" in result.reasons[0]
     assert sessions == 1, "no second planning session was started"
+
+
+def _driver_after_run(tmp_path, *, calls, rows, failed):
+    """A driver standing at its settle step after one recorded run whose
+    stream carries the delivery rows, with the engine line spent."""
+
+    workspace = tmp_path / "ws"
+    driver = GoalDriver(
+        task="the goal task",
+        workspace=workspace,
+        execution_envelope_file=_envelope_file(tmp_path, calls),
+        goal_id="goal-t1",
+        granted_by="claude-owner-delegated-reviewer",
+        plan_session=lambda **kw: None,
+        resolve_review=lambda **_kw: ("d" * 64, tmp_path / "bundle.json"),
+        execute_bundle=lambda **_kw: None,
+    )
+    driver.cycles = 1
+    driver.goal = driver._goal_record(
+        identity="b" * 64,
+        conditions={"solvents": (), "thermochemistry": ((298.15, 1.0, None),)},
+        review_sha256="c" * 64,
+    )
+    driver.ledger.create(driver.goal)
+    driver.ledger.append(
+        "run_recorded",
+        {
+            "cycle": 1,
+            "engine_calls_consumed": calls,
+            "engine_wall_seconds": 10.0,
+            "workflow_state": "failed" if failed else "validated",
+        },
+    )
+    driver.run_directory = driver.goal_dir / "runs" / "cycle-1"
+    driver.run_directory.mkdir(parents=True)
+    (driver.run_directory / "events.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8"
+    )
+    driver.execute_result = SimpleNamespace(
+        status="failed" if failed else "completed",
+        analysis_status="partial" if failed else "completed",
+    )
+    driver._settle()
+    return driver
+
+
+def test_a_certified_delivery_never_says_achieved_over_an_undelivered_declared_observable(
+    tmp_path,
+):
+    """Two live goals settled achieved_with_observations on a run stream
+    whose completion passed while listing declared observables no claim
+    carried by id (E4 window, 2026-09-03): the limitation branch wanted
+    decisions in the same stream and the executor's stream has none. A
+    declared headline nobody claimed is not a delivery, whatever word
+    the chain's kernels earned; and it is not a typed refusal either."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1",
+                terminal="complete",
+                wake_rows=_delivery_rows(
+                    limitations=("declared_observable:nh3-gibbs-298",)
+                ),
+            ),
+        ],
+        executes=[],
+    )
+    assert result.settlement == "returned_to_human"
+    assert any("nh3-gibbs-298" in reason for reason in result.reasons)
+
+
+def test_a_claim_by_id_recovery_costs_no_engine_call(tmp_path):
+    """A goal with every receipt on disk and its engine line spent
+    settled exhausted because the recovery test demanded an engine
+    call; claiming a declared observable by id from receipts in hand
+    needs none. The cycle wakes with zero engine calls, and the
+    plan-time budget gate refuses any engine node it might plan."""
+
+    driver = _driver_after_run(
+        tmp_path,
+        calls=1,
+        failed=False,
+        rows=_delivery_rows(
+            limitations=("declared_observable:gibbs-rrho-298",)
+        ),
+    )
+    assert driver.phase == "plan"
+    (opened,) = [
+        entry
+        for entry in driver.ledger.entries()
+        if entry["kind"] == "recovery_opened"
+    ]
+    assert opened["payload"]["undelivered_declared_observable_ids"] == [
+        "gibbs-rrho-298"
+    ]
+    assert opened["payload"]["engine_calls_remaining"] == 0
+
+
+def test_a_failed_run_with_receipts_in_hand_is_not_exhausted(tmp_path):
+    """butadiene-a: the pool was spent on a saddle, a scan and a
+    validated minimum, four declared observables sat unclaimed with
+    their receipts on disk, and the word was exhausted. An analysis-only
+    cycle can still claim them by id."""
+
+    driver = _driver_after_run(
+        tmp_path,
+        calls=1,
+        failed=True,
+        rows=_delivery_rows(
+            completion="partial",
+            limitations=("declared_observable:rel-energy-scis",),
+        ),
+    )
+    assert driver.phase == "plan"
+    (opened,) = [
+        entry
+        for entry in driver.ledger.entries()
+        if entry["kind"] == "recovery_opened"
+    ]
+    assert opened["payload"]["analysis_only"] is True
+    assert opened["payload"]["undelivered_declared_observable_ids"] == [
+        "rel-energy-scis"
+    ]
