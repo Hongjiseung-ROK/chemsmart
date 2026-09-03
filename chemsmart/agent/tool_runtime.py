@@ -3771,6 +3771,23 @@ class CommandCompiledToolHostV1:
                     )
                 functional_resolution_refs.add(receipt_sha256)
                 continue
+            prefix = "anomaly:"
+            if reference.startswith(prefix):
+                # A decision cites only anomalies the host recorded, by
+                # digest: nothing enters the record that no receipt
+                # backs, and the interpretation stays prose beside it.
+                receipt_sha256 = reference[len(prefix) :]
+                require_sha256(receipt_sha256, "anomaly_receipt_sha256")
+                known = set(self.anomaly_observations) | {
+                    str(item.get("receipt_sha256") or "")
+                    for item in self.prior_anomaly_observations
+                }
+                if receipt_sha256 not in known:
+                    raise ContractError(
+                        "scientific decision cites an unknown anomaly "
+                        "observation"
+                    )
+                continue
             prefix = "doubt:"
             if reference.startswith(prefix):
                 # A typed doubt: the session names the exact receipt it
