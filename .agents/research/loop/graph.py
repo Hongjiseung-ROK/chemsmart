@@ -24,6 +24,7 @@ reads this" and "what replaced this" are each one traversal.
 from __future__ import annotations
 
 import json
+import re
 import os
 import subprocess
 import sys
@@ -56,7 +57,25 @@ RELATIONS = (
     "depends_on",
     "duplicates",
     "supersedes",
+    "explains",  # a sentence names a concept, or states its boundary
 )
+
+#: Concepts the graph takes from registries product code already owns, so
+#: ontology introduced by ordinary development arrives without a graph
+#: edit. ``closed``: a small scientific vocabulary, every member a node.
+#: ``referenced``: an open vocabulary, a member is a node only when a
+#: sentence, a rule's boundary or an authored edge names it. The registry
+#: held 848 capabilities when this was written; the graph is not its mirror.
+CONCEPT_SOURCES = {
+    "program_jobtype": "closed",  # capability boundary, with its ladder rung
+    "signal": "closed",  # scientific state the host may observe and hand on
+    "setting": "referenced",
+    "selector": "referenced",  # one node per name, however many cells declare it
+    "operation": "referenced",
+    "constant": "referenced",
+}
+#: A name is matched in prose only when it cannot be an English word.
+_PROSE_NAME = re.compile(r"^[a-z0-9]+(?:[_.][a-z0-9().]+)+$")
 
 
 class Graph:
@@ -86,6 +105,7 @@ def derived(graph: Graph) -> None:
     from census import runtime_surface, sections
     from chemsmart.agent import guides as guides_mod
     from chemsmart.agent.rules import CODE_GATES, HOST_POLICIES, POLICY_RULES
+
     surface = runtime_surface()
     by_id = {row["rule_id"]: row for row in surface["rules"]}
     for rule in POLICY_RULES:
@@ -187,6 +207,122 @@ def derived(graph: Graph) -> None:
                     graph.edge(node_id, "evidenced_by", target)
 
 
+def _concept_key(capability) -> str:
+    if capability.kind == "selector":
+        return f"selector:{capability.id.rsplit(':', 1)[-1]}"
+    return capability.key
+
+
+def concepts(graph: Graph) -> dict[str, list]:
+    """Closed concept kinds as nodes, and every sentence that explains a
+    concept as an ``explains`` edge. Returns the referenced-kind registry
+    so an authored edge may name one of its members."""
+    from chemsmart.agent import guides as guides_mod
+    from chemsmart.agent.capability_registry import build_capability_registry
+    from chemsmart.agent.rules import POLICY_RULES
+
+    registry: dict[str, list] = {}
+    for capability in build_capability_registry():
+        if capability.kind in CONCEPT_SOURCES:
+            registry.setdefault(_concept_key(capability), []).append(
+                capability
+            )
+
+    def admit(key: str) -> bool:
+        rows = registry.get(key)
+        if not rows:
+            return False
+        first = rows[0]
+        graph.node(
+            key, first.kind, ladder=first.status, family=first.family,
+            declared_by=first.declared_by,
+            cells=len(rows) if len(rows) > 1 else None,
+        )  # fmt: skip
+        return True
+
+    for key, rows in registry.items():
+        if CONCEPT_SOURCES[rows[0].kind] == "closed":
+            admit(key)
+
+    prose = {
+        key: re.compile(
+            r"(?<![A-Za-z0-9_])" + re.escape(key.split(":")[-1]) + r"(?![A-Za-z0-9_])"
+        )
+        for key in registry
+        if _PROSE_NAME.match(key.split(":")[-1])
+    }  # fmt: skip
+    programs = {
+        key.split(":")[1] for key in registry if key.startswith("setting:")
+    }
+
+    def mentions(text: str, program: str | None):
+        for key, pattern in prose.items():
+            kind = key.split(":", 1)[0]
+            if kind == "setting" and key.split(":")[1] != program:
+                continue  # a bare name says nothing about which program owns it
+            if pattern.search(text):
+                yield key
+
+    def explain(source: str, key: str, via: str) -> None:
+        if not admit(key):
+            return
+        for edge in graph.out(source):
+            if edge["rel"] == "explains" and edge["to"] == key:
+                if via not in edge["via"].split("+"):
+                    edge["via"] += f"+{via}"
+                return
+        graph.edge(source, "explains", key, via=via)
+
+    for rule in POLICY_RULES:
+        source = f"rule:{rule.rule_id}"
+        _, _, where = rule.placement.partition(":")
+        for key in mentions(rule.text, where if where in programs else None):
+            explain(source, key, "text")
+        boundaries = tuple(getattr(rule, "boundaries", ()))
+        if not boundaries:
+            continue
+        graph.node(source, "rule", boundaries=len(boundaries))
+        # A setting every boundary of the rule carries with one value is
+        # scaffolding that makes the section valid, not what the sentence
+        # is about; only a setting that varies across them is explained.
+        seen: dict[tuple[str, str], set] = {}
+        for boundary in boundaries:
+            for name, value in boundary.settings:
+                seen.setdefault((boundary.program, name), set()).add(
+                    repr(value)
+                )
+        carried_by = {
+            pair: sum(
+                1 for b in boundaries
+                if b.program == pair[0] and pair[1] in dict(b.settings)
+            )
+            for pair in seen
+        }  # fmt: skip
+        for boundary in boundaries:
+            explain(
+                source,
+                f"program_jobtype:{boundary.program}:cpu:{boundary.section}",
+                boundary.verdict,
+            )
+            for name, _value in boundary.settings:
+                pair = (boundary.program, name)
+                same_everywhere = (
+                    carried_by[pair] == len(boundaries)
+                    and len(seen[pair]) == 1
+                )
+                if not same_everywhere:
+                    explain(
+                        source, f"setting:{pair[0]}:{name}", boundary.verdict
+                    )
+    for guide in guides_mod.GUIDES:
+        source = f"guide:{guide.guide_id}"
+        program = guide.guide_id if guide.guide_id in programs else None
+        for key in mentions(guide.body, program):
+            explain(source, key, "text")
+    graph.admit_concept = admit
+    return registry
+
+
 def authored(graph: Graph) -> list[str]:
     """The join from graph.yaml. Returns pointer problems instead of raising."""
     problems: list[str] = []
@@ -194,7 +330,9 @@ def authored(graph: Graph) -> list[str]:
     if RECORDS is not None and (RECORDS / "graph-meta.yaml").is_file():
         overlay = yaml.safe_load((RECORDS / "graph-meta.yaml").read_text())
         spec["nodes"] = spec["nodes"] + (overlay.get("nodes") or [])
-        spec["edges"] = (spec.get("edges") or []) + (overlay.get("edges") or [])
+        spec["edges"] = (spec.get("edges") or []) + (
+            overlay.get("edges") or []
+        )
     for node in spec["nodes"]:
         source = node.get("source") or {}
         facts = {k: v for k, v in node.items() if k not in ("id", "kind")}
@@ -237,7 +375,9 @@ def authored(graph: Graph) -> list[str]:
         )  # fmt: skip
         gate, code = backstop.get("gate", ""), backstop.get("refusal", "")
         if gate and "CONDUCT" not in gate:
-            known = f"gate:{gate}" in graph.nodes or f"rule:{gate}" in graph.nodes
+            known = (
+                f"gate:{gate}" in graph.nodes or f"rule:{gate}" in graph.nodes
+            )
             if not known:
                 problems.append(f"{rule_id}: unknown gate {gate}")
             graph.edge(target, "backstopped_by", f"gate:{gate}")
@@ -252,6 +392,8 @@ def authored(graph: Graph) -> list[str]:
     for edge in spec.get("edges") or []:
         ends = [_qualify(graph, edge["from"]), _qualify(graph, edge["to"])]
         for end in ends:
+            if end not in graph.nodes and hasattr(graph, "admit_concept"):
+                graph.admit_concept(end)  # an authored edge may name a concept
             if end not in graph.nodes:
                 problems.append(f"edge end {end} is unknown")
         graph.edge(ends[0], edge["rel"], ends[1], note=edge.get("note"))
@@ -268,7 +410,15 @@ def _source_path(source: dict) -> Path:
 
 
 def _qualify(graph: Graph, name: str) -> str:
-    for prefix in ("", "rule:", "ledger:", "loop:", "claim:", "candidate:", "topic:"):
+    for prefix in (
+        "",
+        "rule:",
+        "ledger:",
+        "loop:",
+        "claim:",
+        "candidate:",
+        "topic:",
+    ):
         if prefix + name in graph.nodes:
             return prefix + name
     return name
@@ -333,7 +483,9 @@ def find(graph: Graph, text: str, limit: int = 12) -> list[str]:
                     f"{', ' + node['class'] if node.get('class') else ''}"
                 )
             rank = 0 if needle in key.lower() else 1
-            hits.append((rank, key, f"{key:<52} {node['kind']:<15} {str(label)[:88]}"))
+            hits.append(
+                (rank, key, f"{key:<52} {node['kind']:<15} {str(label)[:88]}")
+            )
     hits.sort()
     lines = [line for _rank, _key, line in hits[:limit]]
     if len(hits) > limit:
@@ -344,6 +496,7 @@ def find(graph: Graph, text: str, limit: int = 12) -> list[str]:
 def build() -> tuple[Graph, list[str]]:
     graph = Graph()
     derived(graph)
+    concepts(graph)
     return graph, authored(graph)
 
 
@@ -365,6 +518,15 @@ def orphans(graph: Graph) -> dict[str, list[str]]:
             if v["kind"] == "loop_component"
             and not any(e["rel"] == "evidenced_by" for e in graph.out(k))
             and not any(e["rel"] == "attributed_to" for e in graph.into(k))
+        ),
+        "signals_no_sentence_explains": sorted(
+            k for k, v in graph.nodes.items()
+            if v["kind"] == "signal"
+            and not any(e["rel"] == "explains" for e in graph.into(k))
+        ),
+        "live_rules_a_commit_supersedes": sorted(
+            k for k in rules
+            if any(e["rel"] == "supersedes" for e in graph.into(k))
         ),
         "claims_not_earned": sorted(
             k for k, v in graph.nodes.items()
@@ -405,7 +567,9 @@ def main() -> int:
     graph, problems = build()
     if mode == "find" and len(sys.argv) > 2:
         lines = find(graph, " ".join(sys.argv[2:]))
-        print("\n".join(lines) if lines else f"nothing mentions {sys.argv[2]!r}")
+        print(
+            "\n".join(lines) if lines else f"nothing mentions {sys.argv[2]!r}"
+        )
         return 0 if lines else 1
     if mode == "check":
         cited = ledger_commits()
@@ -423,7 +587,11 @@ def main() -> int:
         for edge in graph.edges:
             rels[edge["rel"]] = rels.get(edge["rel"], 0) + 1
         print(json.dumps({"nodes": kinds, "edges": rels}, indent=1))
-        print(json.dumps({k: len(v) for k, v in orphans(graph).items()}, indent=1))
+        print(
+            json.dumps(
+                {k: len(v) for k, v in orphans(graph).items()}, indent=1
+            )
+        )
         return 0
     if mode == "orphans":
         print(json.dumps(orphans(graph), indent=1))
@@ -443,7 +611,9 @@ def main() -> int:
         if key not in graph.nodes:
             print(f"no node {sys.argv[2]!r}")
             return 1
-        print(json.dumps({key: graph.nodes[key]}, indent=1, ensure_ascii=False))
+        print(
+            json.dumps({key: graph.nodes[key]}, indent=1, ensure_ascii=False)
+        )
         for edge in graph.out(key):
             print(f"  --{edge['rel']}--> {edge['to']}")
         for edge in graph.into(key):
@@ -453,10 +623,18 @@ def main() -> int:
         if "--dot" in sys.argv:
             print("digraph chemsmart {")
             for edge in graph.edges:
-                print(f'  "{edge["from"]}" -> "{edge["to"]}" [label="{edge["rel"]}"];')
+                print(
+                    f'  "{edge["from"]}" -> "{edge["to"]}" [label="{edge["rel"]}"];'
+                )
             print("}")
         else:
-            print(json.dumps({"nodes": graph.nodes, "edges": graph.edges}, indent=1, ensure_ascii=False))
+            print(
+                json.dumps(
+                    {"nodes": graph.nodes, "edges": graph.edges},
+                    indent=1,
+                    ensure_ascii=False,
+                )
+            )
         return 0
     print(__doc__)
     return 2

@@ -260,7 +260,13 @@ trip a resource-mismatch validation at a small `-n`, copy the server YAML
 into a private config directory beside the run and point
 `CHEMSMART_CONFIG_DIR` at it; the profile under `~/.chemsmart` stays as it
 was. Two separate investigations each lost several steps rediscovering
-it before it was written down here.
+it before it was written down here. A third then ran four live goals
+this way and added the step that makes the run evidence: a digest over
+every tracked file of the packed tree, printed locally, recomputed on the
+far side before anything is issued, and written into a seal that predates
+the first goal -- otherwise nothing shows which code ran. The site's own
+recipe (paths, scheduler lines, a template goal script) belongs with the
+site's operating notes, not in this repository.
 
 **Conditions worth stating.** `-m` is `--mem-gb` before the program name
 and `--multiplicity` after it. PySCF fixtures are generated in the
@@ -301,6 +307,20 @@ stayed green. A test standing in for a live object uses its live type; a
 stand-in that supplies the attribute the code reads proves only that the
 code reads it (`f6ce5374`,
 `tests/agent/test_a_cycle_settles_on_its_own_stream.py::test_a_live_session_result_names_its_stream`).
+
+## A concept the record should know
+
+**What bit us.** `scf.reference_unstable` reached sessions in a wake for
+days while no rule or guide said what it meant; a leaf sentence denied a
+Hessian the host had shipped five days earlier. Both were found by hand.
+
+**What worked.** The evidence graph takes concepts from the registries a
+change must touch anyway -- a job type, an anomaly signal, and any setting,
+selector, operation or constant a sentence or a rule's boundary names --
+so they appear with no graph edit, and `graph.py orphans` lists the
+signals no sentence explains. A durable concept no registry owns (a
+convention, a negative result, a supersession) gets a `graph.yaml` node
+with its falsifier, in the same commit as the code that introduces it.
 
 ## Adding a PySCF quantity
 

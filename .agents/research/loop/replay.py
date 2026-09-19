@@ -7,6 +7,12 @@ the sufficiency states of delivered claims. It grades nothing -- a settlement
 word or a recovery is the host's own record, and no number here is a score.
 
     python .agents/research/loop/replay.py [--json] [ROOT ...]
+    python .agents/research/loop/replay.py --transcripts ROOT [...]
+
+``--transcripts`` prints every ``public-transcript-*.json`` under the roots as
+readable turns -- what the session said, which tool it called with which
+arguments, what came back, long fields truncated with their length. Three
+readers of one campaign each wrote this by hand before it lived here.
 
 Default roots are the tracked evidence plus any qualification run beside it.
 ``os.walk`` is used on purpose: ``glob('**')`` skips the dot-directories the
@@ -219,9 +225,7 @@ def aggregate(streams: list[dict]) -> dict:
     by_gate: dict[str, dict] = {}
     for item in refusals:
         gate = item["gate"] or f"(unrouted:{item['error_class']})"
-        slot = by_gate.setdefault(
-            gate, {"n": 0, "retried": 0, "recovered": 0}
-        )
+        slot = by_gate.setdefault(gate, {"n": 0, "retried": 0, "recovered": 0})
         slot["n"] += 1
         slot["retried"] += item["retried"]
         slot["recovered"] += item["recovered"]
@@ -272,22 +276,72 @@ def aggregate(streams: list[dict]) -> dict:
     }
 
 
+def _cut(text: str, limit: int) -> str:
+    return (
+        text
+        if len(text) <= limit
+        else f"{text[:limit]} ...[+{len(text) - limit}]"
+    )
+
+
+def transcript_lines(path: Path, call: int = 2500, reply: int = 700):
+    """One public transcript as readable turns. The system message is
+    reported by size only: it is the prompt, and its text is in the tree."""
+
+    turns = json.loads(path.read_text(encoding="utf-8")).get("transcript", [])
+    yield f"##### {shown(path)}  ({len(turns)} messages)"
+    for index, message in enumerate(turns):
+        role = str(message.get("role") or "?")
+        content = message.get("content") or ""
+        if not isinstance(content, str):
+            content = json.dumps(content, ensure_ascii=False)
+        if role == "system":
+            yield f"[{index}] SYSTEM ({len(content)} chars)"
+        elif role == "assistant":
+            yield f"[{index}] ASSISTANT: {content}"
+            for item in message.get("tool_calls") or []:
+                function = item.get("function") or {}
+                yield (
+                    f"    -> CALL {function.get('name')}"
+                    f"({_cut(str(function.get('arguments') or ''), call)})"
+                )
+        elif role == "tool":
+            yield f"[{index}] TOOL[{message.get('name', '')}]: {_cut(content, reply)}"
+        else:
+            yield f"[{index}] {role.upper()}: {_cut(content, reply)}"
+
+
 def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     roots = [Path(a).resolve() for a in args] or [
         ROOT / name for name in DEFAULT_ROOTS if (ROOT / name).exists()
     ]
+    if "--transcripts" in sys.argv:
+        found = sorted(
+            Path(folder) / name
+            for root in roots
+            for folder, _dirs, files in os.walk(root)
+            for name in files
+            if name.startswith("public-transcript-") and name.endswith(".json")
+        )
+        for path in found:
+            print("\n".join(transcript_lines(path)), end="\n\n")
+        return 0 if found else 1
     streams, ledgers, unreadable = [], [], []
     for path in find(roots, "events.jsonl"):
         try:
             streams.append(stream_facts(path))
         except Exception as err:  # an old schema is a fact, not a crash
-            unreadable.append({"stream": shown(path), "error": repr(err)[:160]})
+            unreadable.append(
+                {"stream": shown(path), "error": repr(err)[:160]}
+            )
     for path in find(roots, "ledger.jsonl"):
         try:
             ledgers.append(ledger_facts(path))
         except Exception as err:
-            unreadable.append({"ledger": shown(path), "error": repr(err)[:160]})
+            unreadable.append(
+                {"ledger": shown(path), "error": repr(err)[:160]}
+            )
     report = {
         "unreadable": unreadable,
         "aggregate": aggregate(streams),

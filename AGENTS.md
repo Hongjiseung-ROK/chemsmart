@@ -135,6 +135,10 @@ the repository has learned is linked rather than narrated.
   that replaced what a sentence says is a `supersedes` edge
   (`.agents/research/graph.yaml`). New history goes to a topic file or to
   that graph, never back into this kernel.
+- **A new concept arrives through its registry.** A job type, an anomaly
+  signal, a setting or selector a sentence names appears in the graph by
+  itself; a concept no registry owns gets a `graph.yaml` node with its
+  falsifier. `graph.py orphans` names what no sentence explains.
 - **Every persistent sentence competes** against deleting one, narrowing
   one, retrieving it just in time, or a deterministic invariant. This
   kernel stays under 2,000 words.
