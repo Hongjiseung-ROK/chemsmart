@@ -292,6 +292,16 @@ real PySCF results ("pyscf not in the controller env") was false:
 reading an `.h5` needs only h5py, which the controller env has. Verify
 a deferred note's reason before believing it.
 
+**The same defect, one layer up (2026-09-19).** A goal was meant to name
+each planning session's stream on its own ledger. The code read
+`session.run_id`; a live session result carries `session_id` and no
+`run_id`, and the only test handed it an object with `run_id` on it. Four
+live goals wrote zero `session_stream_recorded` rows while the test
+stayed green. A test standing in for a live object uses its live type; a
+stand-in that supplies the attribute the code reads proves only that the
+code reads it (`f6ce5374`,
+`tests/agent/test_a_cycle_settles_on_its_own_stream.py::test_a_live_session_result_names_its_stream`).
+
 ## Adding a PySCF quantity
 
 **What it takes, in order.** One line in the driver skeleton (the

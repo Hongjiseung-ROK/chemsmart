@@ -2,7 +2,7 @@
 # earned (evidence a skeptic could reconstruct), partial, open, refuted.
 # The story changes when the evidence disagrees; this file is how we notice.
 version: 1
-updated: 2026-09-19
+updated: 2026-09-20
 
 claims:
   - id: C1_hub
@@ -25,6 +25,7 @@ claims:
     claim: Defects reachable only through live chemistry persist under a green suite, and small chemically different cases find them fastest.
     evidence: ["CONDUCT.md section 4: fifteen findings by three reviewers, none by the author", "MAINTENANCE.md: two host defects found by three four-atom cases after 3183 tests and 67 witnesses passed"]
     evidence_added_2026_09_19: ["a repair (7001355b) passed its own five red-to-green witnesses and 3767 tests and still let a pre-v7 artifact validate against a request for an analysis it cannot carry; found in review, closed in 94d6e9f6", "080535cd: a guard whose only red state was hand-built, declined in review (ec1f5ba5)"]
+    evidence_added_2026_09_20: ["four sealed four-atom PySCF goals on CUHK (jobs 2140018-2140021) found six host defects under a suite of 3,806 passing tests: a Hessian taken a cycle later never credited to its optimisation, a correct refusal the verifier could not verify, live sessions never naming their stream (the test supplied an attribute the live type lacks), a re-woken goal refused for not reading a run that never existed, a wave-selection reply promising a submission that could not happen, and a termination notice calling it legitimate to end after a wave was selected; three fixed (f6ce5374; one witnessed by the parent's replay of the goal's real streams), three stated", "one direct CLI probe (job 2140014) found an analytic Hessian of an excited root certified as the root's while it was the ground state's (94376da3)"]
     strongest_counterexample: No denominator -- defects found by the suite first are not counted anywhere.
     missing_experiment: A defect ledger by detection channel (suite, witness bank, audit, live goal) over the commit history.
     status: open
