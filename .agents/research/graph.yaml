@@ -27,8 +27,8 @@ nodes:
   # Charter sections, classified. Words come from census.py, not from here.
   - {id: charter.mission, kind: charter_section, class: FUNDAMENTAL, source: {path: AGENTS.md, anchor: "## Mission"}}
   - {id: charter.architecture, kind: charter_section, class: HARD_INVARIANT, source: {path: AGENTS.md, anchor: "## Architecture"}, consumed_by: [tests/agent/test_the_architecture_diagram_names_real_symbols.py]}
-  - {id: charter.product_boundary, kind: charter_section, class: BOUNDARY_FACT+LOSS_NARRATIVE, source: {path: AGENTS.md, anchor: "## Product boundary for version 3.1.4"}, derivable_from: "chemsmart agent capabilities --json"}
-  - {id: charter.authority_chain, kind: charter_section, class: HARD_INVARIANT+LOSS_NARRATIVE, source: {path: AGENTS.md, anchor: "## Authority and approval chain"}}
+  - {id: charter.product_boundary, kind: charter_section, class: BOUNDARY_FACT, source: {path: AGENTS.md, anchor: "## Product boundary for version 3.1.4"}, derivable_from: "chemsmart agent capabilities --json", note: "kernel keeps the supports list only; the per-surface narrative was relocated verbatim to .agents/charter/ (e8dd7a50) and is reachable as topic:<slug>"}
+  - {id: charter.authority_chain, kind: charter_section, class: HARD_INVARIANT, source: {path: AGENTS.md, anchor: "## Authority and approval chain"}, note: "kernel keeps the seven steps; the rest was relocated verbatim to .agents/charter/ (e8dd7a50)"}
   - {id: charter.scientific_invariants, kind: charter_section, class: FUNDAMENTAL, source: {path: AGENTS.md, anchor: "## Scientific invariants"}}
   - {id: charter.implementation_discipline, kind: charter_section, class: PROCEDURE, source: {path: AGENTS.md, anchor: "## Implementation discipline"}}
 
@@ -124,7 +124,6 @@ edges:
   - {from: fundamental.hub, to: stem.never_author_native, rel: expressed_by}
   - {from: invariant.claim_ladder, to: charter.scientific_invariants, rel: duplicates}
   - {from: charter.product_boundary, to: invariant.gates, rel: depends_on}
-  - {from: lesson.refusal_teaches, to: stem.validation_is_typed, rel: supersedes, note: "if the refusal teaches, the always-on sentence is the redundant copy (hypothesis H2, untested)"}
   - {from: lesson.instrument_leaks_outcomes, to: L0004, rel: evidenced_by}
   - {from: commit.44499f2a, to: leaf.pyscf.an_excited_minimum_has_no_hessian_here, rel: supersedes, note: "the rule still says no excited or correlated Hessian exists (L0037)"}
   - {from: result.xtb_mode_tables_agree, to: L0034, rel: evidenced_by}

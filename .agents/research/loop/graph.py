@@ -11,6 +11,7 @@ reads this" and "what replaced this" are each one traversal.
 
     graph.py check            every authored pointer still resolves (exit 1 if not)
     graph.py stats            node / edge counts and what the graph does not cover
+    graph.py find TEXT        where to start: a word, a rule id or a commit sha
     graph.py why NODE         a node with everything pointing at it and from it
     graph.py cost             always-on rule text ranked by words and standing
     graph.py orphans          instructions with no evidence, evidence with no reader
@@ -150,6 +151,23 @@ def derived(graph: Graph) -> None:
             missing=claim.get("missing_experiment"),
         )  # fmt: skip
 
+    slate_path = RESEARCH / "slate.yaml"
+    if slate_path.is_file():
+        # The open frontier is evidence of what is unresolved, so it is
+        # queryable like anything else; derived from the slate, never copied.
+        slate = yaml.safe_load(slate_path.read_text()) or {}
+        for cand in slate.get("candidates") or []:
+            node_id = f"candidate:{cand['id']}"
+            graph.node(
+                node_id, "candidate",
+                title=cand.get("title"), target_kind=cand.get("target_kind"),
+                decides=cand.get("decides"),
+            )  # fmt: skip
+            for ref in cand.get("source") or []:
+                target = _qualify(graph, str(ref))
+                if target in graph.nodes:
+                    graph.edge(node_id, "evidenced_by", target)
+
 
 def authored(graph: Graph) -> list[str]:
     """The join from graph.yaml. Returns pointer problems instead of raising."""
@@ -219,7 +237,7 @@ def authored(graph: Graph) -> list[str]:
 
 
 def _qualify(graph: Graph, name: str) -> str:
-    for prefix in ("", "rule:", "ledger:", "loop:", "claim:"):
+    for prefix in ("", "rule:", "ledger:", "loop:", "claim:", "candidate:", "topic:"):
         if prefix + name in graph.nodes:
             return prefix + name
     return name
@@ -239,6 +257,55 @@ def _in_package(text: str) -> bool:
         capture_output=True,
     )
     return done.returncode == 0
+
+
+def ledger_commits() -> list[str]:
+    """Commit shas the ledger cites. A record that names a commit nobody can
+    reach has lost its evidence, which is what cleaning a branch can do."""
+    import re
+
+    from ledger import read
+
+    found: set[str] = set()
+    for row in read():
+        text = json.dumps(row, ensure_ascii=False)
+        found.update(re.findall(r"(?<![0-9a-f])[0-9a-f]{8}(?![0-9a-f])", text))
+    shas = []
+    for sha in sorted(found):
+        done = subprocess.run(
+            ["git", "cat-file", "-t", sha], cwd=ROOT, capture_output=True, text=True
+        )  # fmt: skip
+        if done.stdout.strip() == "commit":
+            shas.append(sha)
+    return shas
+
+
+def find(graph: Graph, text: str, limit: int = 12) -> list[str]:
+    """Nodes whose id or facts mention `text`; one truncated line each."""
+    needle = text.lower()
+    hits = []
+    for key, node in graph.nodes.items():
+        blob = (key + " " + json.dumps(node, ensure_ascii=False)).lower()
+        if needle in blob:
+            label = (
+                node.get("title") or node.get("claim") or node.get("note")
+                or node.get("policy") or node.get("text") or node.get("path") or ""
+            )  # fmt: skip
+            if not label and node["kind"] == "rule":
+                # Rule text is never copied here; say where it renders and
+                # what stands behind it, which is what a reader is choosing on.
+                label = (
+                    f"{node.get('placement')}, {node.get('words')} w, "
+                    f"{node.get('ladder')}"
+                    f"{', ' + node['class'] if node.get('class') else ''}"
+                )
+            rank = 0 if needle in key.lower() else 1
+            hits.append((rank, key, f"{key:<52} {node['kind']:<15} {str(label)[:88]}"))
+    hits.sort()
+    lines = [line for _rank, _key, line in hits[:limit]]
+    if len(hits) > limit:
+        lines.append(f"... {len(hits) - limit} more; narrow the text")
+    return lines
 
 
 def build() -> tuple[Graph, list[str]]:
@@ -303,8 +370,15 @@ def cost_table(graph: Graph) -> list[dict]:
 def main() -> int:
     mode = sys.argv[1] if len(sys.argv) > 1 else "stats"
     graph, problems = build()
+    if mode == "find" and len(sys.argv) > 2:
+        lines = find(graph, " ".join(sys.argv[2:]))
+        print("\n".join(lines) if lines else f"nothing mentions {sys.argv[2]!r}")
+        return 0 if lines else 1
     if mode == "check":
-        print(f"{len(graph.nodes)} nodes, {len(graph.edges)} edges")
+        print(
+            f"{len(graph.nodes)} nodes, {len(graph.edges)} edges, "
+            f"{len(ledger_commits())} ledger-cited commits resolve"
+        )
         for line in problems:
             print("  PROBLEM " + line)
         return 1 if problems else 0

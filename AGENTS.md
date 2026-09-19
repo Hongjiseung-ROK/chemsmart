@@ -126,9 +126,11 @@ that are shown these affordances do not use them, or use them without
 better outcomes, they are removed.
 
 - **Retrieve, do not preload.** This file is the kernel; everything else
-  is one lookup away. `python .agents/research/loop/graph.py why <rule
-  id | node>` answers what protects, earned, verifies, reads or
-  superseded an instruction; `graph.py cost` and `graph.py orphans` say
+  is one lookup away. `python .agents/research/loop/graph.py find
+  <word | rule id | commit>` says where to start and `graph.py why
+  <node>` answers what protects, earned, verifies, reads or superseded
+  an instruction, a result or an open candidate; `graph.py cost` and
+  `graph.py orphans` say
   what an always-on sentence costs and what stands behind it;
   `chemsmart agent capabilities` is the state of every capability;
   `MAINTENANCE.md` holds what worked and under what conditions;

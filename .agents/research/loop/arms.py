@@ -70,9 +70,11 @@ LOOP_SECTION = (
     "that are shown these affordances do not use them, or use them without\n"
     "better outcomes, they are removed.\n\n"
     "- **Retrieve, do not preload.** This file is the kernel; everything else\n"
-    "  is one lookup away. `python .agents/research/loop/graph.py why <rule\n"
-    "  id | node>` answers what protects, earned, verifies, reads or\n"
-    "  superseded an instruction; `graph.py cost` and `graph.py orphans` say\n"
+    "  is one lookup away. `python .agents/research/loop/graph.py find\n"
+    "  <word | rule id | commit>` says where to start and `graph.py why\n"
+    "  <node>` answers what protects, earned, verifies, reads or superseded\n"
+    "  an instruction, a result or an open candidate; `graph.py cost` and\n"
+    "  `graph.py orphans` say\n"
     "  what an always-on sentence costs and what stands behind it;\n"
     "  `chemsmart agent capabilities` is the state of every capability;\n"
     "  `MAINTENANCE.md` holds what worked and under what conditions;\n"
@@ -184,8 +186,14 @@ def promote(loop_section: bool) -> None:
 
 
 def verify_on_disk() -> list[str]:
-    """Every paragraph of the source charter is on disk exactly once."""
-    on_disk = paragraphs((ROOT / "AGENTS.md").read_text(encoding="utf-8"))
+    """Every paragraph of the source charter is on disk exactly once.
+
+    The kernel is policed for authored text; the topics are not. A topic is
+    where new history is supposed to go, so it may grow -- what it may never
+    do is lose or duplicate a paragraph the relocation put there.
+    """
+    kernel_paragraphs = paragraphs((ROOT / "AGENTS.md").read_text(encoding="utf-8"))
+    on_disk = list(kernel_paragraphs)
     for path in sorted((ROOT / ".agents" / "charter").glob("*.md")):
         on_disk.extend(paragraphs(path.read_text(encoding="utf-8")))
     source = paragraphs(source_text())
@@ -196,9 +204,9 @@ def verify_on_disk() -> list[str]:
     ]
     _kernel, _topics, listed_blocks = build(source_text(), loop_section=True)
     listed = [q for block in listed_blocks for q in paragraphs(block)]
-    for para in on_disk:
+    for para in kernel_paragraphs:
         if para not in source and para not in listed:
-            problems.append(f"unlisted authored text on disk: {para[:60]!r}")
+            problems.append(f"unlisted authored text in kernel: {para[:60]!r}")
     words = len((ROOT / "AGENTS.md").read_text(encoding="utf-8").split())
     if words > KERNEL_BUDGET_WORDS:
         problems.append(f"kernel is {words} words, over {KERNEL_BUDGET_WORDS}")
