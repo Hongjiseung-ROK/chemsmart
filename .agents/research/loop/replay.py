@@ -31,8 +31,8 @@ DEFAULT_ROOTS = ("experiments-public", "qual_water_wbo_goal2")
 def shown(path: Path) -> str:
     """Repo-relative where possible; a corpus outside the repo keeps its path.
 
-    The first run on an outside corpus raised here, which is how forecast
-    event E22 resolved false: on the instrument, not on the data.
+    The first run on an outside corpus raised here: a failure of the
+    instrument, not of the data it was pointed at.
     """
     try:
         return str(path.relative_to(ROOT))
