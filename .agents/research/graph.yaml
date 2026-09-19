@@ -99,6 +99,48 @@ nodes:
     note: "Four sealed goals, four observations, no arm without the sentences. The root's Hessian was planned in both excited-state goals and ran in one (all modes real); stability was asked on the twisted ethylene and on ozone's RHF reference, and of a closed-shell ground state only where ethylene's planar optimisation shared the twisted structure's project; the MP2 Hessian boundary was quoted and held."
     falsifier: "A sealed goal on an excited-state equilibrium structure plans no Hessian on the root, or one on the ground state; or a session delivers DFT frequencies as MP2."
 
+  - id: negative.geometric_kernel_irc_never_steps
+    kind: negative_result
+    source: {path: .agents/charter/pyscf.md, anchor: "not reach the first step under PySCF 2.14 and geomeTRIC 1.1.1 --"}
+    note: "pyscf.geomopt.geometric_solver.kernel(mf, irc=True) raises AttributeError ('super' object has no attribute 'molecules') before any gradient: run_optimizer reads M.molecules for every IRC and PySCF's engine never builds the topology. The TS search does not meet the line because it is guarded by params.irc."
+    falsifier: "Under the pinned PySCF and geomeTRIC, kernel(mf, irc=True) takes a first IRC step from a first-order saddle."
+  - id: negative.geometric_forward_is_a_sign
+    kind: negative_result
+    source: {path: .agents/charter/pyscf.md, anchor: "sign, not a species: geomeTRIC's ``forward`` steps against the eigenvector it"}
+    note: "Measured on the formaldehyde 1,2-H shift: with the eigenvector geomeTRIC holds made canonical, its 'forward' first step projected -0.756 on it and 'backward' +0.742; the host now hands geomeTRIC the negated vector and measures the projection from the recorded frames."
+    falsifier: "geomeTRIC's first IRC step for 'forward' is observed along +TSNormal_modes_x[0]."
+  - id: result.irc_path_is_not_everywhere_steepest_descent
+    kind: result
+    source: {path: .agents/charter/pyscf.md, anchor: "shift at HF/6-31G* the median cosine is 0.999 while single mid-path steps fall"}
+    note: "Two implementations agree (the validator and reference_irc.py): per-step cosines with the mean unit negative mass-weighted gradient, median 0.999, minima 0.60 and 0.18 mid-path and -0.15 among the last steps at a minimum. Stated, never graded."
+    falsifier: "Recomputing the cosines from an archived IRC's frames and gradients disagrees with the validator's, or a finer-step walk of the same surface reaches a different basin."
+  - id: result.opt_final_scf_started_from_the_input_density
+    kind: result
+    source: {path: .agents/charter/pyscf.md, anchor: "geometry's density while its record said ``final_scf_from_optimizer_density:"}
+    note: "PySCF's gradient scanner is a copy of the mean field; mf.mo_coeff is untouched by the walk, and the archived water_opt final SCF took six cycles where a restart from the walk's density takes one."
+    falsifier: "An optimisation's final SCF, run by a driver before this round, took as few cycles as a restart from the walk's last density."
+
+  - id: result.pyscf_irc_campaign_20260920
+    kind: result
+    source: {path: .agents/charter/pyscf.md, anchor: "Five sealed goals ran the IRC tree on CUHK (jobs 2140676, 2140679-2140682;"}
+    note: "Five sealed goals, 20 of 32 engine calls. Vinyl alcohol, HONO (ORCA saddle, PySCF branches) and H2CO -> H2 + CO delivered barriers within 0.01 kcal/mol of the direct-CLI references; every walked branch was read for where it ended before it was named. Ethane (a minimum called a TS) was recognised before any engine and settled exhausted; methoxy (a saddle from another surface) declined the IRC, found the true minima by displacement, withdrew its biased barriers and was returned. Twice the session inverted which barrier a more stable minimum carries; the host's expectation rows caught both."
+    falsifier: "A sealed goal names the minima a saddle connects from the branch word or from one branch, or delivers an IRC endpoint reached from a saddle of another surface as a minimum of this one."
+  - id: result.a_last_cycle_wave_was_promised_a_wake
+    kind: negative_result
+    source: {path: .agents/charter/goal-grain-recovery-wake.md, anchor: "woken once, when all of them have ended\": a woken cycle's plan is admitted"}
+    note: "g3-ethane and g5-methoxy each selected a wave in their last cycle, were told they would be woken, deferred claims to that wake and were settled without it (exhausted; returned_to_human with four numbers unclaimed). Every goal context now states wakes_after_this_cycle."
+    falsifier: "A goal context's wakes_after_this_cycle differs from the number of further cycles the goal loop opens after that cycle's run."
+  - id: result.a_result_file_is_not_a_structure_edge
+    kind: negative_result
+    source: {path: .agents/charter/goal-grain-recovery-wake.md, anchor: "A node fed its producer's result"}
+    note: "g3-ethane bound Hessian and IRC nodes to an optimisation's pyscf_hdf5; none could be previewed or deferred and its first cycle ran nothing while every reply named the routes for a node lacking a preview. The blocking node now carries a blocking_reason naming geometry_xyz."
+    falsifier: "A consumer bound to a structure producer's result file is deferred and runs inside one approval, or blocks with no reason naming the structure edge."
+  - id: negative.mode_count_certified_a_non_stationary_saddle
+    kind: negative_result
+    source: {path: .agents/charter/validity-rules.md, anchor: "The mode count is not stationarity, and one organ still reads it as such."}
+    note: "characterise_stationary_point issued order 1 for a Hessian taken at 0.0485 Eh/Bohr, with the host's own gradient anomaly uncited. Stated, not closed."
+    falsifier: "characterise_stationary_point refuses, or cites the gradient anomaly for, a result whose stationarity gradient exceeds the policy criterion."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).
@@ -118,6 +160,11 @@ annotations:
     backstop: {refusal: "has no analytic Hessian of an excited root"}
     falsifier: "A session that optimises on an excited root and is asked for that state's equilibrium structure plans no Hessian on that root, or one without the root's response settings."
     last_validated: "2026-09-19"
+  leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface:
+    class: SCIENCE
+    backstop: {refusal: "PySCF irc walks one branch per node"}
+    falsifier: "A session asked which minima a saddle connects plans one PySCF irc node only, or reads forward and backward as reactant and product without reading where each branch ended."
+    last_validated: null
   leaf.pyscf.a_converged_reference_can_be_a_saddle:
     class: SCIENCE
     backstop: null
@@ -132,3 +179,6 @@ edges:
   - {from: commit.ec1f5ba5, to: result.xtb_mode_tables_agree, rel: depends_on}
   - {from: leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names, to: result.pak_campaign_pyscf_20260919, rel: evidenced_by, note: "formaldehyde and trans-glyoxal each planned the root's Hessian with the root's settings; only formaldehyde's ran"}
   - {from: leaf.pyscf.a_converged_reference_can_be_a_saddle, to: result.pak_campaign_pyscf_20260919, rel: evidenced_by, note: "asked where the sentence names (twisted ethylene, ozone's RHF under MP2); the falsifier compares against an arm without the sentence, which this campaign did not run, so it stays unvalidated"}
+  - {from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface, to: negative.geometric_forward_is_a_sign, rel: depends_on, note: "the branch word is a host-fixed sign because geomeTRIC's word is not a direction"}
+  - {from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface, to: negative.geometric_kernel_irc_never_steps, rel: depends_on, note: "the driver walks geomeTRIC with PySCF's engine itself"}
+  - {from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface, to: result.pyscf_irc_campaign_20260920, rel: evidenced_by, note: "every session that walked branches read each endpoint's connectivity before naming it; methoxy declined to walk from another surface's saddle. No arm ran without the sentence, so it stays unvalidated"}

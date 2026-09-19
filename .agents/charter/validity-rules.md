@@ -54,3 +54,15 @@ names, per program and jobtype, which typed axes -- electronic,
 geometry, identity, spin, thermochemistry -- are readable or validated,
 and which host validity rules apply, so a jobtype the agent can run but
 cannot judge says ``unsupported`` out loud.
+
+The mode count is not stationarity, and one organ still reads it as such.
+``characterise_stationary_point`` checks a claimed order against the
+printed modes only: given the PySCF Hessian of a UHF/3-21G methoxy saddle
+on the B3LYP/def2-SVP surface (CUHK g5-methoxy, 2026-09-20), whose
+gradient of 0.0485 Eh/Bohr the host had just recorded as
+``stationary_point.gradient_above_optimizer_criterion``, it issued an order-1
+characterisation with no anomaly cited, and the session called the
+geometry "host-characterised as a first-order saddle" for a cycle before
+it withdrew the barriers standing on it. The gap is stated, not closed:
+closing it is a refusal on the gradient that reaches every program's
+characterisation, which this round did not measure.

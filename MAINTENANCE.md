@@ -37,7 +37,11 @@ only, and deliberately not for `irc` (whose log prints one structure) or
 `scan` (whose last printed structure is a scan point, a different thing).
 Choosing the jobtypes is the scientific act; if a future program's log
 carries a reached structure for a jobtype we excluded, that exclusion is
-the thing to revisit, not the mechanism.
+the thing to revisit, not the mechanism. PySCF's `irc` (2026-09-20) was
+that case: its artifact keeps the branch's endpoint, so the reader
+declares `reached_positions` for it and the optimised-geometry edge
+admits a path stage only where the reader does; ORCA's `irc` still does
+not.
 
 ## Adding a numeric policy the host decides science through
 
@@ -374,6 +378,21 @@ configuration.
 with the 1-based root) is found by a fixture generated at the boundary
 value, never by a docstring; and a stage's quantities computed before
 the final SCF belong to a structure the artifact does not carry.
+
+**What bit us adding `irc` (2026-09-20).** Upstream's convenience entry
+point failed before its first step: `geometric_solver.kernel(...,
+irc=True)` under PySCF 2.14 and geomeTRIC 1.1.1 raises on a topology
+PySCF's engine never builds, so calling the library it wraps, with that
+one step added, was smaller than any workaround. An upstream word turned
+out to be a sign: geomeTRIC's `forward` follows an eigenvector whose sign
+the eigensolver chose, so the host fixes the sign and the validator
+measures it again from the frames; only two nodes on one saddle make that
+testable. And the second stage that moves the geometry found every place
+that had assumed `opt` was the only one -- the final SCF restart, the
+reached structure, the handoff edge -- which is why `PYSCF_MOVING_STAGES`
+is a declaration; measuring the IRC endpoint's restart (one SCF cycle)
+beside an archived optimisation's (six) exposed that the optimisation's
+restart had never used the density its record claimed.
 
 ## Retiring a mechanism whose field lives in a digest body
 

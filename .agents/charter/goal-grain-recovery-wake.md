@@ -92,3 +92,44 @@ route, with the mechanism and the receipts it rests on -- verified
 against that menu and the host's own receipts and never graded; the next
 wake shows them beside the menu it re-offers, so a cycle inherits the
 argument and not only the list.
+
+A re-woken plan answers the report it was woken with. A cycle that planned
+a workflow nobody could approve launches no engine and, if it read
+nothing, records no analysis evidence, while the host knows exactly how
+it ended and opens the one further wake with that typed report. The
+revision gate then asked the re-woken session to have read "the run it
+revises", found none, and returned the approvable plan the report had
+produced -- trans-glyoxal ran nothing this way with its whole grant in hand
+(2026-09-19). The evidence the gate names is now the stream of the cycle
+the report describes, recorded as analysis evidence is recorded, so the
+wake and admission compare one reference the host wrote; a transport
+continuation carries no report and still names nothing. The same cycle
+had been told by ``select_execution_wave`` that "this wave is what will be
+submitted" while three of its nodes blocked approval. A wave is submitted
+only inside an approved workflow, so the reply now says whether the
+workflow can be approved and names the nodes that block it; the selection
+itself stands, because a session may choose its wave before its last
+preview.
+
+The IRC campaign (CUHK, 2026-09-20) found three places where a reply
+promised what the goal could not do. A node fed its producer's result
+file -- ethane's Hessian and IRC nodes bound to an optimisation's
+``pyscf_hdf5`` -- can be neither previewed nor deferred, because the file
+exists only once the producer has run and deferral admits a structure
+edge (``geometry_xyz``); every reply named routes that clear a node
+lacking a preview, and the goal lost its first cycle. Such a blocking
+node now carries a ``blocking_reason`` naming the producer's output and
+the ``geometry_xyz`` route, in the frontier and in the wave reply. The
+re-woken session read the reference its wake names with ``inspect_run``
+and met the reducer's "found 0", because that stream launched no
+workflow; the read is now a routed refusal pointing at the report the wake
+carries. And a wave selected in a goal's last cycle was told "you are
+woken once, when all of them have ended": a woken cycle's plan is admitted
+as a revision and a wake after its run needs one more, so methoxy's two
+diagnostic single points ran and the four numbers it meant to derive
+from them were never claimed. Every goal context now states
+``wakes_after_this_cycle``, and a wave with none left is told that nothing
+wakes it and that an unclaimed number is not delivered. Under a two-
+revision grant each level of a producer chain costs a cycle, which ethane
+(opt, then Hessian and IRC, then analysis) could not afford once its first
+cycle was spent.

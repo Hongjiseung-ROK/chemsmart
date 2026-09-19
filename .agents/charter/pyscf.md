@@ -412,3 +412,103 @@ returned for never having read a previous run that did not exist. No
 session asked stability of a closed-shell ground state except
 ethylene's planar optimisation, which shared the twisted structure's
 project.
+
+Result contract v8 adds ``irc``: one branch of the intrinsic reaction
+coordinate from the geometry a node is handed, on an HF or DFT surface on
+the CPU engine. PySCF's own ``geometric_solver.kernel(..., irc=True)`` does
+not reach the first step under PySCF 2.14 and geomeTRIC 1.1.1 --
+``run_optimizer`` reads ``M.molecules`` for every IRC and PySCF's engine
+builds a molecule whose topology nobody built -- and it would return only a
+flag and the last geometry evaluated. So the driver calls geomeTRIC with
+PySCF's engine itself and records what the walk was. It first takes the
+analytic Hessian of the walked surface at the supplied geometry, so the
+start is shown to be a saddle of that surface and not of whichever surface
+located it: the artifact carries that spectrum and the gradient there, and
+the host's order rule, applied to the start through ``START_POINT_PROMISES``,
+types a start with no imaginary mode or several
+``failed_wrong_stationary_point`` (geomeTRIC refuses to walk from it, and the
+refusal is recorded beside the start's spectrum and the SCF there rather than
+raised past them). A start gradient above geomeTRIC's criterion is the
+existing gradient anomaly, marked ``geometry: supplied``. The branch word is a
+sign, not a species: geomeTRIC's ``forward`` steps against the eigenvector it
+holds, and an eigenvector's sign is the eigensolver's choice, so the host fixes
+the transition vector's sign (the first component within 1e-3 of the largest
+is positive), ``forward`` is the branch whose first step projects positively
+on it, and the validator measures that projection again from the recorded
+frames. Two nodes on one saddle walk opposite branches; which minimum each
+reached is read from its path. Every accepted frame is kept with its energy,
+gradient and mass-weighted arc length, rigid motion removed, on success and on
+running out of steps alike; every property belongs to where the branch ended,
+where the SCF restarts from the density the walk last evaluated; and the
+endpoint hands on through the optimised-geometry edge, admitted for a path
+stage only where its reader declares a reached structure, which ORCA's IRC
+log does not. An endpoint is where the walk met the optimiser's criteria,
+never a characterised minimum: a Hessian on it says which.
+
+What the validator states and does not grade: each recorded step against the
+mean unit negative mass-weighted gradient at its two ends. geomeTRIC finds the
+next point from a quadratic model of the gradient, and on formaldehyde's 1,2-H
+shift at HF/6-31G* the median cosine is 0.999 while single mid-path steps fall
+to 0.60 and 0.18 where the valley turns, and to -0.15 among the last tiny
+steps at the minimum: the walk reaches its basin, and in those steps the
+recorded path is not the surface's steepest descent. No threshold was earned,
+so none is applied.
+
+The direct CLI evidence (CUHK Slurm 2140566, 2140568) walked two surfaces from
+ORCA OptTS saddles. H2CO / trans-HCOH at HF/6-31G*: ORCA's saddle carries one
+imaginary mode at -2700.0 cm-1 on PySCF's surface with a start gradient of
+2.7e-5 Eh/Bohr; the branches reach trans-HCOH and formaldehyde, whose PySCF
+Hessians are all real, and ORCA's own IRC ends at the same two minima to 0.006
+A in every distance, printing the saddle's energy as its "FINAL SINGLE POINT
+ENERGY". HCN / HNC at B3LYP/def2-SVP from ORCA's ``B3LYP/G`` saddle (-1122.72
+cm-1; PySCF -1123.0) reach HNC and HCN, both linear minima; from the saddle
+ORCA located under its default ``B3LYP`` (VWN5), the start gradient on PySCF's
+VWN3 surface is 4.4e-4 Eh/Bohr, sixteen times the matched one and just inside
+the criterion, and the branch reaches the same HNC. A branch cut at three
+steps keeps five frames and ends ``failed_nonconverged_geometry``; a branch
+started at formaldehyde ends ``failed_wrong_stationary_point`` with its
+all-real start spectrum. ORCA's own IRC on the ``B3LYP/G`` saddle ends
+within 0.0008 A of PySCF's HCN and HNC and falls by the same energies to
+0.025 kcal/mol, the two programs' totals sitting 5e-5 to 8e-5 Eh apart;
+and PySCF's own account of every archived path, without geomeTRIC
+(``reference_irc.py``), reproduces each stored energy to 1e-9 Eh and
+gradient to 4e-6 Eh/Bohr and finds the recorded transition vector to be
+the stored Hessian's lowest mode.
+
+Five sealed goals ran the IRC tree on CUHK (jobs 2140676, 2140679-2140682;
+frozen tree f1bd9361, default provider profile, a delegated approval), each
+asked as a chemist would. Vinyl alcohol / acetaldehyde from a supplied
+B3LYP saddle: two branches, each endpoint named from its connectivity,
+barriers 57.34 and 68.51 kcal/mol against the direct-CLI 57.3 and 68.5;
+settled ``achieved_with_observations``, the observation being the
+session's own expectation that the more stable tautomer sits under the
+smaller barrier, which it then corrected. HONO: ORCA optimised both
+conformers and located the saddle from a 90-degree seed; PySCF's branches
+from that default-``B3LYP`` (VWN5) saddle start at 3.6e-4 Eh/Bohr, inside
+the criterion, and end at dihedrals 0.008 and -179.87 degrees; barriers
+14.51 and 14.08 from ORCA's own energies, never mixed with PySCF's, cis
+lower by 0.44 at this level and said to be smaller than the method's
+error. H2CO -> H2 + CO: backward to formaldehyde, forward to an H2...CO
+pair, barrier 84.72; the pair's optimised energy, +10.27, was delivered
+as "separated H2 + CO", 0.21 kcal/mol below the separated fragments. A
+staggered ethane called a transition state was recognised from its
+dihedral before any engine ran; the goal lost its first cycle to a plan
+that fed an optimisation's result file to its Hessian and IRC nodes and
+settled ``exhausted``. The methoxy saddle from UHF/3-21G carries 0.0485
+Eh/Bohr on the B3LYP surface; the session declined to walk an IRC from
+it, displaced along the B3LYP mode and optimised to the two true minima,
+withdrew its own barriers (36.64 and 42.69, each 2.0 above those of the
+B3LYP saddle) as resting on a non-stationary energy, and was returned to
+the human with the measurement it planned unclaimed. An IRC started there
+on the reference side ends at a symmetric CH2OH 5.1 kcal/mol above the
+minimum: a path from another surface's saddle is not this surface's path.
+
+One claim of this topic was false until this round: "The driver re-converges
+the SCF on the final geometry, from the optimiser's own last density". PySCF's
+gradient scanner works on a copy of the mean field, whose orbitals the walk
+never touches, so every optimisation's final SCF started from the supplied
+geometry's density while its record said ``final_scf_from_optimizer_density:
+true`` (the archived ``water_opt`` fixture: six final SCF cycles where a
+restart takes one). The driver now builds the scanner it walks and restarts
+from its last density, and the flag says whether it did; archived artifacts
+keep the record they were written with.
