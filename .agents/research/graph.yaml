@@ -50,7 +50,7 @@ nodes:
   - id: lesson.witness_must_be_red
     kind: lesson
     source: {path: CONDUCT.md, anchor: "a witness that was never red witnesses"}
-    consumed_by: [loop/arms.py, loop/graphcheck.py]
+    consumed_by: [loop/arms.py, loop/graph.py]
   - id: lesson.defect_as_probe
     kind: lesson
     source: {path: CONDUCT.md, anchor: "as a probe, not a ticket"}

@@ -154,6 +154,14 @@ def one(arm: str, klass: str, rep: int, arms_dir: Path, out: Path,
 def run(arms_dir: Path, out: Path, model: str | None, reps: int, jobs: int):
     out.mkdir(parents=True, exist_ok=True)
     grouped = batches(load_probes())
+    if model:
+        # The second model resolves one keyed event only; prose-only batches
+        # would be spend with no reader.
+        grouped = {
+            klass: batch
+            for klass, batch in grouped.items()
+            if any(p["type"] == "mcq" for p in batch)
+        }
     # Interleave arms so drift in the provider over the window cannot
     # masquerade as an arm effect.
     work = [
@@ -216,6 +224,30 @@ def prose(out: Path) -> None:
     random.Random(20260919).shuffle(rows)
     (SEAL / "prose-blind.json").write_text(json.dumps(rows, indent=1))
     print(f"{len(rows)} prose answers written blind to the seal directory")
+
+
+def unblind(out: Path, scores_path: Path) -> None:
+    """Join the blind grader's scores back to arms, after grading is done."""
+    scores = json.loads(scores_path.read_text())
+    probes = {p["id"]: p for p in load_probes()}
+    joined = {}
+    for record in records(out):
+        if record["model"] != "default":
+            continue
+        for pid in record["probe_ids"]:
+            if probes[pid]["type"] != "prose":
+                continue
+            blind = hashlib.sha256(
+                f"{record['arm']}{record['rep']}{pid}".encode()
+            ).hexdigest()[:12]
+            if blind in scores:
+                joined[blind] = {
+                    "arm": record["arm"],
+                    "probe_id": pid,
+                    "score": float(scores[blind]),
+                }
+    (out / "rubric.json").write_text(json.dumps(joined, indent=1))
+    print(f"{len(joined)} rubric scores joined to arms")
 
 
 def score(out: Path, rubric_path: Path | None) -> dict:
@@ -331,6 +363,9 @@ def main() -> int:
         return 0
     if args[0] == "prose":
         prose(Path(args[1]))
+        return 0
+    if args[0] == "unblind":
+        unblind(Path(args[1]), Path(args[2]))
         return 0
     if args[0] == "score":
         rubric = Path(args[2]) if len(args) > 2 else None

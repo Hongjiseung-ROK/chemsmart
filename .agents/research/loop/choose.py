@@ -164,10 +164,72 @@ def score(forecasts: dict, outcomes: dict) -> dict:
     return {"resolved_events": len(resolved), "by_forecaster": out}
 
 
+def candidate_sources() -> list[dict]:
+    """Every place a candidate can come from, enumerated rather than recalled.
+
+    Four sources, all already on disk: an untested loop component's own
+    falsifier, a paper claim's missing experiment, a rule annotation that was
+    never validated, and a ledger observation that names what it implicates.
+    The lead merges and words the slate; it does not get to forget a source.
+    """
+    import yaml
+
+    sys.path.insert(0, str(HERE))
+    from ledger import read
+
+    out = []
+    loop = yaml.safe_load((RESEARCH / "loop.yaml").read_text())
+    for name, comp in loop["components"].items():
+        if comp.get("status") != "promoted":
+            out.append(
+                {
+                    "source": f"loop.{name}",
+                    "kind": "research_loop",
+                    "prompt": comp.get("falsifier", ""),
+                }
+            )
+    claims = yaml.safe_load((RESEARCH / "claims.yaml").read_text())
+    for claim in claims["claims"]:
+        if claim.get("status") != "earned":
+            out.append(
+                {
+                    "source": claim["id"],
+                    "kind": "product|agent_context",
+                    "prompt": claim.get("missing_experiment", ""),
+                }
+            )
+    graph = yaml.safe_load((RESEARCH / "graph.yaml").read_text())
+    for rule_id, note in (graph.get("annotations") or {}).items():
+        if note.get("falsifier") and not note.get("last_validated"):
+            out.append(
+                {
+                    "source": rule_id,
+                    "kind": "agent_context",
+                    "prompt": note["falsifier"],
+                }
+            )
+    for row in read():
+        if row["type"] == "observation" and row["loop_version"] == loop[
+            "version"
+        ]:
+            out.append(
+                {
+                    "source": row["id"],
+                    "kind": row["target_kind"],
+                    "prompt": row["title"],
+                }
+            )
+    return out
+
+
 def main() -> int:
     import yaml
 
     mode = sys.argv[1] if len(sys.argv) > 1 else "slate"
+    if mode == "candidates":
+        for item in candidate_sources():
+            print(f"{item['source']:<34} {item['kind']:<22} {item['prompt']}")
+        return 0
     if mode == "slate":
         slate = yaml.safe_load((RESEARCH / "slate.yaml").read_text())
         print(json.dumps(rank_slate(slate), indent=1))

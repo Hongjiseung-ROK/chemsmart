@@ -7,7 +7,7 @@ version: 1
 cascade:
   L0_static:
     cost: seconds
-    instruments: [loop/census.py, loop/graphcheck.py, loop/arms.py check]
+    instruments: [loop/census.py, loop/graph.py, loop/arms.py check]
     decides: size, drift, dangling pointers, relocation integrity. Never behaviour.
   L1_archived_replay:
     cost: seconds, no provider, no engine
