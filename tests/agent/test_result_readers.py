@@ -115,10 +115,13 @@ def test_model_tool_surface_exposes_the_registered_result_plane():
         "xtb",
         "xyz",
     ]
-    assert (
-        "xyz: connectivity, energy, positions, symbols"
-        in properties["program"]["description"]
+    # Stated once: what every reader serves, then what each adds; a
+    # geometry file adds only its trajectory view.
+    description = properties["program"]["description"]
+    assert "every reader: connectivity, energy, positions, symbols" in (
+        description
     )
+    assert "xyz: trajectory_connectivity_changed" in description
     extract = next(
         item
         for item in surface.tool_definitions
