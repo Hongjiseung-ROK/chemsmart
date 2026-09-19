@@ -117,6 +117,44 @@ is computed, not narrated: ``chemsmart agent capabilities`` and
 - `.agents/charter/delivery-precision-uncertainty.md` -- delivery and supersession, met / attested / short / unstated, estimators, measured vs asserted, unreachable precision
 - `.agents/charter/settlement-and-terminal-records.md` -- settlement words, goal-grain delivery, verified refusal, terminal records, failed results as evidence, cancellation
 
+## Evidence graph and research loop
+
+How this repository remembers and how it improves are part of its
+development method, not an appendix. They are a working hypothesis with
+a falsifier, recorded in `.agents/research/ledger.jsonl`: if sessions
+that are shown these affordances do not use them, or use them without
+better outcomes, they are removed.
+
+- **Retrieve, do not preload.** This file is the kernel; everything else
+  is one lookup away. `python .agents/research/loop/graph.py why <rule
+  id | node>` answers what protects, earned, verifies, reads or
+  superseded an instruction; `graph.py cost` and `graph.py orphans` say
+  what an always-on sentence costs and what stands behind it;
+  `chemsmart agent capabilities` is the state of every capability;
+  `MAINTENANCE.md` holds what worked and under what conditions;
+  `CONDUCT.md` binds every change.
+- **Evidence is linked, not narrated.** An observation, a falsified
+  premise, a negative result, a decision and the commit that replaced a
+  sentence are ledger rows and graph edges (`evidenced_by`,
+  `supersedes`, `backstopped_by`), each naming what it is about --
+  `product`, `agent_context` or `research_loop`, three kinds that never
+  share a commit. A lesson points at its source; it never restates it.
+- **Research runs in generations.** `python
+  .agents/research/loop/generation.py open` scores the previous
+  generation's sealed forecasts before anything else; `reflect` assigns
+  outcomes to the loop component responsible; candidates are enumerated
+  across all three kinds; a choice and its forecast are recorded before
+  it runs; the loop itself (`.agents/research/loop.yaml`) is mutated only
+  by `promote`, on ledger evidence. No target is named in advance. Start
+  from `.agents/research/BOOTSTRAP.md` and `STATE.md`.
+- **A delegated investigator is shown all of this.** A brief names the
+  graph and the ledger as readable evidence and asks for findings as
+  rows that can be appended; an affordance that was never shown has not
+  been tested.
+- **Every persistent sentence competes** against deleting one, narrowing
+  one, retrieving it just in time, or a deterministic invariant. This
+  kernel stays under 2,000 words, and `census.py` measures it.
+
 ## Scientific invariants
 
 Before materialisation, establish the facts that determine meaning:

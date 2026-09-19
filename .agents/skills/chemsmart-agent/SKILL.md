@@ -6,7 +6,8 @@ description: Operate, audit, document, or improve the production ChemSmart compu
 # ChemSmart Agent
 
 Treat ChemSmart as the execution authority and the model as the scientific
-reasoner. Read `AGENTS.md` before changing the product boundary.
+reasoner. Read `AGENTS.md` and the matching topic under `.agents/charter/`
+before changing the product boundary.
 
 ## Start from the live product
 
