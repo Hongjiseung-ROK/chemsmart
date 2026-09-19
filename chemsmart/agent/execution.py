@@ -3984,6 +3984,7 @@ ANOMALY_SIGNALS = (
     "geometry.heavy_atom_rmsd_ge_0.3",
     "geometry.results_indistinguishable",
     "scan.extremum_at_grid_boundary",
+    "scf.reference_unstable",
     "spin.s2_deviation_ge_0.2",
     "stationary_point.gradient_above_optimizer_criterion",
     "stationary_point.imaginary_mode_lt_50",

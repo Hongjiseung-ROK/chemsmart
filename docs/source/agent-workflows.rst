@@ -321,12 +321,16 @@ diagnostic``, the session's own prediction about the route with a ``failure_upda
 ``indeterminate``.
 
 A surprise the host detects on a completed node -- a stationary point of the wrong order, a walk to another basin, a
-spin expectation value far from the bound state -- is recorded as an anomaly observation with its numbers beneath the
-verdict, whether or not it was asked for. A certified delivery that carries one settles ``achieved_with_observations``
-and its report names each observation; an excursion that re-runs the sensor marks the observation ``replicated`` or
-``refuted``, and the latest receipt speaks for it. A scan whose extremum lies on the grid's edge, and a result that
-walked from the goal's original bound geometry even when its immediate input was a reached or displaced structure, are
-recorded the same way.
+spin expectation value far from the bound state, or a reference the run's own stability analysis found not to be a
+minimum in orbital-rotation space -- is recorded as an anomaly observation with its numbers beneath the verdict, whether
+or not it was asked for. The reference observation carries the rotation space the program searched, what it left
+undetermined, what it could not answer and whether those orbitals had converged; a result whose run recorded no such
+analysis -- because none was asked for, because the program offers none, or because the result predates the record --
+carries no observation, which is never read as a stable reference. A certified delivery that carries one settles
+``achieved_with_observations`` and its report names each observation; an excursion that re-runs the sensor marks the
+observation ``replicated`` or ``refuted``, and the latest receipt speaks for it. A scan whose extremum lies on the
+grid's edge, and a result that walked from the goal's original bound geometry even when its immediate input was a
+reached or displaced structure, are recorded the same way.
 
 A declared observable is delivered when any cycle of the goal claimed it by id, and a goal whose declared observables
 remain undelivered while budget remains is woken once more. A session that cannot reach a declared observable refuses it

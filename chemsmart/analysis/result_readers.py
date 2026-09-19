@@ -884,6 +884,153 @@ def _resolve_computed_surface(reader, output, selector, word):
     return "reference"
 
 
+#: The two questions a reference-stability analysis asks, whatever
+#: program asks them.  A program names its own orbital-rotation space
+#: inside each answer -- PySCF says ``RHF/RKS -> UHF/UKS`` for a
+#: restricted reference and ``UHF/UKS -> GHF/GKS`` for an unrestricted
+#: one, Gaussian names none -- so the space rides the answer and is
+#: never assumed from the question.  ``considered_perturbations`` is
+#: Gaussian's own hedge, kept as its own word rather than folded into
+#: either of the other two.
+REFERENCE_STABILITY_QUESTIONS = (
+    "internal",
+    "external",
+    "considered_perturbations",
+)
+
+
+def _stability_answer(question, *, rotation_space=None, reason=None):
+    """One question's answer, in the shape every reader writes."""
+
+    answer = {"question": str(question)}
+    if rotation_space:
+        answer["rotation_space"] = str(rotation_space)
+    if reason:
+        answer["reason"] = str(reason)
+    return answer
+
+
+def _pyscf_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
+    """What PySCF's own analysis said about the reference this result
+    stands on, or ``None`` when nothing was recorded.
+
+    ``None`` covers three different absences on purpose -- an artifact
+    written under a contract older than v7, a run nobody asked, and an
+    analysis that raised -- because none of them is a stable reference
+    and no consumer should be able to tell them apart by accident.  The
+    third is already a ``property_failures`` entry the validator reports
+    on its own.
+    """
+
+    record = getattr(output, "scf_stability", None)
+    if not isinstance(record, Mapping):
+        return None
+    analyses = record.get("analyses")
+    if not isinstance(analyses, Mapping):
+        return None
+    unstable, stable, unavailable = [], [], []
+    for question in REFERENCE_STABILITY_QUESTIONS:
+        entry = analyses.get(question)
+        if not isinstance(entry, Mapping):
+            continue
+        if entry.get("unavailable"):
+            unavailable.append(
+                _stability_answer(
+                    question, reason=str(entry.get("unavailable"))
+                )
+            )
+            continue
+        answered = entry.get("stable")
+        if answered is None:
+            continue
+        target = stable if bool(answered) else unstable
+        target.append(
+            _stability_answer(
+                question, rotation_space=entry.get("rotation_space")
+            )
+        )
+    not_determined = [
+        _stability_answer(
+            str(entry.get("question") or name),
+            rotation_space=entry.get("rotation_space"),
+            reason=entry.get("reason"),
+        )
+        for name, entry in sorted((record.get("not_determined") or {}).items())
+        if isinstance(entry, Mapping)
+    ]
+    if not (unstable or stable or unavailable or not_determined):
+        return None
+    return {
+        "analysis": "scf_stability",
+        "applies_to": str(record.get("applies_to") or "reference"),
+        "source": str(record.get("source") or ""),
+        "reference_class": str(record.get("reference_class") or ""),
+        "reference_family": str(record.get("reference_family") or ""),
+        # The orbitals the analysis ran on.  PySCF answers for an SCF
+        # that never converged, about orbitals that are not stationary,
+        # and a reader of the answer is owed that fact beside it.
+        "reference_converged": record.get("scf_converged"),
+        "unstable": tuple(unstable),
+        "stable": tuple(stable),
+        "unavailable": tuple(unavailable),
+        "not_determined": tuple(not_determined),
+    }
+
+
+#: Gaussian's own verdict words, and what each says about the
+#: wavefunction the run ended on.  A linked job can find an instability,
+#: reoptimise the wavefunction and end stable, so the *last* verdict is
+#: the state of the reference and the earlier ones are its history: the
+#: archived ``dna_link_sp`` log finds an internal instability and then
+#: reports stability, and reading anything but the last entry would call
+#: that reference unstable.
+_GAUSSIAN_STABILITY_VERDICTS = {
+    "internal_instability": ("unstable", "internal"),
+    "external_instability": ("unstable", "external"),
+    "stable_under_considered_perturbations": (
+        "stable",
+        "considered_perturbations",
+    ),
+}
+
+
+def _gaussian_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
+    """Gaussian's stability verdict for the wavefunction it ended on.
+
+    Gaussian prints no rotation space, so none is recorded: "externally
+    unstable" is two different questions in PySCF's vocabulary and one
+    unnamed question in Gaussian's, and inventing a space here would
+    make two programs' answers look comparable when only one of them
+    said which question it answered.
+    """
+
+    history = tuple(
+        str(item)
+        for item in (
+            getattr(output, "wavefunction_stability_history", None) or ()
+        )
+    )
+    if not history:
+        return None
+    standing, question = _GAUSSIAN_STABILITY_VERDICTS.get(
+        history[-1], (None, None)
+    )
+    if standing is None:
+        return None
+    answer = (_stability_answer(question),)
+    return {
+        "analysis": "wavefunction_stability",
+        "applies_to": "reference",
+        "source": "gaussian stability analysis",
+        "verdict": history[-1],
+        "history": history,
+        "unstable": answer if standing == "unstable" else (),
+        "stable": answer if standing == "stable" else (),
+        "unavailable": (),
+        "not_determined": (),
+    }
+
+
 def _electronic_provenance_table(accessors, declared):
     """Keep the declared provenance rows this reader actually implements."""
 
@@ -984,6 +1131,20 @@ class ResultReaderV1:
     #: say, and the organs that ask treat that as "not comparable" rather
     #: than as agreement.
     resolve_surface: Callable[[Any], Mapping[str, Any] | None] | None = None
+    #: What this result's own run recorded about the *reference* every
+    #: number above it stands on -- today, whether a stability analysis
+    #: found the converged orbitals to be a minimum in orbital-rotation
+    #: space.  A diagnostic about the wavefunction rather than about a
+    #: quantity, so it is not a selector: it has no unit, enters no
+    #: arithmetic, and flattening two named questions into one verdict
+    #: string is exactly the shape the recording round rejected.  It is
+    #: the one path such a diagnostic takes into the host's sensors, so
+    #: the next one is a reader function rather than another hand-thread.
+    #: ``None`` means this reader cannot say, and no organ reads that as
+    #: a stable reference.
+    resolve_reference_diagnostics: (
+        Callable[[Any], Mapping[str, Any] | None] | None
+    ) = None
 
     def surface_for_output(self, output: Any) -> Mapping[str, Any] | None:
         """The surface this result is on, or None when unknowable."""
@@ -991,6 +1152,15 @@ class ResultReaderV1:
         if self.resolve_surface is None:
             return None
         return self.resolve_surface(output)
+
+    def reference_diagnostics_for_output(
+        self, output: Any
+    ) -> Mapping[str, Any] | None:
+        """What this result recorded about its own reference, or None."""
+
+        if self.resolve_reference_diagnostics is None:
+            return None
+        return self.resolve_reference_diagnostics(output)
 
     def __post_init__(self) -> None:
         jobtypes = tuple(item[0] for item in self.jobtype_selectors)
@@ -3810,6 +3980,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 ),
             ),
         ),
+        resolve_reference_diagnostics=_gaussian_reference_diagnostics,
     ),
     "xtb": ResultReaderV1(
         program="xtb",
@@ -3954,6 +4125,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         resolve_electronic_provenance=_resolve_computed_surface,
         resolve_level=_pyscf_level,
         resolve_surface=lambda output: getattr(output, "surface", None),
+        resolve_reference_diagnostics=_pyscf_reference_diagnostics,
         admit_for_analysis=_pyscf_admit_for_analysis,
     ),
     "xyz": ResultReaderV1(
