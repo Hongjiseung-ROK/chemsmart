@@ -102,8 +102,9 @@ degeneracy policy was in the plan and withdrawn under independent
 review, because nobody here derived the number; a water root that ended
 degenerate with its neighbour to 3e-6 eV is the case the number exists
 for, and the session, not the host, says what it means. No Hessian
-exists for that minimum here, so the delivered geometry is worded
-uncharacterised. ``mp2``, ``ccsd`` and ``ccsd(t)`` are ``ab_initio``
+existed for that minimum when this stage shipped, so the delivered
+geometry was worded uncharacterised; the difference Hessian below is its
+Hessian now. ``mp2``, ``ccsd`` and ``ccsd(t)`` are ``ab_initio``
 values on an HF reference, as ORCA's settings already spell them:
 energies for all three, analytic gradients for MP2 and CCSD (the CCSD(T)
 gradient exists upstream and is refused as unaudited, never called
@@ -192,13 +193,16 @@ available.
 
 PySCF differentiates an HF or DFT energy twice analytically and does not
 differentiate a TDA root, an MP2 or a CCSD energy twice at all, so a
-``hess`` on one of those surfaces differences the analytic gradient the
-driver already has: 6N central displacements at 0.005 Angstrom, with the
-step in both units, the gradient count, the per-displacement convergence
+``hess`` on an excited root differences that root's analytic gradient,
+which the driver already has: 6N central displacements at 0.005
+Angstrom, with the step in both units, the gradient count, the
+per-displacement convergence
 and the class of the object that produced the gradients recorded beside
 the frequencies. ``hessian_derivative`` and ``fd_step_angstrom`` are
 project keys and CLI options, and an unset derivative resolves to the
-analytic one where PySCF has it. Stages run in a declared order so a
+analytic one where PySCF has it and to the difference on an excited
+root, where ``analytic`` is refused: it would be ``mf.Hessian()``, the
+reference's curvature under a surface record naming the root. Stages run in a declared order so a
 surface is built before anything differentiates it, and the gradient a
 Hessian stage records is the gradient of the surface it differentiated --
 at the relaxed planar S1 point of formaldehyde the mean field's own
@@ -209,7 +213,13 @@ truncation error of the step rather than the quadrature noise the
 analytic limit was calibrated on -- 4.4e-05 Eh/Bohr^2 on water against a
 limit of 1.1e-05, with frequencies agreeing to 0.40 cm-1 -- so for a
 numerical Hessian it is recorded and never graded, because nobody here
-derived a limit for it.
+derived a limit for it. The driver would difference an MP2 or CCSD
+gradient the same way, and this charter said from 44499f2a on that it does;
+the settings validator never stopped refusing a correlated ``hess``, so
+that path has run on no fixture and in no goal and is not claimed. Its
+refusal named "an HF or DFT hess node" as the route, which is exactly
+the pairing the surface comparison above refuses to credit; it now says
+that such a Hessian describes a different surface.
 
 None of this is described as completed Agent execution. It is exercised
 on six new real fixtures with PySCF's own recomputation beside them and
@@ -337,3 +347,29 @@ entry would flag a reference Gaussian had already repaired. Gaussian names
 no rotation space and the record invents none. No sealed goal has run this
 surface, so the sensor is described as a host observation over real
 archived results and not as something a goal has yet acted on.
+
+What a session is told about this surface is now held to the host. The
+leaf had said "No Hessian exists for an excited or a correlated surface"
+from 44499f2a on, while the project loader admitted a Hessian on an
+excited root; the project tool's own rule still called ``td``
+preview-only; and ``hessian_derivative`` and ``fd_step_angstrom`` were
+applied by the loader and advertised nowhere, so the execution review
+never displayed them. Probing that last gap found a wrong spectrum under
+green receipts: ``hessian_derivative: analytic`` on an excited root ran
+``mf.Hessian()``, and on CUHK (job 2140014) the planar formaldehyde S1
+point validated with no finding, the ground state's six real modes
+beside S1's own 9.1e-06 Eh/Bohr gradient, under a surface record naming
+root 1 -- where the difference Hessian of that root has a mode at
+-503.9 cm-1. The analytic derivative on a root is refused, an unknown
+derivative word and a non-positive step are refused, both keys are
+advertised and displayed, and the correlated refusal no longer names a
+DFT Hessian as its route. A rule that states a settings boundary carries
+the sections that make it true, and a test asks each of the model's own
+project path, so the next such sentence goes red when the host moves.
+The leaf gains the reference-stability sentence: what ``scf_stability``
+asks, where a lower solution is chemically plausible, and what
+``scf.reference_unstable`` means when it arrives. A four-goal sealed
+campaign on CUHK (jobs 2140018-2140021: formaldehyde and trans-glyoxal
+S1 structures, the ethylene torsion barrier, ozone at MP2) was issued
+on this tree and its results were not read before the cluster gate
+closed, so no Agent behaviour is claimed from it here.

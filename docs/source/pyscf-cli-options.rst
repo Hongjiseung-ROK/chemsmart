@@ -160,7 +160,7 @@ Program-Level Options
 
    -  -  ``--excited-root``
       -  positive integer, at most ``nstates``
-      -  ``opt`` only: optimise on that root of the manifold, by index.
+      -  ``opt`` or ``hess``: optimise on that root of the manifold, by index, or take its finite-difference Hessian.
 
    -  -  ``--td-max-cycle``
       -  positive integer
@@ -173,8 +173,9 @@ Program-Level Options
 
       -  ``hess`` only: how the second derivative is obtained. ``analytic`` is PySCF's own and exists for HF and DFT
          references; ``finite_difference`` differences the analytic gradient of the surface the job is on, which is the
-         only route to the curvature of an excited root or a correlated method. Omitted resolves to the analytic
-         derivative where PySCF has one.
+         only route to the curvature of an excited root. Omitted resolves to the analytic derivative where PySCF has
+         one and to ``finite_difference`` on an excited root; ``analytic`` on an excited root is refused, because it
+         would be the reference's curvature. A correlated method has no Hessian in this release.
 
    -  -  ``--fd-step-angstrom``
       -  positive float
@@ -283,6 +284,13 @@ point group, so a free energy derived from the result states its conventions. A 
 dispersion correction, or an SMD cavity term, is analytic except those blocks, which PySCF evaluates by finite
 differences.
 
+A ``hess`` section that carries ``excited_state_root`` with the response settings of the optimisation that reached the
+geometry takes the Hessian of that root: central differences of the root's analytic gradient, 6N gradient evaluations
+at ``fd_step_angstrom``. The result records the derivative, the step in Angstrom and Bohr, the gradient count, whether
+every displaced point converged, and the gradient of that root at the Hessian geometry, and its frequencies are judged
+by the same stationary-point rule as a ground-state Hessian. It is how an excited-state stationary point is told apart
+from an excited-state minimum; a ground-state ``hess`` at that geometry describes a different surface.
+
 For an open-shell reference the driver also records per-atom Mulliken spin populations; a closed-shell result marks the
 property as not applicable rather than reporting zeros.
 
@@ -342,7 +350,7 @@ roughly one more SCF on the small closed-shell cases measured here, so it is opt
 **********************
 
 The executable integration does not offer transition-state search, IRC, scan, QMMM/ONIOM, NEB, double hybrids, arbitrary
-mixed basis/ECP input, unsupported constraints, excited-state or correlated Hessians, CCSD(T) gradients (present
+mixed basis/ECP input, unsupported constraints, MP2 or coupled-cluster Hessians, CCSD(T) gradients (present
 upstream, not audited through this driver), EOM-CCSD, CASSCF, density fitting or implicit solvent with a correlated
 method, or a solvated excited-state gradient. These requests must block; they must not be rewritten as a superficially
 similar PySCF calculation. PySCF 2.14 has no analytic Hessian for any ROHF reference, which its ``scf.HF`` selects for

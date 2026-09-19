@@ -108,10 +108,20 @@ annotations:
   stem.receipts_travel_typed: {class: MECHANICS, backstop: {gate: tool.dispatch.rejected}, falsifier: "Removed, sessions still bind the right receipt within two refused calls.", last_validated: null}
   stem.plan_repair_and_inputs: {class: MECHANICS, backstop: {refusal: plan findings returned by plan_scientific_workflow}, falsifier: "Removed, plans still reach `planned` with no more than two extra planning calls.", last_validated: null}
   stem.amend_not_resubmit: {class: MECHANICS, backstop: null, falsifier: "Removed, repair costs more turns but no plan is lost.", last_validated: null}
+  leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names:
+    class: SCIENCE
+    backstop: {refusal: "has no analytic Hessian of an excited root"}
+    falsifier: "A session that optimises on an excited root and is asked for that state's equilibrium structure plans no Hessian on that root, or one without the root's response settings."
+    last_validated: null
+  leaf.pyscf.a_converged_reference_can_be_a_saddle:
+    class: SCIENCE
+    backstop: null
+    falsifier: "Removed, sessions working on a singlet with diradical character or on an HF reference under a correlated method ask for scf_stability no less often."
+    last_validated: null
 
 edges:
   - {from: fundamental.hub, to: stem.never_author_native, rel: expressed_by}
   - {from: invariant.claim_ladder, to: charter.scientific_invariants, rel: duplicates}
   - {from: charter.product_boundary, to: invariant.gates, rel: depends_on}
-  - {from: commit.44499f2a, to: leaf.pyscf.an_excited_minimum_has_no_hessian_here, rel: supersedes, note: "the rule still says no excited or correlated Hessian exists"}
+  - {from: leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names, to: commit.44499f2a, rel: depends_on, note: "replaces leaf.pyscf.an_excited_minimum_has_no_hessian_here, which denied what 44499f2a shipped; the new sentence carries settings boundaries asked of the project loader"}
   - {from: commit.ec1f5ba5, to: result.xtb_mode_tables_agree, rel: depends_on}

@@ -17,11 +17,47 @@ guide's own rules, rendered inside that guide's body when it opens),
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Any, Mapping
 
 from chemsmart.agent._contracts import ContractError
 
 PLACEMENT_KINDS = ("stem", "leaf", "wake", "tool")
+BOUNDARY_VERDICTS = ("admitted", "refused")
+
+
+@dataclass(frozen=True)
+class SettingsBoundaryV1:
+    """One project section a rule says the host admits or refuses.
+
+    A sentence that tells the model what a program can or cannot do is a
+    claim about the host, and nothing made it go red when the host
+    changed: the pyscf leaf said for five days that no excited-state
+    Hessian existed while the project loader admitted one, and the
+    evidence graph recorded the contradiction by hand. A boundary is
+    asked of the same project path the model's own project_yaml call
+    takes, so the sentence and the host cannot disagree in silence.
+    """
+
+    program: str
+    section: str
+    settings: tuple[tuple[str, Any], ...]
+    verdict: str
+
+    def __post_init__(self) -> None:
+        if self.verdict not in BOUNDARY_VERDICTS:
+            raise ContractError(
+                f"boundary verdict {self.verdict!r} is not one of "
+                f"{BOUNDARY_VERDICTS}"
+            )
+
+
+def _b(program: str, section: str, verdict: str, **settings: Any):
+    return SettingsBoundaryV1(
+        program=program,
+        section=section,
+        settings=tuple(sorted(settings.items())),
+        verdict=verdict,
+    )
 
 
 @dataclass(frozen=True)
@@ -31,6 +67,8 @@ class PolicyRuleV1:
     placement: str
     tier: str = "T0"
     provenance: str = ""
+    #: The project sections whose admission or refusal the text asserts.
+    boundaries: tuple[SettingsBoundaryV1, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.rule_id or " " in self.rule_id:
@@ -46,7 +84,12 @@ class PolicyRuleV1:
 
 
 def _r(
-    rule_id: str, placement: str, tier: str, text: str, provenance: str = ""
+    rule_id: str,
+    placement: str,
+    tier: str,
+    text: str,
+    provenance: str = "",
+    boundaries: tuple[SettingsBoundaryV1, ...] = (),
 ) -> PolicyRuleV1:
     return PolicyRuleV1(
         rule_id=rule_id,
@@ -54,6 +97,7 @@ def _r(
         placement=placement,
         tier=tier,
         provenance=provenance,
+        boundaries=boundaries,
     )
 
 
@@ -501,12 +545,28 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "project.stage_keys_and_phases",
         "tool:project_yaml",
         "T0",
-        "PySCF project stage keys are exactly sp, opt, hess, and "
-        "preview-only td; xTB project stage keys are exactly sp, opt, and "
-        "hess. Gaussian and ORCA projects retain gas/solv phase sections: SP "
-        "consumes solv when present, otherwise gas, and an explicit sp "
-        "override takes precedence; physical solvation is enabled only by "
-        "the solvent settings themselves.",
+        "PySCF project stage keys are exactly sp, opt, hess, and td; xTB "
+        "project stage keys are exactly sp, opt, and hess. Gaussian and "
+        "ORCA projects retain gas/solv phase sections: SP consumes solv "
+        "when present, otherwise gas, and an explicit sp override takes "
+        "precedence; physical solvation is enabled only by the solvent "
+        "settings themselves.",
+        "PySCF td became executable under result contract v5 (15d2de22, "
+        "2026-09-13) and this sentence still called it preview-only",
+        boundaries=(
+            _b(
+                "pyscf",
+                "td",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                response_method="tda",
+                state_manifold="singlet",
+                nstates=3,
+            ),
+            _b("pyscf", "ts", "refused", functional="b3lyp", basis="def2-svp"),
+            _b("xtb", "td", "refused", gfn_version="gfn2"),
+        ),
     ),
     _r(
         "stem.receipts_travel_typed",
@@ -824,17 +884,59 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "off by one",
     ),
     _r(
-        "leaf.pyscf.an_excited_minimum_has_no_hessian_here",
+        "leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names",
         "leaf:pyscf",
         "T1",
-        "No Hessian exists for an excited or a correlated surface in this "
-        "release, so a delivered excited-root, MP2 or CCSD minimum is "
-        "worded uncharacterised, displace_along_vibrational_mode cannot "
-        "read it, and a ground-state hess at that geometry answers a "
-        "different question: its gradient anomaly will say the ground "
-        "surface is not stationary there, which is correct.",
-        "measured 2026-09-13: td.Hessian is absent in PySCF 2.14; the "
-        "planar formaldehyde S1 stationary point is uncharacterisable here",
+        "A PySCF hess is the curvature of the surface its section names. "
+        "Carrying the response_method, state_manifold, nstates and "
+        "excited_state_root of the excited-root opt it follows, it is that "
+        "root's Hessian, by central differences of the root's analytic "
+        "gradient (6N gradients; analytic is refused there, being the "
+        "reference's), judged by the same order rule: it is how an "
+        "excited-state stationary point is told from a minimum, and a "
+        "ground-state hess at that geometry answers another question. "
+        "mp2, ccsd and ccsd(t) have no Hessian here: a correlated minimum "
+        "stays uncharacterised, and an HF or DFT hess at it is another "
+        "surface's, which the delivery names.",
+        "44499f2a (2026-09-14) shipped the excited-root Hessian and this "
+        "leaf denied it for five days; CUHK job 2140014: at the planar "
+        "formaldehyde S1 point an analytic hess on root 1 was validated "
+        "with the ground state's all-real spectrum beside S1's 9.1e-06 "
+        "Eh/Bohr gradient, where the difference Hessian finds -503.9 cm-1",
+        boundaries=(
+            _b(
+                "pyscf",
+                "hess",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                response_method="tda",
+                state_manifold="singlet",
+                nstates=3,
+                excited_state_root=1,
+            ),
+            _b(
+                "pyscf",
+                "hess",
+                "refused",
+                functional="b3lyp",
+                basis="def2-svp",
+                response_method="tda",
+                state_manifold="singlet",
+                nstates=3,
+                excited_state_root=1,
+                hessian_derivative="analytic",
+            ),
+            _b("pyscf", "hess", "refused", ab_initio="mp2", basis="def2-svp"),
+            _b(
+                "pyscf",
+                "hess",
+                "refused",
+                ab_initio="ccsd",
+                basis="def2-svp",
+                hessian_derivative="finite_difference",
+            ),
+        ),
     ),
     _r(
         "leaf.pyscf.correlated_methods_are_ab_initio_values",
@@ -851,6 +953,72 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "PySCF round 2 2026-09-13: archived water MP2/CCSD/CCSD(T) "
         "fixtures with PySCF's own recomputation; the ORCA reader already "
         "means the whole correlation by the same name",
+        boundaries=(
+            _b("pyscf", "sp", "admitted", ab_initio="ccsd(t)", basis="sto-3g"),
+            _b("pyscf", "opt", "admitted", ab_initio="ccsd", basis="sto-3g"),
+            _b("pyscf", "opt", "refused", ab_initio="ccsd(t)", basis="sto-3g"),
+            _b(
+                "pyscf", "hess", "refused", ab_initio="ccsd(t)", basis="sto-3g"
+            ),
+            _b(
+                "pyscf",
+                "sp",
+                "refused",
+                ab_initio="mp2",
+                basis="sto-3g",
+                density_fit=True,
+            ),
+            _b(
+                "pyscf",
+                "sp",
+                "refused",
+                ab_initio="mp2",
+                basis="sto-3g",
+                solvent_model="pcm",
+                solvent_id="water",
+            ),
+        ),
+    ),
+    _r(
+        "leaf.pyscf.a_converged_reference_can_be_a_saddle",
+        "leaf:pyscf",
+        "T1",
+        "A converged SCF can be a saddle in orbital-rotation space, and "
+        "every number above it then describes a solution that is not its "
+        "method's lowest. scf_stability: true asks PySCF's own analysis "
+        "after the final SCF, for about one more SCF: internal, and "
+        "external RHF/RKS -> UHF/UKS for a restricted reference or "
+        "UHF/UKS -> GHF/GKS for an unrestricted one. Ask where a lower "
+        "solution is chemically plausible: stretched or broken bonds, "
+        "singlet diradical character, near-degenerate frontier orbitals, "
+        "open shells whose symmetry could break, the HF reference under a "
+        "correlated energy. An unstable answer moves no verdict: it "
+        "arrives as the anomaly scf.reference_unstable naming the space, "
+        "numbers descending from that node settle as delivered from a "
+        "flagged result, and what the instability means is yours to say. "
+        "A run that did not ask says nothing about stability.",
+        "7001355b/2c824449 (CUHK 2139979, 2139983, 2140002): singlet O2 "
+        "opt and hess validated with no finding on an RHF/RKS -> UHF/UKS "
+        "unstable reference, and no session was told more of the key "
+        "than its bare name in the capability list",
+        boundaries=(
+            _b(
+                "pyscf",
+                "sp",
+                "admitted",
+                functional="b3lyp",
+                basis="def2-svp",
+                scf_stability=True,
+            ),
+            _b(
+                "pyscf",
+                "sp",
+                "admitted",
+                ab_initio="mp2",
+                basis="def2-svp",
+                scf_stability=True,
+            ),
+        ),
     ),
     _r(
         "leaf.crossprogram.frozen_core_is_a_convention",

@@ -141,3 +141,40 @@ def test_the_loader_really_lifts_the_section_into_its_own_class(
     settings = getattr(project, f"{jobtype}_settings")()
 
     assert type(settings).__name__ == class_name
+
+
+#: PySCF settings the host fills from somewhere other than the project's
+#: advertised keys, each shown to the reviewer by its own organ: the bound
+#: identity carries charge and multiplicity, the node its jobtype, the
+#: engine binding its engine; a title is a label and computes nothing.
+_PYSCF_HOST_OWNED = frozenset(
+    {"charge", "engine", "jobtype", "multiplicity", "title"}
+)
+
+
+@pytest.mark.capability(
+    "setting:pyscf:hessian_derivative", "setting:pyscf:fd_step_angstrom"
+)
+def test_every_pyscf_setting_the_loader_applies_is_advertised():
+    """The converse of the tests above, and a display invariant.
+
+    ``validate_project_yaml`` records only the advertised names, and those
+    rows are the effective settings the execution review renders. So a
+    setting the loader accepts and the capability list omits runs on the
+    engine without the human seeing it: ``hessian_derivative`` and
+    ``fd_step_angstrom`` were applied from 44499f2a on and advertised
+    nowhere, so a Hessian was approved without its derivative or step on
+    the screen, and no session could learn from the capability reply
+    that an excited root has one.
+    """
+
+    import inspect
+
+    from chemsmart.jobs.pyscf.settings import PySCFJobSettings
+
+    applied = set(inspect.signature(PySCFJobSettings.__init__).parameters)
+    applied -= {"self", "args", "kwargs"}
+    advertised = set(PROJECT_OWNED_PARAMETERS["pyscf"])
+
+    assert sorted(applied - advertised - _PYSCF_HOST_OWNED) == []
+    assert sorted(_PYSCF_HOST_OWNED & advertised) == []

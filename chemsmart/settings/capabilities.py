@@ -343,9 +343,15 @@ _PYSCF_PROJECT_PARAMETERS = (
     "density_fit",
     "dispersion",
     "excited_state_root",
+    # A Hessian's derivative and its displacement: the loader applied
+    # both from the day they existed, and neither was advertised, so the
+    # validation receipt the review renders left them out and a human
+    # approved a Hessian without seeing how it would be computed.
+    "fd_step_angstrom",
     "freq",
     "frozen_core",
     "functional",
+    "hessian_derivative",
     "nstates",
     "opt_maxsteps",
     "opt_solver",
@@ -377,6 +383,7 @@ def _pyscf_parameter_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
         PYSCF_AB_INITIO_METHODS,
         PYSCF_DEFGRIDS,
         PYSCF_FROZEN_CORE_AUTO,
+        PYSCF_HESSIAN_DERIVATIVES,
         PYSCF_OPT_SOLVERS,
         PYSCF_RESPONSE_METHODS,
         PYSCF_SOLVENT_MODELS,
@@ -389,6 +396,10 @@ def _pyscf_parameter_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
                 ("ab_initio", tuple(sorted(PYSCF_AB_INITIO_METHODS))),
                 ("defgrid", tuple(sorted(PYSCF_DEFGRIDS))),
                 ("frozen_core", (PYSCF_FROZEN_CORE_AUTO,)),
+                (
+                    "hessian_derivative",
+                    tuple(sorted(PYSCF_HESSIAN_DERIVATIVES)),
+                ),
                 ("opt_solver", tuple(sorted(PYSCF_OPT_SOLVERS))),
                 ("response_method", tuple(sorted(PYSCF_RESPONSE_METHODS))),
                 ("solvent_model", tuple(sorted(PYSCF_SOLVENT_MODELS))),

@@ -222,6 +222,8 @@ def _pyscf_case(parameter: str, value: str):
         )
     if parameter == "defgrid":
         return "sp", {**dft, "defgrid": value}, _WATER_XYZ, (0, 1)
+    if parameter == "hessian_derivative":
+        return "hess", {**dft, "hessian_derivative": value}, _WATER_XYZ, (0, 1)
     if parameter == "opt_solver":
         return "opt", {**dft, "opt_solver": value}, _WATER_XYZ, (0, 1)
     if parameter == "solvent_model":

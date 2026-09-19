@@ -108,8 +108,9 @@ def click_pyscf_settings_options(f):
         "PySCF's own and exists for HF and DFT references only; "
         "'finite_difference' differences the analytic gradient of the "
         "surface the job is on, which is the only route to the curvature "
-        "of an excited root or a correlated method. Omitted uses the "
-        "analytic derivative where PySCF has one. hess only.",
+        "of an excited root. A correlated method has no Hessian in this "
+        "release. Omitted uses the analytic derivative where PySCF has "
+        "one. hess only.",
     )
     @click.option(
         "--fd-step-angstrom",
@@ -147,9 +148,10 @@ def click_pyscf_settings_options(f):
         "--excited-root",
         type=int,
         default=None,
-        help="opt only: optimise on root k of the manifold (1-based, at most "
-        "--nstates). A root is an index at each geometry, not a state "
-        "identity. Gas phase only; no Hessian exists for the result.",
+        help="opt or hess: optimise on, or take the finite-difference "
+        "Hessian of, root k of the manifold (1-based, at most --nstates). "
+        "A root is an index at each geometry, not a state identity. Gas "
+        "phase only.",
     )
     @click.option(
         "--td-max-cycle",

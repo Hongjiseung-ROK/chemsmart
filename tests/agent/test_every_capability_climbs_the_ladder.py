@@ -71,7 +71,16 @@ def test_every_kind_is_represented(registry):
 #: blindness is named. Teaching the declaration a boolean domain would
 #: retire all three at once, which is the reduction this entry exists to
 #: invite. The number resumes falling from 86.
-ADVERTISED_UNWIRED_BUDGET = 86
+#:
+#: 2026-09-19 (PySCF agent knowledge): 86 -> 87. ``hessian_derivative``
+#: and ``fd_step_angstrom`` had been applied by the loader since 44499f2a
+#: and advertised nowhere, so the review never displayed them; declaring
+#: them wires the first (a two-word domain) and adds the second, a
+#: positive displacement in Angstrom -- a bound, the ``nstates`` class
+#: again. Leaving it unadvertised to keep this number would hide a
+#: setting from the one human decision. The number resumes falling
+#: from 87.
+ADVERTISED_UNWIRED_BUDGET = 87
 
 
 def test_everything_advertised_is_wired(registry):

@@ -54,8 +54,10 @@ PYSCF_RESPONSE_METHODS = ("tda", "tddft")
 #: PySCF's own second derivative and exists for HF and DFT references
 #: only; ``finite_difference`` differences the analytic gradient of
 #: whatever surface the job is on, which is the only route to the
-#: curvature of an excited root or a correlated method here. Unset
-#: resolves to the analytic derivative where PySCF has one.
+#: curvature of an excited root here. The driver would difference a
+#: correlated gradient the same way; ``validate()`` still refuses a
+#: correlated ``hess``, because that path has never been exercised.
+#: Unset resolves to the analytic derivative where PySCF has one.
 PYSCF_HESSIAN_DERIVATIVES = ("analytic", "finite_difference")
 #: Job types whose own surface can be an excited root: the optimisation
 #: that walks it and the Hessian that differentiates it twice. A ``td``
@@ -640,6 +642,7 @@ class PySCFJobSettings(MolecularJobSettings):
 
         self._validate_correlated_method()
         self._validate_response()
+        self._validate_hessian_derivative()
         if self.scf_tol is not None and (
             isinstance(self.scf_tol, bool)
             or not isinstance(self.scf_tol, Real)
@@ -718,9 +721,18 @@ class PySCFJobSettings(MolecularJobSettings):
                     )
             return
         if self.jobtype == "hess":
+            # The driver can difference this method's gradient, and that
+            # path has never run on a fixture or in a goal, so it stays
+            # refused. The route named here used to be "an HF or DFT hess
+            # node", which characterises a different surface -- the
+            # pairing the delivery refuses to credit.
             raise ValueError(
-                f"PySCF {method} has no analytic Hessian in this release; "
-                "characterise the geometry with an HF or DFT hess node."
+                f"PySCF {method} has no Hessian through this driver in this "
+                "release: PySCF has no analytic one and differencing the "
+                f"{method} gradient is not audited here. A minimum on the "
+                f"{method} surface stays uncharacterised; an HF or DFT hess "
+                "at that geometry is the Hessian of a different surface, "
+                "and the delivery says so rather than crediting it."
             )
         if self.jobtype == "td":
             raise ValueError(
@@ -903,4 +915,45 @@ class PySCFJobSettings(MolecularJobSettings):
             raise ValueError(
                 f"PySCF {what} is a CPU capability; GPU4PySCF response "
                 "calculations are not validated here."
+            )
+
+    def _validate_hessian_derivative(self):
+        """How a Hessian's second derivative is obtained, held to what the
+        driver does with each word.
+
+        The driver differences a gradient for every word but ``analytic``,
+        so a word outside the vocabulary ran a finite difference and was
+        recorded as the derivative behind the frequencies. And ``analytic``
+        is ``mf.Hessian()``: on an excited root that is the SCF
+        reference's curvature, written into a result whose surface names
+        the root -- a real spectrum of the wrong state under green
+        receipts.
+        """
+        derivative = self.hessian_derivative
+        if derivative is not None:
+            normal = str(derivative).strip().lower()
+            if normal not in PYSCF_HESSIAN_DERIVATIVES:
+                raise ValueError(
+                    "hessian_derivative must be one of "
+                    f"{PYSCF_HESSIAN_DERIVATIVES}, got {derivative!r}."
+                )
+            if normal == "analytic" and self.excited_state_root is not None:
+                raise ValueError(
+                    "PySCF 2.14 has no analytic Hessian of an excited root: "
+                    "an analytic Hessian here would be the SCF reference's "
+                    "curvature while the result names the surface of root "
+                    f"{self.excited_state_root!r}. Omit hessian_derivative "
+                    "(an excited root resolves to finite_difference) or "
+                    "name finite_difference."
+                )
+        step = self.fd_step_angstrom
+        if step is not None and (
+            isinstance(step, bool)
+            or not isinstance(step, Real)
+            or not math.isfinite(float(step))
+            or float(step) <= 0
+        ):
+            raise ValueError(
+                "fd_step_angstrom must be a finite displacement > 0 in "
+                f"Angstrom, got {step!r}."
             )

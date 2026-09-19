@@ -49,10 +49,13 @@ def test_the_leaf_opens_on_the_text_and_the_workspace():
 )
 @pytest.mark.capability("rule:leaf.pyscf.a_root_is_an_index_not_an_identity")
 @pytest.mark.capability(
-    "rule:leaf.pyscf.an_excited_minimum_has_no_hessian_here"
+    "rule:leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names"
 )
 @pytest.mark.capability(
     "rule:leaf.pyscf.correlated_methods_are_ab_initio_values"
+)
+@pytest.mark.capability(
+    "rule:leaf.pyscf.a_converged_reference_can_be_a_saddle"
 )
 def test_the_leaf_says_what_pyscf_can_do_and_what_it_cannot():
     guide = GUIDES_BY_ID["pyscf"]
@@ -80,8 +83,9 @@ def test_the_leaf_says_what_pyscf_can_do_and_what_it_cannot():
         "leaf.pyscf.a_matching_name_is_not_a_matching_functional",
         "leaf.pyscf.no_imaginary_mode_is_not_a_stationary_point",
         "leaf.pyscf.a_root_is_an_index_not_an_identity",
-        "leaf.pyscf.an_excited_minimum_has_no_hessian_here",
+        "leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names",
         "leaf.pyscf.correlated_methods_are_ab_initio_values",
+        "leaf.pyscf.a_converged_reference_can_be_a_saddle",
     }
 
 
