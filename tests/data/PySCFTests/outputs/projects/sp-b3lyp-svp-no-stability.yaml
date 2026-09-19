@@ -1,0 +1,8 @@
+# The control for the absence: the same level with the analysis not asked
+# for, so the artifact records `not_requested` rather than silence.
+sp:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false
+  scf_stability: false

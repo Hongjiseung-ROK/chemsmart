@@ -1,0 +1,11 @@
+# A solvated reference. pyscf's solvated `stability` temporarily sets
+# equilibrium_solvation = not frozen, so the solvent response enters the
+# orbital Hessian; that is what this fixture exists to hold.
+sp:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false
+  scf_stability: true
+  solvent_model: cpcm
+  solvent_id: water

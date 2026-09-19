@@ -1,0 +1,9 @@
+# Stability round: the same hybrid level as b3lyp-def2svp.yaml, asking
+# PySCF whether the converged reference is a minimum in orbital-rotation
+# space. An observation; no value of it refuses anything.
+sp:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false
+  scf_stability: true

@@ -218,6 +218,16 @@ def click_pyscf_settings_options(f):
         help="Maximum geometry-optimisation steps.",
     )
     @click.option(
+        "--scf-stability/--no-scf-stability",
+        default=None,
+        help="Ask PySCF whether the converged reference is a minimum in "
+        "orbital-rotation space, or a saddle every number above it "
+        "stands on. Recorded as an observation and never a verdict; it "
+        "costs roughly one more SCF. The answer names the space it is "
+        "about, because 'externally unstable' means R->U for a "
+        "restricted reference and U->G for an unrestricted one.",
+    )
+    @click.option(
         "--gpu/--no-gpu",
         default=None,
         help="Override the project engine. Real --gpu execution requires a "
@@ -304,6 +314,7 @@ def pyscf(
     density_fit,
     opt_solver,
     opt_maxsteps,
+    scf_stability,
     gpu,
     solvent_model,
     solvent_id,
@@ -388,6 +399,9 @@ def pyscf(
     if fd_step_angstrom is not None:
         job_settings.fd_step_angstrom = fd_step_angstrom
         keywords += ("fd_step_angstrom",)
+    if scf_stability is not None:
+        job_settings.scf_stability = bool(scf_stability)
+        keywords += ("scf_stability",)
     if nstates is not None:
         job_settings.nstates = nstates
         keywords += ("nstates",)

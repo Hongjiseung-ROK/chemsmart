@@ -14,6 +14,7 @@ beside the .h5 with the command that produced it.
 Usage: /opt/miniforge3/envs/chemsmart-pyscf/bin/python reference.py FILE.h5
 """
 
+import io
 import json
 import sys
 
@@ -87,6 +88,52 @@ def _response(spec, mf):
     return td
 
 
+def _stability(mf):
+    """PySCF's own stability answers, including the one it never returns.
+
+    The two questions are asked separately, as the driver asks them, and
+    PySCF's log is captured as well: ``rhf_external`` and ``uhf_external``
+    solve the real -> complex question and only log it, so the artifact
+    records it as undetermined.  Reading it here is what makes that
+    "undetermined" checkable rather than merely asserted.
+    """
+
+    out = {"reference_class": type(mf).__name__}
+    buffer = io.StringIO()
+    verbose, stdout = mf.verbose, mf.stdout
+    mf.verbose, mf.stdout = 4, buffer
+    try:
+        for question in ("internal", "external"):
+            try:
+                statuses = mf.stability(
+                    internal=(question == "internal"),
+                    external=(question == "external"),
+                    return_status=True,
+                )[2:]
+                value = statuses[0 if question == "internal" else 1]
+                out[f"stable_{question}"] = (
+                    None if value is None else bool(value)
+                )
+            except Exception as exc:  # noqa: BLE001 - PySCF's own word
+                out[f"stable_{question}_error"] = "%s: %s" % (
+                    type(exc).__name__,
+                    exc,
+                )
+    finally:
+        mf.verbose, mf.stdout = verbose, stdout
+    # PySCF words a stable answer "... is stable in the X stability
+    # analysis" and an unstable one "... has an X instability", so a
+    # filter on "stability analysis" silently keeps only the stable
+    # lines -- which is how the real -> complex answer for an unstable
+    # reference went missing from the first pass of these fixtures.
+    out["log_status_lines"] = [
+        line.strip()
+        for line in buffer.getvalue().splitlines()
+        if "wavefunction" in line
+    ]
+    return out
+
+
 def _correlated(spec, mf):
     method = str(spec["ab_initio"]).strip().lower()
     obj = mp.MP2(mf) if method == "mp2" else cc.CCSD(mf)
@@ -128,6 +175,7 @@ def main(path):
                 "td_max_cycle",
                 "frozen_core",
                 "cc_max_cycle",
+                "scf_stability",
             )
         }
         results = {
@@ -191,15 +239,19 @@ def main(path):
         out["stored_frequencies_match_recomputed_max_abs_cm1"] = float(
             np.max(np.abs(stored - np.sort(recomputed)))
         )
+    stability_requested = bool(spec.get("scf_stability"))
     needs_reference = (
         results["excitation_energies"] is not None
         or results["correlation_energy"] is not None
+        or stability_requested
     )
     if needs_reference:
         mf = _mean_field(spec, mol)
         mf.kernel()
         out["scf_energy_eh"] = float(mf.e_tot)
         out["scf_converged"] = bool(mf.converged)
+    if stability_requested:
+        out["scf_stability"] = _stability(mf)
     if results["excitation_energies"] is not None:
         td = _response(spec, mf)
         excitations = np.asarray(td.e, dtype=float).reshape(-1)

@@ -365,13 +365,66 @@ class PySCFOutput(FileMixin):
 
     @property
     def property_failures(self):
-        """Return properties that were attempted but unavailable."""
+        """Return properties that were attempted but unavailable.
+
+        A property the run was never asked for is not a failure, which is
+        why ``not_requested`` is excluded beside ``not_applicable``: the
+        first says nobody asked, the second says there is nothing to ask.
+        """
         return {
             name: detail.get("failure")
             for name, detail in self.property_status.items()
             if isinstance(detail, dict)
-            and detail.get("status") not in {"ok", "not_applicable"}
+            and detail.get("status")
+            not in {"ok", "not_applicable", "not_requested"}
         }
+
+    @property
+    def scf_stability_requested(self):
+        """Whether the run was asked for a stability analysis.
+
+        Absent from every artifact written before result contract v7, and
+        absence is read as "not asked" rather than as False, because a
+        contract that did not carry the field says nothing about it.
+        """
+        value = self.spec.get("scf_stability")
+        return None if value is None else bool(value)
+
+    @property
+    def scf_stability(self):
+        """PySCF's stability analysis of the converged reference, or None.
+
+        The record names the orbital-rotation space of every answer it
+        carries and names the question PySCF solved and did not return.
+        None means no analysis is recorded -- an older contract, or a run
+        that was not asked -- and is never read as a stable reference.
+        """
+        record = self.property_status.get("scf_stability")
+        if not isinstance(record, dict):
+            return None
+        if record.get("status") != "ok":
+            return None
+        return record
+
+    @property
+    def scf_stable(self):
+        """``{question: bool|None}`` from the recorded analysis, or None.
+
+        ``None`` for a question means PySCF gave this host no answer to
+        it; it never means stable.
+        """
+        record = self.scf_stability
+        if record is None:
+            return None
+        analyses = record.get("analyses")
+        if not isinstance(analyses, dict):
+            return None
+        answers = {
+            str(question): entry.get("stable")
+            for question, entry in analyses.items()
+            if isinstance(entry, dict)
+        }
+        return answers or None
 
     @property
     def version(self):
