@@ -6938,6 +6938,42 @@ def is_validated_optimized_geometry_edge(
     )
 
 
+def result_file_structure_edges(
+    plan: ScientificWorkflowPlanV2,
+    node_id: str,
+) -> tuple[ScientificWorkflowEdgeV2, ...]:
+    """The edges that hand ``node_id`` its structure as a result file.
+
+    A structure travels between nodes as ``geometry_xyz``: the host lifts
+    the validated structure the producer ended on, and the consumer defers
+    until it exists. A node with no such edge, whose producer edges carry
+    that producer's own result (``pyscf_hdf5``, an ORCA log), reads a file
+    that exists only after the producer has run, so it can be neither
+    previewed nor deferred and the one approval both need never comes.
+    CUHK g3-ethane (2026-09-20) planned two PySCF optimisations feeding a
+    Hessian and two IRC branches by ``pyscf_hdf5``, and its workflow could
+    not be approved while every reply named other routes.
+    """
+
+    edges = tuple(
+        edge
+        for edge in plan.edges
+        if edge.edge_kind == "data" and edge.target_node_id == node_id
+    )
+    if any(edge.artifact_class == "geometry_xyz" for edge in edges):
+        return ()
+    nodes = {node.node_id: node for node in plan.nodes}
+    return tuple(
+        edge
+        for edge in edges
+        if edge.source_node_id in nodes
+        and _ends_on_one_reached_structure(
+            nodes[edge.source_node_id].program,
+            nodes[edge.source_node_id].stage,
+        )
+    )
+
+
 def is_validated_scan_minimum_geometry_edge(
     plan: ScientificWorkflowPlanV2,
     edge: ScientificWorkflowEdgeV2,

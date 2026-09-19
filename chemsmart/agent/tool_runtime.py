@@ -149,6 +149,7 @@ from chemsmart.agent.execution import (
     node_branch_directory,
     project_real_execution_argv,
     promote_project_candidate,
+    result_file_structure_edges,
     transform_trusted_molecular_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
@@ -8217,6 +8218,11 @@ class CommandCompiledToolHostV1:
                     + ", ".join(blocking)
                     + " -- preview each, declare it non-executable intent "
                     "with its reason, or remove it from the plan"
+                    + "".join(
+                        f"; {node['node_id']}: {node['blocking_reason']}"
+                        for node in readiness.get("nodes", ()) or ()
+                        if node.get("blocking_reason")
+                    )
                     if blocking
                     else str(readiness.get("workflow_blocked_reason") or "")
                 )
@@ -9776,6 +9782,34 @@ class CommandCompiledToolHostV1:
             deferred.add(target.node_id)
         return deferred
 
+    @staticmethod
+    def _result_file_structure_reason(plan: Any, node_id: str) -> str:
+        """Why a node fed its producer's result file can never be approved.
+
+        The plan, the frontier and the wave reply each named the routes
+        that clear a node which merely lacks a preview -- preview it,
+        declare it non-executable, remove it -- and none of them clears a
+        node whose structure is a result file that does not exist yet:
+        g3-ethane (2026-09-20) was told to run the producer first and could
+        not, because the consumer blocked the approval the producer needed.
+        """
+
+        edges = result_file_structure_edges(plan, node_id)
+        if not edges:
+            return ""
+        producers = ", ".join(
+            f"{edge.source_node_id}'s {edge.artifact_class}" for edge in edges
+        )
+        return (
+            f"its structure is {producers} output, which exists only once "
+            "that producer has run, so this node can be neither previewed "
+            "nor deferred inside the approval the producer needs; a "
+            "structure travels between nodes as artifact_class geometry_xyz "
+            "-- declare a geometry_xyz output on the producer and bind this "
+            "node's input to it, and the node defers until the producer's "
+            "validated structure exists"
+        )
+
     def _approval_readiness(self, plan: Any) -> dict[str, Any]:
         """Say which nodes still stand between this plan and execution.
 
@@ -9836,8 +9870,12 @@ class CommandCompiledToolHostV1:
             blocks_approval = (
                 not previewed and not deferred and not non_executable
             )
+            blocking_reason = ""
             if blocks_approval:
                 blocking.append(node_id)
+                blocking_reason = self._result_file_structure_reason(
+                    plan, node_id
+                )
             nodes.append(
                 {
                     "node_id": node_id,
@@ -9847,6 +9885,11 @@ class CommandCompiledToolHostV1:
                     **(
                         {"deferral_refusal": deferral_refusal}
                         if deferral_refusal
+                        else {}
+                    ),
+                    **(
+                        {"blocking_reason": blocking_reason}
+                        if blocking_reason
                         else {}
                     ),
                     "non_executable": non_executable,
