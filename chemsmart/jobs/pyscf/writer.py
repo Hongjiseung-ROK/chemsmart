@@ -1086,6 +1086,24 @@ def _run_opt(config, method):
     raise ValueError("Unknown opt_solver: %s" % solver)
 
 
+def _last_scf_density(surface, mf):
+    """The density of the last geometry a gradient scanner evaluated.
+
+    A ground-state scanner's ``base`` is the mean-field scanner itself; an
+    excited-root or correlated scanner's ``base`` holds it as ``_scf``.
+    None when the walk ran on the mean field directly, whose orbitals the
+    walk never touched.
+    """
+
+    base = getattr(surface, "base", None)
+    holder = getattr(base, "_scf", base)
+    if holder is None or holder is mf:
+        return None
+    if getattr(holder, "mo_coeff", None) is None:
+        return None
+    return holder.make_rdm1()
+
+
 class FollowedRootFiltered(RuntimeError):
     """The followed excited root fell below PySCF's positive-eigenvalue
     filter and vanished from the spectrum; the driver never switches roots.
@@ -2028,6 +2046,11 @@ def main():
                         "frozen_core_applied": _frozen_core_count(corr_start),
                         "gradient_scanner_class": _class_name(surface),
                     }
+                elif CONFIG.get("opt_solver") == "geometric":
+                    # The walk runs on a gradient scanner, which PySCF
+                    # builds as a copy of the mean field; building it here
+                    # keeps its last density in hand for the final SCF.
+                    surface = mf.nuc_grad_method().as_scanner()
                 try:
                     optimizer_converged, mol_eq = _run_opt(CONFIG, surface)
                 except IndexError as exc:
@@ -2039,9 +2062,17 @@ def main():
                         "positive_eig_threshold): %s" % (int(excited_root), exc)
                     ) from exc
                 # Re-converge on the optimised geometry so that every
-                # reported property belongs to the same structure.
+                # reported property belongs to the same structure, from
+                # the density of the last geometry the walk evaluated. The
+                # scanner is a copy of the mean field, so a bare
+                # mf.kernel() here started from the supplied geometry's
+                # orbitals while this record said otherwise (measured,
+                # PySCF 2.14: mf.mo_coeff is untouched by the walk).
+                guess = _last_scf_density(surface, mf)
                 mf.reset(mol_eq)
-                energy = mf.kernel()
+                energy = (
+                    mf.kernel(dm0=guess) if guess is not None else mf.kernel()
+                )
                 energies.append(float(energy))
                 mol = mol_eq
                 final_scf_converged = bool(mf.converged)
@@ -2055,10 +2086,13 @@ def main():
                 cycles = getattr(mf, "cycles", None)
                 if cycles is not None:
                     stage_status["final_scf_iterations"] = int(cycles)
-                # The final SCF starts from the optimiser's last density
-                # (mf.reset keeps the orbitals), so the electronic state is
-                # the one that path reached; say so on the record.
-                stage_status["final_scf_from_optimizer_density"] = True
+                # Whether the final SCF started from the walk's last
+                # density, so the electronic state is the one that path
+                # reached; false where the solver's walk is not a scanner
+                # this driver holds.
+                stage_status["final_scf_from_optimizer_density"] = (
+                    guess is not None
+                )
                 stage_status["convergence_criteria"] = _optimizer_criteria(
                     CONFIG
                 )
