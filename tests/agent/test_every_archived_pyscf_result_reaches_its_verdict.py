@@ -163,6 +163,7 @@ _EVALUATED_SETTINGS = (
     "ab_initio",
     "excited_state_root",
     "frozen_core",
+    "irc_direction",
     "response_method",
     "state_manifold",
     "nstates",

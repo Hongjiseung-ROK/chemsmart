@@ -180,3 +180,33 @@ do not carry.
 |---|---|---|
 | `o2_singlet_hess_stability` | a Hessian on closed-shell singlet O2 at B3LYP(G)/def2-SVP with `scf_stability: true` | receipt `validated`, no findings, one real mode at 1641.76 cm-1 -- a delivered frequency standing on a reference PySCF itself reports **RHF/RKS -> UHF/UKS unstable**. Nothing in the run failed; the number describes a saddle in orbital-rotation space under green receipts, which is the whole case for a sensor |
 | `o2_singlet_sp_unconverged_stability` | the same molecule with `scf_maxiter: 2` | receipt `failed` (`pyscf.result.stage_mismatch`), and the analysis answered anyway: **both** questions unstable at `scf_converged: false`. The only record in this corpus whose `internal` is false, and the reason the anomaly carries `reference_converged` -- on orbitals that are not stationary at all, "unstable" says far less than it does on the row above |
+
+## IRC round (2026-09-20, result contract v8)
+
+Produced through the human CLI (`chemsmart run --no-scratch -s CAMPAIGN
+-n 8 -m 32 pyscf -p <project> -f <saddle> -c 0 -m 1 -l <label> irc`) on the
+CUHK Charles cluster, PySCF 2.14.0 and geomeTRIC 1.1.1 in the compute env,
+each saddle located first by ORCA 6.1.1 `OptTS Freq` through the same CLI.
+Slurm 2140566 ran on code tree `a44b1929` (the formaldehyde branches and the
+step-limited one) and 2140568 on `58ca745b` (the start that was a minimum,
+regenerated after the driver stopped raising there, and every HCN/HNC run);
+the two trees differ in nothing these converged runs reached.
+`reference_irc.py` is PySCF's own account of each IRC artifact without
+geomeTRIC: the start spectrum from the stored Hessian, the SCF energy and
+gradient at the stored start, two interior frames and the endpoint, and the
+cosine of every accepted step, superposed by the mass-weighted Kabsch
+rotation, with the mean of the unit negative mass-weighted gradients at its
+two ends -- whether the recorded path is the steepest-descent path of the
+recorded surface. `inputs/` holds each ORCA saddle exactly as the PySCF runs
+read it, so the host resolves the input by the geometry identity the run
+recorded. `orca_differential/h2co_hcoh_orca_irc_full_trj.xyz` is ORCA's own
+IRC path (`%irc direction both`, 31 frames) on its HF/6-31G* saddle.
+
+| directory | what it is | why it is here |
+|---|---|---|
+| `h2co_hcoh_irc_forward`, `h2co_hcoh_irc_backward` | the two branches of H2CO <-> trans-HCOH at HF/6-31G* from ORCA's saddle (one imaginary mode, -2700.0 cm-1; start gradient 2.7e-5 Eh/Bohr on PySCF's surface) | opposite first-step projections on one host-signed transition vector (+0.982, -0.995); forward reaches trans-HCOH (O-H 0.951 A), backward formaldehyde (C-H 1.092 A); both endpoints agree with ORCA's own IRC ends to 0.006 A in every distance, and ORCA prints the saddle's energy (-113.698939548) as its IRC's "FINAL SINGLE POINT ENERGY", where the PySCF path starts at -113.698939548 |
+| `h2co_hcoh_irc_maxsteps3` | the forward branch with `opt_maxsteps: 3` | five accepted frames kept; receipt `failed` on `path_converged`; the endpoint every property describes is the last frame |
+| `h2co_irc_from_minimum` | a forward IRC started from the backward branch's endpoint (formaldehyde; handed the `.h5` itself) | geomeTRIC refuses to start (no imaginary mode); the start's all-real spectrum (1335.3, 1382.4, 1679.5 cm-1) and the SCF there are kept, and the ending is `stationary_point_order` |
+| `h2co_hcoh_hess_on_irc_endpoint` | a Hessian handed the forward branch's `.h5` | the trans-HCOH endpoint characterised: six real modes, gradient 1.7e-4 Eh/Bohr |
+| `hcn_hnc_irc_forward`, `hcn_hnc_irc_backward` | HCN <-> HNC at B3LYP/def2-SVP from ORCA's `B3LYP/G` saddle (-1122.72 cm-1; PySCF -1123.0) | forward reaches HNC, backward HCN, both linear and all-real under PySCF Hessians run on the endpoints; start gradient 2.8e-5 Eh/Bohr |
+| `hcn_irc_from_vwn5_saddle` | the forward branch from the saddle ORCA located under its default `B3LYP` (VWN5) | walked on PySCF's VWN3 surface its start gradient is 4.4e-4 Eh/Bohr, sixteen times the matched saddle's and just inside geomeTRIC's 4.5e-4 criterion; it reaches the same HNC |
