@@ -779,11 +779,38 @@ def _previous_run_reference(ledger: GoalLedger) -> str:
     """
 
     reference = ""
+    streams: dict[int, str] = {}
     for entry in ledger.entries():
         if entry["kind"] == "run_recorded":
             reference = str(entry["payload"].get("run") or "")
         elif entry["kind"] == "analysis_evidence_recorded":
             reference = str(entry["payload"].get("evidence") or "")
+        elif entry["kind"] == "session_stream_recorded":
+            payload = entry["payload"]
+            run_id = str(payload.get("run_id") or "")
+            if run_id:
+                streams[int(payload.get("cycle") or 0)] = run_id
+        elif entry["kind"] == "rewake_opened":
+            # A cycle that planned a workflow nobody could approve launched
+            # no engine and, if it read nothing, recorded no analysis
+            # evidence -- yet the host composed a typed report of how it
+            # ended, and the one further wake embeds it. That report is
+            # what the next plan answers, and the stream it describes is
+            # the cycle's own: named here as analysis evidence is named, so
+            # the wake and admission compare one reference the host wrote.
+            # Trans-glyoxal (2026-09-19) was returned to the human for
+            # never having read a run that did not exist. A transport
+            # continuation carries no such report, and still names nothing.
+            payload = entry["payload"]
+            report = payload.get("failure_report") or {}
+            stream = streams.get(int(payload.get("cycle") or 0), "")
+            if (
+                stream
+                and not payload.get("transport_continuation")
+                and isinstance(report, Mapping)
+                and str(report.get("diagnosis") or "").strip()
+            ):
+                reference = f"runs/{stream}"
     return reference
 
 
