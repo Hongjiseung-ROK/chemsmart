@@ -172,6 +172,20 @@ replacing an exact-set check with an **allow-list** kept the invariant it
 actually protected — no perceived *label* rides there — while admitting
 measurement provenance. Read what a check protects before widening it.
 
+**What bit us later, and the repair that needed repairing.**
+`verify_provenance` compared every requested setting against the
+artifact's spec, so the day a new applied-spec field was added
+(`scf_stability`, contract v7) was the day every archived artifact failed
+its own settings check -- caught by one archived-fixture test. The repair
+was made at the comparison, not at the field: a field the artifact's own
+contract vocabulary never carried is not compared against it. That repair
+passed five red-to-green witnesses and the whole suite and was still one
+condition too wide -- it skipped the field whatever had been requested,
+so a pre-v7 artifact validated against a request for an analysis it
+cannot contain. It now skips only a request that did not ask. The
+condition worth stating: probe a new skip with the request it was not
+written for, through the public validator, before believing it.
+
 ## Removing a capability
 
 **What we did.** Withdrew a distance-derived `bond_order` from everything

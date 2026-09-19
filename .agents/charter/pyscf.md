@@ -283,3 +283,27 @@ session had the host characterise -- because the workspace record
 holds those results and both settle-time deliveries read them; the
 planar phosphine goal had claimed six characterised numbers on its
 inversion saddle and the settlement named only the anomalies.
+
+A converged SCF is not necessarily a minimum in orbital-rotation space,
+and result contract v7 lets a run say so. ``scf_stability`` asks PySCF's
+own analysis about the reference the run converged, after the final SCF,
+and records the answer as an observation that moves no stage, no
+convergence flag, no termination word and no validation state. The record
+names the question rather than only the answer, because ``external`` is
+not one question: PySCF searches RHF/RKS -> UHF/UKS for a restricted
+reference and UHF/UKS -> GHF/GKS for an unrestricted one, and it solves
+the real -> complex question inside both, logs it, and returns only the
+other flag -- on triplet O2 at UKS those two answers differ, so the
+returned flag is recorded with its space and real -> complex is named as
+undetermined. An ROHF reference has no external answer at all, and because
+one combined call runs the internal Davidson and then raises, the two
+questions are asked in two calls so the answer already computed survives.
+Absence is never stability: a run nobody asked records ``not_requested``,
+an earlier contract carries no field, and a ``--fake`` preview that asked
+carries no record, and none of them is read as a stable reference.
+Nothing follows an instability -- the singlet-O2 solution a follow reaches
+is 13.2 kcal/mol lower and itself unstable both ways, and which solution
+is wanted is the scientist's question. Seven real fixtures generated on a
+cluster through the ordinary CLI exercise it; no sealed goal has, and no
+selector, sensor or settlement word yet reads the record, so this release
+describes it as recorded evidence and not as something the Agent acts on.
