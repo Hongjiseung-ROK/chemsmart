@@ -62,6 +62,16 @@ def forecasts_and_outcomes(rows: list[dict]) -> tuple[dict, dict]:
     for row in rows:
         if row["type"] == "forecast":
             forecasts.setdefault(row["by"], {}).update(row["p"])
+        # An experiment or a selection may seal its own event forecast; it
+        # was written before the outcome like any other, so it is scored
+        # like any other (the PySCF run's five were not, until this).
+        embedded = row.get("forecast") or {}
+        if isinstance(embedded.get("p"), dict) and all(
+            isinstance(v, (int, float)) for v in embedded["p"].values()
+        ):
+            forecasts.setdefault(embedded.get("by", "unstated"), {}).update(
+                embedded["p"]
+            )
         if row["type"] == "outcome":
             outcomes.update(row.get("events", {}))
     return forecasts, outcomes
@@ -231,10 +241,10 @@ def cmd_close() -> int:
     adopted = [(n, c) for n, c in loop["components"].items() if c.get("status") != "inherited"]
     # First sentence only: the full policy is one `graph.py why loop:<name>` away.
     lines += [f"- `{n}` ({c['status']}, {','.join(c.get('evidence') or [])}): "
-              f"{c['policy'].split('. ')[0].rstrip('.')}."
+              f"{c['policy'].split('. ')[0].split('; ')[0].rstrip('.')[:150]}."
               for n, c in adopted] or ["- none"]  # fmt: skip
     lines += ["", "## Decisions (newest last)"]
-    lines += [f"- {r['id']} {r.get('decision')}: {r['title'][:96]}" for r in decisions[-7:]]
+    lines += [f"- {r['id']} {r.get('decision')}: {r['title'][:96]}" for r in decisions[-5:]]
     lines += ["", "## Open"]
     open_events = open_forecast_events(rows)
     lines.append(f"- forecasts awaiting outcomes: {len(open_events)} events "
@@ -245,7 +255,7 @@ def cmd_close() -> int:
     lines += ["", "## Slate (EIG bits / cost units / risk)"]
     lines += [f"- {'*' if r['on_front'] else ' '} {r['id']} [{r['kind']}] "
               f"{r['eig_bits']} / {r['cost_units']} / {r['risk']}"
-              for r in ranking["ranked"][:7]]  # fmt: skip
+              for r in ranking["ranked"][:6]]  # fmt: skip
     lines += ["", "## Next action"]
     lines.append(f"- {selected[-1]['title']} ({selected[-1]['id']})" if selected
                  else "- none selected; run `generation.py select`")  # fmt: skip

@@ -24,6 +24,7 @@ claims:
   - id: C3_live_chemistry_finds_what_suites_cannot
     claim: Defects reachable only through live chemistry persist under a green suite, and small chemically different cases find them fastest.
     evidence: ["CONDUCT.md section 4: fifteen findings by three reviewers, none by the author", "MAINTENANCE.md: two host defects found by three four-atom cases after 3183 tests and 67 witnesses passed"]
+    evidence_added_2026_09_19: ["L0046: a delegated repair (7001355b) passed its own five red-to-green witnesses and 3767 tests and still let a pre-v7 artifact validate against a request for an analysis it cannot carry; found by the parent's boundary probe, closed in 94d6e9f6", "L0034/L0035: a guard whose only red state was hand-built"]
     strongest_counterexample: No denominator -- defects found by the suite first are not counted anywhere.
     missing_experiment: A defect ledger by detection channel (suite, witness bank, audit, live goal) over the commit history.
     status: open

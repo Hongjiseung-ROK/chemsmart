@@ -239,11 +239,9 @@ def main() -> int:
         from ledger import read
 
         forecasts, outcomes = {}, {}
-        for row in read():
-            if row["type"] == "forecast":
-                forecasts.setdefault(row["by"], {}).update(row["p"])
-            if row["type"] == "outcome":
-                outcomes.update(row.get("events", {}))
+        from generation import forecasts_and_outcomes
+
+        forecasts, outcomes = forecasts_and_outcomes(read())
         print(json.dumps(score(forecasts, outcomes), indent=1))
         return 0
     print(__doc__)

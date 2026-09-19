@@ -4,8 +4,8 @@
 # `choose.py slate` turns that into exact expected information gain.
 # Costs: claude_tokens_k, provider_usd, engine_calls, wall_hours, owner_minutes.
 # Priors are structured lead estimates; the forecaster question is open (L0024).
-generation: 2
-loop_version: g2
+generation: 3
+loop_version: g3
 forecast_by: pi1_structured (unpromoted; interim leader on 9 of 23 events)
 dropped:  # enumerated sources deliberately not turned into candidates, and why
   - loop.select / loop.explore falsifiers: need several generations of decisions to read; nothing to run yet
@@ -187,4 +187,30 @@ candidates:
     decides: whether the graph and the ledger earn their place once they are visible, which is the falsifier the kernel itself states; marginal cost only, because the investigation happens anyway
     cost: {claude_tokens_k: 20}
     risk: none
+    fundamentals: {}
+
+  - id: scf_reference_unstable_sensor
+    title: Thread the recorded PySCF stability answer into the program-neutral observation block as an anomaly (scf.reference_unstable), so a goal can see it
+    target_kind: product
+    source: [L0046]
+    prior: {session_acts_on_it: 0.45, recorded_and_unread: 0.55}
+    likelihood:
+      session_acts_on_it: {names_the_instability: 0.75, delivers_silently: 0.25}
+      recorded_and_unread: {names_the_instability: 0.20, delivers_silently: 0.80}
+    decides: whether the v7 record has a consumer; today it is right where it is computed and read by nothing, the defect class CONDUCT names. Needs a sealed singlet/triplet O2 goal to observe.
+    cost: {claude_tokens_k: 250, provider_usd: 2, engine_calls: 8, wall_hours: 3}
+    risk: outward_facing
+    fundamentals: {}
+
+  - id: boolean_domain_declaration
+    title: Teach the capability domain declaration a boolean, retiring scf_stability, density_fit and freq from the advertised-unwired count together (86 -> 83)
+    target_kind: product
+    source: [L0046]
+    prior: {three_retire_cleanly: 0.70, a_consumer_depends_on_strings: 0.30}
+    likelihood:
+      three_retire_cleanly: {clean: 0.85, breaks_a_reader: 0.15}
+      a_consumer_depends_on_strings: {clean: 0.25, breaks_a_reader: 0.75}
+    decides: whether the ladder's blindness to booleans is a declaration gap or a real dependency
+    cost: {claude_tokens_k: 90}
+    risk: reversible
     fundamentals: {}
