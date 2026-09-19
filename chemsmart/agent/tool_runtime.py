@@ -237,9 +237,11 @@ from chemsmart.agent.scientific_validation import (
 from chemsmart.agent.skills import resolve_skill
 from chemsmart.agent.terminal_states import (
     GEOMETRY_SEARCH_JOBTYPES,
+    START_POINT_PROMISES,
     STATIONARY_POINT_PROMISES,
     consequential_imaginary_mode_count,
     expected_imaginary_mode_count,
+    start_point_order_finding,
     stationary_point_order_finding,
 )
 from chemsmart.agent.tool_specs import (
@@ -1530,6 +1532,33 @@ def _observed_imaginary_mode_count(
     return int(value) if isinstance(value, int) else None
 
 
+def _observed_start_order(
+    observation: Mapping[str, Any], program: str
+) -> int | None:
+    """The consequential imaginary-mode count at the geometry a run was
+    handed, where its reader served a start spectrum, or None."""
+
+    block = observation.get(program)
+    if not isinstance(block, Mapping):
+        return None
+    value = block.get("start_consequential_imaginary_mode_count")
+    return int(value) if isinstance(value, int) else None
+
+
+def _observed_start_modes(
+    observation: Mapping[str, Any], program: str
+) -> list[float]:
+    """The start's imaginary modes past the noise convention, in cm-1."""
+
+    block = observation.get(program)
+    if not isinstance(block, Mapping):
+        return []
+    return [
+        float(value)
+        for value in (block.get("start_imaginary_frequencies_cm1") or ())
+    ]
+
+
 #: A bond-forming saddle's imaginary mode is hundreds of wavenumbers; a
 #: mode inside this band is an intermolecular or torsional motion that
 #: happens to fall past the 20 cm-1 noise convention.
@@ -1702,6 +1731,40 @@ def _neutral_sensor_facts(
             inputs["stationarity_gradient"] = gradient
         except (TypeError, ValueError):
             pass
+    # The geometry a path was handed, where its job type promises what it
+    # is (an IRC leaves a first-order saddle of the surface it walks): the
+    # spectrum and the gradient the run took there, through the same reader
+    # and under the same 20 cm-1 convention as the structure a result ends
+    # on. A reader that serves no start spectrum makes no claim.
+    if START_POINT_PROMISES.get(jobtype) is not None:
+        try:
+            start_values, _unit = reader.read(
+                output, "trajectory_start_frequencies"
+            )
+            start_frequencies = tuple(float(item) for item in start_values)
+        except Exception:  # noqa: BLE001 - absent is no claim
+            start_frequencies = ()
+        start_count = consequential_imaginary_mode_count(start_frequencies)
+        if start_count is not None:
+            block["start_consequential_imaginary_mode_count"] = start_count
+            block["start_imaginary_frequencies_cm1"] = [
+                value for value in start_frequencies if value <= -20.0
+            ]
+        start_forces = getattr(output, "start_forces", None)
+        if (
+            start_forces is not None
+            and getattr(output, "start_forces_unit", None) == "Eh/Bohr"
+        ):
+            try:
+                import numpy as np
+
+                gradient = float(
+                    np.max(np.abs(np.asarray(start_forces, dtype=float)))
+                )
+                block["start_max_abs_gradient_eh_per_bohr"] = gradient
+                inputs["start_stationarity_gradient"] = gradient
+            except (TypeError, ValueError):
+                pass
     # The response stage's own numbers, as facts with no threshold and no
     # signal: which root an optimisation followed, how far it ended from
     # the ground state and from its neighbour, and how many requested
@@ -15880,7 +15943,57 @@ class CommandCompiledToolHostV1:
         order_finding = stationary_point_order_finding(jobtype, observed_order)
         if order_finding:
             findings.append(order_finding)
+        # The same verdict on the geometry the run was handed, where the job
+        # type promises one: an IRC whose start was not a first-order saddle
+        # of the surface it walked has no branch of that saddle to report.
+        start_order = _observed_start_order(observation, program)
+        start_finding = start_point_order_finding(jobtype, start_order)
+        if start_finding:
+            findings.append(start_finding)
+        start_gradient = sensor_inputs.pop("start_stationarity_gradient", None)
         anomalies: list[dict[str, Any]] = []
+        if start_finding:
+            anomalies.append(
+                {
+                    "signal_id": "stationary_point.unexpected_order",
+                    "geometry": "supplied",
+                    "expected_imaginary_modes": START_POINT_PROMISES[jobtype],
+                    "observed_imaginary_modes": start_order,
+                    "imaginary_frequencies_cm1": _observed_start_modes(
+                        observation, program
+                    ),
+                }
+            )
+        if (
+            start_gradient is not None
+            and float(start_gradient) > HESS_STATIONARITY_GRADIENT_EH_PER_BOHR
+        ):
+            # A saddle handed in from another program, another functional
+            # convention or a looser optimiser is not stationary on the
+            # surface the path walks; the number says how far it was.
+            anomalies.append(
+                {
+                    **_gradient_anomaly(float(start_gradient)),
+                    "geometry": "supplied",
+                }
+            )
+        start_modes = _observed_start_modes(observation, program)
+        if (
+            START_POINT_PROMISES.get(jobtype) == 1
+            and start_order == 1
+            and len(start_modes) == 1
+            and abs(start_modes[0]) < SOFT_IMAGINARY_MODE_BAND_CM1
+        ):
+            anomalies.append(
+                {
+                    "signal_id": "stationary_point.imaginary_mode_lt_50",
+                    "geometry": "supplied",
+                    "imaginary_mode_cm1": float(f"{start_modes[0]:.2f}"),
+                    "noise_convention_cm1": 20.0,
+                    "soft_band_cm1": SOFT_IMAGINARY_MODE_BAND_CM1,
+                    "expected_imaginary_modes": 1,
+                }
+            )
         basin = dict(sensor_inputs.pop("basin", {}) or {})
         rmsd = basin.get("heavy_atom_rmsd_angstrom")
         if rmsd is not None and float(rmsd) >= 0.3:

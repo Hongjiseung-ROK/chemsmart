@@ -63,7 +63,7 @@ def test_the_leaf_says_what_pyscf_can_do_and_what_it_cannot():
     for phrase in (
         "one node each: sp, opt, hess",
         "supplied_positions",
-        "reached_positions (opt only)",
+        "reached_positions (opt and irc)",
         "failed_wrong_stationary_point",
         "No imaginary mode means none was found",
         "b3lyp and b3lypg are one libxc functional",
@@ -86,6 +86,7 @@ def test_the_leaf_says_what_pyscf_can_do_and_what_it_cannot():
         "leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names",
         "leaf.pyscf.correlated_methods_are_ab_initio_values",
         "leaf.pyscf.a_converged_reference_can_be_a_saddle",
+        "leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface",
     }
 
 

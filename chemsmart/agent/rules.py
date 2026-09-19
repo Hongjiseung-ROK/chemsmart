@@ -948,6 +948,54 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         ),
     ),
     _r(
+        "leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface",
+        "leaf:pyscf",
+        "T1",
+        "A PySCF irc walks one branch of the intrinsic reaction coordinate "
+        "from the geometry it is handed, HF or DFT on the CPU: it takes "
+        "that surface's analytic Hessian there and follows its one "
+        "imaginary mode downhill in mass-weighted coordinates. "
+        "irc_direction forward and backward are opposite branches of one "
+        "host-signed transition vector, never reactant and product: two irc "
+        "nodes on one saddle geometry, each with a project differing only "
+        "in irc_direction, give both branches, and which minimum each "
+        "reached is read from its own path. Everything a result carries "
+        "belongs to where its branch ended (reached_positions); "
+        "trajectory_start_frequencies is the start's spectrum on the walked "
+        "surface and trajectory_energies the energy at every frame. A start "
+        "that is not a first-order saddle of that surface ends "
+        "failed_wrong_stationary_point with its spectrum, and a start "
+        "gradient above the optimiser's criterion arrives as an anomaly: "
+        "a saddle from another program or functional convention is not "
+        "stationary here. An endpoint is where the walk converged, not a "
+        "characterised minimum; a hess on it says which.",
+        "PySCF IRC round 2026-09-20: geomeTRIC's IRC through PySCF's own "
+        "kernel died before its first step, its forward word stepped "
+        "against its own eigenvector, and ORCA OptTS saddles were walked "
+        "on PySCF's surface through the CLI (CUHK 2140566)",
+        boundaries=(
+            _b(
+                "pyscf",
+                "irc",
+                "admitted",
+                ab_initio="hf",
+                basis="6-31g*",
+                irc_direction="backward",
+            ),
+            _b(
+                "pyscf", "irc", "refused", functional="b3lyp", basis="def2-svp"
+            ),
+            _b(
+                "pyscf",
+                "irc",
+                "refused",
+                ab_initio="mp2",
+                basis="def2-svp",
+                irc_direction="forward",
+            ),
+        ),
+    ),
+    _r(
         "leaf.pyscf.correlated_methods_are_ab_initio_values",
         "leaf:pyscf",
         "T1",

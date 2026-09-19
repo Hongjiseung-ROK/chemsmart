@@ -28,6 +28,7 @@ CASES = {
     "sp": "water_ccsdt_sp",
     "opt": "formaldehyde_s1_opt",
     "hess": "water_hess",
+    "irc": "h2co_hcoh_irc_forward",
     "td": "water_td_singlet",
 }
 

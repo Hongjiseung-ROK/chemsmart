@@ -5499,9 +5499,19 @@ def handoff_optimized_pyscf_geometry(
     if before != result_artifact.sha256 or after != before:
         raise ContractError("PySCF result changed while extracting geometry")
     stages = tuple(str(item) for item in (spec.get("stages") or ()))
-    opt_status = (status.get("stages") or {}).get("opt") or {}
-    if "opt" not in stages or not bool(opt_status.get("converged", False)):
-        raise ContractError("PySCF artifact has no converged optimization")
+    from chemsmart.jobs.pyscf.settings import PYSCF_MOVING_STAGES
+
+    # The stage that moved the geometry: an optimisation, or an IRC branch
+    # whose endpoint is the one structure the artifact's properties belong
+    # to. Either must have converged; which one ran rides the XYZ comment.
+    moving = next(
+        (name for name in PYSCF_MOVING_STAGES if name in stages), None
+    )
+    moving_status = (status.get("stages") or {}).get(moving) or {}
+    if moving is None or not bool(moving_status.get("converged", False)):
+        raise ContractError(
+            "PySCF artifact has no converged optimization or IRC branch"
+        )
     if not bool(status.get("normal_termination", False)):
         raise ContractError("PySCF optimization did not terminate normally")
 
@@ -5553,7 +5563,7 @@ def handoff_optimized_pyscf_geometry(
         positions=positions,
         charge=charge,
         multiplicity=multiplicity,
-        comment_label="PySCF OPT",
+        comment_label=f"PySCF {moving.upper()}",
         consumer_fields=consumer_fields,
     )
 
@@ -6739,14 +6749,48 @@ def _frozen_producer_edge_rule(
 #: displayed review states, so the scientist approves that settlement
 #: explicitly. Any other point on the surface remains the explicit
 #: bind-a-scan-point route with its own new workflow and review.
+#: Stages that walk a path from the geometry they were handed and end on
+#: one structure a consumer may take inside the same approval: an IRC
+#: branch ends where its walk converged. Admitted per program by what that
+#: program's reader declares (``_ends_on_one_reached_structure``): ORCA's
+#: IRC log prints only where the path started, so its reader declares no
+#: reached structure for ``irc`` and no ORCA IRC edge is admitted.
+PATH_ENDPOINT_PRODUCER_STAGES = frozenset({"irc"})
+
 DEFERRABLE_GEOMETRY_PRODUCER_STAGES = (
-    GEOMETRY_SEARCH_JOBTYPES | SURFACE_SAMPLING_JOBTYPES
+    GEOMETRY_SEARCH_JOBTYPES
+    | SURFACE_SAMPLING_JOBTYPES
+    | PATH_ENDPOINT_PRODUCER_STAGES
 )
 
 #: Stages the optimized-geometry rule itself covers. A scan is deferrable
 #: (set above) but is never an "optimized geometry": its edge carries the
 #: scan-minimum rule instead.
 OPTIMIZED_GEOMETRY_PRODUCER_STAGES = GEOMETRY_SEARCH_JOBTYPES
+
+
+def _ends_on_one_reached_structure(program: str, stage: str) -> bool:
+    """Whether a producer node ends on one structure a consumer may take.
+
+    An optimisation or a saddle search does for every program. A path
+    walked from the geometry it was handed does where that program's
+    reader declares the path's end as the reached structure for the job
+    type -- a declaration the reader already makes for the geometry
+    lift, so this edge and ``build_reached_geometry`` answer one question
+    with one fact.
+    """
+
+    if stage in OPTIMIZED_GEOMETRY_PRODUCER_STAGES:
+        return True
+    if stage not in PATH_ENDPOINT_PRODUCER_STAGES:
+        return False
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(program)
+    if reader is None:
+        return False
+    return "reached_positions" in (reader.selectors_for_jobtype(stage) or ())
+
 
 #: The stages whose results print a Hessian to hand on. It is the
 #: promise table's keys: a job type promises something about imaginary
@@ -6890,7 +6934,7 @@ def is_validated_optimized_geometry_edge(
     )
     return bool(
         source is not None
-        and source.stage in OPTIMIZED_GEOMETRY_PRODUCER_STAGES
+        and _ends_on_one_reached_structure(source.program, source.stage)
     )
 
 

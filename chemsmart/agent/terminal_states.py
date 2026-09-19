@@ -35,6 +35,14 @@ from typing import Any, Mapping
 #: thermochemistry uses for numerical noise.
 STATIONARY_POINT_ORDER_FINDING = "result.stationary_point_order"
 
+#: The same rule applied to the geometry a job was *handed*, where its job
+#: type promises something about it: an intrinsic reaction coordinate
+#: leaves a first-order saddle of the surface it walks, so the spectrum the
+#: run took there must show exactly one imaginary mode. Its own id, because
+#: the order of a start and the order of the structure a result ends on
+#: are different claims about different geometries.
+START_POINT_ORDER_FINDING = "result.start_point_order"
+
 #: Anomalies earlier cycles of a goal recorded, handed to a run's host
 #: through its own run directory so the completion receipt it mints can
 #: carry them (a dispatched job reads the same file).
@@ -113,6 +121,12 @@ STATIONARY_POINT_PROMISES: Mapping[str, int] = MappingProxyType(
     {"freq": 0, "hess": 0, "opt": 0, "ts": 1}
 )
 
+#: What a job type promises about the geometry it was *handed*, judged on
+#: the spectrum a reader serves as ``trajectory_start_frequencies``: an
+#: IRC leaves a first-order saddle of the surface it walks. A reader that
+#: serves no such spectrum (ORCA's IRC log prints none) makes no claim.
+START_POINT_PROMISES: Mapping[str, int] = MappingProxyType({"irc": 1})
+
 #: Of those, the job types that search for the structure rather than
 #: being handed it. A run of one that printed no vibrational modes never
 #: checked its own promise; its geometry is a producer for a downstream
@@ -150,6 +164,23 @@ def consequential_imaginary_mode_count(
         values.append(number)
     return sum(
         1 for value in values if value < CONSEQUENTIAL_IMAGINARY_MODE_CM1
+    )
+
+
+def start_point_order_finding(
+    jobtype: str, observed_imaginary_modes: int | None
+) -> str:
+    """The finding for a start that is not what the job type promised it
+    was handed, or "" when it is, or when nothing makes or checks the
+    claim."""
+
+    expected = START_POINT_PROMISES.get(jobtype)
+    if expected is None or observed_imaginary_modes is None:
+        return ""
+    return (
+        ""
+        if observed_imaginary_modes == expected
+        else START_POINT_ORDER_FINDING
     )
 
 
@@ -477,6 +508,11 @@ def _classify_failure(
         return "failed_nonconverged_excited_state"
     if native_class == "correlation_convergence":
         return "failed_nonconverged_correlation"
+    # A path that could not leave its start because the start was not a
+    # first-order saddle of the walked surface: the program's own word for
+    # a wrong stationary point, answered as one.
+    if native_class == "stationary_point_order":
+        return "failed_wrong_stationary_point"
     if (
         native_class
         and native_class not in _CONVERGENCE_FAILURE_CLASSES
@@ -506,6 +542,7 @@ def _classify_failure(
     if any(
         item.endswith(".ts_imaginary_mode_count")
         or item == STATIONARY_POINT_ORDER_FINDING
+        or item == START_POINT_ORDER_FINDING
         for item in findings
     ):
         return "failed_wrong_stationary_point"

@@ -81,6 +81,20 @@ CASES = {
     "water_mp2_opt": ("opt", "water_mp2_opt_gas_phase.h5"),
     "water_ccsd_opt": ("opt", "water_ccsd_opt_gas_phase.h5"),
     "water_ccsd_unconverged": ("sp", "water_ccsd_unconverged_gas_phase.h5"),
+    # Contract v8 (IRC round): branches of the intrinsic reaction
+    # coordinate from ORCA OptTS saddles, a branch that ran out of steps,
+    # a start that was a minimum, and a Hessian on a branch's endpoint.
+    "h2co_hcoh_irc_forward": ("irc", "c1_irc_fwd_gas_phase.h5"),
+    "h2co_hcoh_irc_backward": ("irc", "c1_irc_bwd_gas_phase.h5"),
+    "h2co_hcoh_irc_maxsteps3": ("irc", "c1_irc_fwd_maxsteps3_gas_phase.h5"),
+    "h2co_irc_from_minimum": ("irc", "c1_irc_from_minimum2_gas_phase.h5"),
+    "h2co_hcoh_hess_on_irc_endpoint": (
+        "hess",
+        "c1_hess_end_fwd_gas_phase.h5",
+    ),
+    "hcn_hnc_irc_forward": ("irc", "c2_irc_fwd_gas_phase.h5"),
+    "hcn_hnc_irc_backward": ("irc", "c2_irc_bwd_gas_phase.h5"),
+    "hcn_irc_from_vwn5_saddle": ("irc", "c2_irc_fwd_from_vwn5_gas_phase.h5"),
 }
 GREEN = {
     "water_sp",
@@ -107,6 +121,12 @@ GREEN = {
     "hydroxyl_ump2_sp",
     "water_mp2_opt",
     "water_ccsd_opt",
+    "h2co_hcoh_irc_forward",
+    "h2co_hcoh_irc_backward",
+    "h2co_hcoh_hess_on_irc_endpoint",
+    "hcn_hnc_irc_forward",
+    "hcn_hnc_irc_backward",
+    "hcn_irc_from_vwn5_saddle",
 }
 TD_CASES = (
     "water_td_singlet",
@@ -1146,6 +1166,17 @@ def test_every_declared_pyscf_selector_is_requestable_and_provenanced():
         # belongs to; it is not itself a value on one.
         "surface_id",
         "symbols",
+        # An IRC's path is geometry and bookkeeping: which frames, which
+        # branch, whether the walk met its criteria. Its energies and the
+        # start's spectrum are values on a density and declare it.
+        "irc_converged",
+        "irc_direction",
+        "trajectory_connectivity_changed",
+        "trajectory_end_connectivity",
+        "trajectory_end_positions",
+        "trajectory_frame_count",
+        "trajectory_start_connectivity",
+        "trajectory_start_positions",
     }
     for jobtype, _selectors in reader.jobtype_selectors:
         for selector in reader.selectors_for_jobtype(jobtype):

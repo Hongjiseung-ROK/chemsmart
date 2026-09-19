@@ -134,6 +134,9 @@ SELECTOR_UNITS = {
     "wavefunction_stability_verdict": "",
     "wavefunction_stability_history": "",
     "trajectory_frame_count": "",
+    # The energy at every frame of a path, and the spectrum at its start.
+    "trajectory_energies": "Eh",
+    "trajectory_start_frequencies": "cm^-1",
     "trajectory_start_positions": "Angstrom",
     "trajectory_end_positions": "Angstrom",
     "trajectory_start_connectivity": "",
@@ -3090,6 +3093,44 @@ def _pyscf_level(output: Any) -> dict[str, Any]:
     return level
 
 
+def _pyscf_irc_path_energies(output: Any) -> list[float]:
+    """The energy at every accepted frame of an IRC branch, saddle first."""
+
+    values = getattr(output, "irc_path_energies", None)
+    if not values:
+        raise MissingQuantityError(
+            "pyscf result records no IRC path (results/irc/path_energies)"
+        )
+    return [float(item) for item in values]
+
+
+def _pyscf_irc_start_frequencies(output: Any) -> list[float]:
+    """The saddle's spectrum on the surface the IRC walked.
+
+    Served under its own name, never as ``vibrational_frequencies``: the
+    numbers belong to the supplied geometry, and every other property of
+    an IRC artifact belongs to where the branch ended.
+    """
+
+    values = getattr(output, "irc_start_frequencies", None)
+    if not values:
+        raise MissingQuantityError(
+            "pyscf result records no IRC start spectrum "
+            "(results/irc/start_frequencies)"
+        )
+    return [float(item) for item in values]
+
+
+def _pyscf_irc_direction(output: Any) -> str:
+    """The branch the IRC was asked for, which the validator holds the
+    measured first step to."""
+
+    value = getattr(output, "irc_direction", None)
+    if value not in {"forward", "backward"}:
+        raise MissingQuantityError("result does not establish an IRC branch")
+    return str(value)
+
+
 def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
     """Selector name to a callable reading it from a structured PySCF result.
 
@@ -3223,6 +3264,31 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
             "ccsd_correlation_energy"
         ),
         "triples_correction": _pyscf_correlated_scalar("triples_correction"),
+        # The IRC stage (contract v8): the accepted path, saddle first, read
+        # through the same trajectory vocabulary the log readers answer for
+        # a Gaussian IRC or an ORCA path sidecar -- here from the artifact
+        # itself, so the start is the geometry the run was handed and the
+        # end is the structure every other property belongs to.
+        "trajectory_frame_count": lambda output: len(_irc_structures(output)),
+        "trajectory_start_positions": lambda output: [
+            [float(value) for value in row]
+            for row in _irc_structures(output)[0].positions
+        ],
+        "trajectory_end_positions": lambda output: [
+            [float(value) for value in row]
+            for row in _irc_structures(output)[-1].positions
+        ],
+        "trajectory_start_connectivity": lambda output: (
+            _connectivity_matrix(_irc_structures(output)[0])
+        ),
+        "trajectory_end_connectivity": lambda output: _connectivity_matrix(
+            _irc_structures(output)[-1]
+        ),
+        "trajectory_connectivity_changed": _trajectory_connectivity_changed,
+        "trajectory_energies": _pyscf_irc_path_energies,
+        "trajectory_start_frequencies": _pyscf_irc_start_frequencies,
+        "irc_direction": _pyscf_irc_direction,
+        "irc_converged": _irc_run_converged,
     }
     for name in (
         "spin_square",
@@ -3320,6 +3386,31 @@ _PYSCF_OPT_SELECTORS = tuple(
 _PYSCF_SP_SELECTORS = tuple(
     sorted(_PYSCF_SCF_SELECTORS + _PYSCF_CORR_SELECTORS)
 )
+#: An IRC branch (contract v8): the SCF set belongs to where the branch
+#: ended, as for an optimisation, and the path adds the trajectory
+#: vocabulary -- the start as supplied, the end as reached -- with the
+#: energy at every frame and the saddle's own spectrum on the walked
+#: surface. ``vibrational_frequencies`` is deliberately absent: the
+#: artifact holds no Hessian at the endpoint, and serving the saddle's
+#: under that name would describe the wrong structure.
+_PYSCF_IRC_SELECTORS = tuple(
+    sorted(
+        _PYSCF_SCF_SELECTORS
+        + (
+            "irc_converged",
+            "irc_direction",
+            "reached_positions",
+            "trajectory_connectivity_changed",
+            "trajectory_end_connectivity",
+            "trajectory_end_positions",
+            "trajectory_energies",
+            "trajectory_frame_count",
+            "trajectory_start_connectivity",
+            "trajectory_start_frequencies",
+            "trajectory_start_positions",
+        )
+    )
+)
 _PYSCF_TD_JOBTYPE_SELECTORS = tuple(
     sorted(_PYSCF_SCF_SELECTORS + _PYSCF_TD_SELECTORS)
 )
@@ -3349,6 +3440,7 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             ("excited_state_multiplicities", "as_reached"),
             ("gap", "as_reached"),
             ("homo", "as_reached"),
+            ("irc_converged", "as_reached"),
             ("lumo", "as_reached"),
             ("mulliken_atomic_charges", "as_reached"),
             ("mulliken_atomic_spin_populations", "as_reached"),
@@ -3364,6 +3456,11 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             ("spin_square_target", "as_reached"),
             ("supplied_positions", "as_supplied"),
             ("surface_id", "stateless"),
+            ("trajectory_end_connectivity", "as_reached"),
+            ("trajectory_end_positions", "as_reached"),
+            ("trajectory_start_connectivity", "as_supplied"),
+            ("trajectory_start_frequencies", "as_supplied"),
+            ("trajectory_start_positions", "as_supplied"),
             ("transition_dipole_moments", "as_reached"),
             ("triples_correction", "as_reached"),
             ("triplet_excitation_energies", "as_reached"),
@@ -3407,6 +3504,8 @@ _PYSCF_ELECTRONIC_PROVENANCE = tuple(
             ("reference_energy", "reference"),
             ("scf_energy", "reference"),
             ("surface_id", "stateless"),
+            ("trajectory_energies", "reference"),
+            ("trajectory_start_frequencies", "reference"),
             ("singlet_excitation_energies", "excited_root"),
             ("singlet_oscillator_strengths", "excited_root"),
             ("spin_square", "reference"),
@@ -4111,6 +4210,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     )
                 ),
             ),
+            ("irc", _PYSCF_IRC_SELECTORS),
             ("opt", _PYSCF_OPT_SELECTORS),
             ("sp", _PYSCF_SP_SELECTORS),
             # The response stage is executable (contract v5): a td result
@@ -4213,6 +4313,8 @@ _SELECTOR_DIMENSIONS = {
     "wavefunction_stability_verdict": "DIMENSIONLESS",
     "wavefunction_stability_history": "DIMENSIONLESS",
     "trajectory_frame_count": "DIMENSIONLESS",
+    "trajectory_energies": "ENERGY",
+    "trajectory_start_frequencies": "FREQUENCY",
     "trajectory_start_positions": "LENGTH",
     "trajectory_end_positions": "LENGTH",
     "trajectory_start_connectivity": "DIMENSIONLESS",

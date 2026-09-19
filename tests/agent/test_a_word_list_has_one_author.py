@@ -333,6 +333,21 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
         ("hess", "irc", "opt", "sp", "td"),
     ): _DECLARATION,
     (
+        "chemsmart/agent/execution.py",
+        "<module>",
+        "PATH_ENDPOINT_PRODUCER_STAGES",
+        ("irc",),
+    ): _DECLARATION
+    + ": the path-walking stages whose endpoint may hand on, admitted per "
+    "program by the reader's own declaration of a reached structure",
+    (
+        "chemsmart/agent/terminal_states.py",
+        "<module>",
+        "START_POINT_PROMISES",
+        ("irc",),
+    ): _DECLARATION
+    + ": what a job type promises about the geometry it was handed",
+    (
         "chemsmart/jobs/pyscf/settings.py",
         "<module>",
         "PYSCF_MOVING_STAGES",

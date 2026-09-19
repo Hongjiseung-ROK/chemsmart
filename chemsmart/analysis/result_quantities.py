@@ -156,6 +156,10 @@ SUPPORTED_SELECTORS = SUPPORTED_PYSCF_SELECTORS | frozenset(
         "trajectory_start_connectivity",
         "trajectory_end_connectivity",
         "trajectory_connectivity_changed",
+        # A path's energy profile and the spectrum at its start: served by
+        # the PySCF IRC, whose artifact carries the whole accepted path.
+        "trajectory_energies",
+        "trajectory_start_frequencies",
         "irc_direction",
         "solvation_model",
         "solvent",
@@ -410,6 +414,15 @@ _SELECTOR_RESULT_DATASETS: dict[str, tuple[str, ...]] = {
     "spin_square": ("results/spin_square",),
     "spin_square_deviation": ("results/spin_square",),
     "effective_multiplicity": ("results/spin_square_effective_multiplicity",),
+    # The IRC stage (contract v8), under ``results/irc/``.
+    "trajectory_frame_count": ("results/irc/path_positions",),
+    "trajectory_start_positions": ("results/irc/path_positions",),
+    "trajectory_end_positions": ("results/irc/path_positions",),
+    "trajectory_start_connectivity": ("results/irc/path_positions",),
+    "trajectory_end_connectivity": ("results/irc/path_positions",),
+    "trajectory_connectivity_changed": ("results/irc/path_positions",),
+    "trajectory_energies": ("results/irc/path_energies",),
+    "trajectory_start_frequencies": ("results/irc/start_frequencies",),
 }
 
 
