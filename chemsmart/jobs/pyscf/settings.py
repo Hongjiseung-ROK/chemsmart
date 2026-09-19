@@ -73,6 +73,32 @@ PYSCF_STAGE_ORDER = ("scf", "opt", "corr", "td", "hess")
 #: ORCA's NumFreq default is 0.005 Bohr, a different convention, and the
 #: two are compared on the record rather than conflated in a name.
 PYSCF_FD_STEP_ANGSTROM = 0.005
+#: The orbital-rotation spaces a PySCF stability analysis searches, named
+#: per reference family in PySCF 2.14's own words (``scf/stability.py``
+#: ``dump_status``).  ``internal`` asks whether the converged solution is a
+#: minimum within the space it was optimised in; ``external`` asks whether
+#: a lower solution exists in a *larger* space, and which larger space
+#: depends on the reference -- so a bare "externally unstable" is ambiguous
+#: across reference classes and the record names the space.  The
+#: real -> complex question PySCF also computes inside ``rhf_external`` and
+#: ``uhf_external`` is deliberately absent: those functions log it and
+#: return only the R->U / U->G flag, so this host cannot determine it and
+#: records it as unknown rather than folding it into the returned boolean.
+PYSCF_STABILITY_SPACES = {
+    "rhf": {"internal": "internal", "external": "RHF/RKS -> UHF/UKS"},
+    "rks": {"internal": "internal", "external": "RHF/RKS -> UHF/UKS"},
+    "uhf": {"internal": "internal", "external": "UHF/UKS -> GHF/GKS"},
+    "uks": {"internal": "internal", "external": "UHF/UKS -> GHF/GKS"},
+    # ``pyscf.scf.stability.rohf_external`` raises NotImplementedError in
+    # 2.14.0, so an ROHF/ROKS reference has no external answer at all.
+    "rohf": {"internal": "internal", "external": None},
+    "roks": {"internal": "internal", "external": None},
+}
+
+#: The question PySCF computes and discards, recorded by name so a reader
+#: is told it was not answered rather than left to assume it was.
+PYSCF_STABILITY_UNRETURNED_SPACE = "real -> complex"
+
 #: Excitation manifolds.  A closed-shell reference asks for singlet or
 #: triplet excitations; an open-shell (UKS) reference has one
 #: spin-conserving manifold that PySCF labels neither, so it is named for
@@ -334,6 +360,7 @@ class PySCFJobSettings(MolecularJobSettings):
         cc_max_cycle=None,
         hessian_derivative=None,
         fd_step_angstrom=None,
+        scf_stability=False,
         charge=None,
         multiplicity=None,
         freq=False,
@@ -385,6 +412,7 @@ class PySCFJobSettings(MolecularJobSettings):
         self.cc_max_cycle = cc_max_cycle
         self.hessian_derivative = hessian_derivative
         self.fd_step_angstrom = fd_step_angstrom
+        self.scf_stability = scf_stability
         self.density_fit = density_fit
         self.opt_solver = opt_solver
         self.opt_maxsteps = opt_maxsteps

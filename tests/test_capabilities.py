@@ -207,6 +207,7 @@ def test_declared_capabilities_preserve_project_ownership_contract():
         "opt_solver",
         "response_method",
         "scf_maxiter",
+        "scf_stability",
         "scf_tol",
         "solvent_id",
         "solvent_model",

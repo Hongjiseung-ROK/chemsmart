@@ -114,3 +114,56 @@ the mean field's own gradient is 0.133 Eh/Bohr while S1's is 9.1e-06,
 and reporting the first would call a stationary point of one surface far
 from stationary using a number belonging to another.
 
+
+## SCF stability round (2026-09-19, result contract v7)
+
+Produced in the compute env of the CUHK Charles cluster through the human
+CLI (`chemsmart run --no-fake --no-scratch -n 4 -m 8 pyscf -p <project>
+-f <input> -c C -m M -l <label> sp`) against the worktree of this commit,
+with `reference.py` beside each. Every one has receipt `validated`,
+`fake: false`, no findings. The molecules: the `water_opt` minimum of
+`inputs/water_relaxed.xyz`, dioxygen at its experimental 1.2075 A bond
+(`inputs/dioxygen.xyz`), and a single hydrogen atom
+(`inputs/hydrogen_atom.xyz`), which is the one-electron open shell
+`pyscf.scf.HF` builds as `rohf.HF1e`.
+
+These are the first artifacts to record whether the converged reference
+is a minimum in orbital-rotation space, under
+`status/properties/scf_stability`. They exist because `external` is not
+one question, and because PySCF answers one of the questions it solves
+only to its log.
+
+| directory | what it is | why it is here |
+|---|---|---|
+| `water_sp_stability` | B3LYP(G)/def2-SVP at the relaxed water | the stable control: internal and RHF/RKS -> UHF/UKS both stable |
+| `water_sp_no_stability` | the same run with `scf_stability: false` | the absence written down: `not_requested`, which is not a failure and is never read as stable |
+| `o2_singlet_sp_stability` | closed-shell singlet O2, B3LYP(G)/def2-SVP | internally stable, **RHF/RKS -> UHF/UKS unstable**: two electrons forced into one of a degenerate pi* pair, with a lower spin-broken solution |
+| `o2_singlet_hf_sp_stability` | the same molecule and state at HF | the same verdict without a functional: the observation is not DFT-only |
+| `o2_triplet_sp_stability` | triplet O2, B3LYP(G)/def2-SVP, UKS | the reason the record names the space: this reference's `external` is **UHF/UKS -> GHF/GKS**, a different question from the restricted rows above, and it is unstable |
+| `water_sp_stability_cpcm` | the stable control under C-PCM water | PySCF's solvated `stability` sets `equilibrium_solvation` for the analysis, so the solvent response enters the orbital Hessian; the record carries the `PCMRKS` class |
+| `hydrogen_atom_sp_stability` | the hydrogen atom at HF, an ROHF/HF1e reference | `pyscf.scf.stability.rohf_external` raises `NotImplementedError`, and the internal answer (stable) survives it, because the driver asks the two questions in two calls |
+
+Three facts these runs settled.
+
+**The two external questions can disagree, and PySCF returns only one of
+them.** `rhf_external` and `uhf_external` each solve real -> complex and
+then the R->U / U->G question, log both, and return the second alone. On
+triplet O2 at UKS the two differ: `reference.json` captures PySCF's own
+log saying the wavefunction *is* stable in the real -> complex analysis
+while it *has* a UHF/UKS -> GHF/GKS instability. A record that reported
+one boolean named "externally unstable" would have been reporting one of
+two answers and hiding the other, so the artifact records the returned
+flag with its space and names real -> complex under `not_determined`.
+
+**A combined call throws an answer away.** `rohf_stability(internal=True,
+external=True)` runs the internal Davidson, then raises from
+`rohf_external`, so the internal result is lost with it. The hydrogen
+atom fixture is that case, and its `analyses/internal/stable` is true
+beside an `external` whose `unavailable` is PySCF's own
+`NotImplementedError`.
+
+**What it costs, measured on these runs.** The recorded `seconds` for the
+whole analysis: 0.005 (H atom, internal only), 0.74 (O2 RHF), 3.98
+(water RKS), 4.43 (O2 singlet RKS), 5.39 (O2 triplet UKS), 11.67 (water
+RKS under C-PCM). Of the same order as the SCF it follows on cases this
+size, which is why it is asked for rather than always run.

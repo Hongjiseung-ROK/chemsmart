@@ -252,6 +252,7 @@ _SUPPORTED_FIELDS = frozenset(
         "cc_max_cycle",
         "hessian_derivative",
         "fd_step_angstrom",
+        "scf_stability",
     }
 )
 
@@ -406,9 +407,20 @@ def verify_provenance(
                     evidence_ref="h5:/status/engine_complete",
                 )
             )
+    from chemsmart.jobs.pyscf.writer import applied_pyscf_spec_fields
+
     requested = _requested_spec(settings)
+    # A field the artifact's own contract vocabulary never carried cannot
+    # be compared against it.  An artifact written under an earlier
+    # contract is evidence, not a mismatch, and the day a new applied-spec
+    # field is added is the day every archived result would otherwise
+    # start failing its own settings check.  A field the contract *does*
+    # carry and the spec lacks stays a finding.
+    carried = frozenset(applied_pyscf_spec_fields(spec))
     for field, expected in requested.items():
         observed = spec.get(field, _MISSING)
+        if observed is _MISSING and field not in carried:
+            continue
         if observed is _MISSING and expected is None:
             observed = None
         if not _equivalent(field, expected, observed):
@@ -3514,6 +3526,19 @@ def _check_setting_values(settings, _molecule, _environment):
                 evidence_ref="settings:density_fit",
             )
         )
+    # An observation, never a gate: the flag decides whether the driver
+    # asks PySCF the question, and no value of the answer refuses anything.
+    scf_stability = _member(settings, "scf_stability", False)
+    if type(scf_stability) is not bool:
+        violations.append(
+            PySCFViolation(
+                rule_id=RULE_INVALID_SETTING,
+                field="scf_stability",
+                expected="strict boolean",
+                observed=scf_stability,
+                evidence_ref="settings:scf_stability",
+            )
+        )
     scf_tol = _member(settings, "scf_tol", None)
     if scf_tol is not None and (
         isinstance(scf_tol, bool)
@@ -4643,6 +4668,7 @@ def _requested_spec(settings):
         "density_fit",
         "aux_basis",
         "defgrid",
+        "scf_stability",
         "scf_tol",
         "scf_maxiter",
         "solvent_model",

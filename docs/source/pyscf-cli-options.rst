@@ -205,6 +205,15 @@ Program-Level Options
       -  positive integer
       -  Maximum SCF cycles.
 
+   -  -  ``--scf-stability/--no-scf-stability``
+
+      -  boolean
+
+      -  Ask PySCF whether the converged reference is a minimum in orbital-rotation space. Recorded as an observation
+         and never a verdict: an unstable answer changes no convergence flag, no termination word and no validation
+         state. Omitted, nothing is computed and the result records ``not_requested``, which is never read as stable.
+         See `SCF stability`_.
+
    -  -  ``--defgrid``
       -  defgrid1/2/3
       -  ChemSmart's documented PySCF grid mapping; it is not an ORCA-grid equivalence claim.
@@ -289,6 +298,44 @@ reference's. A correlated result's ``energy`` is the correlated total and ``refe
 ``ccsd_correlation_energy`` and ``triples_correction`` are the components PySCF returned. The dipole moment,
 populations, orbital energies and spin expectation on an excited-root or correlated result belong to the SCF reference,
 and the typed analysis layer says so beside each value.
+
+***************
+ SCF stability
+***************
+
+A converged SCF is not necessarily a minimum in orbital-rotation space. When it is a saddle there, the iterations
+finished, the convergence flag is true, and every energy, orbital energy, population, spin expectation, gradient and
+Hessian built on it describes a solution that is not the lowest one of its own method. ``--scf-stability`` (project key
+``scf_stability``) asks PySCF's own stability analysis about the reference the run converged, after the final SCF, so
+the answer belongs to the same orbitals as every other recorded property. The result records it under
+``status/properties/scf_stability``.
+
+It is an observation. An unstable answer changes no stage, no convergence flag, no termination word and no validation
+state, and nothing follows the instability: a broken-symmetry or deliberately constrained solution can be exactly what
+was asked for, and deciding what an instability means is the scientist's.
+
+The record names the question rather than only the answer, because "externally unstable" is not one question:
+
+-  ``internal`` asks whether a lower solution exists inside the space the reference was optimised in.
+
+-  ``external`` asks whether one exists in a larger space, and which larger space depends on the reference. For a
+   restricted reference PySCF searches RHF/RKS to UHF/UKS; for an unrestricted one it searches UHF/UKS to GHF/GKS. Each
+   recorded answer carries the space it is about, in PySCF's own words.
+
+-  PySCF's external analysis also solves the real-to-complex question, writes it to its log, and returns only the other
+   flag. ChemSmart cannot determine it, so it is recorded by name under ``not_determined`` rather than folded into a
+   boolean a reader would take for it.
+
+-  An ROHF or ROKS reference has no external answer at all in PySCF 2.14 (``rohf_external`` raises), and the internal
+   answer is still recorded. The two questions are asked in two separate calls for that reason.
+
+The analysis runs on the orbitals the run ended with, whether or not they converged, so the record carries
+``scf_converged`` beside the flags: a stability answer about a non-converged SCF is an answer about orbitals that are
+not stationary.
+
+Absence is never stability. A run that was not asked records ``not_requested``; a result written under an earlier
+contract carries no field at all; and both read back as "no answer", never as a stable reference. The analysis costs
+roughly one more SCF on the small closed-shell cases measured here, so it is opt-in rather than automatic.
 
 **********************
  Unsupported Requests

@@ -1,0 +1,25 @@
+{
+  "compute_interpreter": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "config_sha256": "184d5948ca20dd6c27b2da56372e69d40f2b5041eddd9c52ca0ccd659cf0f37d",
+  "engine": "cpu",
+  "environment_receipt_sha256": "635ae239287b4fe3774d62f5d14018caddc40ab692c89ec83d69d7c645021ff0",
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "9cd2812cc3a9ed79a8d20b4fe99c3e932687a99b492ed25e8c47229df631f21e",
+  "label": "o2_singlet_hf_sp_stability_gas_phase",
+  "materializations": {},
+  "project_yaml_sha256": "8c854addd6316edb8a9096bd5c6cfa6e6b6c47eecdc21038d7d5a7aaf399775f",
+  "quarantined_targets": [],
+  "receipt_sha256": "9eb4d3d1c72be243fd11c3e5618f2c9326ad33f0dcc6c38286efd4a100fa05d4",
+  "requested_settings_sha256": "a80656d9772a7724abad4781355500764c147cf1113fe1f503c75ef254bada26",
+  "run_id": "4607dcb5-20a6-4f76-a816-14b29f647cf0",
+  "run_nonce": "6fc74f33f1e1dc3d3c9c0a7891a095451f5ef6ce546925e498c1366d8222a7e3",
+  "schema_version": "chemsmart.pyscf-input.v1",
+  "script_path": "o2_singlet_hf_sp_stability_gas_phase.py",
+  "script_sha256": "2be5cbea791a54f0abbde68ab2f9b986fdf0ff9942b90ee2178796f78a4f93ea",
+  "stages": [
+    "scf"
+  ],
+  "state": "previewed"
+}

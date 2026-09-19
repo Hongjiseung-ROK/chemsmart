@@ -1,0 +1,24 @@
+{
+ "artifact": "o2_singlet_sp_stability_gas_phase.h5",
+ "command": "reference.py o2_singlet_sp_stability_gas_phase.h5",
+ "jobtype": "sp",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  15.999
+ ],
+ "point_group_detect_symm": "Dooh",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -150.14180674014884,
+ "scf_stability": {
+  "log_status_lines": [
+   "<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis",
+   "<class 'pyscf.dft.rks.RKS'> wavefunction has an real -> complex instability",
+   "<class 'pyscf.dft.rks.RKS'> wavefunction has an RHF/RKS -> UHF/UKS instability"
+  ],
+  "reference_class": "RKS",
+  "stable_external": false,
+  "stable_internal": true
+ },
+ "symm_geom_tol_bohr": 1e-05
+}

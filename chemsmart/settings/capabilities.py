@@ -351,6 +351,11 @@ _PYSCF_PROJECT_PARAMETERS = (
     "opt_solver",
     "response_method",
     "scf_maxiter",
+    # A boolean with no enumerable domain, like ``density_fit``: it asks
+    # PySCF whether the converged reference is a minimum in
+    # orbital-rotation space, and the answer is recorded as an
+    # observation that refuses nothing.
+    "scf_stability",
     "scf_tol",
     "solvent_id",
     "solvent_model",

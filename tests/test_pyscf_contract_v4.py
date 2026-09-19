@@ -30,6 +30,7 @@ from chemsmart.jobs.pyscf.writer import (
     APPLIED_SPEC_FIELDS,
     APPLIED_SPEC_FIELDS_V4,
     APPLIED_SPEC_FIELDS_V5,
+    APPLIED_SPEC_FIELDS_V6,
     LEGACY_APPLIED_SPEC_FIELDS,
     PREVIOUS_RESULT_CONTRACT_VERSIONS,
     RESULT_CONTRACT_VERSION,
@@ -97,6 +98,7 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
         "chemsmart.pyscf-result-contract.v3": APPLIED_SPEC_FIELDS_V4,
         "chemsmart.pyscf-result-contract.v4": APPLIED_SPEC_FIELDS_V4,
         "chemsmart.pyscf-result-contract.v5": APPLIED_SPEC_FIELDS_V5,
+        "chemsmart.pyscf-result-contract.v6": APPLIED_SPEC_FIELDS_V6,
     }
     for version in PREVIOUS_RESULT_CONTRACT_VERSIONS:
         vocabulary = applied_pyscf_spec_fields(
@@ -112,12 +114,17 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
         )
         == APPLIED_SPEC_FIELDS
     )
-    # What v6 adds: the electronic surface a result's geometry and total
+    # What v6 added: the electronic surface a result's geometry and total
     # energy belong to, and how a Hessian's second derivative was taken.
-    assert APPLIED_SPEC_FIELDS[len(APPLIED_SPEC_FIELDS_V5) :] == (
+    assert APPLIED_SPEC_FIELDS_V6[len(APPLIED_SPEC_FIELDS_V5) :] == (
         "surface",
         "hessian_derivative",
         "fd_step_angstrom",
+    )
+    # What v7 adds: whether the run was asked whether its converged
+    # reference is a minimum in orbital-rotation space.
+    assert APPLIED_SPEC_FIELDS[len(APPLIED_SPEC_FIELDS_V6) :] == (
+        "scf_stability",
     )
 
     complete_spec = {

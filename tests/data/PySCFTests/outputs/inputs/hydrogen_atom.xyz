@@ -1,0 +1,3 @@
+1
+hydrogen atom; a one-electron open shell, which pyscf builds as ROHF/HF1e
+H   0.000000   0.000000   0.000000

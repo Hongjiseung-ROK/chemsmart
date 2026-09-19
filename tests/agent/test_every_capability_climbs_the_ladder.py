@@ -60,7 +60,18 @@ def test_every_kind_is_represented(registry):
 #: is the finding, recorded here rather than hidden behind a domain that
 #: would enumerate what no enumeration can. The number resumes falling
 #: from 85.
-ADVERTISED_UNWIRED_BUDGET = 85
+#:
+#: 2026-09-19 (SCF stability): 85 -> 86. ``scf_stability`` joined the
+#: PySCF vocabulary as a strict boolean, and the domain declaration this
+#: rung reads is a tuple of *strings*: declaring ``("true", "false")``
+#: would hand the settings object a string its validator refuses, so the
+#: honest options are a domain that lies about the type or none at all.
+#: ``density_fit`` and ``freq`` already sit in this count for exactly
+#: that reason, so the boolean class is not new; what is new is that the
+#: blindness is named. Teaching the declaration a boolean domain would
+#: retire all three at once, which is the reduction this entry exists to
+#: invite. The number resumes falling from 86.
+ADVERTISED_UNWIRED_BUDGET = 86
 
 
 def test_everything_advertised_is_wired(registry):
