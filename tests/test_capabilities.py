@@ -121,7 +121,13 @@ def test_derived_views_are_exact_registry_projections():
     assert PROJECT_OWNED_PARAMETERS is PROGRAM_PROJECT_OWNED_CLI_PARAMETERS
     assert AGENT_PROGRAMS == frozenset({"gaussian", "orca", "pyscf", "xtb"})
     assert AGENT_PROGRAM_PREVIEW_ENGINES["pyscf"] == ("cpu", "gpu")
-    assert AGENT_PROGRAM_JOBTYPES["pyscf"] == ("hess", "opt", "sp", "td")
+    assert AGENT_PROGRAM_JOBTYPES["pyscf"] == (
+        "hess",
+        "irc",
+        "opt",
+        "sp",
+        "td",
+    )
     assert dict(PROGRAM_JOBTYPES) == {
         name: capability.jobtypes
         for name, capability in PROGRAM_CAPABILITIES.items()
@@ -204,6 +210,7 @@ def test_declared_capabilities_preserve_project_ownership_contract():
         "frozen_core",
         "functional",
         "hessian_derivative",
+        "irc_direction",
         "nstates",
         "opt_maxsteps",
         "opt_solver",
@@ -280,8 +287,11 @@ def test_pyscf_agent_matrix_is_cpu_only_and_td_is_executable_on_cpu():
         ("cpu", "sp"),
         ("cpu", "opt"),
         ("cpu", "hess"),
+        ("cpu", "irc"),
         ("cpu", "td"),
     } == execution_pairs
+    # GPU4PySCF has walked no reaction path.
+    assert ("gpu", "irc") not in preview_pairs
 
 
 def test_program_capability_rejects_incoherent_declarations():

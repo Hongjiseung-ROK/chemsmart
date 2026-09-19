@@ -113,6 +113,15 @@
       "date": "2026-09-13"
     },
     {
+      "kind": "program_jobtype",
+      "id": "pyscf:cpu:irc",
+      "status": "claimed",
+      "run": "",
+      "commit": "",
+      "date": "",
+      "source": "direct human-CLI runs on CUHK (Slurm 2140566, 2026-09-20): PySCF irc branches from ORCA OptTS saddles; no sealed goal has run it yet"
+    },
+    {
       "kind": "setting",
       "id": "pyscf:excited_state_root",
       "status": "recorded",

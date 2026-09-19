@@ -65,11 +65,11 @@ from chemsmart.agent.capabilities import (
     load_program_capabilities,
 )
 from chemsmart.agent.cli_schema import build_live_click_schema
-from chemsmart.agent.commands import build_scientific_identity_binding
 from chemsmart.agent.cohort import (
     ExecutionWaveDecisionV1,
     build_execution_wave_decision,
 )
+from chemsmart.agent.commands import build_scientific_identity_binding
 from chemsmart.agent.execution import (
     ApprovedNodeBindingV1,
     ExecutionResourceSpecV1,
@@ -3031,6 +3031,14 @@ def _pyscf_conformance_sections(
         "sp": dict(common),
         "opt": {**common, "opt_maxsteps": 100, "opt_solver": "geometric"},
         "hess": dict(common),
+        # A preview writes the script and runs nothing, so a branch word
+        # is all the probe needs; which branch is the scientist's.
+        "irc": {
+            **common,
+            "irc_direction": "forward",
+            "opt_maxsteps": 100,
+            "opt_solver": "geometric",
+        },
         "td": {
             **common,
             "nstates": 5,
@@ -3367,9 +3375,7 @@ def _write_private_exact(path: Path, payload: bytes) -> None:
     # `os.link` publishes only a file that is already complete, and
     # fails with `FileExistsError` if the name is taken.
     staging = path.parent / f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}"
-    descriptor = os.open(
-        staging, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
-    )
+    descriptor = os.open(staging, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         pending = memoryview(payload)
         while pending:

@@ -226,6 +226,10 @@ def _pyscf_case(parameter: str, value: str):
         return "hess", {**dft, "hessian_derivative": value}, _WATER_XYZ, (0, 1)
     if parameter == "opt_solver":
         return "opt", {**dft, "opt_solver": value}, _WATER_XYZ, (0, 1)
+    if parameter == "irc_direction":
+        # A preview writes the script and runs nothing, so the geometry
+        # need not be a saddle for the declared word to round-trip.
+        return "irc", {**dft, "irc_direction": value}, _WATER_XYZ, (0, 1)
     if parameter == "solvent_model":
         return (
             "sp",
@@ -345,10 +349,11 @@ def _pyscf_fake_preview(tmp_path, parameter, value):
         registry_sha256=registry.registry_sha256,
         live_cli_schema_sha256=live_schema.schema_sha256,
         fixture_bundle_sha256="1" * 64,
-        covered_jobtypes=("hess", "opt", "sp", "td"),
+        covered_jobtypes=("hess", "irc", "opt", "sp", "td"),
         covered_engines=("cpu",),
         covered_engine_job_pairs=(
             ("cpu", "hess"),
+            ("cpu", "irc"),
             ("cpu", "opt"),
             ("cpu", "sp"),
             ("cpu", "td"),

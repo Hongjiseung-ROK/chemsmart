@@ -43,6 +43,7 @@ from chemsmart.jobs.pyscf.environment import (
     sha256_file,
     write_json_receipt,
 )
+from chemsmart.jobs.pyscf.settings import PYSCF_JOBTYPES
 from chemsmart.jobs.pyscf.validation import (
     FREQUENCY_VALIDATION_SCHEMA_VERSION,
     RESULT_VALIDATION_SCHEMA_VERSION,
@@ -198,12 +199,11 @@ class PySCFJobRunner(JobRunner):
     """
 
     PROGRAM = "pyscf"
-    JOBTYPES = [
-        "pyscf_sp",
-        "pyscf_opt",
-        "pyscf_hess",
-        "pyscf_td",
-        "pyscfjob",
+    # Derived from the settings module's declaration: a hand-kept copy
+    # here is how a new job type (``irc``) built, validated and wrote its
+    # script and then found no runner registered for it.
+    JOBTYPES = [f"pyscf_{jobtype}" for jobtype in PYSCF_JOBTYPES] + [
+        "pyscfjob"
     ]
     FAKE = False
     SCRATCH = False

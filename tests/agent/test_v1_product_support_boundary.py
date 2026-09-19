@@ -53,6 +53,7 @@ def test_v1_agent_programs_exclude_human_only_programs_and_gpu_execution():
     # the GPU engine stays preview-only and declares no excited state.
     assert records["pyscf"].execution_engine_job_pairs == (
         ("cpu", "hess"),
+        ("cpu", "irc"),
         ("cpu", "opt"),
         ("cpu", "sp"),
         ("cpu", "td"),

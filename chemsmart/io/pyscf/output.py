@@ -924,20 +924,133 @@ class PySCFOutput(FileMixin):
 
     @property
     def converged(self):
-        """Whether the optimisation converged; None for a fixed-geometry job.
+        """Whether the geometry-moving stage converged; None for a
+        fixed-geometry job.
 
-        Read from the driver's own stage status, so an optimiser that
-        stopped on its step limit answers False rather than an absence.
+        Read from the driver's own stage status, so an optimiser or an IRC
+        branch that stopped on its step limit answers False rather than an
+        absence.  For an IRC it is the branch's walk and the SCF where it
+        ended, both.
         """
+        from chemsmart.jobs.pyscf.settings import PYSCF_MOVING_STAGES
+
         stages = self.status.get("stages")
-        if not isinstance(stages, dict) or "opt" not in self.spec.get(
-            "stages", []
-        ):
+        declared = self.spec.get("stages", [])
+        moving = next(
+            (name for name in PYSCF_MOVING_STAGES if name in declared), None
+        )
+        if not isinstance(stages, dict) or moving is None:
             return None
-        opt = stages.get("opt")
-        if not isinstance(opt, dict) or "converged" not in opt:
+        record = stages.get(moving)
+        if not isinstance(record, dict) or "converged" not in record:
             return None
-        return bool(opt.get("converged"))
+        return bool(record.get("converged"))
+
+    # ------------------------------------------------------------------
+    # intrinsic reaction coordinate (contract v8)
+    # ------------------------------------------------------------------
+
+    @property
+    def irc_stage(self):
+        """The IRC stage's own record, or None for any other job."""
+        stages = self.status.get("stages")
+        record = stages.get("irc") if isinstance(stages, dict) else None
+        return record if isinstance(record, dict) else None
+
+    @property
+    def _irc_results(self):
+        record = self.results.get("irc")
+        return record if isinstance(record, dict) else {}
+
+    @property
+    def irc_direction(self):
+        """The branch this IRC was asked to walk (``forward``/``backward``).
+
+        The words mean a sign on the transition vector the artifact
+        records, fixed by the rule the stage status states; which minimum
+        the branch reached is read from its path.
+        """
+        if self.irc_stage is None:
+            return None
+        value = self.spec.get("irc_direction")
+        return None if value is None else str(value)
+
+    @property
+    def irc_converged(self):
+        """Whether geomeTRIC's walk of this branch met its criteria."""
+        stage = self.irc_stage
+        if stage is None or "path_converged" not in stage:
+            return None
+        return bool(stage.get("path_converged"))
+
+    @cached_property
+    def irc_path_positions(self):
+        """Every accepted frame of the branch, saddle first (Angstrom)."""
+        values = self._irc_results.get("path_positions")
+        return np.asarray(values, dtype=float) if values is not None else None
+
+    @cached_property
+    def irc_path_energies(self):
+        """The energy of each accepted frame on the walked surface (Eh)."""
+        values = self._irc_results.get("path_energies")
+        return [float(v) for v in values] if values is not None else None
+
+    @cached_property
+    def irc_path_arc_lengths(self):
+        """Mass-weighted arc length at each frame (amu^1/2 Bohr), with
+        rigid motion removed between frames; zero at the saddle."""
+        values = self._irc_results.get("path_arc_lengths")
+        return [float(v) for v in values] if values is not None else None
+
+    @cached_property
+    def irc_start_frequencies(self):
+        """The start's harmonic spectrum on the walked surface (cm^-1).
+
+        These belong to the supplied geometry, never to the endpoint every
+        other property describes; negative values are imaginary modes.
+        """
+        values = self._irc_results.get("start_frequencies")
+        return [float(v) for v in values] if values is not None else None
+
+    @cached_property
+    def start_forces(self):
+        """Forces at the geometry an IRC was handed (Eh/Bohr), or None.
+
+        The negative of the gradient the walk evaluated at its first frame:
+        how far from stationary the start was on the surface walked.
+        """
+        values = self._irc_results.get("path_gradients")
+        if values is None or not len(values):
+            return None
+        return -np.asarray(values[0], dtype=float)
+
+    #: The unit ``start_forces`` is stored in, declared for the same reason
+    #: ``forces_unit`` is.
+    start_forces_unit = "Eh/Bohr"
+
+    @cached_property
+    def all_structures(self):
+        """The IRC's accepted frames as molecules, saddle first.
+
+        Each frame carries the energy the walk evaluated there; the SCF
+        properties of the artifact belong to the last frame only.
+        """
+        from chemsmart.io.molecules.structure import Molecule
+
+        frames = self.irc_path_positions
+        if frames is None:
+            return []
+        energies = self.irc_path_energies or [None] * len(frames)
+        return [
+            Molecule(
+                symbols=self.chemical_symbols,
+                positions=frame,
+                charge=self.charge,
+                multiplicity=self.multiplicity,
+                energy=energy,
+            )
+            for frame, energy in zip(frames, energies)
+        ]
 
     @property
     def optimizer_converged(self):

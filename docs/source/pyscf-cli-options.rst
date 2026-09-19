@@ -3,11 +3,11 @@
 ###################
 
 ChemSmart exposes PySCF 2.14.0 through the same ``run`` and ``sub`` command families as its executable-backed programs.
-The executable CPU surface is ``sp``, ``opt``, ``hess`` and ``td``: ground-state single points, optimisations and
-Hessians on a Hartree--Fock or DFT reference; TDA/TDDFT vertical excitations on a closed-shell reference (singlet or
-triplet manifold) or on an open-shell reference (the one ``unrestricted`` manifold), gas phase or with an implicit
-solvent; optimisation on an excited root of that manifold; and MP2, CCSD and CCSD(T) as ``ab_initio`` methods on a
-Hartree--Fock reference. GPU4PySCF 1.8.0 is an execution engine of the PySCF program; it is not a separate program.
+The executable CPU surface is ``sp``, ``opt``, ``hess``, ``irc`` and ``td``: ground-state single points, optimisations
+and Hessians on a Hartree--Fock or DFT reference; one branch of the intrinsic reaction coordinate from a supplied
+saddle point on such a surface; TDA/TDDFT vertical excitations on a closed-shell reference (singlet or triplet manifold)
+or on an open-shell reference (the one ``unrestricted`` manifold), gas phase or with an implicit solvent; optimisation on
+an excited root of that manifold; and MP2, CCSD and CCSD(T) as ``ab_initio`` methods on a Hartree--Fock reference. GPU4PySCF 1.8.0 is an execution engine of the PySCF program; it is not a separate program.
 GPU4PySCF configuration and safe preview are available, but this release does not claim a qualified Agent GPU run.
 
 *************************
@@ -19,6 +19,7 @@ GPU4PySCF configuration and safe preview are available, but this release does no
    chemsmart run [RUN_OPTIONS] pyscf -p PROJECT -f GEOMETRY [PYSCF_OPTIONS] sp
    chemsmart run [RUN_OPTIONS] pyscf -p PROJECT -f GEOMETRY [PYSCF_OPTIONS] opt
    chemsmart run [RUN_OPTIONS] pyscf -p PROJECT -f GEOMETRY [PYSCF_OPTIONS] hess
+   chemsmart run [RUN_OPTIONS] pyscf -p PROJECT -f GEOMETRY [PYSCF_OPTIONS] irc
    chemsmart run [RUN_OPTIONS] pyscf -p PROJECT -f GEOMETRY [PYSCF_OPTIONS] td
 
 The same program and leaf commands are available below ``chemsmart sub``. PySCF requires a validated project YAML;
@@ -34,8 +35,8 @@ ChemSmart does not invent a default method or basis.
  Project YAML Contract
 ***********************
 
-A PySCF project uses stage-specific ``sp``, ``opt``, ``hess`` and ``td`` sections. A stage does not inherit scientific
-settings from another stage.
+A PySCF project uses stage-specific ``sp``, ``opt``, ``hess``, ``irc`` and ``td`` sections. A stage does not inherit
+scientific settings from another stage.
 
 .. code:: yaml
 
@@ -100,6 +101,31 @@ triples included) and the number of orbitals it left uncorrelated; PySCF correla
 chemical-core rule. An excited-root optimisation is gas phase only, a correlated method takes no density fitting or
 implicit solvent in this release, and ``ccsd(t)`` optimises nothing; each of these is refused when the project is
 validated, naming its route.
+
+An ``irc`` section walks one branch of the intrinsic reaction coordinate from the geometry it is given, with an HF or
+DFT method on the CPU engine; ``irc_direction`` (``forward`` or ``backward``) is required and ``opt_maxsteps`` bounds
+the branch:
+
+.. code:: yaml
+
+   irc:
+     functional: b3lyp
+     basis: def2-svp
+     irc_direction: forward
+     opt_maxsteps: 100
+
+The stage first takes the analytic Hessian of its own surface at the supplied geometry, and the branch leaves along
+that Hessian's one imaginary mode, walked by geomeTRIC's mass-weighted integrator. ``forward`` and ``backward`` are the
+two signs of the transition vector after ChemSmart fixes its sign (the first component within 1e-3 of the largest is
+positive): ``forward`` is the branch whose first step projects positively on it, so two ``irc`` runs on one geometry
+walk opposite branches, and which minimum each reaches is read from its path, never from the word. Every property of
+the result belongs to where the branch ended, where the SCF is re-converged. The result also records the start's
+harmonic spectrum and gradient on the walked surface, the transition vector, and every accepted frame with its energy,
+gradient and mass-weighted arc length. A start with no imaginary mode, or with several, is refused by the integrator
+and the result records that refusal with the start's spectrum; a start whose gradient on this surface is not small --
+a saddle located with another program or functional convention -- is walked, and its gradient is recorded beside the
+path. An endpoint is where the walk met the optimiser's criteria, not a characterised minimum; a ``hess`` on it says
+which. Correlated methods, excited roots and the GPU engine are refused for ``irc``, naming the route.
 
 Use either ``functional`` or ``ab_initio`` in a stage, never both. Unknown keys and inherited Gaussian/ORCA-only
 settings are rejected. In particular, native route text, ``modred``, semiempirical settings, arbitrary mixed-basis text,
@@ -273,7 +299,12 @@ expectation or frequency is read, so a PySCF result has one structure and it is 
 the two coincide by construction and the validator enforces it. An optimisation that stops on its step limit still
 writes the last geometry the optimiser evaluated, never the input; its receipt records the failure, and the structure
 stays readable. The typed analysis layer serves the supplied structure as ``supplied_positions`` and the final one as
-``positions`` (and, for ``opt``, ``reached_positions`` and ``converged``).
+``positions`` (and, for ``opt``, ``reached_positions`` and ``converged``). An ``irc`` result is the same shape: the
+supplied structure is the saddle it left and the final one is where its branch ended, served as ``reached_positions``;
+the path is served as ``trajectory_start_positions``, ``trajectory_end_positions``, ``trajectory_energies``,
+``trajectory_frame_count`` and the connectivity of its two ends, the start's spectrum as
+``trajectory_start_frequencies``, and ``irc_direction`` and ``irc_converged`` say which branch was walked and whether
+the walk met its criteria. A branch that stops on its step limit keeps every frame it accepted.
 
 The ``hess`` leaf uses the supplied geometry without optimizing it. In a multi-stage workflow, bind it to the exact
 optimized-geometry artifact from a validated ``opt`` node rather than reusing the initial geometry. A Hessian's

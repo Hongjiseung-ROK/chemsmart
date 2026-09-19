@@ -31,6 +31,7 @@ from chemsmart.jobs.pyscf.writer import (
     APPLIED_SPEC_FIELDS_V4,
     APPLIED_SPEC_FIELDS_V5,
     APPLIED_SPEC_FIELDS_V6,
+    APPLIED_SPEC_FIELDS_V7,
     LEGACY_APPLIED_SPEC_FIELDS,
     PREVIOUS_RESULT_CONTRACT_VERSIONS,
     RESULT_CONTRACT_VERSION,
@@ -99,6 +100,7 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
         "chemsmart.pyscf-result-contract.v4": APPLIED_SPEC_FIELDS_V4,
         "chemsmart.pyscf-result-contract.v5": APPLIED_SPEC_FIELDS_V5,
         "chemsmart.pyscf-result-contract.v6": APPLIED_SPEC_FIELDS_V6,
+        "chemsmart.pyscf-result-contract.v7": APPLIED_SPEC_FIELDS_V7,
     }
     for version in PREVIOUS_RESULT_CONTRACT_VERSIONS:
         vocabulary = applied_pyscf_spec_fields(
@@ -121,10 +123,14 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
         "hessian_derivative",
         "fd_step_angstrom",
     )
-    # What v7 adds: whether the run was asked whether its converged
+    # What v7 added: whether the run was asked whether its converged
     # reference is a minimum in orbital-rotation space.
-    assert APPLIED_SPEC_FIELDS[len(APPLIED_SPEC_FIELDS_V6) :] == (
+    assert APPLIED_SPEC_FIELDS_V7[len(APPLIED_SPEC_FIELDS_V6) :] == (
         "scf_stability",
+    )
+    # What v8 adds: the branch an IRC was asked to walk.
+    assert APPLIED_SPEC_FIELDS[len(APPLIED_SPEC_FIELDS_V7) :] == (
+        "irc_direction",
     )
 
     complete_spec = {

@@ -26,6 +26,7 @@ from chemsmart.io.molecules.structure import Molecule
 from chemsmart.jobs.pyscf.settings import (
     PYSCF_FD_STEP_ANGSTROM,
     PYSCF_HESSIAN_DERIVATIVES,
+    PYSCF_IRC_DIRECTIONS,
 )
 from chemsmart.utils.cli import MyGroup
 from chemsmart.utils.io import clean_label
@@ -119,6 +120,17 @@ def click_pyscf_settings_options(f):
         help="Displacement of a finite-difference Hessian, in Angstrom "
         f"(default {PYSCF_FD_STEP_ANGSTROM}). ORCA's NumFreq default is "
         "0.005 Bohr, a different convention.",
+    )
+    @click.option(
+        "--irc-direction",
+        type=click.Choice(PYSCF_IRC_DIRECTIONS, case_sensitive=False),
+        default=None,
+        help="irc only: the branch to walk from the supplied saddle. "
+        "'forward' is the branch whose first step projects positively on "
+        "the transition vector after the host fixes its sign (the first "
+        "component within 1e-3 of the largest is positive), so two runs "
+        "from one geometry walk opposite branches. Which minimum a branch "
+        "reaches is read from its path, not from this word.",
     )
     @click.option(
         "--nstates",
@@ -302,6 +314,7 @@ def pyscf(
     cc_max_cycle,
     hessian_derivative,
     fd_step_angstrom,
+    irc_direction,
     nstates,
     response_method,
     state_manifold,
@@ -326,7 +339,8 @@ def pyscf(
     """CLI subcommand for running PySCF jobs using the chemsmart framework.
 
     Resolves the project settings, the molecules and the per-invocation
-    overrides, then publishes them on ``ctx.obj`` for the sp/opt/hess/td leaves.
+    overrides, then publishes them on ``ctx.obj`` for the sp/opt/hess/irc/td
+    leaves.
     """
     from chemsmart.jobs.pyscf.settings import PySCFJobSettings
     from chemsmart.settings.pyscf import PySCFProjectSettings
@@ -404,6 +418,9 @@ def pyscf(
     if scf_stability is not None:
         job_settings.scf_stability = bool(scf_stability)
         keywords += ("scf_stability",)
+    if irc_direction is not None:
+        job_settings.irc_direction = irc_direction.lower()
+        keywords += ("irc_direction",)
     if nstates is not None:
         job_settings.nstates = nstates
         keywords += ("nstates",)

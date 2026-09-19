@@ -66,12 +66,14 @@ def test_run_and_sub_expose_the_same_pyscf_command_tree():
     assert sub.commands["pyscf"] is pyscf
     assert tuple(sorted(run.commands["pyscf"].commands)) == (
         "hess",
+        "irc",
         "opt",
         "sp",
         "td",
     )
     assert tuple(sorted(sub.commands["pyscf"].commands)) == (
         "hess",
+        "irc",
         "opt",
         "sp",
         "td",

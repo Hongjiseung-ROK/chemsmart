@@ -44,12 +44,15 @@ from ase.data import atomic_numbers as ASE_ATOMIC_NUMBERS
 from chemsmart.jobs.pyscf.settings import (
     FUNCTIONAL_DIVERGENCES,
     PYSCF_AB_INITIO_METHODS,
+    PYSCF_ANALYTIC_HESSIAN_STAGES,
     PYSCF_COUPLED_CLUSTER_METHODS,
     PYSCF_DEFGRIDS,
     PYSCF_ENGINES,
     PYSCF_EXCITED_SURFACE_JOBTYPES,
     PYSCF_FROZEN_CORE_AUTO,
+    PYSCF_IRC_DIRECTIONS,
     PYSCF_JOBTYPES,
+    PYSCF_MOVING_STAGES,
     PYSCF_OPT_SOLVERS,
     PYSCF_RESPONSE_METHODS,
     PYSCF_RESTRICTED_MANIFOLDS,
@@ -140,6 +143,19 @@ RULE_SOLVER_UNAUDITED_SURFACE = "pyscf.solver.unaudited_surface"
 #: Excited-state and correlated result arrays: finite, aligned, ordered.
 RULE_RESULT_EXCITED = "pyscf.result.excited_state_invalid"
 RULE_RESULT_CORRELATION = "pyscf.result.correlation_invalid"
+#: An IRC walks one branch from the saddle it was handed, on an HF or DFT
+#: surface PySCF differentiates twice analytically; each refusal names what
+#: answers the question instead.
+RULE_IRC_SETTING = "pyscf.irc.setting_unsupported"
+#: The IRC's arrays: the start's spectrum, the path and its endpoint.
+RULE_RESULT_IRC = "pyscf.result.irc_invalid"
+#: The start of an IRC is a first-order saddle of the surface it walks: one
+#: imaginary mode past the 20 cm-1 noise convention in that surface's own
+#: Hessian. The suffix is the one the program-neutral terminal derivation
+#: already reads as a wrong stationary point.
+RULE_RESULT_IRC_START_ORDER = "pyscf.result.irc_start_imaginary_mode_count"
+#: The branch the first step took, measured, disagrees with the one asked.
+RULE_RESULT_IRC_DIRECTION = "pyscf.result.irc_direction_not_followed"
 RULE_FREQUENCY_GEOMETRY = "pyscf.frequency.geometry_invalid"
 RULE_FREQUENCY_MODE_COUNT = "pyscf.frequency.mode_count"
 RULE_FREQUENCY_NONFINITE = "pyscf.frequency.nonfinite"
@@ -253,6 +269,7 @@ _SUPPORTED_FIELDS = frozenset(
         "hessian_derivative",
         "fd_step_angstrom",
         "scf_stability",
+        "irc_direction",
     }
 )
 
@@ -314,6 +331,7 @@ def preflight(settings, molecule, environment) -> list[PySCFViolation]:
         _check_gpu,
         _check_electrons,
         _check_hessian_support,
+        _check_irc_settings,
     )
     for check in checks:
         try:
@@ -2077,6 +2095,15 @@ def validate_pyscf_result(
                         "h5:/status/stages/opt",
                     )
                 )
+    irc_observation = None
+    if "irc" in required_stages:
+        irc_observation, irc_findings = _validate_irc_results(
+            results,
+            stage_statuses,
+            spec,
+            expected_symbols=expected_symbols,
+        )
+        findings.extend(irc_findings)
     if "td" in required_stages:
         findings.extend(
             _validate_excited_state_results(results, stage_statuses)
@@ -2230,11 +2257,12 @@ def validate_pyscf_result(
                         "h5:/results/positions",
                     )
                 )
-    elif jobtype == "opt":
-        # Optimization is the one stage allowed to change coordinates.  The
-        # final geometry remains shape/finite checked above and atom order is
-        # independently bound by symbols and atomic numbers.
-        geometry_observation["matches_input"] = "not_required_for_opt"
+    elif jobtype in PYSCF_MOVING_STAGES:
+        # An optimisation and an IRC branch are the stages allowed to change
+        # coordinates.  The final geometry remains shape/finite checked above
+        # and atom order is independently bound by symbols and atomic
+        # numbers; an IRC's path is held to both ends below.
+        geometry_observation["matches_input"] = f"not_required_for_{jobtype}"
     elif not bool(np.isfinite(positions).all()):
         findings.append(
             _result_finding(
@@ -2523,7 +2551,7 @@ def validate_pyscf_result(
         if findings
         else ("qualified_legacy" if legacy_evidence else "validated")
     )
-    return {
+    receipt = {
         "schema_version": RESULT_VALIDATION_SCHEMA_VERSION,
         "state": validation_state,
         "jobtype": jobtype,
@@ -2546,6 +2574,385 @@ def validate_pyscf_result(
         "advisories": advisories,
         "findings": findings,
     }
+    if irc_observation is not None:
+        # Present only on an IRC, so every receipt of every other job
+        # type keeps the exact shape it has always had.
+        receipt["irc_validation"] = irc_observation
+    return receipt
+
+
+#: How far a path's first frame may sit from the geometry the run was
+#: handed, and its last frame from ``results/positions``: the two are the
+#: same numbers passed through geomeTRIC's Bohr/Angstrom round trip, so
+#: anything past round-off means the path is not the path of this result.
+_IRC_FRAME_ATOL_ANGSTROM = 1.0e-6
+
+
+def _irc_first_step_projection(positions, mode, masses):
+    """Cosine of the first accepted step with the recorded transition
+    vector, the step superposed on the start (mass-weighted Kabsch)."""
+
+    frames = np.asarray(positions, dtype=float)
+    weights = np.asarray(masses, dtype=float)
+    first, second = frames[0], frames[1]
+    total = float(weights.sum())
+    first_centre = (weights[:, None] * first).sum(axis=0) / total
+    second_centre = (weights[:, None] * second).sum(axis=0) / total
+    covariance = (weights[:, None] * (second - second_centre)).T @ (
+        first - first_centre
+    )
+    left, _values, right = np.linalg.svd(covariance)
+    handed = float(np.sign(np.linalg.det(right.T @ left.T))) or 1.0
+    rotation = right.T @ np.diag([1.0, 1.0, handed]) @ left.T
+    step = (
+        (second - second_centre) @ rotation.T - (first - first_centre)
+    ).ravel()
+    vector = np.asarray(mode, dtype=float).ravel()
+    if not (np.linalg.norm(step) and np.linalg.norm(vector)):
+        return None
+    return float(
+        step @ vector / (np.linalg.norm(step) * np.linalg.norm(vector))
+    )
+
+
+def _irc_steepest_descent_alignment(positions, gradients, masses, *, switch):
+    """How far each recorded step is from steepest descent on its surface.
+
+    An intrinsic reaction coordinate is the steepest-descent path in
+    mass-weighted coordinates, and a Gonzalez-Schlegel step is the chord of
+    an arc tangent to the gradient at both of its ends, so each accepted
+    step -- the later frame superposed on the earlier by the mass-weighted
+    Kabsch rotation -- should lie along the mean of the two unit negative
+    mass-weighted gradients. geomeTRIC finds each next point from a
+    quadratic model of the gradient rather than the gradient itself, so
+    where the valley turns sharply a recorded step can cut the corner: the
+    walk still reaches its basin while those steps are not the surface's
+    steepest descent. The cosines are stated, never graded -- no threshold
+    has been earned -- and the steps after a switch to minimisation are not
+    path steps and are left out. Shares no code with the integrator.
+    """
+
+    frames = np.asarray(positions, dtype=float)
+    grads = np.asarray(gradients, dtype=float)
+    weights = np.asarray(masses, dtype=float)
+    root = np.sqrt(np.repeat(weights, 3))
+    last = len(frames) - 1
+    switch_values = np.asarray(
+        switch if switch is not None else [], dtype=float
+    ).ravel()
+    if switch_values.size:
+        last = min(last, int(switch_values[0]))
+    cosines = []
+    for index in range(last):
+        before = frames[index]
+        after = frames[index + 1]
+        total = float(weights.sum())
+        before_centre = (weights[:, None] * before).sum(axis=0) / total
+        after_centre = (weights[:, None] * after).sum(axis=0) / total
+        covariance = (weights[:, None] * (after - after_centre)).T @ (
+            before - before_centre
+        )
+        left, _values, right = np.linalg.svd(covariance)
+        handed = float(np.sign(np.linalg.det(right.T @ left.T))) or 1.0
+        rotation = right.T @ np.diag([1.0, 1.0, handed]) @ left.T
+        step = (
+            (after - after_centre) @ rotation.T - (before - before_centre)
+        ).ravel() * root
+        start = grads[index].ravel() / root
+        end = (grads[index + 1] @ rotation.T).ravel() / root
+        if not (
+            np.linalg.norm(step)
+            and np.linalg.norm(start)
+            and np.linalg.norm(end)
+        ):
+            continue
+        descent = -(start / np.linalg.norm(start) + end / np.linalg.norm(end))
+        if not np.linalg.norm(descent):
+            continue
+        cosines.append(
+            float(
+                step
+                @ descent
+                / (np.linalg.norm(step) * np.linalg.norm(descent))
+            )
+        )
+    # The first step leaves the saddle along the transition vector, where
+    # the gradient is near zero and its direction is noise.
+    later = cosines[1:]
+    return {
+        "steepest_descent_cosines": [round(value, 4) for value in cosines],
+        "steepest_descent_cosine_median": (
+            float(np.median(cosines)) if cosines else None
+        ),
+        "steepest_descent_cosine_min_after_first_step": (
+            float(min(later)) if later else None
+        ),
+        "steepest_descent_steps_compared": len(cosines),
+    }
+
+
+def _validate_irc_results(results, stage_statuses, spec, *, expected_symbols):
+    """The IRC artifact's invariants, and the facts a reader weighs.
+
+    What is checked is identity and shape, never chemistry: that the path
+    starts at the geometry the run was handed and ends at the structure
+    every property belongs to, that the arrays are finite and aligned,
+    that the arc length never runs backwards, and that the branch the
+    first step took is the branch that was asked for.  Whether the start
+    was a first-order saddle of this surface is the host's program-neutral
+    stationary-point rule, read from ``start_frequencies``; whether the
+    endpoint is a minimum is a Hessian's question, and this artifact
+    carries none at the endpoint.
+    """
+
+    findings = []
+    irc = results.get("irc")
+    irc = irc if isinstance(irc, Mapping) else {}
+    stage = stage_statuses.get("irc")
+    stage = stage if isinstance(stage, Mapping) else {}
+    atoms = len(expected_symbols)
+    observation = {
+        "frames": None,
+        "start_matches_supplied": None,
+        "end_matches_positions": None,
+        "path_start_minus_scf_energy_eh": None,
+        "requested_direction": spec.get("irc_direction"),
+        "direction_followed": stage.get("direction_followed"),
+        "first_step_projection": stage.get("first_step_projection"),
+        "start_frequencies_cm1": None,
+        "start_max_abs_gradient_eh_per_bohr": (
+            (stage.get("start") or {}).get("max_abs_gradient_eh_per_bohr")
+            if isinstance(stage.get("start"), Mapping)
+            else None
+        ),
+        "path_converged": stage.get("path_converged"),
+        "switched_to_minimisation": stage.get("switched_to_minimisation"),
+        "energy_rises_along_path": stage.get("energy_rises_along_path"),
+    }
+
+    def _array(name, shape):
+        values = _result_array(irc.get(name))
+        if values is None or values.shape != shape:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_IRC,
+                    f"results.irc.{name}",
+                    shape,
+                    _array_observation(values),
+                    f"h5:/results/irc/{name}",
+                )
+            )
+            return None
+        if not bool(np.isfinite(values).all()):
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_NONFINITE,
+                    f"results.irc.{name}",
+                    "finite values",
+                    _array_observation(values),
+                    f"h5:/results/irc/{name}",
+                )
+            )
+            return None
+        return values
+
+    frequencies = _result_array(irc.get("start_frequencies"))
+    if frequencies is None or frequencies.ndim != 1 or not frequencies.size:
+        findings.append(
+            _result_finding(
+                RULE_RESULT_IRC,
+                "results.irc.start_frequencies",
+                "the start's harmonic spectrum on the walked surface",
+                _array_observation(frequencies),
+                "h5:/results/irc/start_frequencies",
+            )
+        )
+    else:
+        observation["start_frequencies_cm1"] = [
+            float(value) for value in frequencies[:3]
+        ]
+    _array("start_hessian", (atoms, atoms, 3, 3))
+    _array("path_masses", (atoms,))
+    positions = _result_array(irc.get("path_positions"))
+    frames = (
+        int(positions.shape[0])
+        if positions is not None
+        and positions.ndim == 3
+        and positions.shape[1:] == (atoms, 3)
+        else None
+    )
+    observation["frames"] = frames
+    if frames is None or frames < 1:
+        findings.append(
+            _result_finding(
+                RULE_RESULT_IRC,
+                "results.irc.path_positions",
+                ("frames >= 1", atoms, 3),
+                _array_observation(positions),
+                "h5:/results/irc/path_positions",
+            )
+        )
+        return observation, findings
+    positions = _array("path_positions", (frames, atoms, 3))
+    energies = _array("path_energies", (frames,))
+    _array("path_gradients", (frames, atoms, 3))
+    arc = _array("path_arc_lengths", (frames,))
+    if frames > 1:
+        _array("transition_mode", (atoms, 3))
+    if arc is not None and (
+        abs(float(arc[0])) > 0.0 or bool((np.diff(arc) < 0.0).any())
+    ):
+        findings.append(
+            _result_finding(
+                RULE_RESULT_IRC,
+                "results.irc.path_arc_lengths",
+                "zero at the start and never decreasing",
+                arc.tolist(),
+                "h5:/results/irc/path_arc_lengths",
+            )
+        )
+    supplied = _result_array(spec.get("positions"))
+    if positions is not None and supplied is not None:
+        starts = bool(
+            supplied.shape == (atoms, 3)
+            and np.allclose(
+                positions[0],
+                supplied,
+                rtol=0.0,
+                atol=_IRC_FRAME_ATOL_ANGSTROM,
+            )
+        )
+        observation["start_matches_supplied"] = starts
+        if not starts:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_IRC,
+                    "results.irc.path_positions[0]",
+                    {
+                        "supplied_positions": supplied.tolist(),
+                        "absolute_tolerance_angstrom": (
+                            _IRC_FRAME_ATOL_ANGSTROM
+                        ),
+                    },
+                    positions[0].tolist(),
+                    "h5:/results/irc/path_positions",
+                )
+            )
+    final = _result_array(results.get("positions"))
+    if positions is not None and final is not None:
+        ends = bool(
+            final.shape == (atoms, 3)
+            and np.allclose(
+                positions[-1],
+                final,
+                rtol=0.0,
+                atol=_IRC_FRAME_ATOL_ANGSTROM,
+            )
+        )
+        observation["end_matches_positions"] = ends
+        if not ends:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_IRC,
+                    "results.positions",
+                    {
+                        "last_path_frame": positions[-1].tolist(),
+                        "absolute_tolerance_angstrom": (
+                            _IRC_FRAME_ATOL_ANGSTROM
+                        ),
+                    },
+                    final.tolist(),
+                    "h5:/results/positions",
+                )
+            )
+    gradients = _result_array(irc.get("path_gradients"))
+    masses = _result_array(irc.get("path_masses"))
+    if (
+        positions is not None
+        and gradients is not None
+        and masses is not None
+        and gradients.shape == positions.shape
+        and masses.shape == (atoms,)
+    ):
+        observation.update(
+            _irc_steepest_descent_alignment(
+                positions,
+                gradients,
+                masses,
+                switch=stage.get("switch_after_iteration"),
+            )
+        )
+    scf_trace = _result_array(results.get("energies"))
+    if energies is not None and scf_trace is not None and scf_trace.size:
+        # Stated, never graded: the saddle's SCF and the path's first
+        # energy are one geometry on one method, so a difference here is
+        # two SCF solutions, which a reader should see.
+        observation["path_start_minus_scf_energy_eh"] = float(
+            energies[0] - scf_trace[0]
+        )
+    requested = str(spec.get("irc_direction") or "").strip().lower()
+    followed = str(stage.get("direction_followed") or "").strip().lower()
+    # The branch is measured here again from the recorded arrays rather
+    # than read from the driver's own word: the first accepted step,
+    # superposed on the start, against the transition vector the artifact
+    # says was followed.
+    mode = _result_array(irc.get("transition_mode"))
+    if (
+        frames > 1
+        and positions is not None
+        and mode is not None
+        and mode.shape == (atoms, 3)
+        and masses is not None
+        and masses.shape == (atoms,)
+    ):
+        measured = _irc_first_step_projection(positions, mode, masses)
+        observation["first_step_projection_measured"] = measured
+        if measured is not None:
+            observed_branch = "forward" if measured > 0 else "backward"
+            if observed_branch != followed:
+                findings.append(
+                    _result_finding(
+                        RULE_RESULT_IRC_DIRECTION,
+                        "status.stages.irc.direction_followed",
+                        {
+                            "measured_from_path": observed_branch,
+                            "first_step_projection": measured,
+                        },
+                        followed or None,
+                        "h5:/results/irc/path_positions",
+                    )
+                )
+            followed = observed_branch
+    if frames > 1 and requested != followed:
+        findings.append(
+            _result_finding(
+                RULE_RESULT_IRC_DIRECTION,
+                "status.stages.irc.direction_followed",
+                {
+                    "requested": requested,
+                    "rule": stage.get("direction_rule"),
+                },
+                {
+                    "followed": followed or None,
+                    "first_step_projection": stage.get(
+                        "first_step_projection"
+                    ),
+                },
+                "h5:/status/stages/irc",
+            )
+        )
+    for field in ("path_converged", "final_scf_converged"):
+        if stage.get(field) is not True:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_STAGE,
+                    f"status.stages.irc.{field}",
+                    True,
+                    stage.get(field),
+                    f"h5:/status/stages/irc/{field}",
+                )
+            )
+    return observation, findings
 
 
 def _validate_excited_state_results(results, stage_statuses):
@@ -4474,7 +4881,11 @@ def _check_hessian_support(settings, molecule, environment):
     functional, absent in a preview.
     """
 
-    if "hess" not in _requested_stages(settings):
+    # An IRC's first act is the analytic Hessian of its surface at the
+    # supplied geometry, so the same two refusals hold for it.
+    if not set(PYSCF_ANALYTIC_HESSIAN_STAGES) & set(
+        _requested_stages(settings)
+    ):
         return []
     from chemsmart.jobs.pyscf.writer import pyscf_reference_family
 
@@ -4545,6 +4956,90 @@ def _check_hessian_support(settings, molecule, environment):
                     evidence_ref="environment:functional_metadata/nlc",
                 )
             )
+    return violations
+
+
+def _check_irc_settings(settings, _molecule, _environment):
+    """The IRC contract as typed violations, each naming its route.
+
+    ``PySCFJobSettings._validate_irc`` raises the same refusals as text for
+    the CLI and the project loader; this is the enumeration preflight and
+    the review read.
+    """
+
+    jobtype = _member(settings, "jobtype", None)
+    direction = _member(settings, "irc_direction", None)
+    if jobtype != "irc":
+        if direction is None:
+            return []
+        return [
+            PySCFViolation(
+                rule_id=RULE_IRC_SETTING,
+                field="irc_direction",
+                expected="unset unless the jobtype is irc",
+                observed={"jobtype": jobtype, "irc_direction": direction},
+                evidence_ref="settings:irc_direction",
+            )
+        ]
+    violations = []
+    if str(direction or "").strip().lower() not in PYSCF_IRC_DIRECTIONS:
+        violations.append(
+            PySCFViolation(
+                rule_id=RULE_IRC_SETTING,
+                field="irc_direction",
+                expected=PYSCF_IRC_DIRECTIONS,
+                observed=direction,
+                evidence_ref="settings:irc_direction",
+            )
+        )
+    method = pyscf_correlated_method(_member(settings, "ab_initio", None))
+    if method is not None:
+        violations.append(
+            PySCFViolation(
+                rule_id=RULE_IRC_SETTING,
+                field="ab_initio",
+                expected=(
+                    "an HF or DFT surface: the branch starts along the "
+                    "imaginary mode of the surface's own analytic Hessian, "
+                    "which PySCF has not for a correlated method; take "
+                    "correlated single points on the geometries the path "
+                    "reaches"
+                ),
+                observed=method,
+                evidence_ref="settings:ab_initio",
+            )
+        )
+    if str(_member(settings, "opt_solver", "geometric")) != "geometric":
+        violations.append(
+            PySCFViolation(
+                rule_id=RULE_IRC_SETTING,
+                field="opt_solver",
+                expected="geometric",
+                observed=_member(settings, "opt_solver", None),
+                evidence_ref="settings:opt_solver",
+            )
+        )
+    engine = str(_member(settings, "engine", "cpu") or "cpu").strip().lower()
+    if engine != "cpu":
+        violations.append(
+            PySCFViolation(
+                rule_id=RULE_IRC_SETTING,
+                field="engine",
+                expected="cpu",
+                observed=engine,
+                evidence_ref="settings:engine",
+            )
+        )
+    if _member(settings, "hessian_derivative", None) is not None:
+        violations.append(
+            PySCFViolation(
+                rule_id=RULE_IRC_SETTING,
+                field="hessian_derivative",
+                expected="unset: an irc takes its surface's analytic Hessian",
+                observed=_member(settings, "hessian_derivative", None),
+                evidence_ref="settings:hessian_derivative",
+            )
+        )
     return violations
 
 
@@ -4729,9 +5224,16 @@ def _requested_spec(settings):
     stages = _requested_stages(settings)
     if stages:
         requested["stages"] = stages
-    if "opt" in stages:
+    if set(PYSCF_MOVING_STAGES) & set(stages):
         requested["opt_solver"] = _member(settings, "opt_solver", "geometric")
         requested["opt_maxsteps"] = _member(settings, "opt_maxsteps", 100)
+    if "irc" in stages:
+        # Only a run that walks a branch asks for one, so no artifact whose
+        # contract predates the field is compared against it.
+        direction = _member(settings, "irc_direction", None)
+        requested["irc_direction"] = (
+            str(direction).strip().lower() if direction is not None else None
+        )
     return requested
 
 

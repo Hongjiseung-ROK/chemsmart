@@ -31,6 +31,7 @@ from chemsmart.jobs.pyscf.settings import (
     PYSCF_CORRELATED_METHODS,
     PYSCF_DEFGRIDS,
     PYSCF_FD_STEP_ANGSTROM,
+    PYSCF_MOVING_STAGES,
     PYSCF_SOLVENT_MODELS,
     PYSCF_STABILITY_SPACES,
     PYSCF_STABILITY_UNRETURNED_SPACE,
@@ -50,7 +51,7 @@ LEGACY_RESULTS_SCHEMA_VERSION = "1.0"
 #: remains schema 2.0 so historical artifacts stay readable; this marker
 #: identifies records that satisfy the stricter state, status, and runtime
 #: reference checks required for new execution/data-edge admission.
-RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v7"
+RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v8"
 #: Contract versions this ChemSmart still reads as executed evidence.  v3 and
 #: v4 share one applied-spec vocabulary; v4 adds datasets (forces at the
 #: Hessian geometry, spin populations) and status facts (the mass convention
@@ -71,11 +72,17 @@ RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v7"
 #: answer rides ``status/properties/scf_stability``.  Under its own
 #: version only, because the archived v6 digests were computed over the
 #: v6 vocabulary and extending it in place would mark them tampered.
+#: v8 adds ``irc_direction`` and the ``irc`` stage: the branch an IRC was
+#: asked to walk, and ``results/irc/`` -- the start's Hessian and
+#: spectrum on the walked surface, the transition vector followed, and
+#: the accepted path with its energies, gradients and mass-weighted arc
+#: length.  Under its own version for the same reason v7 was.
 PREVIOUS_RESULT_CONTRACT_VERSIONS = (
     "chemsmart.pyscf-result-contract.v3",
     "chemsmart.pyscf-result-contract.v4",
     "chemsmart.pyscf-result-contract.v5",
     "chemsmart.pyscf-result-contract.v6",
+    "chemsmart.pyscf-result-contract.v7",
 )
 SUPPORTED_RESULT_CONTRACT_VERSIONS = PREVIOUS_RESULT_CONTRACT_VERSIONS + (
     RESULT_CONTRACT_VERSION,
@@ -164,9 +171,12 @@ APPLIED_SPEC_FIELDS_V6 = APPLIED_SPEC_FIELDS_V5 + (
     "fd_step_angstrom",
 )
 
-#: The current (v7) vocabulary: whether the stability of the converged
+#: The v7 vocabulary, frozen: whether the stability of the converged
 #: reference was asked for.
-APPLIED_SPEC_FIELDS = APPLIED_SPEC_FIELDS_V6 + ("scf_stability",)
+APPLIED_SPEC_FIELDS_V7 = APPLIED_SPEC_FIELDS_V6 + ("scf_stability",)
+
+#: The current (v8) vocabulary: the branch an IRC was asked to walk.
+APPLIED_SPEC_FIELDS = APPLIED_SPEC_FIELDS_V7 + ("irc_direction",)
 
 #: Digest vocabulary per contract version.  Extending the current tuple in
 #: place would silently change the reconstruction for every archived
@@ -176,6 +186,7 @@ APPLIED_SPEC_FIELDS_BY_CONTRACT = {
     "chemsmart.pyscf-result-contract.v4": APPLIED_SPEC_FIELDS_V4,
     "chemsmart.pyscf-result-contract.v5": APPLIED_SPEC_FIELDS_V5,
     "chemsmart.pyscf-result-contract.v6": APPLIED_SPEC_FIELDS_V6,
+    "chemsmart.pyscf-result-contract.v7": APPLIED_SPEC_FIELDS_V7,
     RESULT_CONTRACT_VERSION: APPLIED_SPEC_FIELDS,
 }
 
@@ -200,13 +211,26 @@ RESULT_UNITS = {
     "mulliken_spin_populations": "electron",
     "normal_modes": "atomic_mass_unit^-1/2",
     "oscillator_strengths": "dimensionless",
+    # The IRC stage (contract v8), under ``results/irc/``.  The path is
+    # mass-weighted with geomeTRIC's own table, which rides beside it.
+    "path_arc_lengths": "atomic_mass_unit^1/2*Bohr",
+    "path_energies": "Eh",
+    "path_gradients": "Eh/Bohr",
+    "path_masses": "atomic_mass_unit",
+    "path_positions": "Angstrom",
     "positions": "Angstrom",
     "reduced_masses": "atomic_mass_unit",
     "reference_energy": "Eh",
     "scf_energy": "Eh",
     "spin_square": "dimensionless",
     "spin_square_effective_multiplicity": "dimensionless",
+    "start_frequencies": "cm^-1",
+    "start_hessian": "Eh/Bohr^2",
+    "start_normal_modes": "atomic_mass_unit^-1/2",
     "total_energy": "Eh",
+    # A unit vector: the Cartesian displacement geomeTRIC followed from
+    # the saddle, normalised and signed by the host rule.
+    "transition_mode": "dimensionless",
     "transition_dipole_moments": "Debye",
     "triples_correction": "Eh",
     "vibrational_frequencies": "cm^-1",
@@ -667,11 +691,22 @@ class PySCFScriptWriter:
             "solvent_lebedev_order": (
                 29 if settings.engine == "gpu" and call is not None else None
             ),
+            # An IRC branch is geomeTRIC's walk and is bounded by the same
+            # step ceiling, so it records the solver and the ceiling too.
             "opt_solver": (
-                settings.opt_solver if "opt" in job.stages else None
+                settings.opt_solver
+                if set(PYSCF_MOVING_STAGES) & set(job.stages)
+                else None
             ),
             "opt_maxsteps": (
-                settings.opt_maxsteps if "opt" in job.stages else None
+                settings.opt_maxsteps
+                if set(PYSCF_MOVING_STAGES) & set(job.stages)
+                else None
+            ),
+            "irc_direction": (
+                str(settings.irc_direction).strip().lower()
+                if "irc" in job.stages
+                else None
             ),
             "response_method": (
                 str(getattr(settings, "response_method", None)).strip().lower()
@@ -856,6 +891,7 @@ import os
 import platform
 import socket
 import sys
+import tempfile
 import time
 import traceback
 
@@ -1086,6 +1122,319 @@ def _run_opt(config, method):
     raise ValueError("Unknown opt_solver: %s" % solver)
 
 
+def _canonical_mode_sign(mode):
+    """The sign that makes a transition vector reproducible, and its anchor.
+
+    An eigenvector's sign is the eigensolver's choice, so two runs from one
+    geometry could each call a different branch forward. The first
+    component, atom-major and x before y before z, whose magnitude is
+    within 1e-3 of the largest is made positive; its flat index is
+    returned so the record says which component decided.
+    """
+
+    flat = np.asarray(mode, dtype=float).reshape(-1)
+    largest = float(np.max(np.abs(flat)))
+    index = int(np.flatnonzero(np.abs(flat) >= (1.0 - 1.0e-3) * largest)[0])
+    return (1.0 if flat[index] > 0 else -1.0), index
+
+
+def _aligned_mass_weighted_step(previous, current, masses):
+    """The displacement from one frame to the next with rigid motion removed.
+
+    ``current`` is superposed on ``previous`` by the mass-weighted Kabsch
+    rotation about the centre of mass, so a step is what the atoms did
+    relative to one another. Returns the displacement (Angstrom, the
+    frame's own unit) and its mass-weighted norm (Angstrom amu^1/2).
+    """
+
+    weights = np.asarray(masses, dtype=float)
+    first = np.asarray(previous, dtype=float)
+    second = np.asarray(current, dtype=float)
+    total = float(weights.sum())
+    first_centred = first - (weights[:, None] * first).sum(axis=0) / total
+    second_centred = second - (weights[:, None] * second).sum(axis=0) / total
+    covariance = (weights[:, None] * second_centred).T @ first_centred
+    left, _values, right = np.linalg.svd(covariance)
+    handedness = float(np.sign(np.linalg.det(right.T @ left.T))) or 1.0
+    rotation = right.T @ np.diag([1.0, 1.0, handedness]) @ left.T
+    displacement = second_centred @ rotation.T - first_centred
+    norm = float(np.sqrt((weights[:, None] * displacement ** 2).sum()))
+    return displacement, norm
+
+
+def _run_irc(config, mf, mol, results, status, runtime):
+    """One branch of the intrinsic reaction coordinate, recorded.
+
+    PySCF's ``geometric_solver.kernel`` forwards ``irc=True`` to geomeTRIC
+    and returns a convergence flag and the last geometry it evaluated;
+    under PySCF 2.14 and geomeTRIC 1.1.1 it does not even reach the first
+    step, because ``run_optimizer`` reads the topology PySCF's engine
+    never builds. So the driver calls geomeTRIC itself, with PySCF's own
+    engine, and keeps what the walk was:
+
+    * the analytic Hessian of this surface at the supplied geometry, and
+      its spectrum under PySCF's harmonic analysis -- the start is a
+      saddle of the surface the path walks only if that spectrum says so;
+    * the transition vector geomeTRIC followed, its sign fixed by the
+      host rule, and the measured projection of the first step on it;
+    * every accepted frame with its energy and gradient, and the
+      mass-weighted arc length between them with rigid motion removed;
+    * whether and where geomeTRIC switched from path steps to minimising.
+
+    The SCF is then re-converged where the branch ended, from the density
+    of the last geometry the walk evaluated, so every property the
+    artifact carries belongs to the endpoint.
+    """
+
+    import geometric
+    import geometric.optimize as geometric_optimize
+    from geometric.errors import GeomOptNotConvergedError, IRCError
+    from geometric.molecule import PeriodicTable
+    from geometric.params import OptParams
+    from pyscf import lib
+    from pyscf.geomopt import geometric_solver
+    from pyscf.hessian import thermo
+
+    natm = int(mol.natm)
+    direction = str(config["irc_direction"]).strip().lower()
+    irc = {}
+    results["irc"] = irc
+    stage = {
+        "converged": False,
+        "path_converged": False,
+        "final_scf_converged": None,
+        "requested_direction": direction,
+        "direction_rule": (
+            "the first transition-vector component within 1e-3 of the "
+            "largest is positive; forward is the branch whose first step "
+            "projects positively on that vector"
+        ),
+        "integrator": (
+            "geometric.optimize.run_optimizer(irc=True): Gonzalez-Schlegel "
+            "steps in mass-weighted internal coordinates"
+        ),
+        "geometric_version": str(getattr(geometric, "__version__", "")),
+        "maxsteps": int(config["opt_maxsteps"]),
+        "path_mass_source": "geometric.molecule.PeriodicTable",
+    }
+    status["stages"]["irc"] = stage
+
+    # The start's own curvature, on the surface the branch will walk.
+    raw_hessian = _to_host_array(mf.Hessian().kernel()).astype(float)
+    hessian, raw_antisymmetry = _symmetrize_cartesian_hessian(raw_hessian)
+    analysis = thermo.harmonic_analysis(mol, hessian, imaginary_freq=False)
+    irc["start_hessian"] = hessian
+    irc["start_frequencies"] = np.asarray(
+        analysis["freq_wavenumber"], dtype=float
+    )
+    irc["start_normal_modes"] = np.asarray(analysis["norm_mode"], dtype=float)
+    stage["start"] = {
+        "hessian_derivative": "analytic",
+        "raw_max_abs_antisymmetry_eh_per_bohr2": raw_antisymmetry,
+        "mass_convention": "isotope_averaged",
+        "mass_source": "pyscf.gto.Mole.atom_mass_list(isotope_avg=True)",
+    }
+
+    scanner = mf.nuc_grad_method().as_scanner()
+    engine = geometric_solver.PySCFEngine(scanner)
+    engine.mol = scanner.mol.copy()
+    # geomeTRIC 1.1.1 reads ``M.molecules`` for every IRC to choose its
+    # coordinate system, and PySCF's engine builds a bare Molecule whose
+    # topology nobody built: without this the walk dies with an
+    # AttributeError before its first step (measured, PySCF 2.14).
+    engine.M.build_topology()
+    evaluations = []
+    engine.callback = lambda _locals: evaluations.append(1)
+    captured = {}
+
+    class _RecordingOptimizer(geometric_optimize.Optimizer):
+        """geomeTRIC's optimiser, observed rather than changed.
+
+        It fixes the transition vector's sign before the first step and
+        keeps the accepted path when the walk ends, converged or not:
+        ``optimizeGeometry`` raises on failure and the path it held would
+        otherwise leave with the exception.
+        """
+
+        def IRC_step(self):
+            if self.Iteration == 0 and "mode" not in captured:
+                mode = np.asarray(self.TSNormal_modes_x[0], dtype=float)
+                sign, index = _canonical_mode_sign(mode)
+                canonical = mode * sign
+                # geomeTRIC's first step for "forward" goes along minus
+                # the vector it holds (dy_to_pivot = -0.5*step*N*G.v in
+                # IRC_step), so it holds the negated host vector and
+                # "forward" is the host's positive direction. The
+                # projection measured below is what shows it.
+                self.TSNormal_modes_x[0] = -canonical
+                captured["mode"] = canonical
+                captured["index"] = index
+                captured["wavenumbers"] = [
+                    float(value) for value in self.TSWavenum
+                ]
+                captured["coordinate_system"] = type(self.IC).__name__
+            return super().IRC_step()
+
+        def evaluate_IRC_step(self, *args, **kwargs):
+            outcome = super().evaluate_IRC_step(*args, **kwargs)
+            if self.IRC_info.get("opt") and "switch" not in captured:
+                captured["switch"] = int(self.Iteration)
+            return outcome
+
+        def optimizeGeometry(self):
+            try:
+                return super().optimizeGeometry()
+            finally:
+                captured["progress"] = self.progress
+                captured["trust"] = float(self.params.trust)
+                captured["tmax"] = float(self.params.tmax)
+                # Whether the gradients the walk recorded had the net
+                # force and torque projected out (geomeTRIC does so after
+                # a poor step dominated by rigid motion, or always when
+                # asked).
+                captured["projected"] = bool(
+                    self.params.subfrctor == 2
+                    or (
+                        self.params.subfrctor == 1
+                        and self.lowq_tr_count >= self.lowq_tr_limit
+                    )
+                )
+
+    refusal = None
+    stock = geometric_optimize.Optimizer
+    geometric_optimize.Optimizer = _RecordingOptimizer
+    try:
+        with tempfile.TemporaryDirectory(dir=lib.param.TMPDIR) as scratch:
+            geometric_optimize.run_optimizer(
+                customengine=engine,
+                input=os.path.join(scratch, "irc"),
+                irc=True,
+                irc_direction=direction,
+                hess_data=hessian.transpose(0, 2, 1, 3)
+                .reshape(3 * natm, 3 * natm)
+                .tolist(),
+                maxiter=int(config["opt_maxsteps"]),
+                logIni=os.path.join(
+                    os.path.dirname(os.path.abspath(geometric_solver.__file__)),
+                    "log.ini",
+                ),
+            )
+        stage["path_converged"] = True
+    except GeomOptNotConvergedError as exc:
+        stage["path_failure"] = {
+            "type": type(exc).__name__,
+            "message": str(exc),
+        }
+    except IRCError as exc:
+        refusal = exc
+    finally:
+        geometric_optimize.Optimizer = stock
+
+    stage["gradient_evaluations"] = len(evaluations)
+    stage["coordinate_system"] = captured.get("coordinate_system")
+    stage["gradients_net_force_torque_projected"] = captured.get("projected")
+    if "wavenumbers" in captured:
+        # geomeTRIC's own analysis of the same Hessian, with its own mass
+        # table: the spectrum it decided to walk from.
+        stage["geometric_start_wavenumbers_cm1"] = captured["wavenumbers"]
+    params = OptParams(irc=True)
+    stage["step"] = {
+        "trust_angstrom": captured.get("trust", float(params.trust)),
+        "tmax_angstrom": captured.get("tmax", float(params.tmax)),
+    }
+    stage["convergence_criteria"] = _optimizer_criteria(config)
+    progress = captured.get("progress")
+    frames = (
+        np.asarray(progress.xyzs, dtype=float)
+        if progress is not None and len(progress.xyzs)
+        else np.zeros((0, natm, 3))
+    )
+    masses = np.asarray(
+        [float(PeriodicTable[element]) for element in engine.M.elem],
+        dtype=float,
+    )
+    irc["path_masses"] = masses
+    if "mode" in captured:
+        irc["transition_mode"] = np.asarray(captured["mode"]).reshape(natm, 3)
+        stage["transition_vector_anchor_index"] = int(captured["index"])
+    if len(frames):
+        energies = np.asarray(progress.qm_energies, dtype=float)
+        gradients = np.asarray(
+            [np.asarray(item, dtype=float).reshape(natm, 3)
+             for item in progress.qm_grads]
+        )
+        arc = [0.0]
+        for index in range(1, len(frames)):
+            _step, norm = _aligned_mass_weighted_step(
+                frames[index - 1], frames[index], masses
+            )
+            arc.append(arc[-1] + norm * float(lib.param.BOHR) ** -1)
+        irc["path_positions"] = frames
+        irc["path_energies"] = energies
+        irc["path_gradients"] = gradients
+        irc["path_arc_lengths"] = np.asarray(arc, dtype=float)
+        stage["frames"] = int(len(frames))
+        stage["start"]["max_abs_gradient_eh_per_bohr"] = float(
+            np.max(np.abs(gradients[0]))
+        )
+        stage["end_max_abs_gradient_eh_per_bohr"] = float(
+            np.max(np.abs(gradients[-1]))
+        )
+        stage["arc_length_amu_half_bohr"] = float(arc[-1])
+        stage["energy_drop_eh"] = float(energies[0] - energies[-1])
+        rises = np.diff(energies)
+        stage["energy_rises_along_path"] = int((rises > 0.0).sum())
+        stage["largest_energy_rise_eh"] = (
+            float(rises.max()) if rises.size else None
+        )
+    else:
+        stage["frames"] = 0
+    if len(frames) > 1 and "mode" in captured:
+        step, _norm = _aligned_mass_weighted_step(frames[0], frames[1], masses)
+        vector = np.asarray(captured["mode"], dtype=float).reshape(-1)
+        moved = step.reshape(-1)
+        projection = float(
+            moved @ vector / (np.linalg.norm(moved) * np.linalg.norm(vector))
+        )
+        stage["first_step_projection"] = projection
+        stage["direction_followed"] = (
+            "forward" if projection > 0 else "backward"
+        )
+    else:
+        stage["first_step_projection"] = None
+        stage["direction_followed"] = None
+    stage["switched_to_minimisation"] = "switch" in captured
+    stage["switch_after_iteration"] = captured.get("switch")
+
+    if refusal is not None:
+        # geomeTRIC found no imaginary mode, or several, in this surface's
+        # Hessian at the supplied geometry, so there is no branch to walk.
+        # That is a finding about the start, recorded as one; raising here
+        # would skip every property below and leave a failed artifact whose
+        # other findings describe missing arrays rather than the molecule.
+        # The walk ended where it began, and the SCF there is what follows.
+        stage["start_refused"] = {
+            "type": type(refusal).__name__,
+            "message": " ".join(str(refusal).split()),
+        }
+    if not len(frames):
+        raise RuntimeError("geomeTRIC returned no IRC frame")
+
+    # Where the branch ended: every property the artifact carries is read
+    # after this SCF, which starts from the density of the last geometry
+    # the walk evaluated rather than from the saddle's.
+    end = mol.set_geom_(frames[-1], unit="Angstrom", inplace=False)
+    guess = scanner.base.make_rdm1()
+    mf.reset(end)
+    energy = float(mf.kernel(dm0=guess))
+    stage["final_scf_converged"] = bool(mf.converged)
+    stage["final_scf_guess"] = "density of the last geometry the walk evaluated"
+    stage["converged"] = bool(
+        stage["path_converged"] and stage["final_scf_converged"]
+    )
+    return end, energy
+
+
 def _last_scf_density(surface, mf):
     """The density of the last geometry a gradient scanner evaluated.
 
@@ -1108,6 +1457,8 @@ class FollowedRootFiltered(RuntimeError):
     """The followed excited root fell below PySCF's positive-eigenvalue
     filter and vanished from the spectrum; the driver never switches roots.
     """
+
+
 
 
 def _class_name(value):
@@ -2124,6 +2475,9 @@ def main():
                         else "correlated"
                     ] = surface_record
                 status["stages"]["opt"] = stage_status
+            elif stage == "irc":
+                mol, energy = _run_irc(CONFIG, mf, mol, results, status, runtime)
+                energies.append(float(energy))
             elif stage == "td":
                 td, td_stage = _run_td(CONFIG, mf, results, status, runtime)
                 if excited_root is not None:

@@ -20,7 +20,11 @@ from collections.abc import Mapping
 
 import yaml
 
-from chemsmart.jobs.pyscf.settings import PYSCF_JOBTYPES, PySCFJobSettings
+from chemsmart.jobs.pyscf.settings import (
+    PYSCF_JOBTYPES,
+    PYSCF_MOVING_STAGES,
+    PySCFJobSettings,
+)
 from chemsmart.settings.user import CHEMSMARTUserSettings
 from chemsmart.utils.mixins import RegistryMixin
 
@@ -37,6 +41,9 @@ PYSCF_STAGE_SOURCES = {
     "sp": ("sp", "solv"),
     "opt": ("opt", "gas"),
     "hess": ("hess", "gas"),
+    # An IRC has no migration source: the historical gas/solv dialect
+    # predates it, and nothing in it ever meant "walk a path".
+    "irc": ("irc",),
     "td": ("td",),
 }
 
@@ -100,6 +107,13 @@ class PySCFProjectSettings(RegistryMixin):
 
         settings = self.main_settings().copy()
         settings.jobtype = "td"
+        return settings
+
+    def irc_settings(self):
+        """Return intrinsic-reaction-coordinate settings (one branch)."""
+
+        settings = self.main_settings().copy()
+        settings.jobtype = "irc"
         return settings
 
     def explicit_fields(self, jobtype):
@@ -249,6 +263,9 @@ class YamlPySCFProjectSettings(PySCFProjectSettings):
 
     def td_settings(self):
         return self._settings_for_job("td")
+
+    def irc_settings(self):
+        return self._settings_for_job("irc")
 
     def canonical_sections(self, jobtypes=None):
         """Return stage-keyed settings suitable for canonical YAML output."""
@@ -499,7 +516,9 @@ class YamlPySCFProjectSettingsBuilder:
                 continue
             settings, _, canonical_raw = self._resolve_job(jobtype)
             fields = PYSCF_CANONICAL_EFFECTIVE_FIELDS
-            if jobtype == "opt":
+            if jobtype in PYSCF_MOVING_STAGES:
+                # An IRC branch is geomeTRIC's walk, bounded by the same
+                # step ceiling an optimisation is.
                 fields += PYSCF_CANONICAL_OPT_EFFECTIVE_FIELDS
             for field in fields:
                 canonical_raw.setdefault(field, getattr(settings, field))

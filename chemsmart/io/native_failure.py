@@ -349,6 +349,9 @@ _PYSCF_STAGE_CLASSES = {
     # root or amplitude set sits on an SCF that did converge.
     "td": "excited_state_convergence",
     "corr": "correlation_convergence",
+    # An exception inside an IRC walk (not its start refusal, below) is a
+    # failure of the path search, the class an optimiser's death has.
+    "irc": "geometry_optimization",
 }
 
 #: A driver exception type that names its class regardless of the stage it
@@ -419,6 +422,30 @@ def summarize_pyscf_native_failure(
         quiet = (
             "geometry_optimization",
             "PySCF recorded the geometry optimizer unconverged",
+        )
+    elif _stage_flag("irc", "start_refused"):
+        # geomeTRIC found no imaginary mode, or several, in the walked
+        # surface's Hessian at the supplied geometry: the IRC had no saddle
+        # to leave, a statement about the order of that stationary point
+        # and not about convergence.
+        refusal = _stage_flag("irc", "start_refused")
+        message = refusal.get("message") if isinstance(refusal, dict) else None
+        quiet = (
+            "stationary_point_order",
+            "PySCF recorded that geomeTRIC would not start the IRC"
+            + (f": {message}" if message else ""),
+        )
+    elif _stage_flag("irc", "final_scf_converged") is False:
+        quiet = (
+            "scf_convergence",
+            "PySCF recorded the SCF where the IRC branch ended unconverged",
+        )
+    elif _stage_flag("irc", "path_converged") is False:
+        quiet = (
+            "geometry_optimization",
+            "PySCF recorded the IRC branch unconverged after "
+            f"{_stage_flag('irc', 'frames')} frames (maxsteps "
+            f"{_stage_flag('irc', 'maxsteps')})",
         )
     elif _stage_flag("td", "converged") is False:
         roots = _stage_flag("td", "unconverged_roots")

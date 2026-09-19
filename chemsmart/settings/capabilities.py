@@ -352,6 +352,10 @@ _PYSCF_PROJECT_PARAMETERS = (
     "frozen_core",
     "functional",
     "hessian_derivative",
+    # The branch an irc node walks from its saddle; forward and backward
+    # are a sign the host fixes on the transition vector, so two nodes on
+    # one geometry walk opposite branches.
+    "irc_direction",
     "nstates",
     "opt_maxsteps",
     "opt_solver",
@@ -384,6 +388,7 @@ def _pyscf_parameter_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
         PYSCF_DEFGRIDS,
         PYSCF_FROZEN_CORE_AUTO,
         PYSCF_HESSIAN_DERIVATIVES,
+        PYSCF_IRC_DIRECTIONS,
         PYSCF_OPT_SOLVERS,
         PYSCF_RESPONSE_METHODS,
         PYSCF_SOLVENT_MODELS,
@@ -400,6 +405,7 @@ def _pyscf_parameter_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
                     "hessian_derivative",
                     tuple(sorted(PYSCF_HESSIAN_DERIVATIVES)),
                 ),
+                ("irc_direction", tuple(sorted(PYSCF_IRC_DIRECTIONS))),
                 ("opt_solver", tuple(sorted(PYSCF_OPT_SOLVERS))),
                 ("response_method", tuple(sorted(PYSCF_RESPONSE_METHODS))),
                 ("solvent_model", tuple(sorted(PYSCF_SOLVENT_MODELS))),
@@ -814,6 +820,15 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
             project_parameter_domains=_pyscf_parameter_domains(),
             engine_job_capabilities=(
                 EngineJobCapability(engine="cpu", jobtype="hess"),
+                # One branch of the intrinsic reaction coordinate from a
+                # supplied saddle, walked by geomeTRIC 1.1.1 on PySCF's own
+                # engine: the start's analytic Hessian on the walked
+                # surface, the transition vector, the whole accepted path
+                # and the endpoint every property belongs to are in the
+                # artifact (result contract v8). Qualified first through
+                # the human CLI on CUHK from ORCA OptTS saddles at matched
+                # levels; no GPU row, because GPU4PySCF has run no IRC.
+                EngineJobCapability(engine="cpu", jobtype="irc"),
                 EngineJobCapability(engine="cpu", jobtype="opt"),
                 EngineJobCapability(engine="cpu", jobtype="sp"),
                 EngineJobCapability(engine="cpu", jobtype="td"),

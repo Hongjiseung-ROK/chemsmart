@@ -48,7 +48,16 @@ PYSCF_OPT_SOLVERS = ("geometric", "berny", "ase")
 
 #: Execution engines. ``gpu`` routes through gpu4pyscf via ``.to_gpu()``.
 PYSCF_ENGINES = ("cpu", "gpu")
-PYSCF_JOBTYPES = ("hess", "opt", "sp", "td")
+PYSCF_JOBTYPES = ("hess", "irc", "opt", "sp", "td")
+#: Which branch of the steepest-descent path an ``irc`` walks from the
+#: saddle it was handed. The words have no chemical meaning of their own:
+#: the transition vector's sign is fixed by a host rule (the first
+#: component within 1e-3 of the largest is positive) and ``forward`` is
+#: the branch whose first step has a positive projection on it, so two
+#: runs from one geometry walk opposite branches whatever sign the
+#: eigensolver returned. Which minimum each reaches is read from the
+#: path, never from the word.
+PYSCF_IRC_DIRECTIONS = ("backward", "forward")
 PYSCF_RESPONSE_METHODS = ("tda", "tddft")
 #: How a Hessian's second derivative is obtained. ``analytic`` is
 #: PySCF's own second derivative and exists for HF and DFT references
@@ -68,8 +77,19 @@ PYSCF_EXCITED_SURFACE_JOBTYPES = frozenset({"hess", "opt"})
 #: before anything differentiates it: the correlated method and the
 #: response both come before the Hessian that measures their curvature.
 #: Every tuple archived under contract v5 -- scf,opt,td; scf,opt,corr;
-#: scf,corr; scf,td; scf,hess -- is unchanged by this ordering.
-PYSCF_STAGE_ORDER = ("scf", "opt", "corr", "td", "hess")
+#: scf,corr; scf,td; scf,hess -- is unchanged by this ordering. An IRC
+#: walks from the supplied geometry and ends where its branch ended, so
+#: it sits where an optimisation does and composes with nothing after it.
+PYSCF_STAGE_ORDER = ("scf", "opt", "irc", "corr", "td", "hess")
+#: Stages that move the geometry they were handed: an optimisation and an
+#: IRC branch. ``results/positions`` is where they ended, both are bounded
+#: by geomeTRIC's step ceiling, and neither is held to its input geometry.
+PYSCF_MOVING_STAGES = ("irc", "opt")
+#: Stages whose first act can be PySCF's analytic Hessian of the job's
+#: own surface: a Hessian node, and an IRC, which takes it at its start.
+#: The references PySCF 2.14 cannot differentiate twice are refused for
+#: both before the engine is spent.
+PYSCF_ANALYTIC_HESSIAN_STAGES = ("hess", "irc")
 #: The displacement a finite-difference Hessian steps by, in Angstrom:
 #: the unit the geometry is carried in and the one a scientist reads.
 #: ORCA's NumFreq default is 0.005 Bohr, a different convention, and the
@@ -202,6 +222,8 @@ def pyscf_stages(jobtype, *, ab_initio=None, excited_state_root=None):
     running = {"scf"}
     if normal == "opt":
         running.add("opt")
+    if normal == "irc":
+        running.add("irc")
     if normal == "hess":
         running.add("hess")
     if normal == "td" or excited_state_root is not None:
@@ -363,6 +385,7 @@ class PySCFJobSettings(MolecularJobSettings):
         hessian_derivative=None,
         fd_step_angstrom=None,
         scf_stability=False,
+        irc_direction=None,
         charge=None,
         multiplicity=None,
         freq=False,
@@ -415,6 +438,7 @@ class PySCFJobSettings(MolecularJobSettings):
         self.hessian_derivative = hessian_derivative
         self.fd_step_angstrom = fd_step_angstrom
         self.scf_stability = scf_stability
+        self.irc_direction = irc_direction
         self.density_fit = density_fit
         self.opt_solver = opt_solver
         self.opt_maxsteps = opt_maxsteps
@@ -643,6 +667,7 @@ class PySCFJobSettings(MolecularJobSettings):
         self._validate_correlated_method()
         self._validate_response()
         self._validate_hessian_derivative()
+        self._validate_irc()
         if self.scf_tol is not None and (
             isinstance(self.scf_tol, bool)
             or not isinstance(self.scf_tol, Real)
@@ -956,4 +981,59 @@ class PySCFJobSettings(MolecularJobSettings):
             raise ValueError(
                 "fd_step_angstrom must be a finite displacement > 0 in "
                 f"Angstrom, got {step!r}."
+            )
+
+    def _validate_irc(self):
+        """The executable intrinsic-reaction-coordinate contract.
+
+        An ``irc`` walks one branch of the steepest-descent path in
+        mass-weighted coordinates from the geometry it was handed, with
+        geomeTRIC's Gonzalez-Schlegel integrator. Its first act is the
+        analytic Hessian of its own surface at that geometry, because the
+        branch starts along that Hessian's one imaginary mode and a
+        saddle of another surface is not a saddle of this one. So the
+        surface must be one PySCF differentiates twice analytically: an
+        HF or DFT reference on the CPU engine. Each refusal names what
+        would answer the question instead.
+        """
+
+        if self.jobtype != "irc":
+            if self.irc_direction is not None:
+                raise ValueError(
+                    "irc_direction names the branch an irc walks; it is "
+                    f"valid only for the irc jobtype, not {self.jobtype!r}."
+                )
+            return
+        direction = str(self.irc_direction or "").strip().lower()
+        if direction not in PYSCF_IRC_DIRECTIONS:
+            raise ValueError(
+                "PySCF irc walks one branch per node: set irc_direction to "
+                f"one of {PYSCF_IRC_DIRECTIONS} (got {self.irc_direction!r}); "
+                "the two branches from one saddle are two irc nodes on the "
+                "same geometry."
+            )
+        method = self.correlated_method
+        if method is not None:
+            raise ValueError(
+                f"A {method} IRC is not available through this driver: the "
+                "branch starts along the imaginary mode of the surface's "
+                f"own Hessian, and PySCF has no {method} Hessian. Walk the "
+                "path on an HF or DFT surface and take correlated single "
+                "points on the geometries it reaches."
+            )
+        if str(self.opt_solver) != "geometric":
+            raise ValueError(
+                "PySCF irc is geomeTRIC's intrinsic reaction coordinate; "
+                f"opt_solver must be 'geometric', got {self.opt_solver!r}."
+            )
+        if str(self.engine or "cpu").strip().lower() != "cpu":
+            raise ValueError(
+                "PySCF irc is a CPU capability; GPU4PySCF has not run one "
+                "here."
+            )
+        if self.hessian_derivative is not None:
+            raise ValueError(
+                "An irc takes the analytic Hessian of its own surface at "
+                "the supplied geometry; hessian_derivative applies to a "
+                "hess node. Remove it from the irc section."
             )
