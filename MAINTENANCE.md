@@ -259,8 +259,8 @@ the worktree, unpack it in the run's own directory and put *that* on
 trip a resource-mismatch validation at a small `-n`, copy the server YAML
 into a private config directory beside the run and point
 `CHEMSMART_CONFIG_DIR` at it; the profile under `~/.chemsmart` stays as it
-was. Both delegated runs that needed this lost several steps rediscovering
-it, and the second had it only because a person typed it into a brief.
+was. Two separate investigations each lost several steps rediscovering
+it before it was written down here.
 
 **Conditions worth stating.** `-m` is `--mem-gb` before the program name
 and `--multiplicity` after it. PySCF fixtures are generated in the

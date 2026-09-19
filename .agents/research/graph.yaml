@@ -1,7 +1,7 @@
 # Instruction / evidence graph -- the AUTHORED JOIN only.
 # Derived at check time, never copied here: the 69 rules and their text
 # (chemsmart.agent.rules), the code gates, the capability ladder, word and
-# token costs (loop/census.py), the loop components (loop.yaml), ledger ids.
+# token costs (loop/census.py).
 # A node points at evidence; it never restates it. `anchor` is a verbatim
 # single-line substring, so a moved or reworded source turns graphcheck red.
 version: 1
@@ -41,7 +41,6 @@ nodes:
   - id: lesson.refusal_teaches
     kind: lesson
     source: {path: CONDUCT.md, anchor: "the refusal message, not the guide, is where"}
-    evidence: [L0015]
     falsifier: Routed refusals show no change in retry or recovery against unrouted ones on matched tasks.
   - id: lesson.refusals_that_grade_chemistry
     kind: lesson
@@ -50,7 +49,7 @@ nodes:
   - id: lesson.witness_must_be_red
     kind: lesson
     source: {path: CONDUCT.md, anchor: "a witness that was never red witnesses"}
-    consumed_by: [loop/arms.py, loop/graph.py]
+    consumed_by: [loop/graph.py]
   - id: lesson.defect_as_probe
     kind: lesson
     source: {path: CONDUCT.md, anchor: "as a probe, not a ticket"}
@@ -69,11 +68,9 @@ nodes:
   - id: lesson.task_text_never_asks
     kind: lesson
     source: {path: CONDUCT.md, anchor: "the task text never asks"}
-    consumed_by: [frontier.yaml]
   - id: lesson.no_reroll
     kind: lesson
     source: {path: CONDUCT.md, anchor: "weak run is never"}
-    consumed_by: [loop/probe.py]
   - id: lesson.small_cases_find_defects
     kind: lesson
     source: {path: MAINTENANCE.md, anchor: "found two host defects"}
@@ -81,18 +78,11 @@ nodes:
   - id: lesson.writer_reader_two_tables
     kind: lesson
     source: {path: MAINTENANCE.md, anchor: "A writer and a reader are two tables"}
-  - id: lesson.instrument_leaks_outcomes
-    kind: lesson
-    source: {path: .agents/research/ledger.jsonl, anchor: "\"id\": \"L0004\""}
-    note: Verifying an instrument on the evaluation corpus tells the forecaster the answer.
-    consumed_by: [loop.yaml#cascade]
 
   # Results that came back negative, and the commits that replaced a sentence.
   - id: result.xtb_mode_tables_agree
     kind: negative_result
-    source: {path: .agents/research/ledger.jsonl, anchor: "\"id\": \"L0034\""}
     commit: "080535cd"
-    evidence: [L0034, L0035]
     note: Seven real xTB Hessians - vibspectrum and g98.out agree row for row (max 0.0050 cm^-1). The guard built for a disagreement was declined; the sealing was absorbed (ec1f5ba5).
     falsifier: One real xTB result whose two native tables disagree in order, count or frequency beyond print rounding.
   - id: commit.44499f2a
@@ -102,7 +92,6 @@ nodes:
   - id: commit.ec1f5ba5
     kind: commit
     commit: "ec1f5ba5"
-    evidence: [L0035]
     note: xTB mode-table sealing, absorbed selectively from 080535cd.
 
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
@@ -124,7 +113,5 @@ edges:
   - {from: fundamental.hub, to: stem.never_author_native, rel: expressed_by}
   - {from: invariant.claim_ladder, to: charter.scientific_invariants, rel: duplicates}
   - {from: charter.product_boundary, to: invariant.gates, rel: depends_on}
-  - {from: lesson.instrument_leaks_outcomes, to: L0004, rel: evidenced_by}
-  - {from: commit.44499f2a, to: leaf.pyscf.an_excited_minimum_has_no_hessian_here, rel: supersedes, note: "the rule still says no excited or correlated Hessian exists (L0037)"}
-  - {from: result.xtb_mode_tables_agree, to: L0034, rel: evidenced_by}
+  - {from: commit.44499f2a, to: leaf.pyscf.an_excited_minimum_has_no_hessian_here, rel: supersedes, note: "the rule still says no excited or correlated Hessian exists"}
   - {from: commit.ec1f5ba5, to: result.xtb_mode_tables_agree, rel: depends_on}

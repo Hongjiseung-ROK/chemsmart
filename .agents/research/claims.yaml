@@ -24,7 +24,7 @@ claims:
   - id: C3_live_chemistry_finds_what_suites_cannot
     claim: Defects reachable only through live chemistry persist under a green suite, and small chemically different cases find them fastest.
     evidence: ["CONDUCT.md section 4: fifteen findings by three reviewers, none by the author", "MAINTENANCE.md: two host defects found by three four-atom cases after 3183 tests and 67 witnesses passed"]
-    evidence_added_2026_09_19: ["L0046: a delegated repair (7001355b) passed its own five red-to-green witnesses and 3767 tests and still let a pre-v7 artifact validate against a request for an analysis it cannot carry; found by the parent's boundary probe, closed in 94d6e9f6", "L0034/L0035: a guard whose only red state was hand-built"]
+    evidence_added_2026_09_19: ["a repair (7001355b) passed its own five red-to-green witnesses and 3767 tests and still let a pre-v7 artifact validate against a request for an analysis it cannot carry; found in review, closed in 94d6e9f6", "080535cd: a guard whose only red state was hand-built, declined in review (ec1f5ba5)"]
     strongest_counterexample: No denominator -- defects found by the suite first are not counted anywhere.
     missing_experiment: A defect ledger by detection channel (suite, witness bank, audit, live goal) over the commit history.
     status: open
@@ -32,7 +32,7 @@ claims:
 
   - id: C4_refusal_as_teaching
     claim: A routed refusal that names its invariant and a legal route changes what the model does next.
-    evidence: ["L0015: routed share 0% -> 16% -> 83% across three eras; immediate same-tool retry 77% -> 65% -> 39%; recovery 92% -> 92% -> 78%"]
+    evidence: ["loop/replay.py over three corpora: routed share 0% -> 16% -> 83% across three eras; immediate same-tool retry 77% -> 65% -> 39%; recovery 92% -> 92% -> 78%"]
     strongest_counterexample: Eras differ in model and task, and the last n is 18; recovery did not rise. The series is descriptive.
     missing_experiment: Matched tasks, one model, routed vs unrouted refusal text for the same gate.
     status: open
@@ -45,19 +45,3 @@ claims:
     missing_experiment: The exactly_symmetric_start family with text that never asks.
     status: partial
     figure: anomaly receipts vs session interpretation
-
-  - id: C6_context_architecture
-    claim: Instruction surfaces built by loss-driven development accrete (10x in four weeks here), and a kernel plus verbatim retrievable topics preserves what a developer-AI can answer at a fraction of the always-on cost.
-    evidence: ["loop/census.py: 15,257-word charter, 91% in two sections", "D1 (ledger)"]
-    strongest_counterexample: pending D1; a floor arm that does nearly as well would mean the probes measure the repo, not the charter.
-    missing_experiment: D1 on a second model family and on change-making tasks, not only question answering.
-    status: open
-    figure: accuracy by probe class x arm, beside always-on tokens
-
-  - id: C7_recursive_loop
-    claim: A research loop that forecasts its own experiments and scores those forecasts can improve its own selection procedure from evidence.
-    evidence: ["ledger L0006-L0014 (events frozen, five forecasters sealed, outcomes after)"]
-    strongest_counterexample: n = 23 events in one generation; lead forecasts share an author; calibration is a proxy for selection value.
-    missing_experiment: Three generations in which the promoted policy's picks are compared with the runner-up's on realised information.
-    status: open
-    figure: calibration curves per policy across generations

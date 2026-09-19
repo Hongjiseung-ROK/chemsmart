@@ -25,8 +25,6 @@ DEV_SURFACE = (
     ("CONDUCT.md", "on demand"),
     ("MAINTENANCE.md", "on demand"),
     (".agents/skills/chemsmart-agent/SKILL.md", "on demand (skill)"),
-    (".agents/research/BOOTSTRAP.md", "always-on: research sessions"),
-    (".agents/research/STATE.md", "on demand (successor)"),
 )
 
 

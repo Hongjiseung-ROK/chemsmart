@@ -2,10 +2,13 @@
 what only a person can author, and queryable.
 
 Nothing derivable is stored. Nodes come from the registries that own them --
-rules, code gates, host policies, guides, capability tests, charter sections,
-loop components, ledger rows, paper claims -- and ``graph.yaml`` adds only
-the join: fundamentals, lessons pointing at their sources, and per-rule
-annotations (class, backstop, falsifier). Edges carry one of a small closed
+rules, code gates, host policies, guides, capability tests, charter sections
+and topics, paper claims -- and ``graph.yaml`` adds only the join:
+fundamentals, lessons pointing at their sources, results and the commits that
+replaced a sentence, and per-rule annotations (class, backstop, falsifier).
+Working records that live outside the repository are joined in when
+``CHEMSMART_RESEARCH_RECORDS`` names their directory, and are simply absent
+otherwise. Edges carry one of a small closed
 vocabulary of relations, so "what protects this", "what earned this", "what
 reads this" and "what replaced this" are each one traversal.
 
@@ -21,6 +24,7 @@ reads this" and "what replaced this" are each one traversal.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -32,6 +36,13 @@ ROOT = HERE.parents[2]
 RESEARCH = HERE.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(HERE))
+RECORDS = (
+    Path(os.environ["CHEMSMART_RESEARCH_RECORDS"]).expanduser()
+    if os.environ.get("CHEMSMART_RESEARCH_RECORDS")
+    else None
+)
+if RECORDS is not None:
+    sys.path.insert(0, str(RECORDS / "loop"))
 
 RELATIONS = (
     "expressed_by",  # a fundamental or invariant is carried by a rule
@@ -75,8 +86,6 @@ def derived(graph: Graph) -> None:
     from census import runtime_surface, sections
     from chemsmart.agent import guides as guides_mod
     from chemsmart.agent.rules import CODE_GATES, HOST_POLICIES, POLICY_RULES
-    from ledger import read
-
     surface = runtime_surface()
     by_id = {row["rule_id"]: row for row in surface["rules"]}
     for rule in POLICY_RULES:
@@ -121,29 +130,38 @@ def derived(graph: Graph) -> None:
             path=f".agents/charter/{topic.name}", always_on=False,
         )  # fmt: skip
 
-    loop = yaml.safe_load((RESEARCH / "loop.yaml").read_text())
-    for name, comp in loop["components"].items():
-        graph.node(
-            f"loop:{name}", "loop_component",
-            status=comp.get("status"), version=loop["version"],
-            policy=comp.get("policy"), falsifier=comp.get("falsifier"),
-        )  # fmt: skip
-        for ref in comp.get("evidence") or []:
-            graph.edge(f"loop:{name}", "evidenced_by", f"ledger:{ref}")
-    for row in read():
-        graph.node(
-            f"ledger:{row['id']}", "ledger_record",
-            type=row["type"], target_kind=row["target_kind"],
-            loop_version=row["loop_version"], title=row["title"],
-        )  # fmt: skip
-        for comp in row.get("attribution") or []:
-            graph.edge(f"ledger:{row['id']}", "attributed_to", f"loop:{comp}")
-        if row.get("supersedes"):
-            graph.edge(
-                f"ledger:{row['id']}", "supersedes",
-                f"ledger:{row['supersedes']}",
+    if RECORDS is not None:
+        from ledger import read
+
+        loop = yaml.safe_load((RECORDS / "loop.yaml").read_text())
+        for name, comp in loop["components"].items():
+            graph.node(
+                f"loop:{name}", "loop_component",
+                status=comp.get("status"), version=loop["version"],
+                policy=comp.get("policy"), falsifier=comp.get("falsifier"),
             )  # fmt: skip
+            for ref in comp.get("evidence") or []:
+                graph.edge(f"loop:{name}", "evidenced_by", f"ledger:{ref}")
+        for row in read():
+            graph.node(
+                f"ledger:{row['id']}", "ledger_record",
+                type=row["type"], target_kind=row["target_kind"],
+                loop_version=row["loop_version"], title=row["title"],
+            )  # fmt: skip
+            for comp in row.get("attribution") or []:
+                graph.edge(
+                    f"ledger:{row['id']}", "attributed_to", f"loop:{comp}"
+                )
+            if row.get("supersedes"):
+                graph.edge(
+                    f"ledger:{row['id']}", "supersedes",
+                    f"ledger:{row['supersedes']}",
+                )  # fmt: skip
     claims = yaml.safe_load((RESEARCH / "claims.yaml").read_text())
+    if RECORDS is not None and (RECORDS / "claims-meta.yaml").is_file():
+        claims["claims"] += yaml.safe_load(
+            (RECORDS / "claims-meta.yaml").read_text()
+        )["claims"]
     for claim in claims["claims"]:
         graph.node(
             f"claim:{claim['id']}", "paper_claim",
@@ -151,8 +169,8 @@ def derived(graph: Graph) -> None:
             missing=claim.get("missing_experiment"),
         )  # fmt: skip
 
-    slate_path = RESEARCH / "slate.yaml"
-    if slate_path.is_file():
+    slate_path = (RECORDS / "slate.yaml") if RECORDS is not None else None
+    if slate_path is not None and slate_path.is_file():
         # The open frontier is evidence of what is unresolved, so it is
         # queryable like anything else; derived from the slate, never copied.
         slate = yaml.safe_load(slate_path.read_text()) or {}
@@ -173,6 +191,10 @@ def authored(graph: Graph) -> list[str]:
     """The join from graph.yaml. Returns pointer problems instead of raising."""
     problems: list[str] = []
     spec = yaml.safe_load((RESEARCH / "graph.yaml").read_text())
+    if RECORDS is not None and (RECORDS / "graph-meta.yaml").is_file():
+        overlay = yaml.safe_load((RECORDS / "graph-meta.yaml").read_text())
+        spec["nodes"] = spec["nodes"] + (overlay.get("nodes") or [])
+        spec["edges"] = (spec.get("edges") or []) + (overlay.get("edges") or [])
     for node in spec["nodes"]:
         source = node.get("source") or {}
         facts = {k: v for k, v in node.items() if k not in ("id", "kind")}
@@ -184,10 +206,10 @@ def authored(graph: Graph) -> list[str]:
             problems.append(f"{node['id']}: commit {commit} does not resolve")
         if commit and not source:
             pass
-        elif not (ROOT / source.get("path", "")).is_file():
+        elif not _source_path(source).is_file():
             problems.append(f"{node['id']}: no such file {source.get('path')}")
         else:
-            path = ROOT / source["path"]
+            path = _source_path(source)
             lines = path.read_text(encoding="utf-8").splitlines()
             if not any(source["anchor"] in line for line in lines):
                 problems.append(
@@ -236,6 +258,15 @@ def authored(graph: Graph) -> list[str]:
     return problems
 
 
+def _source_path(source: dict) -> Path:
+    rel = str(source.get("path", ""))
+    if RECORDS is not None and rel.startswith(".agents/research/"):
+        moved = RECORDS / rel.split(".agents/research/", 1)[1]
+        if moved.is_file():
+            return moved
+    return ROOT / rel
+
+
 def _qualify(graph: Graph, name: str) -> str:
     for prefix in ("", "rule:", "ledger:", "loop:", "claim:", "candidate:", "topic:"):
         if prefix + name in graph.nodes:
@@ -264,6 +295,8 @@ def ledger_commits() -> list[str]:
     reach has lost its evidence, which is what cleaning a branch can do."""
     import re
 
+    if RECORDS is None:
+        return []
     from ledger import read
 
     found: set[str] = set()
@@ -375,9 +408,10 @@ def main() -> int:
         print("\n".join(lines) if lines else f"nothing mentions {sys.argv[2]!r}")
         return 0 if lines else 1
     if mode == "check":
+        cited = ledger_commits()
         print(
-            f"{len(graph.nodes)} nodes, {len(graph.edges)} edges, "
-            f"{len(ledger_commits())} ledger-cited commits resolve"
+            f"{len(graph.nodes)} nodes, {len(graph.edges)} edges"
+            + (f", {len(cited)} cited commits resolve" if cited else "")
         )
         for line in problems:
             print("  PROBLEM " + line)
