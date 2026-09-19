@@ -106,6 +106,30 @@ def test_the_plan_a_rewake_produces_is_admitted_and_runs(tmp_path):
     assert "run_recorded" in kinds
 
 
+def test_the_stream_a_rewake_names_is_read_or_refused_with_a_route(tmp_path):
+    """The wake says inspect_run re-reads what it names. A re-wake names
+    the stream of a session that launched no workflow, and the read was
+    refused with the reducer's count of runs (g3-ethane, 2026-09-20,
+    twice); it is refused with the route to what the host does hold."""
+
+    from chemsmart.agent._contracts import RoutedContractError
+    from chemsmart.agent.runtime.event_store import RuntimeEventStore
+
+    from .test_a_guide_opens_when_something_asks import _host
+
+    workspace = tmp_path / "ws"
+    stream = workspace / ".chemsmart-agent" / "runs" / "live-1"
+    store = RuntimeEventStore(stream / "events.jsonl", session_id="live-1")
+    store.append(turn_id="turn-1", kind="session_started", payload={})
+    host = _host(tmp_path)
+    host.run_evidence_root = workspace
+    with pytest.raises(RoutedContractError) as refused:
+        host._inspect_run_outcome("t1", {"run": "runs/live-1"})
+    assert refused.value.failure_report["gate"] == (
+        "inspect.run_reference_names_a_workflow_run"
+    )
+
+
 def test_a_transport_continuation_still_names_nothing(tmp_path):
     from chemsmart.agent.driver import _previous_run_reference
     from chemsmart.agent.goal import GoalLedger

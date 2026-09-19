@@ -16408,7 +16408,33 @@ class CommandCompiledToolHostV1:
                     ),
                 )
         stream_bytes = path.read_bytes()
-        outcome = derive_run_outcome(read_run_events(path))
+        events = read_run_events(path)
+        from chemsmart.agent.runtime.reducer import replay_events
+
+        if not (getattr(replay_events(events), "workflow_run_records", {})):
+            # A re-wake names the stream of the cycle its report describes
+            # -- a session that planned and launched nothing -- and the wake
+            # says this tool re-reads what it names; the reply was the
+            # reducer's "found 0" (g3-ethane, 2026-09-20, twice).
+            raise RoutedContractError(
+                gate="inspect.run_reference_names_a_workflow_run",
+                invariant=(
+                    "a run outcome is the typed ending of a workflow that "
+                    "was launched."
+                ),
+                diagnosis=(
+                    f"{requested!r} is a session that launched no workflow; "
+                    "how it ended is the host's report the wake embeds, "
+                    "not a run outcome."
+                ),
+                route=(
+                    "read that report where the wake carries it; "
+                    "inspect_run with no arguments lists the runs that "
+                    "executed, and inspect_run with artifact_id and "
+                    "program reads one result's selectors."
+                ),
+            )
+        outcome = derive_run_outcome(events)
         # A named read is a typed act: the durable event binds the run
         # reference to the exact stream bytes served, so the revision
         # gate can verify which run's outcome entered this session --
