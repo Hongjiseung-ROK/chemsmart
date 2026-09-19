@@ -438,6 +438,20 @@ def test_a_request_that_disagrees_with_the_record_is_a_finding():
     )
 
 
+def test_an_artifact_that_could_not_answer_satisfies_only_a_request_that_did_not_ask():
+    """An earlier contract is evidence for a run that never asked, and for
+    no other.  The first draft of the vocabulary skip let a pre-v7 artifact
+    validate against a request for the analysis it cannot carry."""
+
+    earlier = sorted((FIXTURES / "water_sp").glob("*.h5"))[0]
+    assert _validate(earlier, scf_stability=False)["state"] == "validated"
+    verdict = _validate(earlier, scf_stability=True)
+    assert verdict["state"] == "failed"
+    assert any(
+        finding.field == "scf_stability" for finding in verdict["findings"]
+    )
+
+
 # ----------------------------------------------------------------------
 # the vocabulary is frozen per contract, on every artifact on disk
 # ----------------------------------------------------------------------

@@ -415,11 +415,18 @@ def verify_provenance(
     # contract is evidence, not a mismatch, and the day a new applied-spec
     # field is added is the day every archived result would otherwise
     # start failing its own settings check.  A field the contract *does*
-    # carry and the spec lacks stays a finding.
+    # carry and the spec lacks stays a finding.  So does a request that
+    # asked: an artifact that could not carry the answer satisfies only a
+    # request that did not ask for one, or the settings check would call a
+    # pre-v7 result valid evidence for a run that requested the analysis.
     carried = frozenset(applied_pyscf_spec_fields(spec))
     for field, expected in requested.items():
         observed = spec.get(field, _MISSING)
-        if observed is _MISSING and field not in carried:
+        if (
+            observed is _MISSING
+            and field not in carried
+            and expected in (None, False)
+        ):
             continue
         if observed is _MISSING and expected is None:
             observed = None
