@@ -228,6 +228,33 @@ life and arm that as a falsifier. Editing the clone while a goal is parked
 made one window's later cycles a mixed-tree observation, because each
 per-node subprocess imports the clone fresh.
 
+## Running from a worktree, and on a cluster
+
+**What bit us.** A change was developed in a second worktree while the
+interpreter held an editable install of the first. With `PYTHONPATH` set
+to the worktree, `python -c` and pytest still imported the *other* tree
+whenever the shell's current directory was the first clone, because the
+current directory is searched before `PYTHONPATH`. Nothing failed; the
+suite simply tested code that had not changed.
+
+**What worked.** Stand inside the worktree (or a neutral directory), set
+`PYTHONPATH` to it, and print `chemsmart.__file__` once before believing
+any local run. On a cluster, never point at the deployed checkout: archive
+the worktree, unpack it in the run's own directory and put *that* on
+`PYTHONPATH`. When the personal server profile's core or thread counts
+trip a resource-mismatch validation at a small `-n`, copy the server YAML
+into a private config directory beside the run and point
+`CHEMSMART_CONFIG_DIR` at it; the profile under `~/.chemsmart` stays as it
+was. Both delegated runs that needed this lost several steps rediscovering
+it, and the second had it only because a person typed it into a brief.
+
+**Conditions worth stating.** `-m` is `--mem-gb` before the program name
+and `--multiplicity` after it. PySCF fixtures are generated in the
+cluster's compute environment, never on a laptop; reading one back needs
+only h5py. A green `--fake` run says nothing about the interpreter, and
+an API probe of the engine is a way to learn its behaviour, never evidence
+for a delivered capability.
+
 ## A writer and a reader are two tables
 
 **What bit us.** The PySCF driver's `RESULT_UNITS` said `normal_modes`
