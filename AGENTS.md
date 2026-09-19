@@ -395,9 +395,17 @@ rotors appended at torsions of exactly 60, 180 and 300 degrees. The
 host therefore states, on every identity binding and every compiled
 node, a point-group estimate found within 0.01 Å from the molecule's
 own atoms (and within 0.1 Å when the two differ) together with the
-count of appended atoms placed on the exact 60° torsion lattice or at
-exactly idealised angles; the estimate rides the review beside the
-node's CLI operation as a host observation and never as a refusal.
+count of built coordinates placed on the exact 60° torsion lattice or
+at exactly idealised angles; the estimate rides the review beside the
+node's CLI operation as a host observation and never as a refusal. Every
+coordinate a session *builds* is counted, appended or edited, because the
+two are one act: a live conformer study set one torsion to exactly 0.00°
+and exactly 180.00° by editing it, and the 0.00° structure was
+syn-periplanar butane -- the top of the rotational barrier rather than a
+conformer -- while the counter read append receipts alone and said
+nothing. The sentence this replaces named appended atoms only, and the
+saddles it cites include an idealised D4h start, which is no append at
+all.
 ``break_symmetry`` is the fourth starting-structure operation: it
 perturbs every atom of an identity-bound geometry by a seed and an
 amplitude the model names, so the same request gives the same bytes,
