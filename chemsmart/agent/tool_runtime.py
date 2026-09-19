@@ -8195,19 +8195,51 @@ class CommandCompiledToolHostV1:
             node_ids=tuple(verdict.members) if dispatchable else (),
         )
         record = verdict.public_record()
+        # A wave is submitted only inside an approved workflow. This reply
+        # answered "this wave is what will be submitted" while the workflow
+        # it belonged to could not be approved, and the session ended
+        # believing it had delivered (trans-glyoxal, 2026-09-19: three
+        # nodes still blocked approval and nothing ran). The selection
+        # stands -- a session may choose its wave before its last preview
+        # -- but the promise is made only when the host could keep it.
+        readiness = (
+            self._approval_readiness(scientific)
+            if scientific is not None
+            else {"approvable": True}
+        )
+        blocking = list(readiness.get("blocking_node_ids", ()) or ())
+        if dispatchable and not readiness.get("approvable", False):
+            next_action = (
+                "these members are ready, but the workflow cannot be "
+                "approved yet, so nothing is submitted: "
+                + (
+                    "these nodes still block approval: "
+                    + ", ".join(blocking)
+                    + " -- preview each, declare it non-executable intent "
+                    "with its reason, or remove it from the plan"
+                    if blocking
+                    else str(readiness.get("workflow_blocked_reason") or "")
+                )
+            )
+        elif dispatchable:
+            next_action = (
+                "this wave is what will be submitted; every member runs "
+                "and you are woken once, when all of them have ended"
+            )
+        else:
+            next_action = (
+                "select again from the members the host reports ready, "
+                "and choose the rest after reading this wave"
+            )
         return {
             "status": "ready" if dispatchable else "not_dispatchable",
             "workflow_id": str(draft.workflow_id),
             "node_ids": list(verdict.members) if dispatchable else [],
             "members": record.get("rows", []),
             "summary": verdict.summary,
-            "next_action": (
-                "this wave is what will be submitted; every member runs "
-                "and you are woken once, when all of them have ended"
-                if dispatchable
-                else "select again from the members the host reports "
-                "ready, and choose the rest after reading this wave"
-            ),
+            "workflow_approvable": bool(readiness.get("approvable", False)),
+            **({"blocking_node_ids": blocking} if blocking else {}),
+            "next_action": next_action,
         }
 
     def _continue_execution_reasoning(self, turn_id: str, values: dict) -> Any:

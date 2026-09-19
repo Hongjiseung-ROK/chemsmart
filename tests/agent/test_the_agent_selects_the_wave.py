@@ -152,6 +152,7 @@ def test_the_handler_asks_the_one_readiness_authority(monkeypatch, tmp_path):
 
     host._resolve_program_workflow = _resolve
     host._workflow_context = _context_for
+    host._approval_readiness = lambda plan: {"approvable": True}
 
     reply = host._select_execution_wave(
         "t1", {"workflow_id": "w1", "node_ids": ["a1", "a2"]}
@@ -207,6 +208,7 @@ def test_a_selected_wave_is_recorded_where_the_dispatcher_reads_it(
         scientific_plan=SimpleNamespace(plan_sha256="d" * 64),
     )
     host._workflow_context = lambda draft, **_kw: _context(("a1", "a2"))
+    host._approval_readiness = lambda plan: {"approvable": True}
 
     host._select_execution_wave(
         "t1", {"workflow_id": "w1", "node_ids": ["a2", "a1"]}
@@ -234,6 +236,7 @@ def test_a_singleton_is_an_explicit_valid_execution_boundary(tmp_path):
         scientific_plan=SimpleNamespace(plan_sha256="d" * 64),
     )
     host._workflow_context = lambda draft, **_kw: _context(("a1",))
+    host._approval_readiness = lambda plan: {"approvable": True}
 
     reply = host._select_execution_wave(
         "t1", {"workflow_id": "w1", "node_ids": ["a1"]}
@@ -261,10 +264,9 @@ def test_an_agent_can_explicitly_continue_reasoning_without_dispatching():
         scientific_plan=SimpleNamespace(plan_sha256="d" * 64),
     )
     host._workflow_context = lambda draft, **_kw: _context(("a1", "a2"))
+    host._approval_readiness = lambda plan: {"approvable": True}
 
-    reply = host._continue_execution_reasoning(
-        "t1", {"workflow_id": "w1"}
-    )
+    reply = host._continue_execution_reasoning("t1", {"workflow_id": "w1"})
     assert reply["status"] == "continue_reasoning"
     assert host.execution_wave_decision.state == "continue_reasoning"
     assert host.execution_wave_decision.ready_node_ids == ("a1", "a2")
@@ -295,6 +297,7 @@ def test_an_invalid_wave_is_not_recorded_as_the_selection():
         scientific_plan=SimpleNamespace(plan_sha256="d" * 64),
     )
     host._workflow_context = lambda draft, **_kw: _context(("a1",))
+    host._approval_readiness = lambda plan: {"approvable": True}
 
     reply = host._select_execution_wave(
         "t1", {"workflow_id": "w1", "node_ids": ["a1", "b1"]}
@@ -351,6 +354,7 @@ def test_an_invalid_selection_clears_the_previous_one():
         scientific_plan=SimpleNamespace(plan_sha256="d" * 64),
     )
     host._workflow_context = lambda draft, **_kw: _context(("a1", "a2"))
+    host._approval_readiness = lambda plan: {"approvable": True}
 
     host._select_execution_wave(
         "t1", {"workflow_id": "w1", "node_ids": ["a1", "a2"]}
@@ -407,7 +411,9 @@ def test_a_node_the_plan_does_not_contain_says_so():
 
     # And a real node waiting on a producer keeps its own word.
     waiting = validate_wave(
-        proposed=("b1",), ready=("a1",), edges=(("a1", "b1"),),
+        proposed=("b1",),
+        ready=("a1",),
+        edges=(("a1", "b1"),),
         planned=("a1", "b1"),
     )
     assert waiting.rows[0].status == "not_ready"
@@ -445,3 +451,44 @@ def test_the_tool_tells_the_model_an_invalid_wave_is_not_an_error():
         )
     assert "refused" in description
     assert "waits on" in description
+
+
+@pytest.mark.capability("tool:select_execution_wave")
+def test_a_wave_in_a_workflow_nobody_can_approve_is_not_promised():
+    """The selection stands; the promise waits for the approval.
+
+    A wave is submitted only inside an approved workflow. The reply said
+    "this wave is what will be submitted" while three nodes of the
+    workflow still blocked approval, and trans-glyoxal's session ended on
+    it believing it had delivered (2026-09-19): nothing ran.
+    """
+
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    host = CommandCompiledToolHostV1.__new__(CommandCompiledToolHostV1)
+    host._resolve_program_workflow = lambda _wid: SimpleNamespace(
+        draft=SimpleNamespace(
+            workflow_id="w1",
+            nodes=(
+                SimpleNamespace(node_id="a1", inputs=()),
+                SimpleNamespace(node_id="c1", inputs=()),
+            ),
+        ),
+        scientific_plan=SimpleNamespace(plan_sha256="d" * 64),
+    )
+    host._workflow_context = lambda draft, **_kw: _context(("a1",))
+    host._approval_readiness = lambda plan: {
+        "approvable": False,
+        "blocking_node_ids": ("c1",),
+    }
+
+    reply = host._select_execution_wave(
+        "t1", {"workflow_id": "w1", "node_ids": ["a1"]}
+    )
+    assert reply["workflow_approvable"] is False
+    assert reply["blocking_node_ids"] == ["c1"]
+    assert "will be submitted" not in reply["next_action"]
+    assert "nothing is submitted" in reply["next_action"]
+    # The choice itself is kept: a session may name its wave before its
+    # last preview, and must not have to name it twice.
+    assert host.selected_execution_wave == ("a1",)
