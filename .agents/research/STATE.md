@@ -1,6 +1,6 @@
 # STATE (rendered by `generation.py close`; every fact is a ledger row)
 
-Loop **g3** (parent g2). Ledger: 49 records, chain ok.
+Loop **g3** (parent g2). Ledger: 51 records, chain ok.
 
 ## Components adopted on evidence
 - `retrieval` (promoted, L0038,L0040,L0041): AGENTS.md is a kernel under 2,000 words and CLAUDE.md imports it, so every session starts from the same small file.
@@ -11,15 +11,15 @@ Loop **g3** (parent g2). Ledger: 49 records, chain ok.
 - `evaluators` (tested, L0034,L0035,L0046,L0047): Exact-match keys wherever the host can know the answer.
 
 ## Decisions (newest last)
-- L0041 promote_by_owner: Owner-directed: AGENTS.md and CLAUDE.md take the kernel + topics + graph/loop form; promoted by 
 - L0043 promote: loop g1 -> g2: component `retrieval` mutated
 - L0044 promote: loop g1 -> g2: component `topology` mutated
 - L0045 select: selected next action: affordance_visible_investigation -- The next delegated investigation runs 
 - L0048 promote: loop g2 -> g3: component `evaluators` mutated
+- L0050 absorb: SCF-stability branch absorbed whole by merge 2b954d6e after a further boundary probe; its senten
 
 ## Open
-- forecasts awaiting outcomes: 14 events (E02, E03, E04, E05, E06, E07 ...)
-- loop components under most pressure: evaluators(9), generate(8), reflect(6), topology(5)
+- forecasts awaiting outcomes: 23 events (E02, E03, E04, E05, E06, E07 ...)
+- loop components under most pressure: evaluators(10), generate(8), reflect(6), topology(5)
 
 ## Slate (EIG bits / cost units / risk)
 - * payload_census [agent_context] 0.9014 / 0.1 / 0
