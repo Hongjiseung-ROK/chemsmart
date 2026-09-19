@@ -568,21 +568,20 @@ def _sorted_distances(positions) -> np.ndarray:
     )
 
 
-def test_orca_walks_the_same_hf_surface_to_the_same_two_minima():
-    """ORCA's own IRC on its own saddle at HF/6-31G* (Slurm 2140566): the
-    ends of its full path and PySCF's two endpoints agree in every
-    interatomic distance to 0.006 A, measured 0.0037 and 0.0054, the gap
-    being the looser gradient criterion ORCA's IRC stops at."""
+def _orca_path(name: str):
+    """Frames and energies of ORCA's ``IRC_Full_trj.xyz``, whose comment
+    lines carry each frame's energy."""
 
     lines = (
-        (FIXTURES / "orca_differential" / "h2co_hcoh_orca_irc_full_trj.xyz")
+        (FIXTURES / "orca_differential" / name)
         .read_text(encoding="utf-8")
         .splitlines()
     )
-    frames = []
+    frames, energies = [], []
     index = 0
     while index < len(lines):
         count = int(lines[index])
+        energies.append(float(lines[index + 1].split(" E ")[-1]))
         frames.append(
             [
                 [float(v) for v in line.split()[1:4]]
@@ -590,7 +589,50 @@ def test_orca_walks_the_same_hf_surface_to_the_same_two_minima():
             ]
         )
         index += count + 2
-    ends = (_sorted_distances(frames[0]), _sorted_distances(frames[-1]))
-    for case in ("h2co_hcoh_irc_forward", "h2co_hcoh_irc_backward"):
-        mine = _sorted_distances(_open(case).positions)
-        assert min(np.max(np.abs(mine - end)) for end in ends) < 6e-3, case
+    return frames, energies
+
+
+@pytest.mark.parametrize(
+    "name, cases, distance_tolerance",
+    [
+        (
+            "h2co_hcoh_orca_irc_full_trj.xyz",
+            ("h2co_hcoh_irc_forward", "h2co_hcoh_irc_backward"),
+            6e-3,
+        ),
+        (
+            "hcn_hnc_orca_irc_full_trj.xyz",
+            ("hcn_hnc_irc_forward", "hcn_hnc_irc_backward"),
+            1e-3,
+        ),
+    ],
+)
+def test_orca_walks_the_same_surface_to_the_same_two_minima(
+    name, cases, distance_tolerance
+):
+    """ORCA's own IRC, ``direction both`` on the saddle it located, on the
+    surface PySCF walked: HF/6-31G* (Slurm 2140566) and ``B3LYP/G`` /
+    def2-SVP, the VWN3 functional PySCF's ``b3lyp`` resolves to (2140568).
+    The ends of ORCA's full path and PySCF's two endpoints agree in every
+    interatomic distance -- measured 0.0037 and 0.0054 A at HF, where ORCA's
+    IRC stops at a looser gradient, and 0.0002 and 0.0008 A for HCN/HNC --
+    and each branch's fall from the saddle to its end agrees to 0.005 and
+    0.025 kcal/mol, although the two programs' B3LYP/G totals sit 5e-5 to
+    8e-5 Eh apart."""
+
+    frames, energies = _orca_path(name)
+    saddle = max(energies)
+    ends = (
+        (_sorted_distances(frames[0]), saddle - energies[0]),
+        (_sorted_distances(frames[-1]), saddle - energies[-1]),
+    )
+    for case in cases:
+        output = _open(case)
+        mine = _sorted_distances(output.positions)
+        distance, orca_fall = min(
+            ((np.max(np.abs(mine - end)), fall) for end, fall in ends),
+            key=lambda pair: pair[0],
+        )
+        assert distance < distance_tolerance, case
+        fall = output.irc_path_energies[0] - output.total_energy
+        assert abs(fall - orca_fall) < 8e-5, (case, fall, orca_fall)

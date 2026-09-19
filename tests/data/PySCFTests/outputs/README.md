@@ -205,7 +205,10 @@ Every stored energy it re-evaluated agrees to 1e-9 Eh, every gradient to
 lowest mode (cosine 1.000000). `inputs/` holds each ORCA saddle exactly as the PySCF runs
 read it, so the host resolves the input by the geometry identity the run
 recorded. `orca_differential/h2co_hcoh_orca_irc_full_trj.xyz` is ORCA's own
-IRC path (`%irc direction both`, 31 frames) on its HF/6-31G* saddle.
+IRC path (`%irc direction both`, 31 frames) on its HF/6-31G* saddle, and
+`orca_differential/hcn_hnc_orca_irc_full_trj.xyz` (66 frames, analytic
+initial Hessian) on its `B3LYP/G` / def2-SVP saddle, run last in Slurm
+2140568.
 
 | directory | what it is | why it is here |
 |---|---|---|
