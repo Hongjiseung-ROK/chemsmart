@@ -93,6 +93,11 @@ nodes:
     kind: commit
     commit: "ec1f5ba5"
     note: xTB mode-table sealing, absorbed selectively from 080535cd.
+  - id: result.pak_campaign_pyscf_20260919
+    kind: result
+    source: {path: .agents/charter/pyscf.md, anchor: "A sealed four-goal campaign ran that tree on CUHK (jobs 2140018-2140021,"}
+    note: "Four sealed goals, four observations, no arm without the sentences. The root's Hessian was planned in both excited-state goals and ran in one (all modes real); stability was asked on the twisted ethylene and on ozone's RHF reference, and of a closed-shell ground state only where ethylene's planar optimisation shared the twisted structure's project; the MP2 Hessian boundary was quoted and held."
+    falsifier: "A sealed goal on an excited-state equilibrium structure plans no Hessian on the root, or one on the ground state; or a session delivers DFT frequencies as MP2."
 
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
@@ -112,7 +117,7 @@ annotations:
     class: SCIENCE
     backstop: {refusal: "has no analytic Hessian of an excited root"}
     falsifier: "A session that optimises on an excited root and is asked for that state's equilibrium structure plans no Hessian on that root, or one without the root's response settings."
-    last_validated: null
+    last_validated: "2026-09-19"
   leaf.pyscf.a_converged_reference_can_be_a_saddle:
     class: SCIENCE
     backstop: null
@@ -125,3 +130,5 @@ edges:
   - {from: charter.product_boundary, to: invariant.gates, rel: depends_on}
   - {from: leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names, to: commit.44499f2a, rel: depends_on, note: "replaces leaf.pyscf.an_excited_minimum_has_no_hessian_here, which denied what 44499f2a shipped; the new sentence carries settings boundaries asked of the project loader"}
   - {from: commit.ec1f5ba5, to: result.xtb_mode_tables_agree, rel: depends_on}
+  - {from: leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names, to: result.pak_campaign_pyscf_20260919, rel: evidenced_by, note: "formaldehyde and trans-glyoxal each planned the root's Hessian with the root's settings; only formaldehyde's ran"}
+  - {from: leaf.pyscf.a_converged_reference_can_be_a_saddle, to: result.pak_campaign_pyscf_20260919, rel: evidenced_by, note: "asked where the sentence names (twisted ethylene, ozone's RHF under MP2); the falsifier compares against an arm without the sentence, which this campaign did not run, so it stays unvalidated"}

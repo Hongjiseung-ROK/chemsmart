@@ -29,12 +29,12 @@ from __future__ import annotations
 import json
 
 
-
-
 def _workspace_with_two_streams(tmp_path):
     runs = tmp_path / "ws" / ".chemsmart-agent" / "runs"
-    for name in ("live-20260916T100000000000Z-aaaa-1111",
-                 "live-20260916T114000000000Z-bbbb-2222"):
+    for name in (
+        "live-20260916T100000000000Z-aaaa-1111",
+        "live-20260916T114000000000Z-bbbb-2222",
+    ):
         (runs / name).mkdir(parents=True)
         (runs / name / "events.jsonl").write_text(
             json.dumps({"kind": "session_started", "payload": {}}) + "\n",
@@ -240,3 +240,55 @@ def test_a_cycle_that_named_nothing_still_uses_the_fallback(tmp_path):
     driver._project_before_settling()
     assert driver.events_path is not None
     assert driver.events_path.parent.name.endswith("bbbb-2222")
+
+
+def test_a_live_session_result_names_its_stream(tmp_path):
+    """The row above was written from ``run_id``, which the test supplied
+    and a live session never carries: it names its run directory by
+    ``session_id``. None of the four goals of one campaign recorded the
+    row (pak campaign, 2026-09-19). This drives the real result type."""
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent._contracts import canonical_sha256
+    from chemsmart.agent.driver import GoalDriver
+    from chemsmart.agent.live_session import LiveAgentSessionResultV1
+
+    from .test_the_goal_loop_recovers_or_returns import _envelope_file
+
+    workspace = _workspace_with_two_streams(tmp_path)
+    driver = GoalDriver(
+        task="t",
+        workspace=workspace,
+        execution_envelope_file=_envelope_file(tmp_path),
+        goal_id="goal-a",
+        granted_by="tester",
+    )
+    driver.cycles = 2
+    driver.ledger.directory.mkdir(parents=True, exist_ok=True)
+    driver.goal = SimpleNamespace(actor="tester")
+    body = {
+        "schema_version": "chemsmart.live-agent-session-result.v1",
+        "session_id": "live-20260916T100000000000Z-aaaa-1111",
+        "task_spec_sha256": "a" * 64,
+        "terminal_state": "waiting_for_approval",
+        "execution_requested": False,
+        "execution_profile_status": "ready",
+        "final_text": "",
+        "artifact_records": (),
+        "conformance_records": (),
+        "public_transcript": (),
+        "successful_tool_calls": 1,
+        "failed_tool_calls": 0,
+        "execution_review": {},
+        "event_stream_head_sha256": "",
+    }
+    session = LiveAgentSessionResultV1(
+        **body, result_sha256=canonical_sha256(body)
+    )
+    assert not hasattr(session, "run_id")
+    driver._record_session_stream(session)
+    resolved = driver._planned_events_path()
+    assert resolved is not None
+    assert resolved.parent.name.endswith("aaaa-1111")
+    assert driver._planned_streams() == (resolved,)

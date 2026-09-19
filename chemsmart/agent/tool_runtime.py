@@ -6167,6 +6167,17 @@ class CommandCompiledToolHostV1:
         whose output is the observable -- and records the basis. A guard
         against refusing one's way out stays: an unverified refusal
         returns to the human, never settles.
+
+        Either check verifies. The selector was tried first and its
+        answer ended the matter, so a refusal that named both was judged
+        on the selector alone, and a selector declares a job type, not a
+        method: PySCF's hess declares vibrational_frequencies while its
+        project path refuses an MP2 hess. All three MP2-frequency
+        refusals of one live goal named that selector beside a blocked
+        node carrying the observable, were recorded "the observable is
+        reachable", and returned to the human (pak-g3-ozone,
+        2026-09-19). A session omitting the selector would have been
+        verified by the node, so hearing both grants nothing new.
         """
 
         from chemsmart.analysis.result_readers import (
@@ -6277,8 +6288,8 @@ class CommandCompiledToolHostV1:
                     basis = (
                         f"selector {selector!r} is declared by "
                         + ", ".join(sorted(declaring))
-                        + "; the observable is reachable and the refusal "
-                        "is not verified"
+                        + ", so the selector does not show the producer "
+                        "absent"
                     )
                 else:
                     is_verified = True
@@ -6287,7 +6298,8 @@ class CommandCompiledToolHostV1:
                         f"declares selector {selector!r}"
                         + (f" for jobtype {jobtype!r}" if jobtype else "")
                     )
-            elif blocked_node_id:
+            if blocked_node_id and not is_verified:
+                selector_basis = f"{basis}; " if basis else ""
                 found = False
                 for plan in self.scientific_toolchain_plans.values():
                     for node in plan.analysis_nodes:
@@ -6302,18 +6314,20 @@ class CommandCompiledToolHostV1:
                             found = True
                 if found:
                     is_verified = True
-                    basis = (
+                    basis = selector_basis + (
                         f"analysis node {blocked_node_id!r} is declared "
                         "blocked_unsupported in this session's plan and "
                         f"names {observable_id!r} as its output"
                     )
                 else:
-                    basis = (
+                    basis = selector_basis + (
                         f"no blocked_unsupported node {blocked_node_id!r} "
                         f"with output {observable_id!r} exists in this "
                         "session's plans; the refusal is not verified"
                     )
-            else:
+            elif selector and not is_verified:
+                basis += "; the refusal is not verified"
+            elif not selector and not blocked_node_id:
                 # A precision no method in this envelope can reach is the
                 # third way an observable is unreachable, and the only
                 # one where the producer exists and the number was

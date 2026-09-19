@@ -42,7 +42,12 @@ the receipts that show the gap; the host verifies what it can -- a
 selector no envelope program declares, or a blocked node in the
 session's own plan whose output is the observable -- and only a
 verified refusal settles ``unreachable_from_evidence``; an unverified
-one returns the goal to the human naming it. The declaration tool says
+one returns the goal to the human naming it. Either check verifies. The
+selector was asked first and its answer ended the matter, and a selector
+is declared per job type, not per method: three refusals of MP2
+frequencies named ``vibrational_frequencies`` beside the blocked node
+that carried them, were recorded "the observable is reachable" and went
+back to the human (pak-g3-ozone, 2026-09-19). The declaration tool says
 at declaration when a meaning names a quantity kind no envelope program
 declares, with the two routes, and refuses nothing. Under a goal the
 planning prompt states the goal's authority in place of the sentence

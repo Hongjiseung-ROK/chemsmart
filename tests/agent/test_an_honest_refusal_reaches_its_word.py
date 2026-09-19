@@ -318,3 +318,88 @@ def test_a_refusal_without_a_completion_still_reaches_the_word(tmp_path):
     )
     assert result.settlement == "unreachable_from_evidence"
     assert "ddg-activation-353k" in result.reasons[0]
+
+
+_FREQUENCIES = {
+    "observable_id": "harmonic_frequencies",
+    "unit": "cm^-1",
+    "dimension": (0, 0, 0, 0, 1, 0),
+    "meaning": "harmonic frequencies on the MP2 surface",
+}
+
+
+def _plan_blocking(observable_id):
+    from chemsmart.agent.scientific_toolchain import (
+        AnalysisNodeIntentV1,
+        AnalysisOutputIntentV1,
+        build_scientific_toolchain_plan,
+    )
+
+    blocked = AnalysisNodeIntentV1(
+        node_id="mp2-freq",
+        analysis_kind="unsupported_external",
+        dependencies=(),
+        inputs=(),
+        selectors=(),
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id=observable_id,
+                quantity_kind="vibrational_frequency",
+                unit="cm^-1",
+            ),
+        ),
+        expression_nodes=(),
+        expression_output_node_ids=(),
+        temperature_k=None,
+        pressure_atm=None,
+        support_state="blocked_unsupported",
+        blocked_reason="the project path refuses an MP2 hess",
+    )
+    return build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="ozone-mp2-freq-refusal",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(),
+        calculation_observables={},
+        analysis_nodes=(blocked,),
+        required_output_ids=(observable_id,),
+    )
+
+
+@pytest.mark.parametrize(
+    ("blocked_node_id", "verified"),
+    [("mp2-freq", True), ("no-such-node", False)],
+)
+def test_a_blocked_node_verifies_beside_a_selector_a_job_type_declares(
+    tmp_path, blocked_node_id, verified
+):
+    """pak-g3-ozone (2026-09-19): three refusals of MP2 frequencies each
+    named vibrational_frequencies/hess beside a blocked node carrying the
+    observable; the selector answered first, alone, and every one went
+    back to the human as "reachable". A job type declares a selector for
+    every method it runs, including the ones its project path refuses."""
+
+    host = _host(
+        tmp_path,
+        approved_requested_observable_declarations=[_FREQUENCIES],
+        approved_scientific_toolchain_plan=_plan_blocking(
+            "harmonic_frequencies"
+        ),
+    )
+    receipt = _extraction_receipt(host)
+    reply = _decision(
+        host,
+        receipt,
+        observable_id="harmonic_frequencies",
+        selector="vibrational_frequencies",
+        jobtype="hess",
+        blocked_node_id=blocked_node_id,
+    )
+    (entry,) = reply["result"]["unreachable_observables"]
+    assert entry["verified"] is verified
+    # Both checks are on the record, and neither calls the observable
+    # reachable: a declared selector is a fact about a job type.
+    assert "is declared by" in entry["basis"]
+    assert "pyscf/hess" in entry["basis"]
+    assert "reachable" not in entry["basis"]
+    assert ("is declared blocked_unsupported" in entry["basis"]) is verified

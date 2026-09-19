@@ -202,8 +202,9 @@ the frequencies. ``hessian_derivative`` and ``fd_step_angstrom`` are
 project keys and CLI options, and an unset derivative resolves to the
 analytic one where PySCF has it and to the difference on an excited
 root, where ``analytic`` is refused: it would be ``mf.Hessian()``, the
-reference's curvature under a surface record naming the root. Stages run in a declared order so a
-surface is built before anything differentiates it, and the gradient a
+reference's curvature under a surface record naming the root. Stages
+run in a declared order so a surface is built before anything
+differentiates it, and the gradient a
 Hessian stage records is the gradient of the surface it differentiated --
 at the relaxed planar S1 point of formaldehyde the mean field's own
 gradient is 0.133 Eh/Bohr where S1's is 9.1e-06, and the first would call
@@ -274,7 +275,15 @@ was worded "uncharacterised (no frequencies printed)" in the settlement
 while that Hessian validated beside it -- true per result, false per
 goal -- and is now joined in the run stream and in the workspace
 record, so PySCF's and xTB's two nodes get the word ORCA's one node
-gets. And the qualification rows the capability ladder reads were
+gets. A Hessian on a geometry a later cycle lifted with
+``bind_reached_geometry`` -- the only route to a Hessian after the fact,
+since a woken session holds no earlier workflow -- was not joined at all:
+the lift writes a new file, and the receipt naming its source lived only
+in the planning stream. The workspace record now carries that lineage
+and each result's surface, and credits the lift only when the two
+surfaces agree; unlike the in-run edge, a comparison that cannot be made
+is not credited, because this join is new and has no earlier behaviour
+to keep. And the qualification rows the capability ladder reads were
 written from the settling cycle alone, so a goal that ran in cycle one
 and settled in an analysis-only cycle two qualified nothing; they now
 come from every cycle the goal recorded, and from both settlements,
@@ -368,8 +377,38 @@ the sections that make it true, and a test asks each of the model's own
 project path, so the next such sentence goes red when the host moves.
 The leaf gains the reference-stability sentence: what ``scf_stability``
 asks, where a lower solution is chemically plausible, and what
-``scf.reference_unstable`` means when it arrives. A four-goal sealed
-campaign on CUHK (jobs 2140018-2140021: formaldehyde and trans-glyoxal
-S1 structures, the ethylene torsion barrier, ozone at MP2) was issued
-on this tree and its results were not read before the cluster gate
-closed, so no Agent behaviour is claimed from it here.
+``scf.reference_unstable`` means when it arrives.
+
+A sealed four-goal campaign ran that tree on CUHK (jobs 2140018-2140021,
+default provider profile, approval delegated by the owner and recorded
+as ``opus-researcher-owner-delegated``, never a human decision); no task
+named a Hessian, a root, stability or a saddle except ozone's, whose
+question is its frequencies. Four goals are four observations, with no
+arm that lacked the sentences. Formaldehyde's session seeded its S1
+optimisation off-plane, planned the root's Hessian with the root's
+settings and ``finite_difference``, and ran it on the reached geometry:
+six real modes (693-3114 cm-1), a pyramidal minimum with C=O 1.304
+Angstrom, an out-of-plane angle of 35.5 degrees (the session reported
+the H-C-O-H dihedral, 140.3) and an adiabatic gap of 3.711 eV at
+TDDFT-B3LYP/6-31G*, each matching the result files; the settlement
+still called all ten numbers uncharacterised, the lineage defect above.
+The ethylene session asked ``scf_stability`` on the twisted structure,
+read the RKS -> UKS answer as diradical character, and delivered 97.32
+kcal/mol as the rigid restricted barrier under an explicit approximates
+relation. Its split of the gap to about 65 (20 kcal/mol restriction, 8
+geometry) is not what the CLI references (jobs 2140014 and 2140017,
+def2-SVP) show: at one twisted geometry the RKS energy lies 30.4
+kcal/mol above the UKS triplet. The ozone session asked stability on
+the RHF reference beneath MP2, probed the MP2 ``hess`` through the
+project path three times, quoted the refusal, and put no DFT frequency
+forward as MP2 (MP2/aug-cc-pVTZ: 1.2838 Angstrom, 116.67 degrees); the
+refusal returned to the human because the verifier asked the job
+type's selector before the blocked node carrying the observable, which
+is repaired in the settlement topic. Trans-glyoxal
+planned the root's Hessian twice and ran nothing: its first plan was
+not approvable while ``select_execution_wave`` answered that the wave
+would be submitted, and the re-woken cycle's approvable plan was
+returned for never having read a previous run that did not exist. No
+session asked stability of a closed-shell ground state except
+ethylene's planar optimisation, which shared the twisted structure's
+project.

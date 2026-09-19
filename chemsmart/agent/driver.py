@@ -63,6 +63,7 @@ from chemsmart.agent.workspace_record import (
     printed_modes,
     read_workspace_record,
     record_run,
+    recorded_surface,
     render_workspace_record,
     uncharacterised_artifacts,
 )
@@ -706,8 +707,26 @@ def _plan_identity_sha256(review: Mapping[str, Any]) -> str:
     return str(plan.get("scientific_identity_sha256") or "")
 
 
+def _session_run_id(session_result: Any) -> str:
+    """The run directory a planning session wrote its stream into.
+
+    A live session names it by ``session_id`` and carries no ``run_id``;
+    reading only ``run_id`` -- the attribute the tests supplied -- left
+    every live stream unnamed on the goal's spine, so all four goals of
+    one campaign recorded no ``session_stream_recorded`` row and every
+    wake resolved its stream by the newest-first glob that row exists to
+    replace (pak campaign, 2026-09-19).
+    """
+
+    return str(
+        getattr(session_result, "run_id", "")
+        or getattr(session_result, "session_id", "")
+        or ""
+    )
+
+
 def _session_events_path(session_result: Any, workspace: Path) -> Path:
-    run_id = str(getattr(session_result, "run_id", "") or "")
+    run_id = _session_run_id(session_result)
     candidate = (
         Path(workspace) / ".chemsmart-agent" / "runs" / run_id / "events.jsonl"
     )
@@ -2263,22 +2282,6 @@ def _stale_quantity_ids(
     return stale, tuple(sorted(rejected_artifacts))
 
 
-def _recorded_surface(record: Mapping[str, Any]) -> Mapping[str, Any] | None:
-    """The electronic surface a verified result recorded, if it did.
-
-    Read from the validator's own observations, where the neutral sensor
-    step wrote it through the program's reader, so the driver asks no
-    program-specific question of its own.
-    """
-
-    observations = record.get("observations") or {}
-    for value in observations.values():
-        if isinstance(value, Mapping) and value.get("surface"):
-            surface = value["surface"]
-            return surface if isinstance(surface, Mapping) else None
-    return None
-
-
 def _printed_no_modes(record: Mapping[str, Any]) -> bool:
     """Whether a verified opt/ts result carries no frequency block.
 
@@ -2533,7 +2536,7 @@ def _analysis_delivery(
                     for item in record.get("output_artifacts") or ()
                     if item.get("sha256")
                 )
-                surface = _recorded_surface(record)
+                surface = recorded_surface(record)
                 if surface:
                     node_surfaces[node_name] = surface
                 if str(record.get("state") or "") == "valid" and (
@@ -3162,12 +3165,10 @@ class GoalDriver:
             entry
             for entry in entries
             if entry["kind"] == "execution_wave_decision_pending"
-            and int(entry["payload"].get("cycle", 0))
-            not in dispatched_cycles
+            and int(entry["payload"].get("cycle", 0)) not in dispatched_cycles
             and int(entry["payload"].get("cycle", 0))
             not in {
-                int(item["payload"].get("cycle", 0))
-                for item in interrupted
+                int(item["payload"].get("cycle", 0)) for item in interrupted
             }
         ]
         if not parked and not interrupted and not pending_decisions:
@@ -3462,7 +3463,7 @@ class GoalDriver:
         improved.
         """
 
-        run_id = str(getattr(session, "run_id", "") or "")
+        run_id = _session_run_id(session)
         if not run_id:
             return
         self._defer_or_append(
@@ -3516,6 +3517,30 @@ class GoalDriver:
         )
         return candidate if candidate.is_file() else None
 
+    def _planned_streams(self) -> tuple[Path, ...]:
+        """Every stream this goal planned in, from its own record.
+
+        A reached geometry bound in one cycle's session can be consumed
+        by any later cycle's plan, and the lineage receipt lives only in
+        the stream that bound it.
+        """
+
+        found = []
+        for entry in self.ledger.entries():
+            if entry.get("kind") != "session_stream_recorded":
+                continue
+            run_id = str((entry.get("payload") or {}).get("run_id") or "")
+            candidate = (
+                self.workspace
+                / ".chemsmart-agent"
+                / "runs"
+                / run_id
+                / "events.jsonl"
+            )
+            if run_id and candidate.is_file() and candidate not in found:
+                found.append(candidate)
+        return tuple(found)
+
     def _review_file_for_cycle(self) -> Path | None:
         """This cycle's displayed review, wherever the driver came from.
 
@@ -3535,9 +3560,7 @@ class GoalDriver:
 
         if self.review_file is not None and Path(self.review_file).is_file():
             return Path(self.review_file)
-        candidate = (
-            self.goal_dir / "reviews" / f"cycle-{self.cycles}.json"
-        )
+        candidate = self.goal_dir / "reviews" / f"cycle-{self.cycles}.json"
         return candidate if candidate.is_file() else None
 
     def _declared_non_executable_ids(self) -> tuple[str, ...]:
@@ -3596,6 +3619,7 @@ class GoalDriver:
                 run_events_path=events_path,
                 run=run_reference,
                 review_file=self._review_file_for_cycle(),
+                lineage_events_paths=self._planned_streams(),
             )
         except (
             Exception
@@ -4527,9 +4551,11 @@ class GoalDriver:
                 partial = read_dispatch_receipt(self.run_directory)
                 submitted = str(getattr(partial, "job_id", "") or "")
                 self.ledger.append(
-                    "run_dispatch_submitted"
-                    if submitted
-                    else "run_dispatch_abandoned",
+                    (
+                        "run_dispatch_submitted"
+                        if submitted
+                        else "run_dispatch_abandoned"
+                    ),
                     {
                         "cycle": self.cycles,
                         "run": run_reference,

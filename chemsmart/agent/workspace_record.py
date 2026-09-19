@@ -186,12 +186,15 @@ def record_run(
     run: str = "",
     review_file: str | Path | None = None,
     recorded_at: str | None = None,
+    lineage_events_paths: tuple[str | Path, ...] = (),
 ) -> int:
     """Append what one run's stream proves to the workspace record.
 
     Returns the number of rows appended. Reads only receipts the stream
     carries and the review the human decided on; a stream it cannot read
-    appends nothing.
+    appends nothing. ``lineage_events_paths`` are the streams of the
+    sessions that planned this goal, read for one receipt only: which
+    result a reached geometry was lifted from.
     """
 
     try:
@@ -199,6 +202,9 @@ def record_run(
     except OSError:
         return 0
     rows = _review_rows(review_file)
+    reached_sources = _reached_geometry_sources(
+        (*lineage_events_paths, run_events_path)
+    )
     stamp = recorded_at or _utc_now()
     entries: list[dict[str, Any]] = []
     levels_in_run: set[str] = set()
@@ -223,7 +229,10 @@ def record_run(
             continue
         for artifact in (
             str(prior.get("result_artifact_sha256") or ""),
-            *(str(item) for item in prior.get("output_artifact_sha256s") or ()),
+            *(
+                str(item)
+                for item in prior.get("output_artifact_sha256s") or ()
+            ),
         ):
             if artifact:
                 level_by_artifact.setdefault(artifact, set()).add(level_sha256)
@@ -352,6 +361,10 @@ def record_run(
                     ),
                     "printed_modes": printed_modes(record),
                     "geometry_producer_node_id": handoffs.get(node_id, ""),
+                    "geometry_source_result_sha256": reached_sources.get(
+                        str(record.get("input_artifact_sha256") or ""), ""
+                    ),
+                    "surface": recorded_surface(record),
                     "state": str(record.get("state") or ""),
                     "result_receipt_sha256": str(
                         record.get("receipt_sha256") or ""
@@ -625,6 +638,51 @@ def printed_modes(record: Mapping[str, Any]) -> bool:
     )
 
 
+def recorded_surface(record: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    """The electronic surface a verified result recorded, if it did.
+
+    Read from the validator's own observations, where the neutral sensor
+    step wrote it through the program's reader, so no caller asks a
+    program-specific question of its own.
+    """
+
+    observations = record.get("observations") or {}
+    for value in observations.values():
+        if isinstance(value, Mapping) and value.get("surface"):
+            surface = value["surface"]
+            return surface if isinstance(surface, Mapping) else None
+    return None
+
+
+def _reached_geometry_sources(paths: Any) -> dict[str, str]:
+    """Which result each reached-geometry artifact was lifted from.
+
+    ``bind_reached_geometry`` writes a new file, so its digest matches no
+    output of the result it came from, and the one statement joining the
+    two is the receipt in the stream of the session that bound it.
+    """
+
+    sources: dict[str, str] = {}
+    for path in paths:
+        try:
+            lines = Path(path).read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("kind") != "reached_geometry_bound":
+                continue
+            record = (event.get("payload") or {}).get("record") or {}
+            reached = str(record.get("reached_artifact_sha256") or "")
+            source = str(record.get("source_result_sha256") or "")
+            if reached and source:
+                sources[reached] = source
+    return sources
+
+
 def _row_printed_modes(entry: Mapping[str, Any]) -> bool | None:
     """A recorded row's word on its modes; None when the row cannot say."""
 
@@ -671,17 +729,35 @@ def uncharacterised_artifacts(workspace: str | Path) -> tuple[str, ...]:
     through the handoff edge, in the same run, is characterised by that
     Hessian: ORCA's opt+freq is one node and PySCF's or xTB's are two,
     and the same physics gets the same word (PySCF round, 2026-09-12).
+
+    So is one whose reached geometry a later cycle lifted with
+    bind_reached_geometry and handed to a validated Hessian on the same
+    surface. A woken session holds no earlier workflow, so that lift is
+    the only route to a Hessian after the fact, and the edge above
+    cannot see it: an excited-root Hessian found formaldehyde's S1
+    optimum a minimum (693-3114 cm-1, gradient 3.5e-5) at the geometry
+    ex-opt reached, and the settlement called all ten numbers read from
+    that optimisation "uncharacterised (no frequencies printed)"
+    (pak-g1-formaldehyde, 2026-09-19). A surface either side left
+    unrecorded or undetermined is not a match: this join is new, and a
+    ground-state Hessian at an excited geometry is what it must not
+    credit.
     """
+
+    from chemsmart.analysis.result_readers import surfaces_agree
 
     entries = read_workspace_record(workspace)
     characterised: set[tuple[str, str, str]] = set()
+    lifted_to: dict[str, list[Mapping[str, Any] | None]] = {}
     for entry in entries:
         if entry.get("kind") != "result":
             continue
         if str(entry.get("state") or "") != "valid":
             continue
+        if not _row_printed_modes(entry):
+            continue
         producer = str(entry.get("geometry_producer_node_id") or "")
-        if producer and _row_printed_modes(entry):
+        if producer:
             characterised.add(
                 (
                     str(entry.get("goal_id") or ""),
@@ -689,6 +765,9 @@ def uncharacterised_artifacts(workspace: str | Path) -> tuple[str, ...]:
                     producer,
                 )
             )
+        source = str(entry.get("geometry_source_result_sha256") or "")
+        if source:
+            lifted_to.setdefault(source, []).append(entry.get("surface"))
     digests: set[str] = set()
     for entry in entries:
         if entry.get("kind") != "result":
@@ -704,6 +783,13 @@ def uncharacterised_artifacts(workspace: str | Path) -> tuple[str, ...]:
             str(entry.get("node_id") or ""),
         )
         if key in characterised:
+            continue
+        if any(
+            surfaces_agree(entry.get("surface"), surface) is True
+            for surface in lifted_to.get(
+                str(entry.get("result_artifact_sha256") or ""), ()
+            )
+        ):
             continue
         digests.update(
             str(item) for item in entry.get("output_artifact_sha256s") or ()
@@ -902,6 +988,7 @@ __all__ = [
     "divergences",
     "read_workspace_record",
     "record_run",
+    "recorded_surface",
     "render_workspace_record",
     "uncharacterised_artifacts",
     "workspace_record_path",
