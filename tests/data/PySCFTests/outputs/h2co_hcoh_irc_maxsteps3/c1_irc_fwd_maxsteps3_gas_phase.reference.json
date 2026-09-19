@@ -1,0 +1,83 @@
+{
+ "source": "/project/xlzhang/jiseung/pyscf-irc-20260920/cli/runs/c1/c1_irc_fwd_maxsteps3_gas_phase.h5",
+ "pyscf_version": "2.14.0",
+ "command": "/project/xlzhang/jiseung/pyscf-irc-20260920/cli2/reference_irc.py /project/xlzhang/jiseung/pyscf-irc-20260920/cli/runs/c1/c1_irc_fwd_maxsteps3_gas_phase.h5",
+ "requested_direction": "forward",
+ "irc_status": {
+  "arc_length_amu_half_bohr": 0.7866393254464432,
+  "converged": false,
+  "coordinate_system": "DelocalizedInternalCoordinates",
+  "direction_followed": "forward",
+  "direction_rule": "the first transition-vector component within 1e-3 of the largest is positive; forward is the branch whose first step projects positively on that vector",
+  "end_max_abs_gradient_eh_per_bohr": 0.06719364256402574,
+  "energy_drop_eh": 0.04694677828136662,
+  "energy_rises_along_path": 0,
+  "final_scf_converged": true,
+  "final_scf_guess": "density of the last geometry the walk evaluated",
+  "first_step_projection": 0.9824938505501551,
+  "frames": 5,
+  "geometric_start_wavenumbers_cm1": [
+   -2700.0749170429594,
+   649.11537274836,
+   1434.08661839999,
+   1653.5775409278542,
+   2821.266314941059,
+   3165.1225721901997
+  ],
+  "geometric_version": "1.1.1",
+  "gradient_evaluations": 5,
+  "gradients_net_force_torque_projected": false,
+  "integrator": "geometric.optimize.run_optimizer(irc=True): Gonzalez-Schlegel steps in mass-weighted internal coordinates",
+  "largest_energy_rise_eh": -0.0042266944645206195,
+  "maxsteps": 3,
+  "path_converged": false,
+  "path_mass_source": "geometric.molecule.PeriodicTable",
+  "requested_direction": "forward",
+  "switch_after_iteration": null,
+  "switched_to_minimisation": false,
+  "transition_vector_anchor_index": 11
+ },
+ "start_frequencies_recomputed_cm1": [
+  -2700.0429787367602,
+  649.1069838777406,
+  1434.0738842681112,
+  1653.5676075511633,
+  2821.2321344362053,
+  3165.081975302472
+ ],
+ "start_frequencies_max_abs_difference_cm1": 0.0,
+ "transition_mode_cosine_with_recomputed": 0.9999999999967598,
+ "start_energy_recomputed_eh": -113.6989395482014,
+ "start_energy_minus_path_first_eh": 9.947598300641403e-13,
+ "start_max_abs_gradient_recomputed_eh_per_bohr": 2.690908641511669e-05,
+ "start_gradient_max_abs_difference_eh_per_bohr": 1.3098520312837536e-07,
+ "interior_frames": [
+  {
+   "frame": 1,
+   "energy_recomputed_eh": -113.70316624266884,
+   "energy_minus_recorded_eh": -1.9326762412674725e-12,
+   "gradient_max_abs_difference_eh_per_bohr": 2.655799899997646e-07,
+   "scf_converged": true
+  },
+  {
+   "frame": 2,
+   "energy_recomputed_eh": -113.7153231123685,
+   "energy_minus_recorded_eh": -2.9274360713316128e-12,
+   "gradient_max_abs_difference_eh_per_bohr": 2.275013351038524e-07,
+   "scf_converged": true
+  }
+ ],
+ "end_energy_recomputed_eh": -113.74588632648398,
+ "end_energy_minus_total_energy_eh": 5.684341886080801e-13,
+ "end_matches_last_frame_angstrom": 1.1102230246251565e-16,
+ "steepest_descent_cosines": [
+  0.6779536243673101,
+  0.9963302290489089,
+  0.9946541445531426,
+  0.9997232793644765
+ ],
+ "steepest_descent_cosine_min": 0.9946541445531426,
+ "steepest_descent_cosine_median": 0.9954921868010258,
+ "steepest_descent_note": "step k is compared with the mean of the unit negative mass-weighted gradients at its two ends; the first step leaves the saddle along the transition vector, where the gradient is near zero, so it is excluded from the minimum",
+ "first_step_cosine_with_recomputed_mode": -0.9824937610453376
+}

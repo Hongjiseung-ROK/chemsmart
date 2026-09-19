@@ -197,7 +197,12 @@ gradient at the stored start, two interior frames and the endpoint, and the
 cosine of every accepted step, superposed by the mass-weighted Kabsch
 rotation, with the mean of the unit negative mass-weighted gradients at its
 two ends -- whether the recorded path is the steepest-descent path of the
-recorded surface. `inputs/` holds each ORCA saddle exactly as the PySCF runs
+recorded surface. Its output for each IRC fixture is the `*.reference.json`
+beside it, written at the end of Slurm 2140568 (PySCF 2.14.0); the script
+committed here differs from the one that ran only by black's formatting.
+Every stored energy it re-evaluated agrees to 1e-9 Eh, every gradient to
+4e-6 Eh/Bohr, and the recorded transition vector is the stored Hessian's
+lowest mode (cosine 1.000000). `inputs/` holds each ORCA saddle exactly as the PySCF runs
 read it, so the host resolves the input by the geometry identity the run
 recorded. `orca_differential/h2co_hcoh_orca_irc_full_trj.xyz` is ORCA's own
 IRC path (`%irc direction both`, 31 frames) on its HF/6-31G* saddle.

@@ -15,6 +15,7 @@ otherwise is refused.
 
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 
@@ -393,6 +394,54 @@ def test_a_request_for_the_other_branch_is_not_answered_by_this_one():
     ), validation["findings"]
     measured = validation["irc_validation"]["first_step_projection_measured"]
     assert measured > 0.9
+
+
+# ----------------------------------------------------------------------
+# PySCF's own account of each path (reference_irc.py, no geomeTRIC)
+# ----------------------------------------------------------------------
+
+
+def _reference(case: str) -> dict:
+    name = CASES[case].replace(".h5", ".reference.json")
+    return json.loads((FIXTURES / case / name).read_text())
+
+
+@pytest.mark.parametrize("case", sorted(CASES))
+def test_pyscf_recomputes_what_every_archived_path_records(case):
+    """A fresh PySCF mean field at every stored geometry the artifact names
+    -- the start, two interior frames, the endpoint -- gives the energy and
+    gradient recorded there, and the stored start Hessian gives the stored
+    spectrum. A branch geomeTRIC refused to walk still records its start."""
+
+    reference = _reference(case)
+    assert reference["start_frequencies_max_abs_difference_cm1"] < 1e-6
+    assert abs(reference["start_energy_minus_path_first_eh"]) < 1e-8
+    assert reference["start_gradient_max_abs_difference_eh_per_bohr"] < 1e-5
+    for frame in reference["interior_frames"]:
+        assert frame["scf_converged"], frame
+        assert abs(frame["energy_minus_recorded_eh"]) < 1e-8, frame
+        assert frame["gradient_max_abs_difference_eh_per_bohr"] < 1e-5, frame
+    assert abs(reference["end_energy_minus_total_energy_eh"]) < 1e-8
+    assert reference["end_matches_last_frame_angstrom"] < 1e-6
+
+
+@pytest.mark.parametrize("case", CONVERGED + ("h2co_hcoh_irc_maxsteps3",))
+def test_the_validator_and_pyscf_measure_the_same_steps(case):
+    """The validator's steepest-descent cosines, computed here from the
+    archived bytes, equal the ones PySCF's own account computed on the
+    cluster with separate code; the recorded transition vector is the
+    lowest mode of the stored Hessian, and every first step leaves along
+    it."""
+
+    reference = _reference(case)
+    validation = _validate(_path(case), case)
+    measured = validation["irc_validation"]["steepest_descent_cosines"]
+    assert np.allclose(
+        measured, reference["steepest_descent_cosines"], atol=1e-4
+    )
+    assert reference["transition_mode_cosine_with_recomputed"] > 1 - 1e-6
+    # eigh's sign is its own, so only the magnitude is compared.
+    assert abs(reference["first_step_cosine_with_recomputed_mode"]) > 0.95
 
 
 # ----------------------------------------------------------------------
