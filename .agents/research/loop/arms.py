@@ -6,8 +6,10 @@ of the source charter lands byte-identical in exactly one output file, and
 a reviewer can read exactly what was authored. The same build is what a
 promotion would commit, so the arm that was tested is the arm that ships.
 
-    python .agents/research/loop/arms.py check            # bijection only
+    python .agents/research/loop/arms.py check            # bijection of the build
     python .agents/research/loop/arms.py export DEST      # A0, A1, A2, canary
+    python .agents/research/loop/arms.py promote [--loop] # write kernel + topics here
+    python .agents/research/loop/arms.py verify           # the files ON DISK lose nothing
 """
 
 from __future__ import annotations
@@ -19,6 +21,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+
+# The last commit in which the whole charter was one file. Every build and
+# every check reads the charter from here, so the arms stay reproducible and
+# the relocation stays checkable after AGENTS.md has become the kernel.
+CHARTER_SOURCE_COMMIT = "d994053b"
+KERNEL_BUDGET_WORDS = 2000
 
 # Paragraph index ranges (inclusive) of the source charter -> topic file.
 # Indices are positions in the blank-line-separated paragraph list.
@@ -54,17 +62,53 @@ INDEX_PREFACE = (
 )
 
 
+LOOP_SECTION = (
+    "## Evidence graph and research loop\n\n"
+    "How this repository remembers and how it improves are part of its\n"
+    "development method, not an appendix. They are a working hypothesis with\n"
+    "a falsifier, recorded in `.agents/research/ledger.jsonl`: if sessions\n"
+    "that are shown these affordances do not use them, or use them without\n"
+    "better outcomes, they are removed.\n\n"
+    "- **Retrieve, do not preload.** This file is the kernel; everything else\n"
+    "  is one lookup away. `python .agents/research/loop/graph.py why <rule\n"
+    "  id | node>` answers what protects, earned, verifies, reads or\n"
+    "  superseded an instruction; `graph.py cost` and `graph.py orphans` say\n"
+    "  what an always-on sentence costs and what stands behind it;\n"
+    "  `chemsmart agent capabilities` is the state of every capability;\n"
+    "  `MAINTENANCE.md` holds what worked and under what conditions;\n"
+    "  `CONDUCT.md` binds every change.\n"
+    "- **Evidence is linked, not narrated.** An observation, a falsified\n"
+    "  premise, a negative result, a decision and the commit that replaced a\n"
+    "  sentence are ledger rows and graph edges (`evidenced_by`,\n"
+    "  `supersedes`, `backstopped_by`), each naming what it is about --\n"
+    "  `product`, `agent_context` or `research_loop`, three kinds that never\n"
+    "  share a commit. A lesson points at its source; it never restates it.\n"
+    "- **Research runs in generations.** `python\n"
+    "  .agents/research/loop/generation.py open` scores the previous\n"
+    "  generation's sealed forecasts before anything else; `reflect` assigns\n"
+    "  outcomes to the loop component responsible; candidates are enumerated\n"
+    "  across all three kinds; a choice and its forecast are recorded before\n"
+    "  it runs; the loop itself (`.agents/research/loop.yaml`) is mutated only\n"
+    "  by `promote`, on ledger evidence. No target is named in advance. Start\n"
+    "  from `.agents/research/BOOTSTRAP.md` and `STATE.md`.\n"
+    "- **A delegated investigator is shown all of this.** A brief names the\n"
+    "  graph and the ledger as readable evidence and asks for findings as\n"
+    "  rows that can be appended; an affordance that was never shown has not\n"
+    "  been tested.\n"
+    "- **Every persistent sentence competes** against deleting one, narrowing\n"
+    "  one, retrieving it just in time, or a deterministic invariant. This\n"
+    "  kernel stays under 2,000 words, and `census.py` measures it."
+)
+
+
 def paragraphs(text: str) -> list[str]:
     return [p for p in re.split(r"\n\s*\n", text.strip())]
 
 
 def source_text() -> str:
-    """The superset charter: the local CLAUDE.md if present, else HEAD."""
-    local = ROOT / "CLAUDE.md"
-    if local.is_file() and "@AGENTS.md" not in local.read_text()[:40]:
-        return local.read_text(encoding="utf-8")
+    """The whole charter, from the last commit in which it was one file."""
     return subprocess.run(
-        ["git", "show", "HEAD:AGENTS.md"],
+        ["git", "show", f"{CHARTER_SOURCE_COMMIT}:AGENTS.md"],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -72,7 +116,9 @@ def source_text() -> str:
     ).stdout
 
 
-def build(text: str) -> tuple[str, dict[str, str], list[str]]:
+def build(
+    text: str, loop_section: bool = False
+) -> tuple[str, dict[str, str], list[str]]:
     paras = paragraphs(text)
     if len(paras) != 107:
         raise SystemExit(
@@ -91,6 +137,8 @@ def build(text: str) -> tuple[str, dict[str, str], list[str]]:
         for slug, _a, _b, hook in TOPICS
     )
     new_text = [INDEX_PREFACE, index]
+    if loop_section:
+        new_text.append(LOOP_SECTION)
     kernel_parts: list[str] = []
     for i, para in enumerate(paras):
         if i in moved:
@@ -121,6 +169,42 @@ def check_bijection(text: str) -> list[str]:
     return problems
 
 
+def promote(loop_section: bool) -> None:
+    """Write the kernel and the topic files into this tree."""
+    text = source_text()
+    problems = check_bijection(text)
+    if problems:
+        raise SystemExit("\n".join(problems))
+    kernel, topics, _new = build(text, loop_section=loop_section)
+    (ROOT / "AGENTS.md").write_text(kernel, encoding="utf-8")
+    for rel, body in topics.items():
+        path = ROOT / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body, encoding="utf-8")
+
+
+def verify_on_disk() -> list[str]:
+    """Every paragraph of the source charter is on disk exactly once."""
+    on_disk = paragraphs((ROOT / "AGENTS.md").read_text(encoding="utf-8"))
+    for path in sorted((ROOT / ".agents" / "charter").glob("*.md")):
+        on_disk.extend(paragraphs(path.read_text(encoding="utf-8")))
+    source = paragraphs(source_text())
+    problems = [
+        f"source paragraph {i} appears {on_disk.count(para)} times on disk"
+        for i, para in enumerate(source)
+        if on_disk.count(para) != 1
+    ]
+    _kernel, _topics, listed_blocks = build(source_text(), loop_section=True)
+    listed = [q for block in listed_blocks for q in paragraphs(block)]
+    for para in on_disk:
+        if para not in source and para not in listed:
+            problems.append(f"unlisted authored text on disk: {para[:60]!r}")
+    words = len((ROOT / "AGENTS.md").read_text(encoding="utf-8").split())
+    if words > KERNEL_BUDGET_WORDS:
+        problems.append(f"kernel is {words} words, over {KERNEL_BUDGET_WORDS}")
+    return problems
+
+
 def export(dest: Path) -> None:
     text = source_text()
     problems = check_bijection(text)
@@ -142,9 +226,13 @@ def export(dest: Path) -> None:
         shutil.rmtree(tree / "experiments-public", ignore_errors=True)
         if arm == "A0":
             (tree / "AGENTS.md").unlink()
+            shutil.rmtree(tree / ".agents" / "charter", ignore_errors=True)
         elif arm == "A1":
+            shutil.rmtree(tree / ".agents" / "charter", ignore_errors=True)
+            (tree / "AGENTS.md").write_text(text, encoding="utf-8")
             (tree / "CLAUDE.md").write_text(text, encoding="utf-8")
         else:
+            shutil.rmtree(tree / ".agents" / "charter", ignore_errors=True)
             (tree / "AGENTS.md").write_text(kernel, encoding="utf-8")
             (tree / "CLAUDE.md").write_text("@AGENTS.md\n", encoding="utf-8")
             for rel, body in topics.items():
@@ -178,6 +266,16 @@ def main() -> int:
     if mode == "export":
         export(Path(sys.argv[2]).resolve())
         return 0
+    if mode == "promote":
+        promote(loop_section="--loop" in sys.argv)
+        return 0
+    if mode == "verify":
+        problems = verify_on_disk()
+        words = len((ROOT / "AGENTS.md").read_text(encoding="utf-8").split())
+        print(f"kernel on disk {words} w (budget {KERNEL_BUDGET_WORDS})")
+        for line in problems:
+            print("  " + line)
+        return 1 if problems else 0
     print(__doc__)
     return 2
 

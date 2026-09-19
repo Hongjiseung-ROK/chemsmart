@@ -1,0 +1,38 @@
+# Charter topic: validity-rules
+
+Every executed result is judged on one program-neutral rule beside its
+program's own validator: the approved jobtype promises a count of
+imaginary modes -- one for a transition-state search, none for a minimum
+-- and the program's own printed frequencies deliver one under the
+20 cm-1 convention thermochemistry uses for numerical noise. A mismatch
+is a typed failure, ``failed_wrong_stationary_point``, for every program
+whose frequencies the host reads; a run that printed none makes no
+claim. The spin expectation value is read from the program's own table
+and recorded as an observation beside the bound multiplicity, never as
+a gate; a deviation of 0.2 or more from S(S+1) is an anomaly
+observation carrying its number, ``spin.s2_deviation_ge_0.2``, named
+for the measurement and not for an expectation, because a requested
+broken-symmetry state is not a surprise. A saddle whose one imaginary
+mode lies inside 50 cm-1 -- past the convention and still far from the
+hundreds of wavenumbers a forming bond carries -- is an anomaly
+observation carrying its number, ``stationary_point.imaginary_mode_lt_50``,
+because a rule at a threshold certifies noise on the far side of it: a
+live search relaxed to a van der Waals complex at -22.8 cm-1 and the
+word was ``validated``. The observation stands beside the verdict and
+the session, not the host, says what the mode is. That observation had been
+empty on every ORCA and Gaussian result until this round -- the readers
+expose the table as a property and the host called it as a method -- so
+a charter sentence with no consumer is treated as an unverified claim
+until something reads it. Per-atom spin populations, Mulliken and
+Löwdin, are declared for ORCA ``sp``, ``opt``, ``ts`` and ``freq``:
+ORCA prints them in the second column of the same table as the
+charges, the reader had parsed and discarded that column for years,
+and a session that asked where a radical cation's spin lives was
+answered by nothing while the number sat in its output. They are read
+by column position, checked against 2S to 0.05, and refused for a
+closed-shell result rather than served as zeros. Capability is measured as
+filled coverage cells rather than CLI verbs: the capability receipt
+names, per program and jobtype, which typed axes -- electronic,
+geometry, identity, spin, thermochemistry -- are readable or validated,
+and which host validity rules apply, so a jobtype the agent can run but
+cannot judge says ``unsupported`` out loud.
