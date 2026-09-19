@@ -115,11 +115,11 @@
     {
       "kind": "program_jobtype",
       "id": "pyscf:cpu:irc",
-      "status": "claimed",
-      "run": "",
-      "commit": "",
-      "date": "",
-      "source": "direct human-CLI runs on CUHK (Slurm 2140566, 2026-09-20): PySCF irc branches from ORCA OptTS saddles; no sealed goal has run it yet"
+      "status": "recorded",
+      "run": "pyscf-irc-20260920/goals/g1-vinyl-alcohol/workspace goals/g1-vinyl-alcohol/runs/cycle-1 + pyscf-irc-20260920/goals/g2-hono/workspace goals/g2-hono/runs/cycle-2 + pyscf-irc-20260920/goals/g4-formaldehyde-h2/workspace goals/g4-formaldehyde-h2/runs/cycle-1",
+      "commit": "f1bd9361",
+      "date": "2026-09-20",
+      "source": "sealed CUHK goals (Slurm 2140676, 2140679, 2140681): closed-shell singlet B3LYP/def2-SVP branches on the CPU engine, from a supplied saddle (g1, g4) and from the saddle ORCA located in the same goal (g2); HF/6-31G* branches rest on the direct human-CLI runs (2140566, 2140568)"
     },
     {
       "kind": "setting",

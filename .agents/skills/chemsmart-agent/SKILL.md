@@ -152,7 +152,8 @@ visible.
   constrained optimisation (``modred``) as preview paths until the selected
   target is qualified.
 - PySCF CPU ``sp/opt/hess`` and xTB CPU ``sp/opt/hess`` have approved real
-  execution paths. PySCF CPU ``td``, excited-root ``opt``
+  execution paths. PySCF CPU ``td``, excited-root ``opt``, ``irc`` (one
+  branch per node, walked from a saddle on its own HF or DFT surface)
   and the ``mp2``, ``ccsd`` and ``ccsd(t)`` methods are recorded from sealed
   live goals on the configurations they ran.
 - GPU4PySCF ``sp/opt/hess`` is a PySCF-engine configuration and preview
