@@ -1,0 +1,62 @@
+# Paper claim map. A claim is not earned because code exists. Status words:
+# earned (evidence a skeptic could reconstruct), partial, open, refuted.
+# The story changes when the evidence disagrees; this file is how we notice.
+version: 1
+updated: 2026-09-19
+
+claims:
+  - id: C1_hub
+    claim: One canonical YAML-and-CLI layer lets a provider-neutral model operate several programs with zero model-authored native input.
+    evidence: [experiments-public/ino3-r12, experiments-public/po3-r19, "SUCCESSOR.md: CUHK acetamide r10 (xTB -> PySCF handoff)", "AGENTS.md: seven-node xTB/ORCA/PySCF approval"]
+    strongest_counterexample: Gaussian is never executed by the Agent; ORCA is unconfigured on CUHK; equal level strings across programs named two functionals (0.24 Eh offset) and the host only displayed it.
+    missing_experiment: A bypass-attempt count across every archived stream (attempts to author native input, paths, shell), with the refusing gate named.
+    status: partial
+    figure: program x jobtype coverage cells, qualified vs claimed, from `chemsmart agent capabilities --json`
+
+  - id: C2_honest_precision
+    claim: Typed sufficiency makes scientific honesty observable -- a requested precision that is unreachable is delivered as such instead of being overclaimed.
+    evidence: ["po3-r19: unreachable_from_evidence, measured floor 0.845 > 0.5 kcal/mol", "tracked corpus sufficiency states: short 4, attested 1, met 1 (loop/replay.py)"]
+    strongest_counterexample: A goal once settled `achieved` over six observables delivered in the wrong unit; n = 6 sufficiency records in public evidence.
+    missing_experiment: The unreachable_precision family on held-out molecules across two models, with physics bands sealed.
+    status: partial
+    figure: sufficiency-state mosaic per goal
+
+  - id: C3_live_chemistry_finds_what_suites_cannot
+    claim: Defects reachable only through live chemistry persist under a green suite, and small chemically different cases find them fastest.
+    evidence: ["CONDUCT.md section 4: fifteen findings by three reviewers, none by the author", "MAINTENANCE.md: two host defects found by three four-atom cases after 3183 tests and 67 witnesses passed"]
+    strongest_counterexample: No denominator -- defects found by the suite first are not counted anywhere.
+    missing_experiment: A defect ledger by detection channel (suite, witness bank, audit, live goal) over the commit history.
+    status: open
+    figure: detection channel x defect class
+
+  - id: C4_refusal_as_teaching
+    claim: A routed refusal that names its invariant and a legal route changes what the model does next.
+    evidence: ["L0015: routed share 0% -> 16% -> 83% across three eras; immediate same-tool retry 77% -> 65% -> 39%; recovery 92% -> 92% -> 78%"]
+    strongest_counterexample: Eras differ in model and task, and the last n is 18; recovery did not rise. The series is descriptive.
+    missing_experiment: Matched tasks, one model, routed vs unrouted refusal text for the same gate.
+    status: open
+    figure: retry / recovery by gate, per era
+
+  - id: C5_anomaly_standing
+    claim: Host sensors turn unexpected structures into findings instead of failures.
+    evidence: ["SUCCESSOR.md: r10 acetamide saddle at -35.2 cm^-1 delivered as achieved_with_observations", "AGENTS.md: planar S1 formaldehyde, N-methylacetamide rotor saddles"]
+    strongest_counterexample: The first STANDING window was confounded because the task text asked for the observation.
+    missing_experiment: The exactly_symmetric_start family with text that never asks.
+    status: partial
+    figure: anomaly receipts vs session interpretation
+
+  - id: C6_context_architecture
+    claim: Instruction surfaces built by loss-driven development accrete (10x in four weeks here), and a kernel plus verbatim retrievable topics preserves what a developer-AI can answer at a fraction of the always-on cost.
+    evidence: ["loop/census.py: 15,257-word charter, 91% in two sections", "D1 (ledger)"]
+    strongest_counterexample: pending D1; a floor arm that does nearly as well would mean the probes measure the repo, not the charter.
+    missing_experiment: D1 on a second model family and on change-making tasks, not only question answering.
+    status: open
+    figure: accuracy by probe class x arm, beside always-on tokens
+
+  - id: C7_recursive_loop
+    claim: A research loop that forecasts its own experiments and scores those forecasts can improve its own selection procedure from evidence.
+    evidence: ["ledger L0006-L0014 (events frozen, five forecasters sealed, outcomes after)"]
+    strongest_counterexample: n = 23 events in one generation; lead forecasts share an author; calibration is a proxy for selection value.
+    missing_experiment: Three generations in which the promoted policy's picks are compared with the runner-up's on realised information.
+    status: open
+    figure: calibration curves per policy across generations

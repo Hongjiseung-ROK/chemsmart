@@ -1,0 +1,80 @@
+# The research loop as an object. One version per commit; the parent is in git.
+# `status`: inherited = taken from the owner's bootstrap or from habit, never
+# tested; tested = evaluated once, result in the ledger; promoted = won an
+# evaluation against a competitor. A component is mutated the same way a
+# product rule is: hypothesis, falsifier, competing candidates, ledger record.
+version: g0
+parent: null
+provenance: >-
+  The loop that actually ran on 2026-09-19 (round 1, generation 0), written
+  down as it behaved, not as it was intended. Source of the inherited parts:
+  bootstrap/g0-owner-prompt.md.
+
+fundamentals:  # not loop components; no mutation may trade them
+  hub: CHEMSMART is the canonical hub; no model-authored native input, shell, status or second execution language.
+  researcher: the Agent is an autonomous scientific researcher; honesty, provenance and anomalies-as-evidence are increased, never suppressed.
+
+components:
+  bootstrap:
+    policy: The owner's full 3.5k-word prompt is pasted at session start; nothing shorter exists.
+    impl: bootstrap/g0-owner-prompt.md
+    status: inherited
+    falsifier: A fresh session given a <=500-word bootstrap plus STATE.md answers keyed questions on fundamentals, envelope and decisions as well as one given the full prompt.
+  retrieval:
+    policy: CLAUDE.md (15.3k words) is always on; everything else is found by ad-hoc grep and three parallel explorers with bounded questions.
+    impl: lead
+    status: inherited
+    falsifier: D1 - a kernel plus retrievable sections loses nothing on held-out probes.
+  state:
+    policy: Prose hand-off (SUCCESSOR.md style) plus the harness auto-memory index; no machine-readable record of decisions or forecasts.
+    impl: lead
+    status: inherited
+    falsifier: A successor-fidelity check passes on rendered STATE.md + ledger and fails on prose alone.
+  generate:
+    policy: Candidates come from the lead's reading of archaeology; one design per question; alternatives are not enumerated.
+    impl: lead
+    status: inherited
+    falsifier: A slate built by an explicit procedure contains a candidate the lead did not think of that later wins selection.
+  reflect:
+    policy: None recorded. Outcomes were not attributed to loop components.
+    impl: none
+    status: inherited
+    falsifier: Attribution in the ledger changes which component is mutated next at least once in three generations.
+  topology:
+    policy: Three read-only explorers with disjoint questions, then one adversarial planner reviewing the lead's design before approval. Lead synthesises.
+    impl: lead
+    status: inherited
+    evidence: [L0002]
+    falsifier: A seeded-flaw replay shows lead self-review finds as many design confounds as the external reviewer.
+  cascade:
+    policy: L0 static, L1 archived replay, L2 provider-free, L3 planning-only live, L4 sealed goals; instruments are verified on the evaluation corpus itself.
+    impl: loop/census.py, loop/replay.py
+    status: inherited
+    evidence: [L0004]
+    falsifier: Verifying instruments on a disjoint fixture removes outcome leakage at no loss of instrument correctness.
+  evaluators:
+    policy: Exact-match keys wherever the host can know the answer; blind rubric only for prose, reported apart and never a hard constraint; a floor arm must discriminate or the experiment is void.
+    impl: loop/probe.py
+    status: inherited
+    falsifier: The floor test voids an experiment whose keyed scores would otherwise have been read as a result.
+  explore:
+    policy: None explicit; the lead pursued the largest visible debt.
+    impl: lead
+    status: inherited
+    falsifier: Reserving a fixed share for the highest-uncertainty candidate yields a decision the greedy order would have missed.
+  select:
+    policy: Pareto front over a metrics vector; hub bypass = 0 and fabricated execution = 0 are lexicographic; no scalar score.
+    impl: loop/choose.py
+    status: inherited
+    falsifier: A selection made with a scalar score agrees with the Pareto choice on every recorded decision.
+  next:
+    policy: Lead intuition. No slate, no forecasts, no information-gain estimate; the next target was named in advance.
+    impl: lead
+    status: inherited
+    evidence: [L0001]
+    falsifier: M1 - a structured or ensemble forecaster is not better calibrated than lead intuition on the frozen event set.
+  successor:
+    policy: Every generation scores its predecessor's forecasts, reflects, builds a slate across all three kinds, selects, executes inside the owner's envelope, promotes one kind per commit, renders STATE.md and verifies it with a fresh session.
+    impl: README.md
+    status: inherited
+    falsifier: A fresh session given only the successor files proposes an opening move that contradicts a recorded decision.

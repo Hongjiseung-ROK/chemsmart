@@ -1,0 +1,110 @@
+# Instruction / evidence graph -- the AUTHORED JOIN only.
+# Derived at check time, never copied here: the 69 rules and their text
+# (chemsmart.agent.rules), the code gates, the capability ladder, word and
+# token costs (loop/census.py), the loop components (loop.yaml), ledger ids.
+# A node points at evidence; it never restates it. `anchor` is a verbatim
+# single-line substring, so a moved or reworded source turns graphcheck red.
+version: 1
+
+nodes:
+  - id: fundamental.hub
+    kind: fundamental
+    source: {path: CONDUCT.md, anchor: "one public"}
+    note: No model-authored native input, path, shell or status; one YAML-and-CLI layer.
+  - id: fundamental.researcher
+    kind: fundamental
+    source: {path: CONDUCT.md, anchor: "The anomaly has standing."}
+    note: Honesty, provenance, freedom of route, anomalies as evidence.
+  - id: invariant.gates
+    kind: invariant
+    source: {path: CONDUCT.md, anchor: "A refusal lives in code only when it protects an invariant that"}
+    note: The closed list of what may be a code gate; everything else is a sentence at the point of use.
+  - id: invariant.claim_ladder
+    kind: invariant
+    source: {path: CONDUCT.md, anchor: "The claim ladder -- proposed, planned, materialised, previewed,"}
+    duplicates: [AGENTS.md "Scientific invariants", .agents/skills/chemsmart-agent/SKILL.md]
+
+  # Charter sections, classified. Words come from census.py, not from here.
+  - {id: charter.mission, kind: charter_section, class: FUNDAMENTAL, source: {path: AGENTS.md, anchor: "## Mission"}}
+  - {id: charter.architecture, kind: charter_section, class: HARD_INVARIANT, source: {path: AGENTS.md, anchor: "## Architecture"}, consumed_by: [tests/agent/test_the_architecture_diagram_names_real_symbols.py]}
+  - {id: charter.product_boundary, kind: charter_section, class: BOUNDARY_FACT+LOSS_NARRATIVE, source: {path: AGENTS.md, anchor: "## Product boundary for version 3.1.4"}, derivable_from: "chemsmart agent capabilities --json"}
+  - {id: charter.authority_chain, kind: charter_section, class: HARD_INVARIANT+LOSS_NARRATIVE, source: {path: AGENTS.md, anchor: "## Authority and approval chain"}}
+  - {id: charter.scientific_invariants, kind: charter_section, class: FUNDAMENTAL, source: {path: AGENTS.md, anchor: "## Scientific invariants"}}
+  - {id: charter.implementation_discipline, kind: charter_section, class: PROCEDURE, source: {path: AGENTS.md, anchor: "## Implementation discipline"}}
+
+  # Lessons the laboratory paid for. Each points at its source; none restates it.
+  - id: lesson.computed_not_consumed
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "the mechanism is right where it is computed"}
+    revalidate: every audit
+    falsifier: An audit round finds no mechanism whose value is computed and then read by nothing.
+  - id: lesson.refusal_teaches
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "the refusal message, not the guide, is where"}
+    evidence: [L0015]
+    falsifier: Routed refusals show no change in retry or recovery against unrouted ones on matched tasks.
+  - id: lesson.refusals_that_grade_chemistry
+    kind: lesson
+    source: {path: MAINTENANCE.md, anchor: "Refusals that graded chemistry"}
+    falsifier: A refusal on scientific merit prevents a wrong delivery that an observation would have let through.
+  - id: lesson.witness_must_be_red
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "a witness that was never red witnesses"}
+    consumed_by: [loop/arms.py, loop/graphcheck.py]
+  - id: lesson.defect_as_probe
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "as a probe, not a ticket"}
+  - id: lesson.explanation_is_not_authority
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "an explanation string never confers authority"}
+  - id: lesson.record_is_not_grant
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "a record's existence is not a"}
+  - id: lesson.survive_vs_preserve
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "surviving an error and preserving what"}
+  - id: lesson.check_physics_before_code
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "were wrong tests"}
+  - id: lesson.task_text_never_asks
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "the task text never asks"}
+    consumed_by: [frontier.yaml]
+  - id: lesson.no_reroll
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "weak run is never"}
+    consumed_by: [loop/probe.py]
+  - id: lesson.small_cases_find_defects
+    kind: lesson
+    source: {path: MAINTENANCE.md, anchor: "found two host defects"}
+    falsifier: A long window finds a host defect class that three unrelated four-atom cases could not reach.
+  - id: lesson.writer_reader_two_tables
+    kind: lesson
+    source: {path: MAINTENANCE.md, anchor: "A writer and a reader are two tables"}
+  - id: lesson.instrument_leaks_outcomes
+    kind: lesson
+    source: {path: .agents/research/ledger.jsonl, anchor: "\"id\": \"L0004\""}
+    note: Verifying an instrument on the evaluation corpus tells the forecaster the answer.
+    consumed_by: [loop.yaml#cascade]
+
+# Annotations keyed by DERIVED rule_id; no rule text is repeated here.
+# class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
+# stay true about chemistry) | AUTHORITY | EARNED (names its loss).
+annotations:
+  stem.never_author_native: {class: FUNDAMENTAL, backstop: {gate: CONDUCT.md section 2 "no model-authored native input, path, shell, or status"}, ablate: never}
+  stem.host_renders_claims: {class: FUNDAMENTAL, ablate: never, note: "record_analysis_claims binds values, but nothing stops a model *reporting* an unbound number"}
+  stem.validation_is_typed:
+    class: MECHANICS
+    backstop: {refusal: validation_requires_typed_analysis, commit: "00002087"}
+    falsifier: With the sentence removed, a session that reaches a scientific_validation node still ends with a typed verdict, at a cost of at most one refused call.
+    last_validated: null
+  stem.receipts_travel_typed: {class: MECHANICS, backstop: {gate: tool.dispatch.rejected}, falsifier: "Removed, sessions still bind the right receipt within two refused calls.", last_validated: null}
+  stem.plan_repair_and_inputs: {class: MECHANICS, backstop: {refusal: plan findings returned by plan_scientific_workflow}, falsifier: "Removed, plans still reach `planned` with no more than two extra planning calls.", last_validated: null}
+  stem.amend_not_resubmit: {class: MECHANICS, backstop: null, falsifier: "Removed, repair costs more turns but no plan is lost.", last_validated: null}
+
+edges:
+  - {from: fundamental.hub, to: stem.never_author_native, rel: expressed_by}
+  - {from: invariant.claim_ladder, to: charter.scientific_invariants, rel: duplicates}
+  - {from: charter.product_boundary, to: invariant.gates, rel: depends_on}
+  - {from: lesson.refusal_teaches, to: stem.validation_is_typed, rel: supersedes, note: "if the refusal teaches, the always-on sentence is the redundant copy (hypothesis H2, untested)"}
+  - {from: lesson.instrument_leaks_outcomes, to: L0004, rel: evidenced_by}
