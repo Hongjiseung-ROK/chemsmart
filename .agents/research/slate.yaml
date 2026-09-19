@@ -4,8 +4,8 @@
 # `choose.py slate` turns that into exact expected information gain.
 # Costs: claude_tokens_k, provider_usd, engine_calls, wall_hours, owner_minutes.
 # Priors are structured lead estimates; the forecaster question is open (L0024).
-generation: 1
-loop_version: g1
+generation: 2
+loop_version: g2
 forecast_by: pi1_structured (unpromoted; interim leader on 9 of 23 events)
 dropped:  # enumerated sources deliberately not turned into candidates, and why
   - loop.select / loop.explore falsifiers: need several generations of decisions to read; nothing to run yet
@@ -172,5 +172,19 @@ candidates:
       a_host_path_exists: {none_found: 0.40, found: 0.60}
     decides: whether the mechanism archived in 080535cd is ever earned
     cost: {claude_tokens_k: 30}
+    risk: none
+    fundamentals: {}
+
+  - id: affordance_visible_investigation
+    title: The next delegated investigation runs with the kernel visible and a brief that names the graph and the ledger; its trace is compared with the unprimed PySCF run (0 of 169 calls into .agents/)
+    target_kind: research_loop
+    source: [L0040, L0041, loop.topology, loop.retrieval]
+    prior: {used_and_changes_the_work: 0.35, used_without_effect: 0.35, still_unused: 0.30}
+    likelihood:
+      used_and_changes_the_work: {cites_graph_or_ledger_in_a_decision: 0.70, opens_but_does_not_cite: 0.20, never_opens: 0.10}
+      used_without_effect: {cites_graph_or_ledger_in_a_decision: 0.20, opens_but_does_not_cite: 0.60, never_opens: 0.20}
+      still_unused: {cites_graph_or_ledger_in_a_decision: 0.05, opens_but_does_not_cite: 0.15, never_opens: 0.80}
+    decides: whether the graph and the ledger earn their place once they are visible, which is the falsifier the kernel itself states; marginal cost only, because the investigation happens anyway
+    cost: {claude_tokens_k: 20}
     risk: none
     fundamentals: {}

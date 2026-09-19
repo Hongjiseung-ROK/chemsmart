@@ -77,6 +77,17 @@ def dev_surface() -> dict:
                 {"path": rel, "loader": loader, **measure(resolved(path))}
             )
     out: dict = {"files": files}
+    topics = sorted((ROOT / ".agents" / "charter").glob("*.md"))
+    if topics:
+        # Retrieved on demand, never always-on: counted so the relocation's
+        # mass stays visible and a growing topic is noticed.
+        out["charter_topics"] = {
+            "files": len(topics),
+            "words": sum(len(p.read_text(encoding="utf-8").split()) for p in topics),
+            "largest": max(
+                ((len(p.read_text(encoding="utf-8").split()), p.name) for p in topics)
+            ),
+        }
     agents, claude = ROOT / "AGENTS.md", ROOT / "CLAUDE.md"
     if agents.is_file():
         out["agents_sections"] = sections(agents.read_text(encoding="utf-8"))
@@ -169,6 +180,9 @@ def main() -> int:
             f"  {row['words']:>6} w {row['approx_tokens']:>6} tok  "
             f"{row['path']}  [{row['loader']}]"
         )
+    topics = report["dev"].get("charter_topics")
+    if topics:
+        print(f"  charter topics on demand: {topics}")
     drift = report["dev"].get("claude_vs_agents")
     if drift:
         print(f"  CLAUDE.md vs AGENTS.md: {drift}")

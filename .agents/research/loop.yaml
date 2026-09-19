@@ -4,8 +4,8 @@
 # ledger evidence against the policy it replaced. A component is mutated the
 # same way a product rule is: hypothesis, falsifier, candidates, ledger record.
 # Edit through `generation.py promote`, so every change has a decision row.
-version: g1
-parent: g0
+version: g2
+parent: g1
 provenance: 'The loop that actually ran on 2026-09-19 (round 1, generation 0), written down as it behaved, not as it was intended. Source of the inherited parts: bootstrap/g0-owner-prompt.md.'
 fundamentals:
   hub: CHEMSMART is the canonical hub; no model-authored native input, shell, status or second execution language.
@@ -17,10 +17,14 @@ components:
     status: inherited
     falsifier: A fresh session given a <=500-word bootstrap plus STATE.md answers keyed questions on fundamentals, envelope and decisions as well as one given the full prompt.
   retrieval:
-    policy: CLAUDE.md (15.3k words) is always on; everything else is found by ad-hoc grep and three parallel explorers with bounded questions.
-    impl: lead
-    status: inherited
-    falsifier: D1 - a kernel plus retrievable sections loses nothing on held-out probes.
+    policy: AGENTS.md is a kernel under 2,000 words and CLAUDE.md imports it, so every session starts from the same small file. Charter topics, the evidence graph (graph.py why / cost / orphans), the ledger and the capability ladder are retrieved on demand by name; nothing a lookup can answer is preloaded. Adopted on the owner's direction; whether the kernel loses anything on held-out probes (D1) is still untested.
+    impl: AGENTS.md, .agents/charter/, loop/graph.py, loop/arms.py verify
+    status: promoted
+    falsifier: Scored D1 shows the kernel arm losing to the full charter beyond replicate spread, or sessions that are shown the graph and ledger do not use them or use them without better outcomes.
+    evidence:
+    - L0038
+    - L0040
+    - L0041
   state:
     policy: 'The ledger is the state: append-only, hash-chained, one row per fact with target_kind, loop_version and attribution. STATE.md is rendered from it and holds nothing it lacks; the harness auto-memory keeps only a pointer.'
     impl: loop/ledger.py, loop/generation.py close
@@ -46,11 +50,13 @@ components:
     - L0003
     - L0025
   topology:
-    policy: Three read-only explorers with disjoint questions, then one adversarial planner reviewing the lead's design before approval. Lead synthesises.
-    impl: lead
-    status: inherited
+    policy: 'One investigator per question, briefed with objective, boundaries and output format, and an adversarial design review before spend. The brief names the graph and the ledger as readable evidence and asks for findings as appendable rows: an affordance that was never shown has not been tested. What a run pays to learn is written where the next run retrieves it, not only into a brief. No fan-out without an evidence-based reason.'
+    impl: lead; AGENTS.md section 'Evidence graph and research loop'
+    status: tested
     evidence:
     - L0002
+    - L0034
+    - L0040
     falsifier: A seeded-flaw replay shows lead self-review finds as many design confounds as the external reviewer.
   cascade:
     policy: L0 static, L1 archived replay, L2 provider-free, L3 planning-only live, L4 sealed goals. An instrument is verified on a disjoint fixture, never on the corpus it will evaluate. Every generation declares a Claude-usage budget before fan-out and charges subagents and headless sessions to it. Under a provider limit a slot with no billed tokens is never-attempted and one cut off mid-session is interrupted; both are set aside once, by criteria fixed before any score is read.

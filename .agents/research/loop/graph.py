@@ -113,6 +113,13 @@ def derived(graph: Graph) -> None:
                 words=row["words"], always_on=True,
             )  # fmt: skip
 
+    for topic in sorted((ROOT / ".agents" / "charter").glob("*.md")):
+        graph.node(
+            f"topic:{topic.stem}", "charter_topic",
+            words=len(topic.read_text(encoding="utf-8").split()),
+            path=f".agents/charter/{topic.name}", always_on=False,
+        )  # fmt: skip
+
     loop = yaml.safe_load((RESEARCH / "loop.yaml").read_text())
     for name, comp in loop["components"].items():
         graph.node(

@@ -19,6 +19,7 @@ the parent stays in git, and the change is a ledger decision citing evidence.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -180,12 +181,16 @@ def cmd_promote(args: list[str]) -> int:
     if not evidence or any(e not in known for e in evidence):
         print("a loop mutation cites ledger evidence that exists: --evidence L0001,L0002")
         return 1
-    # The first promotion after a version was committed opens the next one.
-    already = any(
-        r["type"] == "decision" and r.get("decision") == "promote"
-        and r["loop_version"] == loop["version"] for r in rows
-    )  # fmt: skip
-    if not already and not flag("--same-version"):
+    # The first promotion after a version was COMMITTED opens the next one;
+    # further promotions before the next commit join it. The first draft
+    # asked whether the current version had any promotion at all, which is
+    # true of every version after the first, so the loop could never have
+    # left g1 (found the second time `promote` was used).
+    committed = subprocess.run(
+        ["git", "diff", "--quiet", "HEAD", "--", str(RESEARCH / "loop.yaml")],
+        cwd=RESEARCH,
+    ).returncode == 0  # fmt: skip
+    if committed and "--same-version" not in args:
         number = int(loop["version"][1:])
         loop["parent"], loop["version"] = loop["version"], f"g{number + 1}"
     comp = loop["components"][name]
