@@ -2215,6 +2215,7 @@ class CommandCompiledToolHostV1:
         input_check_cap_seconds: float = 20.0,
         wall_seconds_remaining: float | None = None,
         revisions_remaining: int | None = None,
+        wakes_after_this_cycle: int | None = None,
         goal_delivered_declared_ids: Sequence[str] = (),
         prior_anomaly_observations: Sequence[Mapping[str, Any]] = (),
         approved_environment_identities: tuple[str, ...] = (),
@@ -2365,6 +2366,11 @@ class CommandCompiledToolHostV1:
         )
         self.revisions_remaining = (
             None if revisions_remaining is None else int(revisions_remaining)
+        )
+        self.wakes_after_this_cycle = (
+            None
+            if wakes_after_this_cycle is None
+            else int(wakes_after_this_cycle)
         )
         self.goal_delivered_declared_ids = frozenset(
             str(item) for item in goal_delivered_declared_ids
@@ -8226,6 +8232,19 @@ class CommandCompiledToolHostV1:
                     if blocking
                     else str(readiness.get("workflow_blocked_reason") or "")
                 )
+            )
+        elif (
+            dispatchable and getattr(self, "wakes_after_this_cycle", None) == 0
+        ):
+            # The wake is the goal's to open, and it opens one only while
+            # a revision remains after this cycle's own plan is admitted.
+            next_action = (
+                "this wave is what will be submitted and every member "
+                "runs, but this goal can open no further cycle after it: "
+                "nothing wakes you when it ends, and a number the "
+                "approved analysis chain computes without rendering it as "
+                "a claim is not delivered -- put every claim you need into "
+                "that chain now"
             )
         elif dispatchable:
             next_action = (

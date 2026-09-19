@@ -896,6 +896,10 @@ def run_live_agent_session(
         host_kwargs["revisions_remaining"] = int(
             goal_budgets["revisions_remaining"]
         )
+    if goal_budgets.get("wakes_after_this_cycle") is not None:
+        host_kwargs["wakes_after_this_cycle"] = int(
+            goal_budgets["wakes_after_this_cycle"]
+        )
     goal_deliverables = (goal_context or {}).get("deliverables") or {}
     goal_declared_ids = {
         str(item.get("observable_id") or "")

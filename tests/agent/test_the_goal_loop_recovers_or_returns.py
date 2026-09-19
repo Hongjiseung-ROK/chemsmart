@@ -256,6 +256,7 @@ def test_every_cycle_sees_the_goal_terms(tmp_path):
         "engine_calls_remaining": 6,
         "wall_seconds_remaining": 7200.0,
         "revisions_remaining": 1,
+        "wakes_after_this_cycle": 1,
         "excursion_calls_remaining": 0,
     }
     assert first["previous_run"] == ""
@@ -686,7 +687,10 @@ def test_the_stop_file_cancels_at_the_cycle_boundary(tmp_path):
         plan_session=lambda **kwargs: (_ for _ in ()).throw(
             AssertionError("no session may start after cancel")
         ),
-        resolve_review=lambda **kwargs: ("d" * 64, _bundle_file(tmp_path, "b.json")),
+        resolve_review=lambda **kwargs: (
+            "d" * 64,
+            _bundle_file(tmp_path, "b.json"),
+        ),
         execute_bundle=lambda **kwargs: None,
         stop_file=stop,
     )
@@ -2222,7 +2226,10 @@ def test_a_transport_loss_does_not_block_the_requirement_wake(tmp_path):
         granted_by="claude-owner-delegated-reviewer",
         max_revisions=5,
         plan_session=lambda **kwargs: next(sessions)(workspace, kwargs),
-        resolve_review=lambda **kwargs: ("d" * 64, _bundle_file(tmp_path, "b.json")),
+        resolve_review=lambda **kwargs: (
+            "d" * 64,
+            _bundle_file(tmp_path, "b.json"),
+        ),
         execute_bundle=lambda **kwargs: None,
     )
     gates = [

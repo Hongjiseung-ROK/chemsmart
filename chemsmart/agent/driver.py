@@ -1074,6 +1074,9 @@ def _goal_terms_context(
                 envelope_record.get("episode_wall_time_seconds") or 0.0
             ),
             "revisions_remaining": int(max_revisions),
+            # Cycle 1's plan is the goal's initial decision, not a
+            # revision, so every revision is still a wake it can open.
+            "wakes_after_this_cycle": int(max_revisions),
             # The line was absent here, so the host read None and every
             # first cycle displayed 0 excursion calls while the envelope
             # granted 2 (REACH-1, both goals).
@@ -1833,6 +1836,14 @@ def _wake_context(
             "engine_calls_remaining": budgets.engine_calls_remaining,
             "wall_seconds_remaining": budgets.wall_seconds_remaining,
             "revisions_remaining": budgets.revisions_remaining,
+            # A woken cycle's plan is admitted as a revision, and a wake
+            # after its run needs one more. g3-ethane and g5-methoxy
+            # (2026-09-20) each selected a wave in their last cycle, were
+            # told they would be woken when it ended, deferred their
+            # claims to that wake, and were settled without it.
+            "wakes_after_this_cycle": max(
+                0, int(budgets.revisions_remaining) - 1
+            ),
             "excursion_calls_remaining": budgets.excursion_calls_remaining,
             "input_check_probes": _recorded_input_checks(ledger),
         },
