@@ -1386,6 +1386,132 @@ def _observed_spin_deviation(
         return None
 
 
+def _silence_can_refute(
+    signal_id: str,
+    source: Mapping[str, Any],
+    observations: Mapping[str, Any] | None,
+    program: str,
+) -> bool:
+    """Whether a sensor's silence on a new result says anything at all.
+
+    Every sensor before this one reads a quantity that is always there, so
+    its silence means it did not trip. ``scf.reference_unstable`` is silent
+    whenever nobody asked, the reference class has no such answer, or the
+    analysis raised -- and an unasked question refutes nothing. Its silence
+    refutes only where the very questions that fell unstable were answered
+    stable on the new result. Anything less leaves the anomaly as it was.
+    """
+
+    if signal_id != "scf.reference_unstable":
+        return True
+    block = (observations or {}).get(program)
+    record = (
+        block.get("reference_stability")
+        if isinstance(block, Mapping)
+        else None
+    )
+    if not isinstance(record, Mapping):
+        return False
+    answered_stable = {
+        str(item.get("question") or "")
+        for item in record.get("stable") or ()
+        if isinstance(item, Mapping)
+    }
+    values = source.get("values")
+    asked = {
+        str(item)
+        for item in (
+            values.get("unstable_questions")
+            if isinstance(values, Mapping)
+            else ()
+        )
+        or ()
+    }
+    return bool(asked) and asked <= answered_stable
+
+
+def _observed_reference_instability(
+    observation: Mapping[str, Any], program: str
+) -> dict[str, Any] | None:
+    """The anomaly a recorded unstable reference raises, or None.
+
+    A converged SCF is a stationary point in orbital-rotation space and
+    not necessarily a minimum of one.  Where it is a saddle, every
+    energy, orbital energy, population, spin expectation, gradient and
+    Hessian above it describes that saddle, and every receipt is green:
+    the run converged, the geometry is real, the validator has nothing
+    to say.  So this is an observation with standing rather than a
+    verdict -- it moves no finding, no validation state and no terminal
+    word, because a broken-symmetry or deliberately constrained solution
+    is sometimes exactly what was asked for, and the session says what
+    the instability means.
+
+    Silence here is never stability.  A program whose reader answers
+    nothing, an artifact written before the record existed, a run nobody
+    asked, and an analysis that raised all arrive as no diagnostics at
+    all, and none of them reaches this sensor.
+    """
+
+    block = observation.get(program)
+    if not isinstance(block, Mapping):
+        return None
+    record = block.get("reference_stability")
+    if not isinstance(record, Mapping):
+        return None
+    unstable = tuple(
+        item
+        for item in record.get("unstable") or ()
+        if isinstance(item, Mapping)
+    )
+    if not unstable:
+        return None
+
+    def _spaces(answers):
+        return [
+            str(item.get("rotation_space") or item.get("question") or "")
+            for item in answers
+            if isinstance(item, Mapping)
+        ]
+
+    values: dict[str, Any] = {
+        "signal_id": "scf.reference_unstable",
+        "analysis": str(record.get("analysis") or ""),
+        "analysis_source": str(record.get("source") or ""),
+        "applies_to": str(record.get("applies_to") or "reference"),
+        "unstable_questions": [
+            str(item.get("question") or "") for item in unstable
+        ],
+        # The space the program searched, which is the whole of what
+        # "unstable" means here: a restricted reference falling to an
+        # unrestricted one and an unrestricted reference falling to a
+        # generalised one are different findings under one word.
+        "unstable_rotation_spaces": _spaces(unstable),
+    }
+    for name, key in (
+        ("stable_rotation_spaces", "stable"),
+        ("not_determined_rotation_spaces", "not_determined"),
+    ):
+        answers = _spaces(record.get(key) or ())
+        if answers:
+            values[name] = answers
+    unavailable = [
+        str(item.get("question") or "")
+        for item in record.get("unavailable") or ()
+        if isinstance(item, Mapping)
+    ]
+    if unavailable:
+        values["unavailable_questions"] = unavailable
+    for name in ("reference_class", "reference_family"):
+        if record.get(name):
+            values[name] = str(record[name])
+    if record.get("reference_converged") is not None:
+        # An unconverged SCF still answers, about orbitals that are not
+        # stationary at all; the word "unstable" means less there and
+        # the reader is told so rather than left to assume.
+        values["reference_converged"] = bool(record["reference_converged"])
+    return values
+
+
 def _observed_imaginary_mode_count(
     observation: Mapping[str, Any], program: str
 ) -> int | None:
@@ -1498,6 +1624,18 @@ def _neutral_sensor_facts(
 
         block["surface"] = canonical_data(surface)
         block["surface_id"] = surface_token(surface)
+    # What the run recorded about the reference every number above it
+    # stands on.  Read here, through the reader, for the same reason the
+    # surface is: a diagnostic about the wavefunction that only its own
+    # program's driver can record had no path into the host's sensors,
+    # so ``scf_stability`` was written by the PySCF driver under result
+    # contract v7 and read by nothing at all.
+    try:
+        diagnostics = reader.reference_diagnostics_for_output(output)
+    except Exception:  # noqa: BLE001 - a reader that cannot say says nothing
+        diagnostics = None
+    if diagnostics:
+        block["reference_stability"] = canonical_data(diagnostics)
     raw_frequencies = getattr(output, "vibrational_frequencies", None)
     frequencies: tuple[float, ...] = ()
     if raw_frequencies is not None:
@@ -10693,6 +10831,7 @@ class CommandCompiledToolHostV1:
         context: Any,
         anomalies: Sequence[Mapping[str, Any]],
         source_receipt_sha256: str,
+        observations: Mapping[str, Any] | None = None,
     ) -> AnomalyObservationV1 | None:
         """Replication before belief, as a superseding receipt.
 
@@ -10728,6 +10867,12 @@ class CommandCompiledToolHostV1:
             ),
             None,
         )
+        if again is None and not _silence_can_refute(
+            signal_id, source, observations, context.proposal.program
+        ):
+            # No superseding receipt: the cited anomaly stays unreplicated,
+            # which is the truth when the new result could not answer.
+            return None
         values = (
             {k: v for k, v in dict(again).items() if k != "signal_id"}
             if again is not None
@@ -12488,6 +12633,7 @@ class CommandCompiledToolHostV1:
             context=context,
             anomalies=evaluation.anomalies,
             source_receipt_sha256=result_validation_receipt.receipt_sha256,
+            observations=evaluation.observations,
         )
         if replication is not None:
             self.anomaly_observations[replication.receipt_sha256] = replication
@@ -15756,6 +15902,11 @@ class CommandCompiledToolHostV1:
         )
         if scan_boundary is not None:
             anomalies.append(scan_boundary)
+        unstable_reference = _observed_reference_instability(
+            observation, program
+        )
+        if unstable_reference is not None:
+            anomalies.append(unstable_reference)
         deviation = _observed_spin_deviation(observation, program)
         if deviation is not None and abs(deviation) >= 0.2:
             # ⟨S²⟩ is an observation, never a gate; a deviation this size

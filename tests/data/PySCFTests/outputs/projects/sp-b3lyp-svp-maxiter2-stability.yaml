@@ -1,0 +1,10 @@
+# An SCF stopped before it converged, still asked the stability
+# question: PySCF answers about orbitals that are not stationary, and
+# the record says so in ``scf_converged``.
+sp:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false
+  scf_maxiter: 2
+  scf_stability: true

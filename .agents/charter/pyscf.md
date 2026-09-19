@@ -304,6 +304,36 @@ carries no record, and none of them is read as a stable reference.
 Nothing follows an instability -- the singlet-O2 solution a follow reaches
 is 13.2 kcal/mol lower and itself unstable both ways, and which solution
 is wanted is the scientist's question. Seven real fixtures generated on a
-cluster through the ordinary CLI exercise it; no sealed goal has, and no
-selector, sensor or settlement word yet reads the record, so this release
-describes it as recorded evidence and not as something the Agent acts on.
+cluster through the ordinary CLI exercise it.
+
+That record is now read. A reader declares what its own result says about
+the reference every number above it stands on, one function on the reader
+plane beside the surface identity, and the host's program-neutral sensor
+step reads it through that function the way it reads the surface, the
+frequencies and the spin expectation: PySCF answers from
+``status/properties/scf_stability`` and Gaussian from its own stability
+verdict, every other reader answers nothing, and nothing reads nothing as
+stability. Where a determined answer came back unstable the host raises
+``scf.reference_unstable``, an anomaly observation carrying the rotation
+space, what stayed undetermined, what the program could not answer, and
+whether the orbitals it ran on had converged. Nothing about the verdict
+moves: no finding, no validation state, no terminal word, because the
+solution may be the one that was wanted. What the anomaly buys is the
+delivery walk every anomaly already drives -- a number descending from
+that node is named in the settlement as delivered from the flagged
+result, and the goal settles ``achieved_with_observations`` rather than
+plain ``achieved``. Two further fixtures, run on the cluster through the
+ordinary CLI for this round, carry the cases the seven do not: a Hessian
+whose receipt is ``validated`` with no finding delivering one real mode
+at 1641.76 cm-1 on an ``RHF/RKS -> UHF/UKS`` unstable singlet-O2
+reference, which is the whole case for a sensor; and the same molecule at
+``scf_maxiter: 2``, whose analysis answered *both* questions unstable at
+``scf_converged: false``, which is why the observation carries that flag
+-- on orbitals that are not stationary at all the word says far less.
+Gaussian's own verdict is a history, and only its last entry is the state
+of the reference the run delivered: the archived ``dna_link_sp`` log finds
+an internal instability and then reports stability, so reading any earlier
+entry would flag a reference Gaussian had already repaired. Gaussian names
+no rotation space and the record invents none. No sealed goal has run this
+surface, so the sensor is described as a host observation over real
+archived results and not as something a goal has yet acted on.

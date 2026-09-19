@@ -30,7 +30,25 @@ charges, the reader had parsed and discarded that column for years,
 and a session that asked where a radical cation's spin lives was
 answered by nothing while the number sat in its output. They are read
 by column position, checked against 2S to 0.05, and refused for a
-closed-shell result rather than served as zeros. Capability is measured as
+closed-shell result rather than served as zeros. A converged SCF is a
+stationary point in orbital-rotation space and not necessarily a minimum
+of one, and where a run recorded a program's own stability analysis that
+found a saddle there, ``scf.reference_unstable`` is an anomaly
+observation carrying the rotation space the program searched --
+"externally unstable" is RHF/RKS -> UHF/UKS for a restricted reference
+and UHF/UKS -> GHF/GKS for an unrestricted one, and a boolean would
+report one of two questions -- beside what stayed undetermined, what the
+program could not answer, and whether the orbitals it ran on had
+converged at all. It is never a verdict: a broken-symmetry or
+deliberately constrained solution is sometimes what was asked for, and
+the session says what the instability means. What it buys is that the
+numbers standing on such a reference are named where a human reads one
+word, through the delivery walk every anomaly already drives. Silence is
+never stability -- a reader that answers nothing, an artifact older than
+the record, a run nobody asked and an analysis that raised all arrive as
+no diagnostics at all -- and the diagnostic reaches the host through one
+reader function rather than a per-program thread, because the record it
+reads had been written for a round and consumed by nothing. Capability is measured as
 filled coverage cells rather than CLI verbs: the capability receipt
 names, per program and jobtype, which typed axes -- electronic,
 geometry, identity, spin, thermochemistry -- are readable or validated,

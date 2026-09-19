@@ -167,3 +167,16 @@ whole analysis: 0.005 (H atom, internal only), 0.74 (O2 RHF), 3.98
 (water RKS), 4.43 (O2 singlet RKS), 5.39 (O2 triplet UKS), 11.67 (water
 RKS under C-PCM). Of the same order as the SCF it follows on cases this
 size, which is why it is asked for rather than always run.
+
+## Reference-diagnostics round (2026-09-19, the sensor that reads it)
+
+Produced the same way on the CUHK Charles cluster (Slurm job 2140002;
+`reference.py` at 2140003), PySCF 2.14.0, against the worktree of this
+commit. Two rows, because the seven above are all converged `sp` runs
+and the host sensor that now reads the record needed the two cases they
+do not carry.
+
+| directory | what it is | why it is here |
+|---|---|---|
+| `o2_singlet_hess_stability` | a Hessian on closed-shell singlet O2 at B3LYP(G)/def2-SVP with `scf_stability: true` | receipt `validated`, no findings, one real mode at 1641.76 cm-1 -- a delivered frequency standing on a reference PySCF itself reports **RHF/RKS -> UHF/UKS unstable**. Nothing in the run failed; the number describes a saddle in orbital-rotation space under green receipts, which is the whole case for a sensor |
+| `o2_singlet_sp_unconverged_stability` | the same molecule with `scf_maxiter: 2` | receipt `failed` (`pyscf.result.stage_mismatch`), and the analysis answered anyway: **both** questions unstable at `scf_converged: false`. The only record in this corpus whose `internal` is false, and the reason the anomaly carries `reference_converged` -- on orbitals that are not stationary at all, "unstable" says far less than it does on the row above |

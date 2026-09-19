@@ -1,0 +1,8 @@
+# Frequencies computed on a reference nobody had asked about: the
+# sharpest form of the question, because a Hessian in nuclear space
+# says nothing about whether the orbitals are at a minimum.
+hess:
+  functional: b3lyp
+  basis: def2-svp
+  density_fit: false
+  scf_stability: true
