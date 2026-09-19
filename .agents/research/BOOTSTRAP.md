@@ -25,18 +25,18 @@ engine time, cluster writes, pushes, constitutional changes. A live envelope
 is granted per round and recorded in `STATE.md`; outside it, stop and ask.
 
 ## How to start
-1. Read `STATE.md` (decisions, open contradictions, open forecasts).
-2. Run `ledger.py`, `graphcheck.py`, `census.py` (see `README.md`).
-3. **Score the previous generation first:** resolve its open forecasts,
-   attribute outcomes to loop components (`loop.yaml`), then reflect: which
-   component would have had to differ for a better or cheaper result?
-4. Build a slate of ≥5 candidates across `product`, `agent_context` and
-   `research_loop` from that evidence. Forecast before running. Select by
-   expected information gain, cost, risk and the fundamentals
-   (`choose.py slate`). Never pre-name the next target; a loop mutation is
-   considered every generation and run when it wins.
-5. Execute; promote what was earned, one kind per commit; render `STATE.md`;
-   verify it with a fresh session before closing.
+The generation protocol is executable: `loop/generation.py`.
+1. `open` verifies the ledger and **scores the previous generation's sealed
+   forecasts first**; read `STATE.md` beside it.
+2. `reflect` assigns credit from ledger `attribution` to loop components
+   (`loop.yaml`); the component under most pressure is where a loop mutation
+   is looked for first.
+3. `choose.py candidates` enumerates slate sources; write `slate.yaml` with at
+   least five candidates across `product`, `agent_context` and `research_loop`,
+   each with hypotheses, a prior and an outcome model. Never pre-name a target.
+4. `select` records the choice and its forecast **before** it runs; execute;
+   append outcomes; `promote` mutates the loop only with ledger evidence.
+5. `close` renders `STATE.md`. Promote one kind per commit.
 
 ## Discipline that has been paid for
 - Evaluators are hypotheses: canary first; a floor arm must discriminate or

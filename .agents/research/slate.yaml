@@ -1,0 +1,150 @@
+# Open candidates, built under loop g1: sources enumerated by
+# `choose.py candidates`, merged and worded by the lead. Each entry states the
+# hypotheses it separates, a prior over them, and P(outcome | hypothesis);
+# `choose.py slate` turns that into exact expected information gain.
+# Costs: claude_tokens_k, provider_usd, engine_calls, wall_hours, owner_minutes.
+# Priors are structured lead estimates; the forecaster question is open (L0024).
+generation: 1
+loop_version: g1
+forecast_by: pi1_structured (unpromoted; interim leader on 9 of 23 events)
+dropped:  # enumerated sources deliberately not turned into candidates, and why
+  - loop.select / loop.explore falsifiers: need several generations of decisions to read; nothing to run yet
+  - C7_recursive_loop: is the accumulation of generations itself, not one experiment
+  - L0005 baseline failures: environment (Open Babel / InChI), not this project's defect
+
+candidates:
+  - id: payload_census
+    title: Decompose the 27-61k-token first turn into prompt, tool schema, context JSON and task, from archived transcripts and request_bytes
+    target_kind: agent_context
+    source: [L0016]
+    prior: {context_json_dominant: 0.40, tool_schema_dominant: 0.35, balanced: 0.25}
+    likelihood:
+      context_json_dominant: {ctx: 0.90, schema: 0.04, even: 0.06}
+      tool_schema_dominant: {ctx: 0.04, schema: 0.90, even: 0.06}
+      balanced: {ctx: 0.10, schema: 0.10, even: 0.80}
+    decides: which always-on component a context mutation should target at all; rule prose is already known to be under 6% of it
+    cost: {claude_tokens_k: 25}
+    risk: none
+    fundamentals: {}
+
+  - id: bypass_census
+    title: Count hub-bypass attempts (model-authored native input, paths, shell, status) across all 385 archived streams, naming what stopped each
+    target_kind: product
+    source: [C1_hub]
+    prior: {no_channel_exists: 0.55, rare: 0.35, common: 0.10}
+    likelihood:
+      no_channel_exists: {none_seen: 0.80, some: 0.18, many: 0.02}
+      rare: {none_seen: 0.35, some: 0.60, many: 0.05}
+      common: {none_seen: 0.05, some: 0.35, many: 0.60}
+    decides: whether fundamental 1 holds by construction or by refusal, and what claim C1 may say
+    caveat: the routed-gate vocabulary has no native-input gate and tool arguments may be stored as digests, so instrument validity is itself uncertain
+    cost: {claude_tokens_k: 40}
+    risk: none
+    fundamentals: {}
+
+  - id: defect_channel_ledger
+    title: Classify every host defect in the commit history by the channel that found it (suite, witness bank, audit, live goal)
+    target_kind: product
+    source: [C3_live_chemistry_finds_what_suites_cannot]
+    prior: {live_majority: 0.40, audit_majority: 0.40, suite_majority: 0.20}
+    likelihood:
+      live_majority: {live: 0.70, audit: 0.20, suite: 0.10}
+      audit_majority: {live: 0.20, audit: 0.70, suite: 0.10}
+      suite_majority: {live: 0.15, audit: 0.15, suite: 0.70}
+    decides: whether claim C3 has a denominator
+    cost: {claude_tokens_k: 120}
+    risk: none
+    fundamentals: {}
+
+  - id: finish_D1
+    title: Score the 28 clean D1 observations and run the 29 empty slots under a declared usage budget
+    target_kind: research_loop
+    source: [loop.retrieval, L0023]
+    prior: {kernel_no_loss: 0.50, kernel_loses: 0.20, floor_void: 0.30}
+    likelihood:
+      kernel_no_loss: {no_loss: 0.80, loss: 0.10, void: 0.10}
+      kernel_loses: {no_loss: 0.15, loss: 0.75, void: 0.10}
+      floor_void: {no_loss: 0.10, loss: 0.05, void: 0.85}
+    decides: whether the 15k-word always-on charter may become a kernel plus topics; also resolves E02-E15 and with them M1
+    cost: {claude_tokens_k: 600, owner_minutes: 60}
+    risk: reversible
+    fundamentals: {}
+
+  - id: successor_fidelity
+    title: Fresh sessions given BOOTSTRAP.md + STATE.md versus the owner's full prompt answer keyed questions on fundamentals, envelope and decisions
+    target_kind: research_loop
+    source: [loop.bootstrap, loop.state, loop.successor]
+    prior: {compact_adequate: 0.60, loses_requirements: 0.40}
+    likelihood:
+      compact_adequate: {adequate: 0.80, loses: 0.20}
+      loses_requirements: {adequate: 0.25, loses: 0.75}
+    decides: whether the 498-word bootstrap may replace the 3,146-word parent
+    cost: {claude_tokens_k: 120, owner_minutes: 10}
+    risk: none
+    fundamentals: {}
+
+  - id: seeded_flaw_replay
+    title: Give the lead's first D1 design to lead-style self-review and to an external adversary; count the seven known confounds each finds
+    target_kind: research_loop
+    source: [loop.topology, L0002]
+    prior: {self_review_suffices: 0.35, external_needed: 0.65}
+    likelihood:
+      self_review_suffices: {self_finds_most: 0.80, self_misses: 0.20}
+      external_needed: {self_finds_most: 0.20, self_misses: 0.80}
+    decides: whether an adversarial design review before spend stays mandatory
+    cost: {claude_tokens_k: 150}
+    risk: none
+    fundamentals: {}
+
+  - id: frontier_baseline_goals
+    title: Three sealed goals with the unmodified Agent on held-out families (exactly symmetric start, unreachable precision, cross-program convention), PySCF + xTB on CUHK
+    target_kind: agent_context
+    source: [C2_honest_precision, C5_anomaly_standing]
+    prior: {repairs_unprompted: 0.50, detects_not_repairs: 0.35, delivers_on_saddle: 0.15}
+    likelihood:
+      repairs_unprompted: {repair: 0.80, detect: 0.15, silent: 0.05}
+      detects_not_repairs: {repair: 0.15, detect: 0.75, silent: 0.10}
+      delivers_on_saddle: {repair: 0.05, detect: 0.15, silent: 0.80}
+    decides: the first frontier baseline every later agent_context mutation is compared with
+    cost: {claude_tokens_k: 250, provider_usd: 4, engine_calls: 48, wall_hours: 8}
+    risk: outward_facing
+    fundamentals: {}
+
+  - id: R1a_planning_only
+    title: Stem mechanics bundle removed vs present, six held-out planning-only tasks per arm, refusal counts by gate as the readout
+    target_kind: agent_context
+    source: [stem.validation_is_typed, stem.receipts_travel_typed, stem.plan_repair_and_inputs]
+    prior: {redundant: 0.70, load_bearing: 0.30}
+    likelihood:
+      redundant: {no_difference: 0.85, difference: 0.15}
+      load_bearing: {no_difference: 0.35, difference: 0.65}
+    decides: whether a sentence whose violation a typed refusal already answers earns its always-on place
+    cost: {claude_tokens_k: 150, provider_usd: 2, wall_hours: 2}
+    risk: outward_facing
+    fundamentals: {}
+
+  - id: R1_mechanics_bundle
+    title: The full incumbent - R1a plus three sealed goals per arm on CUHK
+    target_kind: agent_context
+    source: [stem.validation_is_typed, L0015, L0016]
+    prior: {redundant: 0.70, load_bearing: 0.30}
+    likelihood:
+      redundant: {no_difference: 0.85, difference: 0.15}
+      load_bearing: {no_difference: 0.45, difference: 0.55}
+    decides: the same question as R1a with goal-level evidence; the contrast is 174 words in a 27-61k-token turn, so most outcomes read as "no difference at this n"
+    cost: {claude_tokens_k: 400, provider_usd: 8, engine_calls: 96, wall_hours: 12}
+    risk: outward_facing
+    fundamentals: {}
+
+  - id: stream_replay_test
+    title: One production-path test replaying an archived real event stream through replay_events, since nothing pins the compatibility 385 old streams show
+    target_kind: product
+    source: [L0015]
+    prior: {passes_today: 0.97, fails_today: 0.03}
+    likelihood:
+      passes_today: {pass: 0.99, fail: 0.01}
+      fails_today: {pass: 0.05, fail: 0.95}
+    decides: almost nothing today - it protects a property rather than testing a hypothesis
+    cost: {claude_tokens_k: 30}
+    risk: reversible
+    fundamentals: {}

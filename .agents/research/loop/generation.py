@@ -224,10 +224,12 @@ def cmd_close() -> int:
         "## Components adopted on evidence",
     ]
     adopted = [(n, c) for n, c in loop["components"].items() if c.get("status") != "inherited"]
-    lines += [f"- `{n}` ({c['status']}, {','.join(c.get('evidence') or [])}): {c['policy']}"
+    # First sentence only: the full policy is one `graph.py why loop:<name>` away.
+    lines += [f"- `{n}` ({c['status']}, {','.join(c.get('evidence') or [])}): "
+              f"{c['policy'].split('. ')[0].rstrip('.')}."
               for n, c in adopted] or ["- none"]  # fmt: skip
     lines += ["", "## Decisions (newest last)"]
-    lines += [f"- {r['id']} {r.get('decision')}: {r['title']}" for r in decisions[-8:]]
+    lines += [f"- {r['id']} {r.get('decision')}: {r['title'][:96]}" for r in decisions[-7:]]
     lines += ["", "## Open"]
     open_events = open_forecast_events(rows)
     lines.append(f"- forecasts awaiting outcomes: {len(open_events)} events "

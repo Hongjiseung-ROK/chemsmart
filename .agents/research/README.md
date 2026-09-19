@@ -26,7 +26,8 @@ $PY .agents/research/loop/graph.py check   # every pointer still resolves (also:
 $PY .agents/research/loop/census.py        # what each surface costs
 $PY .agents/research/loop/replay.py [ROOT] # what archived runs did
 $PY .agents/research/loop/arms.py check    # relocation loses no paragraph
-$PY .agents/research/loop/choose.py slate  # EIG / cost / risk ranking
+$PY .agents/research/loop/choose.py slate  # EIG / cost / risk ranking (also: candidates)
+$PY .agents/research/loop/generation.py open|reflect|select|promote|close
 $PY .agents/research/loop/choose.py score  # score sealed forecasts
 ```
 
