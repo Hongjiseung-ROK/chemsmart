@@ -378,3 +378,69 @@ def test_a_number_standing_on_an_unstable_reference_is_named_at_settlement(
         for reason in reasons
     )
     assert any(SIGNAL in reason for reason in reasons)
+
+
+# ----------------------------------------------------------------------
+# silence is never stability -- at the replication organ too
+# ----------------------------------------------------------------------
+
+
+def _replicate(tmp_path, excursion_case: str):
+    """An excursion citing a real unstable-reference anomaly, replicated by
+    the evaluation of another real artifact."""
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent.runtime.event_store import RuntimeEventStore
+
+    source = _signals(_evaluate("o2_singlet_sp_stability"))[
+        "scf.reference_unstable"
+    ]
+    cited = "c" * 64
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(
+            tmp_path / "events.jsonl", session_id="s"
+        ),
+        artifacts={},
+        task_spec_sha256s=("a" * 64,),
+        approved_workspace=tmp_path / "workspace",
+        prior_anomaly_observations=[
+            {
+                "receipt_sha256": cited,
+                "signal_id": "scf.reference_unstable",
+                "status": "unreplicated",
+                "values": dict(source),
+            }
+        ],
+    )
+    evaluation = _evaluate(excursion_case)
+    context = SimpleNamespace(
+        excursion=cited,
+        proposal=SimpleNamespace(program="pyscf", jobtype="sp"),
+    )
+    return host._replication_receipt(
+        node_id="sp-replicate",
+        context=context,
+        anomalies=evaluation.anomalies,
+        observations=evaluation.observations,
+        source_receipt_sha256="d" * 64,
+    )
+
+
+@pytest.mark.capability("signal:scf.reference_unstable")
+def test_a_run_that_never_asked_cannot_refute_an_unstable_reference(tmp_path):
+    """Every earlier sensor reads a quantity that is always there, so its
+    silence means it did not trip. This one is silent when nobody asked,
+    and an unasked question refutes nothing: the anomaly stays as it was."""
+
+    assert _replicate(tmp_path, "water_sp_no_stability") is None
+    # ROHF has no external answer at all; it cannot refute an external one.
+    assert _replicate(tmp_path, "hydrogen_atom_sp_stability") is None
+
+
+@pytest.mark.capability("signal:scf.reference_unstable")
+def test_the_same_question_answered_replicates_or_refutes(tmp_path):
+    again = _replicate(tmp_path, "o2_singlet_hf_sp_stability")
+    assert again.status == "replicated"
+    stable = _replicate(tmp_path, "water_sp_stability")
+    assert stable.status == "refuted"

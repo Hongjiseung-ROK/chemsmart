@@ -1386,6 +1386,50 @@ def _observed_spin_deviation(
         return None
 
 
+def _silence_can_refute(
+    signal_id: str,
+    source: Mapping[str, Any],
+    observations: Mapping[str, Any] | None,
+    program: str,
+) -> bool:
+    """Whether a sensor's silence on a new result says anything at all.
+
+    Every sensor before this one reads a quantity that is always there, so
+    its silence means it did not trip. ``scf.reference_unstable`` is silent
+    whenever nobody asked, the reference class has no such answer, or the
+    analysis raised -- and an unasked question refutes nothing. Its silence
+    refutes only where the very questions that fell unstable were answered
+    stable on the new result. Anything less leaves the anomaly as it was.
+    """
+
+    if signal_id != "scf.reference_unstable":
+        return True
+    block = (observations or {}).get(program)
+    record = (
+        block.get("reference_stability")
+        if isinstance(block, Mapping)
+        else None
+    )
+    if not isinstance(record, Mapping):
+        return False
+    answered_stable = {
+        str(item.get("question") or "")
+        for item in record.get("stable") or ()
+        if isinstance(item, Mapping)
+    }
+    values = source.get("values")
+    asked = {
+        str(item)
+        for item in (
+            values.get("unstable_questions")
+            if isinstance(values, Mapping)
+            else ()
+        )
+        or ()
+    }
+    return bool(asked) and asked <= answered_stable
+
+
 def _observed_reference_instability(
     observation: Mapping[str, Any], program: str
 ) -> dict[str, Any] | None:
@@ -10787,6 +10831,7 @@ class CommandCompiledToolHostV1:
         context: Any,
         anomalies: Sequence[Mapping[str, Any]],
         source_receipt_sha256: str,
+        observations: Mapping[str, Any] | None = None,
     ) -> AnomalyObservationV1 | None:
         """Replication before belief, as a superseding receipt.
 
@@ -10822,6 +10867,12 @@ class CommandCompiledToolHostV1:
             ),
             None,
         )
+        if again is None and not _silence_can_refute(
+            signal_id, source, observations, context.proposal.program
+        ):
+            # No superseding receipt: the cited anomaly stays unreplicated,
+            # which is the truth when the new result could not answer.
+            return None
         values = (
             {k: v for k, v in dict(again).items() if k != "signal_id"}
             if again is not None
@@ -12582,6 +12633,7 @@ class CommandCompiledToolHostV1:
             context=context,
             anomalies=evaluation.anomalies,
             source_receipt_sha256=result_validation_receipt.receipt_sha256,
+            observations=evaluation.observations,
         )
         if replication is not None:
             self.anomaly_observations[replication.receipt_sha256] = replication
