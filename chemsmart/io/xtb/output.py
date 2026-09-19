@@ -322,6 +322,29 @@ class XTBOutput:
         source = self.ir_spectrum_source
         return source.ir_intensities if source is not None else None
 
+    @property
+    def vibrational_mode_source(self):
+        """Return the one native table carrying per-mode displacements.
+
+        Only the Gaussian-98 sidecar prints normal coordinates, so whenever
+        xTB also wrote a spectrum sidecar this is not the table that
+        supplied ``vibrational_frequencies``.  Naming it is what lets a
+        reader seal the bytes it consumed.
+        """
+        if self.molecule.is_monoatomic:
+            return None
+        if self.g98_file and self.g98_file.vibrational_modes is not None:
+            return self.g98_file
+        return None
+
+    @property
+    def vibrational_modes(self):
+        """Get per-mode Cartesian displacement matrices, in mode order."""
+        if self.molecule.is_monoatomic:
+            return []
+        source = self.vibrational_mode_source
+        return source.vibrational_modes if source is not None else None
+
     @cached_property
     def xtbopt_geometry(self):
         """Read geometry from xtbopt.* file and return as Molecule object."""

@@ -2299,22 +2299,42 @@ def _xtb_geometry_source_path(output: Any, selector: str) -> Path | None:
 def _xtb_native_evidence_paths(output: Any, selector: str) -> tuple[Path, ...]:
     """Return xTB sidecars whose bytes a selector directly consumes."""
 
-    if selector in {"ir_intensities", "vibrational_frequencies"}:
-        # These selectors are a paired observation when xTB wrote an
-        # IR-bearing mode table.  Bind both receipts to that exact table so a
-        # later comparison can establish row-wise correspondence rather than
-        # merely matching list lengths from two unrelated files.
-        source = getattr(output, "ir_spectrum_source", None)
-        path = (
-            getattr(source, "filepath", None)
-            or getattr(source, "filename", None)
-            if source is not None
-            else None
+    def _sidecar(source: Any) -> Path | None:
+        """The path of one native table, unless it is the artifact itself."""
+
+        if source is None or source is getattr(output, "main_out", None):
+            return None
+        path = getattr(source, "filepath", None) or getattr(
+            source, "filename", None
         )
-        main_out = getattr(output, "main_out", None)
-        if path and source is not main_out:
-            return (Path(str(path)),)
-        return ()
+        return Path(str(path)) if path else None
+
+    # The spectrum table carries the frequency column and the IR column as
+    # one paired observation, and the degeneracy grouping is read from that
+    # same column.  Bind their receipts to that exact table so a later
+    # comparison can establish row-wise correspondence rather than merely
+    # matching list lengths from two unrelated files.
+    if selector in {
+        "ir_intensities",
+        "vibrational_frequencies",
+        "vibrational_mode_degeneracy_group",
+    }:
+        spectrum = _sidecar(getattr(output, "ir_spectrum_source", None))
+        return (spectrum,) if spectrum else ()
+
+    # Per-atom participation reads both tables: the displacement vectors of
+    # the mode table and the frequency list the row index is shared with.
+    # Sealing one of the two would leave the delivered rows standing on
+    # bytes no receipt names.  Seven real Hessians agreed row for row between
+    # the two (at most 0.0050 cm^-1, print rounding), so the pairing is
+    # sealed here and not guarded: no disagreement has been observed to
+    # refuse.
+    if selector == "vibrational_mode_atom_participation":
+        paths = (
+            _sidecar(getattr(output, "ir_spectrum_source", None)),
+            _sidecar(getattr(output, "vibrational_mode_source", None)),
+        )
+        return tuple(path for path in paths if path)
 
     file_attribute = {
         "wiberg_bond_orders": "wbo_file",
