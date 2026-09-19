@@ -152,10 +152,17 @@ def authored(graph: Graph) -> list[str]:
         source = node.get("source") or {}
         facts = {k: v for k, v in node.items() if k not in ("id", "kind")}
         graph.node(node["id"], node["kind"], **facts)
-        path = ROOT / source.get("path", "")
-        if not path.is_file():
+        # A node may stand on a commit instead of on a line of text: a
+        # supersession is often a commit replacing what a sentence said.
+        commit = node.get("commit")
+        if commit and not _resolves(str(commit)):
+            problems.append(f"{node['id']}: commit {commit} does not resolve")
+        if commit and not source:
+            pass
+        elif not (ROOT / source.get("path", "")).is_file():
             problems.append(f"{node['id']}: no such file {source.get('path')}")
         else:
+            path = ROOT / source["path"]
             lines = path.read_text(encoding="utf-8").splitlines()
             if not any(source["anchor"] in line for line in lines):
                 problems.append(
