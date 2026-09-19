@@ -76,6 +76,15 @@ def build_pyscf_jobs(ctx, job_class, settings, skip_completed, kwargs):
 
     molecules = ctx.obj["molecules"]
     molecule_indices = ctx.obj["molecule_indices"]
+    if not molecules:
+        # An input whose program ended before writing any structure (an
+        # ORCA log that died in its start-up) parses to an empty list, and
+        # indexing it raised a bare IndexError that named nothing.
+        raise ValueError(
+            "no molecular structure could be read from "
+            f"{ctx.obj.get('filename')!r}; a program output must contain "
+            "at least one structure to seed a PySCF job."
+        )
     label = ctx.obj["label"]
     explicit_state_fields = ctx.obj.get("explicit_state_fields", frozenset())
 
