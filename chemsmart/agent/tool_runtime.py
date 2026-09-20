@@ -3490,7 +3490,15 @@ class CommandCompiledToolHostV1:
                 for item in getattr(node, "expression_nodes", ()):
                     ops.add(str(item.get("operation", "")))
         wanted = promotions_from_plan(
-            jobtypes=jobs, operations=ops, programs=named
+            jobtypes=jobs,
+            operations=ops,
+            programs=named,
+            # Typed host state, not prose: a finalised workflow exists and
+            # this session holds the resources to run it.
+            execution_ready=(
+                self.execution_resources is not None
+                and bool(self.scientific_workflow_plans)
+            ),
         )
         if wanted:
             self._rebuild_exposure(
