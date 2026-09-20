@@ -161,10 +161,48 @@ GEOMETRY_SEARCH_JOBTYPES = frozenset({"opt", "ts"})
 SURFACE_SAMPLING_JOBTYPES = frozenset({"scan"})
 
 
-def expected_imaginary_mode_count(jobtype: str) -> int | None:
-    """How many imaginary modes the declared jobtype promises, or None."""
+#: Job types that are handed a structure and measure its curvature
+#: without moving it. What such a node's spectrum is *supposed* to
+#: contain is not a property of the Hessian: it is a property of the
+#: structure it was handed, and the node that produced that structure
+#: already said what it was searching for.
+FIXED_GEOMETRY_CURVATURE_JOBTYPES = frozenset({"freq", "hess"})
 
-    return STATIONARY_POINT_PROMISES.get(jobtype)
+
+def expected_imaginary_mode_count(
+    jobtype: str, input_jobtype: str = ""
+) -> int | None:
+    """How many imaginary modes this node promises, or None.
+
+    ``input_jobtype`` is the job type of the *result* whose geometry this
+    node consumed, where it consumed one. A Hessian inherits the promise
+    of the search that produced its structure, because the promise was
+    never about the Hessian: ORCA runs ``OptTS Freq`` as one node and the
+    saddle it confirms is what ``ts`` promised, while PySCF and xTB split
+    the same physics into a search and a Hessian -- and the Hessian half,
+    judged as though it were a minimum's, called two live saddles
+    ``failed_wrong_stationary_point`` for confirming exactly the one
+    imaginary mode they were run to find (CUHK g2-h2co-foreign-saddle and
+    g4-hooh-rotation, 2026-09-20). The same physics gets the same word.
+
+    It reads both ways, which is the point. A saddle search that
+    converges onto a minimum -- which a converged ``ts`` cannot itself
+    detect, because its artifact carries no spectrum of what it reached
+    -- produces a Hessian with no imaginary mode, and that Hessian now
+    fails the promise its producer made instead of validating as a
+    minimum nobody asked for.
+
+    A node handed a bare geometry inherits nothing and keeps the promise
+    its own job type carries.
+    """
+
+    own = STATIONARY_POINT_PROMISES.get(jobtype)
+    if jobtype not in FIXED_GEOMETRY_CURVATURE_JOBTYPES:
+        return own
+    inherited = STATIONARY_POINT_PROMISES.get(
+        str(input_jobtype or "").strip().lower()
+    )
+    return own if inherited is None else inherited
 
 
 def consequential_imaginary_mode_count(
@@ -206,12 +244,14 @@ def start_point_order_finding(
 
 
 def stationary_point_order_finding(
-    jobtype: str, observed_imaginary_modes: int | None
+    jobtype: str,
+    observed_imaginary_modes: int | None,
+    input_jobtype: str = "",
 ) -> str:
     """The finding to record, or "" when the result matches its claim or
     makes none."""
 
-    expected = expected_imaginary_mode_count(jobtype)
+    expected = expected_imaginary_mode_count(jobtype, input_jobtype)
     if expected is None or observed_imaginary_modes is None:
         return ""
     return (

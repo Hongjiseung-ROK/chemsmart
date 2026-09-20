@@ -1593,6 +1593,35 @@ def _gradient_anomaly(gradient: float) -> dict[str, Any]:
     }
 
 
+def _input_result_jobtype(artifact: Any) -> str:
+    """The job type of the result a node was handed, or "".
+
+    A geometry file is not a result and promises nothing; a result the
+    host bound says what it was searching for, and that is what a
+    downstream Hessian's spectrum is supposed to contain.
+    """
+
+    if artifact is None:
+        return ""
+    from chemsmart.analysis.result_readers import (
+        reader_for,
+        registered_reader_programs,
+    )
+
+    for name in registered_reader_programs():
+        reader = reader_for(name)
+        if reader is None or reader.artifact_kind != artifact.kind:
+            continue
+        try:
+            output = reader.open_output(
+                _current_artifact_path(artifact, field_name="input result")
+            )
+        except Exception:  # noqa: BLE001 - unreadable is no promise
+            return ""
+        return str(getattr(output, "jobtype", "") or "").strip().lower()
+    return ""
+
+
 def _neutral_sensor_facts(
     *,
     program: str,
@@ -16034,7 +16063,14 @@ class CommandCompiledToolHostV1:
         # this one also covers a minimum that landed on a saddle, and the
         # other programs, so the same physics gets the same word.
         observed_order = _observed_imaginary_mode_count(observation, program)
-        order_finding = stationary_point_order_finding(jobtype, observed_order)
+        # A node that only measures curvature inherits the promise of the
+        # search that produced the structure it was handed: the promise was
+        # never about the Hessian. Read from the bound input artifact, so
+        # it is the result the host admitted rather than a plan's word.
+        input_jobtype = _input_result_jobtype(expected_input_artifact)
+        order_finding = stationary_point_order_finding(
+            jobtype, observed_order, input_jobtype
+        )
         if order_finding:
             findings.append(order_finding)
         # The same verdict on the geometry the run was handed, where the job
@@ -16148,7 +16184,7 @@ class CommandCompiledToolHostV1:
                 {
                     "signal_id": "stationary_point.unexpected_order",
                     "expected_imaginary_modes": expected_imaginary_mode_count(
-                        jobtype
+                        jobtype, input_jobtype
                     ),
                     "observed_imaginary_modes": observed_order,
                     **sensor_inputs,

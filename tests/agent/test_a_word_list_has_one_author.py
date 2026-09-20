@@ -97,6 +97,15 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     (
         "chemsmart/agent/terminal_states.py",
         "<module>",
+        "FIXED_GEOMETRY_CURVATURE_JOBTYPES",
+        ("freq", "hess"),
+    ): _DECLARATION
+    + ": the job types that measure a structure's curvature without "
+    "moving it, and so inherit the promise of whatever produced that "
+    "structure rather than making one of their own",
+    (
+        "chemsmart/agent/terminal_states.py",
+        "<module>",
         "GEOMETRY_SEARCH_JOBTYPES",
         ("opt", "ts"),
     ): _DECLARATION
