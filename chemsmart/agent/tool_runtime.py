@@ -220,6 +220,7 @@ from chemsmart.agent.report_format import (
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.runtime.events import EventKind
 from chemsmart.agent.scientific_toolchain import (
+    ANALYSIS_INTENT_KINDS,
     AnalysisInputIntentV1,
     AnalysisNodeIntentV1,
     AnalysisOutputIntentV1,
@@ -2326,6 +2327,10 @@ class CommandCompiledToolHostV1:
             conformance_receipts=component_conformance_receipts,
             live_schema=self.live_schema,
         )
+        #: One draft per workflow being built, host-owned. Nothing
+        #: in it has passed a whole-workflow check and nothing can
+        #: execute from it; the finaliser is the only door out.
+        self.workflow_plan_drafts: dict[str, Any] = {}
         # Exposure is the authority for what the model may call. Without
         # one -- the provider-free executor, and every tool-level test --
         # the surface is the whole assembly and everything on it is
@@ -3078,6 +3083,13 @@ class CommandCompiledToolHostV1:
         "read_project_yaml": "_read_project_yaml",
         "validate_project_yaml": "_validate_project_yaml",
         "plan_scientific_workflow": "_plan_scientific_workflow",
+        "plan_calculation_stages": "_plan_calculation_stages",
+        "withdraw_planned_stage": "_withdraw_planned_stage",
+        "inspect_workflow_draft": "_inspect_workflow_draft",
+        **{
+            f"plan_{kind}": f"_plan_{kind}_stages"
+            for kind in ANALYSIS_INTENT_KINDS
+        },
         "amend_scientific_workflow": "_amend_scientific_workflow",
         "inspect_workflow_frontier": "_inspect_workflow_frontier",
         "select_execution_wave": "_select_execution_wave",
@@ -3448,7 +3460,12 @@ class CommandCompiledToolHostV1:
         }
 
     def _surface_from_plan(
-        self, turn_id: str, *, programs: Iterable[str] = ()
+        self,
+        turn_id: str,
+        *,
+        programs: Iterable[str] = (),
+        jobtypes: Iterable[str] = (),
+        operations: Iterable[str] = (),
     ) -> None:
         """A planned DAG is a typed act, so it may surface references.
 
@@ -3461,19 +3478,19 @@ class CommandCompiledToolHostV1:
 
         from chemsmart.agent.exposure import promotions_from_plan
 
-        jobtypes: set[str] = set()
-        operations: set[str] = set()
+        jobs: set[str] = {str(item) for item in jobtypes if str(item)}
+        ops: set[str] = {str(item) for item in operations if str(item)}
         named: set[str] = {str(item) for item in programs if str(item)}
         for plan in self.scientific_workflow_plans.values():
             for node in getattr(plan, "nodes", ()):
-                jobtypes.add(str(getattr(node, "jobtype", "")))
+                jobs.add(str(getattr(node, "jobtype", "")))
                 named.add(str(getattr(node, "program", "")))
         for toolchain in self.scientific_toolchain_plans.values():
             for node in getattr(toolchain, "analysis_nodes", ()):
                 for item in getattr(node, "expression_nodes", ()):
-                    operations.add(str(item.get("operation", "")))
+                    ops.add(str(item.get("operation", "")))
         wanted = promotions_from_plan(
-            jobtypes=jobtypes, operations=operations, programs=named
+            jobtypes=jobs, operations=ops, programs=named
         )
         if wanted:
             self._rebuild_exposure(
@@ -7231,54 +7248,7 @@ class CommandCompiledToolHostV1:
             tuple(str(raw_node["node_id"]) for raw_node in values["nodes"])
         )
         for raw_node in values["nodes"]:
-            inputs = tuple(
-                sorted(
-                    (
-                        ArtifactInputIntentV1(
-                            binding_id=item["binding_id"],
-                            artifact_class=item["artifact_class"],
-                            artifact_id=item.get("artifact_id", ""),
-                            producer_node_id=item["producer_node_id"],
-                            producer_output_id=item["producer_output_id"],
-                        )
-                        for item in raw_node["inputs"]
-                    ),
-                    key=lambda item: item.binding_id,
-                )
-            )
-            outputs = tuple(
-                sorted(
-                    (
-                        ArtifactOutputIntentV1(
-                            output_id=item["output_id"],
-                            artifact_class=item["artifact_class"],
-                        )
-                        for item in raw_node["expected_outputs"]
-                    ),
-                    key=lambda item: item.output_id,
-                )
-            )
-            node = CommandNodeIntentV1(
-                node_id=raw_node["node_id"],
-                program=raw_node["program"],
-                jobtype=raw_node["jobtype"],
-                project_role=raw_node["project_role"],
-                dependencies=tuple(sorted(set(raw_node["dependencies"]))),
-                inputs=inputs,
-                expected_outputs=outputs,
-                unresolved_fields=tuple(
-                    sorted(set(raw_node["unresolved_fields"]))
-                ),
-                node_kind=raw_node.get("node_kind", "program_call"),
-                charge=raw_node.get("charge"),
-                multiplicity=raw_node.get("multiplicity"),
-                internal_coordinates=(
-                    canonical_data(raw_node.get("internal_coordinates"))
-                    if raw_node.get("internal_coordinates")
-                    else None
-                ),
-                excursion=str(raw_node.get("excursion") or ""),
-            )
+            node = self._command_node_intent_from_payload(raw_node)
             if node.node_kind == "aggregate":
                 # ChemSmart performs the arithmetic, so there is no program
                 # capability to check. The contract already restricted the
@@ -7419,7 +7389,401 @@ class CommandCompiledToolHostV1:
         )
         return result
 
+    def _command_node_intent_from_payload(
+        self, raw_node: Mapping[str, Any]
+    ) -> CommandNodeIntentV1:
+        """One calculation payload as its typed intent, with its gate.
+
+        The one place a calculation payload becomes a node.
+        ``CommandNodeIntentV1`` and the intent classes it holds carry
+        every check a single stage can have -- identifiers, a
+        producer input naming both node and output, a future producer
+        not also claiming a materialised artifact, sorted and unique
+        lists. What is true only of the whole DAG stays in
+        ``_validate_draft_dag`` and runs once, at the finaliser.
+        """
+
+        inputs = tuple(
+            sorted(
+                (
+                    ArtifactInputIntentV1(
+                        binding_id=item["binding_id"],
+                        artifact_class=item["artifact_class"],
+                        artifact_id=item.get("artifact_id", ""),
+                        producer_node_id=item["producer_node_id"],
+                        producer_output_id=item["producer_output_id"],
+                    )
+                    for item in raw_node["inputs"]
+                ),
+                key=lambda item: item.binding_id,
+            )
+        )
+        outputs = tuple(
+            sorted(
+                (
+                    ArtifactOutputIntentV1(
+                        output_id=item["output_id"],
+                        artifact_class=item["artifact_class"],
+                    )
+                    for item in raw_node["expected_outputs"]
+                ),
+                key=lambda item: item.output_id,
+            )
+        )
+        return CommandNodeIntentV1(
+            node_id=raw_node["node_id"],
+            program=raw_node["program"],
+            jobtype=raw_node["jobtype"],
+            project_role=raw_node["project_role"],
+            dependencies=tuple(sorted(set(raw_node["dependencies"]))),
+            inputs=inputs,
+            expected_outputs=outputs,
+            unresolved_fields=tuple(
+                sorted(set(raw_node["unresolved_fields"]))
+            ),
+            node_kind=raw_node.get("node_kind", "program_call"),
+            charge=raw_node.get("charge"),
+            multiplicity=raw_node.get("multiplicity"),
+            internal_coordinates=(
+                canonical_data(raw_node.get("internal_coordinates"))
+                if raw_node.get("internal_coordinates")
+                else None
+            ),
+            excursion=str(raw_node.get("excursion") or ""),
+        )
+
+    # -- the draft: one workflow, built a stage at a time ------------------
+
+    def _plan_draft(self, workflow_id: str) -> Any:
+        """The draft this workflow is being built in, creating it once."""
+
+        from chemsmart.agent.plan_draft import new_draft
+
+        key = require_identifier(workflow_id, "workflow_id")
+        draft = self.workflow_plan_drafts.get(key)
+        if draft is None:
+            draft = new_draft(key)
+            self.workflow_plan_drafts[key] = draft
+        return draft
+
+    def _record_draft_revision(self, turn_id: str, draft: Any) -> dict:
+        """Adopt a revised draft and write the revision that made it."""
+
+        self.workflow_plan_drafts[draft.workflow_id] = draft
+        revision = draft.revisions[-1]
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.PLAN_DRAFT_REVISED.value,
+            payload={**draft.record(), **revision.record()},
+            idempotency_key=(
+                f"plan-draft:{draft.workflow_id}:{revision.ordinal}:"
+                + revision.draft_sha256
+            ),
+        )
+        return {
+            "schema_version": "chemsmart.workflow-plan-draft.v1",
+            **draft.record(),
+            "meaning": (
+                "the draft holds these stages and nothing has been "
+                "checked across them: dependencies, producer edges, "
+                "ordering, selector coverage, dimensions, required "
+                "outputs and budgets are plan_scientific_workflow's, "
+                "and until it passes this workflow is not reviewable "
+                "and nothing can execute from it"
+            ),
+        }
+
+    def _plan_calculation_stages(self, turn_id: str, values: dict) -> Any:
+        """Draft one or more program calculation stages.
+
+        The local gate is ``CommandNodeIntentV1`` and the intents built
+        here are thrown away: what the draft keeps is the payload, and
+        the finaliser builds the nodes that count through
+        ``_plan_command_workflow`` exactly as the aggregate tool did.
+        Building them twice would be two places where a payload becomes
+        a node.
+        """
+
+        stages = [dict(item) for item in values["stages"]]
+        self._refuse_occupied_node_ids(
+            tuple(str(item["node_id"]) for item in stages)
+        )
+        for raw_node in stages:
+            self._command_node_intent_from_payload(raw_node)
+        draft = self._plan_draft(values["workflow_id"]).with_stages(
+            stages, constructor="plan_calculation_stages", analysis=False
+        )
+        reply = self._record_draft_revision(turn_id, draft)
+        # A drafted stage is the same typed act whichever surface
+        # carried it: a stage naming ts surfaces the saddle reference
+        # here exactly as a finalised plan naming ts does.
+        if self.exposure is not None:
+            self._surface_from_plan(
+                turn_id,
+                jobtypes=tuple(
+                    str(item.get("jobtype") or "") for item in stages
+                ),
+                programs=tuple(
+                    str(item.get("program") or "") for item in stages
+                ),
+            )
+        return reply
+
+    def _plan_analysis_stages(
+        self, turn_id: str, values: dict, *, analysis_kind: str
+    ) -> Any:
+        """Draft one or more analysis stages of exactly one kind.
+
+        The kind is the constructor's, never a field: a payload that
+        could name the wrong one is a payload that can be wrong for no
+        reason. Every other field, and every check on it, is the
+        aggregate surface's unchanged.
+        """
+
+        stages = []
+        for item in values["stages"]:
+            payload = {**dict(item), "analysis_kind": analysis_kind}
+            # The node-local gate, which is the only gate a single stage
+            # can have. It stores nothing if it refuses.
+            self._analysis_intent_from_payload(payload)
+            stages.append(payload)
+        draft = self._plan_draft(values["workflow_id"]).with_stages(
+            stages, constructor=f"plan_{analysis_kind}", analysis=True
+        )
+        reply = self._record_draft_revision(turn_id, draft)
+        if self.exposure is not None:
+            self._surface_from_plan(
+                turn_id,
+                operations=tuple(
+                    str(node.get("operation") or "")
+                    for item in stages
+                    for node in item.get("expression_nodes", ())
+                ),
+            )
+        return reply
+
+    # One bound method per analysis kind, so the handler table needs no
+    # special case and a new kind cannot arrive without one. The kind is
+    # the constructor's identity; ``_plan_analysis_stages`` is the body.
+    for _kind in ANALYSIS_INTENT_KINDS:
+
+        def _analysis_constructor(
+            self, turn_id: str, values: dict, *, _kind: str = _kind
+        ) -> Any:
+            return self._plan_analysis_stages(
+                turn_id, values, analysis_kind=_kind
+            )
+
+        _analysis_constructor.__name__ = f"_plan_{_kind}_stages"
+        _analysis_constructor.__qualname__ = (
+            f"CommandCompiledToolHostV1._plan_{_kind}_stages"
+        )
+        locals()[f"_plan_{_kind}_stages"] = _analysis_constructor
+    del _kind, _analysis_constructor
+
+    def _withdraw_planned_stage(self, turn_id: str, values: dict) -> Any:
+        draft = self._plan_draft(values["workflow_id"]).without_stage(
+            values["node_id"], constructor="withdraw_planned_stage"
+        )
+        return self._record_draft_revision(turn_id, draft)
+
+    def _inspect_workflow_draft(self, turn_id: str, values: dict) -> Any:
+        draft = self._plan_draft(values["workflow_id"])
+        return {
+            "schema_version": "chemsmart.workflow-plan-draft.v1",
+            **draft.record(),
+            "meaning": (
+                "a draft is not a plan: nothing across these stages has "
+                "been checked, and plan_scientific_workflow is what "
+                "checks it and the only door out"
+            ),
+        }
+
+    def _analysis_intent_from_payload(
+        self, raw_node: Mapping[str, Any]
+    ) -> AnalysisNodeIntentV1:
+        """One analysis payload as its typed intent, with its gate.
+
+        The one place a payload becomes an intent. Constructing the
+        object runs ``AnalysisNodeIntentV1.__post_init__``, which is
+        every node-local check the host has -- per-kind field
+        admissibility, unit presence, thermochemical condition
+        coherence, claim outputs inside inputs, extraction outputs
+        naming selectors, expression-node shape, verdict
+        dimensionlessness -- consulting nothing outside the node. So
+        a constructor that calls this gets that gate for free and
+        states none of it a second time, and the finaliser building
+        the same payload cannot disagree with the constructor that
+        accepted it: it is the same call.
+        A field a kind forbids has no key at all in a projected
+        payload -- the aggregate schema required an empty array for it
+        and the projection has no such field -- so every per-kind field
+        is read with its absent default. The gate is unchanged: a value
+        that is present and forbidden is still refused by it.
+        """
+
+        analysis_kind = str(raw_node["analysis_kind"])
+        artifact_id = str(raw_node.get("artifact_id", "")).strip()
+        raw_inputs = tuple(raw_node["inputs"])
+        if artifact_id and raw_inputs:
+            raise ContractError(
+                "an analysis node must choose a registered result or a "
+                "future producer output, not both"
+            )
+        if artifact_id:
+            artifact = self._artifact(artifact_id)
+            result_program = self._analysis_result_program_for_kind(
+                artifact.kind
+            )
+            if analysis_kind == "thermochemistry" and result_program == "xyz":
+                raise ContractError(
+                    "thermochemistry requires a complete typed program "
+                    "result, not a geometry-only registered artifact"
+                )
+            analysis_inputs = (
+                RegisteredResultInputIntentV1(
+                    input_id="registered-result",
+                    artifact_id=artifact.artifact_id,
+                ),
+            )
+        else:
+            analysis_inputs = tuple(
+                sorted(
+                    (
+                        AnalysisInputIntentV1(
+                            input_id=item["input_id"],
+                            source_kind=item["source_kind"],
+                            producer_node_id=item["producer_node_id"],
+                            producer_output_id=item["producer_output_id"],
+                            uncertainty_producer_node_id=str(
+                                item.get("uncertainty_producer_node_id", "")
+                            ),
+                            uncertainty_producer_output_id=str(
+                                item.get("uncertainty_producer_output_id", "")
+                            ),
+                        )
+                        for item in raw_inputs
+                    ),
+                    key=lambda item: item.input_id,
+                )
+            )
+        return AnalysisNodeIntentV1(
+            node_id=raw_node["node_id"],
+            analysis_kind=analysis_kind,
+            dependencies=tuple(sorted(set(raw_node["dependencies"]))),
+            inputs=analysis_inputs,
+            selectors=tuple(
+                sorted(
+                    (
+                        AnalysisSelectorIntentV1(
+                            quantity_id=item["quantity_id"],
+                            selector=item["selector"],
+                        )
+                        for item in raw_node.get("selectors", ())
+                    ),
+                    key=lambda item: item.quantity_id,
+                )
+            ),
+            outputs=tuple(
+                sorted(
+                    (
+                        AnalysisOutputIntentV1(
+                            output_id=item["output_id"],
+                            quantity_kind=item["quantity_kind"],
+                            unit=item["unit"],
+                        )
+                        for item in raw_node["outputs"]
+                    ),
+                    key=lambda item: item.output_id,
+                )
+            ),
+            expression_nodes=tuple(raw_node.get("expression_nodes", ())),
+            expression_output_node_ids=tuple(
+                raw_node.get("expression_output_node_ids", ())
+            ),
+            temperature_k=raw_node.get("temperature_k"),
+            pressure_atm=raw_node.get("pressure_atm"),
+            support_state=raw_node["support_state"],
+            blocked_reason=raw_node["blocked_reason"],
+            concentration_mol_l=raw_node.get("concentration_mol_l"),
+            entropy_method=raw_node.get("entropy_method", "rrho"),
+            entropy_cutoff_cm1=raw_node.get("entropy_cutoff_cm1"),
+            enthalpy_cutoff_cm1=raw_node.get("enthalpy_cutoff_cm1"),
+            alpha=raw_node.get("alpha", 4),
+            use_weighted_mass=raw_node.get("use_weighted_mass", False),
+            frequency_scale_factor=raw_node.get("frequency_scale_factor", 1.0),
+            validation_rules=tuple(
+                sorted(
+                    (
+                        AnalysisValidationRuleIntentV1(
+                            rule_id=item["rule_id"],
+                            predicate=item["predicate"],
+                            input_ids=tuple(sorted(set(item["input_ids"]))),
+                            threshold=item.get("threshold"),
+                            expected_count=item.get("expected_count"),
+                            unit=item.get("unit", ""),
+                        )
+                        for item in raw_node.get("validation_rules", ())
+                    ),
+                    key=lambda item: item.rule_id,
+                )
+            ),
+        )
+
     def _plan_scientific_workflow(self, turn_id: str, values: dict) -> Any:
+        """Finalise this workflow's draft: the whole-workflow check.
+
+        The only door out of a draft, and it is the same door it always
+        was. The host assembles exactly the argument set the aggregate
+        tool took -- the drafted payloads, verbatim, plus the identity
+        and required outputs given here -- and runs the same path, so
+        every global check, every canonical object and every digest come
+        out of the code that produces them now. A draft authored stage
+        by stage and the same nodes sent in one payload are the same
+        workflow, byte for byte; resume and the plan-reproduction rule
+        depend on that and a witness pins it.
+
+        A refusal here keeps the draft. That is the whole point of
+        having one: the global gate names the offending node and the
+        repair re-issues that one stage instead of the DAG.
+        """
+
+        draft = self._plan_draft(values["workflow_id"])
+        if draft.closed_plan_sha256:
+            raise ContractError(
+                "this workflow was already finalised; revise it with "
+                "amend_scientific_workflow, or begin a new workflow_id"
+            )
+        if draft.is_empty():
+            raise ContractError(
+                "this workflow's draft holds no stage. Build it first "
+                "with plan_calculation_stages and the plan_* analysis "
+                "constructors; inspect_workflow_draft says what it holds"
+            )
+        assembled = {
+            "plan_id": values["plan_id"],
+            "workflow_id": draft.workflow_id,
+            "calculation_nodes": [
+                dict(item) for item in draft.calculation_nodes
+            ],
+            "analysis_nodes": [dict(item) for item in draft.analysis_nodes],
+            "required_output_ids": values["required_output_ids"],
+            **(
+                {"task_spec_id": values["task_spec_id"]}
+                if "task_spec_id" in values
+                else {}
+            ),
+        }
+        result = self._plan_scientific_workflow_from_values(turn_id, assembled)
+        plan = result["scientific_toolchain_plan"]
+        self.workflow_plan_drafts[draft.workflow_id] = draft.closed(
+            plan.plan_sha256
+        )
+        return result
+
+    def _plan_scientific_workflow_from_values(
+        self, turn_id: str, values: dict
+    ) -> Any:
         """Plan calculations and their downstream scientific analysis together.
 
         The existing command planner remains the authority for calculation
@@ -7453,130 +7817,10 @@ class CommandCompiledToolHostV1:
             node_annotations=node_annotations,
         )
         draft = command_result["workflow_draft"]
-        analysis_nodes = []
-        for raw_node in values["analysis_nodes"]:
-            analysis_kind = str(raw_node["analysis_kind"])
-            artifact_id = str(raw_node.get("artifact_id", "")).strip()
-            raw_inputs = tuple(raw_node["inputs"])
-            if artifact_id and raw_inputs:
-                raise ContractError(
-                    "an analysis node must choose a registered result or a "
-                    "future producer output, not both"
-                )
-            if artifact_id:
-                artifact = self._artifact(artifact_id)
-                result_program = self._analysis_result_program_for_kind(
-                    artifact.kind
-                )
-                if (
-                    analysis_kind == "thermochemistry"
-                    and result_program == "xyz"
-                ):
-                    raise ContractError(
-                        "thermochemistry requires a complete typed program "
-                        "result, not a geometry-only registered artifact"
-                    )
-                analysis_inputs = (
-                    RegisteredResultInputIntentV1(
-                        input_id="registered-result",
-                        artifact_id=artifact.artifact_id,
-                    ),
-                )
-            else:
-                analysis_inputs = tuple(
-                    sorted(
-                        (
-                            AnalysisInputIntentV1(
-                                input_id=item["input_id"],
-                                source_kind=item["source_kind"],
-                                producer_node_id=item["producer_node_id"],
-                                producer_output_id=item["producer_output_id"],
-                                uncertainty_producer_node_id=str(
-                                    item.get(
-                                        "uncertainty_producer_node_id", ""
-                                    )
-                                ),
-                                uncertainty_producer_output_id=str(
-                                    item.get(
-                                        "uncertainty_producer_output_id", ""
-                                    )
-                                ),
-                            )
-                            for item in raw_inputs
-                        ),
-                        key=lambda item: item.input_id,
-                    )
-                )
-            analysis_nodes.append(
-                AnalysisNodeIntentV1(
-                    node_id=raw_node["node_id"],
-                    analysis_kind=analysis_kind,
-                    dependencies=tuple(sorted(set(raw_node["dependencies"]))),
-                    inputs=analysis_inputs,
-                    selectors=tuple(
-                        sorted(
-                            (
-                                AnalysisSelectorIntentV1(
-                                    quantity_id=item["quantity_id"],
-                                    selector=item["selector"],
-                                )
-                                for item in raw_node["selectors"]
-                            ),
-                            key=lambda item: item.quantity_id,
-                        )
-                    ),
-                    outputs=tuple(
-                        sorted(
-                            (
-                                AnalysisOutputIntentV1(
-                                    output_id=item["output_id"],
-                                    quantity_kind=item["quantity_kind"],
-                                    unit=item["unit"],
-                                )
-                                for item in raw_node["outputs"]
-                            ),
-                            key=lambda item: item.output_id,
-                        )
-                    ),
-                    expression_nodes=tuple(raw_node["expression_nodes"]),
-                    expression_output_node_ids=tuple(
-                        raw_node["expression_output_node_ids"]
-                    ),
-                    temperature_k=raw_node.get("temperature_k"),
-                    pressure_atm=raw_node.get("pressure_atm"),
-                    support_state=raw_node["support_state"],
-                    blocked_reason=raw_node["blocked_reason"],
-                    concentration_mol_l=raw_node.get("concentration_mol_l"),
-                    entropy_method=raw_node.get("entropy_method", "rrho"),
-                    entropy_cutoff_cm1=raw_node.get("entropy_cutoff_cm1"),
-                    enthalpy_cutoff_cm1=raw_node.get("enthalpy_cutoff_cm1"),
-                    alpha=raw_node.get("alpha", 4),
-                    use_weighted_mass=raw_node.get("use_weighted_mass", False),
-                    frequency_scale_factor=raw_node.get(
-                        "frequency_scale_factor", 1.0
-                    ),
-                    validation_rules=tuple(
-                        sorted(
-                            (
-                                AnalysisValidationRuleIntentV1(
-                                    rule_id=item["rule_id"],
-                                    predicate=item["predicate"],
-                                    input_ids=tuple(
-                                        sorted(set(item["input_ids"]))
-                                    ),
-                                    threshold=item.get("threshold"),
-                                    expected_count=item.get("expected_count"),
-                                    unit=item.get("unit", ""),
-                                )
-                                for item in raw_node.get(
-                                    "validation_rules", ()
-                                )
-                            ),
-                            key=lambda item: item.rule_id,
-                        )
-                    ),
-                )
-            )
+        analysis_nodes = [
+            self._analysis_intent_from_payload(raw_node)
+            for raw_node in values["analysis_nodes"]
+        ]
         observables = {
             item["node_id"]: tuple(item["produces_observables"])
             for item in calculation_nodes

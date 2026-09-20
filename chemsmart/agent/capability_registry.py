@@ -499,7 +499,7 @@ def build_capability_registry(
                 tier="T1",
                 declared_by="chemsmart.agent.scientific_toolchain",
                 wired_by="evaluate_scientific_validation",
-                advertised_in="plan_scientific_workflow.validation_rules",
+                advertised_in="plan_scientific_validation.validation_rules",
                 tested_by=tested(f"predicate:{name}"),
                 family_tested_by=family_tested(f"predicate:{name}"),
                 qualified_by=qualified(f"predicate:{name}"),

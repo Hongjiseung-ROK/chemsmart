@@ -14,7 +14,9 @@ from chemsmart.agent.capabilities import (
 from chemsmart.agent.execution import EDITABLE_COORDINATE_OPERATIONS
 from chemsmart.agent.rules import render_rules
 from chemsmart.agent.scientific_toolchain import (
+    ANALYSIS_INTENT_KINDS,
     ANALYSIS_VALIDATION_PREDICATES,
+    analysis_intent_fields,
 )
 from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
 from chemsmart.analysis.quantity_expressions import (
@@ -1358,61 +1360,130 @@ def _legacy_tool_definitions(
             ("observables",),
         ),
         _tool(
+            "plan_calculation_stages",
+            (
+                "Add one or more program calculation stages to this "
+                "workflow's draft. One call is one coherent scientific "
+                "addition, not necessarily one node: an optimisation and "
+                "the frequency calculation that confirms it, or the same "
+                "single point on several conformers, belong together. "
+                "Bind scientific identity to every initial geometry "
+                "first; every stage needs at least one expected output, "
+                "and a future producer output stays unresolved. Nothing "
+                "here is checked against the rest of the workflow -- "
+                "dependencies, producer edges, ordering and budgets are "
+                "the finaliser's, and it is plan_scientific_workflow. "
+                "Re-issuing a node_id replaces that stage in the draft, "
+                "which is how one stage is repaired without resubmitting "
+                "the others."
+            ),
+            {
+                "workflow_id": _public_identifier(spelling_rule=True),
+                "stages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "items": _scientific_workflow_node_schema(),
+                    "description": (
+                        "The program calculations this addition covers."
+                    ),
+                },
+            },
+            ("workflow_id", "stages"),
+        ),
+        *(
+            _tool(
+                f"plan_{kind}",
+                _ANALYSIS_CONSTRUCTOR_DESCRIPTIONS[kind],
+                {
+                    "workflow_id": _public_identifier(spelling_rule=True),
+                    "stages": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 64,
+                        "items": _analysis_intent_node_schema(
+                            operations=operations, kind=kind
+                        ),
+                        "description": (
+                            "The "
+                            + kind.replace("_", " ")
+                            + " stages this addition covers. The kind is "
+                            "this tool's, so it is not a field."
+                        ),
+                    },
+                },
+                ("workflow_id", "stages"),
+            )
+            for kind in ANALYSIS_INTENT_KINDS
+        ),
+        _tool(
+            "withdraw_planned_stage",
+            (
+                "Take one stage out of this workflow's draft by name. A "
+                "stage leaves only by being named: nothing is dropped "
+                "because another stage referred to it, and a dangling "
+                "dependency is the finaliser's refusal with the node "
+                "that carries it."
+            ),
+            {
+                "workflow_id": _public_identifier(spelling_rule=True),
+                "node_id": _public_identifier(),
+            },
+            ("workflow_id", "node_id"),
+        ),
+        _tool(
+            "inspect_workflow_draft",
+            (
+                "Read what this workflow's draft currently holds: the "
+                "calculation stages, the analysis stages and their "
+                "kinds, every revision, and the draft digest. A draft is "
+                "not a plan -- it has passed no whole-workflow check, it "
+                "is not reviewable and nothing can execute from it."
+            ),
+            {"workflow_id": _public_identifier(spelling_rule=True)},
+            ("workflow_id",),
+        ),
+        _tool(
             "plan_scientific_workflow",
             (
-                "Plan one connected scientific tool chain containing any "
-                "required program calculations and deterministic analysis "
-                "stages. For an analysis-only task over registered results, "
-                "calculation_nodes may be empty; do not invent a documentary "
-                "or blocked calculation placeholder. For a calculation-only "
-                "task, analysis_nodes and required_output_ids may be empty. "
-                "Bind scientific identity to every initial geometry first; "
-                "every calculation node needs at least one expected output, "
-                "and future producer outputs remain unresolved. A null "
-                "scientific_workflow_plan means the binding must be repaired "
-                "and this tool called again. "
-                "Future analysis inputs name producer node/output pairs; they "
-                "do not require artifact or receipt hashes before execution. "
-                "A result-extraction or thermochemistry root may instead "
-                "consume one existing host-registered result by artifact_id. "
-                "Keep unsupported requested analyses as blocked_unsupported nodes."
+                "Finalise this workflow's draft into one connected "
+                "scientific tool chain: the whole-workflow check, and "
+                "the only door out of a draft. Build the draft first "
+                "with plan_calculation_stages and the plan_* analysis "
+                "constructors (result_extraction, thermochemistry, "
+                "quantity_expression, scientific_validation, "
+                "claim_rendering, unsupported_external) -- search for "
+                "the one you need and it becomes callable. This call "
+                "checks everything that is true of the workflow rather "
+                "than of one stage: unique ids, topological order, a "
+                "producer being a direct dependency, selector coverage "
+                "per program and job type, dimensional propagation "
+                "across expression inputs, required outputs having "
+                "producers, the engine-call budget, and excursion "
+                "ancestry. A refusal names the offending node and the "
+                "draft survives, so the repair re-issues that one stage. "
+                "An analysis-only workflow over registered results needs "
+                "no calculation stage; a calculation-only workflow needs "
+                "no analysis stage and no required outputs. A null "
+                "scientific_workflow_plan means an identity binding must "
+                "be repaired and this tool called again."
             ),
             {
                 "plan_id": _public_identifier(),
                 "workflow_id": _public_identifier(spelling_rule=True),
                 "task_spec_id": _string(),
-                "calculation_nodes": {
-                    "type": "array",
-                    "minItems": 0,
-                    "maxItems": 64,
-                    "items": _scientific_workflow_node_schema(),
-                    "description": (
-                        "Program calculations required by the task. Use an empty "
-                        "array when every scientific root is an existing "
-                        "host-registered result."
-                    ),
-                },
-                "analysis_nodes": {
-                    "type": "array",
-                    "minItems": 0,
-                    "maxItems": 128,
-                    "items": _analysis_intent_node_schema(
-                        operations=operations
-                    ),
-                },
                 "required_output_ids": {
                     "type": "array",
                     "minItems": 0,
                     "maxItems": 64,
                     "items": _public_identifier(),
+                    "description": (
+                        "The outputs this workflow must produce. Every "
+                        "one needs a producing stage in the draft."
+                    ),
                 },
             },
-            (
-                "plan_id",
-                "workflow_id",
-                "analysis_nodes",
-                "required_output_ids",
-            ),
+            ("plan_id", "workflow_id", "required_output_ids"),
         ),
         _tool(
             "amend_scientific_workflow",
@@ -2306,6 +2377,74 @@ MERGED_PLANNING_TOOLS: dict[str, tuple[str, ...]] = {
     ),
     "inspect_run": ("inspect_run_outcome", "inspect_result_selectors"),
 }
+
+#: What each analysis constructor is for, in the words a chemist would
+#: search with. One coherent scientific act each -- these are the lines
+#: the host already draws (``ANALYSIS_INTENT_KINDS``), not new ones.
+_ANALYSIS_CONSTRUCTOR_DESCRIPTIONS: Mapping[str, str] = {
+    "result_extraction": (
+        "Add stages that read registered quantities out of a finished "
+        "calculation result: energies, frequencies, dipole moments, "
+        "populations, excited-state roots, convergence flags. Each "
+        "stage names either one already-registered result by "
+        "artifact_id or a future producer stage's output, and the "
+        "selectors to read from it; every declared output must name a "
+        "selector of the same stage. Search about_result_selectors_* "
+        "for what each program's reader serves. Part of a workflow "
+        "draft that plan_scientific_workflow finalises."
+    ),
+    "thermochemistry": (
+        "Add stages that derive thermochemistry -- Gibbs free energy, "
+        "enthalpy, entropy, zero-point energy -- from a frequency-"
+        "bearing result under stated conditions. Temperature and "
+        "pressure are required and belong only here, as do the "
+        "entropy treatment, the low-frequency cutoffs, the "
+        "quasi-harmonic alpha, the weighted-mass switch, the "
+        "concentration for a non-standard standard state, and the "
+        "frequency scale factor. A geometry-only artifact cannot feed "
+        "one. Part of a workflow draft that plan_scientific_workflow "
+        "finalises."
+    ),
+    "quantity_expression": (
+        "Add stages that compute a derived quantity from extracted or "
+        "derived ones through a typed expression DAG: differences, "
+        "barriers, averages, unit conversions, complete-basis limits, "
+        "Boltzmann populations, geometric measurements, pKa and "
+        "electrode potentials. The expression nodes are checked here "
+        "for operation, input count and per-operation fields; the "
+        "dimensional propagation across stages is the finaliser's. "
+        "Every declared output must name an exported expression node. "
+        "Part of a workflow draft that plan_scientific_workflow "
+        "finalises."
+    ),
+    "scientific_validation": (
+        "Add stages that judge computed quantities against declared "
+        "rules and emit one dimensionless verdict each -- a stationary "
+        "point having the promised number of imaginary modes, a value "
+        "inside a band, a count matching. The rules belong only here. "
+        "A validation stage needs a typed-analysis producer. Part of a "
+        "workflow draft that plan_scientific_workflow finalises."
+    ),
+    "claim_rendering": (
+        "Add stages that render the workflow's answers as claims the "
+        "host signs, each bound to the receipt that produced it. A "
+        "claim is rendered under its input_id, so name each input by "
+        "the id the claim must carry -- for a declared observable, its "
+        "observable_id verbatim -- and declare that same id as the "
+        "output. Part of a workflow draft that plan_scientific_workflow "
+        "finalises."
+    ),
+    "unsupported_external": (
+        "Add stages for an analysis this release cannot perform, kept "
+        "in the plan as an explicit finding rather than dropped: the "
+        "workflow still says what the science needed, the reviewer "
+        "sees it marked non-executable with its reason, and nothing "
+        "launches. Use support_state blocked_unsupported and say why. "
+        "Part of a workflow draft that plan_scientific_workflow "
+        "finalises."
+    ),
+}
+
 
 PROJECT_YAML_ACTIONS = ("establish", "render", "promote", "read", "validate")
 
@@ -3366,10 +3505,40 @@ def _scientific_workflow_node_schema() -> dict:
 
 
 def _analysis_intent_node_schema(
+    *,
+    operations: tuple[str, ...] | None = None,
+    kind: str | None = None,
+) -> dict:
+    """Planning-only analysis node; artifacts are bound after producers run.
+
+    With ``kind``, the same schema projected onto the fields that kind
+    owns -- ``scientific_toolchain.analysis_intent_fields`` says which,
+    and ``AnalysisNodeIntentV1.__post_init__`` is the authority it
+    declares. ``analysis_kind`` itself leaves the projection: the
+    constructor is the kind, so asking the model to restate it is asking
+    for a field that can only be wrong. Every other field keeps the
+    definition it has in the aggregate schema, because there is one
+    builder and this is a projection of it.
+    """
+
+    full = _analysis_intent_node_schema_full(operations=operations)
+    if kind is None:
+        return full
+    wanted = set(analysis_intent_fields(kind))
+    return {
+        **full,
+        "properties": {
+            name: schema
+            for name, schema in full["properties"].items()
+            if name in wanted
+        },
+        "required": [name for name in full["required"] if name in wanted],
+    }
+
+
+def _analysis_intent_node_schema_full(
     *, operations: tuple[str, ...] | None = None
 ) -> dict:
-    """Planning-only analysis node; artifacts are bound after producers run."""
-
     return {
         "type": "object",
         "properties": {

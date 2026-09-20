@@ -409,16 +409,19 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "stem.one_dag",
         "stem",
         "T0",
-        "For every request that ends in a calculated or derived value, use "
-        "plan_scientific_workflow to record any required calculations, "
-        "result extraction, validation, mathematics, and claim rendering in "
-        "one connected DAG. For analysis of registered results, leave "
-        "calculation_nodes empty instead of inventing a placeholder program "
-        "call. Its analysis inputs name future producer node/output pairs, "
-        "so do not wait for artifact hashes before planning postprocessing. "
-        "Preserve an unavailable parser or external analysis as "
-        "blocked_unsupported instead of deleting the requested observable. "
-        "Use inspect_workflow_frontier for host-derived next actions.",
+        "For every request that ends in a calculated or derived value, "
+        "record any required calculations, result extraction, validation, "
+        "mathematics, and claim rendering in one connected DAG. You build "
+        "it a stage at a time -- search for the constructor each stage "
+        "needs -- and plan_scientific_workflow checks the whole of it and "
+        "is the only door out of the draft. For analysis of registered "
+        "results, draft no calculation stage instead of inventing a "
+        "placeholder program call. Analysis inputs name future producer "
+        "node/output pairs, so do not wait for artifact hashes before "
+        "planning postprocessing. Preserve an unavailable parser or "
+        "external analysis as a blocked_unsupported stage instead of "
+        "deleting the requested observable. Use inspect_workflow_frontier "
+        "for host-derived next actions.",
     ),
     _r(
         "stem.named_program_repair",
@@ -491,7 +494,10 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "plan.excursion_grant",
-        "tool:plan_scientific_workflow",
+        # Onto the constructor whose argument it governs: `excursion`
+        # is a field of a calculation stage, and a rule on a tool is
+        # read with the schema it is about to fill in.
+        "tool:plan_calculation_stages",
         "T2",
         "A node tagged excursion investigates one host-recorded anomaly "
         "(cite its receipt digest) and is charged to the envelope's "
@@ -618,8 +624,8 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "stem.amend_not_resubmit",
         "stem",
         "T0",
-        "When a planned workflow needs repairing, use "
-        "amend_scientific_workflow rather than resubmitting the whole DAG: "
+        "When a *finalised* workflow needs repairing, use "
+        "amend_scientific_workflow rather than beginning a new one: "
         "it repairs how a named part is expressed, including a corrected "
         "project promoted under a new artifact ID, an identifier, a unit, a "
         "declared quantity kind, or a selector, and preserves every node you "
@@ -1260,7 +1266,8 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "plan.claim_carries_declared_id",
-        "tool:plan_scientific_workflow",
+        # Onto the constructor that builds a claim node.
+        "tool:plan_claim_rendering",
         "T1",
         "A declared observable is answered by a claim carrying its "
         "observable_id: a planned claim node renders one claim per input, "

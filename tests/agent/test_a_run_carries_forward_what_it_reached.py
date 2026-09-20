@@ -25,6 +25,7 @@ import pytest
 
 from chemsmart.agent._contracts import ContractError, TrustedArtifactRefV1
 from chemsmart.agent.execution import build_reached_geometry
+from tests.agent.plan_through_draft import plan_workflow
 
 _OUT = Path(__file__).resolve().parents[1] / "data" / "ORCATests" / "outputs"
 _XTB_OPT = (
@@ -188,10 +189,10 @@ def test_xtb_reached_geometry_can_anchor_a_new_pyscf_calculation(tmp_path):
             "multiplicity": 1,
         },
     )
-    planned = host.dispatch(
-        turn_id="t3",
-        tool_name="plan_scientific_workflow",
-        arguments={
+    planned = plan_workflow(
+        host,
+        "t3",
+        {
             "plan_id": "xtb-geometry-pyscf-sp",
             "workflow_id": "xtb-geometry-pyscf-sp",
             "task_spec_id": "a" * 64,

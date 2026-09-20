@@ -77,10 +77,12 @@ def test_the_constraint_reaches_inside_arrays_of_objects():
     surface = build_command_compiled_tool_surface()
     paths = {path for path, _ in _identifier_schemas(surface)}
     assert any("[]" in path for path in paths), paths
+    # Calculation stages live in `stages[]` on their constructor now;
+    # the executor's own step-by-step surface still says `nodes[]`.
     node_fields = {
         path.rsplit(".", 1)[-1]
         for path in paths
-        if "calculation_nodes[]" in path or "nodes[]" in path
+        if "stages[]" in path or "nodes[]" in path
     }
     assert {"node_id", "program", "jobtype"} <= node_fields, node_fields
 
@@ -198,16 +200,14 @@ def test_a_producer_fed_input_passes_the_schema_it_previously_failed():
     definition = next(
         item["function"]
         for item in surface.tool_definitions
-        if item["function"]["name"] == "plan_scientific_workflow"
+        if item["function"]["name"] == "plan_calculation_stages"
     )
-    schema = definition["parameters"]["properties"]["calculation_nodes"][
-        "items"
-    ]["properties"]["inputs"]["items"]["properties"]["artifact_id"]
+    schema = definition["parameters"]["properties"]["stages"]["items"][
+        "properties"
+    ]["inputs"]["items"]["properties"]["artifact_id"]
+    _validate_json_value("stages[1].inputs[0].artifact_id", "", schema)
     _validate_json_value(
-        "calculation_nodes[1].inputs[0].artifact_id", "", schema
-    )
-    _validate_json_value(
-        "calculation_nodes[0].inputs[0].artifact_id", "start.xyz", schema
+        "stages[0].inputs[0].artifact_id", "start.xyz", schema
     )
     with pytest.raises(ContractError):
         _validate_json_value("x", "Start.XYZ", schema)

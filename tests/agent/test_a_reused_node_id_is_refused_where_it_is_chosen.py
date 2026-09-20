@@ -15,6 +15,7 @@ from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from tests.agent.neutral_workflow_fixture import (
     build_neutral_workflow_fixture,
 )
+from tests.agent.plan_through_draft import plan_workflow
 
 
 def _plan(tmp_path, *, occupied: bool):
@@ -39,11 +40,7 @@ def _plan(tmp_path, *, occupied: bool):
         for item in fixture.public_context.next_actions
         if item.tool_name == "plan_scientific_workflow"
     )
-    return host.dispatch(
-        turn_id="turn-1",
-        tool_name="plan_scientific_workflow",
-        arguments=dict(action.fields),
-    )
+    return plan_workflow(host, "turn-1", dict(action.fields))
 
 
 @pytest.mark.capability("tool:plan_scientific_workflow")

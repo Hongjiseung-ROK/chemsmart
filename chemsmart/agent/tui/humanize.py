@@ -306,9 +306,28 @@ _REGISTRY: dict[str, tuple[str, str, Summarizer]] = {
     ),
     "plan_scientific_workflow": (
         "✱",
-        "planning the scientific workflow",
+        "finalising the scientific workflow",
         _plan_workflow,
     ),
+    # The constructors that build the draft the finaliser checks. They
+    # are planning acts and a reviewer reads them as such.
+    "plan_calculation_stages": ("✱", "drafting calculation stages", None),
+    "plan_result_extraction": ("✱", "drafting result extraction", None),
+    "plan_thermochemistry": ("✱", "drafting thermochemistry", None),
+    "plan_quantity_expression": ("✱", "drafting a quantity expression", None),
+    "plan_scientific_validation": (
+        "✱",
+        "drafting scientific validation",
+        None,
+    ),
+    "plan_claim_rendering": ("✱", "drafting claim rendering", None),
+    "plan_unsupported_external": (
+        "✱",
+        "drafting an unsupported analysis",
+        None,
+    ),
+    "withdraw_planned_stage": ("✱", "withdrawing a drafted stage", None),
+    "inspect_workflow_draft": ("✱", "reading the workflow draft", None),
     "amend_scientific_workflow": (
         "✱",
         "amending the scientific workflow",

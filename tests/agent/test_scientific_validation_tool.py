@@ -17,6 +17,7 @@ from chemsmart.agent.workflows import (
     ArtifactOutputIntentV1,
     CommandNodeIntentV1,
 )
+from tests.agent.plan_through_draft import plan_workflow
 
 TASK_SPEC_SHA256 = "a" * 64
 
@@ -32,10 +33,10 @@ def _host(tmp_path, store):
 
 
 def _plan(host, *, expected_count):
-    return host.dispatch(
-        turn_id="turn-plan",
-        tool_name="plan_scientific_workflow",
-        arguments={
+    return plan_workflow(
+        host,
+        "turn-plan",
+        {
             "plan_id": "typed-validation-plan",
             "workflow_id": "typed-validation-workflow",
             "task_spec_id": TASK_SPEC_SHA256,

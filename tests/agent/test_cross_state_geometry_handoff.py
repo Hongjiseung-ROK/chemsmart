@@ -38,6 +38,7 @@ from chemsmart.agent.workflows import (
 from tests.agent.neutral_workflow_fixture import (
     build_neutral_workflow_fixture,
 )
+from tests.agent.plan_through_draft import plan_workflow
 
 
 def _artifact(
@@ -395,11 +396,7 @@ def test_model_workflow_state_reaches_command_and_scientific_dags(tmp_path):
         )
         raw_nodes.append({**raw_node, **state})
 
-    host.dispatch(
-        turn_id="turn-1",
-        tool_name="plan_scientific_workflow",
-        arguments={**fields, "calculation_nodes": raw_nodes},
-    )
+    plan_workflow(host, "turn-1", {**fields, "calculation_nodes": raw_nodes})
 
     draft = next(iter(host.workflow_drafts.values()))
     plan = next(iter(host.scientific_workflow_plans.values()))

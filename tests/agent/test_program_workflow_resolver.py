@@ -15,6 +15,7 @@ from chemsmart.analysis.result_quantities import (
     canonical_quantity_sha256,
     make_quantity_value,
 )
+from tests.agent.plan_through_draft import plan_workflow
 
 
 def _host(tmp_path, *, artifacts=None):
@@ -65,21 +66,17 @@ def test_a_calculation_only_plan_must_anchor_a_molecule(tmp_path):
 
     host = _host(tmp_path)
     with pytest.raises(ContractError) as excinfo:
-        host.dispatch(
-            turn_id="turn-1",
-            tool_name="plan_scientific_workflow",
-            arguments=_calculation_only_plan(),
-        )
+        plan_workflow(host, "turn-1", _calculation_only_plan())
     message = str(excinfo.value)
     assert "bind_scientific_identity" in message
     assert "workflow.scientific_identity.unbound" in message
 
 
 def _plan_registered_xyz_analysis(host, artifact_id):
-    return host.dispatch(
-        turn_id="turn-analysis",
-        tool_name="plan_scientific_workflow",
-        arguments={
+    return plan_workflow(
+        host,
+        "turn-analysis",
+        {
             "plan_id": "registered-geometry-analysis",
             "workflow_id": "workflow-registered-geometry",
             "task_spec_id": "a" * 64,
@@ -117,10 +114,10 @@ def _plan_registered_xyz_analysis(host, artifact_id):
 
 
 def _plan_registered_thermochemistry(host, artifact_id):
-    return host.dispatch(
-        turn_id="turn-thermochemistry",
-        tool_name="plan_scientific_workflow",
-        arguments={
+    return plan_workflow(
+        host,
+        "turn-thermochemistry",
+        {
             "plan_id": "registered-thermochemistry",
             "workflow_id": "workflow-registered-thermochemistry",
             "task_spec_id": "a" * 64,

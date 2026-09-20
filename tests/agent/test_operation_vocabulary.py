@@ -194,11 +194,11 @@ def test_every_validation_predicate_the_model_may_choose_is_derived():
     definition = next(
         item["function"]
         for item in surface.tool_definitions
-        if item["function"]["name"] == "plan_scientific_workflow"
+        if item["function"]["name"] == "plan_scientific_validation"
     )
-    node_schema = definition["parameters"]["properties"]["analysis_nodes"][
-        "items"
-    ]["properties"]["validation_rules"]["items"]
+    node_schema = definition["parameters"]["properties"]["stages"]["items"][
+        "properties"
+    ]["validation_rules"]["items"]
     predicate = node_schema["properties"]["predicate"]
     assert set(predicate["enum"]) == set(ANALYSIS_VALIDATION_PREDICATES)
 

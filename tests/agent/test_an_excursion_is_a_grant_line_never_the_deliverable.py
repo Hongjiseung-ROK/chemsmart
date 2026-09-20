@@ -39,6 +39,7 @@ from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from tests.agent.neutral_workflow_fixture import (
     build_neutral_workflow_fixture,
 )
+from tests.agent.plan_through_draft import plan_workflow
 from tests.agent.test_a_goal_is_one_decision_a_loop_consumes import (
     _RUN,
     _wake_stream,
@@ -128,11 +129,7 @@ def _plan(tmp_path, *, tag=None, **host_extra):
             if item["node_id"] == node_id
         )
         node["excursion"] = digest
-    return host.dispatch(
-        turn_id="turn-1",
-        tool_name="plan_scientific_workflow",
-        arguments=fields,
-    )
+    return plan_workflow(host, "turn-1", fields)
 
 
 @pytest.mark.capability("rule:plan.excursion_grant")

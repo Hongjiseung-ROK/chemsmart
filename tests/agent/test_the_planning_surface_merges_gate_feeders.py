@@ -49,11 +49,12 @@ def test_the_planning_surface_exposes_the_merged_tools_only():
     # exactly the decision this design moves to the model.  19
     # (2026-09-17, Round A): continue_execution_reasoning makes the other
     # explicit scientific choice visible without adding a hardware control.
-    # 29, not 19: the stem was 19 because eleven leaf tools were
-    # filtered out of it by whichever guides were closed. There is one
-    # planning assembly now, and what a request carries is the
-    # exposure's answer, not this.
-    assert len(planning) == 29, "every planning tool the host implements"
+    # 29 -> 38: the aggregate planner became ten tools -- one
+    # calculation constructor, one per analysis kind, a stage
+    # withdrawal, a draft reader and the finaliser that keeps the name.
+    # What a request carries is still the exposure's answer, not this;
+    # this is the assembly the catalogue is built from.
+    assert len(planning) == 38, "every planning tool the host implements"
 
 
 def test_the_executor_keeps_its_step_by_step_surface():

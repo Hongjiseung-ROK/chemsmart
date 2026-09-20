@@ -19,6 +19,7 @@ from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from tests.agent.neutral_workflow_fixture import (
     build_neutral_workflow_fixture,
 )
+from tests.agent.plan_through_draft import plan_workflow
 
 _ANOMALY = "f" * 64
 
@@ -81,9 +82,7 @@ def _plan(tmp_path, *, tag_node: str, required: tuple[str, ...], chain):
             node["excursion"] = _ANOMALY
     fields["analysis_nodes"] = list(chain)
     fields["required_output_ids"] = list(required)
-    return host.dispatch(
-        turn_id="t1", tool_name="plan_scientific_workflow", arguments=fields
-    )
+    return plan_workflow(host, "t1", fields)
 
 
 @pytest.mark.capability("rule:plan.excursion_grant")

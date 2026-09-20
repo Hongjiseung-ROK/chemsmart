@@ -103,6 +103,10 @@ class EventKind(str, Enum):
     #: whichever backend found them, so a stream reads the same
     #: whether the host or the provider did the searching.
     CAPABILITY_LOADED = "capability_loaded"
+    #: One change to a workflow plan draft: which constructor,
+    #: which stages, what it did, and the digest chain. A draft
+    #: has passed no whole-workflow check and grants nothing.
+    PLAN_DRAFT_REVISED = "plan_draft_revised"
     RUNTIME_TERMINATED = "runtime_terminated"
     TERMINATION_NOTICE_DELIVERED = "termination_notice_delivered"
     EXECUTION_WAVE_DECISION_PENDING = "execution_wave_decision_pending"

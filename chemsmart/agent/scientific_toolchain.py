@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Sequence
 
 from chemsmart.agent._contracts import (
@@ -38,6 +39,68 @@ ANALYSIS_INTENT_KINDS = (
     "thermochemistry",
     "unsupported_external",
 )
+#: The fields every analysis intent carries, whatever its kind.
+ANALYSIS_INTENT_COMMON_FIELDS = (
+    "node_id",
+    "dependencies",
+    "inputs",
+    "outputs",
+    "support_state",
+    "blocked_reason",
+)
+
+#: The fields each kind additionally owns, and the ones the local gate
+#: below refuses for every other kind. It is a declaration, not a second
+#: rule: ``__post_init__`` is the authority and says the same thing in
+#: refusals ("selectors apply only to result extraction",
+#: "validation_rules apply only to scientific_validation", "temperature
+#: and pressure apply only to thermochemistry", "thermochemistry
+#: controls apply only to thermochemistry", "expression fields apply
+#: only to quantity_expression", "registered result inputs apply only to
+#: result extraction or thermochemistry"). What the declaration buys is
+#: a model-facing schema that can be *projected* onto one kind, so a
+#: task needing thermochemistry never reads the expression-node schema.
+#: ``test_every_projected_field_is_admitted_and_no_other_is`` drives
+#: both directions against the gate, so the two cannot drift.
+ANALYSIS_INTENT_KIND_FIELDS: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "result_extraction": ("artifact_id", "selectors"),
+        "thermochemistry": (
+            "artifact_id",
+            "temperature_k",
+            "pressure_atm",
+            "concentration_mol_l",
+            "entropy_method",
+            "entropy_cutoff_cm1",
+            "enthalpy_cutoff_cm1",
+            "alpha",
+            "use_weighted_mass",
+            "frequency_scale_factor",
+        ),
+        "quantity_expression": (
+            "expression_nodes",
+            "expression_output_node_ids",
+        ),
+        "scientific_validation": ("validation_rules",),
+        "claim_rendering": (),
+        "unsupported_external": (),
+    }
+)
+
+
+def analysis_intent_fields(kind: str) -> tuple[str, ...]:
+    """Every payload field one analysis kind may carry."""
+
+    if kind not in ANALYSIS_INTENT_KINDS:
+        raise ScientificToolchainContractError(
+            f"unsupported analysis intent kind {kind!r}"
+        )
+    return (
+        *ANALYSIS_INTENT_COMMON_FIELDS,
+        *ANALYSIS_INTENT_KIND_FIELDS[kind],
+    )
+
+
 ANALYSIS_INTENT_SUPPORT_STATES = ("blocked_unsupported", "planned")
 # Registered analysis operations for these kinds read a typed program result
 # artifact; a derived quantity from another analysis node cannot stand in.
@@ -1593,7 +1656,10 @@ def project_scientific_toolchain_frontier(
 
 
 __all__ = [
+    "ANALYSIS_INTENT_COMMON_FIELDS",
     "ANALYSIS_INTENT_KINDS",
+    "ANALYSIS_INTENT_KIND_FIELDS",
+    "analysis_intent_fields",
     "ANALYSIS_INTENT_SUPPORT_STATES",
     "AnalysisInputIntentV1",
     "AnalysisNodeIntentV1",

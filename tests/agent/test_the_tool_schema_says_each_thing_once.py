@@ -26,15 +26,64 @@ def _surface_json() -> str:
     return json.dumps(build_command_compiled_tool_surface().tool_definitions)
 
 
-def test_each_guidance_block_is_serialised_once():
-    text = _surface_json()
-    assert (
-        text.count("Chemical notation is mixed case and this field is not")
-        == 1
+def test_each_guidance_block_is_serialised_once_per_field_it_governs():
+    """A sentence appears where its argument does, and nowhere else.
+
+    It used to be "once, full stop", and that was the same statement
+    while one aggregate tool owned every node schema. The planner is a
+    draft built by constructors now, and ten of them take a
+    ``workflow_id``: the spelling rule governs that argument, so
+    repeating it on each is the rule being at its point of use rather
+    than a block serialised twice. What this still forbids is the thing
+    it was written for -- one tool stating a block more than once, or a
+    block drifting onto a tool whose schema has nothing it governs.
+    """
+
+    import json as _json
+
+    from chemsmart.agent.tool_specs import (
+        build_command_compiled_tool_surface,
     )
-    assert text.count("Pick the operation that owns the step") == 1
-    assert text.count("program-wide reader selector union") == 1
-    assert text.count("the convention family are stated") == 1
+
+    definitions = build_command_compiled_tool_surface().tool_definitions
+
+    def blocks_per_tool(marker: str) -> list[int]:
+        return [
+            _json.dumps(item).count(marker)
+            for item in definitions
+            if marker in _json.dumps(item)
+        ]
+
+    def carries_workflow_id(item) -> bool:
+        return "workflow_id" in (
+            item["function"]["parameters"].get("properties") or {}
+        )
+
+    spelling = "Chemical notation is mixed case and this field is not"
+    assert blocks_per_tool(spelling) == [
+        1 for item in definitions if spelling in _json.dumps(item)
+    ], "no tool states the spelling rule twice"
+    # Only on tools that carry the argument. Not *every* such tool: a
+    # handful ask for a workflow_id that the host already minted
+    # (compile_command, amend_scientific_workflow) and state no
+    # spelling rule for it, which predates this round.
+    assert {
+        item["function"]["name"]
+        for item in definitions
+        if spelling in _json.dumps(item)
+    } <= {
+        item["function"]["name"]
+        for item in definitions
+        if carries_workflow_id(item)
+    }, "the rule never lands on a tool without the argument"
+
+    # These three belong to one tool each and still appear once.
+    for marker in (
+        "Pick the operation that owns the step",
+        "program-wide reader selector union",
+        "the convention family are stated",
+    ):
+        assert blocks_per_tool(marker) == [1], marker
 
 
 def test_nothing_reachable_was_lost():

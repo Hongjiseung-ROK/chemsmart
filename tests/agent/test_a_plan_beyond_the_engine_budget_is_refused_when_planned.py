@@ -19,6 +19,7 @@ from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from tests.agent.neutral_workflow_fixture import (
     build_neutral_workflow_fixture,
 )
+from tests.agent.plan_through_draft import plan_workflow
 
 
 def _envelope(tmp_path, *, max_engine_calls):
@@ -68,11 +69,7 @@ def _plan(tmp_path, **host_extra):
     )
     fields = dict(action.fields)
     assert len(fields["calculation_nodes"]) == 2
-    return host.dispatch(
-        turn_id="turn-1",
-        tool_name="plan_scientific_workflow",
-        arguments=fields,
-    )
+    return plan_workflow(host, "turn-1", fields)
 
 
 @pytest.mark.capability("tool:plan_scientific_workflow")

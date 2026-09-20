@@ -94,8 +94,9 @@ CORE_TOOLS: Mapping[str, str] = MappingProxyType(
             "and 691 bytes of it"
         ),
         "plan_scientific_workflow": (
-            "the one act that turns intent into a reviewable DAG; near "
-            "universal, and measured in both placements before it was kept"
+            "the one act that turns a draft into a reviewable DAG, and "
+            "the only door out of one; near universal, and 3,488 bytes "
+            "now that the node schemas are constructors of their own"
         ),
     }
 )
@@ -909,8 +910,19 @@ ACT_FAMILIES: Mapping[str, str] = MappingProxyType(
         "bind_scientific_identity": "identity",
         "project_yaml": "project",
         "compile_command": "project",
-        # Planning and driving a DAG.
+        # Planning and driving a DAG. The constructors build one draft
+        # and the finaliser checks it as a whole; they are one family so
+        # that the first one loaded brings the reference they share.
         "plan_scientific_workflow": "workflow",
+        "plan_calculation_stages": "workflow",
+        "plan_result_extraction": "analysis_planning",
+        "plan_thermochemistry": "analysis_planning",
+        "plan_quantity_expression": "analysis_planning",
+        "plan_scientific_validation": "analysis_planning",
+        "plan_claim_rendering": "analysis_planning",
+        "plan_unsupported_external": "analysis_planning",
+        "withdraw_planned_stage": "workflow",
+        "inspect_workflow_draft": "workflow",
         "amend_scientific_workflow": "workflow",
         "declare_requested_observable": "workflow",
         "select_execution_wave": "workflow",
