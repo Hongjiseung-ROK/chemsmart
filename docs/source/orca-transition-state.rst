@@ -448,6 +448,25 @@ This handoff makes the generated IRC input scientifically complete. It does not,
 has completed on the current target; inspect the execution result and both trajectory endpoints before assigning
 reactant and product identities.
 
+What a completed branch reports
+===============================
+
+ORCA prints an IRC's profile as its ``IRC PATH SUMMARY`` table and writes the branch's final structure to
+``<label>_IRC_F.xyz`` or ``<label>_IRC_B.xyz`` beside the output. ChemSmart reads both. ``ORCAOutput.irc_path_records``
+returns one record per path point — step index, energy in hartree, the printed energy change in kcal/mol, the maximum
+and RMS gradient, and whether ORCA marked that row as the transition state — and ``ORCAOutput.irc_endpoint_records``
+names the endpoint file of each branch the run wrote.
+
+Through the typed result reader, a completed single-direction branch resolves ``trajectory_energies`` (the first value
+is the saddle, the last is the point the branch reached), ``trajectory_frame_count``, the positions and connectivity of
+both ends, and ``trajectory_connectivity_changed``. The endpoint structure is reported in the ``as_reached`` structural
+state, so it can be carried into a following calculation as a starting geometry. ``irc_converged`` says whether the
+branch arrived or stopped at its iteration limit; a branch that stopped short still reports the structure it reached.
+
+Run one direction per IRC job when you intend to reuse an endpoint. A ``direction both`` run writes two endpoint files
+and its path summary starts at one of them rather than at the saddle, so the geometry selectors refuse it rather than
+choosing a branch on your behalf.
+
 *********************
  Coordinate Scanning
 *********************

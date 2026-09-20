@@ -1130,6 +1130,23 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "vdW minimum and to two soft intermolecular modes",
     ),
     _r(
+        "leaf.saddle.orca_irc_walks_one_direction",
+        "reference:about_transition_states",
+        "T3",
+        "Plan one direction per ORCA irc node. A branch then delivers its "
+        "own profile -- trajectory_energies, first row the saddle, last "
+        "row the point it reached -- and the endpoint structure ORCA "
+        "wrote beside the log, which bind_reached_geometry carries into "
+        "the optimisation that identifies the minimum; irc_converged says "
+        "whether the branch arrived or ran out of iterations, and the "
+        "structure it reached is a starting structure either way. A "
+        "direction: both run leaves two endpoints and the host refuses to "
+        "call either one the structure it reached.",
+        "job 2142379 (HCN -> HNC, B3LYP/def2-SVP, ORCA 6.1.1): a "
+        "direction-both path table opens 45.5 kcal/mol below its own "
+        "saddle, while each single branch opens on it",
+    ),
+    _r(
         "wake.goal_authority",
         "wake",
         "T0",

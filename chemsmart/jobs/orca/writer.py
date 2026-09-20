@@ -27,6 +27,28 @@ from chemsmart.utils.utils import (
 logger = logging.getLogger(__name__)
 
 
+def _names_one_file(source, destination):
+    """Whether two paths name the same file on disk.
+
+    String equality is not file identity.  ``/project/xlzhang`` is a
+    symlink to ``/lustre/project/xlzhang`` on the CUHK Central Cluster, so
+    the absolute path of a Hessian named on the command line and the
+    absolute path of the job's own folder differ while naming one file;
+    ``shutil.copy2`` then raised ``SameFileError`` and the IRC never
+    reached ORCA (job 2142378, ORCA 6.1.1).  A staging step that is
+    already satisfied must be a no-op, and only the filesystem can say
+    that it is.
+    """
+
+    try:
+        return os.path.samefile(source, destination)
+    except OSError:
+        # The destination does not exist yet, so there is nothing to
+        # collide with; compare resolved names for the remaining case
+        # where it is about to.
+        return os.path.realpath(source) == os.path.realpath(destination)
+
+
 class ORCAInputWriter(InputWriter):
     """
     ORCA input file writer.
@@ -95,7 +117,7 @@ class ORCAInputWriter(InputWriter):
                 )
             if os.path.isfile(file_to_copy):
                 dest = os.path.join(folder, os.path.basename(file_to_copy))
-                if os.path.abspath(file_to_copy) != os.path.abspath(dest):
+                if not _names_one_file(file_to_copy, dest):
                     shutil.copy2(file_to_copy, dest)
                     logger.info(
                         f"Copied solventfilename file {file_to_copy} to {dest}."
@@ -121,7 +143,7 @@ class ORCAInputWriter(InputWriter):
                         f"ORCA NEB {field_name} does not exist: {source}"
                     )
                 destination = os.path.join(folder, os.path.basename(source))
-                if source != os.path.abspath(destination):
+                if not _names_one_file(source, destination):
                     shutil.copy2(source, destination)
                     logger.info(
                         "Copied ORCA NEB %s file %s to %s.",
@@ -150,7 +172,7 @@ class ORCAInputWriter(InputWriter):
                 destination = os.path.join(
                     destination_folder, os.path.basename(source)
                 )
-                if source != os.path.abspath(destination):
+                if not _names_one_file(source, destination):
                     shutil.copy2(source, destination)
                     logger.info(
                         "Staged ORCA IRC Hessian %s at %s.",
