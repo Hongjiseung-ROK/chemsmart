@@ -4990,11 +4990,46 @@ class GoalDriver:
             revisions_admitted=self.revisions_admitted,
             reasons=(
                 reason,
-                "no scheduler submission or engine launch occurred; "
-                "the Agent may make an explicit execution decision",
+                self._nothing_launched_this_cycle()
+                + "; the Agent may make an explicit execution decision",
             ),
         )
         self.phase = "parked"
+
+    def _nothing_launched_this_cycle(self) -> str:
+        """Say what did not launch without denying what already ran.
+
+        A goal parks on the wave it has not decided, which may be its
+        second: the ledger that records the pending decision then also
+        records the runs before it. "No engine launch occurred" was true
+        of the parked cycle and read as a statement about the goal -- a
+        live xTB goal (CUHK 2142404) ran two optimisations in cycle 1 and
+        settled with a sentence from which a reader concludes nothing was
+        computed. The sentence is scoped to its cycle and names what the
+        goal already holds.
+        """
+
+        sentence = (
+            "no scheduler submission or engine launch occurred in cycle "
+            f"{self.cycles}"
+        )
+        earlier = [
+            entry["payload"]
+            for entry in self.ledger.entries()
+            if entry["kind"] == "run_recorded"
+            and int(entry["payload"].get("engine_calls_consumed", 0) or 0) > 0
+        ]
+        if earlier:
+            calls = sum(
+                int(item.get("engine_calls_consumed", 0) or 0)
+                for item in earlier
+            )
+            cycles = ", ".join(str(item.get("cycle")) for item in earlier)
+            sentence += (
+                f"; this goal already records {calls} engine call(s) in "
+                f"cycle(s) {cycles}, and that evidence stands"
+            )
+        return sentence
 
     def _execution_decision_pending_resume(self) -> None:
         """Keep a resumed pending decision pending; never replay it serially."""
@@ -5008,7 +5043,7 @@ class GoalDriver:
             revisions_admitted=self.revisions_admitted,
             reasons=(
                 "the durable execution boundary remains " + decision.state,
-                "no scheduler submission or engine launch occurred",
+                self._nothing_launched_this_cycle(),
             ),
         )
         self.phase = "parked"
