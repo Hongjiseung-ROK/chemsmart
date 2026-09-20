@@ -820,6 +820,47 @@ def test_the_correlated_component_check_is_a_check(case):
     ]
 
 
+@pytest.mark.capability("selector:pyscf:sp:ccsd_correlation_energy")
+@pytest.mark.parametrize("case", CORRELATED_CASES)
+def test_every_component_the_check_names_moves_its_verdict(case):
+    """A component nothing relates to another is a number free to be wrong.
+
+    Removal was the first half; a *wrong* value is the half a real
+    artifact can actually carry. Perturbing any component of a correlated
+    result by 1e-6 Eh must go red, and on plain CCSD it did not:
+    ``ccsd_correlation_energy`` was tied to ``correlation_energy`` only
+    through the ccsd(t) sum, so under ``ccsd`` the artifact could serve
+    two different numbers for one quantity -- PySCF writes ``obj.e_corr``
+    to both, with no triples between them -- and validate.
+    """
+
+    spec, _provenance, status, results = read_pyscf_h5(_path(case))
+    stages = status.get("stages") or {}
+    assert not validation_module._validate_correlated_results(
+        results, stages, spec
+    )
+    components = [
+        name
+        for name in (
+            "reference_energy",
+            "correlation_energy",
+            "ccsd_correlation_energy",
+            "triples_correction",
+            "total_energy",
+        )
+        if results.get(name) is not None
+    ]
+    for name in components:
+        perturbed = dict(results)
+        perturbed[name] = np.asarray(
+            float(np.asarray(results[name]).reshape(-1)[0]) + 1.0e-6
+        )
+        findings = validation_module._validate_correlated_results(
+            perturbed, stages, spec
+        )
+        assert findings, (case, name)
+
+
 @pytest.mark.capability("selector:pyscf:sp:triples_correction")
 @pytest.mark.capability("selector:pyscf:sp:ccsd_correlation_energy")
 def test_ccsd_t_correlation_is_ccsd_plus_triples_as_orca_means_it():

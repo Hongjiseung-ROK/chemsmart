@@ -3687,6 +3687,36 @@ def _validate_correlated_results(results, stage_statuses, spec):
                         "h5:/results/correlation_energy",
                     )
                 )
+        elif method == "ccsd":
+            # PySCF's own meaning makes these one number: the driver
+            # writes ``float(obj.e_corr)`` to both, with no triples
+            # between them, so a plain-CCSD artifact serving two
+            # different values is serving one quantity twice and
+            # disagreeing with itself. Nothing said so, and the
+            # component was tied to the total only through the
+            # ccsd(t) sum, so a perturbed ``ccsd_correlation_energy``
+            # validated. The bound is exact rather than the 1e-8 the
+            # sums carry, because no arithmetic stands between them.
+            if (
+                abs(
+                    values["ccsd_correlation_energy"]
+                    - values["correlation_energy"]
+                )
+                > 1.0e-12
+            ):
+                findings.append(
+                    _result_finding(
+                        RULE_RESULT_CORRELATION,
+                        "results.ccsd_correlation_energy",
+                        {
+                            "equals_correlation_energy": values[
+                                "correlation_energy"
+                            ]
+                        },
+                        values["ccsd_correlation_energy"],
+                        "h5:/results/ccsd_correlation_energy",
+                    )
+                )
     corr_status = stage_statuses.get("corr")
     applied = (
         corr_status.get("method") if isinstance(corr_status, Mapping) else None
