@@ -1,6 +1,8 @@
 import logging
 from functools import cached_property
 
+import numpy as np
+
 from chemsmart.io.file import SDFFile
 from chemsmart.io.pdb.pdbfile import PDBFile
 from chemsmart.io.xtb.file import (
@@ -50,6 +52,14 @@ class XTBOutput:
         This allows XTBOutput to transparently expose all properties and methods
         from XTBMainOut, XTBEngradFile, XTBChargesFile, XTBWibergBondOrderFile,
         XTBHessianFile, XTBGradientFile, XTBVibSpectrumFile, and any future parsers.
+
+        Whether a parser *declares* a name is asked of its class, which
+        evaluates no property.  Only then is the value read, and an error
+        the property itself raises propagates.  Catching ``AttributeError``
+        around the read made a parse fault indistinguishable from a
+        missing attribute: ``solvent_on`` raised one on ``None.lower()``
+        for every result whose setup block omitted the field, and every
+        caller saw "this result has no such property" instead.
         """
         # List of internal parsers to search, in order of priority
         file_parsers = [
@@ -67,15 +77,12 @@ class XTBOutput:
         for file_parser in file_parsers:
             try:
                 parser = object.__getattribute__(self, file_parser)
-                if parser is not None:
-                    try:
-                        return getattr(parser, name)
-                    except AttributeError:
-                        # This parser doesn't have the attribute, try next one
-                        continue
             except Exception as e:
                 logger.debug(f"Failed to access parser {file_parser}: {e}")
                 continue
+            if parser is None or not hasattr(type(parser), name):
+                continue
+            return getattr(parser, name)
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'"
         )
@@ -440,7 +447,69 @@ class XTBOutput:
                 "Found gradient in .engrad file, assigning to last structure"
             )
             molecules[-1].forces = self.final_forces
+        # 5. Attach the printed normal modes to the structure they describe,
+        #    as the ORCA and Gaussian readers do for theirs.
+        if molecules:
+            molecules[-1] = self._attach_vibrational_data(molecules[-1])
         return molecules
+
+    #: The Gaussian-98 sidecar prints coordinates to six decimals, so a
+    #: structure read from another file can differ from it by rounding
+    #: alone.  Measured over every archived xTB Hessian on this tree
+    #: (methane_planar, methane_td, acetaldehyde, he, water_ohess,
+    #: co2_ohess): at most 6e-6 A.  This admission is two orders above
+    #: that and three below any reorientation.
+    _MODE_FRAME_TOLERANCE_ANGSTROM = 1.0e-4
+
+    def _attach_vibrational_data(self, molecule):
+        """Bind the printed normal modes to the structure they describe.
+
+        Unlike ORCA and Gaussian, whose modes and final structure come
+        out of one file, xTB prints its normal coordinates in a separate
+        ``g98.out`` sidecar while the structure may come from
+        ``xtbopt.log``, ``xtbopt.xyz`` or the input geometry.  A mode is
+        a set of Cartesian displacement vectors defined in the frame its
+        own table was printed in, so binding it to a structure in another
+        frame would silently rotate every vector and send a displacement
+        along the wrong axes.  They are therefore attached only when the
+        two frames agree atom for atom.
+
+        A frame that disagrees leaves the structure without modes, and
+        the operations that consume them refuse rather than displace
+        into a rotated coordinate system.  Absence is the honest answer.
+        """
+
+        g98 = self.g98_file
+        if g98 is None or not g98.vibrational_modes:
+            return molecule
+        # A single atom has no vibrational mode, and the sidecar still
+        # prints three rows for it.  The output-level properties refuse
+        # those by ``is_monoatomic``; this is the same rule, asked of the
+        # structure in hand because ``self.molecule`` is what is being
+        # built here.
+        if getattr(molecule, "is_monoatomic", False):
+            return molecule
+        orientation = g98.standard_orientation
+        if not orientation:
+            return molecule
+        try:
+            reference = np.asarray(orientation, dtype=float)
+            positions = np.asarray(molecule.positions, dtype=float)
+        except (TypeError, ValueError):
+            return molecule
+        if reference.shape != positions.shape:
+            return molecule
+        if list(g98.symbols or ()) != list(molecule.symbols or ()):
+            return molecule
+        deviation = float(np.abs(reference - positions).max())
+        if deviation > self._MODE_FRAME_TOLERANCE_ANGSTROM:
+            logger.warning(
+                "xTB normal modes were printed in a frame %.3e A from this "
+                "structure, so they are not attached to it.",
+                deviation,
+            )
+            return molecule
+        return g98._attach_vib_metadata(molecule)
 
     def _choose_orientations(self):
         """
