@@ -347,12 +347,25 @@ PROGRAM_REFERENCES: Mapping[str, tuple[str, ...]] = {
 }
 
 
+#: The acts that decide whether reviewed calculations run. A workflow that
+#: has been finalised in a session holding execution resources cannot move
+#: without them, and that is typed host state -- so the host surfaces them
+#: rather than waiting for the model to find the right word. Measured on
+#: four live goals that previewed and preflighted every node and then
+#: settled ``execution_wave_decision_pending`` with neither in view.
+EXECUTION_DECISION_TOOLS: tuple[str, ...] = (
+    "select_execution_wave",
+    "continue_execution_reasoning",
+)
+
+
 def promotions_from_plan(
     *,
     jobtypes: Iterable[str] = (),
     operations: Iterable[str] = (),
     programs: Iterable[str] = (),
     tools: Iterable[str] = (),
+    execution_ready: bool = False,
 ) -> tuple[str, ...]:
     """What a planned DAG surfaces, mid-session, from its own typed body.
 
@@ -389,10 +402,14 @@ def promotions_from_plan(
         reference = FAMILY_REFERENCES.get(family or "")
         if reference:
             add(reference)
+    if execution_ready:
+        for name in EXECUTION_DECISION_TOOLS:
+            add(name)
     return tuple(out)
 
 
 __all__ = [
+    "EXECUTION_DECISION_TOOLS",
     "EXPOSURE_MODES",
     "JOBTYPE_REFERENCES",
     "PROGRAM_REFERENCES",
