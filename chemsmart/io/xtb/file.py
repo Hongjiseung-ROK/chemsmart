@@ -115,10 +115,26 @@ class XTBMainOut(XTBFileMixin):
 
     @property
     def solvent_on(self):
-        # instead of checking for GBSA solvation,
-        # we will search for the actual solvent model and solvent ID
+        """Whether this run applied an implicit solvent.
+
+        The comment this replaces said to read the solvation model rather
+        than the SETUP block's ``GBSA solvation`` field, and the code read
+        the field.  Only the SCC Hamiltonians print that field: a live
+        GFN-FF/ALPB(water) single point (CUHK Slurm 2142381) reported no
+        solvation here while printing ``Solvation model: ALPB`` and a
+        solvation decomposition in its energy summary, which is a run
+        whose own two blocks a reader would have to call inconsistent.
+        The model line is what every solvated run prints.
+
+        The field is still read where no model is named, and its absence
+        is now an absence rather than an ``AttributeError`` that
+        ``XTBOutput`` would have swallowed as a missing attribute.
+        """
+
+        if self.solvent_model not in (None, ""):
+            return True
         solvation = self._get_setup_information("GBSA solvation")
-        return solvation.lower() == "true"
+        return solvation is not None and solvation.lower() == "true"
 
     # solvation model and solvent ID
     @property

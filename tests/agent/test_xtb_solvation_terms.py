@@ -177,17 +177,53 @@ def test_terms_that_do_not_add_up_are_refused(tmp_path):
         _extract(main, "doctored", (_TOTAL,))
 
 
-def test_a_setup_block_and_an_energy_summary_cannot_disagree(tmp_path):
-    """Solvation terms without a solvated setup are refused, not served."""
+def test_a_result_that_names_no_model_cannot_charge_for_one(tmp_path):
+    """Solvation terms with nothing claiming a solvent are refused."""
+
+    copied = tmp_path / "benzyne"
+    shutil.copytree(Path(_BENZYNE_SP).parent, copied)
+    main = copied / Path(_BENZYNE_SP).name
+    text = main.read_text()
+    assert "Solvation model:" in text and "GBSA solvation" in text
+    main.write_text(
+        text.replace("Solvation model:", "Xxxxxxxxx xxxxx:").replace(
+            "GBSA solvation", "XXXX solvation"
+        )
+    )
+    with pytest.raises(QuantityExtractionError, match="disagree"):
+        _extract(main, "doctored", (_TOTAL,))
+
+
+def test_a_result_whose_setup_block_omits_the_field_is_still_solvated(
+    tmp_path,
+):
+    """The model line, not one Hamiltonian's setup field, says solvated.
+
+    Only the SCC Hamiltonians print ``GBSA solvation`` in the setup
+    block. A live GFN-FF/ALPB(water) single point printed the model, the
+    solvent and the decomposition without it, and a reader keyed on that
+    one field called the run gas phase while its own energy summary
+    charged it for a solvent.
+    """
 
     copied = tmp_path / "benzyne"
     shutil.copytree(Path(_BENZYNE_SP).parent, copied)
     main = copied / Path(_BENZYNE_SP).name
     text = main.read_text()
     assert "GBSA solvation" in text
-    main.write_text(text.replace("GBSA solvation", "XXXX solvation"))
-    with pytest.raises(QuantityExtractionError, match="disagree"):
-        _extract(main, "doctored", (_TOTAL,))
+    main.write_text(
+        "\n".join(
+            line for line in text.splitlines() if "GBSA solvation" not in line
+        )
+    )
+    receipt = _extract(main, "no-setup-field", _NAMES)
+    assert receipt.status == "extracted"
+    delivered = {item.quantity_id: item.value for item in receipt.quantities}
+    assert delivered["solvation_model"] == "alpb"
+    assert delivered["solvent"] == "toluene"
+    assert delivered[_TOTAL] == pytest.approx(
+        sum(delivered[name] for name in _PARTS), abs=1e-9
+    )
 
 
 def test_the_solvation_terms_are_requestable_and_reach_inspect_run(tmp_path):
