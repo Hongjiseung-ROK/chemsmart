@@ -72,6 +72,8 @@ def test_a_job_type_the_program_can_produce_is_a_job_type_the_reader_reads(
 
 
 @pytest.mark.capability("tool:bind_reached_geometry")
+@pytest.mark.capability("selector:gaussian:opt:reached_positions")
+@pytest.mark.capability("selector:gaussian:opt:positions")
 def test_an_optimisation_offers_the_structure_it_reached_as_that_role():
     """The geometry lift asks for a role, and this reader now has one.
 
@@ -96,6 +98,12 @@ def test_an_optimisation_offers_the_structure_it_reached_as_that_role():
 
 
 @pytest.mark.capability("tool:extract_result_quantities")
+@pytest.mark.capability("selector:gaussian:opt:mulliken_atomic_charges")
+@pytest.mark.capability("selector:gaussian:td:mulliken_atomic_charges")
+@pytest.mark.capability("selector:gaussian:sp:mulliken_atomic_charges")
+@pytest.mark.capability("selector:gaussian:sp:hirshfeld_atomic_charges")
+@pytest.mark.capability("selector:gaussian:opt:symbols")
+@pytest.mark.capability("selector:gaussian:opt:charge")
 @pytest.mark.parametrize(
     "path,selector",
     [
@@ -126,6 +134,7 @@ def test_a_population_vector_closes_on_the_formal_charge(path, selector):
 
 
 @pytest.mark.capability("selector:gaussian:opt:ir_intensities")
+@pytest.mark.capability("selector:gaussian:opt:vibrational_frequencies")
 def test_an_intensity_index_names_the_mode_its_frequency_names():
     """Both columns come from one frequency step, so both have one length.
 
