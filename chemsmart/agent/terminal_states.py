@@ -22,7 +22,7 @@ what a session reads and what the loop acts on cannot drift apart.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -292,7 +292,14 @@ class NodeTerminalStateV1:
     #: validator's own measurements of the branch plus how many of its
     #: frames are path steps. Empty for every node that walked no path
     #: and for streams whose program records no account.
-    path_account: Mapping[str, Any] = MappingProxyType({})
+    #:
+    #: A ``default_factory``, not a ``MappingProxyType({})`` literal:
+    #: Python 3.11's dataclass machinery refuses an unhashable default
+    #: outright, and this host's controller is 3.11 while the tree it was
+    #: written on is 3.12, which accepts one. Every CLI run of the first
+    #: cluster batch (Slurm 2141121) died importing this module after its
+    #: engine had finished.
+    path_account: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.state not in NODE_TERMINAL_STATES:
@@ -1014,9 +1021,7 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
                     if program and digest
                 ),
                 anomalies=tuple(anomalies_by_node.get(node_id, ())),
-                path_account=MappingProxyType(
-                    dict(_path_account(program, observations))
-                ),
+                path_account=dict(_path_account(program, observations)),
             )
         )
 
