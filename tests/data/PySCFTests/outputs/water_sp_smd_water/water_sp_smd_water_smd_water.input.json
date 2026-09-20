@@ -1,0 +1,25 @@
+{
+  "compute_interpreter": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "config_sha256": "30aa175470d823d866aca47dc72e85af2145173ecff90d82ab50129a960ee444",
+  "engine": "cpu",
+  "environment_receipt_sha256": "9c301e4de75d86b223956130d01b7cdff7d9758f1e729ebfe1dc3cd45b39cd20",
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "930f396017160bae064cc9b44dfee018e1c1f2f81abb0f5668af272959e58483",
+  "label": "water_sp_smd_water_smd_water",
+  "materializations": {},
+  "project_yaml_sha256": "97e0010c6aea873998718290cf45dedbe024da699579471e716df0a3a599411a",
+  "quarantined_targets": [],
+  "receipt_sha256": "9e2d04e82ae5d184281adab69bf0211d37fcd1d9e46e6a6ce49239527a927232",
+  "requested_settings_sha256": "11632874ae1220a69e64f64967771f08c8a16b2c9d6b7eb6ccda151e3a7a80fe",
+  "run_id": "93be56a4-e94a-4891-ade0-a02a011fa30c",
+  "run_nonce": "d02252d5bd3d21c433a9e768e0b5f8dc444154c5b079b7924eb135663a22e89b",
+  "schema_version": "chemsmart.pyscf-input.v1",
+  "script_path": "water_sp_smd_water_smd_water.py",
+  "script_sha256": "78add85f6379a457de176dc85cdccef2347cb5c0f49fd481e864fa7f33d8140c",
+  "stages": [
+    "scf"
+  ],
+  "state": "previewed"
+}

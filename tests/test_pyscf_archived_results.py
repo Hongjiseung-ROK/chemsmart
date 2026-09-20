@@ -18,6 +18,7 @@ import h5py
 import numpy as np
 import pytest
 
+import chemsmart.jobs.pyscf.validation as validation_module
 from chemsmart.agent._contracts import file_sha256
 from chemsmart.agent.driver import REPAIR_MENU
 from chemsmart.agent.execution import (
@@ -95,6 +96,15 @@ CASES = {
     "hcn_hnc_irc_forward": ("irc", "c2_irc_fwd_gas_phase.h5"),
     "hcn_hnc_irc_backward": ("irc", "c2_irc_bwd_gas_phase.h5"),
     "hcn_irc_from_vwn5_saddle": ("irc", "c2_irc_fwd_from_vwn5_gas_phase.h5"),
+    # Contract v10 (decomposition round): the terms PySCF itself put into
+    # the total it reports, over the four cases that differ -- SMD, which
+    # has both, a PCM-family model, which has only the electrostatics, a
+    # dispersion correction with no continuum, and neither.
+    "water_sp_smd_water": ("sp", "water_sp_smd_water_smd_water.h5"),
+    "water_sp_cpcm_water": ("sp", "water_sp_cpcm_water_cpcm_water.h5"),
+    "water_sp_d3bj": ("sp", "water_sp_d3bj_gas_phase.h5"),
+    "water_sp_gas_v10": ("sp", "water_sp_gas_v10_gas_phase.h5"),
+    "water_opt_smd_water": ("opt", "water_opt_smd_water_smd_water.h5"),
 }
 GREEN = {
     "water_sp",
@@ -127,6 +137,11 @@ GREEN = {
     "hcn_hnc_irc_forward",
     "hcn_hnc_irc_backward",
     "hcn_irc_from_vwn5_saddle",
+    "water_sp_smd_water",
+    "water_sp_cpcm_water",
+    "water_sp_d3bj",
+    "water_sp_gas_v10",
+    "water_opt_smd_water",
 }
 TD_CASES = (
     "water_td_singlet",
@@ -1180,6 +1195,12 @@ def test_every_declared_pyscf_selector_is_requestable_and_provenanced():
         # belongs to; it is not itself a value on one.
         "surface_id",
         "symbols",
+        # Which continuum was attached, and what it was parameterised
+        # for, are job-level facts like the basis. The two solvation
+        # *energies* are values on the reference's density and declare
+        # it, which is the distinction this roster draws.
+        "solvation_model",
+        "solvent",
         # An IRC's path is geometry and bookkeeping: which frames, which
         # branch, whether the walk met its criteria. Its energies and the
         # start's spectrum are values on a density and declare it.

@@ -33,6 +33,7 @@ from chemsmart.jobs.pyscf.writer import (
     APPLIED_SPEC_FIELDS_V6,
     APPLIED_SPEC_FIELDS_V7,
     APPLIED_SPEC_FIELDS_V8,
+    APPLIED_SPEC_FIELDS_V9,
     LEGACY_APPLIED_SPEC_FIELDS,
     PREVIOUS_RESULT_CONTRACT_VERSIONS,
     RESULT_CONTRACT_VERSION,
@@ -103,6 +104,7 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
         "chemsmart.pyscf-result-contract.v6": APPLIED_SPEC_FIELDS_V6,
         "chemsmart.pyscf-result-contract.v7": APPLIED_SPEC_FIELDS_V7,
         "chemsmart.pyscf-result-contract.v8": APPLIED_SPEC_FIELDS_V8,
+        "chemsmart.pyscf-result-contract.v9": APPLIED_SPEC_FIELDS_V9,
     }
     for version in PREVIOUS_RESULT_CONTRACT_VERSIONS:
         vocabulary = applied_pyscf_spec_fields(
@@ -138,7 +140,11 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
     # vocabulary already carries, so the version moves for the stage and
     # the datasets it writes while the digest vocabulary stands still --
     # which is what keeps every archived v8 digest reconstructible.
-    assert APPLIED_SPEC_FIELDS == APPLIED_SPEC_FIELDS_V8
+    assert APPLIED_SPEC_FIELDS_V9 == APPLIED_SPEC_FIELDS_V8
+    # And what v10 adds: nothing either. The decomposition of the total
+    # is read off the program rather than asked for, so no setting
+    # produces it that the vocabulary did not already carry.
+    assert APPLIED_SPEC_FIELDS == APPLIED_SPEC_FIELDS_V9
 
     complete_spec = {
         "reference_family": "rks",

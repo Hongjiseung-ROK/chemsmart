@@ -1,0 +1,8 @@
+# Contract v10 fixture: gas phase with a dispersion correction, so the
+# artifact carries the dispersion term and neither solvation term.
+sp:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false
+  dispersion: d3bj

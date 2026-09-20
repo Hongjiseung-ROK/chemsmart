@@ -1329,6 +1329,11 @@ class FakePySCFJobRunner(PySCFJobRunner):
                     "mulliken_charges",
                     "dipole_moment",
                     "point_group",
+                    # A preview applies no continuum and no correction, so
+                    # it computed no term of the total either; saying so is
+                    # the discipline that already covers the dipole.
+                    "solvation_energy",
+                    "dispersion_energy",
                 )
             },
         }

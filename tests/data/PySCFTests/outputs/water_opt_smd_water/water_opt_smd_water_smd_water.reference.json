@@ -1,0 +1,19 @@
+{
+ "artifact": "water_opt_smd_water_smd_water.h5",
+ "command": "reference.py water_opt_smd_water_smd_water.h5",
+ "jobtype": "opt",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  1.008,
+  1.008
+ ],
+ "point_group_detect_symm": "C2v",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -76.37000276845207,
+ "scf_summary_e_cds_eh": 0.002305755615469249,
+ "scf_summary_e_solvent_eh": -0.016213471973628248,
+ "stored_solvation_electrostatic_energy_minus_recomputed_eh": -1.419915088562984e-07,
+ "stored_solvation_nonelectrostatic_energy_minus_recomputed_eh": -4.336808689942018e-19,
+ "symm_geom_tol_bohr": 1e-05
+}

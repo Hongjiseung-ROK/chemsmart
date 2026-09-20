@@ -1,0 +1,10 @@
+# Contract v10 fixture: the same level and geometry under C-PCM, which
+# carries electrostatics only. The missing CDS term is the difference
+# between the two models, not a parsing failure.
+sp:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false
+  solvent_model: cpcm
+  solvent_id: water

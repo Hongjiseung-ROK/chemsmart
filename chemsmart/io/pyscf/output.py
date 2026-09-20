@@ -813,6 +813,48 @@ class PySCFOutput(FileMixin):
     def triples_correction(self):
         return self._scalar_result("triples_correction")
 
+    # ------------------------------------------------------------------
+    # the decomposition of the total (contract v10)
+    # ------------------------------------------------------------------
+
+    @cached_property
+    def solvation_electrostatic_energy(self):
+        """Polarisation free energy of the continuum, in Hartree.
+
+        PySCF's ``scf_summary['e_solvent']`` at the converged density of
+        the final geometry: the term ORCA prints as ``CPCM Dielectric``,
+        recorded by every continuum model this driver attaches.  ``None``
+        covers a gas-phase run and an artifact written before contract
+        v10 alike, and neither of them is a solvation energy of zero.
+        """
+        return self._scalar_result("solvation_electrostatic_energy")
+
+    @cached_property
+    def solvation_nonelectrostatic_energy(self):
+        """SMD cavitation-dispersion-solvent-structure term, in Hartree.
+
+        PySCF's ``scf_summary['e_cds']``, which ORCA labels ``SMD CDS
+        (Gcds)``.  A PCM-family run has no such term and this returns
+        ``None``; that absence is the difference between the two models
+        rather than a defect.
+        """
+        return self._scalar_result("solvation_nonelectrostatic_energy")
+
+    @cached_property
+    def dispersion_energy(self):
+        """The semi-empirical dispersion correction, in Hartree.
+
+        PySCF's ``scf_summary['dispersion']``, already inside the total
+        energy this artifact reports; ``None`` where none was applied.
+        """
+        return self._scalar_result("dispersion_energy")
+
+    @property
+    def solvation_property_status(self):
+        """What the run recorded about the solvation decomposition."""
+        record = self.property_status.get("solvation_energy")
+        return record if isinstance(record, dict) else None
+
     @property
     def frozen_core_applied(self):
         """The number of orbitals the correlated stage left uncorrelated."""

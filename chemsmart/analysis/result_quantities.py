@@ -414,6 +414,16 @@ _SELECTOR_RESULT_DATASETS: dict[str, tuple[str, ...]] = {
     "correlation_energy": ("results/correlation_energy",),
     "ccsd_correlation_energy": ("results/ccsd_correlation_energy",),
     "triples_correction": ("results/triples_correction",),
+    # The decomposition of the total (contract v10).  The model and the
+    # solvent are spec fields and have no stored unit to audit; the three
+    # terms are datasets and do.
+    "dispersion_energy": ("results/dispersion_energy",),
+    "solvation_electrostatic_energy": (
+        "results/solvation_electrostatic_energy",
+    ),
+    "solvation_nonelectrostatic_energy": (
+        "results/solvation_nonelectrostatic_energy",
+    ),
     "dipole_moment": ("results/dipole_moment",),
     "dipole_moment_magnitude": ("results/dipole_moment",),
     "mulliken_atomic_charges": ("results/mulliken_charges",),

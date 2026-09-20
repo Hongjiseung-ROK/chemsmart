@@ -1,0 +1,11 @@
+# Contract v10 fixture: an SMD single point, which is the only model in
+# this build that gives PySCF both solvation terms -- the continuum's
+# polarisation energy and the cavitation-dispersion-solvent-structure
+# correction.
+sp:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false
+  solvent_model: smd
+  solvent_id: water

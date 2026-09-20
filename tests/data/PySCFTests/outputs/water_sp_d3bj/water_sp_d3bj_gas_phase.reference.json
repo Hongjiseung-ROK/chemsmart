@@ -1,0 +1,17 @@
+{
+ "artifact": "water_sp_d3bj_gas_phase.h5",
+ "command": "reference.py water_sp_d3bj_gas_phase.h5",
+ "jobtype": "sp",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  1.008,
+  1.008
+ ],
+ "point_group_detect_symm": "C2v",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -76.35889017169026,
+ "scf_summary_dispersion_eh": -0.0005739488533262506,
+ "stored_dispersion_energy_minus_recomputed_eh": 0.0,
+ "symm_geom_tol_bohr": 1e-05
+}

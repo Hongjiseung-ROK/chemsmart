@@ -60,6 +60,8 @@ def _mean_field(spec, mol):
         grid = spec.get("atom_grid")
         if grid:
             mf.grids.atom_grid = tuple(int(item) for item in grid)
+    if spec.get("dispersion"):
+        mf.disp = spec["dispersion"]
     if spec.get("scf_tol") is not None:
         mf.conv_tol = float(spec["scf_tol"])
     if spec.get("scf_maxiter") is not None:
@@ -176,6 +178,7 @@ def main(path):
                 "frozen_core",
                 "cc_max_cycle",
                 "scf_stability",
+                "dispersion",
             )
         }
         results = {
@@ -191,6 +194,9 @@ def main(path):
                 "excitation_energies",
                 "correlation_energy",
                 "total_energy",
+                "solvation_electrostatic_energy",
+                "solvation_nonelectrostatic_energy",
+                "dispersion_energy",
             )
         }
         positions = np.asarray(handle["results/positions"][()])
@@ -240,16 +246,49 @@ def main(path):
             np.max(np.abs(stored - np.sort(recomputed)))
         )
     stability_requested = bool(spec.get("scf_stability"))
+    # The decomposition (contract v10) is PySCF's own account of what it
+    # put into the total, so it is re-derived the same way everything
+    # else here is: rebuild the reference from the applied spec and read
+    # the program's summary, never the artifact's numbers.
+    decomposed = (
+        spec.get("solvent_call") is not None
+        or bool(spec.get("dispersion"))
+        or any(
+            results[name] is not None
+            for name in (
+                "solvation_electrostatic_energy",
+                "solvation_nonelectrostatic_energy",
+                "dispersion_energy",
+            )
+        )
+    )
     needs_reference = (
         results["excitation_energies"] is not None
         or results["correlation_energy"] is not None
         or stability_requested
+        or decomposed
     )
     if needs_reference:
         mf = _mean_field(spec, mol)
         mf.kernel()
         out["scf_energy_eh"] = float(mf.e_tot)
         out["scf_converged"] = bool(mf.converged)
+    if decomposed:
+        summary = dict(getattr(mf, "scf_summary", {}) or {})
+        for stored_name, summary_key in (
+            ("solvation_electrostatic_energy", "e_solvent"),
+            ("solvation_nonelectrostatic_energy", "e_cds"),
+            ("dispersion_energy", "dispersion"),
+        ):
+            if summary_key not in summary:
+                continue
+            value = float(np.asarray(summary[summary_key]).reshape(-1)[0])
+            out["scf_summary_%s_eh" % summary_key] = value
+            stored = results[stored_name]
+            if stored is not None:
+                out["stored_%s_minus_recomputed_eh" % stored_name] = float(
+                    np.asarray(stored).reshape(-1)[0] - value
+                )
     if stability_requested:
         out["scf_stability"] = _stability(mf)
     if results["excitation_energies"] is not None:
