@@ -794,13 +794,23 @@ def run_live_agent_session(
     previous_outcome = dict(
         (goal_context or {}).get("previous_run_outcome") or {}
     )
+    # The workspace signal reads the kinds the scan actually found. It
+    # passed the literal ("chemsmart_db",) whenever any database was
+    # present, so the one other declared workspace kind -- pyscf_hdf5, on
+    # the pyscf guide -- could not fire from a workspace at all, and a
+    # session handed a PySCF result read no PySCF guidance unless the
+    # task text happened to say the word.
+    workspace_kinds = {
+        str(item.artifact.kind)
+        for item in (
+            *observations,
+            *result_observations,
+            *database_observations,
+        )
+    }
     session_guides: dict[str, tuple[str, ...]] = {
         "task": guides_from_text(task),
-        "workspace": (
-            guides_from_workspace(("chemsmart_db",))
-            if database_observations
-            else ()
-        ),
+        "workspace": guides_from_workspace(workspace_kinds),
         "states": guides_from_states(
             str(node.get("state") or "")
             for node in previous_outcome.get("nodes", ())

@@ -555,3 +555,17 @@ def test_a_leaf_tool_called_by_name_returns_its_guide_with_the_body(
     (opened,) = reply["guides_opened"]
     assert opened["guide_id"] == "database" and opened["body"]
     assert "database" in host.active_guides
+
+
+def test_every_declared_workspace_kind_can_fire():
+    """A guide that declares a workspace kind is opened by that kind.
+
+    ``pyscf_hdf5`` was declared on the pyscf guide and never passed: the
+    session handed the literal ("chemsmart_db",) whenever any database
+    existed, so a workspace holding a PySCF result opened nothing.
+    """
+
+    declared = {kind for guide in GUIDES for kind in guide.workspace_kinds}
+    assert declared, "the signal has no subscribers to protect"
+    for kind in declared:
+        assert guides_from_workspace((kind,)), kind
