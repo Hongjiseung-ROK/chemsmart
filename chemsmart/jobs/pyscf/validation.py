@@ -156,6 +156,13 @@ RULE_RESULT_IRC = "pyscf.result.irc_invalid"
 RULE_RESULT_IRC_START_ORDER = "pyscf.result.irc_start_imaginary_mode_count"
 #: The branch the first step took, measured, disagrees with the one asked.
 RULE_RESULT_IRC_DIRECTION = "pyscf.result.irc_direction_not_followed"
+#: A number the artifact records *about* its path disagrees with the same
+#: number re-derived from the arrays the driver derived it from. Every
+#: scalar an IRC stage writes beside its frames -- the start's spectrum,
+#: the mass-weighted arc length, the energy statistics -- is a summary of
+#: those arrays, and a summary nothing re-derives is a claim the bytes
+#: need not support.
+RULE_RESULT_IRC_ACCOUNT = "pyscf.result.irc_account_inconsistent"
 RULE_FREQUENCY_GEOMETRY = "pyscf.frequency.geometry_invalid"
 RULE_FREQUENCY_MODE_COUNT = "pyscf.frequency.mode_count"
 RULE_FREQUENCY_NONFINITE = "pyscf.frequency.nonfinite"
@@ -2691,6 +2698,273 @@ def _irc_steepest_descent_alignment(positions, gradients, masses, *, switch):
     }
 
 
+#: How far a re-derived mass-weighted arc length may sit from the one the
+#: driver recorded, in its own unit (amu^1/2 bohr).  Both are the same
+#: Kabsch superposition of the same frames under the same masses, so the
+#: difference is float summation order; a real divergence is orders of
+#: magnitude larger.
+_IRC_ARC_ATOL_AMU_HALF_BOHR = 1.0e-8
+#: Likewise for the energy statistics, in hartree: the recorded drop and
+#: largest rise are differences of the recorded energies.
+_IRC_ENERGY_ATOL_EH = 1.0e-10
+
+
+#: What a path stage's primitive arrays and derived scalars are called.
+#: One entry per stage: the arithmetic that re-derives one path stage's
+#: account re-derives any other's, so a second such stage is a table
+#: rather than a second copy of the checks.
+_IRC_ACCOUNT_NAMES = {
+    "stage": "irc",
+    "hessian": "start_hessian",
+    "frequencies": "start_frequencies",
+    "positions": "path_positions",
+    "masses": "path_masses",
+    "energies": "path_energies",
+    "distance": "path_arc_lengths",
+    # (status key -> how the energies give it).  A stage is checked on
+    # exactly the scalars it records, so adding one to a driver without
+    # a derivation here is caught by the coverage check below rather
+    # than silently unverified.
+    "energy_statistics": {
+        "energy_drop_eh": "first_minus_last",
+        "energy_rises_along_path": "count_of_rises",
+        "largest_energy_rise_eh": "largest_rise",
+    },
+}
+
+
+def _validate_path_account(*, arrays, stage, symbols, findings, names):
+    """Re-derive every number a path stage records about its own frames.
+
+    A derived summary written beside the arrays it came from, with
+    nothing re-deriving it, is a claim the bytes need not support.  Real
+    archived v8 artifacts proved it: the start's spectrum rewritten to
+    all-real values, the mass table set to 1.0, two interior frames
+    swapped, the energies reversed, the whole path appended to itself
+    walked back to the saddle, and the start Hessian replaced by a
+    different symmetric matrix of the same shape -- each of the six came
+    back ``validated``, because the Hessian was checked for shape alone
+    and every scalar was read rather than recomputed.
+
+    So each is derived again from the primitives it is a summary of, by
+    arithmetic that shares no code with the driver:
+
+    * the start's spectrum from the start Hessian at the start geometry,
+      through the *same* independent reconstruction a ``hess`` stage is
+      already held to -- which weighs by its own isotope-averaged mass
+      table, so it is an authority and not an echo;
+    * the mass-weighted arc lengths from the frames and ``path_masses``,
+      which is the one number that ties frames, masses and order
+      together: a step inserted, removed, reordered or re-weighted moves
+      it;
+    * the energy statistics from ``path_energies``.
+
+    Nothing here judges the chemistry of the path.  It judges whether the
+    artifact's account of itself is the account its own arrays give.
+    """
+
+    import numpy as np
+
+    stage_name = names["stage"]
+    observation = {"state": "unverified", "checks": {}}
+
+    def _record(name, expected, observed, tolerance, evidence):
+        agreed = (
+            expected is not None
+            and observed is not None
+            and abs(float(expected) - float(observed)) <= tolerance
+        )
+        observation["checks"][name] = {
+            "recomputed": None if expected is None else float(expected),
+            "recorded": None if observed is None else float(observed),
+            "agrees": agreed if observed is not None else None,
+        }
+        if observed is not None and not agreed:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_IRC_ACCOUNT,
+                    name,
+                    {
+                        "recomputed": (
+                            None if expected is None else float(expected)
+                        ),
+                        "absolute_tolerance": tolerance,
+                    },
+                    float(observed),
+                    evidence,
+                )
+            )
+
+    atoms = len(symbols)
+    hessian = _result_array(arrays.get(names["hessian"]))
+    frames = _result_array(arrays.get(names["positions"]))
+    frequencies = _result_array(arrays.get(names["frequencies"]))
+    masses = _result_array(arrays.get(names["masses"]))
+    energies = _result_array(arrays.get(names["energies"]))
+    arc = _result_array(arrays.get(names["distance"]))
+    positions_field = f"h5:/results/{stage_name}/{names['positions']}"
+    energies_field = f"h5:/results/{stage_name}/{names['energies']}"
+    distance_field = f"results.{stage_name}.{names['distance']}"
+    distance_evidence = f"h5:/results/{stage_name}/{names['distance']}"
+    hessian_evidence = f"h5:/results/{stage_name}/{names['hessian']}"
+
+    # 1. the start's spectrum belongs to the start's Hessian, taken at the
+    #    geometry the path starts from.
+    if (
+        hessian is not None
+        and hessian.shape == (atoms, atoms, 3, 3)
+        and frames is not None
+        and frames.ndim == 3
+        and frames.shape[1:] == (atoms, 3)
+        and frames.shape[0] >= 1
+    ):
+        matrix = hessian.transpose(0, 2, 1, 3).reshape(3 * atoms, 3 * atoms)
+        consistency, consistency_findings = (
+            _validate_hessian_frequency_consistency(
+                matrix=matrix,
+                symbols=symbols,
+                positions=frames[0],
+                frequencies=frequencies,
+            )
+        )
+        # The finding's field names this stage's own spectrum, not a
+        # ``hess`` stage's ``results.vibrational_frequencies`` which this
+        # artifact has not got.
+        for finding in consistency_findings:
+            findings.append(
+                _result_finding(
+                    finding.rule_id,
+                    f"results.{stage_name}.{names['frequencies']}",
+                    finding.expected,
+                    finding.observed,
+                    hessian_evidence,
+                )
+            )
+        observation["start_frequency_consistency"] = consistency
+
+    # 2. the arc length is the mass-weighted path of these frames.
+    if (
+        frames is not None
+        and masses is not None
+        and arc is not None
+        and frames.ndim == 3
+        and frames.shape[1:] == (atoms, 3)
+        and masses.shape == (atoms,)
+        and arc.shape == (frames.shape[0],)
+        and bool(np.isfinite(frames).all())
+        and bool(np.isfinite(masses).all())
+        and bool((masses > 0.0).all())
+    ):
+        recomputed = _mass_weighted_arc_lengths(frames, masses)
+        difference = float(np.max(np.abs(recomputed - arc)))
+        observation["checks"][distance_field] = {
+            "max_absolute_difference_amu_half_bohr": difference,
+            "absolute_tolerance": _IRC_ARC_ATOL_AMU_HALF_BOHR,
+            "agrees": difference <= _IRC_ARC_ATOL_AMU_HALF_BOHR,
+        }
+        if difference > _IRC_ARC_ATOL_AMU_HALF_BOHR:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_IRC_ACCOUNT,
+                    distance_field,
+                    {
+                        "recomputed_from": (
+                            f"{names['positions']} and {names['masses']}"
+                        ),
+                        "max_absolute_difference_amu_half_bohr": difference,
+                        "absolute_tolerance": _IRC_ARC_ATOL_AMU_HALF_BOHR,
+                    },
+                    arc.tolist(),
+                    distance_evidence,
+                )
+            )
+
+    # 3. the energy statistics are statistics of these energies.
+    if energies is not None and energies.ndim == 1 and energies.size:
+        rises = np.diff(energies)
+        derivations = {
+            "first_minus_last": (
+                lambda: float(energies[0] - energies[-1]),
+                _IRC_ENERGY_ATOL_EH,
+            ),
+            "last_minus_first": (
+                lambda: float(energies[-1] - energies[0]),
+                _IRC_ENERGY_ATOL_EH,
+            ),
+            "count_of_rises": (
+                lambda: float(int((rises > 0.0).sum())),
+                0.0,
+            ),
+            "largest_rise": (
+                (lambda: float(rises.max())) if rises.size else None,
+                _IRC_ENERGY_ATOL_EH,
+            ),
+        }
+        for key, derivation in names["energy_statistics"].items():
+            compute, tolerance = derivations[derivation]
+            if compute is None:
+                continue
+            _record(
+                f"status.stages.{stage_name}.{key}",
+                compute(),
+                stage.get(key),
+                tolerance,
+                energies_field,
+            )
+    if frames is not None and frames.ndim == 3:
+        _record(
+            f"status.stages.{stage_name}.frames",
+            float(frames.shape[0]),
+            stage.get("frames"),
+            0.0,
+            positions_field,
+        )
+    observation["state"] = (
+        "verified"
+        if not any(
+            item.get("agrees") is False
+            for item in observation["checks"].values()
+        )
+        and observation.get("start_frequency_consistency", {}).get("state")
+        in (None, "verified")
+        else "refused"
+    )
+    return observation
+
+
+def _mass_weighted_arc_lengths(frames, masses):
+    """Cumulative mass-weighted path length, rigid motion removed.
+
+    The driver's own arithmetic, written again rather than shared, so the
+    check is an authority: consecutive frames superposed by the
+    mass-weighted Kabsch rotation, the displacement weighted by sqrt(m),
+    and the Bohr conversion the driver applies.
+    """
+
+    import numpy as np
+
+    #: PySCF's own ``lib.param.BOHR``, the literal the driver divides by.
+    bohr = 0.52917721092
+    weights = np.asarray(masses, dtype=float)
+    total = float(weights.sum())
+    lengths = [0.0]
+    for index in range(1, len(frames)):
+        before = np.asarray(frames[index - 1], dtype=float)
+        after = np.asarray(frames[index], dtype=float)
+        before_centred = (
+            before - (weights[:, None] * before).sum(axis=0) / total
+        )
+        after_centred = after - (weights[:, None] * after).sum(axis=0) / total
+        covariance = (weights[:, None] * after_centred).T @ before_centred
+        left, _values, right = np.linalg.svd(covariance)
+        handed = float(np.sign(np.linalg.det(right.T @ left.T))) or 1.0
+        rotation = right.T @ np.diag([1.0, 1.0, handed]) @ left.T
+        displacement = after_centred @ rotation.T - before_centred
+        norm = float(np.sqrt((weights[:, None] * displacement**2).sum()))
+        lengths.append(lengths[-1] + norm / bohr)
+    return np.asarray(lengths, dtype=float)
+
+
 def _validate_irc_results(results, stage_statuses, spec, *, expected_symbols):
     """The IRC artifact's invariants, and the facts a reader weighs.
 
@@ -2727,7 +3001,17 @@ def _validate_irc_results(results, stage_statuses, spec, *, expected_symbols):
         ),
         "path_converged": stage.get("path_converged"),
         "switched_to_minimisation": stage.get("switched_to_minimisation"),
+        # Where the walk stopped stepping along the path and started
+        # minimising, and the ceiling it was given: a reader that knows
+        # only the frame count cannot tell a branch that reached its
+        # basin from one that ran out of steps, nor an endpoint the path
+        # arrived at from one a minimisation from the path's tail did.
+        "switch_after_iteration": stage.get("switch_after_iteration"),
+        "maxsteps": stage.get("maxsteps"),
         "energy_rises_along_path": stage.get("energy_rises_along_path"),
+        "largest_energy_rise_eh": stage.get("largest_energy_rise_eh"),
+        "arc_length_amu_half_bohr": stage.get("arc_length_amu_half_bohr"),
+        "energy_drop_eh": stage.get("energy_drop_eh"),
     }
 
     def _array(name, shape):
@@ -2865,6 +3149,18 @@ def _validate_irc_results(results, stage_statuses, spec, *, expected_symbols):
                     "h5:/results/positions",
                 )
             )
+    # Every number this stage records *about* its arrays, derived again
+    # from those arrays.  Placed after the shape and finiteness checks so
+    # the arithmetic below runs on arrays that are already known to be
+    # arrays, and before the branch and stage checks so a finding about
+    # the account arrives with them.
+    observation["account"] = _validate_path_account(
+        arrays=irc,
+        stage=stage,
+        symbols=list(expected_symbols),
+        findings=findings,
+        names=_IRC_ACCOUNT_NAMES,
+    )
     gradients = _result_array(irc.get("path_gradients"))
     masses = _result_array(irc.get("path_masses"))
     if (
