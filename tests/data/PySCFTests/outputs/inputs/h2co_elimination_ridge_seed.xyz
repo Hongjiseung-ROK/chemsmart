@@ -1,0 +1,6 @@
+4
+ChemSmart geometry edit; set_angle H3-C1-H4 from 59.369655 to 42.000000 degree; moved the side of atom 3 (1 atoms); every other atom unchanged; starting structure, electronic state deliberately unbound
+C   0.0000000000 0.0000000000 0.0000000000
+O   0.0000000000 0.0000000000 1.2050000000
+H   0.0000000000 0.2943389729 -1.3482449959
+H   0.0000000000 -0.6834155070 -1.1988925076

@@ -1,0 +1,26 @@
+{
+  "compute_interpreter": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "config_sha256": "8e260d9b4a1b98cb033f9f9e82a4faa60e7b440bc776c83b6025a2c0c25108ab",
+  "engine": "cpu",
+  "environment_receipt_sha256": "46672feff78e99dd587434ae43b9da66c2d1d4b787aa9d65f1d2cac3547ea5db",
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "dae4c4521a537f399e293bfb33eb40a4d322ea13e592bb974de15ff32e5f7ec8",
+  "label": "h2co-ts-ridge-seed_ts_gas_phase",
+  "materializations": {},
+  "project_yaml_sha256": "1005f0f1bd97e8fb3ff7f699e692ee09e87528b99008e580b6e1f879406cc2b9",
+  "quarantined_targets": [],
+  "receipt_sha256": "c691c6d428c6bf8e50c9edf31b44acc999329f71945067f724504fe73dd636a5",
+  "requested_settings_sha256": "cb0c41c02ab36cffa2bf3ebb0e446491b00a81e2f6e99f92d4ecf326d92b3522",
+  "run_id": "bbf0dbe5-efbf-4691-adfd-8ca601656280",
+  "run_nonce": "5bf8d9e0ecdd08f19694b5ca3f4440ba692e74c9698052e727124f57412c0c85",
+  "schema_version": "chemsmart.pyscf-input.v1",
+  "script_path": "h2co-ts-ridge-seed_ts_gas_phase.py",
+  "script_sha256": "360e08dd00c259f93bfc672a3cd931459ad341f9303581eb6f83131e226e8f9e",
+  "stages": [
+    "scf",
+    "ts"
+  ],
+  "state": "previewed"
+}
