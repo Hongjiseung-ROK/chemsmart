@@ -47,20 +47,20 @@
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:ts",
-      "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/probe (direct human CLI, Slurm 2142375)",
-      "commit": "cf9224ab",
-      "date": "2026-09-21",
-      "source": "ORCA 6.1.1, HCN -> HNC 1,2-hydrogen shift at B3LYP/def2-SVP: OptTS with a frequency step converged and carried exactly one imaginary mode, -1133.34 cm^-1. The CLI surface only -- this run did not exercise the plan, preview and approval chain."
+      "status": "claimed",
+      "run": "",
+      "commit": "",
+      "date": "",
+      "source": "AGENTS.md product boundary; TS->IRC qualification target"
     },
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:irc",
-      "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/probe (direct human CLI, Slurm 2142379 and 2142403)",
-      "commit": "cf9224ab",
-      "date": "2026-09-21",
-      "source": "Three branches walked from that saddle, each reading its analytic Hessian: forward, backward and direction both, all normally terminated and all read into typed quantities. Optimising the two branch endpoints gave two true minima, HNC and HCN, 13.66 kcal/mol apart with a 47.77 kcal/mol barrier from HCN; each branch had stopped 0.71 and 2.31 kcal/mol short of its own minimum, which is what irc_converged = 0 said. The CLI surface only -- these runs did not exercise the plan, preview and approval chain."
+      "status": "claimed",
+      "run": "",
+      "commit": "",
+      "date": "",
+      "source": "AGENTS.md product boundary; TS->IRC qualification target"
     },
     {
       "kind": "program_jobtype",
