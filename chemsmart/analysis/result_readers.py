@@ -2290,6 +2290,28 @@ def _gaussian_reached_positions(output: Any) -> list[list[float]]:
     from a second list beside it: a probe that calls the accessor without
     the job-type gate (``available_selectors``) then answers exactly what
     the declaration promises, and the two cannot drift apart.
+
+    Convergence is deliberately not asked.  "Reached" means the last
+    structure the run printed, which is exactly what ORCA and PySCF mean
+    by it, and the route that consumes it -- the geometry lift the repair
+    menu offers -- exists *for* the run that stopped without converging:
+    refusing there sends a session back to its own seed and throws away
+    every step the optimiser took.  Measured on the archived
+    error-terminated triplet optimisation in this repository, that is 72
+    atoms carried 0.3777 A from where they started, over seven complete
+    frames.  Whether the point is stationary is a different question, and
+    ``converged``, the spectrum and the validity verdict answer it; the
+    producer edge inside an approval keeps its own convergence test,
+    because that one feeds a calculation a human approved.
+
+    What is asked is that a frame exists.  ``molecule`` falls back to the
+    input coordinate block when a log printed no orientation at all, so
+    reading it would hand back the seed under this name -- the precise
+    defect ORCA's accessor records -- and the parser's own frame list is
+    read instead.  Every abnormally terminated structure-moving Gaussian
+    log in this repository parses fewer complete frames than it printed
+    orientations, because the truncation that drops a half-written block
+    happens before this point.
     """
 
     jobtype = str(getattr(output, "jobtype", "") or "").strip().lower()
@@ -2300,13 +2322,14 @@ def _gaussian_reached_positions(output: Any) -> list[list[float]]:
             "beyond the one it was handed; bind the supplied geometry or "
             "the producing optimisation's result instead"
         )
-    molecule = getattr(output, "optimized_structure", None)
-    if molecule is None:
+    frames = list(getattr(output, "all_structures", ()) or ())
+    if not frames:
         raise MissingQuantityError(
-            "this gaussian result did not terminate normally, so the frame "
-            "it printed last is not a structure it reached"
+            "this gaussian result printed no complete structure, so the "
+            "only geometry it carries is the one it was supplied; bind "
+            "that instead"
         )
-    return [[float(value) for value in row] for row in molecule.positions]
+    return [[float(value) for value in row] for row in frames[-1].positions]
 
 
 def _gaussian_population(

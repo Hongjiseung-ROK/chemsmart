@@ -168,3 +168,49 @@ def test_a_fixed_geometry_result_reaches_no_structure():
     with pytest.raises(MissingQuantityError) as refusal:
         reader.read(output, "reached_positions")
     assert "reaches no structure" in str(refusal.value)
+
+
+_ERROR_TERMINATED_OPT = (
+    _DATA
+    / "outputs"
+    / "dppeFeCl2_phenyldioxazolone_opt_triplet_opt_error_termination_link.log"
+)
+
+
+@pytest.mark.capability("tool:bind_reached_geometry")
+def test_an_optimisation_that_stopped_short_still_reached_a_structure():
+    """ "Reached" is where the optimiser stopped, not where it converged.
+
+    ORCA and PySCF both mean the last printed structure, and the route
+    that consumes it is the one the repair menu offers after a run that
+    did *not* converge; refusing there returns the session its own seed.
+    This archived triplet optimisation error-terminated after seven
+    complete frames, having carried 72 atoms 0.3777 angstrom from where
+    they started, and the host could not offer a single one of them.
+
+    Convergence is asked elsewhere: by ``converged``, by the spectrum, by
+    the validity verdict, and by the producer edge inside an approval,
+    which feeds a calculation a human agreed to and keeps its own test.
+    """
+
+    reader = RESULT_READERS["gaussian"]
+    output = reader.open_output(_ERROR_TERMINATED_OPT)
+    assert output.normal_termination is False
+    reached, unit = reader.read(output, "reached_positions")
+    assert unit == "Angstrom"
+
+    frames = output.all_structures
+    assert len(frames) > 1
+    assert reached == [
+        [float(value) for value in row] for row in frames[-1].positions
+    ]
+    # Not the seed: the whole point is the distance the optimiser covered.
+    supplied = [[float(value) for value in row] for row in frames[0].positions]
+    assert (
+        max(
+            abs(a - b)
+            for row, other in zip(reached, supplied)
+            for a, b in zip(row, other)
+        )
+        > 0.1
+    )

@@ -118,7 +118,15 @@ class Gaussian16Output(GaussianFileMixin):
         nothing pretends to store it.
         """
 
-        route_jobtype = self.route_object.jobtype
+        route = self.route_object
+        if route is None:
+            # ``route_object`` answers None when no route can be parsed at
+            # all -- an archived failed link job here has no readable route
+            # line -- and reaching through it raised an AttributeError
+            # naming ``NoneType`` at whoever asked what the log was. A log
+            # with no route states no job type, and that is the answer.
+            return None
+        route_jobtype = route.jobtype
         if route_jobtype == "modred" and self._modredundant_is_scan:
             return "scan"
         if route_jobtype == "sp" and self._route_has_excited_state_block:
