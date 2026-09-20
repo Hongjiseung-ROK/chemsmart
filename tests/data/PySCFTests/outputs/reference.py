@@ -262,11 +262,15 @@ def main(path):
             )
         )
     )
+    # The frontier levels are their own reason to rebuild the reference:
+    # a plain single point asks for nothing else and is exactly where the
+    # spin-resolved selectors are read.
     needs_reference = (
         results["excitation_energies"] is not None
         or results["correlation_energy"] is not None
         or stability_requested
         or decomposed
+        or spec.get("multiplicity") is not None
     )
     if needs_reference:
         mf = _mean_field(spec, mol)
