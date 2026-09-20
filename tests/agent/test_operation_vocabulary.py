@@ -179,3 +179,24 @@ def test_every_validation_predicate_the_model_may_choose_is_derived():
     ]["properties"]["validation_rules"]["items"]
     predicate = node_schema["properties"]["predicate"]
     assert set(predicate["enum"]) == set(ANALYSIS_VALIDATION_PREDICATES)
+
+
+def test_every_operation_declares_one_family():
+    """An operation is findable by the quantity it computes.
+
+    Reachability: the vocabulary is what ``evaluate_quantity_expression``
+    exposes, and the catalogue groups and indexes it by family.  Until
+    this map existed only the fifteen operations some guide hid carried
+    a family, so twenty-nine of them could be grouped only as "not
+    hidden" -- and an operation nobody grouped is an operation nobody
+    searching for a quantity retrieves.  Pinned to the operation set so
+    a new operation cannot arrive unfamilied.
+    """
+
+    from chemsmart.analysis.quantity_expressions import OPERATION_FAMILIES
+
+    assert set(OPERATION_FAMILIES) == set(OPERATION_DESCRIPTIONS)
+    assert all(
+        isinstance(family, str) and family and " " not in family
+        for family in OPERATION_FAMILIES.values()
+    )

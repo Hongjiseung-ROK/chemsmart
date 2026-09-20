@@ -397,6 +397,77 @@ def require_expression_input_count(operation: str, count: int) -> None:
     )
 
 
+#: The family a chemist would look for each operation under.
+#:
+#: Until now only fifteen operations carried a family, and they carried it
+#: indirectly: ``guides.LEAF_OPERATIONS`` said which guide hid them, so
+#: "family" meant "what the stem does not show" and the other twenty-nine
+#: had none.  That is a surface fact, not a scientific one.  This map is
+#: the scientific one: it is what the searchable catalogue groups by and
+#: what the capability ladder reports, and it exists so an operation can be
+#: *found* by the quantity it computes rather than by the tool tree it
+#: happened to sit in.  Every operation is a member of exactly one family;
+#: ``test_every_operation_declares_one_family`` pins the map to the
+#: operation set, so a new operation cannot arrive unfamilied.
+OPERATION_FAMILIES: Mapping[str, str] = {
+    # Algebra and plumbing: the dimension-aware arithmetic every expression
+    # is built out of, which owns no chemistry convention of its own.
+    "abs": "arithmetic",
+    "add": "arithmetic",
+    "convert": "arithmetic",
+    "divide": "arithmetic",
+    "exp": "arithmetic",
+    "literal": "arithmetic",
+    "log": "arithmetic",
+    "max": "arithmetic",
+    "mean": "arithmetic",
+    "min": "arithmetic",
+    "multiply": "arithmetic",
+    "power": "arithmetic",
+    "ref": "arithmetic",
+    "scale": "arithmetic",
+    "sqrt": "arithmetic",
+    "subtract": "arithmetic",
+    "sum": "arithmetic",
+    # Molecular geometry read off a coordinate matrix.
+    "angle": "geometry",
+    "center_of_mass": "geometry",
+    "connectivity_difference_count": "geometry",
+    "dihedral": "geometry",
+    "distance": "geometry",
+    # Where a scanned or fitted series turns over, and the line through it.
+    "coordinate_at_maximum": "series",
+    "coordinate_at_minimum": "series",
+    "linear_fit_intercept": "series",
+    "linear_fit_slope": "series",
+    # Moments of inertia and the rotational constants built from them.
+    "linear_rotor_constant": "rotational",
+    "principal_moments_of_inertia": "rotational",
+    "rigid_rotor_constants": "rotational",
+    # Harmonic frequencies read as chemistry.
+    "harmonic_zero_point_energy": "vibrational",
+    "imaginary_mode_count": "vibrational",
+    "transition_state_crossover_temperature": "vibrational",
+    # Energy and wavelength as one another.
+    "energy_to_wavenumber": "spectroscopy",
+    "photon_wavelength": "spectroscopy",
+    "wavenumber_to_energy": "spectroscopy",
+    # Populations over a set of states at a temperature.
+    "boltzmann_average": "ensemble",
+    "boltzmann_populations": "ensemble",
+    # Complete-basis-set extrapolation.
+    "correlation_inverse_power_cbs_limit": "cbs",
+    "exponential_cbs_limit": "cbs",
+    "scf_exponential_cbs_limit": "cbs",
+    "scf_inverse_power_cbs_limit": "cbs",
+    # A registered literature value, and the two conversions whose
+    # constants and standard states the registry owns.
+    "constant": "constants",
+    "gibbs_to_pka": "constants",
+    "gibbs_to_redox_potential": "constants",
+}
+
+
 #: Operations that carry a computational-chemistry convention ChemSmart owns.
 #: Reaching a reported quantity through one of these means the convention came
 #: from the toolkit.  Reaching it through arithmetic instead means the model
@@ -2918,6 +2989,7 @@ __all__ = [
     "MAX_NODE_INPUTS",
     "ARITHMETIC_OPERATIONS",
     "CONVENTION_OPERATIONS",
+    "OPERATION_FAMILIES",
     "MODEL_AUTHORED_CONSTANT_ROLES",
     "OPERATION_DESCRIPTIONS",
     "ModelAuthoredConstantV1",
