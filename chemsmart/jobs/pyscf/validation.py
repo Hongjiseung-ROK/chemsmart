@@ -2436,7 +2436,20 @@ def validate_pyscf_result(
                 .lower()
                 .endswith("finite_difference")
             )
-            dft = bool(str(_member(settings, "functional", "") or "").strip())
+            # Whether this is a DFT Hessian is a fact the artifact states
+            # about itself -- the driver writes the applied functional to
+            # ``spec/xc`` -- so it is read there rather than from the
+            # caller's settings. Asking the caller made one Hessian get
+            # two verdicts: the runner, which holds the project settings,
+            # recorded the archived hcn_hnc_ts_hess as admissible
+            # ungraded evidence, and the host evaluator, called with the
+            # settings it verifies (which do not include the functional),
+            # graded the same bytes against the analytic limit and
+            # refused them.
+            dft = bool(
+                str(spec.get("xc") or "").strip()
+                or str(_member(settings, "functional", "") or "").strip()
+            )
             finite_value = bool(
                 isinstance(raw_antisymmetry, (int, float))
                 and not isinstance(raw_antisymmetry, bool)
@@ -3025,6 +3038,14 @@ def _validate_ts_results(results, stage_statuses, *, expected_symbols):
         "search_converged": stage.get("search_converged"),
         "iterations": stage.get("iterations"),
         "maxsteps": stage.get("maxsteps"),
+        # How far the structure travelled and what that cost in energy.
+        # A search seeded at a minimum of the same surface converges at
+        # once and moves nowhere -- the direct-CLI reference run
+        # h2co_ts_from_minimum (CUHK 2141124) did exactly that, one
+        # iteration, all-real seed spectrum, and a green receipt -- and
+        # these two numbers beside that spectrum are how a reader sees it.
+        "displacement_amu_half_bohr": stage.get("displacement_amu_half_bohr"),
+        "energy_rise_eh": stage.get("energy_rise_eh"),
     }
 
     def _array(name, shape):

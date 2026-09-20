@@ -1,0 +1,246 @@
+{
+  "applied_settings_sha256": "d640be3dbda87f7b199f390b152dc321778c1ffccc639bce35f3ea2fdf103181",
+  "child_returncode": 0,
+  "engine_complete": true,
+  "environment_receipt_sha256": "4b840fb411ef7f27b1457bbc41c8d653392131648e9ab24e6fc8a27ab72c5a51",
+  "fake": false,
+  "findings": [],
+  "frequency_validation": {
+    "atom_count": 4,
+    "expected_imaginary_mode_count": null,
+    "expected_mode_count": 6,
+    "findings": [],
+    "finite_mode_count": 6,
+    "frequency_unit": "cm^-1",
+    "geometry_class": "nonlinear",
+    "imaginary_mode_cutoff_cm1": null,
+    "linearity_relative_tolerance": 0.0001,
+    "observed_imaginary_mode_count": null,
+    "observed_mode_count": 6,
+    "schema_version": "chemsmart.pyscf-frequency-validation.v1",
+    "soft_negative_mode_count": null,
+    "state": "validated",
+    "stationary_point_classification": "unclassified"
+  },
+  "input_artifact_kind": "pyscf_hdf5",
+  "input_artifact_path": "/lustre/project/xlzhang/jiseung/pyscf-ts-irc-20260921/cli/h2co_ts_gas_phase.h5",
+  "input_artifact_sha256": "fbc30e579fa382e21294bd689ad4d5778bf7c77c73df7a3e0ba560479fee0f37",
+  "input_geometry_sha256": "ba8e2a659f929e9a058f0a1a2423829671f8f0a0aecbd2fb947300efdd8502e0",
+  "input_receipt_sha256": "e49f1fb4c29048d4add4c833e6ee454c66e7b15b21383d17ecd6962424972d65",
+  "process_observation": {
+    "findings": [],
+    "last_rss_mb": 145.23046875,
+    "memory_limit_exceeded": false,
+    "memory_limit_mb": 32768.0,
+    "memory_observation_state": "observed",
+    "memory_sample_count": 19,
+    "peak_rss_mb": 145.23046875,
+    "pid": 1946069,
+    "process_group_id": 1946069,
+    "process_group_owned": true,
+    "receipt_sha256": "3f3afd95f007b709a8af8c3cf7834412a84c1d3da4de28cb5912727ab21275c6",
+    "remaining_process_ids": [],
+    "returncode": 0,
+    "schema_version": "chemsmart.process-observation.v1",
+    "state": "exited",
+    "termination_confirmed": null,
+    "termination_requested": false,
+    "termination_scope": "not_required",
+    "termination_signal": "",
+    "timed_out": false,
+    "timeout_seconds": 600.0,
+    "wall_seconds": 4.224788079038262
+  },
+  "project_yaml_sha256": "facc93a60639d377d3913cfba914950227feb0217831a74085bb0c7482e4feeb",
+  "property_findings": [
+    {
+      "evidence_ref": "h5:/status/properties/scf_stability",
+      "expected": "optional",
+      "field": "properties.scf_stability",
+      "observed": {
+        "reason": "scf_stability was not requested; nothing here says the reference is stable",
+        "status": "not_requested"
+      },
+      "required": false,
+      "rule_id": "pyscf.property.unavailable"
+    }
+  ],
+  "quarantined_targets": [],
+  "receipt_sha256": "ccbe0afb6835c7e97a39de4e2b12b0b9ae12228895c0e4f6da6769f0aac28bcc",
+  "requested_settings_sha256": "d640be3dbda87f7b199f390b152dc321778c1ffccc639bce35f3ea2fdf103181",
+  "result_sha256": "8d6ad357520151f3bfafc6e556e92d5cd234b20b254a874c80c2c7c60de89638",
+  "result_validation": {
+    "advisories": [
+      {
+        "accuracy_authority": false,
+        "convention": "A term value is E(upper state) minus E(ground state) and is non-negative; a negative value means the states were ordered the wrong way round.",
+        "readiness_authority": false,
+        "rule_id": "term-value-orientation",
+        "rule_sha256": "a2845d3119e803ff43763c71e18335c930a5c6be6274a71f51f812b1a83749e3",
+        "schema_version": "chemsmart.deterministic-convention-rule.v1",
+        "scope": "result_validation",
+        "skill_id": "scientific-conventions",
+        "subject": "term value orientation"
+      }
+    ],
+    "applied_settings_sha256": "d640be3dbda87f7b199f390b152dc321778c1ffccc639bce35f3ea2fdf103181",
+    "charge": 0,
+    "contract_validation": {
+      "current_version": "chemsmart.pyscf-result-contract.v9",
+      "new_execution_admissible": true,
+      "observed_version": "chemsmart.pyscf-result-contract.v9",
+      "state": "current",
+      "supported_versions": [
+        "chemsmart.pyscf-result-contract.v3",
+        "chemsmart.pyscf-result-contract.v4",
+        "chemsmart.pyscf-result-contract.v5",
+        "chemsmart.pyscf-result-contract.v6",
+        "chemsmart.pyscf-result-contract.v7",
+        "chemsmart.pyscf-result-contract.v8",
+        "chemsmart.pyscf-result-contract.v9"
+      ]
+    },
+    "electronic_state_validation": {
+      "expected_alpha_beta": [
+        8,
+        8
+      ],
+      "expected_electron_count": 16,
+      "observed_alpha_beta": [
+        8.0,
+        8.0
+      ],
+      "observed_electron_count": 16.0,
+      "orbital_representation": "restricted"
+    },
+    "findings": [],
+    "frequency_validation": {
+      "atom_count": 4,
+      "expected_imaginary_mode_count": null,
+      "expected_mode_count": 6,
+      "findings": [],
+      "finite_mode_count": 6,
+      "frequency_unit": "cm^-1",
+      "geometry_class": "nonlinear",
+      "imaginary_mode_cutoff_cm1": null,
+      "linearity_relative_tolerance": 0.0001,
+      "observed_imaginary_mode_count": null,
+      "observed_mode_count": 6,
+      "schema_version": "chemsmart.pyscf-frequency-validation.v1",
+      "soft_negative_mode_count": null,
+      "state": "validated",
+      "stationary_point_classification": "unclassified"
+    },
+    "geometry_validation": {
+      "absolute_tolerance_angstrom": 1e-08,
+      "fixed_geometry_required": true,
+      "matches_input": true,
+      "unit": "Angstrom"
+    },
+    "hessian_validation": {
+      "all_finite": true,
+      "consistency": {
+        "absolute_tolerance_cm1": 0.5,
+        "algorithm": "independent-mass-weighted-projection-v1",
+        "maximum_absolute_difference_cm1": 3.215393462596694e-06,
+        "recomputed_frequencies_cm1": [
+          -2700.026385233585,
+          649.1236090122458,
+          1434.0973793726112,
+          1653.7096329395401,
+          2821.4257635374693,
+          3164.923764457347
+        ],
+        "relative_tolerance": 0.0005,
+        "state": "verified",
+        "translation_rotation_rank": 6
+      },
+      "raw_antisymmetry_graded": true,
+      "raw_antisymmetry_limit_eh_per_bohr2": 1.4614306062545758e-05,
+      "raw_max_abs_antisymmetry_eh_per_bohr2": 2.873592930274782e-08,
+      "raw_symmetrization_admissible": true,
+      "required": true,
+      "shape": [
+        4,
+        4,
+        3,
+        3
+      ],
+      "symmetric": true,
+      "symmetry_absolute_tolerance": 1e-07,
+      "symmetry_relative_tolerance": 2e-05
+    },
+    "jobtype": "hess",
+    "materialization_validation": {
+      "functional_definition": {
+        "environment_bound": false,
+        "schema_version": null,
+        "state": "not_applicable"
+      }
+    },
+    "multiplicity": 1,
+    "observed_stages": [
+      "scf",
+      "hess"
+    ],
+    "reference_validation": {
+      "declared_family": "rhf",
+      "expected_family": "rhf",
+      "mean_field_class": "pyscf.scf.hf.RHF",
+      "mean_field_mro": [
+        "pyscf.scf.hf.RHF",
+        "pyscf.scf.hf.SCF",
+        "pyscf.lib.misc.StreamObject",
+        "builtins.object"
+      ],
+      "one_electron_semantics": false,
+      "orbital_representation": "restricted",
+      "runtime_family": "rhf",
+      "state": "verified"
+    },
+    "requested_settings_sha256": "d640be3dbda87f7b199f390b152dc321778c1ffccc639bce35f3ea2fdf103181",
+    "required_stages": [
+      "scf",
+      "hess"
+    ],
+    "schema_version": "chemsmart.pyscf-result-validation.v1",
+    "spin_diagnostic_validation": {
+      "effective_multiplicity": 1.0,
+      "interpretation": "numerically_matches_target_eigenvalue",
+      "numerical_equality_tolerance": 1e-07,
+      "observed_spin_square": 0.0,
+      "orbital_representation": "restricted",
+      "requested_multiplicity": 1,
+      "scientific_threshold_applied": false,
+      "spin_square_deviation": 0.0,
+      "state": "available",
+      "target_spin_square": 0.0
+    },
+    "state": "validated",
+    "status_validation": {
+      "failure_absent": true,
+      "observed_stage_set": [
+        "hess",
+        "scf"
+      ],
+      "required_stage_set": [
+        "hess",
+        "scf"
+      ],
+      "stage_set_exact": true
+    },
+    "symbols": [
+      "C",
+      "O",
+      "H",
+      "H"
+    ]
+  },
+  "run_id": "5b4f233a-04b0-4d2d-84ae-e2102586e3eb",
+  "run_nonce": "cf833459333dac51e26992ac71868556bbf6e217b7508c621a510c0403bdf038",
+  "schema_version": "chemsmart.pyscf-run.v1",
+  "scientific_validation_state": "validated",
+  "scientifically_validated": true,
+  "script_sha256": "d448f69e436b84307b5aec8670c221997b46b487c88c25fafb042d8169794559",
+  "state": "validated"
+}

@@ -1,0 +1,26 @@
+{
+  "compute_interpreter": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "config_sha256": "f0b361a67246532372078209f67cf0e63b4c052fa07e3941e0863e5b2fd0ac36",
+  "engine": "cpu",
+  "environment_receipt_sha256": "45bc078dba9e8d7e9461e35ab3d31498263b3937a0989124a42ccc92b547bdf6",
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "778b18422691e1bb4b7d0a077e40c9aed315fbad1149810653b9750ee4cb9770",
+  "label": "hcn_ts_gas_phase",
+  "materializations": {},
+  "project_yaml_sha256": "583f5115e56f86d5a64b39595fa8c5888181d2f3d85df992ebf630af3adf5c93",
+  "quarantined_targets": [],
+  "receipt_sha256": "fd3c381ebd7565fe201a488b12eeb9504867843c7872541e4f6c2d780e91faaa",
+  "requested_settings_sha256": "d4a8d17cdc8444a33320200ac4f864822d36793d1273406e0d94868506343de3",
+  "run_id": "10aa18db-c3e4-47eb-aeda-203a11a9888d",
+  "run_nonce": "73e1bfea7a290672121c83afabcf30a195a3d2fecaf751e0c0ffe9378e264c50",
+  "schema_version": "chemsmart.pyscf-input.v1",
+  "script_path": "hcn_ts_gas_phase.py",
+  "script_sha256": "2530be00ef14cf2c514af9e63cea8c7b84a27e14952525bed0fb4d5d41d83bab",
+  "stages": [
+    "scf",
+    "ts"
+  ],
+  "state": "previewed"
+}

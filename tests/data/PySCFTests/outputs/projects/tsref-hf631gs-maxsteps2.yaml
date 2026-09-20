@@ -1,0 +1,1 @@
+ts:   {ab_initio: hf, basis: 6-31g*, freq: false, density_fit: false, opt_solver: geometric, opt_maxsteps: 2}

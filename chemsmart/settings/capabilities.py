@@ -832,6 +832,19 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                 EngineJobCapability(engine="cpu", jobtype="opt"),
                 EngineJobCapability(engine="cpu", jobtype="sp"),
                 EngineJobCapability(engine="cpu", jobtype="td"),
+                # A saddle search on PySCF's own surface (result contract
+                # v9): geomeTRIC's partitioned rational-function step on
+                # PySCF's engine, seeded with PySCF's analytic Hessian
+                # there, so a PySCF IRC no longer needs a saddle located
+                # by another program. Qualified through the human CLI on
+                # CUHK: from a seed 0.24 A away it reproduced ORCA's own
+                # HF/6-31G* H2CO/trans-HCOH saddle to 0.0001 A in every
+                # interatomic distance, the Hessian at what it reached
+                # carries the one imaginary mode the archived IRC
+                # fixtures start from, and both branches walked from it
+                # reach the two minima. No GPU row: GPU4PySCF has run no
+                # saddle search.
+                EngineJobCapability(engine="cpu", jobtype="ts"),
                 EngineJobCapability(
                     engine="gpu",
                     jobtype="hess",

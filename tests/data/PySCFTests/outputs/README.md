@@ -218,3 +218,33 @@ initial Hessian) on its `B3LYP/G` / def2-SVP saddle, run last in Slurm
 | `h2co_hcoh_hess_on_irc_endpoint` | a Hessian handed the forward branch's `.h5` | the trans-HCOH endpoint characterised: six real modes, gradient 1.7e-4 Eh/Bohr |
 | `hcn_hnc_irc_forward`, `hcn_hnc_irc_backward` | HCN <-> HNC at B3LYP/def2-SVP from ORCA's `B3LYP/G` saddle (-1122.72 cm-1; PySCF -1123.0) | forward reaches HNC, backward HCN, both linear and all-real under PySCF Hessians run on the endpoints; start gradient 2.8e-5 Eh/Bohr |
 | `hcn_irc_from_vwn5_saddle` | the forward branch from the saddle ORCA located under its default `B3LYP` (VWN5) | walked on PySCF's VWN3 surface its start gradient is 4.4e-4 Eh/Bohr, sixteen times the matched saddle's and just inside geomeTRIC's 4.5e-4 criterion; it reaches the same HNC |
+
+## Transition-state round (2026-09-21, result contract v9)
+
+Produced through the human CLI (`chemsmart run --no-fake --no-scratch -s
+CAMPAIGN -n 8 -m 32 pyscf -p <project> -f <seed> -c 0 -m 1 -l <label> ts`) on
+the CUHK Charles cluster in Slurm **2141124**, code tree
+`692aed65d4cff8fd992f29360c4a3bb0db4ee1ef35f5a426476550c16d34549b`, PySCF
+2.14.0 and geomeTRIC 1.1.1 in the compute env. The whole batch took 4 minutes.
+An earlier submission of the same batch (2141121) produced ten artifacts and
+no receipt: the controller's Python 3.11 refused a dataclass default that the
+authoring tree's 3.12 accepts. The engines had finished; nothing else had.
+
+`inputs/h2co_ts_seed.xyz` and `inputs/hcn_ts_seed.xyz` are the seeds, each an
+archived ORCA saddle displaced by hand -- 0.24 A and 0.21 A away -- so the
+search has real work to do and the structure it should reach is already in
+this corpus.
+
+| directory | what it is | why it is here |
+|---|---|---|
+| `h2co_hcoh_ts` | the H2CO <-> trans-HCOH saddle at HF/6-31G*, climbed from `inputs/h2co_ts_seed.xyz` in 8 iterations and 9 gradient evaluations | every interatomic distance agrees with ORCA's own OptTS saddle (`inputs/h2co_saddle_orca_hf.xyz`) to **1e-4 A**, from a seed 0.24 A away, with no shared optimiser and no shared initial Hessian. The seed's recorded spectrum has **two** imaginary modes (-2516, -1015 cm-1) at max\|g\| = 0.177 Eh/Bohr: what the search started from is evidence, not inference |
+| `h2co_hcoh_ts_hess` | the Hessian at what that search reached | one imaginary mode at **-2700.0 cm-1**, the frequency the archived `h2co_hcoh_irc_*` branches start from, at max\|g\| = 3.1e-5 Eh/Bohr. The `ts` artifact claims none of this: it prints no spectrum and declares no `vibrational_frequencies` selector |
+| `hcn_hnc_ts`, `hcn_hnc_ts_hess` | the same chain for HCN <-> HNC at B3LYP(G)/def2-SVP | the saddle agrees with ORCA's `B3LYP/G` one to 3e-4 A; the Hessian gives -1123.2 cm-1 against the -1123.0 the archived IRC round recorded on ORCA's saddle |
+| `h2co_hcoh_ts_maxsteps2` | the same search with `opt_maxsteps: 2` | what a search that ran out leaves: three frames, `search_converged: false`, receipt `failed`, and max\|g\| = 0.129 Eh/Bohr where it stopped -- the artifact says how far from stationary it was |
+| `h2co_hcoh_irc_fwd_from_pyscf_ts`, `h2co_hcoh_irc_bwd_from_pyscf_ts` | the two IRC branches walked from the saddle `h2co_hcoh_ts` located, in the same batch | the chain this stage exists to close: before it, a PySCF IRC could only start from a saddle another program had found. Each branch's recorded start is that search's reached geometry to 1e-6 A, its start spectrum is the -2700.0 cm-1 one the Hessian node found, and its start gradient is inside the optimiser's criterion. Forward reaches trans-HCOH (O-H 0.951 A), backward formaldehyde (C-H 1.092 A) -- the same two minima the archived `h2co_hcoh_irc_*` branches from ORCA's saddle reach |
+| `h2co_ts_from_minimum` | a saddle search seeded at formaldehyde itself (the backward IRC endpoint) | **the case this stage must not hide.** P-RFO converges in one iteration, moves 0.007 amu^1/2 bohr, and delivers the minimum under a `validated` receipt: "converged" is a statement about the gradient, never about the order. What makes it readable is the artifact's own account -- an all-real seed spectrum and a search that went nowhere -- and the Hessian node that would settle it |
+
+Barriers from these runs, for reference: H2CO -> trans-HCOH 104.63 kcal/mol
+forward and 52.23 backward at HF/6-31G* (from the IRC endpoints of
+`h2co_irc_{fwd,bwd}` in the same batch); HCN -> HNC 47.84 and HNC -> HCN 34.16
+at B3LYP(G)/def2-SVP.

@@ -1,0 +1,257 @@
+{
+  "applied_settings_sha256": "00e95ea25ce17066ced4b928584e975d1ada3dbd385f210ca0480784049964ce",
+  "child_returncode": 0,
+  "engine_complete": true,
+  "environment_receipt_sha256": "45bc078dba9e8d7e9461e35ab3d31498263b3937a0989124a42ccc92b547bdf6",
+  "fake": false,
+  "findings": [],
+  "frequency_validation": {
+    "findings": [],
+    "schema_version": "chemsmart.pyscf-frequency-validation.v1",
+    "state": "not_applicable"
+  },
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "778b18422691e1bb4b7d0a077e40c9aed315fbad1149810653b9750ee4cb9770",
+  "input_receipt_sha256": "fd3c381ebd7565fe201a488b12eeb9504867843c7872541e4f6c2d780e91faaa",
+  "process_observation": {
+    "findings": [],
+    "last_rss_mb": 169.13671875,
+    "memory_limit_exceeded": false,
+    "memory_limit_mb": 32768.0,
+    "memory_observation_state": "observed",
+    "memory_sample_count": 105,
+    "peak_rss_mb": 367.5546875,
+    "pid": 1946952,
+    "process_group_id": 1946952,
+    "process_group_owned": true,
+    "receipt_sha256": "1c6524f7cf7da549b3d81828f96718cc15049ff915d753556f0f4bb3bb91cb14",
+    "remaining_process_ids": [],
+    "returncode": 0,
+    "schema_version": "chemsmart.process-observation.v1",
+    "state": "exited",
+    "termination_confirmed": null,
+    "termination_requested": false,
+    "termination_scope": "not_required",
+    "termination_signal": "",
+    "timed_out": false,
+    "timeout_seconds": 600.0,
+    "wall_seconds": 23.135298342909664
+  },
+  "project_yaml_sha256": "583f5115e56f86d5a64b39595fa8c5888181d2f3d85df992ebf630af3adf5c93",
+  "property_findings": [
+    {
+      "evidence_ref": "h5:/status/properties/scf_stability",
+      "expected": "optional",
+      "field": "properties.scf_stability",
+      "observed": {
+        "reason": "scf_stability was not requested; nothing here says the reference is stable",
+        "status": "not_requested"
+      },
+      "required": false,
+      "rule_id": "pyscf.property.unavailable"
+    }
+  ],
+  "quarantined_targets": [],
+  "receipt_sha256": "003566ab15ae6cf58ae3842643d424feb73d78be11055c7b6c15b4bbef5eb4c8",
+  "requested_settings_sha256": "d4a8d17cdc8444a33320200ac4f864822d36793d1273406e0d94868506343de3",
+  "result_sha256": "eb0629161e0100a1dbef21d4d362f6c9f7bbab86c4925c6261c2f9d9693d3851",
+  "result_validation": {
+    "advisories": [
+      {
+        "accuracy_authority": false,
+        "convention": "A term value is E(upper state) minus E(ground state) and is non-negative; a negative value means the states were ordered the wrong way round.",
+        "readiness_authority": false,
+        "rule_id": "term-value-orientation",
+        "rule_sha256": "a2845d3119e803ff43763c71e18335c930a5c6be6274a71f51f812b1a83749e3",
+        "schema_version": "chemsmart.deterministic-convention-rule.v1",
+        "scope": "result_validation",
+        "skill_id": "scientific-conventions",
+        "subject": "term value orientation"
+      }
+    ],
+    "applied_settings_sha256": "00e95ea25ce17066ced4b928584e975d1ada3dbd385f210ca0480784049964ce",
+    "charge": 0,
+    "contract_validation": {
+      "current_version": "chemsmart.pyscf-result-contract.v9",
+      "new_execution_admissible": true,
+      "observed_version": "chemsmart.pyscf-result-contract.v9",
+      "state": "current",
+      "supported_versions": [
+        "chemsmart.pyscf-result-contract.v3",
+        "chemsmart.pyscf-result-contract.v4",
+        "chemsmart.pyscf-result-contract.v5",
+        "chemsmart.pyscf-result-contract.v6",
+        "chemsmart.pyscf-result-contract.v7",
+        "chemsmart.pyscf-result-contract.v8",
+        "chemsmart.pyscf-result-contract.v9"
+      ]
+    },
+    "electronic_state_validation": {
+      "expected_alpha_beta": [
+        7,
+        7
+      ],
+      "expected_electron_count": 14,
+      "observed_alpha_beta": [
+        7.0,
+        7.0
+      ],
+      "observed_electron_count": 14.0,
+      "orbital_representation": "restricted"
+    },
+    "findings": [],
+    "frequency_validation": {
+      "findings": [],
+      "schema_version": "chemsmart.pyscf-frequency-validation.v1",
+      "state": "not_applicable"
+    },
+    "geometry_validation": {
+      "absolute_tolerance_angstrom": 1e-08,
+      "fixed_geometry_required": false,
+      "matches_input": "not_required_for_ts",
+      "unit": "Angstrom"
+    },
+    "hessian_validation": {
+      "all_finite": null,
+      "consistency": {
+        "absolute_tolerance_cm1": 0.5,
+        "algorithm": "independent-mass-weighted-projection-v1",
+        "relative_tolerance": 0.0005,
+        "state": "not_applicable"
+      },
+      "raw_antisymmetry_limit_eh_per_bohr2": null,
+      "raw_max_abs_antisymmetry_eh_per_bohr2": null,
+      "raw_symmetrization_admissible": null,
+      "required": false,
+      "shape": null,
+      "symmetric": null,
+      "symmetry_absolute_tolerance": 1e-07,
+      "symmetry_relative_tolerance": 2e-05
+    },
+    "jobtype": "ts",
+    "materialization_validation": {
+      "functional_definition": {
+        "environment_bound": true,
+        "environment_receipt_sha256": "45bc078dba9e8d7e9461e35ab3d31498263b3937a0989124a42ccc92b547bdf6",
+        "libxc_version": "7.0.0",
+        "pyscf_version": "2.14.0",
+        "schema_version": "chemsmart.pyscf-functional-definition.v3",
+        "state": "environment_bound"
+      }
+    },
+    "multiplicity": 1,
+    "observed_stages": [
+      "scf",
+      "ts"
+    ],
+    "reference_validation": {
+      "declared_family": "rks",
+      "expected_family": "rks",
+      "mean_field_class": "pyscf.dft.rks.RKS",
+      "mean_field_mro": [
+        "pyscf.dft.rks.RKS",
+        "pyscf.dft.rks.KohnShamDFT",
+        "pyscf.scf.hf.RHF",
+        "pyscf.scf.hf.SCF",
+        "pyscf.lib.misc.StreamObject",
+        "builtins.object"
+      ],
+      "one_electron_semantics": false,
+      "orbital_representation": "restricted",
+      "runtime_family": "rks",
+      "state": "verified"
+    },
+    "requested_settings_sha256": "d4a8d17cdc8444a33320200ac4f864822d36793d1273406e0d94868506343de3",
+    "required_stages": [
+      "scf",
+      "ts"
+    ],
+    "schema_version": "chemsmart.pyscf-result-validation.v1",
+    "spin_diagnostic_validation": {
+      "effective_multiplicity": 1.0,
+      "interpretation": "numerically_matches_target_eigenvalue",
+      "numerical_equality_tolerance": 1e-07,
+      "observed_spin_square": 0.0,
+      "orbital_representation": "restricted",
+      "requested_multiplicity": 1,
+      "scientific_threshold_applied": false,
+      "spin_square_deviation": 0.0,
+      "state": "available",
+      "target_spin_square": 0.0
+    },
+    "state": "validated",
+    "status_validation": {
+      "failure_absent": true,
+      "observed_stage_set": [
+        "scf",
+        "ts"
+      ],
+      "required_stage_set": [
+        "scf",
+        "ts"
+      ],
+      "stage_set_exact": true
+    },
+    "symbols": [
+      "C",
+      "N",
+      "H"
+    ],
+    "ts_validation": {
+      "account": {
+        "checks": {
+          "results.ts.search_displacements": {
+            "absolute_tolerance": 1e-08,
+            "agrees": true,
+            "max_absolute_difference_amu_half_bohr": 0.0
+          },
+          "status.stages.ts.energy_rise_eh": {
+            "agrees": true,
+            "recomputed": -0.013617655423402653,
+            "recorded": -0.013617655423402653
+          },
+          "status.stages.ts.frames": {
+            "agrees": true,
+            "recomputed": 8.0,
+            "recorded": 8.0
+          }
+        },
+        "start_frequency_consistency": {
+          "absolute_tolerance_cm1": 0.5,
+          "algorithm": "independent-mass-weighted-projection-v1",
+          "maximum_absolute_difference_cm1": 2.1312639546522405e-06,
+          "recomputed_frequencies_cm1": [
+            -912.7318939475241,
+            1544.2147668489113,
+            2097.811668862046
+          ],
+          "relative_tolerance": 0.0005,
+          "state": "verified",
+          "translation_rotation_rank": 6
+        },
+        "state": "verified"
+      },
+      "end_matches_positions": true,
+      "end_max_abs_gradient_eh_per_bohr": 4.0943687556804775e-05,
+      "frames": 8,
+      "iterations": 7,
+      "maxsteps": 100,
+      "search_converged": true,
+      "seed_frequencies_cm1": [
+        -912.7318930202367,
+        1544.2147652800716,
+        2097.8116667307822
+      ],
+      "seed_max_abs_gradient_eh_per_bohr": 0.06043390958300332
+    }
+  },
+  "run_id": "10aa18db-c3e4-47eb-aeda-203a11a9888d",
+  "run_nonce": "73e1bfea7a290672121c83afabcf30a195a3d2fecaf751e0c0ffe9378e264c50",
+  "schema_version": "chemsmart.pyscf-run.v1",
+  "scientific_validation_state": "validated",
+  "scientifically_validated": true,
+  "script_sha256": "2530be00ef14cf2c514af9e63cea8c7b84a27e14952525bed0fb4d5d41d83bab",
+  "state": "validated"
+}

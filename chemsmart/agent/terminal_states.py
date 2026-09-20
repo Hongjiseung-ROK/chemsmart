@@ -430,6 +430,7 @@ PATH_ACCOUNT_FIELDS: tuple[str, ...] = (
     "energy_rise_eh",
     "seed_max_abs_gradient_eh_per_bohr",
     "end_max_abs_gradient_eh_per_bohr",
+    "displacement_amu_half_bohr",
     "requested_direction",
     "direction_followed",
     "first_step_projection_measured",

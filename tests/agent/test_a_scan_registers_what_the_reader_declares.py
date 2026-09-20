@@ -30,6 +30,7 @@ CASES = {
     "hess": "water_hess",
     "irc": "h2co_hcoh_irc_forward",
     "td": "water_td_singlet",
+    "ts": "h2co_hcoh_ts",
 }
 
 

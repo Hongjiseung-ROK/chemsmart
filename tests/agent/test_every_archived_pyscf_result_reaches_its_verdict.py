@@ -67,6 +67,15 @@ _HOST_RULE_ABOVE_THE_RECEIPT = {
     # This is the class round 2 could not see at all, because no Hessian
     # of an excited surface existed here.
     "formaldehyde_s1_planar_hess": {"result.stationary_point_order"},
+    # The Hessian at what a PySCF saddle search reached. One imaginary
+    # mode is the whole point of the search, and it is exactly what a
+    # `hess` node promises not to have: the runner validates the
+    # artifact, the host's order rule types it, and
+    # characterise_stationary_point is the affordance that says what the
+    # structure is. The same pair as nh3_planar_hess, arrived at by a
+    # search rather than by an optimisation falling onto a saddle.
+    "h2co_hcoh_ts_hess": {"result.stationary_point_order"},
+    "hcn_hnc_ts_hess": {"result.stationary_point_order"},
 }
 
 pytestmark = pytest.mark.capability("program_jobtype:pyscf:cpu:*")

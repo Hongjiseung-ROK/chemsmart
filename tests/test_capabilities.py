@@ -127,6 +127,7 @@ def test_derived_views_are_exact_registry_projections():
         "opt",
         "sp",
         "td",
+        "ts",
     )
     assert dict(PROGRAM_JOBTYPES) == {
         name: capability.jobtypes
@@ -289,9 +290,11 @@ def test_pyscf_agent_matrix_is_cpu_only_and_td_is_executable_on_cpu():
         ("cpu", "hess"),
         ("cpu", "irc"),
         ("cpu", "td"),
+        ("cpu", "ts"),
     } == execution_pairs
-    # GPU4PySCF has walked no reaction path.
+    # GPU4PySCF has walked no reaction path and climbed to no saddle.
     assert ("gpu", "irc") not in preview_pairs
+    assert ("gpu", "ts") not in preview_pairs
 
 
 def test_program_capability_rejects_incoherent_declarations():

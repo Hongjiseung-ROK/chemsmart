@@ -422,7 +422,15 @@ _SELECTOR_RESULT_DATASETS: dict[str, tuple[str, ...]] = {
     "trajectory_end_connectivity": ("results/irc/path_positions",),
     "trajectory_connectivity_changed": ("results/irc/path_positions",),
     "trajectory_energies": ("results/irc/path_energies",),
-    "trajectory_start_frequencies": ("results/irc/start_frequencies",),
+    # One question with two homes: the spectrum of the geometry a path
+    # stage was handed, which an ``irc`` files under its start and a
+    # ``ts`` under its seed. A selector is absent when *no* home carries
+    # it; a home that is present under the wrong unit is still a
+    # divergence to state, which is why the two are asked separately.
+    "trajectory_start_frequencies": (
+        "results/irc/start_frequencies",
+        "results/ts/seed_frequencies",
+    ),
 }
 
 

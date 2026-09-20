@@ -224,8 +224,22 @@ def test_dft_grid_hessian_antisymmetry_is_recorded_not_graded(tmp_path):
     assert observation["raw_symmetrization_admissible"] is True
     assert observation["consistency"]["state"] == "verified"
 
+    # The other half of the same rule: on a Hessian with no integration
+    # grid behind it, the analytic limit does apply. Whether there is one
+    # is a fact about the artifact and not about the caller -- asking the
+    # caller gave one Hessian two verdicts from two organs (the archived
+    # hcn_hnc_ts_hess, 2026-09-21) -- so the ab-initio case is made by
+    # clearing the functional the artifact records, not by naming another
+    # one in the settings.
+    hf_path = tmp_path / "water_hf_hess.h5"
+    shutil.copy2(path, hf_path)
+    with h5py.File(hf_path, "r+") as handle:
+        del handle["spec/xc"]
+        handle["spec/xc"] = ""
+        del handle["spec/ab_initio"]
+        handle["spec/ab_initio"] = "hf"
     hf_validation = validate_pyscf_result(
-        path,
+        hf_path,
         settings=PySCFJobSettings(
             jobtype="hess",
             ab_initio="hf",

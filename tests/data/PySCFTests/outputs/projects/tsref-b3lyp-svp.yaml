@@ -1,0 +1,3 @@
+# b3lyp resolves to PySCF's B3LYPG (VWN3), the convention ORCA's B3LYP/G names.
+ts:   {functional: b3lyp, basis: def2-svp, freq: false, density_fit: false, opt_solver: geometric, opt_maxsteps: 100}
+hess: {functional: b3lyp, basis: def2-svp, freq: true,  density_fit: false}

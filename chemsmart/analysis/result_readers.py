@@ -2829,16 +2829,19 @@ def _pyscf_require_units(selector: str, output: Any) -> None:
         # rather than a numeric dataset, so there is no stored unit to audit.
         return
     observed = output.result_units
-    absent = [path for path in expected if observed.get(path) is None]
-    if absent:
+    # A selector may have more than one home -- the spectrum of the
+    # geometry a path stage was handed lives under an IRC's start and
+    # under a saddle search's seed -- so it is absent only when every
+    # home is, while a home that *is* present keeps its unit audited.
+    if all(observed.get(path) is None for path in expected):
         raise MissingQuantityError(
             f"pyscf result contains no {selector!r} value "
-            f"(datasets absent: {sorted(absent)})"
+            f"(datasets absent: {sorted(expected)})"
         )
     wrong = {
         path: {"expected": unit, "observed": observed.get(path)}
         for path, unit in expected.items()
-        if observed.get(path) != unit
+        if observed.get(path) is not None and observed.get(path) != unit
     }
     if wrong:
         raise rq.QuantityExtractionError(
