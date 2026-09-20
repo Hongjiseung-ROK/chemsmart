@@ -11,6 +11,15 @@ changes what the host approves or verifies.
 
 Every activation is an event carrying the signal and the new tool-schema
 digest, so a reading can count them.
+
+A body states the science of its family. Where it would otherwise narrate
+what the host can run or what the host owns, it names the registry
+instead: ``render_guide_body`` substitutes a ``<<token>>`` from the
+registry that owns that fact, so the day the host moves, the sentence
+moves with it. The pyscf leaf told every session that an excited-root
+Hessian did not exist for five days after the project loader admitted one
+(94376da3); a narrated capability is a claim about the host, and it goes
+stale exactly where nothing reads it.
 """
 
 from __future__ import annotations
@@ -21,6 +30,7 @@ from typing import Iterable, Mapping
 
 from chemsmart.agent._contracts import ContractError
 from chemsmart.agent.terminal_states import REPAIRABLE_NODE_STATES
+from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
 
 #: The typed terminal states that open the recovery guide.
 _RECOVERY_STATES = REPAIRABLE_NODE_STATES
@@ -184,7 +194,9 @@ GUIDES: tuple[GuideV1, ...] = (
             "potential -- is selected by registered name through the "
             "constant operation; the host owns the value, unit and "
             "standard-state convention, and a literal is recorded as "
-            "model-authored. Constants that look independent are often "
+            "model-authored. What each registered name is for, which the "
+            "expression schema no longer repeats: <<registered_constants>>. "
+            "Constants that look independent are often "
             "matched pairs: read the convention family and the purpose "
             "phrase before combining two, and prefer a registered composed "
             "value where one exists. A family says nothing about standard "
@@ -379,8 +391,9 @@ GUIDES: tuple[GuideV1, ...] = (
             "PySCF is a library, not a binary: the host writes the driver, "
             "runs it in the registered PySCF interpreter, and the HDF5 "
             "result (pyscf_hdf5) is the program's typed account; its log is "
-            "never read. Six executable stages, one node each: sp, opt, "
-            "hess, ts, irc, td. Every quantity belongs to one structure, the "
+            "never read. One node per stage; the stages this host declares "
+            "are <<declared_stages>>. Every quantity belongs to one "
+            "structure, the "
             "final one: the SCF is re-converged there before anything is read. "
             "supplied_positions is what the run was handed; "
             "reached_positions (opt, ts and irc) is where the walk stopped, "
@@ -540,6 +553,79 @@ def guide_for_tool(tool_name: str) -> str | None:
     return LEAF_TOOLS.get(tool_name)
 
 
+def _declared_stages(guide: GuideV1, registry: object | None) -> str:
+    """The job types this host declares for the guide's own programs.
+
+    Read from the same program capability registry ``inspect_program``
+    answers from, so a guide and the capability reply cannot disagree
+    about what exists. Stages only: which engine binds them, and whether
+    this release qualifies that engine, is what ``inspect_program``
+    answers for the exact cell, and a guide that narrated it would be
+    the second organ answering one question.
+    """
+
+    if registry is None:
+        from chemsmart.agent.capabilities import load_program_capabilities
+
+        registry = load_program_capabilities()
+    wanted = {str(name).lower() for name in guide.programs}
+    stages: set[str] = set()
+    for item in getattr(registry, "programs", ()):
+        if str(getattr(item, "program", "")).lower() in wanted:
+            stages.update(str(name) for name in getattr(item, "jobtypes", ()))
+    return ", ".join(sorted(stages)) if stages else "none on this host"
+
+
+def _registered_constants(guide: GuideV1, registry: object | None) -> str:
+    """Every registered literature constant, with what it is for.
+
+    The expression schema every session reads carries the name, unit and
+    convention family -- the discriminators the review also prints. The
+    purpose phrases are advice about when to reach for one, so they live
+    here, rendered from the registry rather than copied beside it.
+    """
+
+    return " || ".join(
+        f"{name} [{entry.unit}, {entry.convention_family}]"
+        + (f" -- {entry.purpose}" if entry.purpose else "")
+        for name, entry in sorted(LITERATURE_CONSTANTS.items())
+    )
+
+
+#: What a ``<<token>>`` in a guide body resolves to, and which registry
+#: owns it. A body that would state a host capability writes the token;
+#: adding a token means naming the registry that can already answer it.
+GUIDE_BODY_TOKENS = {
+    "declared_stages": _declared_stages,
+    "registered_constants": _registered_constants,
+}
+
+
+def render_guide_body(
+    guide: GuideV1, *, registry: object | None = None
+) -> str:
+    """The guide's body with every registry-owned token resolved.
+
+    A token nobody registered is a contract error rather than text the
+    model reads verbatim: the failure mode this exists to end is a
+    sentence about the host that nothing checks.
+    """
+
+    body = guide.body
+    for token, resolve in GUIDE_BODY_TOKENS.items():
+        marker = f"<<{token}>>"
+        if marker in body:
+            body = body.replace(marker, resolve(guide, registry))
+    unresolved = re.search(r"<<([a-z_]+)>>", body)
+    if unresolved:
+        raise ContractError(
+            f"guide {guide.guide_id} names an unregistered body token "
+            f"{unresolved.group(1)!r}; registered: "
+            f"{sorted(GUIDE_BODY_TOKENS)}"
+        )
+    return body
+
+
 def guides_from_text(text: str) -> tuple[str, ...]:
     """Guides the task text asks for, by substring in the pack convention."""
 
@@ -641,10 +727,12 @@ __all__ = [
     "LEAF_OPERATIONS",
     "LEAF_TOOLS",
     "GuideV1",
+    "GUIDE_BODY_TOKENS",
     "guide_for_tool",
     "guide_index_sentence",
     "guides_from_plan",
     "guides_from_states",
     "guides_from_text",
     "guides_from_workspace",
+    "render_guide_body",
 ]

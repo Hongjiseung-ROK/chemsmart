@@ -3157,19 +3157,21 @@ class CommandCompiledToolHostV1:
             )
         return tuple(opened)
 
-    @staticmethod
-    def _guide_record(guide: Any) -> dict[str, Any]:
+    def _guide_record(self, guide: Any) -> dict[str, Any]:
         # The guide's own rules render inside its body, once, when it
-        # opens; they used to render in the stem for every session.
+        # opens; they used to render in the stem for every session. The
+        # body's registry-owned tokens resolve against this session's own
+        # capability registry, so what a guide says the host can run is
+        # what inspect_program would answer.
+        from chemsmart.agent.guides import render_guide_body
         from chemsmart.agent.rules import render_rules
 
         leaf_rules = render_rules(f"leaf:{guide.guide_id}")
+        body = render_guide_body(guide, registry=self.registry)
         return {
             "guide_id": guide.guide_id,
             "title": guide.title,
-            "body": (
-                guide.body + " " + leaf_rules if leaf_rules else guide.body
-            ),
+            "body": (body + " " + leaf_rules if leaf_rules else body),
             "tools_now_available": list(guide.tools),
             "operations_now_available": list(guide.operations),
         }

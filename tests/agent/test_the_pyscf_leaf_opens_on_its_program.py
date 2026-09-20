@@ -58,10 +58,15 @@ def test_the_leaf_opens_on_the_text_and_the_workspace():
     "rule:leaf.pyscf.a_converged_reference_can_be_a_saddle"
 )
 def test_the_leaf_says_what_pyscf_can_do_and_what_it_cannot():
+    from chemsmart.agent.guides import render_guide_body
+
     guide = GUIDES_BY_ID["pyscf"]
-    body = guide.body
+    # The rendered body, not the source string: what the leaf says PySCF
+    # can run is asked of the capability registry, so a stage that ships
+    # reaches this sentence without anyone editing it.
+    body = render_guide_body(guide)
     for phrase in (
-        "one node each: sp, opt, hess, ts, irc, td",
+        "the stages this host declares are hess, irc, opt, sp, td, ts",
         "supplied_positions",
         "reached_positions (opt, ts and irc)",
         # A search says nothing about the order of what it reached.

@@ -13,6 +13,7 @@ import pytest
 from chemsmart.agent._contracts import ContractError
 from chemsmart.agent.guides import (
     GUIDES,
+    GuideV1,
     LEAF_OPERATIONS,
     LEAF_TOOLS,
     guides_from_plan,
@@ -213,6 +214,39 @@ def test_a_session_started_with_guides_reads_them(tmp_path):
     host = _host(tmp_path, active_guides=("scan",))
     assert "bind_scan_point_geometry" in _names(host.surface)
     assert "coordinate_at_minimum" in _operations(host.surface)
+
+
+def test_a_guide_body_that_states_a_host_capability_asks_the_host(tmp_path):
+    """A narrated capability goes stale where nothing reads it: the pyscf
+    leaf said an excited-root Hessian did not exist for five days after
+    the loader admitted one. A body that would state one names the
+    registry that owns it instead, and the surface follows the registry
+    with no prose edit."""
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent.guides import GUIDES_BY_ID, render_guide_body
+
+    body = render_guide_body(GUIDES_BY_ID["pyscf"])
+    for stage in ("sp", "opt", "hess", "ts", "irc", "td"):
+        assert stage in body
+    moved = SimpleNamespace(
+        programs=(
+            SimpleNamespace(
+                program="pyscf", jobtypes=("sp", "teleport"), engines=("cpu",)
+            ),
+        )
+    )
+    assert "teleport" in render_guide_body(
+        GUIDES_BY_ID["pyscf"], registry=moved
+    )
+    # And a token nobody registered is a contract error, never text the
+    # model reads verbatim.
+    invented = GuideV1(
+        guide_id="invented", title="t", tier="T1", body="<<nobody_owns_this>>"
+    )
+    with pytest.raises(ContractError, match="unregistered body token"):
+        render_guide_body(invented)
 
 
 def test_an_unknown_guide_names_what_exists(tmp_path):
