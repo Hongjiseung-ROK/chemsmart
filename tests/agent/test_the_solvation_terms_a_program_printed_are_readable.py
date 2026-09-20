@@ -184,6 +184,10 @@ def test_declared_only_where_the_meaning_was_audited():
 #: (855dc848) and are GFN2-xTB/ALPB(toluene) runs.
 _ARCHIVED_SOLVATED_RESULT: dict[str, str] = {
     "orca": "tests/data/ORCATests/outputs/phenol_pka_B_sp.out",
+    "xtb": (
+        "tests/data/XTBTests/outputs/p_benzyne_sp_alpb_toluene/"
+        "p_benzyne_sp_alpb_toluene.out"
+    ),
 }
 
 

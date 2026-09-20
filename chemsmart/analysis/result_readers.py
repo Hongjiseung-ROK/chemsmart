@@ -2519,6 +2519,151 @@ def _xtb_dispersion_energy(output: Any) -> float:
     return float(value)
 
 
+#: One solvation free-energy term, as this vocabulary names it and as the
+#: xTB parser names it.  ALPB and GBSA print the total and its four parts
+#: in one SUMMARY block: Gsolv = Gelec + Gsasa + Ghb + Gshift, exactly, to
+#: the twelve decimals xTB prints.  Gelec is the *whole* electrostatic part
+#: of Gsolv, which is what the shared name means on every program, so it
+#: answers to it.  The other three are not: the non-electrostatic part of
+#: an ALPB solvation free energy is Gsasa **and** Ghb **and** Gshift, so
+#: calling Gsasa ``solvation_nonelectrostatic_energy`` would be a name that
+#: is false about the model.  They keep the scheme in the name, as the xTB
+#: population does.
+_XTB_SOLVATION_TERMS: tuple[tuple[str, str], ...] = (
+    ("solvation_free_energy", "solvation_energy_gsolv"),
+    ("solvation_electrostatic_energy", "electronic_solvation_energy_gelec"),
+    ("xtb_solvation_sasa_energy", "surface_area_solvation_energy_gsasa"),
+    (
+        "xtb_solvation_hydrogen_bond_energy",
+        "hydrogen_bonding_solvation_energy_ghb",
+    ),
+    ("xtb_solvation_shift_energy", "empirical_shift_correction_gshift"),
+)
+
+#: The parts whose sum is the total, in the order xTB prints them.
+_XTB_SOLVATION_COMPONENTS: tuple[str, ...] = tuple(
+    selector for selector, _attribute in _XTB_SOLVATION_TERMS[1:]
+)
+
+#: Print precision is twelve decimals, so four rounded parts and a rounded
+#: total can disagree by a few times 1e-13.  Anything above this is not
+#: rounding: it is terms read from different SUMMARY blocks, which is the
+#: one failure a single-term accessor cannot see.
+_XTB_SOLVATION_CLOSURE_TOLERANCE = 1e-9
+
+
+def _xtb_solvation_context(output: Any) -> tuple[str, str | None]:
+    """The solvent treatment this result's own setup block recorded.
+
+    A gas-phase result answers ``gas_phase`` rather than nothing, the same
+    word ORCA's reader uses, because "this ran without solvent" is an
+    answer and not a missing value.
+    """
+
+    if not bool(getattr(output, "solvent_on", False)):
+        return "gas_phase", None
+    model = getattr(output, "solvent_model", None)
+    if model in (None, ""):
+        raise MissingQuantityError(
+            "this xTB result records solvation but names no solvation model"
+        )
+    solvent = getattr(output, "solvent_id", None)
+    if solvent in (None, ""):
+        return str(model).strip().lower(), None
+    return str(model).strip().lower(), str(solvent).strip().lower()
+
+
+def _xtb_solvation_terms(output: Any) -> dict[str, float]:
+    """Every solvation free-energy term this result printed, checked as one.
+
+    The parser resolves each term by scanning the last SUMMARY block for
+    its own keyword, so nothing in a single read establishes that five
+    numbers came from one block.  The model's own identity does:
+    ``Gsolv`` is the sum of its four parts.  A result whose parts do not
+    add to its total is evidence the block was misread, not a fact about
+    the solvent, so it is refused rather than served.
+    """
+
+    from chemsmart.analysis import result_quantities as rq
+
+    model, _solvent = _xtb_solvation_context(output)
+    values: dict[str, float] = {}
+    for selector, attribute in _XTB_SOLVATION_TERMS:
+        raw = getattr(output, attribute, None)
+        if raw is None:
+            continue
+        number = float(raw)
+        if not math.isfinite(number):
+            raise rq.QuantityExtractionError(
+                f"xTB energy summary prints a non-finite {selector}: {number}"
+            )
+        values[selector] = number
+    if model == "gas_phase":
+        if values:
+            raise rq.QuantityExtractionError(
+                "this xTB result's setup block reports no solvation while "
+                "its energy summary prints "
+                f"{', '.join(sorted(values))}; the two disagree about "
+                "whether a solvent was applied"
+            )
+        return values
+    total = values.get("solvation_free_energy")
+    parts = tuple(
+        values.get(selector) for selector in _XTB_SOLVATION_COMPONENTS
+    )
+    if total is not None and all(part is not None for part in parts):
+        residual = total - math.fsum(
+            part for part in parts if part is not None
+        )
+        if abs(residual) > _XTB_SOLVATION_CLOSURE_TOLERANCE:
+            raise rq.QuantityExtractionError(
+                "xTB solvation terms do not close: Gsolv "
+                f"{total:.12f} Eh differs from the sum of its parts by "
+                f"{residual:.3e} Eh"
+            )
+    return values
+
+
+def _xtb_solvation_model(output: Any) -> str:
+    """The solvation model this result applied, or ``gas_phase``."""
+
+    return _xtb_solvation_context(output)[0]
+
+
+def _xtb_solvent(output: Any) -> str:
+    """The solvent this result applied; a gas-phase run has none."""
+
+    model, solvent = _xtb_solvation_context(output)
+    if model == "gas_phase":
+        raise MissingQuantityError("this xTB result ran in the gas phase")
+    if not solvent:
+        raise MissingQuantityError(
+            "this solvated xTB result names no solvent in its setup block"
+        )
+    return solvent
+
+
+def _xtb_solvation_energy(selector: str) -> Callable[[Any], float]:
+    """Read one solvation free-energy term of the applied model."""
+
+    def _read(output: Any) -> float:
+        values = _xtb_solvation_terms(output)
+        if selector in values:
+            return values[selector]
+        model, _solvent = _xtb_solvation_context(output)
+        if model == "gas_phase":
+            raise MissingQuantityError(
+                "this xTB result ran in the gas phase, so it has no "
+                f"{selector}"
+            )
+        raise MissingQuantityError(
+            f"this {model} xTB result printed no {selector} term in its "
+            "energy summary"
+        )
+
+    return _read
+
+
 def _xtb_level(output: Any) -> dict[str, Any]:
     """Return the applied xTB Hamiltonian and solvent from result bytes."""
 
@@ -2716,6 +2861,16 @@ def _xtb_accessors() -> dict[str, Callable[[Any], Any]]:
         "gap": lambda output: float(output.fmo_gap),
         "dispersion_energy": _xtb_dispersion_energy,
         "wiberg_bond_orders": _xtb_wiberg_bond_orders,
+        # What the solvent cost, and what it was.  The plan could already
+        # switch ALPB or GBSA on -- ``solvent_model`` and ``solvent_id``
+        # are advertised settings -- and no completed xTB result could say
+        # which model ran, in what, or what it was worth.
+        "solvation_model": _xtb_solvation_model,
+        "solvent": _xtb_solvent,
+        **{
+            selector: _xtb_solvation_energy(selector)
+            for selector, _attribute in _XTB_SOLVATION_TERMS
+        },
     }
 
 
@@ -4216,6 +4371,16 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         source_units={"dipole_moment": "e bohr"},
         geometry_source_path_for_selector=_xtb_geometry_source_path,
         native_evidence_paths_for_selector=_xtb_native_evidence_paths,
+        #: The three ALPB/GBSA terms the shared vocabulary has no true name
+        #: for.  ``solvation_free_energy`` is generic on purpose: it is the
+        #: whole solvation free energy the applied model charged, which any
+        #: program can mean, and the model it belongs to travels beside it.
+        selector_declarations=(
+            ("solvation_free_energy", "Eh", "ENERGY"),
+            ("xtb_solvation_sasa_energy", "Eh", "ENERGY"),
+            ("xtb_solvation_hydrogen_bond_energy", "Eh", "ENERGY"),
+            ("xtb_solvation_shift_energy", "Eh", "ENERGY"),
+        ),
         jobtype_selectors=(
             (
                 "hess",
@@ -4233,12 +4398,19 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "lumo",
                     "multiplicity",
                     "positions",
+                    "solvation_electrostatic_energy",
+                    "solvation_free_energy",
+                    "solvation_model",
+                    "solvent",
                     "symbols",
                     "vibrational_frequencies",
                     "vibrational_mode_atom_participation",
                     "vibrational_mode_degeneracy_group",
                     "wiberg_bond_orders",
                     "xtb_scc_atomic_charges",
+                    "xtb_solvation_hydrogen_bond_energy",
+                    "xtb_solvation_sasa_energy",
+                    "xtb_solvation_shift_energy",
                 ),
             ),
             (
@@ -4257,9 +4429,16 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "multiplicity",
                     "positions",
                     "reached_positions",
+                    "solvation_electrostatic_energy",
+                    "solvation_free_energy",
+                    "solvation_model",
+                    "solvent",
                     "symbols",
                     "wiberg_bond_orders",
                     "xtb_scc_atomic_charges",
+                    "xtb_solvation_hydrogen_bond_energy",
+                    "xtb_solvation_sasa_energy",
+                    "xtb_solvation_shift_energy",
                 ),
             ),
             (
@@ -4274,9 +4453,16 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "homo",
                     "lumo",
                     "positions",
+                    "solvation_electrostatic_energy",
+                    "solvation_free_energy",
+                    "solvation_model",
+                    "solvent",
                     "symbols",
                     "wiberg_bond_orders",
                     "xtb_scc_atomic_charges",
+                    "xtb_solvation_hydrogen_bond_energy",
+                    "xtb_solvation_sasa_energy",
+                    "xtb_solvation_shift_energy",
                 ),
             ),
         ),
@@ -4296,6 +4482,12 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("multiplicity", "as_reached"),
                     ("positions", "as_reached"),
                     ("reached_positions", "as_reached"),
+                    # The solvation terms are charged at the structure the
+                    # result reached; the model and solvent names belong to
+                    # the run rather than to any one geometry, so they stay
+                    # stateless, exactly as ORCA declares them.
+                    ("solvation_electrostatic_energy", "as_reached"),
+                    ("solvation_free_energy", "as_reached"),
                     ("symbols", "stateless"),
                     ("vibrational_frequencies", "as_reached"),
                     ("ir_intensities", "as_reached"),
@@ -4303,6 +4495,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("vibrational_mode_degeneracy_group", "as_reached"),
                     ("wiberg_bond_orders", "as_reached"),
                     ("xtb_scc_atomic_charges", "as_reached"),
+                    ("xtb_solvation_hydrogen_bond_energy", "as_reached"),
+                    ("xtb_solvation_sasa_energy", "as_reached"),
+                    ("xtb_solvation_shift_energy", "as_reached"),
                 ]
             )
         ),
