@@ -138,3 +138,54 @@ def test_orca_irc_block_survives_unlexable_prose_in_the_output(tmp_path):
     assert output.irc_direction == "both"
     assert output.irc_inithess == "read"
     assert output.irc_hess_filename == "hcn hnc ts.hess"
+
+
+@pytest.mark.capability("setting:orca:inithess")
+def test_the_irc_hessian_stages_when_its_folder_is_reached_by_a_symlink(
+    tmp_path,
+):
+    """Staging a file that is already in place must be a no-op.
+
+    The guard compared absolute path strings, and a string is not a file:
+    ``/project/xlzhang`` is a symlink to ``/lustre/project/xlzhang`` on
+    the CUHK Central Cluster, so the Hessian named on the command line
+    and the job's own folder spelled one file two ways.  ``shutil.copy2``
+    raised ``SameFileError`` and three IRC branches never reached ORCA
+    (job 2142378).  The route the charter declares for seeding an IRC
+    from a validated transition state's Hessian was unreachable on that
+    site, and nothing in the tree could see it.
+    """
+
+    real = tmp_path / "lustre" / "run"
+    real.mkdir(parents=True)
+    hessian = real / "saddle.hess"
+    hessian.write_text("$hessian\n", encoding="utf-8")
+    link = tmp_path / "project"
+    link.symlink_to(tmp_path / "lustre")
+
+    settings = ORCAIRCJobSettings(
+        direction="forward",
+        inithess="read",
+        hess_filename=str(link / "run" / "saddle.hess"),
+    )
+    settings.functional = "b3lyp"
+    settings.basis = "def2-SVP"
+    settings.charge = 0
+    settings.multiplicity = 1
+    molecule = Molecule(
+        symbols=["H", "H"],
+        positions=np.array([[0.0, 0.0, -0.37], [0.0, 0.0, 0.37]]),
+    )
+    job = SimpleNamespace(
+        settings=settings,
+        molecule=molecule,
+        jobrunner=SimpleNamespace(num_cores=2, mem_gb=2),
+        folder=str(real),
+        label="branch",
+    )
+
+    ORCAInputWriter(job).write(target_directory=str(real))
+
+    rendered = (real / "branch.inp").read_text(encoding="utf-8")
+    assert 'Hess_Filename "saddle.hess"' in rendered
+    assert hessian.read_text(encoding="utf-8") == "$hessian\n"
