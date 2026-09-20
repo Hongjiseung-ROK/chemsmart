@@ -78,6 +78,30 @@ _HOST_RULE_ABOVE_THE_RECEIPT = {
     "hcn_hnc_ts_hess": {"result.stationary_point_order"},
 }
 
+#: The other direction: a run whose recorded refusal this tree has since
+#: shown to be wrong. The artifact is kept and the receipt is *not*
+#: regenerated -- a repaired host does not retroactively re-bless a
+#: sealed record, and the evaluator rightly goes on refusing a result
+#: whose own run receipt says failed. What the repair changed is what the
+#: bytes validate to, which is pinned where the physics is
+#: (test_a_linear_rotor_keeps_its_modes.py). Here the entry says which
+#: findings may remain: the run-receipt ones and nothing else, so a
+#: regression in the result contract itself would still show.
+_RECEIPT_RECORDS_A_REPAIRED_DEFECT = {
+    # HNC at the end of a live PySCF IRC is 0.047 degrees from linear.
+    # The mode-count rule's transverse tolerance answers about 0.01
+    # degrees for a triatomic, so it demanded 3N-6 = 3 modes where
+    # PySCF's harmonic analysis had correctly produced 3N-5 = 4, and the
+    # run failed (CUHK 2141231, goal g1-hcn-ts, cycle 3).
+    "hnc_linear_hess": (
+        "failed",
+        {
+            "pyscf.run_receipt.scientific_validation_failed",
+            "pyscf.run_receipt.state_not_validated",
+        },
+    ),
+}
+
 pytestmark = pytest.mark.capability("program_jobtype:pyscf:cpu:*")
 
 
@@ -223,6 +247,19 @@ def test_the_host_evaluator_agrees_with_the_recorded_run(case):
     )
 
     recorded = str(receipt["state"])
+    repaired = _RECEIPT_RECORDS_A_REPAIRED_DEFECT.get(case)
+    if repaired is not None:
+        recorded_state, remaining = repaired
+        assert recorded == recorded_state, (
+            f"{case}: recorded as {recorded!r}; this module says the run "
+            f"recorded {recorded_state!r} and that the host has since "
+            "been repaired, so the entry is stale"
+        )
+        assert set(evaluation.findings) == remaining, (
+            f"{case}: the only findings left should be the sealed run "
+            f"receipt's own; got {sorted(evaluation.findings)}"
+        )
+        return
     expected_above = _HOST_RULE_ABOVE_THE_RECEIPT.get(case, set())
     if recorded == "validated" and not evaluation.validated:
         assert set(evaluation.findings) == expected_above, (

@@ -1,0 +1,401 @@
+{
+  "applied_settings_sha256": "b91a7d0809efb7b40be8bb1f67920a3ba392be3a4a62197b4650142faf63cd5a",
+  "child_returncode": 0,
+  "engine_complete": true,
+  "environment_receipt_sha256": "037ef546106e86ad9bb2a4806738bcdf1a1d8b32c35d78f8a73e135b75a318ed",
+  "fake": false,
+  "findings": [
+    {
+      "evidence_ref": "h5:/results/vibrational_frequencies",
+      "expected": 3,
+      "field": "results.vibrational_frequencies",
+      "observed": 4,
+      "rule_id": "pyscf.frequency.mode_count"
+    },
+    {
+      "evidence_ref": "h5:/results/normal_modes",
+      "expected": [
+        3,
+        3,
+        3
+      ],
+      "field": "results.normal_modes",
+      "observed": {
+        "all_finite": true,
+        "shape": [
+          4,
+          3,
+          3
+        ]
+      },
+      "rule_id": "pyscf.result.shape_invalid"
+    },
+    {
+      "evidence_ref": "h5:/results/reduced_masses",
+      "expected": [
+        3
+      ],
+      "field": "results.reduced_masses",
+      "observed": {
+        "all_finite": true,
+        "shape": [
+          4
+        ]
+      },
+      "rule_id": "pyscf.result.shape_invalid"
+    },
+    {
+      "evidence_ref": "h5:/results/force_constants",
+      "expected": [
+        3
+      ],
+      "field": "results.force_constants",
+      "observed": {
+        "all_finite": true,
+        "shape": [
+          4
+        ]
+      },
+      "rule_id": "pyscf.result.shape_invalid"
+    },
+    {
+      "evidence_ref": "h5:/results/vibrational_frequencies",
+      "expected": {
+        "shape_from_hessian": [
+          3
+        ]
+      },
+      "field": "results.vibrational_frequencies",
+      "observed": {
+        "reported_shape": [
+          4
+        ]
+      },
+      "rule_id": "pyscf.result.hessian_frequency_inconsistent"
+    }
+  ],
+  "frequency_validation": {
+    "atom_count": 3,
+    "expected_imaginary_mode_count": null,
+    "expected_mode_count": 3,
+    "findings": [
+      {
+        "evidence_ref": "h5:/results/vibrational_frequencies",
+        "expected": 3,
+        "field": "results.vibrational_frequencies",
+        "observed": 4,
+        "rule_id": "pyscf.frequency.mode_count"
+      }
+    ],
+    "finite_mode_count": 4,
+    "frequency_unit": "cm^-1",
+    "geometry_class": "nonlinear",
+    "imaginary_mode_cutoff_cm1": null,
+    "linearity_relative_tolerance": 0.0001,
+    "observed_imaginary_mode_count": null,
+    "observed_mode_count": 4,
+    "schema_version": "chemsmart.pyscf-frequency-validation.v1",
+    "soft_negative_mode_count": null,
+    "state": "failed",
+    "stationary_point_classification": "unclassified"
+  },
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "a88e92d8309215be95bd38d752ae11da42f2d4fb15ef06618b3ca4decf2c7a98",
+  "input_receipt_sha256": "0c6f8c44dd30f583854505b7eefcc50f493b2da56def789837a4fa8b6dccabac",
+  "process_observation": {
+    "findings": [],
+    "last_rss_mb": 142.859375,
+    "memory_limit_exceeded": false,
+    "memory_limit_mb": 32768.0,
+    "memory_observation_state": "observed",
+    "memory_sample_count": 33,
+    "peak_rss_mb": 353.7421875,
+    "pid": 2045950,
+    "process_group_id": 2045950,
+    "process_group_owned": true,
+    "receipt_sha256": "d81e4d86dfc09cd53fcc3c5b63b82035ef5a5a33000260078e95fb29cb81075a",
+    "remaining_process_ids": [],
+    "returncode": 0,
+    "schema_version": "chemsmart.process-observation.v1",
+    "state": "exited",
+    "termination_confirmed": null,
+    "termination_requested": false,
+    "termination_scope": "not_required",
+    "termination_signal": "",
+    "timed_out": false,
+    "timeout_seconds": 600.0,
+    "wall_seconds": 7.08763563958928
+  },
+  "project_yaml_sha256": "c0e94bf79c180506efad567870cac76a1e4e0739b309deaad9d00ff24334be5c",
+  "property_findings": [
+    {
+      "evidence_ref": "h5:/status/properties/scf_stability",
+      "expected": "optional",
+      "field": "properties.scf_stability",
+      "observed": {
+        "reason": "scf_stability was not requested; nothing here says the reference is stable",
+        "status": "not_requested"
+      },
+      "required": false,
+      "rule_id": "pyscf.property.unavailable"
+    }
+  ],
+  "quarantined_targets": [],
+  "receipt_sha256": "f6a4e2e100b5033da2d14281d92540ebeae921379e0606ea3f6a2e12eafeb826",
+  "requested_settings_sha256": "e51dac3f739870ba3e4f3b0a23e30a2e6756b4e7dc2428c80ab0a0e38fe06a95",
+  "result_sha256": "4a7cb5a3b120839202cde3418c0a4b1cb2063243363566ac61e8b126dac7afe8",
+  "result_validation": {
+    "advisories": [
+      {
+        "accuracy_authority": false,
+        "convention": "A term value is E(upper state) minus E(ground state) and is non-negative; a negative value means the states were ordered the wrong way round.",
+        "readiness_authority": false,
+        "rule_id": "term-value-orientation",
+        "rule_sha256": "a2845d3119e803ff43763c71e18335c930a5c6be6274a71f51f812b1a83749e3",
+        "schema_version": "chemsmart.deterministic-convention-rule.v1",
+        "scope": "result_validation",
+        "skill_id": "scientific-conventions",
+        "subject": "term value orientation"
+      }
+    ],
+    "applied_settings_sha256": "b91a7d0809efb7b40be8bb1f67920a3ba392be3a4a62197b4650142faf63cd5a",
+    "charge": 0,
+    "contract_validation": {
+      "current_version": "chemsmart.pyscf-result-contract.v9",
+      "new_execution_admissible": false,
+      "observed_version": "chemsmart.pyscf-result-contract.v9",
+      "state": "invalid",
+      "supported_versions": [
+        "chemsmart.pyscf-result-contract.v3",
+        "chemsmart.pyscf-result-contract.v4",
+        "chemsmart.pyscf-result-contract.v5",
+        "chemsmart.pyscf-result-contract.v6",
+        "chemsmart.pyscf-result-contract.v7",
+        "chemsmart.pyscf-result-contract.v8",
+        "chemsmart.pyscf-result-contract.v9"
+      ]
+    },
+    "electronic_state_validation": {
+      "expected_alpha_beta": [
+        7,
+        7
+      ],
+      "expected_electron_count": 14,
+      "observed_alpha_beta": [
+        7.0,
+        7.0
+      ],
+      "observed_electron_count": 14.0,
+      "orbital_representation": "restricted"
+    },
+    "findings": [
+      {
+        "evidence_ref": "h5:/results/vibrational_frequencies",
+        "expected": 3,
+        "field": "results.vibrational_frequencies",
+        "observed": 4,
+        "rule_id": "pyscf.frequency.mode_count"
+      },
+      {
+        "evidence_ref": "h5:/results/normal_modes",
+        "expected": [
+          3,
+          3,
+          3
+        ],
+        "field": "results.normal_modes",
+        "observed": {
+          "all_finite": true,
+          "shape": [
+            4,
+            3,
+            3
+          ]
+        },
+        "rule_id": "pyscf.result.shape_invalid"
+      },
+      {
+        "evidence_ref": "h5:/results/reduced_masses",
+        "expected": [
+          3
+        ],
+        "field": "results.reduced_masses",
+        "observed": {
+          "all_finite": true,
+          "shape": [
+            4
+          ]
+        },
+        "rule_id": "pyscf.result.shape_invalid"
+      },
+      {
+        "evidence_ref": "h5:/results/force_constants",
+        "expected": [
+          3
+        ],
+        "field": "results.force_constants",
+        "observed": {
+          "all_finite": true,
+          "shape": [
+            4
+          ]
+        },
+        "rule_id": "pyscf.result.shape_invalid"
+      },
+      {
+        "evidence_ref": "h5:/results/vibrational_frequencies",
+        "expected": {
+          "shape_from_hessian": [
+            3
+          ]
+        },
+        "field": "results.vibrational_frequencies",
+        "observed": {
+          "reported_shape": [
+            4
+          ]
+        },
+        "rule_id": "pyscf.result.hessian_frequency_inconsistent"
+      }
+    ],
+    "frequency_validation": {
+      "atom_count": 3,
+      "expected_imaginary_mode_count": null,
+      "expected_mode_count": 3,
+      "findings": [
+        {
+          "evidence_ref": "h5:/results/vibrational_frequencies",
+          "expected": 3,
+          "field": "results.vibrational_frequencies",
+          "observed": 4,
+          "rule_id": "pyscf.frequency.mode_count"
+        }
+      ],
+      "finite_mode_count": 4,
+      "frequency_unit": "cm^-1",
+      "geometry_class": "nonlinear",
+      "imaginary_mode_cutoff_cm1": null,
+      "linearity_relative_tolerance": 0.0001,
+      "observed_imaginary_mode_count": null,
+      "observed_mode_count": 4,
+      "schema_version": "chemsmart.pyscf-frequency-validation.v1",
+      "soft_negative_mode_count": null,
+      "state": "failed",
+      "stationary_point_classification": "unclassified"
+    },
+    "geometry_validation": {
+      "absolute_tolerance_angstrom": 1e-08,
+      "fixed_geometry_required": true,
+      "matches_input": true,
+      "unit": "Angstrom"
+    },
+    "hessian_validation": {
+      "all_finite": true,
+      "consistency": {
+        "absolute_tolerance_cm1": 0.5,
+        "algorithm": "independent-mass-weighted-projection-v1",
+        "maximum_absolute_difference_cm1": null,
+        "recomputed_frequencies_cm1": [
+          551.3271772427439,
+          2133.6647522011826,
+          3801.7748509009098
+        ],
+        "relative_tolerance": 0.0005,
+        "state": "unverified",
+        "translation_rotation_rank": 6
+      },
+      "raw_antisymmetry_graded": false,
+      "raw_antisymmetry_limit_eh_per_bohr2": 3.076344924160215e-05,
+      "raw_max_abs_antisymmetry_eh_per_bohr2": 2.9859128194198448e-05,
+      "raw_symmetrization_admissible": true,
+      "required": true,
+      "shape": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "symmetric": true,
+      "symmetry_absolute_tolerance": 1e-07,
+      "symmetry_relative_tolerance": 2e-05
+    },
+    "jobtype": "hess",
+    "materialization_validation": {
+      "functional_definition": {
+        "environment_bound": true,
+        "environment_receipt_sha256": "037ef546106e86ad9bb2a4806738bcdf1a1d8b32c35d78f8a73e135b75a318ed",
+        "libxc_version": "7.0.0",
+        "pyscf_version": "2.14.0",
+        "schema_version": "chemsmart.pyscf-functional-definition.v3",
+        "state": "environment_bound"
+      }
+    },
+    "multiplicity": 1,
+    "observed_stages": [
+      "scf",
+      "hess"
+    ],
+    "reference_validation": {
+      "declared_family": "rks",
+      "expected_family": "rks",
+      "mean_field_class": "pyscf.dft.rks.RKS",
+      "mean_field_mro": [
+        "pyscf.dft.rks.RKS",
+        "pyscf.dft.rks.KohnShamDFT",
+        "pyscf.scf.hf.RHF",
+        "pyscf.scf.hf.SCF",
+        "pyscf.lib.misc.StreamObject",
+        "builtins.object"
+      ],
+      "one_electron_semantics": false,
+      "orbital_representation": "restricted",
+      "runtime_family": "rks",
+      "state": "verified"
+    },
+    "requested_settings_sha256": "e51dac3f739870ba3e4f3b0a23e30a2e6756b4e7dc2428c80ab0a0e38fe06a95",
+    "required_stages": [
+      "scf",
+      "hess"
+    ],
+    "schema_version": "chemsmart.pyscf-result-validation.v1",
+    "spin_diagnostic_validation": {
+      "effective_multiplicity": 1.0,
+      "interpretation": "numerically_matches_target_eigenvalue",
+      "numerical_equality_tolerance": 1e-07,
+      "observed_spin_square": 0.0,
+      "orbital_representation": "restricted",
+      "requested_multiplicity": 1,
+      "scientific_threshold_applied": false,
+      "spin_square_deviation": 0.0,
+      "state": "available",
+      "target_spin_square": 0.0
+    },
+    "state": "failed",
+    "status_validation": {
+      "failure_absent": true,
+      "observed_stage_set": [
+        "hess",
+        "scf"
+      ],
+      "required_stage_set": [
+        "hess",
+        "scf"
+      ],
+      "stage_set_exact": true
+    },
+    "symbols": [
+      "C",
+      "N",
+      "H"
+    ]
+  },
+  "run_id": "10bed29d-3b2c-42e2-94d5-985ecfcba6da",
+  "run_nonce": "e828a69a7461d22bf9e7afca2fe54e78dc3ca8714eb0e1d5eff320f2dc4388c7",
+  "schema_version": "chemsmart.pyscf-run.v1",
+  "scientific_validation_state": "failed",
+  "scientifically_validated": false,
+  "script_sha256": "5a5271967681df7f1e787885566a120404e205936217d13ee6c4df102065f1d0",
+  "state": "failed"
+}

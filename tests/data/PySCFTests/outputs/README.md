@@ -248,3 +248,9 @@ Barriers from these runs, for reference: H2CO -> trans-HCOH 104.63 kcal/mol
 forward and 52.23 backward at HF/6-31G* (from the IRC endpoints of
 `h2co_irc_{fwd,bwd}` in the same batch); HCN -> HNC 47.84 and HNC -> HCN 34.16
 at B3LYP(G)/def2-SVP.
+
+## What the live campaign left here (2026-09-21)
+
+| directory | what it is | why it is here |
+|---|---|---|
+| `hnc_linear_hess` | the Hessian the Agent ran on the HNC end of a PySCF IRC, from the saddle a PySCF `ts` node had located in the same goal (CUHK **2141231**, goal `g1-hcn-ts`, cycle 3) | **the first Hessian on a linear polyatomic in this corpus, and it failed.** HNC is 0.047 degrees from linear; the mode-count rule's relative transverse tolerance answers about 0.01 degrees for a triatomic, so the host demanded 3N-6 = 3 modes where PySCF's harmonic analysis had correctly produced 3N-5 = 4, and the independent reconstruction -- run at the rank the same test chose -- projected out half of the degenerate bending pair (551.0, 551.4 cm-1) and returned a survivor at 551.33 between them. The archived receipt is the one the live run wrote and says `failed`; the same bytes validate on this tree, with all four modes and a reconstruction agreeing to 3.9e-6 cm-1 |

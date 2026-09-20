@@ -1,0 +1,26 @@
+{
+  "compute_interpreter": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "config_sha256": "6a5cf4597c2af070faddb83c9618f9bf6e5e5df6894059b1565a317094fa6f75",
+  "engine": "cpu",
+  "environment_receipt_sha256": "037ef546106e86ad9bb2a4806738bcdf1a1d8b32c35d78f8a73e135b75a318ed",
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "a88e92d8309215be95bd38d752ae11da42f2d4fb15ef06618b3ca4decf2c7a98",
+  "label": "geom-hnc-reached_hess_gas_phase",
+  "materializations": {},
+  "project_yaml_sha256": "c0e94bf79c180506efad567870cac76a1e4e0739b309deaad9d00ff24334be5c",
+  "quarantined_targets": [],
+  "receipt_sha256": "0c6f8c44dd30f583854505b7eefcc50f493b2da56def789837a4fa8b6dccabac",
+  "requested_settings_sha256": "e51dac3f739870ba3e4f3b0a23e30a2e6756b4e7dc2428c80ab0a0e38fe06a95",
+  "run_id": "10bed29d-3b2c-42e2-94d5-985ecfcba6da",
+  "run_nonce": "e828a69a7461d22bf9e7afca2fe54e78dc3ca8714eb0e1d5eff320f2dc4388c7",
+  "schema_version": "chemsmart.pyscf-input.v1",
+  "script_path": "geom-hnc-reached_hess_gas_phase.py",
+  "script_sha256": "5a5271967681df7f1e787885566a120404e205936217d13ee6c4df102065f1d0",
+  "stages": [
+    "scf",
+    "hess"
+  ],
+  "state": "previewed"
+}

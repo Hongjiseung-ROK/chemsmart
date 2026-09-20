@@ -1370,6 +1370,9 @@ def frequency_validation_receipt(
     findings = []
     geometry_class = "unknown"
     expected_mode_count = None
+    #: For a polyatomic, the two counts a correct harmonic analysis may
+    #: carry; the run's own count picks one and everything else follows.
+    admissible_mode_counts = None
 
     try:
         coordinates = np.asarray(positions, dtype=float)
@@ -1414,8 +1417,28 @@ def frequency_validation_receipt(
                 )
             )
         else:
+            # Both counts are admissible for a polyatomic, and which one
+            # a run carries is the program's own reading of its geometry,
+            # not a tolerance this host gets to impose. HNC reached by a
+            # live IRC (CUHK g1-hcn-ts, 2026-09-20) is 0.047 degrees from
+            # linear; PySCF's harmonic analysis produced 3N-5 = 4 modes
+            # and this rule, whose relative transverse tolerance answers
+            # about 0.01 degrees for a triatomic, demanded 3 and failed a
+            # Hessian that is exactly right. What replaces the tolerance
+            # is not a looser one: the count is admitted if it is 3N-6 or
+            # 3N-5, the arrays are held to whichever it is, and the
+            # independent spectrum reconstruction then runs at the
+            # translation-rotation rank that count implies -- so a wrong
+            # count no longer passes on a geometric opinion but fails on
+            # the physics, because the reconstructed spectrum will not be
+            # the reported one. At rank 6 this artifact reconstructs to
+            # [551.33, 2133.66, 3801.77]; at rank 5, to PySCF's own four
+            # frequencies to 0.0000 cm-1.
             geometry_class = "linear" if linear else "nonlinear"
-            expected_mode_count = 3 * len(symbol_list) - (5 if linear else 6)
+            admissible_mode_counts = (
+                3 * len(symbol_list) - 6,
+                3 * len(symbol_list) - 5,
+            )
 
     complex_frequencies = False
     frequency_shape = None
@@ -1440,7 +1463,29 @@ def frequency_validation_receipt(
                 evidence_ref="h5:/results/vibrational_frequencies",
             )
         )
-    if expected_mode_count is not None and len(values) != expected_mode_count:
+    if admissible_mode_counts is not None:
+        # A polyatomic whose linearity is not a question this host
+        # answers: either count stands, and the count the run carries is
+        # what every array below and the spectrum reconstruction are then
+        # held to.
+        if len(values) in admissible_mode_counts:
+            expected_mode_count = len(values)
+        else:
+            findings.append(
+                PySCFViolation(
+                    rule_id=RULE_FREQUENCY_MODE_COUNT,
+                    field="results.vibrational_frequencies",
+                    expected={
+                        "3N-6": admissible_mode_counts[0],
+                        "3N-5 (linear rotor)": admissible_mode_counts[1],
+                    },
+                    observed=len(values),
+                    evidence_ref="h5:/results/vibrational_frequencies",
+                )
+            )
+    elif (
+        expected_mode_count is not None and len(values) != expected_mode_count
+    ):
         findings.append(
             PySCFViolation(
                 rule_id=RULE_FREQUENCY_MODE_COUNT,
@@ -1507,9 +1552,14 @@ def frequency_validation_receipt(
         "schema_version": FREQUENCY_VALIDATION_SCHEMA_VERSION,
         "state": "validated" if not findings else "failed",
         "atom_count": len(symbol_list),
+        # Kept as the observation it is: how far from a linear rotor
+        # this structure sits, measured but never graded.
         "geometry_class": geometry_class,
         "linearity_relative_tolerance": _LINEARITY_RELATIVE_TOLERANCE,
         "expected_mode_count": expected_mode_count,
+        "admissible_mode_counts": (
+            list(admissible_mode_counts) if admissible_mode_counts else None
+        ),
         "observed_mode_count": len(values),
         "finite_mode_count": int(finite_mask.sum()),
         "stationary_point_classification": (
@@ -2557,6 +2607,7 @@ def validate_pyscf_result(
                 frequencies=_result_array(
                     results.get("vibrational_frequencies")
                 ),
+                mode_count=expected_modes,
             )
         )
         hessian_observation["consistency"] = hessian_consistency
@@ -3700,7 +3751,7 @@ def _hessian_matrix(values, atom_count):
 
 
 def _validate_hessian_frequency_consistency(
-    *, matrix, symbols, positions, frequencies
+    *, matrix, symbols, positions, frequencies, mode_count=None
 ):
     observation = {
         "state": "unverified",
@@ -3744,6 +3795,7 @@ def _validate_hessian_frequency_consistency(
             matrix=matrix,
             symbols=symbols,
             positions=positions,
+            mode_count=mode_count,
         )
     except (
         ArithmeticError,
@@ -3806,13 +3858,28 @@ def _validate_hessian_frequency_consistency(
     return observation, []
 
 
-def _independent_mass_weighted_frequencies(*, matrix, symbols, positions):
+def _independent_mass_weighted_frequencies(
+    *, matrix, symbols, positions, mode_count=None
+):
     """Reconstruct signed harmonic wavenumbers without importing PySCF.
 
     The Cartesian Hessian (Eh/Bohr^2) is mass weighted with ASE's isotope-
     averaged atomic masses, the translation/rotation span is removed by SVD,
     and the remaining symmetric matrix is diagonalized.  SI conversion uses
     the CODATA-2018 literals declared at module scope.
+
+    ``mode_count`` is how many modes the result being checked carries; the
+    translation-rotation rank follows from it (3N minus the count), so the
+    reconstruction removes exactly the space the reported spectrum implies
+    was removed and the comparison below is a like-for-like one. Without
+    it the rank comes from this module's own geometric linearity test,
+    which near the linear boundary disagrees with the program and drops a
+    real mode: on HNC 0.047 degrees from linear it projected out half of
+    a degenerate bending pair and shifted the survivor by 0.33 cm-1,
+    while at the reported count it reproduces all four frequencies to
+    0.0000 cm-1. The masses and the arithmetic stay this module's own, so
+    this is still an independent authority -- it takes only the dimension
+    of the question from the artifact.
     """
 
     atomic_numbers = _expected_atomic_numbers(symbols)
@@ -3836,7 +3903,9 @@ def _independent_mass_weighted_frequencies(*, matrix, symbols, positions):
         vectors.append((square_root_masses[:, None] * rotation).reshape(-1))
     tr_matrix = np.column_stack(vectors)
     left, _, _ = np.linalg.svd(tr_matrix, full_matrices=True)
-    if len(symbols) == 1:
+    if mode_count is not None and 0 <= int(mode_count) <= 3 * len(symbols):
+        tr_rank = 3 * len(symbols) - int(mode_count)
+    elif len(symbols) == 1:
         tr_rank = 3
     elif len(symbols) == 2:
         tr_rank = 5
