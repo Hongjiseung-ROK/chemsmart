@@ -287,6 +287,11 @@ nodes:
     commit: "88a6051d"
     note: "Seven GFN2-xTB runs through the public CLI on CUHK (Slurm 2142381, 2142385) read back through extract_result_quantities. Gsolv equals the sum of its four parts to 5e-18 Eh on every solvated result. ALPB(water) stabilises water by -11.389 kcal/mol and destabilises methane by +0.158, the hydrophilic/hydrophobic sign contrast; the water total is dominated by Ghb (-9.343) and not by Gelec (-3.883), which is the opposite of the expectation basis the live Agent session declared for it. GBSA(water) on the same solute gives -7.044 kcal/mol, so the model name must travel with the number. E(solvated) - E(gas) at the same geometry is -8.753 kcal/mol for water against a reported Gsolv of -11.389, the +2.636 difference being the solute's polarisation cost, and +0.180 against +0.158 for methane, which barely polarises."
     falsifier: "A solvated xTB result's Gsolv differs from the sum of its printed parts by more than print rounding, or ALPB and GBSA agree on one solute in one solvent, or the aqueous continuum stabilises methane."
+  - id: result.xtb_gfnff_solvation_is_undecomposed
+    kind: result
+    commit: "7f3f2c85"
+    note: "A GFN-FF/ALPB(water) single point (CUHK 2142381) reports its model, its solvent, Gsasa, Ghb and Gshift, and prints no Gelec at all -- a force field has no self-consistent-charge electrostatics to name. Its Gsolv (-0.024626451737 Eh) is therefore NOT the sum of the parts it prints (-0.017924440181 Eh); 0.0067 Eh of it is undecomposed. Read back on the repaired tree (2142395) the electrostatic term is reported typed-absent with that reason, the other four are served, and the closure identity abstains because it is only checked when all five are present. Checking it unconditionally would have refused a correct result."
+    falsifier: "A GFN-FF solvated xTB result prints a Gelec line, or its Gsolv equals the sum of the terms it does print."
   - id: negative.an_xtb_hessian_matrix_has_no_consumer
     kind: negative_result
     commit: "855dc848"
@@ -344,3 +349,4 @@ edges:
   - {from: commit.88a6051d, to: negative.every_archived_xtb_run_has_solvation_off, rel: supersedes}
   - {from: result.xtb_solvation_terms_20260921, to: negative.every_archived_xtb_run_has_solvation_off, rel: evidenced_by, note: "the archived toluene runs proved the sentence false; these live water and methane runs are what the declaration was then qualified on"}
   - {from: commit.88a6051d, to: negative.an_xtb_hessian_matrix_has_no_consumer, rel: explains, note: "the round that declared the solvation surface looked at the Hessian matrix and recorded why it stays unreachable instead of adding a selector for it"}
+  - {from: result.xtb_gfnff_solvation_is_undecomposed, to: result.xtb_solvation_terms_20260921, rel: depends_on, note: "the same run set; this is the one member whose decomposition is incomplete, and it is what says the closure check must be conditional"}
