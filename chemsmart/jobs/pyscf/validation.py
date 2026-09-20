@@ -1318,10 +1318,14 @@ def _finite_number(value):
 def _scalar_number(value):
     """The one finite number a stored result holds, or None.
 
-    ``_finite_number`` beside it is a predicate and answers a different
-    question.  Every entry of a ``results`` mapping read back from HDF5
-    is a NumPy array rather than a Python float, so a check that needs
-    the number asks for the number.
+    ``_finite_number`` beside it is a predicate, and a predicate used as
+    a value is how the correlated-component check came to perform no
+    check at all: every entry of a ``results`` mapping read back from
+    HDF5 is a NumPy array rather than a Python float, so the predicate
+    answered False for each component, the sum that followed compared
+    ``False + False`` with ``False`` and agreed, and a component that was
+    not there at all was never reported because a bool is never None.
+    A value question gets a value answer.
     """
 
     array = _result_array(value)
@@ -3644,7 +3648,7 @@ def _validate_correlated_results(results, stage_statuses, spec):
         names.append("triples_correction")
     values = {}
     for name in names:
-        value = _finite_number(results.get(name))
+        value = _scalar_number(results.get(name))
         if value is None:
             findings.append(
                 _result_finding(

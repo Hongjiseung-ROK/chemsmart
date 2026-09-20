@@ -790,6 +790,36 @@ def test_the_correlated_stage_serves_components_pyscf_recomputes(case):
         reader.read(output, "functional")
 
 
+@pytest.mark.capability("selector:pyscf:sp:correlation_energy")
+@pytest.mark.parametrize("case", CORRELATED_CASES)
+def test_the_correlated_component_check_is_a_check(case):
+    """It reported nothing at all, on any artifact, for two rounds.
+
+    ``_finite_number`` is a predicate and was read as a value: every
+    entry of a ``results`` mapping is a NumPy array, so it answered False
+    for each component, the sum that followed compared ``False + False``
+    with ``False``, and a component that was not there at all was never
+    reported because a bool is never None.  A validator that cannot go
+    red on a removed component is not validating, so the removal is what
+    is asserted here -- the green half alone was true the whole time it
+    was broken.
+    """
+
+    spec, _provenance, status, results = read_pyscf_h5(_path(case))
+    stages = status.get("stages") or {}
+    assert not validation_module._validate_correlated_results(
+        results, stages, spec
+    )
+    without = dict(results)
+    without.pop("correlation_energy")
+    findings = validation_module._validate_correlated_results(
+        without, stages, spec
+    )
+    assert [finding.field for finding in findings] == [
+        "results.correlation_energy"
+    ]
+
+
 @pytest.mark.capability("selector:pyscf:sp:triples_correction")
 @pytest.mark.capability("selector:pyscf:sp:ccsd_correlation_energy")
 def test_ccsd_t_correlation_is_ccsd_plus_triples_as_orca_means_it():
