@@ -425,3 +425,42 @@ against source, behaviour and run record before it enters a synthesis. In
 this round both reviewers corrected me and one of their corrections was
 itself slightly wrong (a commit id that was a pre-rebase duplicate). Two
 of their findings were about defects in work committed hours earlier.
+
+## Measuring a surface change against the Agent, not against a prompt
+
+**What we did.** Changed what the model reads (the operation enum, the
+guide index, which signals open a guide) and asked whether the Agent got
+scientifically better or worse, on the same requests, before and after.
+
+**What worked.** A *pristine* baseline arm. `git archive HEAD | tar -x -C
+/tmp/...` gives a read-only copy of the pre-change tree that the runner
+points `PYTHONPATH` at, so a baseline session issued after the working
+tree has moved still runs the code it claims to. We lost the first
+attempt at this: two sessions started before the edits and two after, on
+one tree, and only the timestamps said which code each had imported.
+Every session's log records the tree root and a digest of
+`chemsmart/agent/**` beside its transcript, so the arm is auditable
+afterwards.
+
+Requests written before the change and never edited. Each one names a
+molecule and an observable and nothing about guides, tools or routing,
+and each was checked against `guides_from_text` *before* issue so that
+"what the old router would have opened" is a recorded prediction rather
+than a reconstruction. The one pair that carried the round (B1, the
+distance from a carbon to its molecule's centre of mass) was chosen
+because no guide title contains the words a chemist would use for it.
+
+**What we would watch.** One provider key does not serve many concurrent
+sessions. With two cluster goals running, local planning sessions on the
+same key sat at `turn_deadline_exceeded` (300 s, zero input tokens) and
+made no model turn at all for twenty minutes; the moment the local
+sessions were killed the cluster cycles resumed. A session with zero
+provider turns is not a weak observation to be kept, and not a run to be
+re-rolled either -- it is no run, and the honest record says so. Budget
+live arms serially, or accept that the arm will be smaller than planned.
+
+**A trap.** macOS ships bash 3.2, which has no associative arrays.
+`declare -A TASKS; TASKS[B3]=...` silently evaluates each subscript
+arithmetically, so every label resolves to the last assignment and two
+baseline sessions ran a request meant for another label. Use a `case`
+function for label-to-text maps in campaign scripts.
