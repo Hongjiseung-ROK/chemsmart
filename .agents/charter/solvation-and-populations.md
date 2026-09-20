@@ -9,11 +9,21 @@ failure: a gas-phase result reports the terms absent, and a CPCM run has
 no cavity-dispersion term, which is how it differs from an SMD run. The
 terms report what the program *applied*, which is not always what the
 route requested, so they are read beside the model rather than instead of
-it. Only ORCA declares them — no archived Gaussian log carries the
-printed terms, the PySCF driver does not yet write the decomposition
-PySCF 2.14 holds in its SCF summary (``e_solvent`` and, for SMD,
-``e_cds``), and every archived xTB run has solvation switched off, so
-for those three there is nothing a declaration could have audited.
+it. A program declares a term where an archived solvated result of its
+own exercises it, and nowhere else. PySCF answers the same two solvation
+energies from its own ``scf_summary`` under result contract v10 — the
+continuum's polarisation energy for every model it attaches, and SMD's
+cavitation-dispersion-solvent-structure term — and answers no cavity
+surface area, because PySCF discretises a cavity and does not report its
+area as a number. xTB answers its solvation free energy, the
+electrostatic term and its own SASA, hydrogen-bond and shift terms from
+the block it prints, and says that a run was solvated from the model
+line rather than from one Hamiltonian's field; a GFN-FF solvation free
+energy is not the sum of the terms it prints and is not decomposed. No
+archived Gaussian log carries the printed terms, so Gaussian declares
+none. The sentence this replaces read "every archived xTB run has solvation switched off";
+two ALPB(toluene) runs had arrived with the xTB parser itself, and a
+track found it by opening them.
 
 Per-atom populations are positional and named by the scheme that produced
 them. Atom-label schemes disagree between programs — ORCA numbers atoms
@@ -32,7 +42,11 @@ that carries them, because a single word inside a settings dump is what a
 reader skims past. PySCF declares Mulliken, which its driver computes and
 stores under a mandatory declared unit; xTB's population comes from a
 minimal tight-binding density and is not Mulliken, so no xTB accessor
-answers to that name. CM5 stays parsed and undeclared. The scheme is in
+answers to that name. Gaussian declares Mulliken, which it prints
+without being asked, and Hirshfeld, through the same kind of print
+directive; it prints no Löwdin partition, so that name stays absent
+rather than being served by the nearest scheme. CM5 stays parsed and
+undeclared. The scheme is in
 the name because the schemes disagree: on one phenoxide anion Mulliken
 places more than a whole electron of excess charge on the hydroxyl oxygen
 where Löwdin places about a third of one, and neither is "the charge on

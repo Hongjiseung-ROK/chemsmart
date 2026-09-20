@@ -27,3 +27,14 @@ case that motivated it: given two converged amide rotamers whose strict
 verdicts failed, a session read the table and named the acetyl methyl
 rotor in one and the N-methyl rotor in the other, a distinction seven
 earlier sessions could not draw from frequencies alone.
+
+A program's printed modes are attached to the structure they describe,
+which is what lets a result that settled on a saddle be stepped off one.
+Where the modes and the structure come from different files, as xTB's
+do, they are attached only when the two frames agree atom for atom; a
+structure in another orientation is reported without modes, and the
+operations that consume them refuse rather than displacing along rotated
+axes. Qualified through completed Agent execution: handed only a planar
+ammonia saddle, one goal characterised it, displaced it both ways,
+relaxed both, bound the structure it reached and confirmed it with a
+validated Hessian of six real modes.

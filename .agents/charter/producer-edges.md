@@ -27,3 +27,11 @@ a new workflow with its own review. This rule is qualified through
 completed Agent execution: an executed torsional scan's carried minimum
 seeded an optimization that validated as a true minimum, escaping a
 saddle a direct optimization deterministically returned to.
+
+An ORCA IRC branch's endpoint is declared ``trajectory_end_positions`` in
+the ``as_reached`` state, bound to its log by the path's last energy and
+by atom identity so that a stale or foreign endpoint file is refused. The
+in-approval producer edge asks for ``reached_positions`` by name and so
+refuses it, while the later-cycle geometry lift serves it. Until one
+function answers both, an ORCA IRC endpoint is reusable only through a
+new workflow with its own review.

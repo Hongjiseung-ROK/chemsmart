@@ -52,3 +52,14 @@ A refusal would have compared the same two strings and been no wiser. The
 host shows what the project asked each program for; whether two programs
 mean the same thing by a keyword is a fact about the programs, and
 checking it stays the scientist's.
+
+A solvation term is comparable across ORCA and PySCF only where the model
+is: both readers serve ``solvation_electrostatic_energy`` in hartree for
+the same physical term, and the two programs' continua differ in cavity
+construction — at one geometry and one dielectric PySCF's SMD and C-PCM
+polarisation energies differ by 3.6 kcal/mol — so the model and the
+solvent are read beside the number, never inferred from it. The frontier
+pair of an unrestricted result is the extremum over both spin channels on
+ORCA and on PySCF alike; Gaussian refuses an open-shell frontier value
+rather than report one channel, and xTB serves the gap it prints from its
+single orbital ladder.
