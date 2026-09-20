@@ -287,7 +287,9 @@ nodes:
     Hessian: PySCF''s new ts stage reaches ORCA''s OptTS H2CO/trans-HCOH saddle to 1e-4 A in every interatomic
     distance from a seed 0.24 A away carrying two imaginary modes, and HCN/HNC to 3e-4 A. The Hessian
     at what it reached gives -2700.0 cm-1, the frequency the archived IRC branches start from, and both
-    branches walked from it reach the two minima.'
+    branches walked from it reach the two minima. A four-goal sealed campaign then ran the same tree (2141227-2141231):
+    all four goals planned a PySCF ts node from ordinary language and executed one, six searches over
+    four molecules, all validated, none settling achieved.'
   falsifier: A PySCF ts and an ORCA OptTS on one surface from one seed reach structures differing by more
     than optimiser convergence, or the Hessian at the PySCF one does not carry the archived branches'
     start frequency.
@@ -325,6 +327,53 @@ nodes:
     was green. A probe that imports every module under the compute interpreter now runs beside the suite.'
   falsifier: Importing every chemsmart module under the deployed controller's and compute interpreters
     raises nothing the suite did not catch.
+- id: negative.a_linear_polyatomic_hessian_was_refused
+  kind: negative_result
+  source:
+    path: .agents/charter/pyscf.md
+    anchor: that Hessian is the first on a linear polyatomic in this corpus
+  note: 'The mode-count rule expected 3N-6 unless its own geometric linearity test said otherwise, and
+    that test answers about 0.01 degrees for a triatomic. HNC reached by a live PySCF IRC is 0.047 degrees
+    from linear: PySCF''s correct 3N-5 spectrum was refused with four findings and typed failed_native,
+    and the independent reconstruction at the same rank dropped half a degenerate bending pair. It is
+    the node a live goal''s analysis chain was waiting on. Repaired by taking the translation-rotation
+    rank from the run''s own mode count.'
+  falsifier: A Hessian on a molecule near the linear boundary is refused, or validated, on a geometric
+    tolerance rather than on whether its spectrum reconstructs at the rank its own count implies.
+- id: lesson.a_promise_belongs_to_the_structure_not_the_node
+  kind: lesson
+  source:
+    path: .agents/charter/pyscf.md
+    anchor: a Hessian that confirms a saddle was being typed
+  note: ORCA runs OptTS Freq as one node; PySCF and xTB split the search and the Hessian. Judged by its
+    own job type, the Hessian half typed two live saddles failed_wrong_stationary_point for carrying the
+    one imaginary mode they were run to find. The promise is about the structure, and the node that produced
+    it already said what it was searching for, so a fixed-geometry curvature node inherits it -- which
+    also catches the reverse, a saddle search that converged onto a minimum, which its own artifact cannot
+    detect.
+  falsifier: The same physics gets a different terminal word because one program runs the search and the
+    Hessian as one node and another runs them as two.
+- id: result.an_irc_endpoint_reached_by_minimising
+  kind: result
+  source:
+    path: .agents/charter/pyscf.md
+    anchor: its backward branch recording 77 frames
+  note: 'The H2CO -> H2 + CO backward branch records 77 frames of which 37 are Gonzalez-Schlegel path
+    steps and 40 are the minimisation after them; its endpoint is separated H2 (0.730 A) and CO (1.1135
+    A). The first recorded case of reached_by: minimisation_from_path_tail, and the case the record exists
+    for -- a previous round delivered an H2...CO complex as ''separated H2 + CO''.'
+  falsifier: A branch whose tail geomeTRIC minimised reports the same account as one that stepped all
+    the way, or the frame split does not sum to the frames recorded.
+- id: negative.small_molecules_disable_the_basin_sensor
+  kind: negative_result
+  source:
+    path: .agents/charter/pyscf.md
+    anchor: the basin sensor's three-heavy-atom floor stopped
+  note: 'Every node of all four campaign goals raised geometry.same_structure_comparison_not_made: the
+    heavy-atom RMSD floor is three and the molecules had two. The sensor said it stopped, which is correct;
+    the campaign''s own molecule choice removed the basin and same-structure evidence from the whole round.'
+  falsifier: A campaign of two-heavy-atom molecules obtains basin or same-structure evidence, or the floor
+    is shown to be unnecessary below three heavy atoms.
 annotations:
   stem.never_author_native:
     class: FUNDAMENTAL
@@ -436,3 +485,9 @@ edges:
 - from: lesson.an_order_is_a_property_of_a_stationary_point
   to: negative.mode_count_certified_a_non_stationary_saddle
   rel: supersedes
+- from: result.an_irc_endpoint_reached_by_minimising
+  to: result.irc_path_is_not_everywhere_steepest_descent
+  rel: depends_on
+- from: lesson.a_promise_belongs_to_the_structure_not_the_node
+  to: negative.a_converged_ts_search_can_be_a_minimum
+  rel: evidenced_by

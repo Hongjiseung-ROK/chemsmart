@@ -203,10 +203,10 @@
       "kind": "program_jobtype",
       "id": "pyscf:cpu:ts",
       "status": "recorded",
-      "run": "pyscf-ts-irc-20260921/cli (direct human CLI, Slurm 2141124) + pyscf-ts-irc-20260921/goals/g2-h2co-foreign-saddle/workspace goals/g2-h2co-foreign-saddle/runs/cycle-1",
-      "commit": "0c442234",
+      "run": "pyscf-ts-irc-20260921/cli (direct human CLI, Slurm 2141124 and 2141482) + pyscf-ts-irc-20260921/goals/g1-hcn-ts/workspace goals/g1-hcn-ts/runs/cycle-1 + cycle-3 + goals/g2-h2co-foreign-saddle/runs/cycle-1 + goals/g3-h2co-elimination/runs/cycle-1 + cycle-2 + cycle-3 + goals/g4-hooh-rotation/runs/cycle-1",
+      "commit": "85d3badc",
       "date": "2026-09-21",
-      "source": "Direct CLI, read in full and archived as fixtures: from a seed 0.24 A off it the search reaches ORCA's own HF/6-31G* H2CO/trans-HCOH saddle to 1e-4 A in every distance, the Hessian there carries one imaginary mode at -2700.0 cm-1 and both IRC branches walked from it reach the two minima; HCN/HNC at B3LYP(G)/def2-SVP agrees with ORCA's saddle to 3e-4 A. Agent execution: goal g2 planned a pyscf ts node from ordinary language and ran it, relaxing a supplied Hartree-Fock saddle onto the B3LYP/def2-SVP surface it was asked about (seed max|g| 0.0378 Eh/Bohr there, reached 3.5e-5, receipt validated) -- the route a previous round's goal did not have. That goal's own settlement was NOT read: the session's SSH gate closed while cycle 2 was still running, so this record rests on the cycle-1 run and the CLI batch and claims nothing about how the goal ended."
+      "source": "All four sealed goals of the campaign planned a PySCF ts node from ordinary language and executed one: six searches across four molecules, every one validated. g1 ran the chain end to end -- ts (reaching the same HCN/HNC saddle as the direct CLI and as ORCA, C-N 1.1882 / C-H 1.1966 / N-H 1.3977 A) feeding two irc branches that reached HCN and HNC, barriers 47.84 and 34.16 kcal/mol against the direct-CLI references to 0.01. g2 relaxed a supplied Hartree-Fock saddle onto the B3LYP/def2-SVP surface it was asked about (seed max|g| 0.0378 Eh/Bohr there, reached 3.5e-5) and delivered 87.25 kcal/mol -- the route the previous round's methoxy goal did not have. g3 diagnosed two of its own searches converging to non-saddles and built a seed that worked. g4 located the H2O2 cis rotation barrier structure (one imaginary mode, -612.8 cm-1) and delivered 34.72 kJ/mol. No goal settled achieved: g1 and g3 exhausted their revisions, g2 and g4 lost their last two cycles to a provider-transport outage. What the capability did is recorded here; what the goals delivered is not claimed beyond the two barriers above."
     }
   ]
 }

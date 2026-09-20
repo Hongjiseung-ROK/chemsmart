@@ -586,3 +586,71 @@ states about itself. And the unit guard demanded every declared home of a
 selector be present, which a selector with two homes cannot satisfy; a
 selector is absent when none of its homes is, and a home that is present
 keeps its unit audited.
+
+A sealed four-goal campaign ran the ts tree on CUHK (jobs 2141227-2141231,
+default provider profile, approval delegated by the owner and recorded as
+``opus-researcher-owner-delegated``, never a human decision), on the code
+tree ``a63ee6e8``. No task named a transition-state search, a seed spectrum
+or a path account; every one of the four planned a PySCF ``ts`` node from
+ordinary language and executed one, six searches over four molecules, all
+validated. **No goal settled ``achieved``.**
+
+HCN/HNC reached the same saddle as the direct CLI and as ORCA (C-N 1.1882,
+C-H 1.1966, N-H 1.3977 A), walked both branches from it -- start spectrum
+-1123.2 cm-1, both ``reached_by: path_step`` -- to HCN and HNC, and
+computed barriers of 47.84 and 34.16 kcal/mol, matching the direct-CLI
+references to 0.01. It claimed none of them. Its analysis chain waited on
+a Hessian at the HNC end, and that Hessian is the first on a linear
+polyatomic in this corpus: HNC is 0.047 degrees from linear, the
+mode-count rule's transverse tolerance answers about 0.01 degrees, and a
+correct 3N-5 spectrum was refused with four findings and typed
+``failed_native``. The session had reasoned correctly that a walked branch
+proves the saddle promise and that a separate Hessian would cost an engine
+call it could spend elsewhere; what defeated it was the host.
+
+The formaldehyde goal relaxed a supplied Hartree-Fock saddle onto the
+B3LYP/def2-SVP surface it was asked about -- seed max|g| 0.0378 Eh/Bohr
+there, eighty-four times the criterion, reached 3.5e-5 -- and delivered
+87.25 kcal/mol with the uncertainty decomposed and the saddle verification
+held open as an unquantified component, because the Hessian confirming it
+had not run. The elimination goal diagnosed, from the geometries alone,
+that two of its own searches had converged to non-saddles, built a seed by
+hand that worked, and ran out of revisions one node short of confirming
+it. The hydrogen-peroxide goal located the cis rotation structure (one
+imaginary mode at -612.8 cm-1, dihedral 0.000 degrees, O-O 1.4491 A
+against a gauche minimum at 120.59 degrees) and delivered 34.72 kJ/mol.
+
+Two host defects the campaign found are repaired where they were made. The
+linear-rotor mode count above: a polyatomic's count is now the run's own,
+the arrays follow it, and the independent reconstruction runs at the
+translation-rotation rank that count implies, which reproduces PySCF's
+four frequencies to 3.9e-6 cm-1 where the geometric rank dropped one. And
+a Hessian that confirms a saddle was being typed
+``failed_wrong_stationary_point`` for containing the one imaginary mode it
+was run to find: ORCA runs ``OptTS Freq`` as one node, PySCF and xTB split
+the same physics, and the Hessian half was judged as a minimum's. A fixed-
+geometry curvature node now inherits the promise of whatever produced its
+structure. It reads both ways -- a saddle search that converges onto a
+minimum, which a converged ``ts`` cannot detect from its own artifact and
+which happened live, now fails at its Hessian instead of validating.
+
+Three things the campaign could not show. ORCA's arm of the cross-program
+goal died in Startup on both cycles: the campaign template allocates
+``--cpus-per-task=8`` on one task while the server profile writes ``%pal
+nprocs 8``, so ORCA saw one MPI slot; the previous campaign's own script
+used ``--ntasks=8`` and ORCA ran. Two goals lost their last two cycles to
+three provider timeouts each, a sustained outage, with budget still in
+hand; the host retried, typed the reason and settled without claiming
+science, which is what that word is for. And every node in every goal
+raised ``geometry.same_structure_comparison_not_made``: the basin sensor's
+three-heavy-atom floor stopped on molecules of two, so the campaign's
+molecule choice disabled it throughout.
+
+One observation this round had reported as implemented and unobserved is
+now observed. Finishing the elimination goal's question as a direct-CLI
+diagnostic (2141482) shows its saddle genuine -- one imaginary mode at
+-2191.9 cm-1 -- and its backward branch recording 77 frames of which 37
+are path steps and 40 are the minimisation after them. The endpoint is
+separated H2 and CO; "the IRC reached them" and "a minimisation from the
+IRC's tail reached them" are different statements, and the path account is
+where the host tells them apart.
