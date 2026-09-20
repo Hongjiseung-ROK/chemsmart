@@ -61,9 +61,11 @@ def test_the_leaf_says_what_pyscf_can_do_and_what_it_cannot():
     guide = GUIDES_BY_ID["pyscf"]
     body = guide.body
     for phrase in (
-        "one node each: sp, opt, hess",
+        "one node each: sp, opt, hess, ts, irc, td",
         "supplied_positions",
-        "reached_positions (opt and irc)",
+        "reached_positions (opt, ts and irc)",
+        # A search says nothing about the order of what it reached.
+        "a hess node on the geometry it reached is what says which",
         "failed_wrong_stationary_point",
         "No imaginary mode means none was found",
         "b3lyp and b3lypg are one libxc functional",

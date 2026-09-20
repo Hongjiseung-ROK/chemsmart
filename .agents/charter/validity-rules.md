@@ -55,14 +55,43 @@ geometry, identity, spin, thermochemistry -- are readable or validated,
 and which host validity rules apply, so a jobtype the agent can run but
 cannot judge says ``unsupported`` out loud.
 
-The mode count is not stationarity, and one organ still reads it as such.
-``characterise_stationary_point`` checks a claimed order against the
+The mode count is not stationarity, and one organ read it as such.
+``characterise_stationary_point`` checked a claimed order against the
 printed modes only: given the PySCF Hessian of a UHF/3-21G methoxy saddle
 on the B3LYP/def2-SVP surface (CUHK g5-methoxy, 2026-09-20), whose
 gradient of 0.0485 Eh/Bohr the host had just recorded as
 ``stationary_point.gradient_above_optimizer_criterion``, it issued an order-1
 characterisation with no anomaly cited, and the session called the
 geometry "host-characterised as a first-order saddle" for a cycle before
-it withdrew the barriers standing on it. The gap is stated, not closed:
-closing it is a refusal on the gradient that reaches every program's
-characterisation, which this round did not measure.
+it withdrew the barriers standing on it. The archived
+``water_stretched_hess`` is the same defect standing still: three real
+modes at max|g| = 0.0185 Eh/Bohr, forty-one times geomeTRIC's own
+criterion, certified order 0 -- "a minimum" -- on the very artifact the
+host's sensor flags.
+
+That gap is closed. An order is a property of a stationary point, so the
+receipt now names what the order stands on -- the digest of the structure
+the spectrum belongs to, the reader's own surface token, and the
+stationarity with the number behind it -- and a measured gradient above
+the criterion is refused. The refusal names both numbers and the two
+routes that remain: the spectrum stays readable and deliverable as the
+curvature at a non-stationary geometry, and relaxing on the same surface
+gives a structure that has an order. Nothing about the *result* moves.
+The registered ``hess_stationarity_gradient`` ruling governs a run's
+validity, and it still holds: a Hessian off a stationary point validates,
+raises its anomaly, and is a legitimate thing to have asked for. What is
+refused is the separate act of the host saying what the structure is, and
+the policy's sentence carries both halves.
+
+The gradient reaches that refusal through one reader-plane function, the
+same one the run sensor reads, so the two cannot drift. Today only PySCF
+declares it: ORCA's and Gaussian's ``forces`` are the gradient at *every*
+optimisation step, and a maximum over them belongs to no single geometry,
+so those readers answer nothing rather than a number read from the wrong
+structure. Where no reader can say, the receipt records ``unmeasured``
+and certification proceeds exactly as it did, which is also what keeps
+every characterisation minted before this verifying unchanged: the three
+new fields enter the digest body only where the host determined them.
+What is not claimed is a refusal that reaches every program -- it reaches
+the program whose reader can bind a gradient to one structure, and the
+others are an absence with a name rather than a silence.
