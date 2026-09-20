@@ -1067,8 +1067,14 @@ class Gaussian16Output(GaussianFileMixin):
         a saddle the final Hessian does not have. ORCA's reader already
         segments by job and takes the last block; this does the same.
 
-        Frequencies and normal modes are both read from this one segment,
-        which is what keeps mode k paired with frequency k.
+        Every per-mode column of the frequency table is read from this one
+        segment, which is what keeps mode k paired with frequency k.  The
+        reduced masses, force constants, IR intensities and mode symmetries
+        read the whole file until this round, each ending in a dead
+        ``continue``/``break`` pair that never fired, so a log with two
+        frequency steps returned twice as many intensities as frequencies
+        with no error -- the same defect the frequency reader was repaired
+        for, three columns wide.
         """
 
         latest: list[str] = []
@@ -1107,15 +1113,11 @@ class Gaussian16Output(GaussianFileMixin):
         corresponding to the vibrational frequency.
         """
         reduced_masses = []
-        for line in self.contents:
+        for line in self._last_frequency_job_contents:
             if line.startswith("Red. masses --"):
                 reduced_masses_string = line.split("--")[1].strip()
                 for mass in reduced_masses_string.split():
                     reduced_masses.append(float(mass))
-            else:
-                continue
-            if "Thermochemistry" in line:
-                break
         return reduced_masses
 
     @cached_property
@@ -1125,15 +1127,11 @@ class Gaussian16Output(GaussianFileMixin):
         corresponding to the vibrational frequency.
         """
         force_constants = []
-        for line in self.contents:
+        for line in self._last_frequency_job_contents:
             if line.startswith("Frc consts  --"):
                 force_constants_string = line.split("--")[1].strip()
                 for force in force_constants_string.split():
                     force_constants.append(float(force))
-            else:
-                continue
-            if "Thermochemistry" in line:
-                break
         return force_constants
 
     @cached_property
@@ -1143,15 +1141,11 @@ class Gaussian16Output(GaussianFileMixin):
         corresponding to the vibrational frequency.
         """
         IR_intensities = []
-        for line in self.contents:
+        for line in self._last_frequency_job_contents:
             if line.startswith("IR Inten    --"):
                 IR_intensities_string = line.split("--")[1].strip()
                 for intensity in IR_intensities_string.split():
                     IR_intensities.append(float(intensity))
-            else:
-                continue
-            if "Thermochemistry" in line:
-                break
         return IR_intensities
 
     @cached_property
@@ -1161,16 +1155,13 @@ class Gaussian16Output(GaussianFileMixin):
         corresponding to the vibrational frequency.
         """
         vibrational_mode_symmetries = []
-        for i, line in enumerate(self.contents):
+        contents = self._last_frequency_job_contents
+        for i, line in enumerate(contents):
             if line.startswith("Frequencies --"):
                 # go back one line to get the symmetries
-                symmetries = self.contents[i - 1].split()
+                symmetries = contents[i - 1].split()
                 for sym in symmetries:
                     vibrational_mode_symmetries.append(sym)
-            else:
-                continue
-            if "Thermochemistry" in line:
-                break
         return vibrational_mode_symmetries
 
     @cached_property
