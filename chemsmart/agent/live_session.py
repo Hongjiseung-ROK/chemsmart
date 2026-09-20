@@ -97,11 +97,7 @@ from chemsmart.agent.identity import (
     ApprovedMolecularInputV1,
     validate_identity_for_geometry,
 )
-from chemsmart.agent.knowledge_packs import (
-    BUILTIN_PROGRAM_PACKS,
-    activate_program_knowledge,
-    skills_for_activation,
-)
+from chemsmart.agent.knowledge_packs import BUILTIN_PROGRAM_PACKS
 from chemsmart.agent.projects import project_document, render_project_yaml
 from chemsmart.agent.provider_config import (
     AgentProviderProfileV1,
@@ -1319,50 +1315,28 @@ def cross_program_skill_ids() -> tuple[str, ...]:
     return tuple(sorted(set.intersection(*advertised)))
 
 
-def activated_skill_documents(
-    task: str,
-) -> tuple[tuple[str, ...], tuple[SkillDocumentV1, ...]]:
-    """Resolve the advisory skills available for a task.
+def advisory_skill_documents() -> tuple[SkillDocumentV1, ...]:
+    """The advisory skills a session may consult.
 
-    Returns the activated pack digests and the resolved documents.
+    Every skill any pack advertises is advertised by all of them, so the
+    intersection ``cross_program_skill_ids`` computes is the whole set and
+    no text could ever change it. The text gate that ran beside it here
+    matched each pack's brand names against the task, discarded the
+    resulting receipt at the call site, and left the skill index exactly
+    as it would have been -- the repair that seeded ``skill_ids`` with
+    the program-neutral set made the gate inert rather than removing it.
 
-    Program-specific advice stays text-gated by each pack's own
-    ``activation_terms``.  Program-neutral skills do not, and that distinction
-    is the whole point: this function's own docstring used to promise that "a
-    cross-program conventions skill is reachable from any request" while
-    delivering the opposite.  Every pack's terms are program brand names, so a
-    task saying "a DFT setup and a cheaper semi-empirical one" -- correct
-    chemistry, naming no product -- matched nothing, the index came back empty,
-    and the prompt then listed no skills at all.  The tool's own description
-    tells the model to consult a skill "listed in the system prompt", so an
-    empty list is an instruction not to consult anything.
-
-    Three recorded observations of a frozen task were read as evidence that the
-    model would not consult; they were measuring this gate.  General chemistry
+    The gate's own history says why nothing replaces it: the packs' terms
+    are product names, so "a DFT setup and a cheaper semi-empirical one"
+    -- correct chemistry, naming no vendor -- matched nothing and the
+    prompt then listed no skills at all, which the tool's description
+    reads as an instruction to consult nothing. General chemistry
     knowledge is not gated behind mentioning a vendor.
     """
 
     if not skills_enabled():
-        return (), ()
-    targets = sorted(
-        {
-            (pack.target_program, pack.target_engine)
-            for pack in BUILTIN_PROGRAM_PACKS
-        }
-    )
-    pack_sha256s: set[str] = set()
-    skill_ids: set[str] = set(cross_program_skill_ids())
-    for program, engine in targets:
-        receipt = activate_program_knowledge(
-            request=task, program=program, engine=engine
-        )
-        # Only genuinely matched packs are recorded as activated; the neutral
-        # skills above are available without claiming any pack fired.
-        pack_sha256s.update(receipt.activated_pack_sha256s)
-        skill_ids.update(skills_for_activation(receipt))
-    return tuple(sorted(pack_sha256s)), resolve_skills(
-        tuple(sorted(skill_ids))
-    )
+        return ()
+    return resolve_skills(cross_program_skill_ids())
 
 
 def _coordinator_base_messages(
@@ -1373,7 +1347,7 @@ def _coordinator_base_messages(
     task: str = "",
     active_guides: tuple[str, ...] = (),
 ) -> list[dict[str, str]]:
-    _, documents = activated_skill_documents(task)
+    documents = advisory_skill_documents()
     goal_record = context.get("goal") if isinstance(context, Mapping) else None
     messages = [
         {
