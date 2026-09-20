@@ -273,6 +273,22 @@ nodes:
     note: "Marking wire deferral from 'not callable yet' made the tools array change on every discovery, invalidating the provider's whole cache -- the thing deferral exists to protect. Callable-now grows; deferred-on-the-wire is fixed when the session starts. Eleven witnesses asserted the marking matched the growing set, so they pinned the defect."
     falsifier: "A session's tools array or cache_control position differs between two turns that discovered something in between."
 
+  - id: result.orca_irc_path_and_endpoints_20260921
+    kind: result
+    source: {path: .agents/charter/orca-scan-irc-modred.md, anchor: "ORCA prints it as the IRC"}
+    note: "ORCA 6.1.1 on CUHK Charles, HCN -> HNC at B3LYP/def2-SVP (jobs 2142375, 2142379, 2142403). Each single-direction PATH SUMMARY opens on the saddle; the direction-both table opens 45.5 kcal/mol below it. The forward branch descends 33.40 kcal/mol to an HNC endpoint, the backward one 45.47 kcal/mol to HCN, and optimising those two endpoints gives two true minima (lowest real modes 549 and 763 cm^-1) 13.66 kcal/mol apart with a 47.77 kcal/mol barrier from HCN. Both branches stopped 0.71 and 2.31 kcal/mol short of their own minima, which is what irc_converged = 0 said."
+    falsifier: "An ORCA IRC branch whose path table's first row is not the structure the log printed, or whose endpoint sidecar does not carry the table's last energy."
+  - id: negative.an_engine_written_sidecar_is_not_a_registered_geometry
+    kind: negative_result
+    source: {path: chemsmart/agent/execution.py, anchor: "what an engine wrote is evidence the"}
+    note: "The ORCA charter topic said an IRC's trajectory sidecar 'enters the typed layer as a registered geometry artifact and is readable there today'. It does not: the workspace XYZ scan bars every node branch root, so no file an engine wrote is ever registered as a coordinate artifact. The path and the endpoint had to be read by the program's own reader instead."
+    falsifier: "A workspace scan registers as a coordinate artifact a geometry file an engine wrote into a node branch."
+  - id: lesson.a_path_string_is_not_a_file_identity
+    kind: lesson
+    source: {path: chemsmart/jobs/orca/writer.py, anchor: "String equality is not file identity."}
+    note: "Three ORCA staging guards skipped a copy when two absolute paths compared equal as strings. /project/xlzhang is a symlink to /lustre/project/xlzhang, so one file had two absolute spellings, shutil.copy2 raised SameFileError, and three IRC branches died in the writer before ORCA was reached (job 2142378). Every existing writer test ran under one spelling of tmp_path."
+    falsifier: "A staging or idempotence guard decides file identity by comparing path strings and still behaves correctly when a parent directory is reached through a symlink."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).
@@ -320,3 +336,6 @@ edges:
   - {from: lesson.an_order_is_a_property_of_a_stationary_point, to: negative.mode_count_certified_a_non_stationary_saddle, rel: supersedes}
   - {from: result.an_irc_endpoint_reached_by_minimising, to: result.irc_path_is_not_everywhere_steepest_descent, rel: depends_on}
   - {from: lesson.a_promise_belongs_to_the_structure_not_the_node, to: negative.a_converged_ts_search_can_be_a_minimum, rel: evidenced_by}
+  - {from: result.orca_irc_path_and_endpoints_20260921, to: negative.an_engine_written_sidecar_is_not_a_registered_geometry, rel: depends_on, note: "the path had to come from the program's own reader because nothing registers what an engine wrote"}
+  - {from: result.orca_irc_path_and_endpoints_20260921, to: lesson.a_path_string_is_not_a_file_identity, rel: depends_on, note: "the three branches ran only after the staging guard stopped comparing path strings"}
+  - {from: leaf.saddle.orca_irc_walks_one_direction, to: result.orca_irc_path_and_endpoints_20260921, rel: evidenced_by, note: "the direction-both table opens on an endpoint, not on the saddle; no arm ran without the sentence, so it stays unvalidated"}

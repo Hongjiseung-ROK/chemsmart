@@ -683,6 +683,13 @@ def test_orca_declares_frontier_coverage_only_where_a_reference_converges():
     assert not (family & set(declared["td"]))
 
 
+@pytest.mark.capability("selector:orca:irc:trajectory_connectivity_changed")
+@pytest.mark.capability("selector:orca:irc:trajectory_end_connectivity")
+@pytest.mark.capability("selector:orca:irc:trajectory_end_positions")
+@pytest.mark.capability("selector:orca:irc:trajectory_energies")
+@pytest.mark.capability("selector:orca:irc:trajectory_frame_count")
+@pytest.mark.capability("selector:orca:irc:trajectory_start_connectivity")
+@pytest.mark.capability("selector:orca:irc:trajectory_start_positions")
 def test_orca_irc_delivers_the_branch_its_own_files_establish():
     """A completed IRC's path and product reach the typed layer.
 
