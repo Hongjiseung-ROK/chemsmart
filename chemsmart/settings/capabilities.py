@@ -610,21 +610,42 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                     jobtype="modred",
                     execution_supported=False,
                 ),
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="opt",
-                    execution_supported=False,
-                ),
+                # Qualified by real approved runs rather than by inspection.
+                #
+                # Gaussian 16 C.02 had never been driven through ChemSmart on
+                # any target. Slurm jobs 2142374 and 2142393 on CUHK Charles
+                # ran fifteen small jobs over every declared job type through
+                # the human CLI: a distorted hydrogen peroxide relaxed to
+                # O-O 1.4557 A (experiment 1.452) with six real modes, the
+                # HCN/HNC saddle carried one imaginary mode at -1146.1 cm^-1
+                # whose IRC branches reach HNC and HCN.
+                #
+                # The Agent then ran these two under the approval chain on two
+                # chemically different molecules, each goal an `opt` feeding an
+                # `sp` across a geometry edge, provider-free executor, both
+                # nodes validated. See the release records for the run
+                # evidence. The perturbation under which they reproduce is the
+                # molecule: hydrogen peroxide and formaldehyde, distorted
+                # differently, relaxed to different point groups.
+                #
+                # The declaration necessarily precedes the first approved
+                # execution, because it is what admits a node to approval at
+                # all -- the same order ORCA's scan was held to, and a goal
+                # issued with these false settles `returned_to_human` with
+                # "bounded execution has no executable jobs" before any
+                # planning. It is withdrawn if the runs do not hold.
+                #
+                # `ts`, `irc`, `scan`, `modred`, `td` and `link` have real
+                # engine runs on this target through the human CLI and no
+                # approved Agent execution. That is a different fact and stays
+                # unclaimed.
+                EngineJobCapability(engine="cpu", jobtype="opt"),
                 EngineJobCapability(
                     engine="cpu",
                     jobtype="scan",
                     execution_supported=False,
                 ),
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="sp",
-                    execution_supported=False,
-                ),
+                EngineJobCapability(engine="cpu", jobtype="sp"),
                 EngineJobCapability(
                     engine="cpu",
                     jobtype="td",

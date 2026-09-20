@@ -68,6 +68,41 @@ def split_gaussian_dispersion_tokens(route_text):
     return " ".join(retained), observed[0]
 
 
+def gaussian_frequency_token(route_text):
+    """Return an explicit ``freq`` request written in a route parameter.
+
+    The route-parameter channel is appended verbatim, so a keyword the
+    project section already emits is written twice -- and Gaussian answers
+    a route naming ``freq`` twice by running no frequency step and
+    terminating normally.  Measured on this exact case (CUHK Slurm
+    2142393): ``# opt freq b3lyp 6-31G* freq=hpmodes`` produced an FOpt
+    archive with no ``Frequencies --`` line anywhere in the log, so a run
+    asked for a Hessian returned none and neither program said so.
+
+    The dispersion channel one function above already reconciles rather
+    than appends; this answers the same question for the frequency
+    keyword, and the caller writes the explicit spelling in place of the
+    bare one.  ``None`` means the parameter names no frequency step, which
+    is the ordinary case.
+    """
+
+    if route_text is None:
+        return None
+    observed = [
+        token
+        for token in str(route_text).split()
+        if token.lower() == "freq" or token.lower().startswith("freq=")
+    ]
+    if not observed:
+        return None
+    if len({token.lower() for token in observed}) != 1:
+        raise ValueError(
+            "Conflicting Gaussian frequency declarations in the route "
+            "parameters: " + ", ".join(observed)
+        )
+    return observed[0]
+
+
 _FUNCTIONAL_SUFFIX_DISPERSION = (
     ("d3zero", "gd3"),
     ("d3bj", "gd3bj"),
@@ -184,13 +219,6 @@ class GaussianRoute:
         Extract the primary job type from the route.
         """
         return self.get_jobtype()
-
-    @jobtype.setter
-    def jobtype(self, value):
-        """
-        Set the job type.
-        """
-        self._jobtype = value
 
     @property
     def freq(self):
@@ -351,8 +379,19 @@ class GaussianRoute:
             and "stable=opt" not in self.route_string
         ):
             jobtype = "opt"
-        elif "opt=modred" in self.route_string:
-            jobtype = "modred"  # would include scan jobs too
+        elif "modred" in self.route_string:
+            # Any optimisation carrying modredundant coordinates, however
+            # the route spells it.  This matched the literal ``opt=modred``
+            # only, so ``opt=(modredundant,maxstep=10)`` -- one of the
+            # legal spellings, and the one an archived real relaxed scan in
+            # this repository uses -- fell past the ``opt`` branch (which
+            # excludes any route naming modred) and out of the chain as
+            # ``sp``: a completed relaxed scan classified as a
+            # fixed-geometry single point.  Whether the coordinates are
+            # frozen or driven is not in the route at all; the output
+            # reader tells those apart from the ModRedundant section
+            # Gaussian echoes.
+            jobtype = "modred"
         elif "output=wfn" in self.route_string:
             jobtype = "nci"
         elif (

@@ -254,3 +254,37 @@ def test_explicit_sp_frequency_reaches_native_route_and_result_validation(
     assert evaluation.validated is True
     assert evaluation.findings == ()
     assert evaluation.observations["gaussian"]["outputs"][0]["jobtype"] == "sp"
+
+
+def test_a_route_parameter_that_names_freq_is_the_frequency_request(tmp_path):
+    """One frequency request per route, however the scientist spelled it.
+
+    The route-parameter channel is appended verbatim, so a project section
+    that already emits ``freq`` produced ``# opt freq ... freq=hpmodes`` --
+    and Gaussian 16 C.02 answered that by running no frequency step and
+    terminating normally (CUHK Slurm 2142393: an FOpt archive with no
+    ``Frequencies --`` line). Nothing failed; the Hessian the run was asked
+    for was simply absent, which is the quietest way to lose one.
+    """
+
+    project_path = tmp_path / "gaussian-freq-project.yaml"
+    project_path.write_text(
+        "gas:\n  functional: b3lyp\n  basis: 6-31G*\n  freq: true\n",
+        encoding="utf-8",
+    )
+    project = GaussianProjectSettings.from_project(str(project_path))
+
+    plain = project.opt_settings()
+    assert _frequency_route_tokens(plain.route_string) == ("freq",)
+
+    refined = project.opt_settings()
+    refined.additional_route_parameters = "freq=hpmodes"
+    route = refined.route_string
+    assert _frequency_route_tokens(route) == ("freq",)
+    assert "freq=hpmodes" in route
+    assert GaussianRoute(route).jobtype == "opt"
+
+    # A parameter that names no frequency step leaves the typed one alone.
+    unrelated = project.opt_settings()
+    unrelated.additional_route_parameters = "pop=hirshfeld"
+    assert _frequency_route_tokens(unrelated.route_string) == ("freq",)

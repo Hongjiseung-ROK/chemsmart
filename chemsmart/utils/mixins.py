@@ -621,12 +621,10 @@ class GaussianFileMixin(FileMixin):
 
             if is_scan:
                 modred = self._get_modred_scan_coords(self.modredundant_group)
-                self.jobtype = "scan"
             else:
                 modred = self._get_modred_frozen_coords(
                     self.modredundant_group
                 )
-                self.jobtype = "modred"
             return modred
 
     @staticmethod
@@ -744,19 +742,6 @@ class GaussianFileMixin(FileMixin):
             str: Job type specification.
         """
         return self.route_object.jobtype
-
-    @jobtype.setter
-    def jobtype(self, value):
-        """
-        Set job type in route object.
-
-        Updates the job type in the route object for dynamic
-        job type modification during parsing.
-
-        Args:
-            value (str): New job type to set.
-        """
-        self.route_object.jobtype = value
 
     @property
     def chk(self):

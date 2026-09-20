@@ -2235,10 +2235,209 @@ def _gaussian_spin_square_after_annihilation(output: Any) -> float:
     return float(value)
 
 
+#: What one Gaussian IRC branch log answers.  ``energies`` is declared here
+#: and nowhere else among the path job types because for an IRC it is the
+#: path's own profile -- one printed energy per accepted point, index for
+#: index with the frames -- rather than an optimiser's trace.  No frequency
+#: table is printed by an IRC step, so nothing vibrational or
+#: thermochemical is declared.
+_GAUSSIAN_IRC_BRANCH_SELECTORS = (
+    "ab_initio",
+    "basis",
+    "charge",
+    "connectivity",
+    "dipole_moment",
+    "dipole_moment_magnitude",
+    "effective_multiplicity",
+    "energies",
+    "energy",
+    "functional",
+    "gap",
+    "homo",
+    "irc_direction",
+    "lumo",
+    "multiplicity",
+    "positions",
+    "reached_positions",
+    "spin_square",
+    "spin_square_after_annihilation",
+    "spin_square_deviation",
+    "spin_square_target",
+    "symbols",
+    "trajectory_connectivity_changed",
+    "trajectory_end_connectivity",
+    "trajectory_end_positions",
+    "trajectory_frame_count",
+    "trajectory_start_connectivity",
+    "trajectory_start_positions",
+    "wavefunction_stability_history",
+    "wavefunction_stability_verdict",
+)
+
+
+def _gaussian_reached_positions(output: Any) -> list[list[float]]:
+    """The structure a Gaussian run's optimiser or path walk stopped on.
+
+    ``positions`` answers with ``molecule``, which is the last parsed
+    orientation whatever produced it -- for a single point that is the
+    geometry the job was handed, and calling it "reached" would hand a
+    recovery route its own seed.  This answers the *role*: a structure
+    exists here only where a stage moved the geometry and the log records
+    that it stopped on the frame it printed.
+
+    Which job types those are is read back from this reader's own
+    ``jobtype_selectors``, which is where the claim is made, rather than
+    from a second list beside it: a probe that calls the accessor without
+    the job-type gate (``available_selectors``) then answers exactly what
+    the declaration promises, and the two cannot drift apart.
+
+    Convergence is deliberately not asked.  "Reached" means the last
+    structure the run printed, which is exactly what ORCA and PySCF mean
+    by it, and the route that consumes it -- the geometry lift the repair
+    menu offers -- exists *for* the run that stopped without converging:
+    refusing there sends a session back to its own seed and throws away
+    every step the optimiser took.  Measured on the archived
+    error-terminated triplet optimisation in this repository, that is 72
+    atoms carried 0.3777 A from where they started, over seven complete
+    frames.  Whether the point is stationary is a different question, and
+    ``converged``, the spectrum and the validity verdict answer it; the
+    producer edge inside an approval keeps its own convergence test,
+    because that one feeds a calculation a human approved.
+
+    What is asked is that a frame exists.  ``molecule`` falls back to the
+    input coordinate block when a log printed no orientation at all, so
+    reading it would hand back the seed under this name -- the precise
+    defect ORCA's accessor records -- and the parser's own frame list is
+    read instead.  Every abnormally terminated structure-moving Gaussian
+    log in this repository parses fewer complete frames than it printed
+    orientations, because the truncation that drops a half-written block
+    happens before this point.
+    """
+
+    jobtype = str(getattr(output, "jobtype", "") or "").strip().lower()
+    declared = reader_for("gaussian").selectors_for_jobtype(jobtype) or ()
+    if "reached_positions" not in declared:
+        raise MissingQuantityError(
+            f"a gaussian {jobtype or 'unknown'} result reaches no structure "
+            "beyond the one it was handed; bind the supplied geometry or "
+            "the producing optimisation's result instead"
+        )
+    frames = list(getattr(output, "all_structures", ()) or ())
+    if not frames:
+        raise MissingQuantityError(
+            "this gaussian result printed no complete structure, so the "
+            "only geometry it carries is the one it was supplied; bind "
+            "that instead"
+        )
+    return [[float(value) for value in row] for row in frames[-1].positions]
+
+
+def _gaussian_population(
+    attribute: str, *, quantity: str
+) -> Callable[[Any], list[float]]:
+    """Read one Gaussian population block into molecular atom order.
+
+    Gaussian labels its population rows by global atom index, which is the
+    scheme ``_per_atom_vector`` resolves against the molecule's own
+    symbols; a row set that names another molecule's atoms is refused
+    rather than reordered.  A run that never asked for the analysis has no
+    block, and the parser answers that with ``None`` for Mulliken and by
+    indexing an empty list for Hirshfeld -- both are an absent quantity
+    here, not a parser failure.
+    """
+
+    def _read(output: Any) -> list[float]:
+        try:
+            labelled = getattr(output, attribute)
+        except IndexError as error:
+            raise MissingQuantityError(
+                f"this gaussian result prints no {quantity} block; the run "
+                "did not request that population analysis"
+            ) from error
+        if labelled is None:
+            raise MissingQuantityError(
+                f"this gaussian result prints no {quantity} block; the run "
+                "did not request that population analysis"
+            )
+        return _per_atom_vector(labelled, _symbols(output), quantity=quantity)
+
+    return _read
+
+
+def _gaussian_ir_intensities(output: Any) -> list[float]:
+    """Per-normal-mode IR absorption intensities, paired with frequencies.
+
+    Both lists come from the same frequency job step, so a disagreement in
+    length can only mean the parser read two different tables; refuse
+    rather than deliver an intensity under another mode's index.
+    """
+
+    intensities = [float(item) for item in output.ir_intensities or ()]
+    if not intensities:
+        raise MissingQuantityError(
+            "this gaussian result records no IR intensities"
+        )
+    frequencies = [
+        float(item) for item in output.vibrational_frequencies or ()
+    ]
+    if len(intensities) != len(frequencies):
+        raise MissingQuantityError(
+            f"this gaussian result reports {len(frequencies)} vibrational "
+            f"frequencies and {len(intensities)} IR intensities, so an "
+            "intensity index would not name the mode its frequency names"
+        )
+    return intensities
+
+
+def _gaussian_scan_profile(output: Any) -> list[Mapping[str, Any]]:
+    """The relaxed-scan surface, or an honest absence."""
+
+    profile = getattr(output, "scan_profile", None)
+    if not profile:
+        raise MissingQuantityError(
+            "this gaussian result establishes no relaxed-scan surface; a "
+            "constrained optimisation drives no coordinate, and a section "
+            "driving several has no single coordinate value per point"
+        )
+    return list(profile)
+
+
 def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
     accessors = _text_output_accessors()
     accessors.update(
         {
+            "reached_positions": _gaussian_reached_positions,
+            # The surface reaches the typed layer as two parallel vectors,
+            # exactly as ORCA's does, so the existing operations compose
+            # against it: the height of a torsional barrier is the spread
+            # of the energies, on either program.
+            "scan_coordinate_values": lambda output: [
+                float(point["coordinate"])
+                for point in _gaussian_scan_profile(output)
+            ],
+            "scan_energies": lambda output: [
+                float(point["energy"])
+                for point in _gaussian_scan_profile(output)
+            ],
+            "scan_point_indices": lambda output: [
+                float(point["index"])
+                for point in _gaussian_scan_profile(output)
+            ],
+            "scan_steps_reached": _scan_steps_reached,
+            "scan_steps_planned": _scan_steps_planned,
+            "ir_intensities": _gaussian_ir_intensities,
+            "mulliken_atomic_charges": _gaussian_population(
+                "mulliken_atomic_charges",
+                quantity="mulliken_atomic_charges",
+            ),
+            "mulliken_atomic_spin_populations": _gaussian_population(
+                "mulliken_spin_densities",
+                quantity="mulliken_atomic_spin_populations",
+            ),
+            "hirshfeld_atomic_charges": _gaussian_population(
+                "hirshfeld_charges",
+                quantity="hirshfeld_atomic_charges",
+            ),
             "absorption_wavelengths": lambda output: [
                 float(item) for item in output.absorptions_in_nm
             ],
@@ -4120,6 +4319,62 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # artifact stay undeclared rather than guessed.
         jobtype_selectors=(
             (
+                # A one-direction IRC branch.  ChemSmart writes a Gaussian
+                # IRC as two native inputs -- forward and reverse -- and the
+                # route of each log says which, so the job type this reader
+                # is asked about is never the bare ``irc``: the branch words
+                # are what a completed Gaussian IRC log answers to.  Unlike
+                # ORCA, whose IRC log prints only where the path started,
+                # Gaussian prints every accepted point, so the trajectory
+                # family is real here and ``reached_positions`` is where the
+                # branch's walk ended.
+                "ircf",
+                _GAUSSIAN_IRC_BRANCH_SELECTORS,
+            ),
+            (
+                "ircr",
+                _GAUSSIAN_IRC_BRANCH_SELECTORS,
+            ),
+            (
+                # A constrained optimisation: the coordinates the
+                # ModRedundant section froze are held and everything else
+                # relaxes, so the run ends on one converged structure, and
+                # the scan family is absent because no coordinate was
+                # driven.
+                "modred",
+                (
+                    "ab_initio",
+                    "basis",
+                    "charge",
+                    "connectivity",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "effective_multiplicity",
+                    "energies",
+                    "energy",
+                    "functional",
+                    "gap",
+                    "gibbs_free_energy",
+                    "hirshfeld_atomic_charges",
+                    "homo",
+                    "ir_intensities",
+                    "lumo",
+                    "mulliken_atomic_charges",
+                    "mulliken_atomic_spin_populations",
+                    "multiplicity",
+                    "positions",
+                    "reached_positions",
+                    "spin_square",
+                    "spin_square_after_annihilation",
+                    "spin_square_deviation",
+                    "spin_square_target",
+                    "symbols",
+                    "vibrational_frequencies",
+                    "wavefunction_stability_history",
+                    "wavefunction_stability_verdict",
+                ),
+            ),
+            (
                 "opt",
                 (
                     "ab_initio",
@@ -4134,10 +4389,22 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "gibbs_free_energy",
+                    "hirshfeld_atomic_charges",
                     "homo",
+                    "ir_intensities",
                     "lumo",
+                    "mulliken_atomic_charges",
+                    "mulliken_atomic_spin_populations",
                     "multiplicity",
                     "positions",
+                    # The structure the optimiser stopped on, as distinct
+                    # from ``positions``, which answers with the last
+                    # parsed orientation whatever produced it.  For a
+                    # Gaussian ``opt freq`` the two agree, because the
+                    # spectrum is taken at the converged geometry; the
+                    # roles are still different questions, and only this
+                    # one is admissible as a structure to carry forward.
+                    "reached_positions",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -4149,7 +4416,85 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 ),
             ),
             (
+                # A relaxed scan is a surface, and the surface is the thing
+                # the job was run to establish.  Gaussian prints no profile
+                # table: it prints the optimiser's trace, 29 energies for a
+                # 13-point surface on the first scan this reader was
+                # validated against, so the profile is the parser's
+                # assembly of the converged points and their own driven
+                # coordinate.  ``energies`` is deliberately absent for the
+                # same reason it is absent from ORCA's scan: it is that
+                # optimiser trace, one natural name away from the surface.
+                # No frequency step runs in a scan, so nothing vibrational
+                # or thermochemical is declared.
+                "scan",
+                (
+                    "ab_initio",
+                    "basis",
+                    "charge",
+                    "connectivity",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "effective_multiplicity",
+                    "energy",
+                    "functional",
+                    "gap",
+                    "homo",
+                    "lumo",
+                    "multiplicity",
+                    "positions",
+                    "scan_coordinate_values",
+                    "scan_energies",
+                    "scan_point_indices",
+                    "scan_steps_planned",
+                    "scan_steps_reached",
+                    "spin_square",
+                    "spin_square_after_annihilation",
+                    "spin_square_deviation",
+                    "spin_square_target",
+                    "symbols",
+                    "wavefunction_stability_history",
+                    "wavefunction_stability_verdict",
+                ),
+            ),
+            (
                 "sp",
+                (
+                    "ab_initio",
+                    "basis",
+                    "charge",
+                    "connectivity",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "effective_multiplicity",
+                    "energies",
+                    "energy",
+                    "functional",
+                    "gap",
+                    "hirshfeld_atomic_charges",
+                    "homo",
+                    "lumo",
+                    "mulliken_atomic_charges",
+                    "mulliken_atomic_spin_populations",
+                    "multiplicity",
+                    "positions",
+                    "spin_square",
+                    "spin_square_after_annihilation",
+                    "spin_square_deviation",
+                    "spin_square_target",
+                    "symbols",
+                    "wavefunction_stability_history",
+                    "wavefunction_stability_verdict",
+                ),
+            ),
+            (
+                # A fixed-geometry response calculation.  Gaussian activates
+                # it with a route keyword and nothing else, so the route
+                # line alone reads as a single point; the excited-state
+                # family therefore lives here rather than on every ``sp``,
+                # where it promised a transition list for a ground-state
+                # energy.
+                "td",
                 (
                     "ab_initio",
                     "absorption_wavelengths",
@@ -4166,6 +4511,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "excited_state_labels",
                     "excited_state_spin_square",
                     "functional",
+                    "hirshfeld_atomic_charges",
+                    "mulliken_atomic_charges",
+                    "mulliken_atomic_spin_populations",
                     "multiplicity",
                     "oscillator_strengths",
                     "positions",
@@ -4192,8 +4540,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energy",
                     "functional",
                     "gibbs_free_energy",
+                    "hirshfeld_atomic_charges",
+                    "ir_intensities",
+                    "mulliken_atomic_charges",
+                    "mulliken_atomic_spin_populations",
                     "multiplicity",
                     "positions",
+                    "reached_positions",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -4204,6 +4557,56 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "wavefunction_stability_verdict",
                 ),
             ),
+        ),
+        # Which molecular state each value belongs to.  The reader declared
+        # none at all until this round, which is not the same as every
+        # value being stateless: it meant no consumer could ask this reader
+        # for a *role*, so every geometry route refused a Gaussian result
+        # outright and the structure a converged optimisation reached could
+        # not be carried into the next calculation through the host.
+        #
+        # For Gaussian the thermochemistry reference and the reached
+        # structure coincide -- an ``opt freq`` takes its spectrum at the
+        # geometry it converged on, and the log's last orientation is that
+        # geometry -- so the same state word is honest for both, and the
+        # ORCA case that forced this distinction (a ``OptTS Freq`` whose
+        # ``positions`` is step 0) does not arise here.  A scan's values
+        # belong to a sampled point, and an IRC branch's to where its walk
+        # ended.
+        selector_structural_states=tuple(
+            sorted(
+                [
+                    ("charge", "as_reached"),
+                    ("connectivity", "as_reached"),
+                    ("dipole_moment", "as_reached"),
+                    ("dipole_moment_magnitude", "as_reached"),
+                    ("energy", "as_reached"),
+                    ("gap", "as_reached"),
+                    ("gibbs_free_energy", "as_reached"),
+                    ("hirshfeld_atomic_charges", "as_reached"),
+                    ("homo", "as_reached"),
+                    ("ir_intensities", "as_reached"),
+                    ("lumo", "as_reached"),
+                    ("mulliken_atomic_charges", "as_reached"),
+                    ("mulliken_atomic_spin_populations", "as_reached"),
+                    ("multiplicity", "as_reached"),
+                    ("positions", "as_reached"),
+                    ("reached_positions", "as_reached"),
+                    ("scan_coordinate_values", "scan_point"),
+                    ("scan_energies", "scan_point"),
+                    ("scan_point_indices", "scan_point"),
+                    ("symbols", "stateless"),
+                    ("trajectory_end_connectivity", "trajectory_endpoint"),
+                    ("trajectory_end_positions", "trajectory_endpoint"),
+                    (
+                        "trajectory_connectivity_changed",
+                        "trajectory_endpoint",
+                    ),
+                    ("trajectory_start_connectivity", "as_supplied"),
+                    ("trajectory_start_positions", "as_supplied"),
+                    ("vibrational_frequencies", "as_reached"),
+                ]
+            )
         ),
         resolve_reference_diagnostics=_gaussian_reference_diagnostics,
     ),

@@ -33,7 +33,18 @@ def test_v1_agent_programs_exclude_human_only_programs_and_gpu_execution():
         if pair[0] == "gpu"
     ]
     assert "nciplot" in PROGRAM_CAPABILITIES
-    assert records["gaussian"].execution_engine_job_pairs == ()
+    # Two Gaussian pairs were qualified by approved runs on two chemically
+    # different molecules; the other six have real engine runs on that
+    # target through the human CLI only, which is a different fact.
+    assert records["gaussian"].execution_engine_job_pairs == (
+        ("cpu", "opt"),
+        ("cpu", "sp"),
+    )
+    assert {
+        pair[1]
+        for pair in records["gaussian"].preview_engine_job_pairs
+        if pair not in records["gaussian"].execution_engine_job_pairs
+    } == {"irc", "link", "modred", "scan", "td", "ts"}
     assert records["orca"].execution_engine_job_pairs == (
         ("cpu", "irc"),
         ("cpu", "opt"),
@@ -72,7 +83,10 @@ def test_gaussian_preview_cannot_be_upgraded_to_agent_execution():
         registry_sha256=registry.registry_sha256,
         live_cli_schema_sha256=schema.schema_sha256,
         fixture_bundle_sha256="1" * 64,
-        covered_jobtypes=("sp",),
+        # `ts` rather than `sp`: the invariant is that a preview-only pair
+        # cannot be approved for execution, so the example has to be a pair
+        # that is still preview-only.
+        covered_jobtypes=("ts",),
         covered_engines=("cpu",),
         compiler_receipt_sha256="2" * 64,
         preview_receipt_sha256="3" * 64,
@@ -91,7 +105,7 @@ def test_gaussian_preview_cannot_be_upgraded_to_agent_execution():
         build_approved_execution_overlay(
             registry=registry,
             preview_overlay=preview,
-            approved_nodes=(("gaussian", "sp", "cpu"),),
+            approved_nodes=(("gaussian", "ts", "cpu"),),
             execution_evidence_sha256="5" * 64,
         )
 

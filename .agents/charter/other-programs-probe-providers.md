@@ -2,7 +2,59 @@
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
-results; this release does not claim Gaussian Agent execution. GPU4PySCF
+results. Gaussian ``opt`` and ``sp`` are release-qualified for Agent
+execution on CPU, each recorded from a sealed live goal on the
+configuration it ran; ``ts``, ``irc``, ``scan``, ``modred``, ``td`` and
+``link`` have real engine runs on that target through the human CLI and no
+approved Agent execution, which is a different fact and stays unclaimed.
+
+What a completed Gaussian result answers is decided by the job the log says
+produced it, and its route line alone cannot say: ``opt=modredundant`` is
+written both for a relaxed scan and for a constrained optimisation, and a
+response calculation on a fixed geometry carries no other keyword. The
+reader is therefore asked the question the log can answer -- the
+ModRedundant section Gaussian echoes, whose scan rows end ``S <steps>
+<size>`` -- and declares ``opt``, ``ts``, ``sp``, ``td``, ``modred``,
+``scan`` and the two IRC branch words. Never a bare ``irc``: ChemSmart
+writes a Gaussian IRC as two one-direction inputs, so no log answers to it
+and no IRC producer edge is admitted, which is the mirror of ORCA's reason
+rather than the same one. Never ``link`` either, because a link job's
+route resolves to its linked target and the result reads as that job. A
+relaxed scan's surface is assembled by the parser from the points the log
+marks converged and each point's own driven coordinate, because Gaussian
+prints the optimiser's trace and no profile table: 29 energies for a
+13-point surface on the first scan this was read against. The structure an
+optimisation, a saddle search, a constrained optimisation or an IRC branch
+reached is declared as that role and carried by the geometry lift; a
+single point reaches nothing beyond what it was handed and a scan ends on a
+sampled point, and both refuse. Mulliken and Hirshfeld populations and IR
+intensities are declared where Gaussian prints them.
+
+Gaussian 16 C.02 has been driven through ChemSmart on a Slurm target
+(CUHK Charles, jobs 2142374 and 2142393): fifteen small jobs covering
+every declared job type, including a saddle search reaching the HCN/HNC
+1,2-hydrogen shift at -1146.1 cm^-1 whose two IRC branches change
+connectivity in one direction and not the other. Those are runs through
+the human CLI, and they are what the two qualified pairs stand beside
+rather than what qualified them: the Agent executed ``opt`` and ``sp``
+under the approval chain on hydrogen peroxide and on formaldehyde (jobs
+2142407 and 2142428), each goal relaxing a deliberately distorted
+geometry and then taking a single point on the structure the optimisation
+reached, and each settling ``achieved`` under the host completion gate.
+Both optimisations reproduce the same calculation run through the human
+CLI to every printed digit.
+
+One boundary of the Gaussian route channel is worth stating because the
+program does not state it. A route parameter is appended verbatim, so a
+token the project section already carries is written twice, and Gaussian
+answers a route naming ``freq`` twice by running no frequency step and
+terminating normally. The result is a converged optimisation with no
+spectrum rather than a failure: the host reports the absence, the
+stationary-point rule has nothing to classify, and no wrong number is
+delivered -- but the Hessian the run was asked for is gone without a word
+from either program.
+
+GPU4PySCF
 ``sp/opt/hess`` is a PySCF-engine configuration and preview surface, not a
 release-qualified Agent execution path. ORCA ``neb`` may be planned and previewed, but requires
 target-specific qualification before it is described as completed execution.
