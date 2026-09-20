@@ -3288,15 +3288,14 @@ class CommandCompiledToolHostV1:
         limit = int(values.get("limit") or DEFAULT_SEARCH_LIMIT)
         catalogue = self.exposure.catalogue
         exposed = set(self.exposure.available_names())
-        # One ranking, split two ways. A result is an offer to load, so
-        # offering what is already loaded spends a slot on nothing -- the
-        # first probe had the search tool's own description, which lists
-        # the topics worth searching for, ranking first for "Boltzmann
-        # populations over conformers". But an entry the query matched
-        # and that is already in context is an answer, not an absence, so
-        # it is named beside the results rather than dropped: only where
-        # it outranks the weakest offer, or the list fills with every
-        # core tool on every query.
+        # One ranking, split two ways. A result is a load, so returning
+        # something already loaded spends a slot on nothing -- the first
+        # probe had the search tool's own description, which lists the
+        # topics worth searching for, ranking first for "Boltzmann
+        # populations over conformers". An entry the query matched that
+        # is already in context is still an answer rather than an
+        # absence, so it is named beside the results, but only where it
+        # outranks the weakest new one.
         ranked = catalogue.search(query, limit=MAX_SEARCH_LIMIT)
         results = tuple(item for item in ranked if item.name not in exposed)[
             :limit
@@ -3307,6 +3306,16 @@ class CommandCompiledToolHostV1:
             for item in ranked
             if item.name in exposed and item.score >= floor
         )[:limit]
+        # A search *loads* what it returns. It did not, for one live
+        # session, and that session issued twenty-five searches -- four
+        # of them for the literal string `declare_requested_observable`,
+        # a name it already had from an earlier result -- because a
+        # result that is only a name gives a model nothing it can act
+        # on. It is also what the reference backend does: its
+        # `tool_reference` blocks are expanded into the request by the
+        # API, so finding and loading are one turn there. They are one
+        # turn here.
+        self._search_ordinal = getattr(self, "_search_ordinal", 0) + 1
         self.event_store.append(
             turn_id=turn_id,
             kind=EventKind.CAPABILITY_SEARCHED.value,
@@ -3319,22 +3328,30 @@ class CommandCompiledToolHostV1:
                 "catalogue_sha256": catalogue.catalogue_sha256,
                 "exposure_sha256": self.exposure.exposure_sha256,
             },
+            # The ordinal is the point: one session is one turn_id, so a
+            # query repeated inside it used to collide with its own
+            # earlier record and the event store refused the write --
+            # which surfaced to the model as the search tool *failing*.
+            # Asking the same question twice is not an error.
             idempotency_key=(
-                "capability-search:"
-                + turn_id
-                + ":"
-                + canonical_sha256({"q": query, "n": limit})
+                f"capability-search:{turn_id}:{self._search_ordinal}"
             ),
         )
+        if results:
+            self._rebuild_exposure(
+                turn_id,
+                self.exposure.with_loaded(result.name for result in results),
+                signal="search",
+            )
         return {
             "matches": [result.record() for result in results],
             "already_available": list(already),
             "how_to_use": (
-                "Call any matching act by its exact name: the host loads "
-                "its schema and asks you to issue the call again. A "
-                "reference entry's text is its description -- once loaded "
-                "you have already read it, and calling it returns the same "
-                "text."
+                "Every match above is in your tools now and callable by "
+                "name; a reference entry's text is its description, so a "
+                "match of that kind you have already read. Searching "
+                "again for a name you can already see costs a turn and "
+                "loads nothing new."
             ),
         }
 

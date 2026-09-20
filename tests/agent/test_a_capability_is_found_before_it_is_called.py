@@ -145,7 +145,6 @@ def test_a_session_searches_loads_and_then_calls(tmp_path):
             ]
         ),
         _assistant([("about_operations_geometry", {})]),
-        _assistant([("about_operations_geometry", {})]),
         _assistant([], text="Measured with the geometry operations."),
     )
 
@@ -156,10 +155,39 @@ def test_a_session_searches_loads_and_then_calls(tmp_path):
     # classify, expand or rewrite it anywhere on this path.
     assert "centre of mass" in searched.payload["query"]
 
+    # The search loaded what it returned, so the entry is callable on
+    # the very next turn and no second discovery act was needed. A live
+    # session on the version that returned bare names issued twenty-five
+    # searches, four of them for one exact name it already had.
     loaded = _events(store, EventKind.CAPABILITY_LOADED)
-    assert [event.payload["signal"] for event in loaded] == ["model_named_it"]
-    assert loaded[0].payload["loaded"] == ["about_operations_geometry"]
+    assert [event.payload["signal"] for event in loaded] == ["search"]
+    assert "about_operations_geometry" in loaded[0].payload["loaded"]
     assert host.exposure.is_available("about_operations_geometry")
+
+
+def test_one_query_asked_twice_is_not_an_error(tmp_path):
+    """A session repeats itself; that is not a failure.
+
+    One session is one turn id, so the search event's idempotency key
+    collided with its own earlier record and the event store refused the
+    write -- which reached the model as the search *tool* failing.
+    """
+
+    host, _ = _live_host(tmp_path)
+    first = host.dispatch(
+        turn_id="protocol-session.turn-1",
+        tool_name=SEARCH_TOOL_NAME,
+        arguments={"query": "centre of mass"},
+    )
+    second = host.dispatch(
+        turn_id="protocol-session.turn-1",
+        tool_name=SEARCH_TOOL_NAME,
+        arguments={"query": "centre of mass"},
+    )
+    assert first["status"] == "ok" and second["status"] == "ok"
+    # And the second says what the first already loaded, so a repeat
+    # reads as an answer rather than as an absence.
+    assert second["result"]["already_available"]
 
 
 def test_an_undiscovered_name_is_loaded_and_the_call_is_asked_again(

@@ -1004,12 +1004,16 @@ def _search_tool_definition() -> dict[str, Any]:
                 "rotational constants, vibrational modes, excited states, "
                 "transition states and reaction paths, relaxed scans, "
                 "workspace databases, answering a run that failed, or "
-                "program-specific practice. Results name entries: an act "
-                "you can then call, or reference text you can then read. "
+                "program-specific practice. What comes back is loaded: "
+                "an act becomes callable by name in your next turn, and "
+                "a reference entry's text is its description, so you "
+                "have already read it. Searching again for a name you "
+                "can already see costs a turn and loads nothing. "
                 "Ranking is over names, descriptions, argument names and "
                 "argument descriptions, so naming the quantity or the "
-                "argument you need works better than naming a tool. A "
-                "search never approves, executes or validates anything."
+                "argument you need works better than guessing a tool "
+                "name. A search never approves, executes or validates "
+                "anything."
             ),
             "parameters": {
                 "type": "object",
@@ -1029,8 +1033,10 @@ def _search_tool_definition() -> dict[str, Any]:
                         "minimum": 1,
                         "maximum": MAX_SEARCH_LIMIT,
                         "description": (
-                            "How many entries to return; "
-                            f"{DEFAULT_SEARCH_LIMIT} by default."
+                            "How many entries to return and load; "
+                            f"{DEFAULT_SEARCH_LIMIT} by default. Raise "
+                            "it when you are surveying what exists, "
+                            "lower it when you know what you want."
                         ),
                     },
                 },
