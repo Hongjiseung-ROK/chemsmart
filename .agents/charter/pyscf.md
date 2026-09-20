@@ -512,3 +512,77 @@ true`` (the archived ``water_opt`` fixture: six final SCF cycles where a
 restart takes one). The driver now builds the scanner it walks and restarts
 from its last density, and the flag says whether it did; archived artifacts
 keep the record they were written with.
+
+Result contract v9 adds ``ts``: a saddle search on PySCF's own surface, so
+an ``irc`` no longer needs a saddle another program located. It is the
+IRC's own route rather than an exposed optimiser option --
+geomeTRIC's partitioned rational-function step, driven with PySCF's engine
+directly the way ``_run_irc`` drives the Gonzalez-Schlegel integrator, given
+PySCF's analytic Hessian of the job's own surface at the seed as
+``hess_data``. That Hessian is what tells P-RFO which mode to climb and what
+keeps geomeTRIC from spending 6N gradients on a numerical one; taking it
+costs nothing extra and buys the fact a chemist needs about a search that
+has not run yet, which is what the seed was. The seed's spectrum and the
+gradient there ride the artifact, so a search that started at a minimum, at
+a saddle of another surface, or far from stationary is visible as that
+rather than inferred from where it ended. ``START_POINT_PROMISES`` declares
+nothing for a ``ts``: a guess is allowed to be anything, and the one
+imaginary mode an ``irc`` start must have is a different promise.
+
+The stage takes no Hessian where it arrives, exactly as an ``opt`` does not.
+Convergence is a statement about the gradient and the step, never about the
+order, and a ``hess`` node on the reached geometry is what settles which
+stationary point it is -- which is also why a number delivered from a ``ts``
+node is worded uncharacterised until that Hessian joins it, through the
+organ ``opt`` already goes through (``GEOMETRY_SEARCH_JOBTYPES``).
+geomeTRIC's own updated curvature at the end was recorded for one revision
+and removed: on the H2CO/HCOH saddle this driver located to 0.0001 A of
+ORCA's, a genuine first-order saddle, that unprojected internal-coordinate
+Hessian had four negative eigenvalues, and a number nothing can read
+correctly is worse than no number. v9 adds no applied-spec field, so its
+digest vocabulary is v8's and every archived v8 digest stays
+reconstructible; the version moves because an artifact whose ``stages``
+names a stage an older reader has never heard of is a different contract.
+The reader declares ``ts`` with the SCF set of the structure the climb
+reached plus the seed's spectrum, served under the name an IRC's start
+spectrum answers to -- one question, one selector, filed in two homes. The
+trajectory vocabulary is deliberately absent: the frames of a search are an
+optimiser's route to a structure and not a path on the surface. The whole
+capability cost the stem tool schema four bytes.
+
+The direct CLI evidence (CUHK Slurm 2141124, four minutes) climbed two
+surfaces from seeds made by displacing archived ORCA saddles. H2CO /
+trans-HCOH at HF/6-31G*: from a seed 0.24 A away and carrying **two**
+imaginary modes at max|g| = 0.177 Eh/Bohr, eight iterations and nine
+gradients reach ORCA's own OptTS saddle with every interatomic distance
+agreeing to 1e-4 A -- no shared optimiser, no shared initial Hessian. The
+Hessian there has one imaginary mode at -2700.0 cm-1, the frequency the
+archived IRC fixtures start from, at max|g| = 3.1e-5; both branches walked
+from it start at that geometry to 1e-6 A and reach trans-HCOH and
+formaldehyde, the two minima the branches from ORCA's saddle reach. HCN /
+HNC at B3LYP(G)/def2-SVP agrees with ORCA's saddle to 3e-4 A and gives
+-1123.2 cm-1 against the -1123.0 the IRC round recorded on ORCA's. A search
+cut at two steps keeps its seed spectrum, its three frames and max|g| =
+0.129 where it stopped, and fails. And a search seeded at a *minimum* of its
+own surface converges in one iteration, moves 0.007 amu^1/2 bohr and
+delivers the minimum under a ``validated`` receipt: the case the stage must
+not hide, readable only from the artifact's own account.
+
+An earlier submission of that same batch (2141121) produced ten artifacts
+and no receipt at all: the deployed controller's Python 3.11 refuses a
+dataclass default that the authoring tree's 3.12 accepts, and every
+invocation died importing ``chemsmart.agent.terminal_states`` after its
+engine had finished. The engines were fine; the whole host layer was lost.
+A probe that imports every module under the compute interpreter now runs
+beside the suite.
+
+Two defects the new fixtures found. Whether a Hessian's raw
+mixed-derivative mismatch is graded against the analytic limit or kept as
+quadrature evidence was read from the *caller's* settings, so the runner
+called the archived ``hcn_hnc_ts_hess`` admissible and the host evaluator,
+called with the settings it verifies, refused the same bytes: one Hessian,
+two verdicts. It is read from ``spec/xc`` now, which is a fact the artifact
+states about itself. And the unit guard demanded every declared home of a
+selector be present, which a selector with two homes cannot satisfy; a
+selector is absent when none of its homes is, and a home that is present
+keeps its unit audited.
