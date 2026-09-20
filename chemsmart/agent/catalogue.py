@@ -228,6 +228,12 @@ _BM25_B = 0.75
 #: there is refused here rather than silently behaving differently.
 MAX_QUERY_CHARACTERS = 500
 DEFAULT_SEARCH_LIMIT = 5
+#: Deliberately unlike the reference backend, which admits a limit up to
+#: 10,000. There, a large limit returns references the API expands
+#: server-side; here a search *loads* what it returns into the request
+#: the host builds, so an unbounded limit is a way to ask for the whole
+#: catalogue in one call and undo the thing the catalogue is for. The
+#: divergence is a product decision, not an omission.
 MAX_SEARCH_LIMIT = 25
 
 

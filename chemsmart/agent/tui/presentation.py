@@ -33,20 +33,21 @@ def _visible_tools() -> frozenset[str]:
     a retired name never lingers here and a new tool never goes missing.
     Cached because building a surface loads the registry."""
 
+    from chemsmart.agent.catalogue import build_tool_catalogue
     from chemsmart.agent.tool_specs import (
         MERGED_PLANNING_TOOLS,
         build_approved_execution_tool_surface,
-        build_command_compiled_tool_surface,
     )
 
-    names = {
+    # The catalogue is the name source for the planning side, so a
+    # reviewer sees the evidence block of anything a session could have
+    # discovered -- including a reference entry it read -- and never
+    # of a name the product has retired.
+    names = {entry.name for entry in build_tool_catalogue().entries}
+    names.update(
         item["function"]["name"]
-        for surface in (
-            build_command_compiled_tool_surface(),
-            build_approved_execution_tool_surface(),
-        )
-        for item in surface.tool_definitions
-    }
+        for item in build_approved_execution_tool_surface().tool_definitions
+    )
     # Streams recorded before the merge name the tools they called.
     names.update(
         legacy for group in MERGED_PLANNING_TOOLS.values() for legacy in group

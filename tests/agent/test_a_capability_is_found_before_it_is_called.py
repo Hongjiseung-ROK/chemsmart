@@ -322,3 +322,49 @@ def test_the_exposure_record_moves_when_a_definition_arrives(tmp_path):
 
     assert sorted(wire_before) == sorted(wire_after)
     assert native.exposure_sha256 != loaded.exposure_sha256
+
+
+def test_an_archived_guide_stream_still_reduces(tmp_path):
+    """A stream recorded before the catalogue existed still replays.
+
+    ``GUIDE_ACTIVATED`` stays a registered event kind and the reducer
+    still handles it: the guide tree is gone from the product, not from
+    the record of the sessions that ran under it.
+    """
+
+    from chemsmart.agent.runtime.reducer import replay_events
+
+    store = RuntimeEventStore(
+        tmp_path / "archived.jsonl", session_id="archived"
+    )
+    store.append(
+        turn_id="archived.turn-1",
+        kind=EventKind.GUIDE_ACTIVATED.value,
+        payload={
+            "guide_id": "structure",
+            "signal": "model",
+            "tools": ["break_symmetry"],
+            "operations": [],
+            "tool_schema_sha256": "a" * 64,
+        },
+        idempotency_key="guide:archived.turn-1:structure:model",
+    )
+    assert replay_events(store.read_events()).active_guides == ["structure"]
+
+
+def test_a_human_reviewer_sees_every_catalogue_entry():
+    """A reviewer's evidence blocks are filtered by a derived name set.
+
+    It reads the catalogue now, so nothing a session could discover --
+    including a reference entry it read -- is invisible to the human who
+    decides, and a retired name cannot linger in a hand-kept list.
+    """
+
+    from chemsmart.agent.tui.presentation import _visible_tools
+
+    visible = _visible_tools()
+    assert not [
+        entry.name
+        for entry in build_tool_catalogue().entries
+        if entry.name not in visible
+    ]
