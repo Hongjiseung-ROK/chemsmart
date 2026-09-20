@@ -124,10 +124,16 @@ block a supplied log contains is not something this reader can yet establish.
 ORCA ``irc`` is qualified for approved Agent execution on a qualified target: a transition-state search fed two IRC
 runs, each consuming the converged transition state's own geometry and analytic Hessian as role-distinct producer
 bindings inside one approved workflow, and the chain executed, validated, and delivered host-rendered claims. The IRC
-log prints only the starting structure, so only job-level facts (charge, multiplicity, direction, solvation route, atom
-identity) are declared for the jobtype and selector declarations gate extraction; the reaction path lives in the
-trajectory artifact, which enters the typed layer as a registered geometry artifact — endpoint connectivity is read from
-that artifact by the scientist, not rendered as a host claim. ORCA ``neb`` and ``modred`` remain planning and preview
+log body prints only the starting structure, so ``energy``, ``positions`` and the orbital, dipole and spin families are
+deliberately not declared for the jobtype and selector declarations gate extraction. The reaction path is read from the
+two places ORCA does write it: the IRC path summary the log prints, and the branch endpoint ORCA writes to its own
+``_IRC_F.xyz`` or ``_IRC_B.xyz`` sidecar. A completed branch therefore resolves ``trajectory_energies`` (first value the
+saddle, last the point reached), ``trajectory_frame_count``, the positions and connectivity of both ends, and
+``trajectory_connectivity_changed``; the endpoint is in the ``as_reached`` structural state, so
+``bind_reached_geometry`` carries it into a later calculation with the sidecar's digest sealed on the receipt. Plan one
+direction per ``irc`` node: a ``direction both`` run leaves two branch endpoints and the geometry selectors refuse it.
+Which minima a saddle connects remains an observation the scientist makes from the branches, not a host-rendered claim.
+ORCA ``neb`` and ``modred`` remain planning and preview
 paths until the selected target is qualified. Gaussian Agent execution is not claimed in this release; Gaussian support
 covers project YAML, generated native input, safe preview, and typed analysis of user-supplied completed outputs.
 GPU4PySCF remains a configuration and preview path until a compatible GPU target is qualified.
