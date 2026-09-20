@@ -28,6 +28,7 @@ pytestmark = pytest.mark.capability(
     "rule:leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names",
     "rule:leaf.pyscf.correlated_methods_are_ab_initio_values",
     "rule:leaf.pyscf.a_converged_reference_can_be_a_saddle",
+    "rule:leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface",
     "rule:project.stage_keys_and_phases",
 )
 
@@ -68,6 +69,19 @@ def test_a_stated_boundary_is_where_the_host_draws_it(rule_id, boundary):
         f"{boundary.verdict}, and the host {observed} it {reason}; the "
         "sentence is stale -- change the words, not the boundary"
     )
+
+
+def test_every_rule_that_declares_boundaries_is_marked_as_witnessed_here():
+    """The cases above are generated from the registry and the capability
+    markers at the top of this file are written by hand. A rule that gained
+    boundaries and no marker was exercised here and still stood at
+    ``advertised`` on the ladder (the IRC leaf, 2026-09-20): two tables."""
+
+    marked = {str(item) for item in pytestmark.args}
+    declared = {
+        f"rule:{rule.rule_id}" for rule in POLICY_RULES if rule.boundaries
+    }
+    assert sorted(declared - marked) == []
 
 
 def test_the_sentences_that_state_pyscf_limits_carry_their_boundaries():
