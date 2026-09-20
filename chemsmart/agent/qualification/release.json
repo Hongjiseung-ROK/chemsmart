@@ -212,16 +212,16 @@
       "kind": "selector",
       "id": "pyscf:sp:solvation_electrostatic_energy",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings) + r8/pyscf/goals/read2/workspace goals/r8p-read2/runs/cycle-1 (CUHK Slurm 2142398, settled achieved)",
+      "run": "r8/pyscf/goals/read2/workspace goals/r8p-read2/runs/cycle-1 (CUHK Slurm 2142398, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings) + r8/pyscf/goals/solvation/workspace goals/r8p-solvation/runs/cycle-1 (CUHK Slurm 2142406, settled achieved_with_observations: the Agent planned and ran the two single points itself, and its approved analysis chain extracted the terms from what they wrote)",
       "commit": "9ba68836",
       "date": "2026-09-21",
-      "source": "Result contract v10: the terms PySCF itself puts into the total it reports, read off its own scf_summary after the final SCF and never recomputed. Water at B3LYP(G)/def2-SVP: SMD polarises by -10.122 kcal/mol with a CDS term of +1.447; C-PCM at the same geometry and level by -6.491 with no CDS term at all; D3(BJ) contributes -0.360 and the corrected total lies below the uncorrected one by exactly that; an optimisation inside the continuum deepens the polarisation to -10.174 at the geometry it reached. PySCF's own recomputation from each applied spec reproduces every stored term to 3e-16 Eh, and to 1.4e-7 Eh on the optimisation, an SCF re-convergence difference. A gas-phase run and a PCM-family run asked for the CDS term report the quantity absent with the reason. The names, units and meanings are ORCA's, so a solvation term is comparable across the two programs. A live goal given those two completed runs and asked what the continuum contributed read the terms with the model and the solvent beside them, derived E(SMD) - E(gas) = -7.318 kcal/mol through the host's arithmetic, claimed that number beside the program's own -10.122 and +1.447 and their sum -8.675, and settled achieved with the residual +1.36 kcal/mol of electronic reorganisation written into its own recorded decision. An earlier goal (2142392) planned the same terms as required observables from ordinary language and lost its execution decision to provider-transport timeouts."
+      "source": "Result contract v10: the terms PySCF itself puts into the total it reports, read off its own scf_summary after the final SCF and never recomputed. Water at B3LYP(G)/def2-SVP: SMD polarises by -10.122 kcal/mol with a CDS term of +1.447; C-PCM at the same geometry and level by -6.491 with no CDS term at all; D3(BJ) contributes -0.360 and the corrected total lies below the uncorrected one by exactly that; an optimisation inside the continuum deepens the polarisation to -10.174 at the geometry it reached. PySCF's own recomputation from each applied spec reproduces every stored term to 3e-16 Eh, and to 1.4e-7 Eh on the optimisation, an SCF re-convergence difference. A gas-phase run and a PCM-family run asked for the CDS term report the quantity absent with the reason. The names, units and meanings are ORCA's, so a solvation term is comparable across the two programs. A live goal given those two completed runs and asked what the continuum contributed read the terms with the model and the solvent beside them, derived E(SMD) - E(gas) = -7.318 kcal/mol through the host's arithmetic, claimed that number beside the program's own -10.122 and +1.447 and their sum -8.675, and settled achieved with the residual +1.36 kcal/mol of electronic reorganisation written into its own recorded decision. An earlier goal (2142392) planned the same terms as required observables from ordinary language and lost its execution decision to provider-transport timeouts. Re-issued after the master repaired the execution-wave act's reachability, the same goal planned two PySCF single points from ordinary language, ran them under the approval chain (both receipts validated, no findings) and let its approved analysis chain read the terms out of what they wrote: formaldehyde in SMD water at B3LYP/def2-SVP, -6.625 kcal/mol of continuum electrostatics and +4.104 of cavitation, their sum -2.522, against a total-energy difference of -1.026."
     },
     {
       "kind": "selector",
       "id": "pyscf:sp:solvation_nonelectrostatic_energy",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings) + r8/pyscf/goals/read2/workspace goals/r8p-read2/runs/cycle-1 (CUHK Slurm 2142398, settled achieved)",
+      "run": "r8/pyscf/goals/read2/workspace goals/r8p-read2/runs/cycle-1 (CUHK Slurm 2142398, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings) + r8/pyscf/goals/solvation/workspace goals/r8p-solvation/runs/cycle-1 (CUHK Slurm 2142406, settled achieved_with_observations: the Agent planned and ran the two single points itself, and its approved analysis chain extracted the terms from what they wrote)",
       "commit": "9ba68836",
       "date": "2026-09-21"
     },
@@ -229,7 +229,7 @@
       "kind": "selector",
       "id": "pyscf:sp:dispersion_energy",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
+      "run": "r8/pyscf/goals/read3/workspace goals/r8p-read3/runs/cycle-1 (CUHK Slurm 2142427, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
       "commit": "9ba68836",
       "date": "2026-09-21"
     },
@@ -237,7 +237,7 @@
       "kind": "selector",
       "id": "pyscf:sp:solvation_model",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings) + r8/pyscf/goals/read2/workspace goals/r8p-read2/runs/cycle-1 (CUHK Slurm 2142398, settled achieved)",
+      "run": "r8/pyscf/goals/read2/workspace goals/r8p-read2/runs/cycle-1 (CUHK Slurm 2142398, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings) + r8/pyscf/goals/solvation/workspace goals/r8p-solvation/runs/cycle-1 (CUHK Slurm 2142406, settled achieved_with_observations: the Agent planned and ran the two single points itself, and its approved analysis chain extracted the terms from what they wrote)",
       "commit": "9ba68836",
       "date": "2026-09-21"
     },
@@ -245,7 +245,7 @@
       "kind": "selector",
       "id": "pyscf:sp:solvent",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings) + r8/pyscf/goals/read2/workspace goals/r8p-read2/runs/cycle-1 (CUHK Slurm 2142398, settled achieved)",
+      "run": "r8/pyscf/goals/read2/workspace goals/r8p-read2/runs/cycle-1 (CUHK Slurm 2142398, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings) + r8/pyscf/goals/solvation/workspace goals/r8p-solvation/runs/cycle-1 (CUHK Slurm 2142406, settled achieved_with_observations: the Agent planned and ran the two single points itself, and its approved analysis chain extracted the terms from what they wrote)",
       "commit": "9ba68836",
       "date": "2026-09-21"
     },
@@ -253,7 +253,7 @@
       "kind": "selector",
       "id": "pyscf:opt:solvation_electrostatic_energy",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
+      "run": "r8/pyscf/goals/read3/workspace goals/r8p-read3/runs/cycle-1 (CUHK Slurm 2142427, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
       "commit": "9ba68836",
       "date": "2026-09-21"
     },
@@ -261,7 +261,7 @@
       "kind": "selector",
       "id": "pyscf:opt:solvation_nonelectrostatic_energy",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
+      "run": "r8/pyscf/goals/read3/workspace goals/r8p-read3/runs/cycle-1 (CUHK Slurm 2142427, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
       "commit": "9ba68836",
       "date": "2026-09-21"
     },
@@ -269,7 +269,7 @@
       "kind": "selector",
       "id": "pyscf:opt:solvation_model",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
+      "run": "r8/pyscf/goals/read3/workspace goals/r8p-read3/runs/cycle-1 (CUHK Slurm 2142427, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
       "commit": "9ba68836",
       "date": "2026-09-21"
     },
@@ -277,7 +277,7 @@
       "kind": "selector",
       "id": "pyscf:opt:solvent",
       "status": "recorded",
-      "run": "r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
+      "run": "r8/pyscf/goals/read3/workspace goals/r8p-read3/runs/cycle-1 (CUHK Slurm 2142427, settled achieved: the Agent read these quantities from the completed runs) + r8/pyscf/fixtures (direct human CLI through `chemsmart run`, CUHK Slurm 2142387; five runs, every receipt validated with no findings)",
       "commit": "9ba68836",
       "date": "2026-09-21"
     }

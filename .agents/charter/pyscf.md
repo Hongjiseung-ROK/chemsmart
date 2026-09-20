@@ -783,3 +783,25 @@ not there. What is not claimed: ``fmo_gap`` in the shared mixin still
 carries the SOMO pairing for the log-parsing readers, so Gaussian and xTB
 answer ``gap`` on an open shell by a construction ORCA and PySCF no longer
 use; that is one shared function and it is not this program's to move.
+
+The formaldehyde goal ran when the act that runs a workflow could be
+reached. Its first issue settled ``execution_wave_decision_pending``, and
+the transport timeouts were not the cause: ``select_execution_wave`` was
+in no session's callable set at all. Re-issued unchanged on the repaired
+tree (CUHK 2142406), the same task found it by searching in the words a
+chemist uses -- "execute approved workflow run calculations wave approval
+review readiness" returned that act and ``continue_execution_reasoning``
+as its first two results -- selected a wave of two ready nodes, and ran
+them under the approval chain: two PySCF single points on formaldehyde at
+B3LYP/def2-SVP, gas phase and SMD water, both receipts ``validated`` with
+no findings. The approved analysis chain then executed provider-free and
+read the terms out of what those runs wrote, with ``solvent: water`` and
+``solvent_model: smd`` in the extraction's level record beside them and
+neither on the gas-phase node's: -6.625 kcal/mol of continuum
+electrostatics, +4.104 of cavitation, their sum -2.522, against a
+total-energy difference between the two runs of -1.026. It settled
+``achieved_with_observations``, the observations being two
+``geometry.same_structure_comparison_not_made`` -- the basin sensor's
+three-heavy-atom floor on a four-atom molecule, as in the earlier
+campaigns. This is the decomposition arriving from a calculation the
+Agent planned and ran, rather than from one prepared for it.
