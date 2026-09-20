@@ -273,6 +273,24 @@ nodes:
     note: "Marking wire deferral from 'not callable yet' made the tools array change on every discovery, invalidating the provider's whole cache -- the thing deferral exists to protect. Callable-now grows; deferred-on-the-wire is fixed when the session starts. Eleven witnesses asserted the marking matched the growing set, so they pinned the defect."
     falsifier: "A session's tools array or cache_control position differs between two turns that discovered something in between."
 
+  - id: result.pyscf_decomposition_cli_20260921
+    kind: result
+    source: {path: ".agents/charter/pyscf.md", anchor: "Result contract v10 records what a total energy is made of."}
+    note: "PySCF computes the continuum's polarisation energy and SMD's CDS term, adds both into e_tot and keeps them in scf_summary; the driver dropped them, so every solvated PySCF energy in this corpus was an opaque total. Five runs through the ordinary CLI (CUHK 2142387, water at B3LYP(G)/def2-SVP, every receipt validated): SMD polarises by -10.122 kcal/mol with a CDS term of +1.447, C-PCM at the same geometry and the same level by -6.491 with no CDS term at all, and D3(BJ) contributes -0.360 with the corrected total below the uncorrected one by exactly that. PySCF's own recomputation from each applied spec reproduces every stored term to 3e-16 Eh, and to 1.4e-7 Eh on the optimisation, which is an SCF re-convergence difference. The names and units are the ones the ORCA reader already served, so the two programs' solvation terms are comparable rather than merely both present."
+    falsifier: "A solvated PySCF result under contract v10 reads, through the selector plane, the same as a gas-phase one; or a stored term differs from PySCF's own scf_summary at the artifact's geometry by more than an SCF re-convergence."
+
+  - id: negative.a_predicate_read_as_a_value_validates_nothing
+    kind: negative_result
+    source: {path: ".agents/charter/pyscf.md", anchor: "One defect the round's own probe found is repaired where it was made."}
+    note: "_validate_correlated_results -- 'the components are finite and sum to the total the artifact states' -- reported nothing on any artifact since it was written. _finite_number is a predicate and was read as a value: every entry of a results mapping read back from HDF5 is a NumPy array, so each component answered False, the sum compared False + False with False and agreed, and a missing component was never reported because a bool is never None. Removing a whole component from a real CCSD(T) artifact produced no finding. The class is mechanically detectable: a name that answers a value question with a bool."
+    falsifier: "A validator reports no finding when a quantity it names is removed from the artifact it is given."
+
+  - id: lesson.an_absence_names_which_absence_it_is
+    kind: lesson
+    source: {path: ".agents/charter/pyscf.md", anchor: "the three absences are different facts that each name themselves"}
+    note: "Three different facts reached a session as one sentence, 'dataset absent': a run that attached no continuum, a PCM-family model that has no cavitation term by construction, and an artifact written before the contract that records either. The unit audit answers whether a dataset is there and stored as we read it; it cannot answer why this selector is not, and it ran first, so the accessor's own reason never left the reader. The repair is general -- when the audit finds nothing the accessor is asked what the absence means, and the generic sentence stands wherever it has nothing to add."
+    falsifier: "A session that meets a refused quantity cannot tell from the refusal alone whether to change the settings, change the model, or read a newer artifact."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).
@@ -320,3 +338,5 @@ edges:
   - {from: lesson.an_order_is_a_property_of_a_stationary_point, to: negative.mode_count_certified_a_non_stationary_saddle, rel: supersedes}
   - {from: result.an_irc_endpoint_reached_by_minimising, to: result.irc_path_is_not_everywhere_steepest_descent, rel: depends_on}
   - {from: lesson.a_promise_belongs_to_the_structure_not_the_node, to: negative.a_converged_ts_search_can_be_a_minimum, rel: evidenced_by}
+  - {from: result.pyscf_decomposition_cli_20260921, to: lesson.an_absence_names_which_absence_it_is, rel: evidenced_by, note: "the four fixtures are the four absences and the two presences; each refusal names which one it met"}
+  - {from: negative.a_predicate_read_as_a_value_validates_nothing, to: lesson.a_summary_nothing_rederives_is_not_evidence, rel: depends_on, note: "the same class one layer down: there a summary nothing re-derived, here a re-derivation that compared booleans"}
