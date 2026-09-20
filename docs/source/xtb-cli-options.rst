@@ -185,3 +185,21 @@ about the model.
 
 A gas-phase result answers ``gas_phase`` for the model and reports every other term absent with that reason. A result
 whose setup block reports no solvation while its energy summary prints solvation terms is refused rather than served.
+
+What a frequency result carries
+===============================
+
+A completed ``hess`` result reports its vibrational frequencies, its IR intensities, per-mode atom participation and
+mode
+degeneracy groups. The printed normal coordinates are also attached to the structure the result describes, which is what
+lets a later step reuse them: reading the mode, stepping the structure along it and relaxing again is how a calculation
+that settled on a saddle is moved off one.
+
+xTB prints its normal coordinates in a separate ``g98.out`` sidecar, while the structure of the same result may come
+from
+``xtbopt.log``, ``xtbopt.xyz`` or the supplied geometry. A normal mode is a set of Cartesian displacement vectors
+defined
+in the frame its own table was printed in, so ChemSmart attaches the modes only when that frame and the structure agree
+atom for atom. Where they do not, the structure is reported without modes and the operations that consume them refuse,
+rather than displacing a structure along vectors belonging to another orientation. A single atom is reported with no
+modes, because it has none.

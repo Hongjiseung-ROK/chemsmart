@@ -333,6 +333,42 @@
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:vibrational_frequencies",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
+      "commit": "f7e39390",
+      "date": "2026-09-21",
+      "source": "The chain is what exercises these: planar NH3 optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian gives one imaginary mode at -971.31 cm-1, and the structures reached by stepping 0.30 A along it in each direction give six real modes -- 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, the C3v degenerate pairs where C3v puts them -- and energies equal to every printed digit, as two mirror images must be. The inversion barrier the opt and hess energies carry is +6.110 kcal/mol. Read on a real saddle and a real minimum, so the imaginary and the all-real case are both covered."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
+      "commit": "f7e39390",
+      "date": "2026-09-21",
+      "source": "The chain is what exercises these: planar NH3 optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian gives one imaginary mode at -971.31 cm-1, and the structures reached by stepping 0.30 A along it in each direction give six real modes -- 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, the C3v degenerate pairs where C3v puts them -- and energies equal to every printed digit, as two mirror images must be. The inversion barrier the opt and hess energies carry is +6.110 kcal/mol. Read on a real saddle and a real minimum, so the imaginary and the all-real case are both covered."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:gibbs_free_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
+      "commit": "f7e39390",
+      "date": "2026-09-21",
+      "source": "The chain is what exercises these: planar NH3 optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian gives one imaginary mode at -971.31 cm-1, and the structures reached by stepping 0.30 A along it in each direction give six real modes -- 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, the C3v degenerate pairs where C3v puts them -- and energies equal to every printed digit, as two mirror images must be. The inversion barrier the opt and hess energies carry is +6.110 kcal/mol. Read on a real saddle and a real minimum, so the imaginary and the all-real case are both covered."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:opt:energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
+      "commit": "f7e39390",
+      "date": "2026-09-21",
+      "source": "The chain is what exercises these: planar NH3 optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian gives one imaginary mode at -971.31 cm-1, and the structures reached by stepping 0.30 A along it in each direction give six real modes -- 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, the C3v degenerate pairs where C3v puts them -- and energies equal to every printed digit, as two mirror images must be. The inversion barrier the opt and hess energies carry is +6.110 kcal/mol. Read on a real saddle and a real minimum, so the imaginary and the all-real case are both covered."
     }
   ]
 }

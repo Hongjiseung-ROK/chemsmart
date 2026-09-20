@@ -292,6 +292,25 @@ nodes:
     commit: "7f3f2c85"
     note: "A GFN-FF/ALPB(water) single point (CUHK 2142381) reports its model, its solvent, Gsasa, Ghb and Gshift, and prints no Gelec at all -- a force field has no self-consistent-charge electrostatics to name. Its Gsolv (-0.024626451737 Eh) is therefore NOT the sum of the parts it prints (-0.017924440181 Eh); 0.0067 Eh of it is undecomposed. Read back on the repaired tree (2142395) the electrostatic term is reported typed-absent with that reason, the other four are served, and the closure identity abstains because it is only checked when all five are present. Checking it unconditionally would have refused a correct result."
     falsifier: "A GFN-FF solvated xTB result prints a Gelec line, or its Gsolv equals the sum of the terms it does print."
+  - id: commit.f7e39390
+    kind: commit
+    commit: "f7e39390"
+    note: xTB - the printed normal modes attached to the structure they describe, with the frame check the split between g98.out and the geometry files makes necessary.
+  - id: lesson.a_helper_written_and_never_called_is_a_dead_route
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "the mechanism is right where it is computed and unconnected where it is consumed"}
+    note: "XTBG98File._attach_vib_metadata existed in full and was called from nowhere, while the ORCA and Gaussian readers each call their own from all_structures. Every selector reading modes off the OUTPUT worked, so nothing looked broken; the program-neutral displace_along_vibrational_mode reads output.molecule.vibrational_modes and refused every xTB result with 'this result prints no normal modes' -- on an archived Hessian carrying a -3253.79 cm-1 mode. The route out of a saddle that the repair menu and the terminal-state rules both name was dead for one program, and the thing that would have connected it had already been written."
+    falsifier: "A program's reader exposes a quantity on the output and on its molecule by two paths that a single consumer can tell apart."
+  - id: result.xtb_saddle_escape_20260921
+    kind: result
+    commit: "f7e39390"
+    note: "The chain run end to end on CUHK (Slurm 2142401, read back 2142402), GFN2-xTB, five engine calls. Exactly planar D3h ammonia optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian carries one imaginary mode at -971.31 cm-1 with the three hydrogens leading -- the umbrella coordinate. Stepping 0.30 A along it in each direction and relaxing gives two structures equal in energy to every printed digit, as two mirror images must be, whose own Hessian has no imaginary mode: 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, with the C3v degenerate pairs where C3v puts them. Inversion barrier +6.110 kcal/mol. A live Agent goal then walked the same route itself (2142404): it read the saddle, displaced in both directions through the host and selected the wave that relaxes them."
+    falsifier: "A displacement along a saddle's imaginary mode relaxes to a structure that still carries one, or the two directions along one umbrella mode reach minima of different energy."
+  - id: negative.two_organs_hand_a_reader_two_types_for_one_path
+    kind: negative_result
+    commit: "001dab68"
+    note: "displace_trusted_geometry_along_mode passes a Path and build_stationary_point_characterisation passes str(artifact.path). Every reader but xTB's only wraps the value in its own parser and so tolerates both; the xTB reader navigates to the calculation directory and met the str at .parent, so a live session asking what its stationary point was got AttributeError: 'str' object has no attribute 'parent', untyped, twice in one session (2142404). Normalised in the reader because that is where the navigation is; the disagreement between the two organs is not xTB's and is left for the layer that owns both."
+    falsifier: "Both organs hand every reader the same type, or a reader that navigates the path is given one it cannot navigate and still answers."
   - id: negative.an_xtb_hessian_matrix_has_no_consumer
     kind: negative_result
     commit: "855dc848"
@@ -350,3 +369,6 @@ edges:
   - {from: result.xtb_solvation_terms_20260921, to: negative.every_archived_xtb_run_has_solvation_off, rel: evidenced_by, note: "the archived toluene runs proved the sentence false; these live water and methane runs are what the declaration was then qualified on"}
   - {from: commit.88a6051d, to: negative.an_xtb_hessian_matrix_has_no_consumer, rel: explains, note: "the round that declared the solvation surface looked at the Hessian matrix and recorded why it stays unreachable instead of adding a selector for it"}
   - {from: result.xtb_gfnff_solvation_is_undecomposed, to: result.xtb_solvation_terms_20260921, rel: depends_on, note: "the same run set; this is the one member whose decomposition is incomplete, and it is what says the closure check must be conditional"}
+  - {from: commit.f7e39390, to: result.xtb_saddle_escape_20260921, rel: depends_on}
+  - {from: commit.f7e39390, to: lesson.a_helper_written_and_never_called_is_a_dead_route, rel: evidenced_by}
+  - {from: lesson.a_helper_written_and_never_called_is_a_dead_route, to: negative.two_organs_hand_a_reader_two_types_for_one_path, rel: depends_on, note: "both found by the same live goal walking the same route: one stopped the step, the other stopped the characterisation of what was stepped off"}
