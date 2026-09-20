@@ -20,8 +20,8 @@ import pytest
 
 from chemsmart.analysis.result_quantities import (
     SUPPORTED_PYSCF_SELECTORS,
-    supported_selectors,
     QuantitySelectorV1,
+    supported_selectors,
 )
 from chemsmart.analysis.result_readers import (
     _SELECTOR_DIMENSIONS,
