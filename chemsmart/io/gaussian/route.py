@@ -351,8 +351,19 @@ class GaussianRoute:
             and "stable=opt" not in self.route_string
         ):
             jobtype = "opt"
-        elif "opt=modred" in self.route_string:
-            jobtype = "modred"  # would include scan jobs too
+        elif "modred" in self.route_string:
+            # Any optimisation carrying modredundant coordinates, however
+            # the route spells it.  This matched the literal ``opt=modred``
+            # only, so ``opt=(modredundant,maxstep=10)`` -- one of the
+            # legal spellings, and the one an archived real relaxed scan in
+            # this repository uses -- fell past the ``opt`` branch (which
+            # excludes any route naming modred) and out of the chain as
+            # ``sp``: a completed relaxed scan classified as a
+            # fixed-geometry single point.  Whether the coordinates are
+            # frozen or driven is not in the route at all; the output
+            # reader tells those apart from the ModRedundant section
+            # Gaussian echoes.
+            jobtype = "modred"
         elif "output=wfn" in self.route_string:
             jobtype = "nci"
         elif (

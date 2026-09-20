@@ -94,6 +94,74 @@ class Gaussian16Output(GaussianFileMixin):
         return False
 
     @property
+    def jobtype(self):
+        """What this completed log is a result *of*, read from the log.
+
+        The route line alone cannot say.  ``opt=modredundant`` is written
+        for both a relaxed scan and a constrained optimisation, and the
+        route-derived word is ``modred`` for both; a fixed-geometry
+        excited-state calculation has no keyword but ``td(...)`` and reads
+        as ``sp``.  Gaussian echoes the ModRedundant section it actually
+        read, so the log distinguishes them, and this reads that section.
+
+        The distinction was already computed and then discarded.
+        ``GaussianFileMixin._get_modredundant_conditions`` assigns
+        ``self.jobtype = "scan"`` while parsing ``.modred``, and that
+        assignment reaches ``GaussianRoute.jobtype``'s setter, which
+        stores ``_jobtype`` -- a field its own getter never reads.  So the
+        classification was inert: on a real 13-point H2O2 torsion scan the
+        parser still answered ``modred`` after ``.modred`` had been read,
+        and the analysis plane, which declares nothing for ``modred``,
+        found a completed relaxed scan unreadable in every selector.  The
+        setter is kept so that assignment still reaches the route object
+        exactly as before.
+        """
+
+        route_jobtype = self.route_object.jobtype
+        if route_jobtype == "modred" and self._modredundant_is_scan:
+            return "scan"
+        if route_jobtype == "sp" and self._route_has_excited_state_block:
+            return "td"
+        return route_jobtype
+
+    @jobtype.setter
+    def jobtype(self, value):
+        """Keep the historical assignment path onto the route object."""
+
+        self.route_object.jobtype = value
+
+    @cached_property
+    def _modredundant_is_scan(self):
+        """Whether the echoed ModRedundant section drives a scan step.
+
+        Read from the block Gaussian prints back rather than from the
+        route, and by position: a scan row ends with ``S <steps> <size>``,
+        while a frozen row ends with ``F``.  Matching the bare letter ``S``
+        anywhere in the row -- which the settings parser does -- also
+        matches the ``S`` of a written element symbol, so the test is
+        anchored on the row's own trailing tokens.
+        """
+
+        group = self.modredundant_group
+        if not group:
+            return False
+        for line in group:
+            tokens = str(line).split()
+            for index, token in enumerate(tokens):
+                if token.upper() != "S":
+                    continue
+                if len(tokens) - index >= 3:
+                    return True
+        return False
+
+    @cached_property
+    def _route_has_excited_state_block(self):
+        """Whether the route asks for a response (TD/CIS) calculation."""
+
+        route = self.route_string or ""
+        return bool(re.search(r"(?<![a-z0-9_])(td|cis)(?![a-z0-9_])", route))
+
+    @property
     def heavy_elements(self):
         """List of element symbols that use an explicitly defined basis set
         in the gen/genecp section.
@@ -905,6 +973,128 @@ class Gaussian16Output(GaussianFileMixin):
                 self.intermediate_steps.index(i) for i in self.optimized_steps
             ]
         return None
+
+    #: Which internal-coordinate arithmetic a driven scan row asks for,
+    #: keyed by how many atoms the row names.  Gaussian's own letter (B, A,
+    #: D, ...) is kept beside it as the run wrote it, but the atom count is
+    #: what decides the formula, so that is what selects it.
+    _SCAN_COORDINATE_ARITIES = {2: "distance", 3: "angle", 4: "dihedral"}
+
+    @cached_property
+    def scan_coordinate(self):
+        """The one internal coordinate a relaxed scan drove, or ``None``.
+
+        Read from the ModRedundant section Gaussian echoes, whose scan rows
+        end ``S <steps> <step size>``.  ``points`` is the number of points
+        on the surface -- the starting geometry plus one per step -- so that
+        it means for Gaussian what the same name means for a program that
+        states a point count directly.
+
+        A section driving more than one coordinate at once has no single
+        coordinate value per point, so this answers ``None`` rather than
+        silently reporting one of them.
+        """
+
+        group = self.modredundant_group
+        if not group:
+            return None
+        rows = []
+        for line in group:
+            tokens = str(line).split()
+            for index, token in enumerate(tokens[1:], start=1):
+                if token.upper() != "S" or len(tokens) - index < 3:
+                    continue
+                atoms = tokens[1:index]
+                if not atoms or not all(item.isdigit() for item in atoms):
+                    continue
+                rows.append(
+                    {
+                        "letter": tokens[0].upper(),
+                        "atoms": tuple(int(item) for item in atoms),
+                        "points": int(tokens[index + 1]) + 1,
+                        "step_size": float(tokens[index + 2]),
+                    }
+                )
+                break
+        if len(rows) != 1:
+            return None
+        row = rows[0]
+        kind = self._SCAN_COORDINATE_ARITIES.get(len(row["atoms"]))
+        if kind is None:
+            return None
+        row["kind"] = kind
+        return row
+
+    @cached_property
+    def scan_step_count(self):
+        """How many scan points this run actually started, or ``None``."""
+
+        steps = self.intermediate_steps
+        if not steps:
+            return None
+        return max(step[-1] for step in steps)
+
+    @cached_property
+    def scan_point_records(self):
+        """One record per converged scan point, in the order run."""
+
+        steps = self.optimized_steps
+        if not steps:
+            return None
+        return [{"index": step[-1]} for step in steps]
+
+    @cached_property
+    def scan_profile(self):
+        """The surface a relaxed scan established: coordinate and energy.
+
+        Gaussian prints no profile table of its own -- it prints the
+        optimiser's own trace, whose energies span far more than the
+        surface does -- so the profile is assembled here from the
+        structures the log itself marks as converged scan points and each
+        one's own driven-coordinate value, using the geometry arithmetic
+        the rest of the host already shares.  Building it anywhere else
+        would mean a consumer re-deriving which of 29 printed energies are
+        the 13 points of the surface.
+        """
+
+        coordinate = self.scan_coordinate
+        records = self.scan_point_records
+        if coordinate is None or records is None:
+            return None
+        structures = self.all_structures
+        if len(records) != len(structures):
+            raise ValueError(
+                f"this scan log marks {len(records)} converged scan points "
+                f"but parses {len(structures)} structures, so a point index "
+                "would not name the geometry its energy belongs to"
+            )
+        atoms = coordinate["atoms"]
+        if any(index < 1 or index > len(structures[0]) for index in atoms):
+            raise ValueError(
+                f"the driven scan coordinate names atoms {atoms} outside "
+                f"this molecule's {len(structures[0])} atoms"
+            )
+        readers = {
+            "distance": lambda molecule: molecule.get_distance(*atoms),
+            "angle": lambda molecule: molecule.get_angle(*atoms),
+            "dihedral": lambda molecule: molecule.get_dihedral(*atoms),
+        }
+        read_coordinate = readers[coordinate["kind"]]
+        profile = []
+        for record, molecule in zip(records, structures, strict=False):
+            energy = getattr(molecule, "energy", None)
+            if energy is None:
+                raise ValueError(
+                    f"scan point {record['index']} carries no energy"
+                )
+            profile.append(
+                {
+                    "index": record["index"],
+                    "coordinate": float(read_coordinate(molecule)),
+                    "energy": float(energy),
+                }
+            )
+        return profile
 
     #########################
     @property

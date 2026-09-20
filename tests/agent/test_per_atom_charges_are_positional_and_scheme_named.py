@@ -158,12 +158,19 @@ def test_each_program_declares_only_the_schemes_its_output_carries():
     are the same partition of different densities.  xTB's population comes
     from a minimal tight-binding density and is not Mulliken at all, which is
     why no xTB accessor answers to this name.
+
+    Gaussian prints Mulliken without being asked and Hirshfeld through the
+    same kind of print directive ORCA's route channel carries; it prints no
+    Loewdin partition at all, so that name stays absent rather than being
+    served by the nearest available scheme.  This row read ``set()`` while
+    the parser had carried both blocks for years -- it recorded that no
+    accessor existed, not that the program computes nothing.
     """
 
     expected = {
         "orca": set(_SCHEMES),
         "pyscf": {"mulliken_atomic_charges"},
-        "gaussian": set(),
+        "gaussian": {"mulliken_atomic_charges", "hirshfeld_atomic_charges"},
         "xtb": {_XTB_SCC},
         "xyz": set(),
     }
@@ -176,12 +183,14 @@ def test_each_program_declares_only_the_schemes_its_output_carries():
     # Parsed and deliberately undeclared: reaching Hirshfeld or CM5 needs a
     # print directive through the project route hatch, and the scheme's own
     # accessor is a separate question from whether that channel may carry it.
-    orca = RESULT_READERS["orca"]
-    for withheld in (
-        "hirshfeld_cm5_charges",
-        "loewdin_spin_densities",
-    ):
-        assert withheld not in orca.accessors
+    # CM5 is a charge-dependent reparametrisation of the Hirshfeld partition
+    # and a third scheme by any measure, so it stays out of both readers.
+    for program in ("orca", "gaussian"):
+        for withheld in (
+            "hirshfeld_cm5_charges",
+            "loewdin_spin_densities",
+        ):
+            assert withheld not in RESULT_READERS[program].accessors
 
 
 def test_the_two_schemes_disagree_and_that_is_why_the_name_carries_one():
