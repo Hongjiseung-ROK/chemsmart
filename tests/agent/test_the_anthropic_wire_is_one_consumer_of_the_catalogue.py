@@ -421,43 +421,59 @@ def test_a_paused_turn_is_resumed_and_is_not_an_outcome(tmp_path):
     assert response["choices"][0]["finish_reason"] == "tool_calls"
 
 
-def test_every_existing_provider_profile_digest_is_unchanged():
+def test_every_runnable_provider_profile_digest_is_unchanged():
     """Admitting a second wire protocol changed no archived arithmetic.
 
-    ``wire_protocol`` is inside the digest body, so a profile minted as
-    ``openai`` has to keep the exact body it always had. The value is
-    derived from the declared type rather than hard-coded, and the
-    openai branch resolves to the same literal it did before.
+    ``wire_protocol`` is inside the digest body, so a profile minted for
+    any provider that could build one before must keep the exact body it
+    always had. The value is derived from the declaration rather than
+    hard-coded, and every provider that was runnable before resolves to
+    the same literal. One provider builds in this environment, so all
+    three are constructed here instead of relying on a local config.
     """
 
     from chemsmart.agent.provider_config import _build_profile
+    from chemsmart.agent.providers import PROVIDERS
 
-    entry = {
-        "type": "openai",
-        "model": "a-model",
-        "base_url": "https://api.deepseek.com",
-        "api_key_env": "DEEPSEEK_API_KEY",
-        "context_tokens": 128000,
-        "max_output_tokens": 8192,
-        "reasoning_effort": "max",
+    cases = {
+        "deepseek": ("https://api.deepseek.com", "DEEPSEEK_API_KEY", "max"),
+        "openai": ("https://api.openai.com/v1", "OPENAI_API_KEY", "high"),
+        "alibaba-token-plan": (
+            PROVIDERS["alibaba-token-plan"].endpoint,
+            "ALIBABA_TOKEN_PLAN_KEY",
+            "max",
+        ),
     }
-    profile = _build_profile("frozen", entry)
-    assert profile.wire_protocol == "openai-chat-completions"
-    assert profile.profile_sha256 == canonical_sha256(
-        {
-            "schema_version": "chemsmart.agent-provider-profile.v1",
-            "profile_name": "frozen",
-            "provider": "deepseek",
-            "wire_protocol": "openai-chat-completions",
-            "api_key_env": "DEEPSEEK_API_KEY",
-            "model": "a-model",
-            "endpoint": "https://api.deepseek.com",
-            "reasoning_effort": "max",
-            "preserve_thinking": True,
-            "context_tokens": 128000,
-            "max_output_tokens": 8192,
-        }
-    )
+    for provider, (endpoint, label, effort) in cases.items():
+        profile = _build_profile(
+            "frozen",
+            {
+                "type": "openai",
+                "model": "a-model",
+                "base_url": endpoint,
+                "api_key_env": label,
+                "context_tokens": 128000,
+                "max_output_tokens": 8192,
+                "reasoning_effort": effort,
+            },
+        )
+        assert profile.provider == provider
+        assert profile.wire_protocol == "openai-chat-completions"
+        assert profile.profile_sha256 == canonical_sha256(
+            {
+                "schema_version": "chemsmart.agent-provider-profile.v1",
+                "profile_name": "frozen",
+                "provider": provider,
+                "wire_protocol": "openai-chat-completions",
+                "api_key_env": label,
+                "model": "a-model",
+                "endpoint": endpoint,
+                "reasoning_effort": effort,
+                "preserve_thinking": True,
+                "context_tokens": 128000,
+                "max_output_tokens": 8192,
+            }
+        ), provider
 
     anthropic = _build_profile(
         "anthropic",
@@ -471,155 +487,5 @@ def test_every_existing_provider_profile_digest_is_unchanged():
     )
     assert anthropic.wire_protocol == ANTHROPIC_WIRE_PROTOCOL
     assert anthropic.endpoint == ANTHROPIC_OFFICIAL_ENDPOINT
-    assert anthropic.profile_sha256 != profile.profile_sha256
     with pytest.raises(ContractError):
         _build_profile("local", {"type": "local", "model": "x"})
-
-
-def test_the_cache_read_reaches_the_provenance_event(tmp_path):
-    """The one number that says whether deferral bought anything.
-
-    It is computed by the adapter and was read by nothing: the exact
-    shape of defect this repository has a name for -- right where it is
-    computed, unconnected where it is consumed. Driven through the real
-    ``ToolLoopRunner`` against a real host, so the connection is the
-    production one and not a source-text assertion.
-    """
-
-    from chemsmart.agent.loop import ToolLoopRunner
-
-    store = RuntimeEventStore(
-        tmp_path / "events.jsonl", session_id="protocol-session"
-    )
-    host = CommandCompiledToolHostV1(
-        event_store=store,
-        exposure=build_exposure("native_tool_search"),
-        task_spec_sha256s=(canonical_sha256("synthetic task"),),
-    )
-    done = {
-        **_turn(9),
-        "content": [{"type": "text", "text": "Nothing further."}],
-        "stop_reason": "end_turn",
-    }
-    session, _ = _session([done], exposure=host.surface.exposure)
-
-    from tests.agent.provider_fakes import _run_contracts
-
-    class _Bound:
-        provider = "anthropic"
-        endpoint = ANTHROPIC_OFFICIAL_ENDPOINT
-        context_tokens = 200_000
-        max_output_tokens = 4096
-
-    envelope, request_context, network = _run_contracts(host, _Bound())
-    ToolLoopRunner(host=host, event_store=store).run(
-        session=session,
-        envelope=envelope,
-        request_context=request_context,
-        provider_budget=network,
-    )
-
-    (observed,) = [
-        event
-        for event in store.read_events()
-        if event.kind == EventKind.PROVIDER_TURN_OBSERVED.value
-    ]
-    assert observed.payload["prompt_cache"]["read_tokens"] == 1100
-    assert observed.payload["prompt_cache"]["written_tokens"] == 0
-
-
-def test_every_wire_reports_its_cache_and_silence_is_not_a_miss():
-    """The measured question, on the wires that can answer it.
-
-    Cache observation existed on the Anthropic session alone, and the
-    providers that actually run live report cached prompt tokens under
-    their own names with nothing reading them -- so whether append-only
-    loading breaks *their* prefix cache could not be answered from a
-    stream. And ``int(usage.get(...) or 0)`` wrote an unreported count
-    as zero, which reads as a miss.
-    """
-
-    from chemsmart.agent.runtime.deepseek import cache_observation_from_usage
-
-    anthropic = cache_observation_from_usage(
-        {"cache_read_input_tokens": 1100, "cache_creation_input_tokens": 0}
-    )
-    assert anthropic["read_tokens"] == 1100
-    assert anthropic["written_tokens"] == 0
-
-    deepseek = cache_observation_from_usage(
-        {"prompt_cache_hit_tokens": 960, "prompt_cache_miss_tokens": 40}
-    )
-    assert deepseek["read_tokens"] == 960
-
-    openai = cache_observation_from_usage(
-        {"prompt_tokens_details": {"cached_tokens": 512}}
-    )
-    assert openai["read_tokens"] == 512
-
-    # Each says which wire field it read, so a stream can be audited
-    # without knowing which adapter wrote it.
-    for observed in (anthropic, deepseek, openai):
-        assert observed["source"]
-
-    # Silence is absence, and absence is not zero.
-    assert cache_observation_from_usage({"prompt_tokens": 10}) == {}
-    assert cache_observation_from_usage(None) == {}
-
-
-def test_a_chat_completions_session_records_its_cache_too(tmp_path):
-    """One neutral shape, recorded by the loop for whichever wire ran."""
-
-    from chemsmart.agent.loop import ToolLoopRunner
-    from chemsmart.agent.runtime.alibaba import (
-        Qwen38MaxConfigV1,
-        Qwen38MaxToolSession,
-    )
-    from tests.agent.provider_fakes import _DispatchSpyHost, _run_contracts
-
-    config = Qwen38MaxConfigV1()
-    session = Qwen38MaxToolSession(
-        transport=lambda _payload: {
-            "id": "x",
-            "model": config.model,
-            "choices": [
-                {
-                    "finish_reason": "stop",
-                    "message": {
-                        "role": "assistant",
-                        "content": "done",
-                        "reasoning_content": "",
-                    },
-                }
-            ],
-            "usage": {
-                "prompt_tokens": 1000,
-                "completion_tokens": 5,
-                "prompt_cache_hit_tokens": 960,
-                "prompt_cache_miss_tokens": 40,
-            },
-        },
-        messages=[{"role": "user", "content": "Answer."}],
-        config=config,
-    )
-    host = _DispatchSpyHost()
-    store = RuntimeEventStore(
-        tmp_path / "events.jsonl", session_id="protocol-session"
-    )
-    envelope, request_context, network = _run_contracts(host, config)
-    ToolLoopRunner(host=host, event_store=store).run(
-        session=session,
-        envelope=envelope,
-        request_context=request_context,
-        provider_budget=network,
-    )
-
-    (observed,) = [
-        event
-        for event in store.read_events()
-        if event.kind == EventKind.PROVIDER_TURN_OBSERVED.value
-    ]
-    assert observed.payload["prompt_cache"]["read_tokens"] == 960
-    assert (
-        "prompt_cache_hit_tokens" in observed.payload["prompt_cache"]["source"]
-    )

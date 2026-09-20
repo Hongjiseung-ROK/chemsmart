@@ -255,6 +255,24 @@ nodes:
     note: "Ten tools total 68,579 B against the aggregate's 27,920, because six analysis constructors repeat ~5.1 KB of shared inputs/outputs/dependencies prose; a session needing every kind loads more than before. On one identical request across both legs, turns rose 9 -> 11 and searches 5 -> 12 while end-of-session schema fell 159 -> 134 KB."
     falsifier: "Moving the shared field guidance into the analysis family reference removes the repetition without losing an earned sentence, or a matched-request comparison shows no turn cost."
 
+  - id: result.what_a_session_sees_is_mostly_on_its_own_task
+    kind: result
+    source: {path: MAINTENANCE.md, anchor: "Need was 100% on every session of both legs"}
+    note: "Measured by .agents/research/loop/context.py over ten recorded sessions: every capability a session called was in view before the call, and the share of loaded entries on a family the session's own acts touched rose from 0.44-0.71 (first leg) to 0.76-0.92 (second). The remainder is references matching one word of a query."
+    falsifier: "A session calls a capability that entered view only after the call, or the on-family share falls below the first leg's range on matched requests."
+
+  - id: negative.a_loaded_reference_cannot_be_told_from_a_read_one
+    kind: negative_result
+    source: {path: MAINTENANCE.md, anchor: "A reference entry's body *is* its description"}
+    note: "Loading is the only event a reference has, so relevance is exact for acts (which are called) and an upper bound for knowledge. Nothing in this round changes that, and redesigning references to emit a read event would put a turn between a model and text it already has."
+    falsifier: "A measure distinguishes a reference the model used from one that merely arrived, without costing a turn or a second copy of the text."
+
+  - id: lesson.a_rendering_instruction_is_not_a_permission_gate
+    kind: lesson
+    source: {path: ".agents/charter/architecture.md", anchor: "byte-identical every turn"}
+    note: "Marking wire deferral from 'not callable yet' made the tools array change on every discovery, invalidating the provider's whole cache -- the thing deferral exists to protect. Callable-now grows; deferred-on-the-wire is fixed when the session starts. Eleven witnesses asserted the marking matched the growing set, so they pinned the defect."
+    falsifier: "A session's tools array or cache_control position differs between two turns that discovered something in between."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).

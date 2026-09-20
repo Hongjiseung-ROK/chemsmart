@@ -2378,6 +2378,30 @@ MERGED_PLANNING_TOOLS: dict[str, tuple[str, ...]] = {
     "inspect_run": ("inspect_run_outcome", "inspect_result_selectors"),
 }
 
+#: Guidance that is the same for every analysis kind, moved out of the
+#: six constructors and into the reference their family brings with the
+#: first of them (``FAMILY_REFERENCES["analysis_planning"]``). Whole
+#: sentences, moved verbatim: what stays inline is what a model needs to
+#: compose a valid stage when one constructor is all it has loaded, and
+#: ``test_a_lone_constructor_still_yields_a_valid_stage`` is the judge
+#: of that, not the byte count. Six copies of 5,064 bytes was the cost.
+SHARED_STAGE_GUIDANCE: tuple[str, ...] = (
+    "An extraction node's outputs are the quantities its selectors "
+    "read; a thermochemistry node's are the terms it derives; an "
+    "expression node's are the values it computes.",
+    "You cannot know an uncertainty estimate before the results exist, "
+    "but you can plan its estimator -- a spread over methods, a "
+    "conformer range -- and the host evaluates it in the same run and "
+    "records the claim as measured, cited to that output. Leave "
+    "uncertainty_producer_output_id out and the delivery states no "
+    "uncertainty, which reopens the goal to assess it.",
+    "A producer nothing declares is refused when planned, and naming "
+    "the quantity you want rather than the output that carries it is "
+    "refused too, because the edge is resolved against the producer's "
+    "own list.",
+)
+
+
 #: What each analysis constructor is for, in the words a chemist would
 #: search with. One coherent scientific act each -- these are the lines
 #: the host already draws (``ANALYSIS_INTENT_KINDS``), not new ones.
@@ -3610,33 +3634,29 @@ def _analysis_intent_node_schema_full(
                             "name a node in this same plan, and "
                             "source_kind must match what that node is: "
                             "program_output for a calculation node, "
-                            "analysis_output for an analysis node. A "
-                            "producer nothing declares is refused when "
-                            "planned."
+                            "analysis_output for an analysis node."
                         ),
                         "producer_output_id": _public_identifier(
                             "Which of that producer's declared outputs "
                             "this input reads, named by its output_id. It "
                             "must be an output the named producer itself "
-                            "declares -- naming the quantity you want "
-                            "rather than the output that carries it is "
-                            "refused when planned, because the edge is "
-                            "resolved against the producer's own list."
+                            "declares."
                         ),
-                        "uncertainty_producer_node_id": _string(),
+                        # Described because its partner names it and it
+                        # had no text of its own; found by the witness
+                        # that asks whether a lone constructor still
+                        # says what each field it asks for is.
+                        "uncertainty_producer_node_id": _describe_string(
+                            "On a claim_rendering input: the analysis "
+                            "node that computes this number's "
+                            "uncertainty, whose output is named in "
+                            "uncertainty_producer_output_id."
+                        ),
                         "uncertainty_producer_output_id": _describe_string(
                             "On a claim_rendering input: the analysis "
                             "output that computes this number's "
                             "uncertainty, with its node in "
-                            "uncertainty_producer_node_id. You cannot "
-                            "know an estimate before the results exist, "
-                            "but you can plan its estimator -- a spread "
-                            "over methods, a conformer range -- and the "
-                            "host evaluates it in the same run and "
-                            "records the claim as measured, cited to "
-                            "that output. Leave it out and the delivery "
-                            "states no uncertainty, which reopens the "
-                            "goal to assess it."
+                            "uncertainty_producer_node_id."
                         ),
                     },
                     "required": [
@@ -3668,11 +3688,8 @@ def _analysis_intent_node_schema_full(
                     "later node or claim can name. At least one is "
                     "required, because a node that declares nothing "
                     "produces nothing another node can cite and the "
-                    "plan is refused. An extraction node's outputs are "
-                    "the quantities its selectors read; a "
-                    "thermochemistry node's are the terms it derives; "
-                    "an expression node's are the values it computes. "
-                    "Downstream inputs cite these by output_id."
+                    "plan is refused. Downstream inputs cite these by "
+                    "output_id."
                 ),
                 "items": {
                     "type": "object",

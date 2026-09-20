@@ -14,6 +14,8 @@ byte. Resume and the plan-reproduction rule key on those digests.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from chemsmart.agent._contracts import ContractError
@@ -615,3 +617,91 @@ def test_discovery_and_drafting_move_neither_review_nor_execution(tmp_path):
         before
     )
     assert host.workflow_execution_approval is None
+
+
+@pytest.mark.parametrize("kind", list(ANALYSIS_INTENT_KINDS))
+def test_a_lone_constructor_still_yields_a_valid_stage(kind, tmp_path):
+    """The judge of the shared-guidance move, and not the byte count.
+
+    Six constructors each carried the same 5,064 bytes of inputs /
+    outputs / dependencies prose: a four-kind task read about 30 KB of
+    it, all on-task and all four or five times over. Whole sentences
+    moved verbatim to the reference the family brings with its first
+    act. What had to stay is whatever a model needs to compose a valid
+    stage when that constructor is the only thing it loaded -- so this
+    builds a stage from the lone projected schema and asks the gate.
+    """
+
+    from chemsmart.agent.tool_specs import _analysis_intent_node_schema
+
+    host, _, _ = _host(tmp_path)
+    schema = _analysis_intent_node_schema(kind=kind)
+    stage = _minimal_stage(kind)
+
+    # Built only from fields the lone constructor offers, and accepted.
+    assert set(stage) <= set(schema["properties"]), set(stage) - set(
+        schema["properties"]
+    )
+    assert set(schema["required"]) <= set(stage), set(
+        schema["required"]
+    ) - set(stage)
+    host._analysis_intent_from_payload({**stage, "analysis_kind": kind})
+
+    # And on the surface the model actually reads -- where
+    # ``_describe_tool_definitions`` has applied the shared
+    # argument descriptions -- every field the constructor still asks
+    # for says what it is.
+    from chemsmart.agent.catalogue import build_tool_catalogue
+
+    entry = build_tool_catalogue().entry(f"plan_{kind}")
+    built = entry.definition["function"]["parameters"]["properties"]["stages"][
+        "items"
+    ]["properties"]
+    assert set(built) == set(schema["properties"])
+    # The fields text was moved out of still say what they are and
+    # still carry the invariants a stage must satisfy. (`support_state`
+    # is a two-value enum and describes itself; that predates this.)
+    for name in ("inputs", "outputs", "dependencies"):
+        described = str(built[name].get("description") or "")
+        assert described.strip(), name
+        for member in (built[name].get("items") or {}).get("properties", {}):
+            assert str(
+                built[name]["items"]["properties"][member].get("description")
+                or ""
+            ).strip(), f"{name}.{member}"
+    assert "At least one is required" in built["outputs"]["description"]
+    assert "must name a node in this same plan" in json.dumps(built["inputs"])
+
+
+def test_the_shared_stage_guidance_has_one_author(tmp_path):
+    """Moved, not copied: the strings live once and arrive once."""
+
+    import json as _json
+
+    from chemsmart.agent.catalogue import (
+        FAMILY_REFERENCES,
+        build_tool_catalogue,
+    )
+    from chemsmart.agent.tool_specs import (
+        SHARED_STAGE_GUIDANCE,
+        _analysis_intent_node_schema,
+    )
+
+    catalogue = build_tool_catalogue()
+    reference = catalogue.entry(FAMILY_REFERENCES["analysis_planning"])
+    assert reference is not None
+    for sentence in SHARED_STAGE_GUIDANCE:
+        assert sentence in reference.description
+        # and in no constructor's schema, for any kind
+        for kind in ANALYSIS_INTENT_KINDS:
+            assert sentence not in _json.dumps(
+                _analysis_intent_node_schema(kind=kind)
+            ), (kind, sentence[:40])
+
+    # It arrives with the first analysis constructor, never behind a
+    # search: loading one brings it.
+    from chemsmart.agent.exposure import build_exposure
+
+    exposure = build_exposure("host_search")
+    loaded = exposure.with_loaded(("plan_claim_rendering",))
+    assert loaded.is_available(FAMILY_REFERENCES["analysis_planning"])

@@ -19,7 +19,10 @@ tool the host does not have. Exposure is the second, in three modes over
 one code path: ``host_search`` (a small core plus what has been
 discovered, through one core tool the host answers, which every provider
 understands), ``native_tool_search`` (every definition on every request,
-the rest marked for a provider that searches server-side), and ``eager``
+byte-identical every turn, everything outside the session's fixed
+prefix marked for a provider that searches server-side -- discovery
+never moves a definition into the prefix, because modifying the array
+would invalidate the very cache deferral protects), and ``eager``
 (everything, the control arm and the floor). The initial context is the
 same size whether the catalogue holds fifty entries or four thousand.
 

@@ -1056,6 +1056,7 @@ ACT_FAMILIES: Mapping[str, str] = MappingProxyType(
 #: argument has been composed.
 FAMILY_REFERENCES: Mapping[str, str] = MappingProxyType(
     {
+        "analysis_planning": "about_planning_analysis_stages",
         "structure": "about_building_structures",
         "scan": "about_relaxed_scans",
         "recovery": "about_failed_runs_and_repair",
@@ -1278,6 +1279,41 @@ def _operation_reference_entries(
     return tuple(entries)
 
 
+def _planning_reference_entry() -> CatalogueEntryV1:
+    """Stage guidance the six analysis constructors used to each carry.
+
+    Generated from ``SHARED_STAGE_GUIDANCE`` -- the same strings, moved
+    verbatim out of the schemas -- so it has one author and no copy can
+    drift. It rides on ``FAMILY_REFERENCES["analysis_planning"]``, which
+    means the first analysis constructor a session loads brings it: the
+    guidance is never behind a search, and it arrives once instead of
+    six times.
+    """
+
+    from chemsmart.agent.tool_specs import SHARED_STAGE_GUIDANCE
+
+    name = "about_planning_analysis_stages"
+    return CatalogueEntryV1(
+        name=name,
+        family="analysis_planning",
+        kind="reference",
+        loading="deferred",
+        derived_from="chemsmart.agent.tool_specs",
+        definition=_reference_definition(
+            name,
+            "Building an analysis stage, whatever its kind. Every stage "
+            "names the node ids it depends on for ordering, the typed "
+            "producer edges it reads (inputs), and the quantities it "
+            "produces (outputs); a stage the release cannot perform is "
+            "kept with support_state blocked_unsupported and a reason "
+            "rather than dropped. What each constructor's own schema "
+            "states is what that kind needs; what follows is true of "
+            "every kind, so it is said here once instead of six times. "
+            + " ".join(SHARED_STAGE_GUIDANCE),
+        ),
+    )
+
+
 def _selector_reference_entries() -> tuple[CatalogueEntryV1, ...]:
     """One reference per result reader, naming its selectors literally.
 
@@ -1400,6 +1436,7 @@ def build_tool_catalogue(registry: Any = None) -> ToolCatalogueV1:
     topic_entries, absorbed = _topic_reference_entries(registry)
     entries.extend(_operation_reference_entries(absorbed))
     entries.extend(_selector_reference_entries())
+    entries.append(_planning_reference_entry())
     entries.extend(topic_entries)
     return make_catalogue(entries)
 

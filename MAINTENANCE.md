@@ -578,3 +578,34 @@ prose in one family reference, which the catalogue's family-reference
 mechanism already loads with the first act of a family. Splitting six
 copies of earned sentences by hand is how provenance is lost, so it
 wants its own commit and its own reading.
+
+## Reading a session against need, relevance and freshness
+
+**The instrument.** `python .agents/research/loop/context.py <events.jsonl>`
+reports, from typed events only: whether every capability a session
+called was in view before the call (need), what share of what it loaded
+was on a family its own acts touched (relevance), whether the catalogue
+it saw ever disagreed with the one the host recorded (freshness), and
+the cost side beside them.
+
+**Its blind spot, which is the important sentence.** It can only see
+capabilities that entered view. A capability the session needed and
+never reached leaves no event, so a session that rebuilt a convention
+from arithmetic because it never found the operation that owns it
+scores perfectly here. Only the transcript and the science find that.
+
+**A structural limit, not a defect.** A reference entry's body *is* its
+description, so loading it is the only event there is: nothing can tell
+a reference the model read and used from one that merely arrived.
+Relevance is therefore exact for acts, which are called, and an upper
+bound for knowledge. Do not redesign references to fix this; report it.
+
+**Read so far.** Need was 100% on every session of both legs -- no
+capability was ever called before it was in view. Relevance, first leg:
+1.00 (the pre-repair session, which loaded ten entries one at a time),
+then 0.51, 0.44, 0.60, 0.68, 0.71. Second leg: 0.92, 0.86, 0.85, 0.76.
+The off-family remainder is dominated by references matching one word
+of a query -- `about_operations_constants` on "free energy",
+`about_transition_states` and `about_pyscf` on "frequency" or "minimum".
+That is where the next relevance gain is, and it is a ranking question
+rather than an architecture one.
