@@ -9,21 +9,37 @@ same provider-free executor inside the allocation and its own tail runs
 No poller, no scheduler accounting, and no second decision are involved;
 the same one-shot bundle continues in its own run directory.
 
-The surface the model reads is a tree, not a list. A stem of sixteen
-tools, the operations that belong to no family, and the universal rules
-is what every session reads; a guide is a family unit -- structure,
-scan, constants, cbs, ensemble, spectroscopy, database, crossprogram,
-recovery, saddle -- of extra tools, extra operations, a few hundred
-words of guidance, and the rules placed on it. The host opens a guide on
-four signals, each recorded with the new tool-schema digest: the task
-text, the workspace, the planned DAG's own jobtypes, operations and
-programs (a DAG naming two programs opens ``crossprogram``), and the
-previous run's terminal states under a goal; the model may open any
-guide itself with ``open_guide``. The exposure record follows the
-surface each request is actually built from, so a guide opened
-mid-session is recorded with the digest it produced. Opening a guide
-changes what the model can express and how much it reads, never what
-the host approves.
+What the host can do and what a request carries are two different
+facts. The catalogue is the first: one provider-neutral entry per
+capability, each carrying its name, the family a scientist would look
+for it under, whether it is an act or reference text, whether it loads
+eagerly or on demand, and the registry its text was derived from -- and
+it is assembled from the live tool builders, so it cannot describe a
+tool the host does not have. Exposure is the second, in three modes over
+one code path: ``host_search`` (a small core plus what has been
+discovered, through one core tool the host answers, which every provider
+understands), ``native_tool_search`` (every definition on every request,
+the rest marked for a provider that searches server-side), and ``eager``
+(everything, the control arm and the floor). The initial context is the
+same size whether the catalogue holds fifty entries or four thousand.
+
+The model writes every query; the host tokenizes and ranks it and
+classifies nothing. What the host does route on is typed: the kinds the
+workspace scan found and a previous run's terminal states promote
+entries before the first request, so the rendered prefix is stable for
+the session, and the planned DAG's own job types, operations and
+programs surface more (two programs in one DAG surface the
+cross-program reference, because equal level strings are not equal
+methods). Calling an entry by its exact name is itself a discovery act:
+the host loads the definition, records it, and asks for the call again,
+so arguments composed before the schema was readable are never run. A
+name the catalogue does not hold is a typed refusal that names the
+search tool. Loading an act loads its family's reference, which is how
+an invariant governing a family of tools is never behind a search the
+model may not run. Discovery is not permission: nothing about project
+validation, the displayed review, the single human decision, the
+execution envelope or any result verdict depends on it, and the
+approved-execution surface is not built from the catalogue at all.
 
 Every natural-language rule the host places in front of the model is a
 registered capability with an id, a placement (stem, a guide, the goal
@@ -31,7 +47,8 @@ wake, or one tool's description), the tier that first needs it, and the
 provenance that earned it; the system prompt, the wake context, and the
 tool descriptions render from that registry. And every capability of
 every kind -- program job types, tools, selectors, operations,
-predicates, constants, skills, guides, rules -- climbs one ladder,
+predicates, constants, skills, reference entries, rules -- climbs
+one ladder,
 declared, wired, advertised, tested, qualified, computed from the
 registries that own each kind: wired from the host's handler table and
 the readers, tested from the ``capability`` markers tests carry,

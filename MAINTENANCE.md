@@ -464,3 +464,47 @@ live arms serially, or accept that the arm will be smaller than planned.
 arithmetically, so every label resolves to the last assignment and two
 baseline sessions ran a request meant for another label. Use a `case`
 function for label-to-text maps in campaign scripts.
+
+## Tool search: what a discovery backend has to return
+
+**What we did.** Replaced the stem-and-guide tool tree with one
+searchable catalogue plus three exposure modes, and measured the Agent
+on the same request before and after each change.
+
+**What worked, and the number that matters.** The initial context fell
+from 92,848 bytes (19 tools) to 45,150 (8 tools), and it is now
+*byte-identical* with 2,000 synthetic entries added to the catalogue --
+which is the property the round exists for. The old ceilings could only
+be raised; this cannot be satisfied by raising anything.
+
+**A search that returns a name costs a turn for nothing.** The first
+live session on the new architecture planned correctly and took
+twenty-five searches to do it, four of them for the literal string
+`declare_requested_observable`, a name it already had from an earlier
+result. `search_capabilities` was returning names; a name is not
+something a model can act on. Making a search *load* what it returns --
+which is what the reference backend's `tool_reference` expansion does --
+took the same request from 25 searches, 15 provider turns and 46 tool
+calls to 5, 9 and 15, and from 7m10s to 5m08s, with the same plan at the
+end. If you build a discovery backend, finding and loading are one turn.
+
+**What we would watch.** The model's own strategy is to survey broadly
+and then work: with `limit: 8` on five searches it had 47 of 52 entries
+loaded by its second turn. The initial context is still small and still
+scale-independent, but the *steady state* of a long session approaches
+the eager arm. That is the model's choice and not a defect; constraining
+it would be the host deciding what the task is about, which is the thing
+this architecture removed.
+
+**A defect worth knowing about.** One session is one `turn_id`. An event
+whose idempotency key is `{turn_id}:{digest of the arguments}` collides
+with itself when a session repeats a call, and the event store refuses
+the write -- which reached the model as the *tool* failing. Anything a
+session may legitimately do twice needs an ordinal in its key.
+
+**`chemsmart agent plan` needs `--execution-envelope`.** The driver always
+names a review file, and a live session refuses a review without an
+envelope, so the command settles `returned_to_human` before any provider
+turn and prints an `AttributeError` from `result.public_summary_json()`
+on a `None`. Write a four-call bounded-local envelope and pass it; the
+command never launches an engine either way.

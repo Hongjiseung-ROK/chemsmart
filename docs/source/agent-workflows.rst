@@ -351,16 +351,20 @@ lines, or not run) appears beside the node on the review and is never an engine 
 ``host_seconds_spent`` beside the engine lines and the goal's ``input_check_probes`` counts.
 
 *************************
- Guides and capabilities
-*************************
+ The capability catalogue
+**************************
 
-The tools the model reads are a stem and leaves. Every session reads the stem: the core tools, the operations that
-belong to no family, and the universal rules. A guide is a family unit -- ``structure``, ``scan``, ``constants``,
-``cbs``, ``ensemble``, ``spectroscopy``, ``database``, ``crossprogram``, ``recovery``, ``saddle`` -- of extra tools,
-extra operations, and a few hundred words of guidance. The host opens a guide when the task text, the workspace, the
-planned workflow (its job types, operations, or a second program), or a previous run's ending calls for it, and the
-model may open any guide itself with ``open_guide``. Each activation is recorded with the tool-schema digest it
-produced.
+What the agent can do is one searchable catalogue: every act it can perform and every piece of reference text it can
+show, each entry naming its family, whether it is an act or reference, and whether it loads up front or on demand. A
+session starts with a small core -- the search tool and the few acts a task cannot begin without -- and finds the rest
+by searching in its own words. What the agent finds becomes callable; naming something by its exact name loads it and
+asks for the call again, so no call runs against a schema that was not readable when its arguments were written. A name
+the catalogue does not hold is refused with the search tool named. The size of the initial context does not grow as the
+catalogue grows.
+
+Finding a capability is not permission to use it on a calculation. Project validation, the displayed workflow, the
+single human approval, the execution envelope and every result verdict are unchanged by what a session discovered, and
+discovery is recorded: each search, its query, what came back, what was loaded, and by which backend.
 
 .. code:: bash
 

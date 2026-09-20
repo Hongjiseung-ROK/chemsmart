@@ -81,9 +81,14 @@ def dev_surface() -> dict:
         # mass stays visible and a growing topic is noticed.
         out["charter_topics"] = {
             "files": len(topics),
-            "words": sum(len(p.read_text(encoding="utf-8").split()) for p in topics),
+            "words": sum(
+                len(p.read_text(encoding="utf-8").split()) for p in topics
+            ),
             "largest": max(
-                ((len(p.read_text(encoding="utf-8").split()), p.name) for p in topics)
+                (
+                    (len(p.read_text(encoding="utf-8").split()), p.name)
+                    for p in topics
+                )
             ),
         }
     agents, claude = ROOT / "AGENTS.md", ROOT / "CLAUDE.md"
@@ -101,8 +106,9 @@ def dev_surface() -> dict:
 
 
 def runtime_surface() -> dict:
-    from chemsmart.agent import guides as guides_mod
     from chemsmart.agent.capability_registry import build_capability_registry
+    from chemsmart.agent.catalogue import build_tool_catalogue
+    from chemsmart.agent.exposure import build_exposure
     from chemsmart.agent.live_session import _system_prompt
     from chemsmart.agent.rules import CODE_GATES, POLICY_RULES
     from chemsmart.agent.tool_specs import (
@@ -134,9 +140,7 @@ def runtime_surface() -> dict:
             }
         )
 
-    def surface(open_guides: tuple[str, ...]) -> dict:
-        built = build_command_compiled_tool_surface(guides=open_guides)
-        tools = list(built.tool_definitions)
+    def surface(tools: list) -> dict:
         descriptions = " ".join(
             str(t.get("function", t).get("description", "")) for t in tools
         )
@@ -148,14 +152,29 @@ def runtime_surface() -> dict:
             // 4,
         }
 
-    all_guides = tuple(g.guide_id for g in guides_mod.GUIDES)
+    catalogue = build_tool_catalogue()
+    assembly = list(build_command_compiled_tool_surface().tool_definitions)
     return {
-        "system_prompt": measure(_system_prompt({})),
-        "stem_surface": surface(()),
-        "all_guides_open_surface": surface(all_guides),
-        "guides": [
-            {"guide_id": g.guide_id, "body_words": len(g.body.split())}
-            for g in guides_mod.GUIDES
+        "system_prompt": measure(
+            _system_prompt({}, exposure=build_exposure("host_search"))
+        ),
+        # What a first request actually carries, and what exists behind
+        # it. The two used to be the same number.
+        "initial_context": surface(
+            list(build_exposure("host_search").tool_definitions())
+        ),
+        "whole_catalogue": surface(
+            list(build_exposure("eager").tool_definitions())
+        ),
+        "planning_assembly": surface(assembly),
+        "catalogue": [
+            {
+                "name": entry.name,
+                "family": entry.family,
+                "kind": entry.kind,
+                "loading": entry.loading,
+            }
+            for entry in catalogue.entries
         ],
         "rules_by_placement": by_placement,
         "rules_total": len(rules),
@@ -189,8 +208,8 @@ def main() -> int:
     rt = report["runtime"]
     print("RUNTIME SURFACE")
     print(f"  system prompt        {rt['system_prompt']}")
-    print(f"  stem tool surface    {rt['stem_surface']}")
-    print(f"  all guides open      {rt['all_guides_open_surface']}")
+    print(f"  initial context      {rt['initial_context']}")
+    print(f"  whole catalogue      {rt['whole_catalogue']}")
     print(f"  rules by placement   {rt['rules_by_placement']}")
     print(
         f"  rules {rt['rules_total']}, without provenance "

@@ -103,7 +103,7 @@ class Graph:
 def derived(graph: Graph) -> None:
     """Everything the live tree can say for itself."""
     from census import runtime_surface, sections
-    from chemsmart.agent import guides as guides_mod
+    from chemsmart.agent.catalogue import build_tool_catalogue
     from chemsmart.agent.rules import CODE_GATES, HOST_POLICIES, POLICY_RULES
 
     surface = runtime_surface()
@@ -117,8 +117,10 @@ def derived(graph: Graph) -> None:
             provenance=rule.provenance.strip(), ladder=row["ladder"],
             always_on=(kind == "stem"),
         )  # fmt: skip
-        if kind == "leaf":
-            graph.edge(f"rule:{rule.rule_id}", "placed_in", f"guide:{where}")
+        if kind == "reference":
+            graph.edge(
+                f"rule:{rule.rule_id}", "placed_in", f"reference:{where}"
+            )
         if kind == "tool":
             graph.edge(f"rule:{rule.rule_id}", "placed_in", f"tool:{where}")
             graph.node(f"tool:{where}", "tool")
@@ -129,10 +131,11 @@ def derived(graph: Graph) -> None:
         graph.node(f"gate:{gate[0]}", "gate", text=gate[1])
     for policy in HOST_POLICIES:
         graph.node(f"policy:{policy[0]}", "host_policy", text=str(policy[1]))
-    for guide in guides_mod.GUIDES:
+    for entry in build_tool_catalogue().entries:
         graph.node(
-            f"guide:{guide.guide_id}", "guide",
-            words=len(guide.body.split()), tier=guide.tier,
+            f"{entry.kind}:{entry.name}", entry.kind,
+            family=entry.family, loading=entry.loading,
+            words=len(entry.description.split()),
         )  # fmt: skip
 
     agents = ROOT / "AGENTS.md"
@@ -217,8 +220,8 @@ def concepts(graph: Graph) -> dict[str, list]:
     """Closed concept kinds as nodes, and every sentence that explains a
     concept as an ``explains`` edge. Returns the referenced-kind registry
     so an authored edge may name one of its members."""
-    from chemsmart.agent import guides as guides_mod
     from chemsmart.agent.capability_registry import build_capability_registry
+    from chemsmart.agent.catalogue import build_tool_catalogue
     from chemsmart.agent.rules import POLICY_RULES
 
     registry: dict[str, list] = {}
@@ -314,10 +317,12 @@ def concepts(graph: Graph) -> dict[str, list]:
                     explain(
                         source, f"setting:{pair[0]}:{name}", boundary.verdict
                     )
-    for guide in guides_mod.GUIDES:
-        source = f"guide:{guide.guide_id}"
-        program = guide.guide_id if guide.guide_id in programs else None
-        for key in mentions(guide.body, program):
+    for entry in build_tool_catalogue().entries:
+        if entry.kind != "reference":
+            continue
+        source = f"reference:{entry.name}"
+        program = entry.family if entry.family in programs else None
+        for key in mentions(entry.description, program):
             explain(source, key, "text")
     graph.admit_concept = admit
     return registry

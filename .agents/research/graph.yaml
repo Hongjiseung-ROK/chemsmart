@@ -201,6 +201,30 @@ nodes:
     note: "Every node of all four campaign goals raised geometry.same_structure_comparison_not_made: the heavy-atom RMSD floor is three and the molecules had two. The sensor said it stopped, which is correct; the campaign's own molecule choice removed the basin and same-structure evidence from the whole round."
     falsifier: "A campaign of two-heavy-atom molecules obtains basin or same-structure evidence, or the floor is shown to be unnecessary below three heavy atoms."
 
+  - id: result.capability_scale_stopped_driving_context_scale
+    kind: result
+    source: {path: MAINTENANCE.md, anchor: "byte-identical* with 2,000 synthetic entries added"}
+    note: "The stem was 19 tools / 92,848 B and every guide open 30 / 120,561 B, both under ceilings that had been raised six times. A catalogue plus host-side search makes the initial context 8 tools / 45,150 B and independent of how many entries exist."
+    falsifier: "Adding entries to the catalogue changes what a first request carries, or the initial context is shown to be larger than the stem it replaced on any real session."
+
+  - id: lesson.a_search_that_returns_a_name_costs_a_turn
+    kind: lesson
+    source: {path: MAINTENANCE.md, anchor: "A search that returns a name costs a turn for nothing."}
+    note: "Live A (2026-09-20) planned correctly in 25 searches, four of them for one exact name it already had; the repaired A2 took 5 searches, 9 provider turns against 15, 15 tool calls against 46, and reached the same plan. Finding and loading are one turn, which is also what the reference backend does."
+    falsifier: "A backend that returns bare names shows the same search count as one that loads, on matched requests."
+
+  - id: result.an_operation_the_stem_hid_was_used_by_name
+    kind: result
+    source: {path: ".agents/charter/architecture.md", anchor: "Loading an act loads its family's reference"}
+    note: "center_of_mass was one of fifteen operations unnameable from the stem; naming it was refused with 'is not one of [29 names]', and a recorded session rebuilt it from fifteen arithmetic nodes with integer masses. Two live sessions on the catalogue found about_operations_geometry and planned the named operation."
+    falsifier: "A session that needs an operation the catalogue holds rebuilds it from arithmetic, or cannot retrieve the entry that owns it."
+
+  - id: negative.deferring_the_planning_tool_was_measured_and_refused
+    kind: negative_result
+    source: {path: MAINTENANCE.md, anchor: "The initial context fell"}
+    note: "plan_scientific_workflow is 27,531 B, 61% of the initial context. Deferred, the first request falls to 17,228 B -- but it retrieves at rank 4 of 5 for 'plan an optimisation then a frequency calculation of the optimised structure' and rank 2 for 'set up a workflow of calculations'. It is the act the whole approval chain hangs on, so the bytes were not taken."
+    falsifier: "A search probe retrieves plan_scientific_workflow at rank 1 for the ordinary phrasings, or a session that fails to retrieve it is shown to lose nothing."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).
