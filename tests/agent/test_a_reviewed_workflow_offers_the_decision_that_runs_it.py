@@ -8,10 +8,12 @@ built the execution review, and settled `execution_wave_decision_pending`
 in no session's callable set, and the word a model searches with -- "execute"
 -- returned a draft inspector and a PySCF reference.
 
-The host knows two typed facts that make the tool necessary: a workflow has
-been finalised, and this session holds execution resources.  Neither is the
-human's prose, so the host surfaces the decision itself, the way a plan naming
-a transition state surfaces the saddle reference.
+The host already states when the decision is pending: an undecided wave
+with ready calculations, which is what its closing notice reads.  That typed
+fact surfaces the acts that answer it, the way a plan naming a transition
+state surfaces the saddle reference.  The first key tried was "this session
+holds execution resources"; a session without them was then still told a
+decision was pending that it could not make, so the two are one predicate.
 """
 
 from __future__ import annotations
@@ -78,8 +80,21 @@ def test_finalising_a_workflow_that_may_run_surfaces_the_wave_decision(
         assert host.exposure.is_available(name), name
 
 
-def test_a_session_that_cannot_run_is_not_offered_the_decision(tmp_path):
+def _told_a_decision_is_pending(host) -> bool:
+    notice = host.termination_notice() or {}
+    return notice.get("kind") == "execution_wave_decision_pending"
+
+
+def test_what_the_host_says_is_pending_the_host_offers(tmp_path):
+    """With or without execution resources, the notice and the offer agree."""
+
     host, payload = _host(tmp_path)
-    plan_workflow(host, "turn-1", payload)
+    assert not _told_a_decision_is_pending(host)
     for name in _DECISION_TOOLS:
         assert not host.exposure.is_available(name), name
+
+    plan_workflow(host, "turn-1", payload)
+
+    assert _told_a_decision_is_pending(host)
+    for name in _DECISION_TOOLS:
+        assert host.exposure.is_available(name), name

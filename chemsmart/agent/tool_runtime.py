@@ -3493,17 +3493,29 @@ class CommandCompiledToolHostV1:
             jobtypes=jobs,
             operations=ops,
             programs=named,
-            # Typed host state, not prose: a finalised workflow exists and
-            # this session holds the resources to run it.
-            execution_ready=(
-                self.execution_resources is not None
-                and bool(self.scientific_workflow_plans)
-            ),
+            # Typed host state, not prose, and one fact rather than two:
+            # the predicate the closing notice reads.
+            wave_decision_pending=self._wave_decision_pending(),
         )
         if wanted:
             self._rebuild_exposure(
                 turn_id, self.exposure.with_loaded(wanted), signal="plan"
             )
+
+    def _wave_decision_pending(self) -> bool:
+        """Whether the host itself reports an execution-wave decision pending.
+
+        One predicate, read by the closing notice and by the surfacing of
+        the acts that answer it, so the host never announces a decision it
+        does not offer.
+        """
+
+        decision = getattr(self, "execution_wave_decision", None)
+        return bool(
+            decision is not None
+            and decision.state != "selected"
+            and decision.ready_node_ids
+        )
 
     def execution_wait_timeout_seconds(self) -> float:
         """Return the bounded wait advertised before an engine launch."""
@@ -3998,12 +4010,8 @@ class CommandCompiledToolHostV1:
         budget line remains -- ending is then the only thing left.
         """
 
-        decision = getattr(self, "execution_wave_decision", None)
-        if (
-            decision is not None
-            and decision.state != "selected"
-            and decision.ready_node_ids
-        ):
+        if self._wave_decision_pending():
+            decision = self.execution_wave_decision
             from chemsmart.agent.rules import rules_by_id
 
             ready = ", ".join(decision.ready_node_ids)

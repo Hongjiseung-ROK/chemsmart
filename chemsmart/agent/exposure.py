@@ -347,12 +347,14 @@ PROGRAM_REFERENCES: Mapping[str, tuple[str, ...]] = {
 }
 
 
-#: The acts that decide whether reviewed calculations run. A workflow that
-#: has been finalised in a session holding execution resources cannot move
-#: without them, and that is typed host state -- so the host surfaces them
-#: rather than waiting for the model to find the right word. Measured on
-#: four live goals that previewed and preflighted every node and then
-#: settled ``execution_wave_decision_pending`` with neither in view.
+#: The acts that answer a pending execution-wave decision. The host itself
+#: states when one is pending -- an undecided wave with ready calculations,
+#: the predicate its closing notice already reads -- so the same typed fact
+#: surfaces the acts that answer it: what the host says is pending, the host
+#: offers. Measured on four live goals that previewed and preflighted every
+#: node and then settled ``execution_wave_decision_pending`` with neither in
+#: view; holding execution resources was the first key tried, and a session
+#: without them was still told a decision was pending it could not make.
 EXECUTION_DECISION_TOOLS: tuple[str, ...] = (
     "select_execution_wave",
     "continue_execution_reasoning",
@@ -365,7 +367,7 @@ def promotions_from_plan(
     operations: Iterable[str] = (),
     programs: Iterable[str] = (),
     tools: Iterable[str] = (),
-    execution_ready: bool = False,
+    wave_decision_pending: bool = False,
 ) -> tuple[str, ...]:
     """What a planned DAG surfaces, mid-session, from its own typed body.
 
@@ -402,7 +404,7 @@ def promotions_from_plan(
         reference = FAMILY_REFERENCES.get(family or "")
         if reference:
             add(reference)
-    if execution_ready:
+    if wave_decision_pending:
         for name in EXECUTION_DECISION_TOOLS:
             add(name)
     return tuple(out)
