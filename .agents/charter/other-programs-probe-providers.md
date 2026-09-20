@@ -3,8 +3,10 @@
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
 results. Gaussian ``opt`` and ``sp`` are release-qualified for Agent
-execution on CPU, each recorded from a sealed live goal on the
-configuration it ran; ``ts``, ``irc``, ``scan``, ``modred``, ``td`` and
+execution on CPU, each recorded from two live goals on the configuration
+they ran -- goals whose task text was fixed before their first issue and
+re-issued unchanged, but which no seal record binds, so they are not
+called sealed; ``ts``, ``irc``, ``scan``, ``modred``, ``td`` and
 ``link`` have real engine runs on that target through the human CLI and no
 approved Agent execution, which is a different fact and stays unclaimed.
 
