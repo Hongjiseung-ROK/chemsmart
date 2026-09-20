@@ -423,3 +423,57 @@ def test_every_existing_provider_profile_digest_is_unchanged():
     assert anthropic.profile_sha256 != profile.profile_sha256
     with pytest.raises(ContractError):
         _build_profile("local", {"type": "local", "model": "x"})
+
+
+def test_the_cache_read_reaches_the_provenance_event(tmp_path):
+    """The one number that says whether deferral bought anything.
+
+    It is computed by the adapter and was read by nothing: the exact
+    shape of defect this repository has a name for -- right where it is
+    computed, unconnected where it is consumed. Driven through the real
+    ``ToolLoopRunner`` against a real host, so the connection is the
+    production one and not a source-text assertion.
+    """
+
+    from chemsmart.agent.loop import ToolLoopRunner
+
+    store = RuntimeEventStore(
+        tmp_path / "events.jsonl", session_id="protocol-session"
+    )
+    host = CommandCompiledToolHostV1(
+        event_store=store,
+        exposure=build_exposure("native_tool_search"),
+        task_spec_sha256s=(canonical_sha256("synthetic task"),),
+    )
+    done = {
+        **_turn(9),
+        "content": [{"type": "text", "text": "Nothing further."}],
+        "stop_reason": "end_turn",
+    }
+    session, _ = _session([done], exposure=host.surface.exposure)
+
+    from tests.agent.provider_fakes import _run_contracts
+
+    class _Bound:
+        provider = "anthropic"
+        endpoint = ANTHROPIC_OFFICIAL_ENDPOINT
+        context_tokens = 200_000
+        max_output_tokens = 4096
+
+    envelope, request_context, network = _run_contracts(host, _Bound())
+    ToolLoopRunner(host=host, event_store=store).run(
+        session=session,
+        envelope=envelope,
+        request_context=request_context,
+        provider_budget=network,
+    )
+
+    (observed,) = [
+        event
+        for event in store.read_events()
+        if event.kind == EventKind.PROVIDER_TURN_OBSERVED.value
+    ]
+    assert observed.payload["prompt_cache"] == {
+        "cache_read_input_tokens": 1100,
+        "cache_creation_input_tokens": 0,
+    }

@@ -401,3 +401,34 @@ def test_a_programs_practice_arrives_before_the_plan_it_governs(tmp_path):
         arguments={"program": "orca", "jobtype": "opt", "engine": "cpu"},
     )
     assert not other.exposure.is_available("about_pyscf")
+
+
+def test_an_empty_result_says_which_kind_of_empty_it_is(tmp_path):
+    """Zero matches has two meanings and they are not the same answer.
+
+    Live D issued three searches that returned nothing, and all three
+    were answered correctly: the tool it wanted was in
+    ``already_available`` every time. It kept searching. An empty list
+    beside a populated ``already_available`` is the host saying "you
+    have it"; an empty list beside an empty one is "this host cannot".
+    """
+
+    host, _ = _live_host(tmp_path, mode="eager")
+    reply = host.dispatch(
+        turn_id="protocol-session.turn-1",
+        tool_name=SEARCH_TOOL_NAME,
+        arguments={"query": "centre of mass"},
+    )["result"]
+    assert reply["matches"] == [] and reply["already_available"]
+    assert "already_available" in reply["how_to_use"]
+
+    other, _ = _live_host(tmp_path / "other")
+    absent = other.dispatch(
+        turn_id="protocol-session.turn-1",
+        tool_name=SEARCH_TOOL_NAME,
+        arguments={"query": "zzzz qqqq"},
+    )["result"]
+    assert absent["matches"] == [] and not absent["already_available"]
+    assert "cannot" in absent["how_to_use"] or "Nothing in this host" in (
+        absent["how_to_use"]
+    )

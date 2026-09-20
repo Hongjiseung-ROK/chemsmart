@@ -3402,11 +3402,26 @@ class CommandCompiledToolHostV1:
             "matches": [result.record() for result in results],
             "already_available": list(already),
             "how_to_use": (
-                "Every match above is in your tools now and callable by "
-                "name; a reference entry's text is its description, so a "
-                "match of that kind you have already read. Searching "
-                "again for a name you can already see costs a turn and "
-                "loads nothing new."
+                (
+                    "Nothing new matched, and that is an answer rather "
+                    "than an absence: the entries under "
+                    "already_available matched this query and are "
+                    "already in your tools. Use one of them."
+                    if already
+                    else (
+                        "Nothing in this host's catalogue matched. Try "
+                        "the quantity or the argument you need rather "
+                        "than a tool name."
+                    )
+                )
+                if not results
+                else (
+                    "Every match above is in your tools now and callable "
+                    "by name; a reference entry's text is its "
+                    "description, so a match of that kind you have "
+                    "already read. Searching again for a name you can "
+                    "already see costs a turn and loads nothing new."
+                )
             ),
         }
 

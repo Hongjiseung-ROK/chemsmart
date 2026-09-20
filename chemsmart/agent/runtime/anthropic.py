@@ -199,7 +199,6 @@ class AnthropicMessagesToolSession(DeepSeekV4ToolSession):
         self._system = "\n\n".join(part for part in system if part)
         self._exposure = exposure
         self._discovered: tuple[str, ...] = ()
-        self._refusal = ""
         self._last_cache: dict[str, int] = {}
 
     # -- capabilities --------------------------------------------------
@@ -322,11 +321,6 @@ class AnthropicMessagesToolSession(DeepSeekV4ToolSession):
             {"role": "assistant", "content": deepcopy(content)}
         )
         self._discovered = _discovered_names(content)
-        self._refusal = (
-            str(payload.get("stop_reason") or "")
-            if payload.get("stop_reason") == "refusal"
-            else ""
-        )
         persisted = self._persist_thinking(request=request, content=content)
         receipt = self._receipt(
             request=request,

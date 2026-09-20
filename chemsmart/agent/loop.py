@@ -511,6 +511,20 @@ class ToolLoopRunner:
                     "transport_deadlines": (
                         session.public_transport_deadline_record()
                     ),
+                    # Whether deferral bought what it claims to buy is
+                    # one number, and only the provider can report it.
+                    # A wire that reports none says so by its absence
+                    # rather than by a zero nobody can tell from a miss.
+                    **(
+                        {"prompt_cache": dict(cache)}
+                        if (
+                            cache := (
+                                getattr(session, "cache_observation", None)
+                                or dict
+                            )()
+                        )
+                        else {}
+                    ),
                     "finish_reason": provider_receipt.finish_reason,
                     "tool_calls_present": (
                         provider_receipt.tool_calls_present
