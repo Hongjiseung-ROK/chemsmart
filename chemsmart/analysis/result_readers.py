@@ -2361,7 +2361,7 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
     return accessors
 
 
-def _xtb_output(path: Path) -> Any:
+def _xtb_output(path: Path | str) -> Any:
     from chemsmart.io.xtb.output import XTBOutput
 
     # Unlike the Gaussian and ORCA readers, XTBOutput represents the complete
@@ -2369,7 +2369,16 @@ def _xtb_output(path: Path) -> Any:
     # main log, geometry, Hessian, and vibrational-spectrum files.  The host
     # has already resolved and verified the exact main output artifact; its
     # parent is therefore the corresponding calculation directory.
-    return XTBOutput(folder=str(path.parent))
+    #
+    # The host's organs do not agree on the type they hand a reader: the mode
+    # displacement passes a Path and the stationary-point characterisation
+    # passes ``str(artifact.path)``.  Every other reader takes either, because
+    # each only wraps the value in its own parser; this one navigates it, so a
+    # str reached ``.parent`` and a live session asking what its saddle was
+    # got ``AttributeError: 'str' object has no attribute 'parent'`` instead
+    # of an answer (goal r8x-xtb-saddle-escape, CUHK 2142404).  Normalised
+    # here, where the navigation happens.
+    return XTBOutput(folder=str(Path(path).parent))
 
 
 def _xtb_state_integer(attribute: str) -> Callable[[Any], int]:

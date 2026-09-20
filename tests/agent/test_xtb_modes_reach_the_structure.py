@@ -214,3 +214,43 @@ def test_the_mode_frame_tolerance_is_above_the_printed_precision():
         worst = max(worst, float(np.abs(reference - positions).max()))
     assert seen >= 4
     assert worst < XTBOutput._MODE_FRAME_TOLERANCE_ANGSTROM
+
+
+def test_characterising_an_xtb_saddle_answers_instead_of_crashing():
+    """Two host organs hand a reader a path; only one hands it a Path.
+
+    ``displace_along_vibrational_mode`` passes a ``Path`` and
+    ``characterise_stationary_point`` passes ``str(artifact.path)``.
+    Every other reader takes either, because each only wraps the value in
+    its own parser; the xTB reader navigates to the calculation directory,
+    so the str reached ``.parent`` and a live session asking what its
+    saddle was got ``AttributeError: 'str' object has no attribute
+    'parent'`` (goal r8x-xtb-saddle-escape, CUHK 2142404).
+    """
+
+    from chemsmart.agent.execution import (
+        build_stationary_point_characterisation,
+    )
+
+    artifact = _artifact(_PLANAR, "planar")
+    record = build_stationary_point_characterisation(
+        result_artifact=artifact,
+        program="xtb",
+        order_claimed=2,
+        node_id="",
+        anomaly_sha256="",
+    )
+    # Planar methane is a second-order saddle on this surface, and the
+    # host's own rule is what says so.
+    assert record.observed_imaginary_modes == 2
+    assert record.lowest_imaginary_cm_1 == pytest.approx(-3253.79, abs=1e-2)
+
+    # The claim is still graded against the printed frequencies.
+    with pytest.raises(ContractError, match="imaginary mode"):
+        build_stationary_point_characterisation(
+            result_artifact=artifact,
+            program="xtb",
+            order_claimed=1,
+            node_id="",
+            anomaly_sha256="",
+        )
