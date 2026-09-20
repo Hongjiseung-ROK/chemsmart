@@ -4076,6 +4076,21 @@ class StationaryPointCharacterisationV1:
     never a precondition: the numbers of a failed result were always
     readable, and this exists so that a claim standing on them can say
     what the structure is with a receipt behind it.
+
+    An order is a property of a *stationary point*, on a surface, from a
+    Hessian taken at a geometry. The count of imaginary modes was the
+    whole of it until this round, and a count alone certified a structure
+    that is not stationary at all: the archived ``water_stretched_hess``
+    -- three real modes at max|g| = 0.0185 Eh/Bohr, forty-one times
+    geomeTRIC's own criterion, which the host's sensor flags on that very
+    artifact -- was certified order 0, "a minimum". Live, a UHF/3-21G
+    methoxy saddle evaluated at B3LYP/def2-SVP carried one imaginary mode
+    at 0.0485 Eh/Bohr and its claim of order 1 was accepted (CUHK
+    g5-methoxy, 2026-09-20). So the receipt names what the order stands
+    on -- the structure, the surface, and the gradient there -- and the
+    three fields are omitted from the digest body when the host cannot
+    determine them, so every characterisation minted before this verifies
+    unchanged.
     """
 
     schema_version: str
@@ -4090,6 +4105,23 @@ class StationaryPointCharacterisationV1:
     #: Omitted from the digest body when absent, so a characterisation of
     #: a true minimum verifies under the same arithmetic.
     lowest_imaginary_cm_1: float | None = None
+    #: The structure this spectrum belongs to, as the digest of its own
+    #: element order and Cartesian coordinates: what the order is a claim
+    #: *about*. Absent where the reader serves no geometry.
+    geometry_sha256: str = ""
+    #: The electronic surface that structure and its curvature are on, as
+    #: the reader's own comparable token. Empty where the result records
+    #: no surface identity -- a pre-v6 artifact, a log whose reader cannot
+    #: say -- and an empty token is never read as agreement with another.
+    surface_id: str = ""
+    #: Whether the point is stationary at all: ``stationary`` (measured,
+    #: at or below geomeTRIC's convergence_gmax) or ``unmeasured`` (no
+    #: reader on this program declares a gradient bound to this one
+    #: structure). A measured gradient above the criterion never reaches a
+    #: receipt: the builder refuses there.
+    stationarity: str = ""
+    #: The number behind that word, when it was measured.
+    max_abs_gradient_eh_per_bohr: float | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -4107,6 +4139,17 @@ class StationaryPointCharacterisationV1:
             require_sha256(self.anomaly_sha256, "anomaly_sha256")
         if self.order_claimed < 0 or self.observed_imaginary_modes < 0:
             raise ContractError("a stationary point order is non-negative")
+        if self.geometry_sha256:
+            require_sha256(self.geometry_sha256, "geometry_sha256")
+        if self.stationarity and self.stationarity not in (
+            "stationary",
+            "unmeasured",
+        ):
+            raise ContractError(
+                "stationarity is 'stationary' or 'unmeasured'; a measured "
+                "gradient above the optimiser's criterion is refused rather "
+                "than recorded as an order"
+            )
         if self.receipt_sha256 != canonical_sha256(self._body()):
             raise ContractError(
                 "stationary point characterisation digest mismatch"
@@ -4124,6 +4167,18 @@ class StationaryPointCharacterisationV1:
         }
         if self.lowest_imaginary_cm_1 is not None:
             body["lowest_imaginary_cm_1"] = self.lowest_imaginary_cm_1
+        # Each of these enters the digest only where the host determined
+        # it, for the reason ``lowest_imaginary_cm_1`` already does: a
+        # receipt minted before this round carries none of them and must
+        # keep verifying under the same arithmetic.
+        for name in ("geometry_sha256", "surface_id", "stationarity"):
+            value = getattr(self, name)
+            if value:
+                body[name] = value
+        if self.max_abs_gradient_eh_per_bohr is not None:
+            body["max_abs_gradient_eh_per_bohr"] = (
+                self.max_abs_gradient_eh_per_bohr
+            )
         return body
 
 
@@ -4135,18 +4190,33 @@ def build_stationary_point_characterisation(
     node_id: str = "",
     anomaly_sha256: str = "",
 ) -> StationaryPointCharacterisationV1:
-    """Check a claimed stationary-point order against the printed modes.
+    """Check a claimed stationary-point order against what it stands on.
 
     The host owns the arithmetic and the convention; the session owns the
     claim. A statement the frequencies do not support is refused here,
     naming both numbers, and nothing about the node's own verdict moves
     either way.
+
+    A count is not an order. The order of a stationary point is a
+    statement about a geometry, on a surface, from a Hessian taken there,
+    at a gradient that says the point is stationary at all -- so the
+    gradient is read through the one reader function that answers it and
+    a measured gradient above the optimiser's own criterion is refused,
+    with the number, the criterion and the routes that remain. Nothing
+    about the *result* moves: its numbers stay readable and deliverable,
+    and a Hessian off a stationary point stays a legitimate thing to have
+    asked for (the registered ``hess_stationarity_gradient`` ruling
+    governs the verdict; this governs the host saying what the structure
+    is). Where no reader on this program declares a gradient bound to the
+    structure the spectrum belongs to, the receipt says ``unmeasured``
+    and certification proceeds exactly as it did before.
     """
 
     from chemsmart.agent.terminal_states import (
+        HESS_STATIONARITY_GRADIENT_EH_PER_BOHR,
         consequential_imaginary_mode_count,
     )
-    from chemsmart.analysis.result_readers import reader_for
+    from chemsmart.analysis.result_readers import reader_for, surface_token
 
     normalized = require_identifier(str(program).strip().lower(), "program")
     reader = reader_for(normalized)
@@ -4178,7 +4248,34 @@ def build_stationary_point_characterisation(
             f"{int(order_claimed)}; the order a structure has is what its "
             "own printed frequencies say"
         )
-    imaginary = [value for value in frequencies if value < -20.0]
+    gradient = reader.stationarity_gradient_for_output(output)
+    if (
+        gradient is not None
+        and gradient > HESS_STATIONARITY_GRADIENT_EH_PER_BOHR
+    ):
+        raise RoutedContractError(
+            gate="result.order_needs_a_stationary_point",
+            invariant=(
+                "the order of a stationary point is a property of a "
+                "stationary point."
+            ),
+            diagnosis=(
+                f"the largest gradient component at this geometry is "
+                f"{gradient:.4g} Eh/Bohr, above the optimiser's own "
+                f"criterion of {HESS_STATIONARITY_GRADIENT_EH_PER_BOHR:g} "
+                f"(geomeTRIC convergence_gmax), so this structure is not a "
+                f"stationary point of this surface and has no order; the "
+                f"{observed} mode(s) below -20 cm^-1 are the curvature "
+                "there, which is a different statement."
+            ),
+            route=(
+                "the spectrum and every other number on this result stay "
+                "readable and deliverable as the curvature at a "
+                "non-stationary geometry -- say so and they are yours. To "
+                "certify an order, relax the structure on this same "
+                "surface and take the Hessian at what that reaches."
+            ),
+        )
     body = {
         "schema_version": "chemsmart.stationary-point-characterisation.v1",
         "result_artifact_sha256": result_artifact.sha256,
@@ -4188,11 +4285,53 @@ def build_stationary_point_characterisation(
         "observed_imaginary_modes": int(observed),
         "anomaly_sha256": anomaly_sha256,
     }
+    imaginary = [value for value in frequencies if value < -20.0]
     lowest = float(f"{min(imaginary):.2f}") if imaginary else None
     if lowest is not None:
         body["lowest_imaginary_cm_1"] = lowest
+    # What the order is a claim about: which structure, which surface,
+    # and whether the point is stationary. Each is written only where the
+    # host determined it, so a program whose reader says nothing yields
+    # exactly the receipt it always did.
+    positions = _characterised_geometry_digest(reader, output)
+    if positions:
+        body["geometry_sha256"] = positions
+    try:
+        surface = reader.surface_for_output(output)
+    except Exception:  # noqa: BLE001 - a reader without an identity
+        surface = None
+    token = surface_token(surface) if surface else ""
+    if token:
+        body["surface_id"] = token
+    body["stationarity"] = "unmeasured" if gradient is None else "stationary"
+    if gradient is not None:
+        body["max_abs_gradient_eh_per_bohr"] = float(f"{gradient:.6g}")
     return StationaryPointCharacterisationV1(
         **body, receipt_sha256=canonical_sha256(body)
+    )
+
+
+def _characterised_geometry_digest(reader: Any, output: Any) -> str:
+    """The digest of the structure a result's spectrum belongs to.
+
+    Canonical bytes rather than a formatted table: the element order and
+    the coordinates at full precision, so the same structure read twice
+    gives one digest and a moved atom gives another. A reader that serves
+    no geometry yields "", which the receipt omits.
+    """
+
+    try:
+        symbols = tuple(str(item) for item in output.chemical_symbols)
+        positions = tuple(
+            tuple(float(value) for value in row)
+            for row in reader.read(output, "positions")[0]
+        )
+    except Exception:  # noqa: BLE001 - no geometry is an absence
+        return ""
+    if not symbols or len(symbols) != len(positions):
+        return ""
+    return canonical_sha256(
+        {"symbols": list(symbols), "positions": [list(r) for r in positions]}
     )
 
 

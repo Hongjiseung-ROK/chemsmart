@@ -73,8 +73,11 @@ def _settings(case: str, **overrides) -> PySCFJobSettings:
         "basis": spec["basis"],
         "charge": int(spec["charge"]),
         "multiplicity": int(spec["multiplicity"]),
-        "opt_maxsteps": int(spec["opt_maxsteps"]),
     }
+    if spec.get("opt_maxsteps") is not None:
+        values["opt_maxsteps"] = int(spec["opt_maxsteps"])
+    if spec.get("irc_direction"):
+        values["irc_direction"] = str(spec["irc_direction"])
     if spec.get("xc"):
         values["functional"] = "b3lyp"
     else:
