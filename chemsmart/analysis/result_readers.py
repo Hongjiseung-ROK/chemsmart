@@ -31,6 +31,7 @@ from chemsmart.io.molecules.perception import (
 )
 
 __all__ = [
+    "DECLARED_SELECTORS",
     "RESULT_READERS",
     "MissingQuantityError",
     "ResultReaderV1",
@@ -40,6 +41,7 @@ __all__ = [
     "registered_reader_programs",
     "registered_reader_selectors",
     "atom_resolved_selector_metadata",
+    "merge_selector_declarations",
 ]
 
 
@@ -1123,6 +1125,21 @@ class ResultReaderV1:
     #: chemical judgement. Declaring it lets a consumer ask for the role
     #: it needs and be refused rather than silently served another.
     selector_structural_states: tuple[tuple[str, str], ...] = ()
+    #: Selectors this reader *introduces* to the shared vocabulary, as
+    #: ``((selector, unit, dimension), ...)``.  A selector several programs
+    #: already serve stays in the shared tables below; one that only this
+    #: program's parser can answer is declared here, beside the accessor
+    #: that reads it, so adding it is an edit to this reader and to nothing
+    #: else.  ``merge_selector_declarations`` folds these into the shared
+    #: tables and refuses a unit or dimension another declaration disagrees
+    #: with: one selector name has one physical meaning on every program.
+    selector_declarations: tuple[tuple[str, str, str], ...] = ()
+    #: Atom-resolved metadata for a selector this reader introduces, as
+    #: ``((selector, ((key, value), ...)), ...)`` -- the same record
+    #: ``atom_resolved_selector_metadata`` answers for the shared ones.
+    atom_resolved_declarations: tuple[
+        tuple[str, tuple[tuple[str, str], ...]], ...
+    ] = ()
     #: Native program outputs must prove normal termination.  A standalone
     #: geometry artifact is data rather than an engine run, so that format can
     #: opt out while retaining the same typed quantity path.
@@ -4443,6 +4460,66 @@ _SELECTOR_DIMENSIONS = {
     "solvent": "DIMENSIONLESS",
     "wiberg_bond_orders": "DIMENSIONLESS",
 }
+
+
+def merge_selector_declarations(
+    readers: Mapping[str, ResultReaderV1],
+    *,
+    units: dict[str, str],
+    dimensions: dict[str, str],
+    atom_metadata: dict[str, Mapping[str, str]],
+) -> frozenset[str]:
+    """Fold what each reader introduces into the shared selector vocabulary.
+
+    A new selector used to be four edits in three flat tables that every
+    program shares -- unit, dimension, atom metadata and the request
+    gate's set -- so two programs gaining a selector each at the same
+    time edited the same lines.  A reader now declares what it introduces
+    beside the accessor that reads it, and this is the one place the
+    declarations meet the shared tables.
+
+    It refuses rather than overwrites: a selector name carries one unit
+    and one dimension on every program, which the flat tables enforced
+    only by having one line per name.
+    """
+
+    declared: set[str] = set()
+    for program, reader in readers.items():
+        for selector, unit, dimension in reader.selector_declarations:
+            for table, value, word in (
+                (units, unit, "unit"),
+                (dimensions, dimension, "dimension"),
+            ):
+                known = table.get(selector)
+                if known is not None and known != value:
+                    raise ValueError(
+                        f"{program} declares {word} {value!r} for selector "
+                        f"{selector!r}, which the shared vocabulary already "
+                        f"gives as {known!r}; one selector name has one "
+                        f"{word} on every program"
+                    )
+                table[selector] = value
+            declared.add(selector)
+        for selector, pairs in reader.atom_resolved_declarations:
+            record = dict(pairs)
+            known_record = atom_metadata.get(selector)
+            if known_record is not None and dict(known_record) != record:
+                raise ValueError(
+                    f"{program} declares atom-resolved metadata for "
+                    f"{selector!r} that disagrees with the shared record"
+                )
+            atom_metadata[selector] = record
+    return frozenset(declared)
+
+
+#: Selector names the readers introduced themselves.  The request gate
+#: admits them beside the shared set (``result_quantities.supported_selectors``).
+DECLARED_SELECTORS = merge_selector_declarations(
+    RESULT_READERS,
+    units=SELECTOR_UNITS,
+    dimensions=_SELECTOR_DIMENSIONS,
+    atom_metadata=_ATOM_RESOLVED_SELECTOR_METADATA,  # type: ignore[arg-type]
+)
 
 _TEXT_SELECTORS = frozenset(
     {

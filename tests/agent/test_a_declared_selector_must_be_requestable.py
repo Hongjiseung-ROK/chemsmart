@@ -20,7 +20,7 @@ import pytest
 
 from chemsmart.analysis.result_quantities import (
     SUPPORTED_PYSCF_SELECTORS,
-    SUPPORTED_SELECTORS,
+    supported_selectors,
     QuantitySelectorV1,
 )
 from chemsmart.analysis.result_readers import (
@@ -50,7 +50,7 @@ def test_every_declared_selector_can_be_requested():
     unreachable = {
         selector: sites
         for selector, sites in sorted(declared.items())
-        if selector not in SUPPORTED_SELECTORS
+        if selector not in supported_selectors()
     }
     assert not unreachable, (
         "these selectors are declared for a jobtype but cannot be requested: "
@@ -145,7 +145,7 @@ def test_every_accessor_is_also_requestable():
     accessors = set()
     for reader in RESULT_READERS.values():
         accessors |= set(reader.accessors)
-    unreachable = sorted(accessors - set(SUPPORTED_SELECTORS))
+    unreachable = sorted(accessors - set(supported_selectors()))
     assert not unreachable, (
         "these reader accessors exist but could not be requested if they "
         f"were declared: {unreachable}"

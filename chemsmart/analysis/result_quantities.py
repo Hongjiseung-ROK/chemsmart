@@ -361,6 +361,22 @@ _IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{0,127}$")
 _SUPPORTED_PYSCF_RESULT_CONTRACTS = SUPPORTED_RESULT_CONTRACT_VERSIONS
 
 
+def supported_selectors() -> frozenset[str]:
+    """Every selector a request may name: the shared set and what readers add.
+
+    ``SUPPORTED_SELECTORS`` is the vocabulary several programs share.  A
+    selector only one program's parser can answer is declared on that
+    program's reader (``ResultReaderV1.selector_declarations``) and joins the
+    gate here, so introducing it is not an edit to a set every program owns.
+    Imported lazily, as the other reader lookups in this module are: the
+    readers import this module's types while they are being built.
+    """
+
+    from chemsmart.analysis.result_readers import DECLARED_SELECTORS
+
+    return SUPPORTED_SELECTORS | DECLARED_SELECTORS
+
+
 class QuantityContractError(ValueError):
     """Raised when a quantity request or result violates its typed contract."""
 
@@ -550,13 +566,13 @@ class QuantitySelectorV1:
 
     def __post_init__(self) -> None:
         _require_identifier(self.quantity_id, "quantity_id")
-        if self.selector not in SUPPORTED_SELECTORS:
+        if self.selector not in supported_selectors():
             elsewhere = QUANTITIES_FROM_ANOTHER_TOOL.get(self.selector)
             detail = (
                 f"; that quantity is produced by {elsewhere}, not by result "
                 "extraction"
                 if elsewhere
-                else f"; supported selectors: {sorted(SUPPORTED_SELECTORS)}"
+                else f"; supported selectors: {sorted(supported_selectors())}"
             )
             raise QuantityContractError(
                 f"unsupported quantity selector: {self.selector!r}{detail}"
@@ -895,7 +911,7 @@ class QuantityExtractionReceiptV1:
                 "records"
             )
         for selector, filename, sha256 in native_evidence:
-            if selector not in SUPPORTED_SELECTORS:
+            if selector not in supported_selectors():
                 raise QuantityContractError(
                     f"native evidence names unsupported selector {selector!r}"
                 )

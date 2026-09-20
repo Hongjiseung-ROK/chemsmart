@@ -24,8 +24,8 @@ from chemsmart.analysis.quantity_expressions import (
     OPERATION_DESCRIPTIONS,
 )
 from chemsmart.analysis.result_quantities import (
-    SUPPORTED_SELECTORS,
     derivable_thermochemistry_quantities,
+    supported_selectors,
 )
 from chemsmart.analysis.result_readers import (
     registered_reader_programs,
@@ -187,7 +187,7 @@ def _legacy_tool_definitions(
     }
     result_selector = {
         "type": "string",
-        "enum": sorted(SUPPORTED_SELECTORS),
+        "enum": sorted(supported_selectors()),
         "description": (
             "Program-neutral semantic selector. Registered parser support is "
             "checked on the bound artifact; unavailable program/result evidence "
