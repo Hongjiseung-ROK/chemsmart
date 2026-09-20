@@ -169,11 +169,15 @@ HOST_POLICIES: tuple[tuple[str, str, str, bool], ...] = (
     ),
     (
         "hess_stationarity_gradient",
-        "chemsmart.agent.tool_runtime.HESS_STATIONARITY_GRADIENT_EH_PER_BOHR",
+        "chemsmart.agent.terminal_states."
+        "HESS_STATIONARITY_GRADIENT_EH_PER_BOHR",
         "4.5e-4 Eh/Bohr, geomeTRIC's convergence_gmax: a Hessian computed "
         "at a geometry whose largest gradient component exceeds the "
         "optimiser's own criterion is an anomaly observation with its "
-        "number, never a refusal or a verdict (owner ruling 2026-09-12)",
+        "number, never a refusal or a verdict on the result (owner "
+        "ruling 2026-09-12); the same number refuses the separate act of "
+        "calling that structure a stationary point of any order, because "
+        "an order is a property of a stationary point",
         False,
     ),
     (

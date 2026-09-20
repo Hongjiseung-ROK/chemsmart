@@ -109,6 +109,27 @@ _UNDIAGNOSED_FAILURE_CLASSES = frozenset(
 CONSEQUENTIAL_IMAGINARY_MODE_CM1 = -20.0
 
 
+#: geomeTRIC's ``convergence_gmax`` (Eh/Bohr), the optimiser's own word
+#: for "the gradient is zero".  It lives here, beside the imaginary-mode
+#: convention, because both are program-neutral physics the host reports
+#: facts through, and two organs now read this one: the run sensor that
+#: raises ``stationary_point.gradient_above_optimizer_criterion`` and the
+#: characterisation that says what a structure is.
+#:
+#: A Hessian computed at a geometry whose gradient exceeds it is an
+#: observation with standing and **never** a verdict on the run: PySCF's
+#: harmonic analysis projects rotations out, so the projected spectrum at
+#: a non-stationary point can be entirely real (the archived
+#: stretched-water Hessian: three real modes at max|g| = 0.0185 Eh/Bohr),
+#: and asking for a Hessian off a stationary point is legitimate (owner
+#: ruling, 2026-09-12).  What that ruling governs is the result's
+#: validity.  Calling such a point "a minimum" or "a first-order saddle"
+#: is a different act -- a host-rendered claim about a structure -- and it
+#: is refused, because an order is a property of a *stationary* point and
+#: the numbers stay readable either way.
+HESS_STATIONARITY_GRADIENT_EH_PER_BOHR = 4.5e-4
+
+
 #: How many imaginary modes each job type promises: one for a
 #: transition-state search, none for a minimum or a Hessian, and no
 #: promise at all for a job type that is absent here -- a scan samples a

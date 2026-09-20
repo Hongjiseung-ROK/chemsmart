@@ -913,6 +913,30 @@ def _stability_answer(question, *, rotation_space=None, reason=None):
     return answer
 
 
+def _pyscf_stationarity_gradient(output: Any) -> float | None:
+    """max|g| at the geometry a PySCF Hessian was taken on, in Eh/Bohr.
+
+    ``results/forces`` is the negative gradient the ``hess`` stage recorded
+    at the one structure it differentiated, and ``forces_unit`` declares
+    the unit; both are checked here so a future contract that stores
+    another unit is an absence rather than a number read as Eh/Bohr.  A
+    stage that recorded no gradient -- a single point, an optimisation --
+    answers nothing, which is what "the host cannot say" means.
+    """
+
+    import numpy as np
+
+    if str(getattr(output, "forces_unit", "") or "") != "Eh/Bohr":
+        return None
+    forces = getattr(output, "forces", None)
+    if forces is None:
+        return None
+    values = np.asarray(forces, dtype=float)
+    if not values.size or not bool(np.isfinite(values).all()):
+        return None
+    return float(np.max(np.abs(values)))
+
+
 def _pyscf_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
     """What PySCF's own analysis said about the reference this result
     stands on, or ``None`` when nothing was recorded.
@@ -1148,6 +1172,43 @@ class ResultReaderV1:
     resolve_reference_diagnostics: (
         Callable[[Any], Mapping[str, Any] | None] | None
     ) = None
+    #: The largest absolute Cartesian gradient component, in Eh/Bohr, at
+    #: *the structure this result's spectrum belongs to* -- the one number
+    #: that says whether the point a Hessian was taken at is stationary at
+    #: all.  It is not a selector: it enters no arithmetic and answers a
+    #: question about a geometry rather than carrying a quantity from it.
+    #:
+    #: A reader declares it only where the result records a gradient bound
+    #: to that one structure.  ORCA's and Gaussian's ``forces`` are a list
+    #: of the gradient at *every* optimisation step, so a maximum over them
+    #: belongs to no single geometry and those readers answer nothing here
+    #: rather than a number read from the wrong structure.  ``None`` is an
+    #: absence, never zero, and no organ reads it as stationarity.
+    resolve_stationarity_gradient: Callable[[Any], float | None] | None = None
+
+    def stationarity_gradient_for_output(self, output: Any) -> float | None:
+        """max|g| (Eh/Bohr) where this result's spectrum lives, or None.
+
+        One function, because two organs ask it: the run sensor that
+        raises ``stationary_point.gradient_above_optimizer_criterion`` and
+        the characterisation that refuses to call a non-stationary point a
+        stationary point of any order.  They had each reached into the
+        reader's attributes with their own unit guard.
+        """
+
+        if self.resolve_stationarity_gradient is None:
+            return None
+        try:
+            value = self.resolve_stationarity_gradient(output)
+        except (
+            Exception
+        ):  # noqa: BLE001 - a reader that cannot say says nothing
+            return None
+        if value is None:
+            return None
+        value = float(value)
+        return value if value == value else None
+
     def surface_for_output(self, output: Any) -> Mapping[str, Any] | None:
         """The surface this result is on, or None when unknowable."""
 
@@ -4272,6 +4333,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         resolve_level=_pyscf_level,
         resolve_surface=lambda output: getattr(output, "surface", None),
         resolve_reference_diagnostics=_pyscf_reference_diagnostics,
+        resolve_stationarity_gradient=_pyscf_stationarity_gradient,
         admit_for_analysis=_pyscf_admit_for_analysis,
     ),
     "xyz": ResultReaderV1(
