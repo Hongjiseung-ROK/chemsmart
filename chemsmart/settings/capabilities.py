@@ -610,6 +610,32 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                     jobtype="modred",
                     execution_supported=False,
                 ),
+                # Every Gaussian pair stays preview-only, and the reason is
+                # now a measurement rather than an absence of one.
+                #
+                # Gaussian 16 C.02 had never been driven through ChemSmart on
+                # any target. Slurm jobs 2142374 and 2142393 on CUHK Charles
+                # ran fifteen small jobs over every declared job type through
+                # `chemsmart run`: a distorted hydrogen peroxide relaxed to
+                # O-O 1.4557 A (experiment 1.452) with six real modes, the
+                # HCN/HNC saddle carried one imaginary mode at -1146.1 cm^-1
+                # whose IRC branches reach HNC and HCN. So the engine path,
+                # the server profile's GAUSSIAN block and the readers hold on
+                # this target.
+                #
+                # What has not happened is an approved Agent execution. Two
+                # goals (2142394, 2142397) planned a Gaussian opt feeding a
+                # Gaussian sp, promoted and validated both project YAMLs,
+                # compiled, safely previewed, program-validated and
+                # preflighted with zero findings, and built the execution
+                # review -- and then settled `execution_wave_decision_pending`
+                # because neither session called the tool that decides a wave.
+                # `select_execution_wave` was in neither session's callable
+                # set (29 and 35 capabilities), and the catalogue search for
+                # "execute" returns `inspect_workflow_draft` and `about_pyscf`
+                # rather than it. That is a discovery gap in a shared layer,
+                # not a fact about Gaussian -- and it is exactly why the flag
+                # must follow an approved run rather than a green preview.
                 EngineJobCapability(
                     engine="cpu",
                     jobtype="opt",
