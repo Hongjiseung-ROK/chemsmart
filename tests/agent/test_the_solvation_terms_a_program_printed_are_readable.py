@@ -174,21 +174,52 @@ def test_declared_only_where_the_meaning_was_audited():
             assert selector not in declared[jobtype], (jobtype, selector)
 
 
-def test_only_orca_declares_them():
-    """No other program is auditable here, so none of them claims these.
+#: A program declaring a solvation term names the archived result whose
+#: bytes it was read from.  The entry is the evidence: a program with no
+#: solvated fixture on this tree cannot declare the terms, and a program
+#: that gains one adds its own row.  This replaces "only ORCA declares
+#: them", whose stated reason for withholding xTB -- that every archived
+#: xTB run has solvation switched off -- was false when it was written:
+#: ``p_benzyne_{sp,opt}_alpb_toluene`` arrived with the xTB parser itself
+#: (855dc848) and are GFN2-xTB/ALPB(toluene) runs.
+_ARCHIVED_SOLVATED_RESULT: dict[str, str] = {
+    "orca": "tests/data/ORCATests/outputs/phenol_pka_B_sp.out",
+}
 
-    xTB already parses a richer decomposition than ORCA and is withheld for a
-    different reason: every archived run has solvation off, so there is
-    nothing to exercise. Gaussian prints its SMD-CDS term but no archived log
-    carries one, and PySCF folds solvation into the total energy with no
-    decomposition in its results contract.
+
+def test_declared_only_where_an_archived_solvated_result_exercises_them():
+    """A term is declared where its meaning was audited, and nowhere else.
+
+    Gaussian prints its SMD-CDS term but no archived log carries one, and
+    PySCF folds solvation into the total energy with no decomposition in
+    its results contract, so neither declares anything here.
     """
 
     for program, reader in RESULT_READERS.items():
-        if program == "orca":
+        declared = {
+            selector
+            for selector in _SOLVATION_SELECTORS
+            if selector in reader.accessors
+        }
+        fixture = _ARCHIVED_SOLVATED_RESULT.get(program)
+        if fixture is None:
+            assert not declared, (program, sorted(declared))
             continue
-        for selector in _SOLVATION_SELECTORS:
-            assert selector not in reader.accessors, (program, selector)
+        assert declared, program
+        output = reader.open_output(Path(fixture))
+        model, _ = reader.read(output, "solvation_model")
+        assert model != "gas_phase", program
+        # Which of the terms a solvated result carries is how two models
+        # differ, so one readable term is the evidence, not all of them.
+        resolved = set()
+        for selector in declared:
+            try:
+                value, unit = reader.read(output, selector)
+            except MissingQuantityError:
+                continue
+            assert value is not None and unit is not None, (program, selector)
+            resolved.add(selector)
+        assert resolved, (program, sorted(declared))
 
 
 def test_the_solvent_is_declared_wherever_the_model_is():
