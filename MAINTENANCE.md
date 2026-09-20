@@ -529,3 +529,52 @@ ceiling.
 **What a broad loader costs.** Session C loaded 37 entries and called 5
 of them. The initial context is small and scale-independent either way;
 the steady state of a long session is not. Measure both.
+
+## Decomposing an aggregate tool without a second planner
+
+**What we did.** Split the 27.9 KB `plan_scientific_workflow` into one
+constructor per scientific act plus a slim finaliser, with a host-owned
+draft in between, and kept every global check and every digest in the
+handler that already produced them.
+
+**The property to establish first, before anything else.** A workflow
+drafted stage by stage and the same nodes sent in one payload must give
+byte-identical canonical digests. Resume and the plan-reproduction rule
+key on them, so a difference is a blocker and not a design question. The
+way to get it for free is not to re-implement: the finaliser assembles
+the exact argument set the aggregate tool took and calls the same
+method, renamed. Write that witness before writing the constructors.
+
+**A dataclass that validates its own digest cannot be edited in steps.**
+`replace(draft, nodes=...)` runs `__post_init__`, which checks the
+digest against the nodes -- so an intermediate object carrying the
+parent's digest beside the child's nodes is not a legal draft and the
+first six witnesses failed on it. Build each revision in one
+construction.
+
+**A projection changes what "stated once" means.** The guard that every
+guidance block is serialised once was written while one tool owned every
+node schema. Ten tools take a `workflow_id`, and a rule on the tool
+whose argument it governs is the rule being where CONDUCT says it
+belongs. The guard now asserts once *per field it governs*, which still
+catches a block stated twice in one tool or drifting onto a tool that
+has nothing it governs.
+
+**What it cost, measured.** Initial context 45,150 -> 20,170 B, because
+the planner was 62% of it. But the ten tools total 68,579 B against
+27,920: six analysis constructors repeat the same `inputs`, `outputs`
+and `dependencies` prose, about 5.1 KB each. Live (four planning-only
+sessions, production profile): a thermochemistry task ended at 89 KB of
+model-visible schema with three constructors (28 KB) never loaded; the
+full six-stage reaction-energy task ended at 140 KB. On one identical
+request recorded in both legs, end-of-session schema fell 159 -> 134 KB
+and the share of loaded entries ever called rose from 10% to 27%, while
+provider turns rose 9 -> 11 and searches 5 -> 12. Decomposition buys
+per-task exposure and costs turns; it is not free and the numbers are
+not a quality claim.
+
+**The next reduction, named and not taken.** The shared analysis-stage
+prose in one family reference, which the catalogue's family-reference
+mechanism already loads with the first act of a family. Splitting six
+copies of earned sentences by hand is how provenance is lost, so it
+wants its own commit and its own reading.

@@ -362,6 +362,14 @@ asks for the call again, so no call runs against a schema that was not readable 
 the catalogue does not hold is refused with the search tool named. The size of the initial context does not grow as the
 catalogue grows.
 
+A workflow is built one scientific act at a time. The agent adds calculation stages, and analysis stages of one kind at a
+time -- reading quantities out of a result, deriving thermochemistry under stated conditions, computing a derived quantity,
+judging one against declared rules, rendering a claim, or recording an analysis this release cannot perform -- and each
+addition accumulates into a draft the host owns. Nothing in a draft has been checked across stages, nothing is reviewable
+and nothing can execute from it. ``plan_scientific_workflow`` checks the whole workflow and is the only way out of a
+draft; a refusal there names the offending stage and keeps the rest, so a repair re-issues one stage rather than the
+whole plan. Once finalised, the workflow is revised exactly as before.
+
 Finding a capability is not permission to use it on a calculation. Project validation, the displayed workflow, the
 single human approval, the execution envelope and every result verdict are unchanged by what a session discovered, and
 discovery is recorded: each search, its query, what came back, what was loaded, and by which backend.

@@ -237,6 +237,24 @@ nodes:
     note: "Live D issued three searches that returned no new matches; all three were answered correctly, with the tool it wanted listed under already_available. It searched again anyway. Zero matches beside a populated already_available and zero beside an empty one are different answers and the reply gave them one sentence."
     falsifier: "A session meets a zero-match search whose already_available names what it needs and uses it without searching again."
 
+  - id: result.a_decomposed_planner_keeps_its_digests
+    kind: result
+    source: {path: ".agents/charter/architecture.md", anchor: "a workflow drafted stage by stage"}
+    note: "The aggregate planner became one constructor per scientific act plus a finaliser over a host-owned draft. The finaliser assembles the argument set the aggregate tool took and calls the same handler, so plan_sha256, draft_sha256 and the V2 plan digest are byte-identical whichever surface authored the nodes -- which is what resume and plan_reproduction_rule key on."
+    falsifier: "The same nodes drafted stage by stage and sent in one payload produce a different canonical digest, or a global check stops firing at the finaliser."
+
+  - id: result.one_analysis_kind_loads_only_its_own_schema
+    kind: result
+    source: {path: MAINTENANCE.md, anchor: "a thermochemistry task ended at 89 KB"}
+    note: "Live L2 (2026-09-21, planning-only): a Gibbs-free-energy task loaded plan_thermochemistry, plan_calculation_stages, plan_result_extraction and plan_claim_rendering and never loaded plan_quantity_expression, plan_scientific_validation or plan_unsupported_external -- 28,368 B of schema that the aggregate payload made every session read."
+    falsifier: "A task needing one analysis kind loads the schema of a kind it never plans, or the initial context stops being independent of the number of constructors."
+
+  - id: negative.decomposition_costs_turns_and_repeats_prose
+    kind: negative_result
+    source: {path: MAINTENANCE.md, anchor: "Decomposition buys per-task exposure and costs turns"}
+    note: "Ten tools total 68,579 B against the aggregate's 27,920, because six analysis constructors repeat ~5.1 KB of shared inputs/outputs/dependencies prose; a session needing every kind loads more than before. On one identical request across both legs, turns rose 9 -> 11 and searches 5 -> 12 while end-of-session schema fell 159 -> 134 KB."
+    falsifier: "Moving the shared field guidance into the analysis family reference removes the repetition without losing an earned sentence, or a matched-request comparison shows no turn cost."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).

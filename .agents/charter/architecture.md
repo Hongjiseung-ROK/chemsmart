@@ -23,8 +23,37 @@ the rest marked for a provider that searches server-side), and ``eager``
 (everything, the control arm and the floor). The initial context is the
 same size whether the catalogue holds fifty entries or four thousand.
 
+A workflow is authored the same way. The model is the author of every
+scientific choice, and it makes them one coherent act at a time: a
+constructor per calculation stage and per analysis kind -- result
+extraction, thermochemistry, quantity expression, scientific
+validation, claim rendering, and the unsupported analysis a release
+keeps as a finding. Each is a catalogue entry, found by searching, and
+each is a projection of the one node-schema builder onto the fields
+that kind owns, so a task needing thermochemistry never reads the
+expression-node schema. Calls accumulate into one draft the host owns;
+re-issuing a stage's id replaces that stage, and no earlier stage is
+ever resubmitted. A draft runs no whole-workflow check, holds no
+canonical object and grants nothing: it is not executable and not
+reviewable because it exists.
+
+``plan_scientific_workflow`` is the finaliser and the only door out of
+a draft. It is the same handler it always was, fed by the host, so
+unique ids, topological order, producer-is-a-dependency, selector
+coverage, dimensional propagation, required outputs, the engine-call
+budget, excursion ancestry and all three whole-plan digests come out of
+the code that produces them today -- a workflow drafted stage by stage
+and the same nodes sent in one payload are byte-identical, which resume
+and the plan-reproduction rule depend on. A local refusal stores
+nothing; a global refusal names the node and keeps the draft, so a
+repair costs one stage. After a finalise the draft is closed and the
+rules for a reviewed workflow apply unchanged,
+``amend_scientific_workflow`` included.
+
 The model writes every query; the host tokenizes and ranks it and
-classifies nothing. What the host does route on is typed: the kinds the
+classifies nothing. A search offers its whole ranking and loads only
+the head of it: what does not clear the relevance floor is named with a
+one-line summary and is one exact-name call away. What the host does route on is typed: the kinds the
 workspace scan found and a previous run's terminal states promote
 entries before the first request, so the rendered prefix is stable for
 the session, and the planned DAG's own job types, operations and
