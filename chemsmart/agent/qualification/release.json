@@ -207,6 +207,132 @@
       "commit": "85d3badc",
       "date": "2026-09-21",
       "source": "All four sealed goals of the campaign planned a PySCF ts node from ordinary language and executed one: six searches across four molecules, every one validated. g1 ran the chain end to end -- ts (reaching the same HCN/HNC saddle as the direct CLI and as ORCA, C-N 1.1882 / C-H 1.1966 / N-H 1.3977 A) feeding two irc branches that reached HCN and HNC, barriers 47.84 and 34.16 kcal/mol against the direct-CLI references to 0.01. g2 relaxed a supplied Hartree-Fock saddle onto the B3LYP/def2-SVP surface it was asked about (seed max|g| 0.0378 Eh/Bohr there, reached 3.5e-5) and delivered 87.25 kcal/mol -- the route the previous round's methoxy goal did not have. g3 diagnosed two of its own searches converging to non-saddles and built a seed that worked. g4 located the H2O2 cis rotation barrier structure (one imaginary mode, -612.8 cm-1) and delivered 34.72 kJ/mol. No goal settled achieved: g1 and g3 exhausted their revisions, g2 and g4 lost their last two cycles to a provider-transport outage. What the capability did is recorded here; what the goals delivered is not claimed beyond the two barriers above."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:sp:solvation_model",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:sp:solvent",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:sp:solvation_free_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:sp:solvation_electrostatic_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:sp:xtb_solvation_sasa_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:sp:xtb_solvation_hydrogen_bond_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:sp:xtb_solvation_shift_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:solvation_model",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:solvent",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:solvation_free_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:solvation_electrostatic_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:xtb_solvation_sasa_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:xtb_solvation_hydrogen_bond_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:xtb_solvation_shift_energy",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "commit": "88a6051d",
+      "date": "2026-09-21",
+      "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
     }
   ]
 }

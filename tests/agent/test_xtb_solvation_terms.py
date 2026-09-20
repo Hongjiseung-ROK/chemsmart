@@ -117,6 +117,11 @@ def test_a_solvated_result_reports_the_model_the_solvent_and_the_cost():
 
 
 @pytest.mark.capability("selector:xtb:opt:solvation_free_energy")
+@pytest.mark.capability("selector:xtb:opt:solvation_electrostatic_energy")
+@pytest.mark.capability("selector:xtb:opt:xtb_solvation_sasa_energy")
+@pytest.mark.capability("selector:xtb:opt:xtb_solvation_hydrogen_bond_energy")
+@pytest.mark.capability("selector:xtb:opt:xtb_solvation_shift_energy")
+@pytest.mark.capability("selector:xtb:opt:solvation_model")
 @pytest.mark.capability("selector:xtb:opt:solvent")
 def test_an_optimisation_reports_the_solvation_it_reached():
     """The terms follow the last SUMMARY block, not the first."""
@@ -124,6 +129,7 @@ def test_an_optimisation_reports_the_solvation_it_reached():
     receipt = _extract(_BENZYNE_OPT, "benzyne-opt")
     assert receipt.status == "extracted"
     delivered = {item.quantity_id: item.value for item in receipt.quantities}
+    assert delivered["solvation_model"] == "alpb"
     assert delivered["solvent"] == "toluene"
     assert delivered[_TOTAL] == pytest.approx(
         sum(delivered[name] for name in _PARTS), abs=1e-9

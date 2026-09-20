@@ -273,6 +273,26 @@ nodes:
     note: "Marking wire deferral from 'not callable yet' made the tools array change on every discovery, invalidating the provider's whole cache -- the thing deferral exists to protect. Callable-now grows; deferred-on-the-wire is fixed when the session starts. Eleven witnesses asserted the marking matched the growing set, so they pinned the defect."
     falsifier: "A session's tools array or cache_control position differs between two turns that discovered something in between."
 
+  - id: commit.88a6051d
+    kind: commit
+    commit: "88a6051d"
+    note: xTB - the solvation model, the solvent and the five ALPB/GBSA free-energy terms, declared on the reader beside the accessors that read them.
+  - id: negative.every_archived_xtb_run_has_solvation_off
+    kind: negative_result
+    source: {path: .agents/charter/solvation-and-populations.md, anchor: "every archived xTB run has solvation switched off"}
+    note: "False when written, and it withheld a whole surface. tests/data/XTBTests/outputs/p_benzyne_sp_alpb_toluene and p_benzyne_opt_alpb_toluene are GFN2-xTB/ALPB(toluene) runs whose SUMMARY blocks print Gsolv, Gelec, Gsasa, Ghb and Gshift; they arrived in 855dc848 with the xTB parser the sentence was written beside, and nothing had read them. The gate that carried the sentence now asks each declaring reader to name the archived solvated result its meaning was read from (e81b8f1e), and the xTB declaration follows in 88a6051d."
+    falsifier: "No archived xTB result on this tree resolves a solvation_model other than gas_phase."
+  - id: result.xtb_solvation_terms_20260921
+    kind: result
+    commit: "88a6051d"
+    note: "Seven GFN2-xTB runs through the public CLI on CUHK (Slurm 2142381, 2142385) read back through extract_result_quantities. Gsolv equals the sum of its four parts to 5e-18 Eh on every solvated result. ALPB(water) stabilises water by -11.389 kcal/mol and destabilises methane by +0.158, the hydrophilic/hydrophobic sign contrast; the water total is dominated by Ghb (-9.343) and not by Gelec (-3.883), which is the opposite of the expectation basis the live Agent session declared for it. GBSA(water) on the same solute gives -7.044 kcal/mol, so the model name must travel with the number. E(solvated) - E(gas) at the same geometry is -8.753 kcal/mol for water against a reported Gsolv of -11.389, the +2.636 difference being the solute's polarisation cost, and +0.180 against +0.158 for methane, which barely polarises."
+    falsifier: "A solvated xTB result's Gsolv differs from the sum of its printed parts by more than print rounding, or ALPB and GBSA agree on one solute in one solvent, or the aqueous continuum stabilises methane."
+  - id: negative.an_xtb_hessian_matrix_has_no_consumer
+    kind: negative_result
+    commit: "855dc848"
+    note: "XTBHessianFile.hessian is parsed and reaches nothing, and this round did not change that. There is no hessian selector in the shared vocabulary at all -- ORCA's Hessian travels as a FILE over a producer edge, never as a quantity -- and a producer edge needs a live CLI option of the CONSUMING program to receive it: both HESSIAN_CONSUMER_ROLES entries name producer_program orca and consumer_program orca, and the xTB Click group offers no option that reads a Hessian in. A selector would carry a 3Nx3N matrix into an arithmetic that has no operation for it. The honest state is that the matrix is parsed and unreachable, for a structural reason rather than an oversight."
+    falsifier: "A ChemSmart CLI option of any program accepts an externally supplied Turbomole-format Hessian, or a HESSIAN_CONSUMER_ROLES entry names a producer other than orca."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).
@@ -320,3 +340,7 @@ edges:
   - {from: lesson.an_order_is_a_property_of_a_stationary_point, to: negative.mode_count_certified_a_non_stationary_saddle, rel: supersedes}
   - {from: result.an_irc_endpoint_reached_by_minimising, to: result.irc_path_is_not_everywhere_steepest_descent, rel: depends_on}
   - {from: lesson.a_promise_belongs_to_the_structure_not_the_node, to: negative.a_converged_ts_search_can_be_a_minimum, rel: evidenced_by}
+  - {from: commit.88a6051d, to: result.xtb_solvation_terms_20260921, rel: depends_on}
+  - {from: commit.88a6051d, to: negative.every_archived_xtb_run_has_solvation_off, rel: supersedes}
+  - {from: result.xtb_solvation_terms_20260921, to: negative.every_archived_xtb_run_has_solvation_off, rel: evidenced_by, note: "the archived toluene runs proved the sentence false; these live water and methane runs are what the declaration was then qualified on"}
+  - {from: commit.88a6051d, to: negative.an_xtb_hessian_matrix_has_no_consumer, rel: explains, note: "the round that declared the solvation surface looked at the Hessian matrix and recorded why it stays unreachable instead of adding a selector for it"}
