@@ -78,6 +78,38 @@ Remove solvent when the project settings already specify one:
 
    chemsmart sub gaussian -p solv_project -f molecule.xyz -c 0 -m 1 --remove-solvent -a gas opt
 
+How a Completed Output Is Read Back
+===================================
+
+A finished Gaussian log is read back as a result of a particular kind of job,
+and that kind decides which quantities ChemSmart will report from it. The
+route line alone does not decide it, because ``opt=modredundant`` is written
+both for a relaxed scan and for a constrained optimization. ChemSmart reads
+the ModRedundant section Gaussian echoes into the log instead:
+
+-  a row that ends ``S <steps> <step size>`` drives a coordinate, so the log
+   is read as a **scan**, and ChemSmart reports the surface it established --
+   the converged points, each point's own value of the driven coordinate, and
+   the planned and reached point counts;
+
+-  rows that end ``F`` only freeze coordinates, so the log is read as a
+   **constrained optimization**, and ChemSmart reports the single structure it
+   converged on.
+
+The same applies to two other kinds. A fixed-geometry ``TD`` calculation is
+read as an excited-state job rather than a single point, so its transitions
+are reported under their own job type. An IRC written by ``chemsmart`` runs as
+two one-direction calculations, so each log is read as a forward or reverse
+branch, with the path's frames, its endpoints and whether the connectivity
+changed along it.
+
+The structure a run *reached* is reported separately from the coordinates the
+log last printed. An optimization, a transition-state search, a constrained
+optimization and an IRC branch each end on a structure, and that structure can
+be carried into a later ChemSmart calculation. A single point reaches nothing
+beyond the geometry it was given, and a relaxed scan ends on a sampled point
+rather than a stationary one; neither offers a reached structure.
+
 Examples
 ========
 
