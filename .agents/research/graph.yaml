@@ -278,6 +278,11 @@ nodes:
     source: {path: .agents/charter/orca-scan-irc-modred.md, anchor: "ORCA prints it as the IRC"}
     note: "ORCA 6.1.1 on CUHK Charles, HCN -> HNC at B3LYP/def2-SVP (jobs 2142375, 2142379, 2142403). Each single-direction PATH SUMMARY opens on the saddle; the direction-both table opens 45.5 kcal/mol below it. The forward branch descends 33.40 kcal/mol to an HNC endpoint, the backward one 45.47 kcal/mol to HCN, and optimising those two endpoints gives two true minima (lowest real modes 549 and 763 cm^-1) 13.66 kcal/mol apart with a 47.77 kcal/mol barrier from HCN. Both branches stopped 0.71 and 2.31 kcal/mol short of their own minima, which is what irc_converged = 0 said."
     falsifier: "An ORCA IRC branch whose path table's first row is not the structure the log printed, or whose endpoint sidecar does not carry the table's last energy."
+  - id: negative.i_read_the_wrong_hessian_block_by_eye
+    kind: negative_result
+    source: {path: chemsmart/io/orca/output.py, anchor: "A forward scan that returns its"}
+    note: "Reading an OptTS log with grep, I reported -1133.34 cm^-1 as the converged saddle's imaginary mode and put it in a commit message. It is the initial Hessian's, at the guess geometry; ORCA prints two blocks and the converged one is -1121.71 cm^-1, which is what ORCAOutput returns and what the live goal delivered. The reader had this right before I did, by the rule its own docstring states."
+    falsifier: "An ORCA OptTS log whose first printed vibrational block is the one at the converged geometry."
   - id: negative.an_engine_written_sidecar_is_not_a_registered_geometry
     kind: negative_result
     source: {path: chemsmart/agent/execution.py, anchor: "what an engine wrote is evidence the"}
@@ -339,3 +344,4 @@ edges:
   - {from: result.orca_irc_path_and_endpoints_20260921, to: negative.an_engine_written_sidecar_is_not_a_registered_geometry, rel: depends_on, note: "the path had to come from the program's own reader because nothing registers what an engine wrote"}
   - {from: result.orca_irc_path_and_endpoints_20260921, to: lesson.a_path_string_is_not_a_file_identity, rel: depends_on, note: "the three branches ran only after the staging guard stopped comparing path strings"}
   - {from: leaf.saddle.orca_irc_walks_one_direction, to: result.orca_irc_path_and_endpoints_20260921, rel: evidenced_by, note: "the direction-both table opens on an endpoint, not on the saddle; no arm ran without the sentence, so it stays unvalidated"}
+  - {from: negative.i_read_the_wrong_hessian_block_by_eye, to: result.orca_irc_path_and_endpoints_20260921, rel: depends_on, note: "the campaign's own reference numbers were read by eye once and were wrong once"}
