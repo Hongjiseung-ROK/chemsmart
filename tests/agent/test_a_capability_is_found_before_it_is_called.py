@@ -368,3 +368,36 @@ def test_a_human_reviewer_sees_every_catalogue_entry():
         for entry in build_tool_catalogue().entries
         if entry.name not in visible
     ]
+
+
+def test_a_programs_practice_arrives_before_the_plan_it_governs(tmp_path):
+    """An invariant about how to build a DAG must not arrive after it.
+
+    The nine PySCF rules say things like "a PySCF opt carries no
+    frequencies, so a minimum is an opt node then a hess node bound to
+    the validated optimised geometry" -- advice about how to build the
+    workflow, not about how to read it. Surfaced only from a plan that
+    already names pyscf, it would arrive one turn too late. Asking what
+    a program can do is the typed act that names it and the act that
+    precedes the first plan, so it carries the practice.
+    """
+
+    host, _ = _live_host(tmp_path)
+    assert not host.exposure.is_available("about_pyscf")
+
+    host.dispatch(
+        turn_id="protocol-session.turn-1",
+        tool_name="inspect_program",
+        arguments={"program": "pyscf", "jobtype": "opt", "engine": "cpu"},
+    )
+    assert host.exposure.is_available("about_pyscf")
+
+    # And only for the program that was named: this is a typed act, not
+    # a keyword that fires on anything program-shaped.
+    other, _ = _live_host(tmp_path / "other")
+    other.dispatch(
+        turn_id="protocol-session.turn-1",
+        tool_name="inspect_program",
+        arguments={"program": "orca", "jobtype": "opt", "engine": "cpu"},
+    )
+    assert not other.exposure.is_available("about_pyscf")

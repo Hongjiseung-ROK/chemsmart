@@ -3172,8 +3172,21 @@ class CommandCompiledToolHostV1:
             self._reply_observations = ()
         # Every guide this call opened travels back with its body, whether
         # the call itself asked (a leaf tool by name) or the plan did.
-        if tool_name in _PLAN_SHAPED_TOOLS and self.exposure is not None:
-            self._surface_from_plan(turn_id)
+        if self.exposure is not None:
+            if tool_name in _PLAN_SHAPED_TOOLS:
+                self._surface_from_plan(turn_id)
+            elif tool_name == "inspect_program":
+                # Asking what a program can do is a typed act that names
+                # it, and it is the act that *precedes* the first plan --
+                # in 27 of 33 recorded sessions. A program's practice
+                # arriving only once a plan names it would arrive after
+                # the plan it governs: "a PySCF opt carries no
+                # frequencies, so a minimum is an opt node then a hess
+                # node" is advice about how to build the DAG, not about
+                # how to read it.
+                self._surface_from_plan(
+                    turn_id, programs=(str(values.get("program") or ""),)
+                )
         return reply
 
     # -- discovery: finding what exists, and reading it before using it ----
@@ -3397,7 +3410,9 @@ class CommandCompiledToolHostV1:
             ),
         }
 
-    def _surface_from_plan(self, turn_id: str) -> None:
+    def _surface_from_plan(
+        self, turn_id: str, *, programs: Iterable[str] = ()
+    ) -> None:
         """A planned DAG is a typed act, so it may surface references.
 
         The plan names job types, operations and programs the host
@@ -3411,17 +3426,17 @@ class CommandCompiledToolHostV1:
 
         jobtypes: set[str] = set()
         operations: set[str] = set()
-        programs: set[str] = set()
+        named: set[str] = {str(item) for item in programs if str(item)}
         for plan in self.scientific_workflow_plans.values():
             for node in getattr(plan, "nodes", ()):
                 jobtypes.add(str(getattr(node, "jobtype", "")))
-                programs.add(str(getattr(node, "program", "")))
+                named.add(str(getattr(node, "program", "")))
         for toolchain in self.scientific_toolchain_plans.values():
             for node in getattr(toolchain, "analysis_nodes", ()):
                 for item in getattr(node, "expression_nodes", ()):
                     operations.add(str(item.get("operation", "")))
         wanted = promotions_from_plan(
-            jobtypes=jobtypes, operations=operations, programs=programs
+            jobtypes=jobtypes, operations=operations, programs=named
         )
         if wanted:
             self._rebuild_exposure(
