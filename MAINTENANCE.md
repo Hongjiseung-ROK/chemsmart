@@ -508,3 +508,24 @@ envelope, so the command settles `returned_to_human` before any provider
 turn and prints an `AttributeError` from `result.public_summary_json()`
 on a `None`. Write a four-call bounded-local envelope and pass it; the
 command never launches an engine either way.
+
+**The three-way arm that settled it.** One request -- "I have a
+GFN2-optimised formaldehyde. How far does the carbon sit from the
+molecule's centre of mass?" -- run three ways on this tree:
+
+  arm  exposure                      turns  searches  tool calls  initial ctx
+  A    host_search, search -> names     15        25      45 + 1r      45,150 B
+  A2   host_search, search -> loads      9         5      15 + 0r      45,150 B
+  A3   eager (control)                  12         1      12 + 0r     169,896 B
+
+All three ended `waiting_for_approval` with the same plan. The arm that
+carries 27% of the control's initial context also took *fewer* turns
+than it, which is the result worth keeping: search-first was not a tax
+paid for smaller context, and the likeliest reason is the one the
+reference documentation gives -- selection accuracy falls once a model
+is shown more than about 30-50 tools. Do not assume a control arm is the
+ceiling.
+
+**What a broad loader costs.** Session C loaded 37 entries and called 5
+of them. The initial context is small and scale-independent either way;
+the steady state of a long session is not. Measure both.

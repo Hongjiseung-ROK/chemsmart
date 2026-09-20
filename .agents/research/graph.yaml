@@ -225,6 +225,18 @@ nodes:
     note: "plan_scientific_workflow is 27,531 B, 61% of the initial context. Deferred, the first request falls to 17,228 B -- but it retrieves at rank 4 of 5 for 'plan an optimisation then a frequency calculation of the optimised structure' and rank 2 for 'set up a workflow of calculations'. It is the act the whole approval chain hangs on, so the bytes were not taken."
     falsifier: "A search probe retrieves plan_scientific_workflow at rank 1 for the ordinary phrasings, or a session that fails to retrieve it is shown to lose nothing."
 
+  - id: result.search_first_beat_its_own_control_arm
+    kind: result
+    source: {path: MAINTENANCE.md, anchor: "The three-way arm that settled it."}
+    note: "One request, three arms, same tree, same provider profile, same plan at the end: eager (control) 12 turns / 169,896 B initial context; host_search 9 turns / 45,150 B. The smaller-context arm took fewer turns, not more. N=1 request; the mechanism the reference documentation offers is that selection accuracy falls above ~30-50 visible tools."
+    falsifier: "On matched requests, the eager arm completes in fewer or equal turns than host_search, or the difference does not survive a second request."
+
+  - id: negative.a_zero_result_search_was_read_as_an_absence
+    kind: negative_result
+    source: {path: MAINTENANCE.md, anchor: "A search that returns a name costs a turn for nothing."}
+    note: "Live D issued three searches that returned no new matches; all three were answered correctly, with the tool it wanted listed under already_available. It searched again anyway. Zero matches beside a populated already_available and zero beside an empty one are different answers and the reply gave them one sentence."
+    falsifier: "A session meets a zero-match search whose already_available names what it needs and uses it without searching again."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).
