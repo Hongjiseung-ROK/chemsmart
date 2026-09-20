@@ -76,10 +76,13 @@ PROVIDERS: Mapping[str, ProviderDeclarationV1] = MappingProxyType(
             endpoint="https://api.anthropic.com",
             key_labels=("ANTHROPIC_API_KEY",),
             key_label_token="ANTHROPIC",
-            efforts=(),
+            efforts=("", "low", "medium", "high", "xhigh", "max"),
             default_effort="",
-            effort_error="",
-            cli_efforts=("", "low", "medium", "high"),
+            effort_error=(
+                "Anthropic reasoning effort must be low, medium, high, "
+                "xhigh, max, or omitted"
+            ),
+            cli_efforts=("", "low", "medium", "high", "xhigh", "max"),
             model_hint="the exact model id from your Anthropic account",
             wire_protocol="anthropic-messages",
             # The reference tool-search backend: the provider searches

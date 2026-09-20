@@ -297,9 +297,17 @@ def test_every_mode_offers_the_same_capabilities(tmp_path):
     assert not eager.undiscovered_names()
     native = build_exposure("native_tool_search", catalogue=catalogue)
     assert set(native.wire_names()) == set(catalogue.names())
-    assert set(native.withheld_names()) == set(native.undiscovered_names())
+    # The wire fact is fixed at session start; the callable fact grows.
+    assert set(native.wire_deferred_names()) == set(
+        native.undiscovered_names()
+    )
+    discovered = native.with_loaded(("extract_result_quantities",))
+    assert discovered.wire_deferred_names() == native.wire_deferred_names()
+    assert set(discovered.undiscovered_names()) < set(
+        native.undiscovered_names()
+    )
     host_side = build_exposure("host_search", catalogue=catalogue)
-    assert not host_side.withheld_names()
+    assert not host_side.wire_deferred_names()
     assert host_side.undiscovered_names()
 
 

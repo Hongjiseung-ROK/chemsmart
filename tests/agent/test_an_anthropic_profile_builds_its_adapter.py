@@ -108,3 +108,27 @@ def test_an_inactive_anthropic_block_never_blocks_the_active_profile(
     assert profile.provider == "openai"
     assert profile.runtime_config().model == "gpt-5.2"
     assert profile.runtime_config().reasoning_effort == ""
+
+
+@pytest.mark.parametrize("effort", ["low", "medium", "high", "xhigh", "max"])
+def test_every_effort_the_models_take_is_admitted(tmp_path, effort):
+    """``xhigh`` and ``max`` were missing, so a legal profile was
+    refused at load time rather than by the wire that owns the rule."""
+
+    path = tmp_path / "agent.yaml"
+    path.write_text(
+        _YAML.replace("reasoning_effort: high", f"reasoning_effort: {effort}"),
+        encoding="utf-8",
+    )
+    profile = load_agent_provider_selection(path).active_profile
+    assert profile.runtime_config().reasoning_effort == effort
+
+
+def test_an_effort_no_model_takes_is_still_refused(tmp_path):
+    path = tmp_path / "agent.yaml"
+    path.write_text(
+        _YAML.replace("reasoning_effort: high", "reasoning_effort: ultra"),
+        encoding="utf-8",
+    )
+    with pytest.raises(ContractError, match="reasoning effort"):
+        load_agent_provider_selection(path)

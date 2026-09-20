@@ -457,6 +457,7 @@ class DeepSeekV4ToolSession:
         self._receipts: list[ProviderTurnReceiptV1] = []
         self._outstanding_tool_call_ids: tuple[str, ...] = ()
         self._seen_tool_call_ids: set[str] = set()
+        self._last_cache: dict[str, Any] = {}
 
     @property
     def capabilities(self) -> ProviderCapabilitiesV1:
@@ -544,6 +545,7 @@ class DeepSeekV4ToolSession:
         # Preserve the entire provider message. In particular, do not trim or
         # summarize reasoning_content before the next tool-result subturn.
         self._history.append(deepcopy(assistant))
+        self._last_cache = cache_observation_from_usage(payload.get("usage"))
         persisted = self._persist_private_reasoning(
             request=request, assistant=assistant
         )
@@ -559,6 +561,16 @@ class DeepSeekV4ToolSession:
         self._outstanding_tool_call_ids = tool_call_ids
         self._seen_tool_call_ids.update(tool_call_ids)
         return public_provider_response(payload), receipt
+
+    def cache_observation(self) -> dict[str, Any]:
+        """What this wire said about its own prefix cache, last turn.
+
+        An empty mapping means the wire reported nothing, which is not
+        the same as a miss: the loop omits the field entirely rather
+        than writing a zero nobody can tell from an unreported count.
+        """
+
+        return dict(self._last_cache)
 
     def _persist_private_reasoning(
         self, *, request: Mapping[str, Any], assistant: Mapping[str, Any]
@@ -638,6 +650,58 @@ class DeepSeekV4ToolSession:
         self._history = self.public_history()
         self._outstanding_tool_call_ids = ()
         self._seen_tool_call_ids.clear()
+
+
+def cache_observation_from_usage(usage: Any) -> dict[str, Any]:
+    """One neutral reading of whatever cache counters a wire reported.
+
+    Absent is absent: a wire that says nothing produces an empty
+    mapping, so a stream can distinguish "this provider does not report
+    it" from "the prefix missed". Only the measured question matters
+    here -- whether append-only loading breaks a provider's prefix cache
+    -- and it can only be answered on a wire that answers it.
+    """
+
+    if not isinstance(usage, Mapping):
+        return {}
+    flat: dict[str, Any] = {
+        key: value
+        for key, value in usage.items()
+        if not isinstance(value, Mapping)
+    }
+    details = usage.get("prompt_tokens_details")
+    if isinstance(details, Mapping):
+        # OpenAI reports it here and calls it cached_tokens.
+        flat.update(
+            {f"prompt_tokens_details.{k}": v for k, v in details.items()}
+        )
+        if "cached_tokens" in details:
+            flat["cached_tokens"] = details["cached_tokens"]
+    observed: dict[str, Any] = {}
+    sources: list[str] = []
+    for neutral, names in (
+        (
+            "read_tokens",
+            (
+                "cache_read_input_tokens",
+                "prompt_cache_hit_tokens",
+                "cached_tokens",
+            ),
+        ),
+        (
+            "written_tokens",
+            ("cache_creation_input_tokens", "prompt_cache_miss_tokens"),
+        ),
+    ):
+        for name in names:
+            if name in flat and flat[name] is not None:
+                observed[neutral] = int(flat[name])
+                sources.append(name)
+                break
+    if not observed:
+        return {}
+    observed["source"] = ", ".join(sources)
+    return observed
 
 
 def public_provider_response(response: Mapping[str, Any]) -> dict[str, Any]:

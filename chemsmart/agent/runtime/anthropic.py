@@ -49,6 +49,7 @@ from chemsmart.agent.runtime.deepseek import (
     ProviderTurnReceiptV1,
     _require_explicit_model_id,
     _validate_token_limits,
+    cache_observation_from_usage,
 )
 from chemsmart.agent.runtime.transport import ProviderTurnDeadlinesV1
 
@@ -65,8 +66,9 @@ TOOL_SEARCH_TOOL = {
 
 #: Effort vocabulary this adapter admits. Current models take
 #: ``output_config.effort``; ``budget_tokens`` is rejected on them, so the
-#: profile never states one.
-_EFFORT_VOCABULARY = {"", "low", "medium", "high"}
+#: profile never states one. ``xhigh`` and ``max`` were missing, which
+#: refused a legal profile at load time rather than at the wire.
+_EFFORT_VOCABULARY = {"", "low", "medium", "high", "xhigh", "max"}
 
 #: Blocks whose content is provider-private reasoning. ``redacted_thinking``
 #: joins ``thinking`` here: it is encrypted reasoning, and the rule the
@@ -111,8 +113,8 @@ class AnthropicMessagesConfigV1:
             )
         if self.reasoning_effort not in _EFFORT_VOCABULARY:
             raise ContractError(
-                "Anthropic reasoning effort must be low, medium, high, or "
-                "omitted"
+                "Anthropic reasoning effort must be low, medium, high, "
+                "xhigh, max, or omitted"
             )
         if self.sdk_max_retries != 0:
             raise ContractError(
@@ -226,37 +228,49 @@ class AnthropicMessagesToolSession(DeepSeekV4ToolSession):
     def _wire_tools(
         self, tools: list[dict[str, Any]] | None
     ) -> list[dict[str, Any]]:
-        """The search tool, the callable definitions, then the deferred.
+        """The search tool, the session's fixed prefix, then the rest.
 
-        The order matters twice: the cache breakpoint goes on the last
-        non-deferred tool, because a deferred tool may not carry one; and
-        the non-deferred prefix must be stable for the session, which is
-        why typed promotion happens before the first request and never
-        after.
+        Byte-identical on every request of a session, discovery
+        included. The prefix is what the exposure pinned before the
+        first turn and never grows; everything else carries
+        ``defer_loading`` for the whole session, whether or not the
+        model has discovered it, because the API expands a
+        ``tool_reference`` from the conversation and the provider's own
+        rule is that modifying tool definitions invalidates the entire
+        cache -- tools, system and messages. The breakpoint therefore
+        also never moves.
+
+        Before this, deferral was marked from "not callable yet", so one
+        discovery moved two definitions into the prefix (20,031 ->
+        25,398 bytes) and moved the breakpoint. That defeats the thing
+        deferral exists for.
         """
 
         if not tools:
             return [dict(TOOL_SEARCH_TOOL)]
-        withheld = set(
-            self._exposure.withheld_names() if self._exposure else ()
+        deferred = set(
+            self._exposure.wire_deferred_names() if self._exposure else ()
         )
-        callable_tools = [
+        by_name = {item["function"]["name"]: item for item in tools}
+        prefix = [
+            _anthropic_tool(by_name[name])
+            for name in (
+                self._exposure.wire_prefix_names() if self._exposure else ()
+            )
+            if name in by_name
+        ] or [
             _anthropic_tool(item)
             for item in tools
-            if item["function"]["name"] not in withheld
+            if item["function"]["name"] not in deferred
         ]
-        deferred = [
+        rest = [
             {**_anthropic_tool(item), "defer_loading": True}
             for item in tools
-            if item["function"]["name"] in withheld
+            if item["function"]["name"] in deferred
         ]
-        wire = [dict(TOOL_SEARCH_TOOL), *callable_tools]
-        if wire:
-            wire[-1] = {
-                **wire[-1],
-                "cache_control": {"type": "ephemeral"},
-            }
-        return [*wire, *deferred]
+        wire = [dict(TOOL_SEARCH_TOOL), *prefix]
+        wire[-1] = {**wire[-1], "cache_control": {"type": "ephemeral"}}
+        return [*wire, *rest]
 
     def request_payload(
         self, *, tools: list[dict[str, Any]] | None = None
@@ -355,18 +369,8 @@ class AnthropicMessagesToolSession(DeepSeekV4ToolSession):
             self._validate_model(payload)
             if payload.get("type") == "error":
                 raise DeepSeekTransportError("provider_error")
-            usage = payload.get("usage")
-            self._last_cache = (
-                {
-                    "cache_read_input_tokens": int(
-                        usage.get("cache_read_input_tokens") or 0
-                    ),
-                    "cache_creation_input_tokens": int(
-                        usage.get("cache_creation_input_tokens") or 0
-                    ),
-                }
-                if isinstance(usage, Mapping)
-                else {}
+            self._last_cache = cache_observation_from_usage(
+                payload.get("usage")
             )
             if payload.get("stop_reason") != "pause_turn":
                 return payload
@@ -465,11 +469,6 @@ class AnthropicMessagesToolSession(DeepSeekV4ToolSession):
         return ProviderTurnReceiptV1(
             **body, receipt_sha256=canonical_sha256(body)
         )
-
-    def cache_observation(self) -> dict[str, int]:
-        """What the provider reported about its own prefix cache."""
-
-        return dict(self._last_cache)
 
     # -- tool results --------------------------------------------------
 

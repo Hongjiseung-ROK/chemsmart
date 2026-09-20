@@ -137,8 +137,58 @@ def _tools(exposure):
     return list(exposure.tool_definitions())
 
 
-def test_the_request_defers_everything_the_host_withholds(tmp_path):
-    """One breakpoint, on the last non-deferred tool, and never on a
+def test_the_tools_array_is_byte_identical_across_a_discovery(tmp_path):
+    """Deferral exists to protect the prefix cache; this is that.
+
+    Red before the repair. Deferral was marked from "not callable yet",
+    so discovering ``edit_molecular_geometry`` (and the family
+    reference it brings) moved two definitions into the rendered
+    prefix: non-deferred 9 -> 11 tools, 20,031 -> 25,398 bytes, and the
+    breakpoint moved from ``inspect_run`` to
+    ``about_building_structures``. The provider's own rule is that
+    modifying tool definitions invalidates the entire cache -- tools,
+    system and messages -- so that discovery cost exactly what deferral
+    was there to avoid. The eleven witnesses here could not see it:
+    they asserted the marking matched the growing set, which is the
+    defect.
+    """
+
+    exposure = build_exposure("native_tool_search")
+    session, sent = _session([_turn(1), _turn(2)], exposure=exposure)
+    session.turn(tools=_tools(exposure))
+
+    discovered = exposure.with_loaded(("edit_molecular_geometry",))
+    assert len(discovered.available_names()) > len(
+        exposure.available_names()
+    ), "the discovery must really have happened"
+    session._exposure = discovered
+    session.append_tool_results(
+        [
+            {
+                "role": "tool",
+                "tool_call_id": "toolu_01",
+                "content": json.dumps(
+                    {
+                        "status": "schema_loaded",
+                        "load_capabilities": ["edit_molecular_geometry"],
+                    }
+                ),
+            }
+        ]
+    )
+    session.turn(tools=_tools(discovered))
+
+    assert json.dumps(sent[0]["tools"]) == json.dumps(sent[1]["tools"])
+    assert json.dumps(sent[0]["system"]) == json.dumps(sent[1]["system"])
+    # And the discovered definition is callable without ever having
+    # entered the prefix: the API expands the tool_reference from the
+    # conversation, which is appended history.
+    assert discovered.is_available("edit_molecular_geometry")
+    assert "edit_molecular_geometry" in discovered.wire_deferred_names()
+
+
+def test_the_prefix_is_the_session_start_set_and_nothing_else(tmp_path):
+    """One breakpoint, on the last non-deferred tool, never on a
     deferred one -- the API rejects that combination."""
 
     exposure = build_exposure("native_tool_search")
@@ -151,13 +201,12 @@ def test_the_request_defers_everything_the_host_withholds(tmp_path):
     assert "defer_loading" not in tools[0]
     deferred = [item for item in tools if item.get("defer_loading")]
     assert {item["name"] for item in deferred} == set(
-        exposure.withheld_names()
+        exposure.wire_deferred_names()
     )
-    assert len(deferred) + len(exposure.available_names()) + 1 == len(tools)
+    assert len(deferred) + len(exposure.wire_prefix_names()) + 1 == len(tools)
     breakpoints = [item for item in tools if "cache_control" in item]
     assert len(breakpoints) == 1
     assert not breakpoints[0].get("defer_loading")
-    assert breakpoints[0] is not tools[0] or len(tools) == 1
     # The system prompt is a top-level block, cached, not a message.
     assert payload["system"][0]["text"] == "THE SYSTEM PROMPT"
     assert payload["system"][0]["cache_control"] == {"type": "ephemeral"}
@@ -235,7 +284,9 @@ def test_the_loop_reads_one_envelope_shape(tmp_path):
     assert call_id == "toolu_01XYZ789"
     # The one number that says whether deferral bought what it claims to.
     assert response["usage"]["cache_read_input_tokens"] == 1100
-    assert session.cache_observation()["cache_read_input_tokens"] == 1100
+    # One neutral shape whichever wire ran, naming the field it read.
+    assert session.cache_observation()["read_tokens"] == 1100
+    assert "cache_read_input_tokens" in (session.cache_observation()["source"])
     assert receipt.provider == "anthropic"
     assert session.capabilities.wire_protocol == ANTHROPIC_WIRE_PROTOCOL
     assert session.capabilities.exposure_mode == "native_tool_search"
@@ -473,7 +524,102 @@ def test_the_cache_read_reaches_the_provenance_event(tmp_path):
         for event in store.read_events()
         if event.kind == EventKind.PROVIDER_TURN_OBSERVED.value
     ]
-    assert observed.payload["prompt_cache"] == {
-        "cache_read_input_tokens": 1100,
-        "cache_creation_input_tokens": 0,
-    }
+    assert observed.payload["prompt_cache"]["read_tokens"] == 1100
+    assert observed.payload["prompt_cache"]["written_tokens"] == 0
+
+
+def test_every_wire_reports_its_cache_and_silence_is_not_a_miss():
+    """The measured question, on the wires that can answer it.
+
+    Cache observation existed on the Anthropic session alone, and the
+    providers that actually run live report cached prompt tokens under
+    their own names with nothing reading them -- so whether append-only
+    loading breaks *their* prefix cache could not be answered from a
+    stream. And ``int(usage.get(...) or 0)`` wrote an unreported count
+    as zero, which reads as a miss.
+    """
+
+    from chemsmart.agent.runtime.deepseek import cache_observation_from_usage
+
+    anthropic = cache_observation_from_usage(
+        {"cache_read_input_tokens": 1100, "cache_creation_input_tokens": 0}
+    )
+    assert anthropic["read_tokens"] == 1100
+    assert anthropic["written_tokens"] == 0
+
+    deepseek = cache_observation_from_usage(
+        {"prompt_cache_hit_tokens": 960, "prompt_cache_miss_tokens": 40}
+    )
+    assert deepseek["read_tokens"] == 960
+
+    openai = cache_observation_from_usage(
+        {"prompt_tokens_details": {"cached_tokens": 512}}
+    )
+    assert openai["read_tokens"] == 512
+
+    # Each says which wire field it read, so a stream can be audited
+    # without knowing which adapter wrote it.
+    for observed in (anthropic, deepseek, openai):
+        assert observed["source"]
+
+    # Silence is absence, and absence is not zero.
+    assert cache_observation_from_usage({"prompt_tokens": 10}) == {}
+    assert cache_observation_from_usage(None) == {}
+
+
+def test_a_chat_completions_session_records_its_cache_too(tmp_path):
+    """One neutral shape, recorded by the loop for whichever wire ran."""
+
+    from chemsmart.agent.loop import ToolLoopRunner
+    from chemsmart.agent.runtime.alibaba import (
+        Qwen38MaxConfigV1,
+        Qwen38MaxToolSession,
+    )
+    from tests.agent.provider_fakes import _DispatchSpyHost, _run_contracts
+
+    config = Qwen38MaxConfigV1()
+    session = Qwen38MaxToolSession(
+        transport=lambda _payload: {
+            "id": "x",
+            "model": config.model,
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": "done",
+                        "reasoning_content": "",
+                    },
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 1000,
+                "completion_tokens": 5,
+                "prompt_cache_hit_tokens": 960,
+                "prompt_cache_miss_tokens": 40,
+            },
+        },
+        messages=[{"role": "user", "content": "Answer."}],
+        config=config,
+    )
+    host = _DispatchSpyHost()
+    store = RuntimeEventStore(
+        tmp_path / "events.jsonl", session_id="protocol-session"
+    )
+    envelope, request_context, network = _run_contracts(host, config)
+    ToolLoopRunner(host=host, event_store=store).run(
+        session=session,
+        envelope=envelope,
+        request_context=request_context,
+        provider_budget=network,
+    )
+
+    (observed,) = [
+        event
+        for event in store.read_events()
+        if event.kind == EventKind.PROVIDER_TURN_OBSERVED.value
+    ]
+    assert observed.payload["prompt_cache"]["read_tokens"] == 960
+    assert (
+        "prompt_cache_hit_tokens" in observed.payload["prompt_cache"]["source"]
+    )

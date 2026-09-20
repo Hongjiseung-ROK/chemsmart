@@ -16,10 +16,11 @@ modes:
     Works on every provider the Agent can already run.
 
 ``native_tool_search``
-    Every definition rides on every request, the non-core ones marked for
-    the provider to withhold until its own server-side search returns
-    them.  The marking is the adapter's business; this module says only
-    which names are withheld.  That is the boundary the round is built
+    Every definition rides on every request, byte-identical every turn,
+    with everything outside the session's fixed prefix marked for the
+    provider to keep out of that prefix until its own server-side search
+    returns it.  The marking is the adapter's business; this module says
+    only which names are deferred, and says it once per session.  That is the boundary the round is built
     on -- the catalogue is the source of truth and a provider's wire
     format is one consumer of it, never the other way round.
 
@@ -85,7 +86,7 @@ class ToolExposureV1:
 
         This is the one authority for "may this be called now".  The
         wire array is not: under ``native_tool_search`` every definition
-        is on the wire and most of them are withheld from the model, so
+        is on the wire and most are deferred from its prefix, so
         a host that asked the wire array would happily validate
         arguments for a schema the model never read.
         """
@@ -107,36 +108,71 @@ class ToolExposureV1:
 
     # -- what the request carries --------------------------------------
 
-    def wire_names(self) -> tuple[str, ...]:
-        """Every definition this mode puts in the request's tool array."""
+    def wire_prefix_names(self) -> tuple[str, ...]:
+        """The definitions a provider renders into its prefix.
+
+        Fixed for the whole session: core plus whatever typed state
+        pinned before the first request. It deliberately does NOT grow
+        with discovery, and that is the repair this method exists for --
+        see ``wire_deferred_names``.
+        """
 
         if self.mode == "host_search":
             return self.available_names()
-        available = self.available_names()
-        rest = [
-            name for name in self.catalogue.names() if name not in available
-        ]
-        return (*available, *rest)
+        core = list(self.catalogue.core_names())
+        for name in self.pinned:
+            if name not in core:
+                core.append(name)
+        return tuple(core)
 
-    def withheld_names(self) -> tuple[str, ...]:
-        """On the wire but not callable: what the provider must withhold.
+    def wire_names(self) -> tuple[str, ...]:
+        """Every definition this mode puts in the request's tool array.
 
-        Empty in every mode but ``native_tool_search``, where it is what
-        the adapter marks for deferral.
+        Order is part of the contract, not a detail: the cache
+        breakpoint goes on the last non-deferred tool, so the prefix
+        must be a stable prefix of a stable array.
         """
 
-        available = set(self.available_names())
+        if self.mode == "host_search":
+            return self.available_names()
+        prefix = self.wire_prefix_names()
+        rest = [name for name in self.catalogue.names() if name not in prefix]
+        return (*prefix, *rest)
+
+    def wire_deferred_names(self) -> tuple[str, ...]:
+        """What the provider withholds from its prefix, fixed at start.
+
+        Two facts were one, and the wrong one was on the wire. *Callable
+        now* is the host's gate and grows as the model discovers;
+        *deferred on the wire* is a rendering instruction and must not,
+        because modifying the tools array invalidates the provider's
+        entire cache -- tools, system and messages -- which is the exact
+        thing deferral is there to protect. Reproduced before the
+        repair: one discovery moved two definitions out of the deferred
+        set, grew the rendered prefix from 20,031 to 25,398 bytes and
+        moved the breakpoint from one tool to another.
+
+        A discovered definition stays deferred here and still becomes
+        callable: the API expands the ``tool_reference`` the host put in
+        the conversation, which is appended history and leaves the
+        prefix untouched.
+        """
+
+        if self.mode != "native_tool_search":
+            return ()
+        prefix = set(self.wire_prefix_names())
         return tuple(
-            name for name in self.wire_names() if name not in available
+            name for name in self.catalogue.names() if name not in prefix
         )
 
     def undiscovered_names(self) -> tuple[str, ...]:
         """In the catalogue and not callable yet, whatever the wire does.
 
-        Distinct from ``withheld_names``, which is the wire fact: under
-        ``host_search`` nothing is withheld because nothing undiscovered
-        is sent at all, and a sentence that asked the wire would tell
-        the model its eight tools were everything the host has.
+        Distinct from ``wire_deferred_names``, which is a rendering
+        instruction fixed at session start: under ``host_search``
+        nothing is deferred because nothing undiscovered is sent at all,
+        and a sentence that asked the wire would tell the model its
+        eight tools were everything the host has.
         """
 
         available = set(self.available_names())
@@ -167,7 +203,7 @@ class ToolExposureV1:
                 "mode": self.mode,
                 "catalogue_sha256": self.catalogue.catalogue_sha256,
                 "available": list(self.available_names()),
-                "withheld": len(self.withheld_names()),
+                "wire_deferred": len(self.wire_deferred_names()),
             }
         )
 
@@ -182,7 +218,7 @@ class ToolExposureV1:
             "pinned": list(self.pinned),
             "loaded": list(self.loaded),
             "available_count": len(self.available_names()),
-            "withheld_count": len(self.withheld_names()),
+            "wire_deferred_count": len(self.wire_deferred_names()),
             "undiscovered_count": len(self.undiscovered_names()),
             "catalogue_count": len(self.catalogue.entries),
         }
