@@ -151,6 +151,20 @@ class AgentProviderProfileV1:
                 turn_deadlines=turn_deadlines,
                 record_reasoning=bool(self.record_reasoning),
             )
+        if self.provider == "anthropic":
+            from chemsmart.agent.runtime.anthropic import (
+                AnthropicMessagesConfigV1,
+            )
+
+            return AnthropicMessagesConfigV1(
+                model=self.model,
+                endpoint=self.endpoint,
+                reasoning_effort=self.reasoning_effort,
+                context_tokens=self.context_tokens,
+                max_output_tokens=self.max_output_tokens,
+                turn_deadlines=turn_deadlines,
+                record_reasoning=bool(self.record_reasoning),
+            )
         if self.provider == "openai":
             from chemsmart.agent.runtime.openai_compat import (
                 OpenAICompatibleConfigV1,
@@ -359,8 +373,15 @@ def _build_profile(
     profile_name: str, entry: Mapping[str, Any]
 ) -> AgentProviderProfileV1:
     provider_type = str(entry.get("type") or "").strip().lower()
-    if provider_type not in {"openai", "openai-chat-completions"}:
-        raise ContractError("active Runtime V2 profiles require OpenAI chat")
+    if provider_type not in {
+        "openai",
+        "openai-chat-completions",
+        "anthropic",
+        "anthropic-messages",
+    }:
+        raise ContractError(
+            "a Runtime V2 profile declares type openai or anthropic"
+        )
     if str(entry.get("api_key") or "").strip():
         raise ContractError("agent.yaml must not contain literal API keys")
     api_key_env = str(entry.get("api_key_env") or "").strip()
@@ -368,6 +389,11 @@ def _build_profile(
     endpoint = str(
         entry.get("base_url") or entry.get("endpoint") or ""
     ).rstrip("/")
+    if not endpoint and provider_type.startswith("anthropic"):
+        # A profile written before the adapter existed states no base_url
+        # (the sample shipped one). The declaration owns the endpoint, so
+        # the profile need not restate it.
+        endpoint = PROVIDERS["anthropic"].endpoint
     reasoning_effort = str(entry.get("reasoning_effort") or "").strip().lower()
     preserve_thinking = entry.get("preserve_thinking", True)
     if not isinstance(preserve_thinking, bool):
@@ -443,7 +469,13 @@ def _build_profile(
         ),
         "profile_name": profile_name,
         "provider": provider,
-        "wire_protocol": "openai-chat-completions",
+        # From the declaration, not from the profile's `type` key: the
+        # wire is a per-provider fact, and a profile typed `openai` that
+        # points at api.anthropic.com resolves to the anthropic provider.
+        # Every provider that could ever build a profile before this
+        # commit declares the same literal it was given, so no archived
+        # digest changes arithmetic.
+        "wire_protocol": declaration.wire_protocol,
         "api_key_env": api_key_env,
         "model": model,
         "endpoint": endpoint,

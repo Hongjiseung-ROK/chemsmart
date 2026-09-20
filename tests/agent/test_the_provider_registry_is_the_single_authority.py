@@ -25,12 +25,31 @@ def test_the_four_declarations_carry_the_registered_identities():
     )
     assert runnable_provider_names() == {
         "openai",
+        "anthropic",
         "alibaba-token-plan",
         "deepseek",
     }
-    refusing = PROVIDERS["anthropic"]
-    assert not refusing.runnable
-    assert "not registered in this release" in refusing.refusal
+    # The wire a provider speaks is a per-provider fact, declared here
+    # once. Three speak chat completions; one speaks Messages.
+    assert {
+        name: declaration.wire_protocol
+        for name, declaration in PROVIDERS.items()
+    } == {
+        "openai": "openai-chat-completions",
+        "anthropic": "anthropic-messages",
+        "alibaba-token-plan": "openai-chat-completions",
+        "deepseek": "openai-chat-completions",
+    }
+    # And how each is given the catalogue, also once.
+    assert {
+        name: declaration.exposure_mode
+        for name, declaration in PROVIDERS.items()
+    } == {
+        "openai": "host_search",
+        "anthropic": "native_tool_search",
+        "alibaba-token-plan": "host_search",
+        "deepseek": "host_search",
+    }
 
 
 def test_key_tables_and_endpoints_derive_from_the_registry():

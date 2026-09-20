@@ -3214,6 +3214,39 @@ class CommandCompiledToolHostV1:
         )
         return arrived
 
+    def record_provider_discovery(
+        self, turn_id: str, names: Iterable[str]
+    ) -> tuple[str, ...]:
+        """Adopt definitions a provider's own search found.
+
+        A stream reads the same whichever backend searched: the host
+        backend's ``search_capabilities`` and a provider's server-side
+        search both arrive here and both write ``capability_loaded``. A
+        name the catalogue does not hold is refused rather than adopted
+        -- a provider may not extend what this host can do.
+        """
+
+        if self.exposure is None:
+            return ()
+        wanted = [str(name) for name in names]
+        unknown = [
+            name
+            for name in wanted
+            if self.exposure.catalogue.entry(name) is None
+        ]
+        if unknown:
+            raise CapabilityNotInCatalogueError(
+                f"the provider referenced {unknown!r}, which this host "
+                "does not have; a provider cannot add a capability"
+            )
+        if not wanted:
+            return ()
+        return self._rebuild_exposure(
+            turn_id,
+            self.exposure.with_loaded(wanted),
+            signal="provider_search",
+        )
+
     def _entry_records(
         self, names: Iterable[str]
     ) -> tuple[dict[str, Any], ...]:
@@ -3256,6 +3289,14 @@ class CommandCompiledToolHostV1:
             "schema_version": "chemsmart.tool-result.v1",
             "tool": tool_name,
             "status": "schema_loaded",
+            # Provider-neutral: the host says which definitions should
+            # now be readable, and each adapter decides what that means
+            # on its own wire. The chat-completions adapters need do
+            # nothing -- the definitions are already in the `tools` array
+            # they send; an adapter whose API expands references turns
+            # these into the blocks it expands. Neither the host nor the
+            # catalogue knows which is which.
+            "load_capabilities": list(arrived),
             "result": {
                 "loaded": list(self._entry_records(arrived)),
                 "callable_now": tool_name,
@@ -3344,6 +3385,7 @@ class CommandCompiledToolHostV1:
                 signal="search",
             )
         return {
+            "load_capabilities": [result.name for result in results],
             "matches": [result.record() for result in results],
             "already_available": list(already),
             "how_to_use": (

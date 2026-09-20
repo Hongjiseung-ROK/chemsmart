@@ -109,6 +109,27 @@ class UnifiedSessionRunner:
                     config=bound_config,
                     reasoning_sink=reasoning_sink,
                 )
+            elif bound_config.provider == "anthropic":
+                from chemsmart.agent.runtime.anthropic import (
+                    AnthropicHttpsTransport,
+                    AnthropicMessagesToolSession,
+                )
+
+                transport = AnthropicHttpsTransport(
+                    api_key=secret,
+                    endpoint=bound_config.endpoint,
+                    turn_deadlines=turn_deadlines,
+                )
+                session = AnthropicMessagesToolSession(
+                    transport=transport,
+                    messages=messages,
+                    config=bound_config,
+                    reasoning_sink=reasoning_sink,
+                    # The adapter is a consumer of the catalogue: it needs
+                    # to know which definitions the host is withholding so
+                    # it can mark them for the provider to withhold too.
+                    exposure=getattr(self.host.surface, "exposure", None),
+                )
             elif bound_config.provider == "openai":
                 from chemsmart.agent.runtime.openai_compat import (
                     OpenAICompatibleToolSession,

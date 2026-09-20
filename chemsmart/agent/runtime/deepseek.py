@@ -163,9 +163,9 @@ class DeepSeekHttpsTransport:
     """Minimal official HTTPS transport owned by one credential lease.
 
     Provider adapters subclass this and override only the class attributes
-    and the two hooks (`_endpoint_is_registered`, `_api_key_is_leased`)
-    plus `_read_response`; the deadline discipline, header construction,
-    and sanitized failure ladder stay in one place.
+    and the hooks (`_endpoint_is_registered`, `_api_key_is_leased`,
+    `_request_path`, `_request_headers`, `_read_response`); the deadline
+    discipline and the sanitized failure ladder stay in one place.
     """
 
     _ENDPOINT_ERROR = "DeepSeek transport requires the official endpoint"
@@ -236,6 +236,21 @@ class DeepSeekHttpsTransport:
 
         return open_bounded_https_response(request, deadline=deadline)
 
+    def _request_path(self) -> str:
+        """The path this wire posts to, under the registered endpoint."""
+
+        return "/chat/completions"
+
+    def _request_headers(self) -> dict[str, str]:
+        """The headers this wire authenticates and versions itself with."""
+
+        return {
+            "Authorization": "Bearer " + self._api_key,
+            "Content-Type": "application/json",
+            "Accept": self._ACCEPT,
+            "User-Agent": "chemsmart-agent/1",
+        }
+
     def _read_response(
         self, response, *, deadline, payload: dict[str, Any]
     ) -> Mapping[str, Any]:
@@ -252,15 +267,10 @@ class DeepSeekHttpsTransport:
             payload, separators=(",", ":"), ensure_ascii=False
         ).encode("utf-8")
         request = Request(
-            self.endpoint + "/chat/completions",
+            self.endpoint + self._request_path(),
             data=encoded,
             method="POST",
-            headers={
-                "Authorization": "Bearer " + self._api_key,
-                "Content-Type": "application/json",
-                "Accept": self._ACCEPT,
-                "User-Agent": "chemsmart-agent/1",
-            },
+            headers=self._request_headers(),
         )
         deadline = ProviderTurnDeadline(
             self.turn_deadlines,

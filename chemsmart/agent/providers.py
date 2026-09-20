@@ -34,6 +34,13 @@ class ProviderDeclarationV1:
     requires_preserved_thinking: bool = False
     runnable: bool = True
     refusal: str = ""
+    #: The wire this provider speaks. A per-provider fact, so it is
+    #: declared here with the others rather than inferred from a
+    #: profile's `type` key -- a profile typed `openai` that points at
+    #: api.anthropic.com resolves to the anthropic provider, and two
+    #: organs disagreeing about which wire that is would be exactly the
+    #: split this table exists to prevent.
+    wire_protocol: str = "openai-chat-completions"
     #: How this provider is given the catalogue: ``host_search`` (one
     #: core tool the host answers, which every provider understands),
     #: ``native_tool_search`` (the provider searches server-side and
@@ -74,11 +81,10 @@ PROVIDERS: Mapping[str, ProviderDeclarationV1] = MappingProxyType(
             effort_error="",
             cli_efforts=("", "low", "medium", "high"),
             model_hint="the exact model id from your Anthropic account",
-            runnable=False,
-            refusal=(
-                "the anthropic adapter is not registered in this release; "
-                "the profile remains valid configuration"
-            ),
+            wire_protocol="anthropic-messages",
+            # The reference tool-search backend: the provider searches
+            # server-side and expands the definitions itself.
+            exposure_mode="native_tool_search",
         ),
         "alibaba-token-plan": ProviderDeclarationV1(
             name="alibaba-token-plan",
