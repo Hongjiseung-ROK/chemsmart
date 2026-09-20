@@ -385,29 +385,6 @@ class ToolCatalogueV1:
         return tuple(out)
 
 
-def already_exposed_matches(
-    catalogue: ToolCatalogueV1,
-    query: str,
-    *,
-    exposed: Iterable[str],
-    limit: int = DEFAULT_SEARCH_LIMIT,
-) -> tuple[str, ...]:
-    """Which already-loaded entries this query also matched.
-
-    Reported beside the results so a search that found its answer in
-    context reads as an answer, not as an absence.
-    """
-
-    present = {str(name) for name in exposed}
-    absent = tuple(name for name in catalogue.names() if name not in present)
-    return tuple(
-        result.name
-        for result in catalogue.search(
-            query, limit=MAX_SEARCH_LIMIT, exclude=absent
-        )
-    )[:limit]
-
-
 def _summary(description: str) -> str:
     """One sentence, so a result list is readable without loading."""
 

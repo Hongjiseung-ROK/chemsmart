@@ -122,9 +122,6 @@ from chemsmart.agent.skills import (
     skills_enabled,
 )
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
-from chemsmart.agent.tool_specs import (
-    build_command_compiled_tool_surface,
-)
 from chemsmart.agent.workflows import (
     MaterializedNodeV1,
     MaterializedWorkflowV1,
@@ -641,6 +638,7 @@ def run_live_agent_session(
     on_run_directory: Callable[[Path], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
     goal_context: Mapping[str, Any] | None = None,
+    exposure_mode: str = "",
 ) -> LiveAgentSessionResultV1:
     """Run one agent.yaml-selected session over exact workspace artifacts.
 
@@ -782,24 +780,24 @@ def run_live_agent_session(
     # surface belongs to the provider-free executor.
     approved_project_records: tuple[dict[str, Any], ...] = ()
     approved_workflow_record: dict[str, Any] = {}
-    # The leaves open before the first turn from what is already known:
-    # the task text, the workspace, and -- under a goal -- how the previous
-    # run's nodes ended. The plan opens more as it is made.
-    from chemsmart.agent.guides import (
-        guides_from_states,
-        guides_from_text,
-        guides_from_workspace,
+    # What the first request carries is decided from typed state only:
+    # the kinds the workspace scan actually found, and -- under a goal --
+    # how the previous run's nodes ended. The task text is not read. It
+    # was, through ~90 activation terms matched as whole words, and it
+    # was wrong in both directions: "base" inside "database" opened the
+    # constants guide, and a task naming two programs never matched the
+    # crossprogram terms. Everything else the session needs it finds.
+    from chemsmart.agent.exposure import (
+        build_exposure,
+        promotions_from_states,
+        promotions_from_workspace,
     )
+    from chemsmart.agent.providers import PROVIDERS
+    from chemsmart.agent.tool_specs import build_catalogue_tool_surface
 
     previous_outcome = dict(
         (goal_context or {}).get("previous_run_outcome") or {}
     )
-    # The workspace signal reads the kinds the scan actually found. It
-    # passed the literal ("chemsmart_db",) whenever any database was
-    # present, so the one other declared workspace kind -- pyscf_hdf5, on
-    # the pyscf guide -- could not fire from a workspace at all, and a
-    # session handed a PySCF result read no PySCF guidance unless the
-    # task text happened to say the word.
     workspace_kinds = {
         str(item.artifact.kind)
         for item in (
@@ -808,21 +806,28 @@ def run_live_agent_session(
             *database_observations,
         )
     }
-    session_guides: dict[str, tuple[str, ...]] = {
-        "task": guides_from_text(task),
-        "workspace": guides_from_workspace(workspace_kinds),
-        "states": guides_from_states(
+    declared_mode = getattr(
+        PROVIDERS.get(normalized_provider), "exposure_mode", "host_search"
+    )
+    session_promotions: dict[str, tuple[str, ...]] = {
+        "workspace": promotions_from_workspace(workspace_kinds),
+        "states": promotions_from_states(
             str(node.get("state") or "")
             for node in previous_outcome.get("nodes", ())
             if isinstance(node, Mapping)
         ),
     }
-    active_guides = {
-        guide for guides in session_guides.values() for guide in guides
-    }
-    surface = build_command_compiled_tool_surface(
-        registry, guides=tuple(sorted(active_guides))
+    # Promotion happens before the first request, never after, so the
+    # rendered prefix is stable for the whole session and discovery can
+    # never invalidate a provider's prompt cache.
+    exposure = build_exposure(
+        str(exposure_mode).strip() or declared_mode, registry=registry
+    ).with_pinned(
+        name for names in session_promotions.values() for name in names
     )
+    surface = build_catalogue_tool_surface(exposure)
+    active_guides: set[str] = set()
+    session_guides: dict[str, tuple[str, ...]] = {}
 
     event_store = RuntimeEventStore(
         run_directory / "events.jsonl", session_id=session_id
@@ -854,6 +859,7 @@ def run_live_agent_session(
         "compute_environment_receipts": compute_receipts,
         "component_conformance_receipts": conformance,
         "tool_surface": surface,
+        "exposure": exposure,
         "registry": registry,
         "live_schema": live_schema,
         "task_spec_sha256s": (task_spec_sha256,),
@@ -1027,6 +1033,7 @@ def run_live_agent_session(
         bounded_review_requested=bounded_review_requested,
         task=task,
         active_guides=tuple(sorted(active_guides)),
+        exposure=exposure,
     )
     # Consume the helper's list wholesale: rebuilding index 1 by hand at
     # this call site is how the goal recency restatement -- built, tested
@@ -1356,6 +1363,7 @@ def _coordinator_base_messages(
     bounded_review_requested: bool = False,
     task: str = "",
     active_guides: tuple[str, ...] = (),
+    exposure: Any = None,
 ) -> list[dict[str, str]]:
     documents = advisory_skill_documents()
     goal_record = context.get("goal") if isinstance(context, Mapping) else None
@@ -1367,6 +1375,7 @@ def _coordinator_base_messages(
                 bounded_review_requested=bounded_review_requested,
                 skill_index=tuple(item.index_entry() for item in documents),
                 active_guides=active_guides,
+                exposure=exposure,
                 goal_record=goal_record,
             ),
         },
@@ -3706,6 +3715,7 @@ def _system_prompt(
     bounded_review_requested: bool = False,
     skill_index: tuple[str, ...] = (),
     active_guides: tuple[str, ...] = (),
+    exposure: Any = None,
     goal_record: Mapping[str, Any] | None = None,
 ) -> str:
     # A planning session never holds an approved workflow: execution is the
@@ -3756,9 +3766,14 @@ def _system_prompt(
             "any required unavailable observable as blocked_unsupported. "
         )
     )
-    from chemsmart.agent.guides import guide_index_sentence
+    if exposure is not None:
+        from chemsmart.agent.exposure import catalogue_index_sentence
 
-    skill_sentence = guide_index_sentence(active_guides)
+        skill_sentence = catalogue_index_sentence(exposure)
+    else:
+        from chemsmart.agent.guides import guide_index_sentence
+
+        skill_sentence = guide_index_sentence(active_guides)
     if skill_index:
         listing = " ".join(f"({item})" for item in skill_index)
         skill_sentence += (

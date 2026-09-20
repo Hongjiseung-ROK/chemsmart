@@ -96,6 +96,13 @@ class EventKind(str, Enum):
     TOOL_WOKE = "tool_woke"
     HOST_CONTEXT_REINJECTED = "host_context_reinjected"
     GUIDE_ACTIVATED = "guide_activated"
+    #: One search of the catalogue: the query as the model
+    #: wrote it, which backend answered, and what came back.
+    CAPABILITY_SEARCHED = "capability_searched"
+    #: One or more definitions entering the model's context,
+    #: whichever backend found them, so a stream reads the same
+    #: whether the host or the provider did the searching.
+    CAPABILITY_LOADED = "capability_loaded"
     RUNTIME_TERMINATED = "runtime_terminated"
     TERMINATION_NOTICE_DELIVERED = "termination_notice_delivered"
     EXECUTION_WAVE_DECISION_PENDING = "execution_wave_decision_pending"

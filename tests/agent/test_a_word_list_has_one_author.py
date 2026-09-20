@@ -61,6 +61,7 @@ _GAUSSIAN_NATIVE = "Gaussian's own ircf/ircr spellings inside one reader"
 _GAS_SOLV = "the gas/solv project shape of the route-building programs"
 _READER_PROGRAMS = "to derive from the reader registry (deferred, recorded)"
 _GUIDE_SIGNAL = "declaration: one guide's activation signal"
+_SURFACING_SIGNAL = "declaration: which reference a planned job type surfaces"
 _A4 = "derives in A.4: keyed on the Hessian stage the artifact records"
 
 #: (path, enclosing symbol, assignment target, words) -> why it may stand.
@@ -168,6 +169,18 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     ): _DECLARATION
     + ": which stage produces that Hessian, and which "
     "stage a starting Hessian is fed to",
+    (
+        "chemsmart/agent/exposure.py",
+        "<module>",
+        "JOBTYPE_REFERENCES",
+        ("irc", "scan", "ts"),
+    ): _SURFACING_SIGNAL,
+    (
+        "chemsmart/agent/exposure.py",
+        "<module>",
+        "PROGRAM_REFERENCES",
+        ("pyscf",),
+    ): _SURFACING_SIGNAL,
     (
         "chemsmart/agent/guides.py",
         "<module>",

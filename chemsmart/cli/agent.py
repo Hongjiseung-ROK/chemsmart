@@ -169,6 +169,17 @@ def agent(ctx):
     help="Write the inert exact execution review packet to this JSON file.",
 )
 @click.option(
+    "--tool-exposure",
+    type=click.Choice(["host_search", "eager", "native_tool_search"]),
+    default=None,
+    help=(
+        "Override how this session is given the host's capability "
+        "catalogue. The provider's own declared mode is used by default; "
+        "'eager' sends every definition on every request and is the "
+        "comparison arm."
+    ),
+)
+@click.option(
     "--json",
     "as_json",
     is_flag=True,
@@ -185,6 +196,7 @@ def plan(
     identity_manifest,
     execution_envelope,
     review_file,
+    tool_exposure,
     as_json,
 ):
     """Create and safely preview a command-compiled research workflow.
@@ -220,7 +232,10 @@ def plan(
             provider=provider.lower() if provider else None,
             provider_config_file=provider_config,
             analysis_completion_file=analysis_completion_file,
-            session_kwargs={"approved_molecular_inputs": approved_inputs},
+            session_kwargs={
+                "approved_molecular_inputs": approved_inputs,
+                **({"exposure_mode": tool_exposure} if tool_exposure else {}),
+            },
         )
         driver.step()
     except ContractError as exc:

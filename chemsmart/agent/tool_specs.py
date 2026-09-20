@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from chemsmart.agent._contracts import ContractError, canonical_sha256
 from chemsmart.agent.capabilities import (
@@ -33,12 +34,65 @@ class AgentToolSurfaceV1:
     profile: str
     tool_definitions: tuple[dict, ...]
     tool_schema_sha256: str
+    #: The exposure this surface was built from, where one was. It is
+    #: what says which of ``tool_definitions`` the model may actually
+    #: call: under ``native_tool_search`` every definition rides on the
+    #: wire and most are withheld, so the array alone cannot answer that
+    #: question. ``tool_schema_sha256`` keeps its own meaning -- the
+    #: digest of what the request carries -- and the run contract still
+    #: cross-checks it; the catalogue and exposure digests ride here,
+    #: outside every archived digest body, so no historical receipt
+    #: changes arithmetic.
+    exposure: Any = None
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.agent-tool-surface.v1":
             raise ContractError("unsupported agent tool surface schema")
         if self.tool_schema_sha256 != canonical_sha256(self.tool_definitions):
             raise ContractError("agent tool schema digest mismatch")
+
+    @property
+    def catalogue_sha256(self) -> str:
+        return (
+            self.exposure.catalogue.catalogue_sha256 if self.exposure else ""
+        )
+
+    @property
+    def exposure_sha256(self) -> str:
+        return self.exposure.exposure_sha256 if self.exposure else ""
+
+    def may_call(self, tool_name: str) -> bool:
+        """Whether the model has read this tool's schema.
+
+        Without an exposure the surface is the whole answer, which is how
+        the approved-execution profile and every pre-catalogue caller
+        already behaved.
+        """
+
+        if self.exposure is None:
+            return any(
+                item["function"]["name"] == tool_name
+                for item in self.tool_definitions
+            )
+        return self.exposure.is_available(tool_name)
+
+
+def build_catalogue_tool_surface(exposure: Any) -> AgentToolSurfaceV1:
+    """The planning surface one exposure produces.
+
+    The same profile name as the guide-tree surface it replaces, because
+    it is the same product surface: what changed is which entries a
+    request carries, never what the host approves or verifies.
+    """
+
+    tools = tuple(exposure.tool_definitions())
+    return AgentToolSurfaceV1(
+        schema_version="chemsmart.agent-tool-surface.v1",
+        profile="command_compiled_preview",
+        tool_definitions=tools,
+        tool_schema_sha256=canonical_sha256(tools),
+        exposure=exposure,
+    )
 
 
 def _reader_selector_inventory(
@@ -3882,5 +3936,6 @@ __all__ = [
     "PROJECT_YAML_ACTION_ARGUMENTS",
     "AgentToolSurfaceV1",
     "build_approved_execution_tool_surface",
+    "build_catalogue_tool_surface",
     "build_command_compiled_tool_surface",
 ]

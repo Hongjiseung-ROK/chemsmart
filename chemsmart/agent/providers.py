@@ -34,6 +34,12 @@ class ProviderDeclarationV1:
     requires_preserved_thinking: bool = False
     runnable: bool = True
     refusal: str = ""
+    #: How this provider is given the catalogue: ``host_search`` (one
+    #: core tool the host answers, which every provider understands),
+    #: ``native_tool_search`` (the provider searches server-side and
+    #: expands definitions itself), or ``eager`` (everything, always).
+    #: Stated once here, like every other non-protocol provider fact.
+    exposure_mode: str = "host_search"
     #: Wire key this provider admits for an explicit thinking switch;
     #: empty means a profile may not state one. The profile supplies the
     #: value -- source never asserts a thinking default on its own.

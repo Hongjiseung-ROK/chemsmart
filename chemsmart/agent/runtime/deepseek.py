@@ -318,6 +318,13 @@ class ProviderCapabilitiesV1:
     wire_protocol: str = "openai-chat-completions"
     thinking_with_tools: bool = True
     continuation_mode: str = "assistant_reasoning_and_tool_results"
+    #: How this provider is given the catalogue. ``host_search`` is the
+    #: default because every provider the Agent can already run answers
+    #: it: the search is one core tool the host resolves, and the wire
+    #: sees nothing it does not already understand. A provider whose API
+    #: searches server-side declares ``native_tool_search`` in its own
+    #: adapter; ``eager`` sends everything and is always legal.
+    exposure_mode: str = "host_search"
     private_reasoning_persisted: bool = False
 
     def __post_init__(self) -> None:

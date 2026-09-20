@@ -266,19 +266,7 @@ class ToolLoopRunner:
             },
             idempotency_key="turn-started:" + envelope.turn_id,
         )
-        self.event_store.append(
-            turn_id=envelope.turn_id,
-            kind=EventKind.EXPOSURE_PLANNED.value,
-            payload={
-                "tools": tuple(
-                    item["function"]["name"]
-                    for item in self.host.surface.tool_definitions
-                ),
-                "tool_schema_sha256": self.host.surface.tool_schema_sha256,
-            },
-            idempotency_key="tool-exposure:" + envelope.turn_id,
-        )
-        exposed_digest = self.host.surface.tool_schema_sha256
+        exposed_digest = self._record_exposure(envelope.turn_id, "")
         self.host.record_seeded_evidence(envelope.turn_id)
         start = self.clock()
         attempts: list[ProviderAttemptReceiptV1] = []
@@ -334,25 +322,15 @@ class ToolLoopRunner:
             # A guide opened mid-session changes the wire payload; the
             # exposure record used to fire once, so the recorded digest
             # went stale the moment a leaf opened (audit, 2026-09-03).
-            if self.host.surface.tool_schema_sha256 != exposed_digest:
-                exposed_digest = self.host.surface.tool_schema_sha256
-                self.event_store.append(
-                    turn_id=envelope.turn_id,
-                    kind=EventKind.EXPOSURE_PLANNED.value,
-                    payload={
-                        "tools": tuple(
-                            item["function"]["name"]
-                            for item in self.host.surface.tool_definitions
-                        ),
-                        "tool_schema_sha256": exposed_digest,
-                    },
-                    idempotency_key=(
-                        "tool-exposure:"
-                        + envelope.turn_id
-                        + ":"
-                        + exposed_digest
-                    ),
-                )
+            # It keys on the exposure digest, not the wire digest: under
+            # a provider that searches server-side the tool array is
+            # byte-identical on every request -- that is what keeps the
+            # prompt cache -- so a wire digest would fire once per
+            # session and a definition entering the model's context
+            # would leave no trace in the stream at all.
+            exposed_digest = self._record_exposure(
+                envelope.turn_id, exposed_digest
+            )
             request = session.request_payload(
                 tools=list(self.host.surface.tool_definitions)
             )
@@ -625,8 +603,7 @@ class ToolLoopRunner:
                     termination_notice_delivered = True
                     session.append_host_user_message(notice["text"])
                     pending_wave = (
-                        notice.get("kind")
-                        == "execution_wave_decision_pending"
+                        notice.get("kind") == "execution_wave_decision_pending"
                     )
                     self.event_store.append(
                         turn_id=envelope.turn_id,
@@ -1135,6 +1112,49 @@ class ToolLoopRunner:
             "event_stream_head_sha256": state.latest_event_hash,
         }
         return ToolLoopResultV1(**body, result_sha256=canonical_sha256(body))
+
+    def _record_exposure(self, turn_id: str, previous: str) -> str:
+        """Record what the model can read, when it changes, once.
+
+        Session start and every later turn ask this one function.  They
+        used to be two: the session-start emitter keyed on the wire
+        digest and the per-turn one on the exposure digest, so turn one
+        recorded the same exposure twice -- two organs answering one
+        question, which is the shape of defect this repository has a
+        name for.
+
+        It keys on the exposure digest, not the wire digest, because
+        under a provider that searches server-side the tool array is
+        byte-identical on every request -- that is what keeps the prompt
+        cache -- so a wire digest would fire once per session and a
+        definition entering the model's context would leave no trace.
+        """
+
+        exposure = getattr(self.host.surface, "exposure", None)
+        digest = (
+            exposure.exposure_sha256
+            if exposure is not None
+            else self.host.surface.tool_schema_sha256
+        )
+        if digest == previous:
+            return previous
+        payload: dict[str, Any] = {
+            "tools": tuple(
+                item["function"]["name"]
+                for item in self.host.surface.tool_definitions
+            ),
+            "tool_schema_sha256": self.host.surface.tool_schema_sha256,
+        }
+        if exposure is not None:
+            payload.update(exposure.record())
+            payload["callable"] = list(exposure.available_names())
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.EXPOSURE_PLANNED.value,
+            payload=payload,
+            idempotency_key=f"tool-exposure:{turn_id}:{digest}",
+        )
+        return digest
 
     def _validate_run_contract(
         self,

@@ -61,6 +61,7 @@ from chemsmart.agent.capabilities import (
     resolve_engine_binding,
     resolve_program_binding,
 )
+from chemsmart.agent.catalogue import SEARCH_TOOL_NAME
 from chemsmart.agent.cli_schema import (
     LiveClickSchemaV1,
     build_live_click_schema,
@@ -249,6 +250,7 @@ from chemsmart.agent.tool_specs import (
     REGISTRY_PRODUCERS,
     AgentToolSurfaceV1,
     build_approved_execution_tool_surface,
+    build_catalogue_tool_surface,
     build_command_compiled_tool_surface,
 )
 from chemsmart.agent.workflow_context import (
@@ -2182,6 +2184,33 @@ def promotion_field_observations(
     return tuple(observations)
 
 
+class CapabilityNotInCatalogueError(ContractError):
+    """A name the catalogue does not hold.
+
+    Typed rather than bare, because a bare "tool is not exposed by this
+    profile" -- which is what this path used to say -- names no route,
+    and a refusal that names no route is where a session invents one.
+    The route is always the same and always exists: search.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.cause = "capability.not_in_catalogue"
+        self.next_legal_route = (
+            f"{SEARCH_TOOL_NAME}(query=...) with what you are trying to do"
+        )
+        self.failure_report = {
+            "gate": self.cause,
+            "invariant": (
+                "the model may call only capabilities this host owns, and "
+                "only after reading their schemas."
+            ),
+            "diagnosis": message,
+            "route": self.next_legal_route,
+            "cost": "no engine call",
+        }
+
+
 class CommandCompiledToolHostV1:
     """Resolve every model ID against immutable host-held objects."""
 
@@ -2262,6 +2291,7 @@ class CommandCompiledToolHostV1:
         execution_environment: Mapping[str, str] = {},
         execution_environment_remove: tuple[str, ...] = (),
         active_guides: Iterable[str] = (),
+        exposure: Any = None,
         execute_analysis_only_plans: bool = False,
         analysis_only_run_directory: str | Path = "",
         analysis_only_workspace: str | Path = "",
@@ -2288,8 +2318,16 @@ class CommandCompiledToolHostV1:
             live_schema=self.live_schema,
         )
         self.active_guides: set[str] = set(active_guides)
-        command_surface = build_command_compiled_tool_surface(
-            self.registry, guides=tuple(sorted(self.active_guides))
+        # Exposure, where a caller gave one, is the authority for what
+        # the model may call; the guide tree stays the default so every
+        # existing entry point behaves exactly as it did.
+        self.exposure = exposure
+        command_surface = (
+            build_catalogue_tool_surface(exposure)
+            if exposure is not None
+            else build_command_compiled_tool_surface(
+                self.registry, guides=tuple(sorted(self.active_guides))
+            )
         )
         execution_surface = build_approved_execution_tool_surface(
             self.registry
@@ -3054,6 +3092,7 @@ class CommandCompiledToolHostV1:
         "execute_approved_program_node": "_execute_approved_program_node",
         "consult_domain_skill": "_consult_domain_skill",
         "open_guide": "_open_guide",
+        SEARCH_TOOL_NAME: "_search_capabilities",
     }
 
     def dispatch(
@@ -3062,6 +3101,16 @@ class CommandCompiledToolHostV1:
         """Validate a call and invoke exactly one approved host operation."""
 
         values = dict(arguments)
+        if self.exposure is not None and not self.exposure.is_available(
+            tool_name
+        ):
+            # An exact name is a discovery act. The host loads the
+            # definition and asks for the call again; it never runs
+            # arguments composed without the schema, which is what the
+            # guide tree did -- a leaf tool called by name opened its
+            # guide and the same blind arguments were then validated
+            # against the surface that had just appeared.
+            return self._discover_by_name(turn_id, tool_name)
         # A leaf tool called by name before its guide opened: the model
         # asked, so the guide opens on that signal and the call proceeds.
         owner = guide_for_tool(tool_name)
@@ -3080,6 +3129,25 @@ class CommandCompiledToolHostV1:
         # arguments wrong is how an unfamiliar tool is usually met.
         try:
             _validate_tool_arguments(self.surface, tool_name, values)
+            if self.exposure is not None:
+                entry = self.exposure.catalogue.entry(tool_name)
+                if entry is not None and entry.kind == "reference":
+                    # A reference entry's text is its description, so a
+                    # model that has it in context has already read it.
+                    # Calling it is still legal and returns the same
+                    # text: a model that prefers to call rather than
+                    # read is never refused, it just learns nothing new.
+                    return {
+                        "schema_version": "chemsmart.tool-result.v1",
+                        "tool": tool_name,
+                        "status": "ok",
+                        "result": {
+                            "reference": entry.name,
+                            "family": entry.family,
+                            "derived_from": entry.derived_from,
+                            "text": entry.description,
+                        },
+                    }
             handlers = {
                 name: getattr(self, method)
                 for name, method in self.TOOL_HANDLERS.items()
@@ -3120,12 +3188,180 @@ class CommandCompiledToolHostV1:
             )
         return reply
 
+    # -- discovery: finding what exists, and reading it before using it ----
+
+    def _rebuild_exposure(
+        self, turn_id: str, exposure: Any, *, signal: str
+    ) -> tuple[str, ...]:
+        """Adopt a new exposure, rebuild the surface, record what arrived.
+
+        One record whichever backend found it, so an event stream reads
+        the same whether the host searched or the provider did.
+        """
+
+        before = (
+            set(self.exposure.available_names()) if self.exposure else set()
+        )
+        self.exposure = exposure
+        if self.surface.profile == "command_compiled_preview":
+            self.surface = build_catalogue_tool_surface(exposure)
+        arrived = tuple(
+            name for name in exposure.available_names() if name not in before
+        )
+        if not arrived:
+            return ()
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.CAPABILITY_LOADED.value,
+            payload={
+                "loaded": list(arrived),
+                "signal": signal,
+                **exposure.record(),
+                "tool_schema_sha256": self.surface.tool_schema_sha256,
+            },
+            idempotency_key=(
+                f"capability-loaded:{turn_id}:{signal}:"
+                + exposure.exposure_sha256
+            ),
+        )
+        return arrived
+
+    def _entry_records(
+        self, names: Iterable[str]
+    ) -> tuple[dict[str, Any], ...]:
+        catalogue = self.exposure.catalogue
+        out = []
+        for name in names:
+            entry = catalogue.entry(str(name))
+            if entry is not None:
+                out.append(entry.record())
+        return tuple(out)
+
+    def _discover_by_name(
+        self, turn_id: str, tool_name: str
+    ) -> dict[str, Any]:
+        """Load an entry named exactly, and ask for the call again.
+
+        This is not a refusal. The model named something real and the
+        host makes it callable; what it does not do is execute arguments
+        composed against a schema the model has not read, because the
+        arguments of a tool met for the first time are exactly where a
+        silent scientific error enters -- an operation whose values and
+        energies are the other way round is arithmetic that runs.
+        """
+
+        catalogue = self.exposure.catalogue
+        entry = catalogue.entry(tool_name)
+        if entry is None:
+            raise CapabilityNotInCatalogueError(
+                f"{tool_name!r} is not a capability this host has. "
+                f"Search for what you need with {SEARCH_TOOL_NAME}; it "
+                "covers every act and every piece of reference text, by "
+                "name, description and argument."
+            )
+        arrived = self._rebuild_exposure(
+            turn_id,
+            self.exposure.with_loaded((tool_name,)),
+            signal="model_named_it",
+        )
+        return {
+            "schema_version": "chemsmart.tool-result.v1",
+            "tool": tool_name,
+            "status": "schema_loaded",
+            "result": {
+                "loaded": list(self._entry_records(arrived)),
+                "callable_now": tool_name,
+                "next_step": (
+                    f"{tool_name} is in your tools now and its schema is "
+                    "readable. Read it and issue the call again; the "
+                    "arguments you sent were not run, because they were "
+                    "composed before the schema was available."
+                ),
+            },
+        }
+
+    def _search_capabilities(
+        self, turn_id: str, values: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Answer one model-written query against the catalogue.
+
+        The host tokenizes the query and ranks; it does not classify it,
+        expand it, or decide from it what the task is about. A result is
+        an offer to load, never a grant: nothing here approves, executes
+        or validates anything.
+        """
+
+        from chemsmart.agent.catalogue import (
+            DEFAULT_SEARCH_LIMIT,
+            MAX_SEARCH_LIMIT,
+        )
+
+        query = str(values.get("query") or "")
+        limit = int(values.get("limit") or DEFAULT_SEARCH_LIMIT)
+        catalogue = self.exposure.catalogue
+        exposed = set(self.exposure.available_names())
+        # One ranking, split two ways. A result is an offer to load, so
+        # offering what is already loaded spends a slot on nothing -- the
+        # first probe had the search tool's own description, which lists
+        # the topics worth searching for, ranking first for "Boltzmann
+        # populations over conformers". But an entry the query matched
+        # and that is already in context is an answer, not an absence, so
+        # it is named beside the results rather than dropped: only where
+        # it outranks the weakest offer, or the list fills with every
+        # core tool on every query.
+        ranked = catalogue.search(query, limit=MAX_SEARCH_LIMIT)
+        results = tuple(item for item in ranked if item.name not in exposed)[
+            :limit
+        ]
+        floor = results[-1].score if results else 0.0
+        already = tuple(
+            item.name
+            for item in ranked
+            if item.name in exposed and item.score >= floor
+        )[:limit]
+        self.event_store.append(
+            turn_id=turn_id,
+            kind=EventKind.CAPABILITY_SEARCHED.value,
+            payload={
+                "query": query,
+                "limit": limit,
+                "backend": "host_bm25",
+                "results": [result.name for result in results],
+                "already_exposed": list(already),
+                "catalogue_sha256": catalogue.catalogue_sha256,
+                "exposure_sha256": self.exposure.exposure_sha256,
+            },
+            idempotency_key=(
+                "capability-search:"
+                + turn_id
+                + ":"
+                + canonical_sha256({"q": query, "n": limit})
+            ),
+        )
+        return {
+            "matches": [result.record() for result in results],
+            "already_available": list(already),
+            "how_to_use": (
+                "Call any matching act by its exact name: the host loads "
+                "its schema and asks you to issue the call again. A "
+                "reference entry's text is its description -- once loaded "
+                "you have already read it, and calling it returns the same "
+                "text."
+            ),
+        }
+
     # -- guides: the leaves of the surface ---------------------------------
 
     def activate_guides(
         self, turn_id: str, guide_ids: Iterable[str], *, signal: str
     ) -> tuple[Any, ...]:
         """Open guides not yet open; rebuild the surface; record each."""
+
+        if self.exposure is not None:
+            # A session driven by the catalogue has no guide tree to open,
+            # and rebuilding the guide surface here would throw away the
+            # exposure the model has been reading from.
+            return ()
 
         from chemsmart.agent.guides import GUIDES_BY_ID
 
@@ -3190,6 +3426,9 @@ class CommandCompiledToolHostV1:
             "declare_requested_observable",
         }:
             return ()
+        if self.exposure is not None:
+            self._surface_from_plan(turn_id)
+            return ()
         jobtypes: set[str] = set()
         operations: set[str] = set()
         constants: set[str] = set()
@@ -3211,6 +3450,37 @@ class CommandCompiledToolHostV1:
             programs=programs,
         )
         return self.activate_guides(turn_id, wanted, signal="plan")
+
+    def _surface_from_plan(self, turn_id: str) -> None:
+        """A planned DAG is a typed act, so it may surface references.
+
+        The plan names job types, operations and programs the host
+        already validates; nothing here reads the model's prose or the
+        human's. Two programs in one DAG surfaces the cross-program
+        reference because equal level strings are not equal methods, and
+        no wording in the plan would ever say so.
+        """
+
+        from chemsmart.agent.exposure import promotions_from_plan
+
+        jobtypes: set[str] = set()
+        operations: set[str] = set()
+        programs: set[str] = set()
+        for plan in self.scientific_workflow_plans.values():
+            for node in getattr(plan, "nodes", ()):
+                jobtypes.add(str(getattr(node, "jobtype", "")))
+                programs.add(str(getattr(node, "program", "")))
+        for toolchain in self.scientific_toolchain_plans.values():
+            for node in getattr(toolchain, "analysis_nodes", ()):
+                for item in getattr(node, "expression_nodes", ()):
+                    operations.add(str(item.get("operation", "")))
+        wanted = promotions_from_plan(
+            jobtypes=jobtypes, operations=operations, programs=programs
+        )
+        if wanted:
+            self._rebuild_exposure(
+                turn_id, self.exposure.with_loaded(wanted), signal="plan"
+            )
 
     def _open_guide(self, turn_id: str, values: dict) -> Any:
         """The model-pull path: a guide, or an advisory skill."""
