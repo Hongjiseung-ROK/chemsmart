@@ -2,7 +2,11 @@
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
-results; this release does not claim Gaussian Agent execution.
+results. Gaussian ``opt`` and ``sp`` are release-qualified for Agent
+execution on CPU, each recorded from a sealed live goal on the
+configuration it ran; ``ts``, ``irc``, ``scan``, ``modred``, ``td`` and
+``link`` have real engine runs on that target through the human CLI and no
+approved Agent execution, which is a different fact and stays unclaimed.
 
 What a completed Gaussian result answers is decided by the job the log says
 produced it, and its route line alone cannot say: ``opt=modredundant`` is
@@ -31,11 +35,14 @@ Gaussian 16 C.02 has been driven through ChemSmart on a Slurm target
 every declared job type, including a saddle search reaching the HCN/HNC
 1,2-hydrogen shift at -1146.1 cm^-1 whose two IRC branches change
 connectivity in one direction and not the other. Those are runs through
-the human CLI. An Agent goal on the same target planned, compiled,
-safely previewed, program-validated and preflighted a Gaussian
-optimisation with zero findings and built its execution review, and then
-made no execution decision, so no Gaussian engine call has been made
-under the approval chain and no job type is claimed for Agent execution.
+the human CLI, and they are what the two qualified pairs stand beside
+rather than what qualified them: the Agent executed ``opt`` and ``sp``
+under the approval chain on hydrogen peroxide and on formaldehyde (jobs
+2142407 and 2142428), each goal relaxing a deliberately distorted
+geometry and then taking a single point on the structure the optimisation
+reached, and each settling ``achieved`` under the host completion gate.
+Both optimisations reproduce the same calculation run through the human
+CLI to every printed digit.
 
 One boundary of the Gaussian route channel is worth stating because the
 program does not state it. A route parameter is appended verbatim, so a

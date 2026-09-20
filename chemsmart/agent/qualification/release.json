@@ -207,6 +207,24 @@
       "commit": "85d3badc",
       "date": "2026-09-21",
       "source": "All four sealed goals of the campaign planned a PySCF ts node from ordinary language and executed one: six searches across four molecules, every one validated. g1 ran the chain end to end -- ts (reaching the same HCN/HNC saddle as the direct CLI and as ORCA, C-N 1.1882 / C-H 1.1966 / N-H 1.3977 A) feeding two irc branches that reached HCN and HNC, barriers 47.84 and 34.16 kcal/mol against the direct-CLI references to 0.01. g2 relaxed a supplied Hartree-Fock saddle onto the B3LYP/def2-SVP surface it was asked about (seed max|g| 0.0378 Eh/Bohr there, reached 3.5e-5) and delivered 87.25 kcal/mol -- the route the previous round's methoxy goal did not have. g3 diagnosed two of its own searches converging to non-saddles and built a seed that worked. g4 located the H2O2 cis rotation barrier structure (one imaginary mode, -612.8 cm-1) and delivered 34.72 kJ/mol. No goal settled achieved: g1 and g3 exhausted their revisions, g2 and g4 lost their last two cycles to a provider-transport outage. What the capability did is recorded here; what the goals delivered is not claimed beyond the two barriers above."
+    },
+    {
+      "kind": "program_jobtype",
+      "id": "gaussian:cpu:opt",
+      "status": "recorded",
+      "run": "r8/gaussian goals/g3/runs/cycle-1 (Slurm 2142407) + goals/g4/runs/cycle-1 (Slurm 2142428)",
+      "commit": "d76e7d81",
+      "date": "2026-09-21",
+      "source": "Gaussian 16 C.02 on the CUHK Central Cluster, driven through the R8 server profile's GAUSSIAN block -- the first ChemSmart-driven Gaussian on any target. Two goals, one per molecule, each planning a Gaussian opt feeding a Gaussian sp across a geometry edge and each settling `achieved` under the host completion gate. The molecule is the stated perturbation: hydrogen peroxide distorted at the O-O bond and the torsion, formaldehyde distorted at C=O. The g3 optimisation is also reproduced against the same calculation run through the human CLI (Slurm 2142374): identical reached geometry to 0.0 A, identical energy to all printed digits, identical six frequencies. H2O2 relaxed from O-O 1.55 A and a 60 degree torsion to O-O 1.455627 A and -118.52 degrees in 11.583 s of engine wall time, with six real frequencies and zero imaginary modes -- the claim the goal delivered. Its reached structure was carried forward by the host's own geometry handoff, which refuses an unvalidated producer."
+    },
+    {
+      "kind": "program_jobtype",
+      "id": "gaussian:cpu:sp",
+      "status": "recorded",
+      "run": "r8/gaussian goals/g3/runs/cycle-2 (Slurm 2142407) + goals/g4/runs/cycle-2 (Slurm 2142428)",
+      "commit": "d76e7d81",
+      "date": "2026-09-21",
+      "source": "Gaussian 16 C.02 on the CUHK Central Cluster, driven through the R8 server profile's GAUSSIAN block -- the first ChemSmart-driven Gaussian on any target. Two goals, one per molecule, each planning a Gaussian opt feeding a Gaussian sp across a geometry edge and each settling `achieved` under the host completion gate. The molecule is the stated perturbation: hydrogen peroxide distorted at the O-O bond and the torsion, formaldehyde distorted at C=O. The g3 optimisation is also reproduced against the same calculation run through the human CLI (Slurm 2142374): identical reached geometry to 0.0 A, identical energy to all printed digits, identical six frequencies. Each single point ran on the structure its own optimisation reached, not on the geometry the goal was handed: for H2O2 the internal coordinates agree with the optimisation's last frame to 1e-6 A (the Cartesian difference is Gaussian's standard-orientation re-alignment), the energy agrees to 1.3e-7 Eh, and the Mulliken vector is identical and sums to 0.000000 e."
     }
   ]
 }

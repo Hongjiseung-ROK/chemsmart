@@ -299,7 +299,7 @@ nodes:
 
   - id: negative.a_green_gaussian_review_was_never_decided
     kind: negative_result
-    source: {path: ".agents/charter/other-programs-probe-providers.md", anchor: "optimisation with zero findings and built its execution review, and then"}
+    commit: "0fee0ff4"
     note: "Two goals on two chemically different molecules (Slurm 2142394 H2O2, 2142397 CH2O) took a Gaussian opt-feeds-sp workflow through project promotion, validation, compilation, safe preview, program validation, preflight and the execution review with zero findings, and both settled `execution_wave_decision_pending`. `select_execution_wave` was in neither session's callable set (29 and 35 capabilities loaded) and the catalogue search for the word `execute` returns `inspect_workflow_draft` and `about_pyscf`, not it; `run the calculation` does return it. So the block is retrieval in a shared layer, not the Gaussian path, and no Gaussian engine call has been made under the approval chain."
     falsifier: "A session that has a ready node and a standing approval reaches an engine call without searching a phrase other than the verb it would naturally use, or `select_execution_wave` ranks for `execute`."
 
@@ -308,6 +308,12 @@ nodes:
     source: {path: "chemsmart/agent/execution.py", anchor: "lift, so this edge and ``build_reached_geometry`` answer one question"}
     note: "A round's premise held that a reader declaring no structural state makes every geometry route refuse that program. Half true, and the half that is false is the interesting one. `build_reached_geometry` -- the explicit lift a session calls -- asks the reader for a selector in the `as_reached` state, so it did refuse every Gaussian result. The in-approval producer edge for opt and ts does not: `handoff_optimized_native_geometry` opens the log itself, applies its own job-type gate and its own convergence test, and reads `optimized_structure`. Two organs answer `the structure this run reached` and only one of them asks the reader that owns the question."
     falsifier: "The executor's optimized-geometry handoff and the reader's `reached_positions` disagree about which structure a completed result reached, for any program."
+
+  - id: result.gaussian_executed_under_the_approval_chain_20260921
+    kind: result
+    source: {path: ".agents/charter/other-programs-probe-providers.md", anchor: "the Agent executed ``opt`` and ``sp``"}
+    note: "The first approved Gaussian executions. Once `select_execution_wave` was surfaced from typed state and its description said that it runs the calculations, the same two goals -- re-issued unchanged, task text byte-identical -- found it, called it, and ran. g3 (H2O2, Slurm 2142407) and g4 (CH2O, 2142428) each relaxed a deliberately distorted geometry and took a single point on the structure the optimisation reached, each over two cycles with one revision admitted, and each settled `achieved` under the host completion gate. The opt of each reproduces the same calculation run through the human CLI to every printed digit: H2O2 identical reached geometry to 0.0 A and identical six frequencies, CH2O the same. Each single point ran on the reached structure and not the supplied one -- CH2O C=O 1.206270 A and H-C-H 115.220 degrees in both, energy agreeing to 1e-9 Eh. The measured order matters: with the flags false the same goal settles `returned_to_human` in twelve seconds with `bounded execution has no executable jobs`, before any planning, so the declaration cannot follow the run it admits."
+    falsifier: "An approved Gaussian opt or sp on this configuration fails to execute, or its result disagrees with the same calculation through the human CLI by more than optimiser convergence."
 
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
@@ -361,3 +367,4 @@ edges:
   - {from: negative.a_duplicated_route_keyword_dropped_the_hessian_silently, to: result.gaussian_ran_through_chemsmart_on_cuhk_20260921, rel: evidenced_by}
   - {from: negative.a_green_gaussian_review_was_never_decided, to: result.gaussian_ran_through_chemsmart_on_cuhk_20260921, rel: depends_on}
   - {from: lesson.two_organs_answer_the_reached_structure_and_one_asks_the_reader, to: negative.a_relaxed_scan_classified_itself_as_a_single_point, rel: depends_on}
+  - {from: result.gaussian_executed_under_the_approval_chain_20260921, to: negative.a_green_gaussian_review_was_never_decided, rel: supersedes}
