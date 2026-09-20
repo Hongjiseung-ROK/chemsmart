@@ -243,3 +243,100 @@ def test_the_catalogue_authors_one_family_per_act():
         if entry.kind == "act":
             assert ACT_FAMILIES[entry.name] == entry.family
     assert "stem" not in catalogue.families()
+
+
+def test_a_narrated_capability_boundary_is_computed_in_both_directions(
+    monkeypatch,
+):
+    """The negative half of capability truth has one author too.
+
+    `about_pyscf` said "Not available here: scans, ... GPU execution,
+    ... mixed basis/ECP" by hand, and that reference now arrives with
+    every `inspect_program(pyscf)`. It is the class of defect with the
+    longest record here: a leaf denied `ts` after it shipped, and
+    another denied an excited-root Hessian for five days, and nothing
+    went red either time. Each clause is now computed from the registry
+    that owns it -- the complement of declared stages, the engines with
+    no executable pair, the settings class's own refusal list -- or it
+    is gone, with `inspect_program` and `project_yaml(validate)` named
+    as the answer.
+    """
+
+    from chemsmart.agent import capabilities as capabilities_module
+
+    text = build_tool_catalogue().entry("about_pyscf").description
+    assert "scan" in text and "gpu" in text
+    assert "heavy_elements_basis" in text
+    # The clauses no registry owned are gone rather than restated.
+    for narrated in (
+        "EOM or CASSCF",
+        "double hybrids",
+        "only the geometric optimiser is installed",
+        "a Hessian for ROHF",
+    ):
+        assert narrated not in text, narrated
+    assert "inspect_program" in text and "project_yaml" in text
+
+    # A registry that gains a stage stops denying it, with no prose edit.
+    # The registry object is digest-bound, so the mutation is made where
+    # the token reads it rather than by forging one.
+    from chemsmart.agent import catalogue as catalogue_module
+
+    class _Program:
+        program = "pyscf"
+        jobtypes = ("sp", "opt", "hess", "ts", "irc", "td", "scan")
+        engines = ("cpu",)
+        execution_engine_job_pairs = (("cpu", "sp"),)
+
+    class _Other:
+        program = "orca"
+        jobtypes = ("sp", "opt", "neb")
+        engines = ("cpu",)
+        execution_engine_job_pairs = (("cpu", "sp"),)
+
+    class _Grown:
+        programs = (_Program(), _Other())
+
+    monkeypatch.setattr(
+        capabilities_module, "load_program_capabilities", lambda: _Grown()
+    )
+    assert catalogue_module is not None
+    after = build_tool_catalogue().entry("about_pyscf").description
+    denied = after[after.index("job types:") : after.index("; engines")]
+    assert "scan" not in denied, denied
+    assert "neb" in denied, "a stage this host has and pyscf lacks still is"
+
+
+def test_no_reference_narrates_a_capability_boundary_by_hand():
+    """The grep the repair owes, as a standing check.
+
+    A sentence that tells the model what this host cannot do, and that
+    no registry computes, must not sit in searchable or pushed text.
+    Scientific impossibilities are not this: "a barrier position cannot
+    come from max alone" is a fact about arithmetic, not about the host.
+    """
+
+    import re
+
+    from chemsmart.agent.catalogue import REFERENCE_BODY_TOKENS
+
+    pattern = re.compile(
+        r"(not available here|unavailable here|not supported here"
+        r"|no \w+ (?:here|this round|in this release)"
+        r"|only the [\w ]+ is installed)",
+        re.IGNORECASE,
+    )
+    offenders = []
+    for entry in build_tool_catalogue().entries:
+        if entry.kind != "reference":
+            continue
+        for match in pattern.finditer(entry.description):
+            offenders.append((entry.name, match.group(0)))
+    assert not offenders, offenders
+    # And the tokens that replaced them exist and resolve.
+    assert {
+        "declared_stages",
+        "undeclared_stages",
+        "engines_without_execution",
+        "refused_settings",
+    } <= set(REFERENCE_BODY_TOKENS)

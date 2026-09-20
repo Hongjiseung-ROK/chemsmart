@@ -921,9 +921,11 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "reference's), judged by the same order rule: it is how an "
         "excited-state stationary point is told from a minimum, and a "
         "ground-state hess at that geometry answers another question. "
-        "mp2, ccsd and ccsd(t) have no Hessian here: a correlated minimum "
-        "stays uncharacterised, and an HF or DFT hess at it is another "
-        "surface's, which the delivery names.",
+        "Where a correlated method admits no Hessian -- ask "
+        "inspect_program for the exact cell rather than this sentence "
+        "-- the correlated minimum stays uncharacterised, and an HF or "
+        "DFT hess at that geometry is another surface's, which the "
+        "delivery names.",
         "44499f2a (2026-09-14) shipped the excited-root Hessian and this "
         "leaf denied it for five days; CUHK job 2140014: at the planar "
         "formaldehyde S1 point an analytic hess on root 1 was validated "
@@ -1017,8 +1019,12 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "reference:about_pyscf",
         "T1",
         "mp2, ccsd and ccsd(t) are ab_initio values on an HF reference: "
-        "energies for all three, gradients for MP2 and CCSD, no Hessian, "
-        "no density fitting or solvent with them this round. "
+        "energies for all three, gradients for MP2 and CCSD. Which stage "
+        "and which settings a correlated method admits is "
+        "inspect_program's answer for the exact cell and "
+        "project_yaml(validate)'s for the exact settings -- a sentence "
+        "here would be a boundary nothing checks, and two of those have "
+        "misled live goals. "
         "reference_energy and correlation_energy are the program's own "
         "components and correlation_energy is the final method's whole "
         "correlation, triples included; the dipole, populations, orbital "

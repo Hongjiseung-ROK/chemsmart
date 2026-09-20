@@ -514,6 +514,93 @@ def _declared_stages(topic: "ReferenceTopicV1", registry: Any) -> str:
     return ", ".join(sorted(stages)) if stages else "none on this host"
 
 
+def _undeclared_stages(topic: "ReferenceTopicV1", registry: Any) -> str:
+    """Job types this host's registry does not declare for the program.
+
+    The complement of ``_declared_stages``, from the same object
+    ``inspect_program`` answers from. It exists because the negative was
+    the half that stayed hand-written: a leaf denied ``ts`` after it
+    shipped, and another denied an excited-root Hessian for five days,
+    and nothing went red either time. A boundary nothing computes is a
+    boundary that misleads a live goal.
+    """
+
+    if registry is None:
+        from chemsmart.agent.capabilities import load_program_capabilities
+
+        registry = load_program_capabilities()
+    everything: set[str] = set()
+    declared: set[str] = set()
+    for item in getattr(registry, "programs", ()):
+        stages = {str(name) for name in getattr(item, "jobtypes", ())}
+        everything.update(stages)
+        if str(getattr(item, "program", "")).lower() == topic.family:
+            declared = stages
+    rest = sorted(everything - declared)
+    return ", ".join(rest) if rest else "none"
+
+
+def _engines_without_execution(
+    topic: "ReferenceTopicV1", registry: Any
+) -> str:
+    """Engines this program declares but cannot execute a job on."""
+
+    if registry is None:
+        from chemsmart.agent.capabilities import load_program_capabilities
+
+        registry = load_program_capabilities()
+    for item in getattr(registry, "programs", ()):
+        if str(getattr(item, "program", "")).lower() != topic.family:
+            continue
+        executable = {
+            str(engine)
+            for engine, _job in getattr(item, "execution_engine_job_pairs", ())
+        }
+        rest = sorted(
+            {str(name) for name in getattr(item, "engines", ())} - executable
+        )
+        return ", ".join(rest) if rest else "none"
+    return "none"
+
+
+def _refused_settings(topic: "ReferenceTopicV1", registry: Any) -> str:
+    """Project settings this program's own loader refuses.
+
+    Asked of the class whose ``validate()`` raises, so the sentence and
+    the refusal cannot disagree. A program with no such declaration
+    renders "none" rather than a claim nobody owns.
+    """
+
+    import importlib
+
+    try:
+        module = importlib.import_module(
+            f"chemsmart.jobs.{topic.family}.settings"
+        )
+    except ImportError:
+        return "none"
+    # The program's own base settings class, derived rather than mapped:
+    # each jobs package names it ``<Program>JobSettings`` and its stage
+    # variants ``<Program><Stage>JobSettings``, so the shortest such
+    # name that is not the shared ``MolecularJobSettings`` is the base.
+    candidates = sorted(
+        (
+            name
+            for name in vars(module)
+            if name.endswith("JobSettings")
+            and name != "MolecularJobSettings"
+            and not name.startswith("_")
+        ),
+        key=len,
+    )
+    if not candidates:
+        return "none"
+    refused = sorted(
+        getattr(getattr(module, candidates[0]), "UNSUPPORTED", ()) or ()
+    )
+    return ", ".join(refused) if refused else "none"
+
+
 def _registered_constants(topic: "ReferenceTopicV1", registry: Any) -> str:
     """Every registered literature constant, with what it is for."""
 
@@ -532,6 +619,9 @@ def _registered_constants(topic: "ReferenceTopicV1", registry: Any) -> str:
 #: A token nobody registered raises rather than reaching the model.
 REFERENCE_BODY_TOKENS = {
     "declared_stages": _declared_stages,
+    "undeclared_stages": _undeclared_stages,
+    "engines_without_execution": _engines_without_execution,
+    "refused_settings": _refused_settings,
     "registered_constants": _registered_constants,
 }
 
@@ -784,11 +874,18 @@ REFERENCE_TOPICS: tuple[ReferenceTopicV1, ...] = (
             "every result the dipole, populations, orbital energies and "
             "<S^2> belong to the SCF reference and energy to the surface "
             "the job computed on; inspect_run says which beside each "
-            "selector. Not available here: scans, a ccsd(t) optimisation, "
-            "EOM or CASSCF, GPU execution, double hybrids, mixed basis/ECP, "
-            "a Hessian for ROHF or an open-shell NLC functional; only the "
-            "geometric optimiser is installed. A non-converged optimisation "
-            "still writes its last structure. Free energies come from the "
+            "selector. What this host does not declare for pyscf, "
+            "computed rather than narrated -- job types: "
+            "<<undeclared_stages>>; engines that preview but execute "
+            "nothing: <<engines_without_execution>>; project settings "
+            "the loader refuses outright: <<refused_settings>>. "
+            "Anything else you are unsure of is inspect_program's "
+            "answer for the exact program, job type and engine, and "
+            "project_yaml(validate)'s for the exact settings; neither "
+            "is restated here, because a boundary nothing computes is "
+            "the one that misled two live goals. A non-converged "
+            "optimisation still writes its last structure. "
+            "Free energies come from the "
             "host's RRHO engine (derive_thermochemistry; state T and p), "
             "never PySCF's thermo; the receipt states the isotope-averaged "
             "masses and the symmetry number behind them. "
