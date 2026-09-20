@@ -52,6 +52,14 @@ class XTBOutput:
         This allows XTBOutput to transparently expose all properties and methods
         from XTBMainOut, XTBEngradFile, XTBChargesFile, XTBWibergBondOrderFile,
         XTBHessianFile, XTBGradientFile, XTBVibSpectrumFile, and any future parsers.
+
+        Whether a parser *declares* a name is asked of its class, which
+        evaluates no property.  Only then is the value read, and an error
+        the property itself raises propagates.  Catching ``AttributeError``
+        around the read made a parse fault indistinguishable from a
+        missing attribute: ``solvent_on`` raised one on ``None.lower()``
+        for every result whose setup block omitted the field, and every
+        caller saw "this result has no such property" instead.
         """
         # List of internal parsers to search, in order of priority
         file_parsers = [
@@ -69,15 +77,12 @@ class XTBOutput:
         for file_parser in file_parsers:
             try:
                 parser = object.__getattribute__(self, file_parser)
-                if parser is not None:
-                    try:
-                        return getattr(parser, name)
-                    except AttributeError:
-                        # This parser doesn't have the attribute, try next one
-                        continue
             except Exception as e:
                 logger.debug(f"Failed to access parser {file_parser}: {e}")
                 continue
+            if parser is None or not hasattr(type(parser), name):
+                continue
+            return getattr(parser, name)
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{name}'"
         )

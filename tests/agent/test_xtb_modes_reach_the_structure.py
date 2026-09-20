@@ -162,6 +162,37 @@ def test_a_single_atom_is_given_no_modes():
     assert list(output.vibrational_modes or ()) == []
 
 
+def test_a_parse_fault_is_not_reported_as_a_missing_property():
+    """Delegation asks the class, then reads; a raise is not an absence.
+
+    ``XTBOutput`` delegates to its parsers and used to catch
+    ``AttributeError`` around the read, so a property that raised one
+    looked exactly like a parser that did not have it. That hid a live
+    defect in ``solvent_on`` for every result whose setup block omitted
+    the field.
+    """
+
+    from chemsmart.io.xtb import file as xtb_file
+
+    output = XTBOutput(folder=str(Path(_ACETALDEHYDE).parent))
+    assert output.hamiltonian  # delegation still works
+
+    original = xtb_file.XTBMainOut.hamiltonian
+
+    def _raises(self):
+        raise AttributeError("a parse fault inside the property")
+
+    try:
+        xtb_file.XTBMainOut.hamiltonian = property(_raises)
+        with pytest.raises(AttributeError, match="parse fault"):
+            XTBOutput(folder=str(Path(_ACETALDEHYDE).parent)).hamiltonian
+    finally:
+        xtb_file.XTBMainOut.hamiltonian = original
+
+    with pytest.raises(AttributeError, match="has no attribute"):
+        output.a_name_no_xtb_parser_declares
+
+
 def test_the_mode_frame_tolerance_is_above_the_printed_precision():
     """Every archived Hessian sits far inside the admission it is given."""
 
