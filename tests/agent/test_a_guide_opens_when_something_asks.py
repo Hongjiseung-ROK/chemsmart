@@ -202,6 +202,11 @@ def test_a_leaf_tool_called_by_name_opens_its_guide_first(tmp_path):
     # handler's (no such artifact), not "tool is not exposed".
     assert "not exposed" not in str(failure.value)
     assert "database" in host.active_guides
+    # And its body rides the refusal. A first call is the call most
+    # likely to be refused, and a guide that exposed its tools and
+    # delivered no guidance is the defect this path exists to close.
+    (record,) = failure.value.guides_opened
+    assert record["guide_id"] == "database" and record["body"]
 
 
 def test_a_session_started_with_guides_reads_them(tmp_path):

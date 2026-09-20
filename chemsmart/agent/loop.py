@@ -1005,6 +1005,17 @@ class ToolLoopRunner:
                         tool_event_payload["failure_report"] = dict(
                             failure_report
                         )
+                    # A call that opened a guide and then failed still
+                    # opened it, and the refusal is where the model is
+                    # taught: measured over one round it opened a guide
+                    # after 2% of 470 refusals, so a guide whose body only
+                    # ever rides a successful reply is a guide a refused
+                    # session does not read.
+                    guides_opened = getattr(exc, "guides_opened", None)
+                    if guides_opened:
+                        result["guides_opened"] = tuple(
+                            dict(item) for item in guides_opened
+                        )
                     tool_event_kind = EventKind.TOOL_FAILED.value
                     tool_event_key = "tool-failed:" + call_id
                 if wait_emitted and wait_started is not None:

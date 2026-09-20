@@ -3070,16 +3070,33 @@ class CommandCompiledToolHostV1:
             opened_by_call = self.activate_guides(
                 turn_id, (owner,), signal="model_call"
             )
-        _validate_tool_arguments(self.surface, tool_name, values)
-        handlers = {
-            name: getattr(self, method)
-            for name, method in self.TOOL_HANDLERS.items()
-        }
-        handler = handlers.get(tool_name)
-        if handler is None:
-            raise ContractError("tool is absent from command-compiled profile")
-        self._reply_observations = ()
-        result = handler(turn_id, values)
+        # The body travels with the tools whether or not the call stood. A
+        # leaf tool called by name opens its guide before its arguments
+        # are checked, so a refused first call used to leave the guide's
+        # tools on the surface and deliver none of its guidance -- the
+        # same defect the session-start helper was written for (audit,
+        # 2026-09-03), now on the path a first, unpractised call is most
+        # likely to take. The schema check is inside: getting the
+        # arguments wrong is how an unfamiliar tool is usually met.
+        try:
+            _validate_tool_arguments(self.surface, tool_name, values)
+            handlers = {
+                name: getattr(self, method)
+                for name, method in self.TOOL_HANDLERS.items()
+            }
+            handler = handlers.get(tool_name)
+            if handler is None:
+                raise ContractError(
+                    "tool is absent from command-compiled profile"
+                )
+            self._reply_observations = ()
+            result = handler(turn_id, values)
+        except Exception as exc:
+            if opened_by_call and not hasattr(exc, "guides_opened"):
+                exc.guides_opened = tuple(
+                    self._guide_record(guide) for guide in opened_by_call
+                )
+            raise
         reply = {
             "schema_version": "chemsmart.tool-result.v1",
             "tool": tool_name,
