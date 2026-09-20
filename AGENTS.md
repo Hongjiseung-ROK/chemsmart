@@ -60,9 +60,10 @@ The production Agent supports:
 - explicitly approved execution on release-qualified CPU paths: ORCA
   single-points, optimization/frequency, transition-state, excited-state,
   relaxed coordinate scans, intrinsic reaction coordinates, and serial DAG
-  workflows; PySCF ``sp/opt/hess/td``, optimisation on an excited root,
-  and the ``mp2``, ``ccsd`` and ``ccsd(t)`` methods, each recorded from
-  a sealed live goal on the configuration it ran; and xTB
+  workflows; PySCF ``sp/opt/hess/td``, ``irc`` (one branch per node,
+  from a saddle of the surface it walks), optimisation on an excited
+  root, and the ``mp2``, ``ccsd`` and ``ccsd(t)`` methods, each recorded
+  from a sealed live goal on the configuration it ran; and xTB
   ``sp/opt/hess``.
 
 ## Authority and approval chain
