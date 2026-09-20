@@ -1,0 +1,17 @@
+{
+ "artifact": "water_sp_cpcm_water_cpcm_water.h5",
+ "command": "reference.py water_sp_cpcm_water_cpcm_water.h5",
+ "jobtype": "sp",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  1.008,
+  1.008
+ ],
+ "point_group_detect_symm": "C2v",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -76.36763897128135,
+ "scf_summary_e_solvent_eh": -0.010344412633307647,
+ "stored_solvation_electrostatic_energy_minus_recomputed_eh": -6.418476861114186e-17,
+ "symm_geom_tol_bohr": 1e-05
+}

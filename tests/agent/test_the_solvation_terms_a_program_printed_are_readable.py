@@ -174,21 +174,37 @@ def test_declared_only_where_the_meaning_was_audited():
             assert selector not in declared[jobtype], (jobtype, selector)
 
 
-def test_only_orca_declares_them():
-    """No other program is auditable here, so none of them claims these.
+def test_only_an_auditable_program_declares_them():
+    """A program claims a solvation term only where its own record carries it.
+
+    ORCA parses the printed block.  PySCF's driver records the terms PySCF
+    itself put into the total under result contract v10
+    (``scf_summary['e_solvent']`` and, under SMD, ``['e_cds']``), which is
+    what the sentence here used to deny: "PySCF folds solvation into the
+    total energy with no decomposition in its results contract" was true
+    until the driver was asked to write it down.  PySCF has no cavity
+    surface area, so it declares the two energies and not the third.
 
     xTB already parses a richer decomposition than ORCA and is withheld for a
     different reason: every archived run has solvation off, so there is
     nothing to exercise. Gaussian prints its SMD-CDS term but no archived log
-    carries one, and PySCF folds solvation into the total energy with no
-    decomposition in its results contract.
+    carries one.
     """
 
+    declaring = {
+        "orca": set(_SOLVATION_SELECTORS),
+        "pyscf": {
+            "solvation_electrostatic_energy",
+            "solvation_nonelectrostatic_energy",
+        },
+    }
     for program, reader in RESULT_READERS.items():
-        if program == "orca":
-            continue
+        expected = declaring.get(program, set())
         for selector in _SOLVATION_SELECTORS:
-            assert selector not in reader.accessors, (program, selector)
+            assert (selector in reader.accessors) == (selector in expected), (
+                program,
+                selector,
+            )
 
 
 def test_the_solvent_is_declared_wherever_the_model_is():

@@ -654,3 +654,154 @@ are path steps and 40 are the minimisation after them. The endpoint is
 separated H2 and CO; "the IRC reached them" and "a minimisation from the
 IRC's tail reached them" are different statements, and the path account is
 where the host tells them apart.
+
+Result contract v10 records what a total energy is made of. PySCF computes
+the continuum's polarisation energy and, under SMD, the
+cavitation-dispersion-solvent-structure term, adds both into ``e_tot`` and
+keeps them in its own ``scf_summary``; the driver dropped them at the
+boundary, so every solvated PySCF energy in this corpus was an opaque total
+a session could not tell from a gas-phase one except by trusting a file
+name, could not put in an expression or a claim, and could not read against
+ORCA's. The driver now reads that summary after the final SCF and writes
+``solvation_electrostatic_energy``, ``solvation_nonelectrostatic_energy``
+and ``dispersion_energy`` beside the total, and the reader declares them for
+every job type under the names and with the meanings the ORCA reader has
+served for a round -- one selector name, one unit, two programs. Nothing is
+recomputed here: a term the program did not produce is absent, never zero,
+and the three absences are different facts that each name themselves -- no
+continuum was attached, a PCM-family model has no CDS term by construction,
+or the artifact predates v10. That took giving the unit audit a way to ask
+the accessor: until then all three arrived as "dataset absent", which is the
+class of defect where the mechanism is right where it is computed and
+unconnected where it is consumed. ``solvation_model`` and ``solvent`` are
+declared beside the numbers rather than only displayed on the level line,
+because a solvation term whose model a claim cannot carry is how two legs of
+a thermodynamic cycle come to disagree silently; they stay identities on the
+provenance axis while the three energies declare ``reference``, which is what
+an excited-root or correlated artifact needs, since PySCF adds them into the
+reference's total whatever surface ran above it. v10 adds no applied-spec
+field, so its digest vocabulary is v9's and every archived v9 digest stays
+reconstructible; the version moves because under it a solvated artifact
+carrying no continuum term is a defective record rather than an older one,
+and the validator says so in both directions for the continuum and forwards
+only for dispersion, where a functional whose name carries a correction
+(``wb97x-d3bj``) produces the term with no ``dispersion`` setting behind it.
+
+The direct CLI evidence (CUHK Slurm 2142387, five runs in nineteen seconds
+of wall time, every receipt ``validated`` with no findings) is water at
+B3LYP(G)/def2-SVP. At the gas-phase minimum SMD's polarisation term is
+-10.122 kcal/mol and its CDS term +1.447; C-PCM at the same geometry and
+the same level polarises by -6.491 and has no CDS term at all, which is the
+difference between the two models rather than a parsing failure. D3(BJ) on
+that water is -0.360 kcal/mol, and the corrected total lies below the
+uncorrected one by exactly that: these terms are parts of the total, not
+corrections to add to it, and an agent that subtracted one would double
+count. An optimisation inside the continuum deepens the polarisation to
+-10.174 and the terms belong to the structure it reached, as every other
+property does. PySCF's own recomputation from each applied spec
+(``reference.py``) reproduces every stored term -- 3e-16 Eh on the SMD
+single point, 6e-17 on the C-PCM one, exactly on the dispersion, and 1.4e-7
+Eh on the optimisation, where the recorded term comes from a final SCF
+restarted from the optimiser's density while the reference converges a
+fresh one there. What is not claimed: no cavity surface area, which ORCA
+prints and PySCF does not compute as a number; the applied dielectric,
+which rides the spec and the materialisation record and is not a selector;
+a solvated correlated or excited-root artifact, which the settings
+validator still refuses; and no GPU row, since GPU4PySCF has run none of
+this.
+
+One defect the round's own probe found is repaired where it was made.
+``_validate_correlated_results`` -- "the components are finite and sum to
+the total the artifact states" -- had performed no check on any artifact
+since it was written. ``_finite_number`` is a predicate and was read as a
+value: every entry of a ``results`` mapping read back from HDF5 is a NumPy
+array, so each component answered False, the sum that followed compared
+``False + False`` with ``False`` and agreed, and a component that was not
+there at all was never reported because a bool is never None. It reads a
+value now; all seven archived correlated fixtures still pass, and every one
+of them goes red when a component is removed, which is the half that was
+never true while the check was green.
+
+Two live goals ran this surface on CUHK (jobs 2142392 and 2142398, the
+default provider profile, the approval delegated by the owner and recorded
+as ``claude-researcher-pyscf-owner-delegated``, never a human decision).
+Neither task named a selector, a term or a model. Asked what the solvent
+contributes to formaldehyde's energy, the first session searched the
+catalogue, opened ``about_result_selectors_pyscf``, wrote and validated a
+gas-phase and an SMD project file, and planned a two-node PySCF workflow
+whose solvated node declares ``solvation_electrostatic_energy`` and
+``solvation_nonelectrostatic_energy`` among the workflow's required
+observables; three of the four expectation bands it declared are on the new
+terms, and its own words separate "PySCF's own term, not derived" from "the
+derived sum". Both nodes compiled and previewed with no critical finding,
+and the goal settled ``execution_wave_decision_pending``: three provider
+turns hit the 300-second transport deadline and the session never reached
+its execution decision. The science was planned; the transport was not
+there. The second session was given two completed runs -- the archived
+gas-phase and SMD water single points, with their receipts -- and asked to
+read them. ``inspect_run`` offered the solvation selectors on the SMD
+artifact and not on the gas-phase one, which is availability per artifact
+and not per job type; the session extracted the two terms with the model and
+the solvent beside them, derived E(SMD) - E(gas) = -7.318 kcal/mol through
+the host's own arithmetic, and claimed four numbers: that difference, the
+program's own -10.122 and +1.447, and their sum -8.675. It settled
+``achieved`` with an asserted 1 kcal/mol uncertainty for the continuum's own
+parameters and an unquantified component naming the fixed geometry, so what
+it delivered is an electronic contribution at one geometry and not a free
+energy of solvation -- and it wrote down that the printed terms "do not
+exactly partition the net (residual +1.36 kcal/mol measured)", which is the
+electronic reorganisation the solute pays to polarise. No session could
+state that decomposition here before.
+
+An open-shell PySCF result served no HOMO and no LUMO, and served a gap.
+``homo_energy`` answers only off multiplicity 1, so those two selectors
+refused on every open shell, while ``fmo_gap``'s open-shell branch
+subtracted the highest SOMO from the lowest virtual of *either* channel --
+one channel's occupied level paired with the other channel's virtual one.
+On the archived hydroxyl radical the two orbitals it subtracts are the
+alpha and beta halves of the singly occupied orbital, so 4.7957 eV was
+reported under the name a session reads as a frontier separation while the
+beta channel's own separation is 4.0674. The ORCA reader had settled the
+definition and states the reason -- for an unrestricted reference the
+frontier orbitals need not share a channel, so the extremum over both is
+what survives that case -- and this program had grown its own. PySCF's
+reader states the same relation now and declares ``alpha_homo``,
+``alpha_lumo``, ``beta_homo`` and ``beta_lumo`` beside it, each an
+extremum over the orbital energies and occupations the artifact already
+stores; nothing is authored. Triplet dioxygen is the case the definition
+exists for: its highest occupied level is alpha and its lowest virtual
+beta, so alpha alone reports 14.23 eV and beta alone 9.50 where the
+separation is 5.34, and its gap is unchanged because the extremum was
+already what it had. Three archived numbers move and no closed-shell one
+does, since a restricted reference hands one orbital array to both
+channels: hydroxyl at UKS 4.7957 to 4.0674, the same radical at UHF
+18.6471 to 17.3843. The one-electron ROHF hydrogen atom keeps the zero gap
+it already reported and now says why -- its one spatial orbital is
+occupied in alpha and empty in beta, so the pair is that orbital twice --
+and ``beta_homo`` refuses by name rather than returning a level that is
+not there. What is not claimed: ``fmo_gap`` in the shared mixin still
+carries the SOMO pairing for the log-parsing readers, so Gaussian and xTB
+answer ``gap`` on an open shell by a construction ORCA and PySCF no longer
+use; that is one shared function and it is not this program's to move.
+
+The formaldehyde goal ran when the act that runs a workflow could be
+reached. Its first issue settled ``execution_wave_decision_pending``, and
+the transport timeouts were not the cause: ``select_execution_wave`` was
+in no session's callable set at all. Re-issued unchanged on the repaired
+tree (CUHK 2142406), the same task found it by searching in the words a
+chemist uses -- "execute approved workflow run calculations wave approval
+review readiness" returned that act and ``continue_execution_reasoning``
+as its first two results -- selected a wave of two ready nodes, and ran
+them under the approval chain: two PySCF single points on formaldehyde at
+B3LYP/def2-SVP, gas phase and SMD water, both receipts ``validated`` with
+no findings. The approved analysis chain then executed provider-free and
+read the terms out of what those runs wrote, with ``solvent: water`` and
+``solvent_model: smd`` in the extraction's level record beside them and
+neither on the gas-phase node's: -6.625 kcal/mol of continuum
+electrostatics, +4.104 of cavitation, their sum -2.522, against a
+total-energy difference between the two runs of -1.026. It settled
+``achieved_with_observations``, the observations being two
+``geometry.same_structure_comparison_not_made`` -- the basin sensor's
+three-heavy-atom floor on a four-atom molecule, as in the earlier
+campaigns. This is the decomposition arriving from a calculation the
+Agent planned and ran, rather than from one prepared for it.

@@ -256,3 +256,23 @@ at B3LYP(G)/def2-SVP.
 | `h2co_elimination_ts` | the saddle search itself, as goal `g3-h2co-elimination` ran it in cycle 3 from `inputs/h2co_elimination_ridge_seed.xyz` -- a seed the session built with `edit_molecular_geometry` (H-C-H closed to 42 degrees) after diagnosing, from the geometry alone, that its two earlier searches had converged to non-saddles | a live Agent's third attempt, and the one that worked: seed spectrum **two** imaginary modes (-3954.5, -1075.9 cm-1) at max\|g\| = 0.166, 18 iterations, reaching max\|g\| = 3.2e-4 |
 | `h2co_elimination_ts_hess`, `h2co_elimination_irc_fwd`, `h2co_elimination_irc_bwd_minimisation_tail` | the Hessian and both IRC branches at the H2CO -> H2 + CO saddle a live goal's third `ts` search found (goal `g3-h2co-elimination`, CUHK **2141229** cycle 3), run as a direct-CLI diagnostic (**2141482**) because the goal ran out of revisions one node short of confirming it | the saddle is genuine: one imaginary mode at -2191.9 cm-1 at max\|g\| = 3.2e-4, forward to formaldehyde, backward to separated H2 (0.730 A) and CO (1.1135 A), C...H 3.31 A. And the backward branch is **the first recorded case of `reached_by: minimisation_from_path_tail`**: 77 frames, of which 37 are Gonzalez-Schlegel path steps and 40 are the minimisation after them. "The IRC reached separated H2 and CO" and "a minimisation started from the IRC's tail reached separated H2 and CO" are different statements, and this is where the host now tells them apart |
 | `hnc_linear_hess` | the Hessian the Agent ran on the HNC end of a PySCF IRC, from the saddle a PySCF `ts` node had located in the same goal (CUHK **2141231**, goal `g1-hcn-ts`, cycle 3) | **the first Hessian on a linear polyatomic in this corpus, and it failed.** HNC is 0.047 degrees from linear; the mode-count rule's relative transverse tolerance answers about 0.01 degrees for a triatomic, so the host demanded 3N-6 = 3 modes where PySCF's harmonic analysis had correctly produced 3N-5 = 4, and the independent reconstruction -- run at the rank the same test chose -- projected out half of the degenerate bending pair (551.0, 551.4 cm-1) and returned a survivor at 551.33 between them. The archived receipt is the one the live run wrote and says `failed`; the same bytes validate on this tree, with all four modes and a reconstruction agreeing to 3.9e-6 cm-1 |
+
+## Result contract v10: the decomposition of the total (2026-09-21)
+
+Produced through the ordinary CLI on CUHK (**Slurm 2142387**, five runs,
+nineteen seconds of wall time) at PySCF 2.14.0 / libxc 7.0.0, on the water of
+`inputs/water_relaxed.xyz` at B3LYP(G)/def2-SVP, every receipt `validated`
+with no findings. `reference.py` rebuilds the reference from each applied
+spec and reads PySCF's own `scf_summary` there; the four rows are the four
+combinations that differ.
+
+| directory | what it is | why it is here |
+|---|---|---|
+| `water_sp_smd_water` | an SMD/water single point | the only model in this build that gives both terms: polarisation **-0.0161307 Eh** (-10.122 kcal/mol) and CDS **+0.0023062 Eh** (+1.447). PySCF's own recomputation reproduces them to **3e-16 Eh** and exactly |
+| `water_sp_cpcm_water` | C-PCM/water, same geometry and level | polarisation **-0.0103444 Eh** (-6.491 kcal/mol), reproduced to 6e-17 Eh, and **no CDS term at all**: the absence is the difference between the two models, not a parsing failure. The same molecule, the same solvent and the same level put the two models 3.6 kcal/mol apart, which is why the model is declared beside the number |
+| `water_sp_d3bj` | gas phase with `dispersion: d3bj` | the dispersion term **-0.0005739 Eh** (-0.360 kcal/mol) and neither solvation term. Its total lies below `water_sp_gas_v10`'s by exactly that value: the terms are parts of the total, not corrections to add to it |
+| `water_sp_gas_v10` | plain gas phase under the current contract | the control: all three terms absent, and each absence names its own reason. Absent is not zero |
+| `water_opt_smd_water` | an optimisation inside the continuum | the terms belong to the structure the optimiser reached, like every other property: polarisation deepens to **-0.0162136 Eh** (-10.174 kcal/mol). Its stored term differs from a fresh SCF at the same geometry by **1.4e-7 Eh**, because the recorded one comes from the final SCF restarted from the optimiser's density -- the same SCF re-convergence difference the UKS hydroxyl case shows |
+
+`projects/{sp,opt}-b3lyp-svp-{smd,cpcm}-water.yaml`, `projects/sp-b3lyp-svp-d3bj.yaml`
+and `projects/sp-b3lyp-svp-gas.yaml` are the project files these ran from.

@@ -414,6 +414,16 @@ _SELECTOR_RESULT_DATASETS: dict[str, tuple[str, ...]] = {
     "correlation_energy": ("results/correlation_energy",),
     "ccsd_correlation_energy": ("results/ccsd_correlation_energy",),
     "triples_correction": ("results/triples_correction",),
+    # The decomposition of the total (contract v10).  The model and the
+    # solvent are spec fields and have no stored unit to audit; the three
+    # terms are datasets and do.
+    "dispersion_energy": ("results/dispersion_energy",),
+    "solvation_electrostatic_energy": (
+        "results/solvation_electrostatic_energy",
+    ),
+    "solvation_nonelectrostatic_energy": (
+        "results/solvation_nonelectrostatic_energy",
+    ),
     "dipole_moment": ("results/dipole_moment",),
     "dipole_moment_magnitude": ("results/dipole_moment",),
     "mulliken_atomic_charges": ("results/mulliken_charges",),
@@ -427,6 +437,11 @@ _SELECTOR_RESULT_DATASETS: dict[str, tuple[str, ...]] = {
     "homo": ("results/mo_energy",),
     "lumo": ("results/mo_energy",),
     "gap": ("results/mo_energy",),
+    # The same dataset, read through ``results/mo_occ`` per spin channel.
+    "alpha_homo": ("results/mo_energy",),
+    "alpha_lumo": ("results/mo_energy",),
+    "beta_homo": ("results/mo_energy",),
+    "beta_lumo": ("results/mo_energy",),
     "spin_square": ("results/spin_square",),
     "spin_square_deviation": ("results/spin_square",),
     "effective_multiplicity": ("results/spin_square_effective_multiplicity",),

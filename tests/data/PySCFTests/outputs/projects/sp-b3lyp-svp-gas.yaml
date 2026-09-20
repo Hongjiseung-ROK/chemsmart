@@ -1,0 +1,7 @@
+# Contract v10 control: gas phase, no correction. Every term of the
+# decomposition is absent, and absent is not zero.
+sp:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false

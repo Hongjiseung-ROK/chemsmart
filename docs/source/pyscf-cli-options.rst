@@ -325,6 +325,19 @@ from an excited-state minimum; a ground-state ``hess`` at that geometry describe
 For an open-shell reference the driver also records per-atom Mulliken spin populations; a closed-shell result marks the
 property as not applicable rather than reporting zeros.
 
+A total energy states what it is made of. Beside the total, the driver records the terms PySCF itself added into it at
+the converged density of the final geometry: ``results/solvation_electrostatic_energy`` is the continuum's polarisation
+energy, written by every solvent model this program attaches; ``results/solvation_nonelectrostatic_energy`` is SMD's
+cavitation-dispersion-solvent-structure term, which the PCM family does not have; and ``results/dispersion_energy`` is
+the semi-empirical correction. All three are in hartree and none is recomputed here -- they are PySCF's own numbers. The
+typed analysis layer serves them as ``solvation_electrostatic_energy``, ``solvation_nonelectrostatic_energy`` and
+``dispersion_energy`` beside ``solvation_model`` and ``solvent``, under the same names and the same meanings the ORCA
+reader answers to, so a solvated energy from either program can be read against the other. A run that attached no
+continuum, and a PCM-family run asked for the CDS term, report the quantity as absent rather than as zero, and each
+absence names its own reason; an artifact written before result contract v10 says that instead. The terms belong to the
+SCF reference, which the analysis layer states beside each value: an excited-root or correlated result carries them
+beside a total that is not the reference's.
+
 A ``td`` result records its excitation energies (hartree, ascending within the manifold), oscillator strengths,
 transition dipole moments (debye), the manifold multiplicity of each root for a closed-shell reference, and each root's
 convergence, beside the count of roots requested and obtained and the iteration cap applied; a solvated spectrum records

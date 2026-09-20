@@ -1,0 +1,12 @@
+# Contract v10 fixture: an optimisation inside the continuum, so the
+# recorded terms belong to the structure the optimiser reached and the
+# reached geometry can seed the next node.
+opt:
+  functional: b3lyp
+  basis: def2-svp
+  freq: false
+  density_fit: false
+  opt_solver: geometric
+  opt_maxsteps: 100
+  solvent_model: smd
+  solvent_id: water

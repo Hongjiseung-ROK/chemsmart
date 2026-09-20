@@ -60,6 +60,8 @@ def _mean_field(spec, mol):
         grid = spec.get("atom_grid")
         if grid:
             mf.grids.atom_grid = tuple(int(item) for item in grid)
+    if spec.get("dispersion"):
+        mf.disp = spec["dispersion"]
     if spec.get("scf_tol") is not None:
         mf.conv_tol = float(spec["scf_tol"])
     if spec.get("scf_maxiter") is not None:
@@ -176,6 +178,7 @@ def main(path):
                 "frozen_core",
                 "cc_max_cycle",
                 "scf_stability",
+                "dispersion",
             )
         }
         results = {
@@ -191,6 +194,9 @@ def main(path):
                 "excitation_energies",
                 "correlation_energy",
                 "total_energy",
+                "solvation_electrostatic_energy",
+                "solvation_nonelectrostatic_energy",
+                "dispersion_energy",
             )
         }
         positions = np.asarray(handle["results/positions"][()])
@@ -240,16 +246,86 @@ def main(path):
             np.max(np.abs(stored - np.sort(recomputed)))
         )
     stability_requested = bool(spec.get("scf_stability"))
+    # The decomposition (contract v10) is PySCF's own account of what it
+    # put into the total, so it is re-derived the same way everything
+    # else here is: rebuild the reference from the applied spec and read
+    # the program's summary, never the artifact's numbers.
+    decomposed = (
+        spec.get("solvent_call") is not None
+        or bool(spec.get("dispersion"))
+        or any(
+            results[name] is not None
+            for name in (
+                "solvation_electrostatic_energy",
+                "solvation_nonelectrostatic_energy",
+                "dispersion_energy",
+            )
+        )
+    )
+    # The frontier levels are their own reason to rebuild the reference:
+    # a plain single point asks for nothing else and is exactly where the
+    # spin-resolved selectors are read.
     needs_reference = (
         results["excitation_energies"] is not None
         or results["correlation_energy"] is not None
         or stability_requested
+        or decomposed
+        or spec.get("multiplicity") is not None
     )
     if needs_reference:
         mf = _mean_field(spec, mol)
         mf.kernel()
         out["scf_energy_eh"] = float(mf.e_tot)
         out["scf_converged"] = bool(mf.converged)
+    if needs_reference and spec.get("multiplicity") is not None:
+        # The frontier levels PySCF's own rebuilt reference carries, per
+        # spin channel and in eV, so the selector plane's HOMO/LUMO/gap
+        # can be checked against the program rather than against us.
+        occ_e, occ_o = np.asarray(mf.mo_energy), np.asarray(mf.mo_occ)
+        ev = 27.211386245988
+        if occ_e.ndim == 2:
+            channels = {
+                "alpha": (occ_e[0], occ_o[0] > 0),
+                "beta": (occ_e[1], occ_o[1] > 0),
+            }
+        else:
+            channels = {
+                "alpha": (occ_e, occ_o >= 1.0),
+                "beta": (occ_e, occ_o >= 2.0),
+            }
+        frontier = {}
+        for name, (energies, filled) in channels.items():
+            if filled.any():
+                frontier[name + "_homo_ev"] = (
+                    float(energies[filled].max()) * ev
+                )
+            if (~filled).any():
+                frontier[name + "_lumo_ev"] = (
+                    float(energies[~filled].min()) * ev
+                )
+        homo = [v for k, v in frontier.items() if k.endswith("homo_ev")]
+        lumo = [v for k, v in frontier.items() if k.endswith("lumo_ev")]
+        if homo and lumo:
+            frontier["homo_ev"] = max(homo)
+            frontier["lumo_ev"] = min(lumo)
+            frontier["gap_ev"] = min(lumo) - max(homo)
+        out["frontier_orbitals"] = frontier
+    if decomposed:
+        summary = dict(getattr(mf, "scf_summary", {}) or {})
+        for stored_name, summary_key in (
+            ("solvation_electrostatic_energy", "e_solvent"),
+            ("solvation_nonelectrostatic_energy", "e_cds"),
+            ("dispersion_energy", "dispersion"),
+        ):
+            if summary_key not in summary:
+                continue
+            value = float(np.asarray(summary[summary_key]).reshape(-1)[0])
+            out["scf_summary_%s_eh" % summary_key] = value
+            stored = results[stored_name]
+            if stored is not None:
+                out["stored_%s_minus_recomputed_eh" % stored_name] = float(
+                    np.asarray(stored).reshape(-1)[0] - value
+                )
     if stability_requested:
         out["scf_stability"] = _stability(mf)
     if results["excitation_energies"] is not None:

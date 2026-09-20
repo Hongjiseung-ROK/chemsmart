@@ -18,6 +18,7 @@ import h5py
 import numpy as np
 import pytest
 
+import chemsmart.jobs.pyscf.validation as validation_module
 from chemsmart.agent._contracts import file_sha256
 from chemsmart.agent.driver import REPAIR_MENU
 from chemsmart.agent.execution import (
@@ -95,6 +96,15 @@ CASES = {
     "hcn_hnc_irc_forward": ("irc", "c2_irc_fwd_gas_phase.h5"),
     "hcn_hnc_irc_backward": ("irc", "c2_irc_bwd_gas_phase.h5"),
     "hcn_irc_from_vwn5_saddle": ("irc", "c2_irc_fwd_from_vwn5_gas_phase.h5"),
+    # Contract v10 (decomposition round): the terms PySCF itself put into
+    # the total it reports, over the four cases that differ -- SMD, which
+    # has both, a PCM-family model, which has only the electrostatics, a
+    # dispersion correction with no continuum, and neither.
+    "water_sp_smd_water": ("sp", "water_sp_smd_water_smd_water.h5"),
+    "water_sp_cpcm_water": ("sp", "water_sp_cpcm_water_cpcm_water.h5"),
+    "water_sp_d3bj": ("sp", "water_sp_d3bj_gas_phase.h5"),
+    "water_sp_gas_v10": ("sp", "water_sp_gas_v10_gas_phase.h5"),
+    "water_opt_smd_water": ("opt", "water_opt_smd_water_smd_water.h5"),
 }
 GREEN = {
     "water_sp",
@@ -127,6 +137,11 @@ GREEN = {
     "hcn_hnc_irc_forward",
     "hcn_hnc_irc_backward",
     "hcn_irc_from_vwn5_saddle",
+    "water_sp_smd_water",
+    "water_sp_cpcm_water",
+    "water_sp_d3bj",
+    "water_sp_gas_v10",
+    "water_opt_smd_water",
 }
 TD_CASES = (
     "water_td_singlet",
@@ -775,6 +790,77 @@ def test_the_correlated_stage_serves_components_pyscf_recomputes(case):
         reader.read(output, "functional")
 
 
+@pytest.mark.capability("selector:pyscf:sp:correlation_energy")
+@pytest.mark.parametrize("case", CORRELATED_CASES)
+def test_the_correlated_component_check_is_a_check(case):
+    """It reported nothing at all, on any artifact, for two rounds.
+
+    ``_finite_number`` is a predicate and was read as a value: every
+    entry of a ``results`` mapping is a NumPy array, so it answered False
+    for each component, the sum that followed compared ``False + False``
+    with ``False``, and a component that was not there at all was never
+    reported because a bool is never None.  A validator that cannot go
+    red on a removed component is not validating, so the removal is what
+    is asserted here -- the green half alone was true the whole time it
+    was broken.
+    """
+
+    spec, _provenance, status, results = read_pyscf_h5(_path(case))
+    stages = status.get("stages") or {}
+    assert not validation_module._validate_correlated_results(
+        results, stages, spec
+    )
+    without = dict(results)
+    without.pop("correlation_energy")
+    findings = validation_module._validate_correlated_results(
+        without, stages, spec
+    )
+    assert [finding.field for finding in findings] == [
+        "results.correlation_energy"
+    ]
+
+
+@pytest.mark.capability("selector:pyscf:sp:ccsd_correlation_energy")
+@pytest.mark.parametrize("case", CORRELATED_CASES)
+def test_every_component_the_check_names_moves_its_verdict(case):
+    """A component nothing relates to another is a number free to be wrong.
+
+    Removal was the first half; a *wrong* value is the half a real
+    artifact can actually carry. Perturbing any component of a correlated
+    result by 1e-6 Eh must go red, and on plain CCSD it did not:
+    ``ccsd_correlation_energy`` was tied to ``correlation_energy`` only
+    through the ccsd(t) sum, so under ``ccsd`` the artifact could serve
+    two different numbers for one quantity -- PySCF writes ``obj.e_corr``
+    to both, with no triples between them -- and validate.
+    """
+
+    spec, _provenance, status, results = read_pyscf_h5(_path(case))
+    stages = status.get("stages") or {}
+    assert not validation_module._validate_correlated_results(
+        results, stages, spec
+    )
+    components = [
+        name
+        for name in (
+            "reference_energy",
+            "correlation_energy",
+            "ccsd_correlation_energy",
+            "triples_correction",
+            "total_energy",
+        )
+        if results.get(name) is not None
+    ]
+    for name in components:
+        perturbed = dict(results)
+        perturbed[name] = np.asarray(
+            float(np.asarray(results[name]).reshape(-1)[0]) + 1.0e-6
+        )
+        findings = validation_module._validate_correlated_results(
+            perturbed, stages, spec
+        )
+        assert findings, (case, name)
+
+
 @pytest.mark.capability("selector:pyscf:sp:triples_correction")
 @pytest.mark.capability("selector:pyscf:sp:ccsd_correlation_energy")
 def test_ccsd_t_correlation_is_ccsd_plus_triples_as_orca_means_it():
@@ -1180,6 +1266,12 @@ def test_every_declared_pyscf_selector_is_requestable_and_provenanced():
         # belongs to; it is not itself a value on one.
         "surface_id",
         "symbols",
+        # Which continuum was attached, and what it was parameterised
+        # for, are job-level facts like the basis. The two solvation
+        # *energies* are values on the reference's density and declare
+        # it, which is the distinction this roster draws.
+        "solvation_model",
+        "solvent",
         # An IRC's path is geometry and bookkeeping: which frames, which
         # branch, whether the walk met its criteria. Its energies and the
         # start's spectrum are values on a density and declare it.

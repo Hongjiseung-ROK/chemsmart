@@ -143,6 +143,13 @@ RULE_SOLVER_UNAUDITED_SURFACE = "pyscf.solver.unaudited_surface"
 #: Excited-state and correlated result arrays: finite, aligned, ordered.
 RULE_RESULT_EXCITED = "pyscf.result.excited_state_invalid"
 RULE_RESULT_CORRELATION = "pyscf.result.correlation_invalid"
+#: The decomposition of the total (contract v10): the settings that
+#: produce a term and the terms recorded agree.  A solvated run whose
+#: artifact carries no continuum term reads, through the selector plane,
+#: exactly like a gas-phase one -- which is the reading this rule exists
+#: to prevent -- and a term recorded by a run that applied no such model
+#: is a number belonging to nothing.
+RULE_RESULT_DECOMPOSITION = "pyscf.result.energy_decomposition_invalid"
 #: An IRC walks one branch from the saddle it was handed, on an HF or DFT
 #: surface PySCF differentiates twice analytically; each refusal names what
 #: answers the question instead.
@@ -1308,6 +1315,26 @@ def _finite_number(value):
     )
 
 
+def _scalar_number(value):
+    """The one finite number a stored result holds, or None.
+
+    ``_finite_number`` beside it is a predicate, and a predicate used as
+    a value is how the correlated-component check came to perform no
+    check at all: every entry of a ``results`` mapping read back from
+    HDF5 is a NumPy array rather than a Python float, so the predicate
+    answered False for each component, the sum that followed compared
+    ``False + False`` with ``False`` and agreed, and a component that was
+    not there at all was never reported because a bool is never None.
+    A value question gets a value answer.
+    """
+
+    array = _result_array(value)
+    if array is None or array.size != 1:
+        return None
+    number = float(array.reshape(-1)[0])
+    return number if math.isfinite(number) else None
+
+
 def _positive_integer_sequence(value):
     return bool(
         isinstance(value, Collection)
@@ -2179,6 +2206,15 @@ def validate_pyscf_result(
         findings.extend(
             _validate_correlated_results(results, stage_statuses, spec)
         )
+    # The decomposition is read off every completed run, whatever stages
+    # it ran, because what the SCF put into its own total is a property
+    # of the reference and not of a stage.  A run whose engine did not
+    # finish never reached the property block and is not held to it.
+    if (
+        status.get("engine_complete") is True
+        and contract_observation.get("state") == "current"
+    ):
+        findings.extend(_validate_energy_decomposition(results, spec))
     if status.get("engine_complete") is not True:
         findings.append(
             _result_finding(
@@ -3612,7 +3648,7 @@ def _validate_correlated_results(results, stage_statuses, spec):
         names.append("triples_correction")
     values = {}
     for name in names:
-        value = _finite_number(results.get(name))
+        value = _scalar_number(results.get(name))
         if value is None:
             findings.append(
                 _result_finding(
@@ -3651,6 +3687,36 @@ def _validate_correlated_results(results, stage_statuses, spec):
                         "h5:/results/correlation_energy",
                     )
                 )
+        elif method == "ccsd":
+            # PySCF's own meaning makes these one number: the driver
+            # writes ``float(obj.e_corr)`` to both, with no triples
+            # between them, so a plain-CCSD artifact serving two
+            # different values is serving one quantity twice and
+            # disagreeing with itself. Nothing said so, and the
+            # component was tied to the total only through the
+            # ccsd(t) sum, so a perturbed ``ccsd_correlation_energy``
+            # validated. The bound is exact rather than the 1e-8 the
+            # sums carry, because no arithmetic stands between them.
+            if (
+                abs(
+                    values["ccsd_correlation_energy"]
+                    - values["correlation_energy"]
+                )
+                > 1.0e-12
+            ):
+                findings.append(
+                    _result_finding(
+                        RULE_RESULT_CORRELATION,
+                        "results.ccsd_correlation_energy",
+                        {
+                            "equals_correlation_energy": values[
+                                "correlation_energy"
+                            ]
+                        },
+                        values["ccsd_correlation_energy"],
+                        "h5:/results/ccsd_correlation_energy",
+                    )
+                )
     corr_status = stage_statuses.get("corr")
     applied = (
         corr_status.get("method") if isinstance(corr_status, Mapping) else None
@@ -3665,6 +3731,65 @@ def _validate_correlated_results(results, stage_statuses, spec):
                 "h5:/status/stages/corr/method",
             )
         )
+    return findings
+
+
+def _validate_energy_decomposition(results, spec):
+    """The terms the applied settings produce are the terms recorded.
+
+    Two directions, and only one of them holds both ways.  A continuum
+    model always gives PySCF an ``e_solvent`` and SMD always gives an
+    ``e_cds``, so their absence under those settings is a defective
+    record, and either term on a run that attached no such model is a
+    number belonging to nothing.  Dispersion is checked forwards only: a
+    functional whose *name* carries a correction (``wb97x-d3bj``) makes
+    ``do_disp()`` true with no ``dispersion`` setting at all, so a term
+    beside an unset field is a fact about the functional rather than a
+    contradiction.
+    """
+
+    findings = []
+    solvent_model = str(spec.get("solvent_model") or "").strip().lower()
+    solvated = bool(spec.get("solvent_call")) or bool(solvent_model)
+    expectations = (
+        ("solvation_electrostatic_energy", solvated, True),
+        ("solvation_nonelectrostatic_energy", solvent_model == "smd", True),
+        ("dispersion_energy", bool(spec.get("dispersion")), False),
+    )
+    for name, expected, exclusive in expectations:
+        stored = results.get(name)
+        value = _scalar_number(stored)
+        present = stored is not None
+        if expected and value is None:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_DECOMPOSITION,
+                    f"results.{name}",
+                    "finite scalar in Eh",
+                    _array_observation(_result_array(stored)),
+                    f"h5:/results/{name}",
+                )
+            )
+        elif not expected and present and exclusive:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_DECOMPOSITION,
+                    f"results.{name}",
+                    "absent: the applied settings produce no such term",
+                    _array_observation(_result_array(stored)),
+                    f"h5:/results/{name}",
+                )
+            )
+        elif present and value is None:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_DECOMPOSITION,
+                    f"results.{name}",
+                    "finite scalar in Eh",
+                    _array_observation(_result_array(stored)),
+                    f"h5:/results/{name}",
+                )
+            )
     return findings
 
 
