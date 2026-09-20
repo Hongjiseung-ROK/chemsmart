@@ -2003,6 +2003,175 @@ def _scan_steps_planned(output: Any) -> int:
     return int(coordinate["points"])
 
 
+#: How far two hartree values printed at different precisions may sit
+#: apart and still be the same number.  ORCA prints the IRC path table to
+#: six decimals and the geometry sidecars to twelve, so the pairing check
+#: below compares them at the coarser one with room to spare; a wrong
+#: pairing is millihartrees out, never microhartrees.
+_ORCA_IRC_ENERGY_PAIRING_TOLERANCE = 1e-5
+
+
+def _orca_irc_path_records(output: Any) -> tuple[Any, ...]:
+    """ORCA's printed IRC path, refused when the log carries none."""
+
+    records = tuple(getattr(output, "irc_path_records", ()) or ())
+    if len(records) < 2:
+        raise MissingQuantityError(
+            "this ORCA result prints no IRC PATH SUMMARY table, so it "
+            "establishes no reaction path"
+        )
+    return records
+
+
+def _orca_irc_branch(output: Any) -> Any:
+    """The one branch this IRC walked, or a refusal naming the route.
+
+    ORCA writes a branch's final structure beside the log and a
+    ``direction both`` run writes two of them.  Which end of a reaction
+    coordinate a structure belongs to is then a scientific fact the host
+    cannot settle, and serving either as "the structure the run reached"
+    is how one geometry comes to be delivered under another's name.  One
+    direction per irc node keeps the answer unambiguous, which is also
+    the shape the qualified Agent route already plans.
+    """
+
+    records = tuple(getattr(output, "irc_endpoint_records", ()) or ())
+    if not records:
+        raise MissingQuantityError(
+            "this ORCA IRC left no branch endpoint structure beside its "
+            "output, so it establishes no path geometry"
+        )
+    if len(records) > 1:
+        directions = ", ".join(str(item["direction"]) for item in records)
+        raise MissingQuantityError(
+            f"this ORCA IRC walked {len(records)} branches ({directions}), "
+            "so no single structure is the one it reached; plan one "
+            "direction per irc node and each branch's endpoint is its own"
+        )
+    return records[0]
+
+
+def _orca_irc_start_molecule(output: Any) -> Any:
+    """The transition state the branch was handed, checked against the path.
+
+    An ORCA IRC log prints one structure and it is the starting point.
+    That premise is verified rather than trusted: the printed structure
+    must be the only one in the log and its energy must be the first row
+    of the path table, which is the row ORCA itself marks ``<= TS``.
+    """
+
+    _orca_irc_branch(output)
+    records = _orca_irc_path_records(output)
+    structures = list(getattr(output, "all_structures", ()) or ())
+    if len(structures) != 1:
+        raise MissingQuantityError(
+            "this ORCA IRC log prints "
+            f"{len(structures)} structures, so which one the branch "
+            "started from is not established"
+        )
+    printed_energy = getattr(output, "final_energy", None)
+    if printed_energy is None or not math.isfinite(float(printed_energy)):
+        raise MissingQuantityError(
+            "this ORCA IRC records no energy for its printed structure"
+        )
+    if (
+        abs(float(printed_energy) - float(records[0]["energy"]))
+        > _ORCA_IRC_ENERGY_PAIRING_TOLERANCE
+    ):
+        raise MissingQuantityError(
+            "this ORCA IRC's printed structure does not carry the path's "
+            "first energy, so the log's structure is not the point the "
+            "path starts from"
+        )
+    return structures[0]
+
+
+def _orca_irc_end_molecule(output: Any) -> Any:
+    """The structure the branch reached, read from ORCA's own endpoint file.
+
+    The endpoint is the whole product of an IRC and it lives in a sidecar
+    rather than in the log.  It is read through ChemSmart's XYZ parser and
+    bound to the log by two checks: the atom identities and order must be
+    the log's, and the energy the sidecar carries must be the last row of
+    the path table.  A sidecar that belongs to another run fails both.
+    """
+
+    record = _orca_irc_branch(output)
+    records = _orca_irc_path_records(output)
+    path = Path(str(record["geometry_file"]))
+    from chemsmart.io.xyz.xyzfile import XYZFile
+
+    try:
+        molecule = XYZFile(str(path)).get_molecules(index="-1")
+        comment = str(XYZFile(str(path)).get_comments(index="-1") or "")
+    except (OSError, IndexError, TypeError, ValueError) as error:
+        raise MissingQuantityError(
+            f"ORCA's IRC endpoint file {path.name} is not readable"
+        ) from error
+    if molecule is None:
+        raise MissingQuantityError(
+            f"ORCA's IRC endpoint file {path.name} holds no structure"
+        )
+    expected = tuple(
+        str(item) for item in output.thermochemistry_molecule.chemical_symbols
+    )
+    if tuple(str(item) for item in molecule.chemical_symbols) != expected:
+        raise MissingQuantityError(
+            "ORCA's IRC endpoint file changes atom identity or atom order "
+            "against the log it sits beside"
+        )
+    energy = None
+    for pattern in _XYZ_HARTREE_PATTERNS:
+        match = pattern.search(comment.strip())
+        if match is not None:
+            energy = float(match.group(1).replace("D", "E").replace("d", "e"))
+            break
+    if energy is None:
+        raise MissingQuantityError(
+            "ORCA's IRC endpoint file records no energy, so it cannot be "
+            "bound to the path it is supposed to end"
+        )
+    if (
+        abs(energy - float(records[-1]["energy"]))
+        > _ORCA_IRC_ENERGY_PAIRING_TOLERANCE
+    ):
+        raise MissingQuantityError(
+            "ORCA's IRC endpoint file does not carry the path's last "
+            "energy, so it is not this path's endpoint"
+        )
+    return molecule
+
+
+def _orca_geometry_source_path(output: Any, selector: str) -> Path | None:
+    """Name the ORCA sidecar behind the structure an IRC branch reached."""
+
+    if selector != "trajectory_end_positions":
+        return None
+    try:
+        record = _orca_irc_branch(output)
+    except MissingQuantityError:
+        return None
+    return Path(str(record["geometry_file"]))
+
+
+def _orca_native_evidence_paths(
+    output: Any, selector: str
+) -> tuple[Path, ...]:
+    """Return the ORCA sidecar whose bytes a selector directly consumes."""
+
+    if selector not in {
+        "trajectory_connectivity_changed",
+        "trajectory_end_connectivity",
+        "trajectory_end_positions",
+    }:
+        return ()
+    try:
+        record = _orca_irc_branch(output)
+    except MissingQuantityError:
+        return ()
+    return (Path(str(record["geometry_file"])),)
+
+
 def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
     accessors = _text_output_accessors(mode_composition=True)
     accessors.update(
@@ -2186,25 +2355,37 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "effective_multiplicity": lambda output: _effective_multiplicity(
                 _last_spin_square(output)
             ),
+            # An ORCA IRC writes its path to the log's PATH SUMMARY table
+            # and its endpoint to a sidecar; the log body prints only the
+            # saddle it was handed.  Reading the trajectory family out of
+            # ``all_structures`` -- as the log-parsing readers do for
+            # programs that print every frame -- would return that one
+            # structure as both ends of the path, which is the loss this
+            # jobtype's selector declarations were narrowed to prevent.
             "trajectory_frame_count": lambda output: len(
-                _irc_structures(output)
+                _orca_irc_path_records(output)
             ),
+            "trajectory_energies": lambda output: [
+                float(record["energy"])
+                for record in _orca_irc_path_records(output)
+            ],
             "trajectory_start_positions": lambda output: [
                 [float(value) for value in row]
-                for row in _irc_structures(output)[0].positions
+                for row in _orca_irc_start_molecule(output).positions
             ],
             "trajectory_end_positions": lambda output: [
                 [float(value) for value in row]
-                for row in _irc_structures(output)[-1].positions
+                for row in _orca_irc_end_molecule(output).positions
             ],
             "trajectory_start_connectivity": lambda output: (
-                _connectivity_matrix(_irc_structures(output)[0])
+                _connectivity_matrix(_orca_irc_start_molecule(output))
             ),
             "trajectory_end_connectivity": lambda output: _connectivity_matrix(
-                _irc_structures(output)[-1]
+                _orca_irc_end_molecule(output)
             ),
-            "trajectory_connectivity_changed": (
-                _trajectory_connectivity_changed
+            "trajectory_connectivity_changed": lambda output: int(
+                _connectivity_matrix(_orca_irc_start_molecule(output))
+                != _connectivity_matrix(_orca_irc_end_molecule(output))
             ),
             "irc_direction": _orca_irc_direction,
         }
@@ -3690,6 +3871,9 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("spin_square_after_annihilation", "reference"),
     ("spin_square_deviation", "reference"),
     ("spin_square_target", "reference"),
+    # Every point of an ORCA IRC path is a total on the surface the job
+    # computed on, exactly as ``energy`` is, and is resolved the same way.
+    ("trajectory_energies", "computed_surface"),
     ("triplet_excitation_energies", "excited_root"),
     ("triplet_oscillator_strengths", "excited_root"),
 )
@@ -3702,6 +3886,12 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         parser_id="chemsmart.io.orca.output.ORCAOutput",
         open_output=_orca_output,
         accessors=_orca_accessors(),
+        # An ORCA IRC's product structure is a sidecar beside the log, as
+        # xTB's reached optimisation frame is: the geometry handoff seals
+        # that file's digest, and extraction carries its bytes on the
+        # receipt of every selector that reads it.
+        geometry_source_path_for_selector=_orca_geometry_source_path,
+        native_evidence_paths_for_selector=_orca_native_evidence_paths,
         # Coverage is ``parser_supported_when_emitted``: it states what a job
         # of this type can be asked for, while method and settings still
         # decide whether the engine prints it.  The spin family and the
@@ -3742,9 +3932,18 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("solvation_cavity_surface_area", "as_reached"),
             ("solvation_electrostatic_energy", "as_reached"),
             ("solvation_nonelectrostatic_energy", "as_reached"),
+            # A comparison across the two ends of one branch belongs to
+            # neither of them alone.
             ("trajectory_connectivity_changed", "trajectory_endpoint"),
-            ("trajectory_end_connectivity", "trajectory_endpoint"),
-            ("trajectory_end_positions", "trajectory_endpoint"),
+            # The structure an IRC branch reached is what "reached" means
+            # for a run that walks rather than optimises, and it is the
+            # word PySCF's own irc endpoint already carries. It used to
+            # read the log's single printed structure -- the saddle -- and
+            # was declared for no jobtype, so nothing consumed the word
+            # ``trajectory_endpoint`` it used to hold; now the endpoint is
+            # ORCA's own sidecar and the recovery route can carry it.
+            ("trajectory_end_connectivity", "as_reached"),
+            ("trajectory_end_positions", "as_reached"),
             ("trajectory_start_connectivity", "as_supplied"),
             ("trajectory_start_positions", "as_supplied"),
             ("vibrational_frequencies", "thermochemistry_reference"),
@@ -3820,26 +4019,28 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 ),
             ),
             (
-                # ORCA writes the reaction path to XYZ sidecars rather than
-                # into the log, so the ``trajectory_*`` family is deliberately
-                # absent here: an IRC log parses to a single structure, and
-                # the path is read from the registered ``_IRC_Full_trj.xyz``
-                # artifact through the ``xyz`` reader.  What the log itself
-                # establishes is the endpoint it converged to and the
-                # direction the ``%irc`` block explicitly declared.
                 "irc",
-                # Only job-level facts are declared.  An ORCA IRC log prints
-                # a single structure -- the starting point -- so every
-                # state-dependent value (geometry, energies, orbitals,
-                # dipoles, spin) read from it describes the transition
-                # state, not the path: the first Agent-executed IRC
+                # An ORCA IRC log prints a single structure -- the
+                # transition state the branch was handed -- so every
+                # state-dependent value read from the log body describes
+                # the saddle, not the path: the first Agent-executed IRC
                 # delivered the saddle's own distances as both endpoints,
                 # and its ``energy`` differed from the true endpoint by the
-                # entire barrier.  The path lives in the trajectory sidecar,
-                # which enters the typed layer as a registered geometry
-                # artifact and is read by the ungated xyz reader; a
-                # log-native path route (ORCA's IRC PATH SUMMARY table) is
-                # future parser work.
+                # entire barrier (33.40 kcal/mol, measured again on job
+                # 2142379).  ``energy``, ``positions`` and the orbital,
+                # dipole and spin families therefore stay undeclared.
+                #
+                # The path is not absent, though: ORCA prints it as the
+                # IRC PATH SUMMARY table and writes the branch's endpoint
+                # to its own ``_IRC_F.xyz`` / ``_IRC_B.xyz`` sidecar.  The
+                # trajectory family reads exactly those, each end bound to
+                # the other by the path table's own energies, so a
+                # completed branch delivers its profile and its product
+                # structure -- and the latter is in the ``as_reached``
+                # state, which is what lets the recovery route carry it
+                # into the optimisation that identifies the minimum.  A
+                # ``direction both`` run leaves two branch endpoints and
+                # the geometry selectors refuse it by name.
                 (
                     "ab_initio",
                     "basis",
@@ -3851,6 +4052,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "solvation_model",
                     "solvent",
                     "symbols",
+                    "trajectory_connectivity_changed",
+                    "trajectory_end_connectivity",
+                    "trajectory_end_positions",
+                    "trajectory_energies",
+                    "trajectory_frame_count",
+                    "trajectory_start_connectivity",
+                    "trajectory_start_positions",
                 ),
             ),
             (

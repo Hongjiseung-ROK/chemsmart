@@ -4,11 +4,14 @@ A consumer may take a producer's geometry inside one approval when the
 producer ends on one structure the host can select without choosing between
 candidates. An optimisation and a saddle search always did. A PySCF IRC
 branch does too: its artifact carries the whole accepted path and declares
-where the branch ended as the reached structure, the same declaration the
-later-cycle lift (``build_reached_geometry``) reads. ORCA's IRC log prints
-only where the path started, its reader declares no reached structure for
-``irc``, and an ORCA IRC edge stays refused -- by that declaration, not by
-a name check that would have to be remembered.
+where the branch ended as ``reached_positions``, which is the selector this
+edge asks for. An ORCA IRC branch's endpoint is a sidecar beside the log,
+declared as ``trajectory_end_positions``: the later-cycle lift
+(``build_reached_geometry``) asks for the ``as_reached`` *role* and is
+served it, while this edge asks for one selector by name and refuses. So an
+ORCA IRC endpoint is reusable through a new workflow with its own review
+and not inside one approval, and widening the edge is an authority change
+this test would be the first to see.
 """
 
 from __future__ import annotations

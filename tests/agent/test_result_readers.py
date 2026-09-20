@@ -683,25 +683,75 @@ def test_orca_declares_frontier_coverage_only_where_a_reference_converges():
     assert not (family & set(declared["td"]))
 
 
-def test_orca_irc_declares_its_endpoint_but_not_a_log_trajectory():
-    """The path lives in a sidecar, so the log must not promise it.
+def test_orca_irc_delivers_the_branch_its_own_files_establish():
+    """A completed IRC's path and product reach the typed layer.
 
-    ORCA writes the reaction path to `_IRC_Full_trj.xyz` and leaves a single
-    structure in the log, so the ORCA reader declares the endpoint it
-    converged to plus the explicitly declared direction, and the trajectory
-    family stays with the `xyz` reader that can actually answer it.
+    The log body prints one structure, the saddle, so this used to be the
+    jobtype that executed and promised nothing: a session could run an
+    IRC and bind neither its profile nor the structure it reached. ORCA
+    prints the profile as its IRC PATH SUMMARY table and writes the
+    branch endpoint to its own sidecar, and both are read here against
+    the archived forward branch of an HCN -> HNC 1,2-hydrogen shift
+    (B3LYP/def2-SVP, ORCA 6.1.1).
     """
 
-    declared = dict(reader_for("orca").jobtype_selectors)
+    reader = reader_for("orca")
+    declared = dict(reader.jobtype_selectors)
     assert "irc_direction" in declared["irc"]
-    assert not [
-        selector
-        for selector in declared["irc"]
-        if selector.startswith("trajectory_")
-    ]
-    assert {"trajectory_connectivity_changed", "trajectory_frame_count"} <= (
-        reader_for("xyz").selectors
+    path = Path("tests/data/ORCATests/outputs/hcn_hnc_ircf.out")
+    handle = reader.open_output(path)
+    assert reader.accessors["irc_direction"](handle) == "forward"
+    energies = reader.accessors["trajectory_energies"](handle)
+    assert reader.accessors["trajectory_frame_count"](handle) == len(energies)
+    # The saddle opens the branch and the path descends from it; the
+    # printed total is the saddle's, which is why ``energy`` stays
+    # undeclared for this jobtype.
+    assert energies[0] == pytest.approx(handle.final_energy, abs=1e-5)
+    assert energies[-1] < energies[0]
+    assert "energy" not in declared["irc"]
+    # The forming and breaking bond is visible from the two ends: the
+    # hydrogen starts on carbon and ends on nitrogen.
+    assert reader.accessors["trajectory_connectivity_changed"](handle) == 1
+    start = reader.accessors["trajectory_start_connectivity"](handle)
+    end = reader.accessors["trajectory_end_connectivity"](handle)
+    symbols = reader.accessors["symbols"](handle)
+    carbon, nitrogen, hydrogen = (symbols.index(item) for item in "CNH")
+    assert start[carbon][hydrogen] == 1 and start[nitrogen][hydrogen] == 0
+    assert end[nitrogen][hydrogen] == 1 and end[carbon][hydrogen] == 0
+
+
+def test_orca_refuses_a_path_geometry_when_the_run_walked_both_branches():
+    """Two endpoints mean neither is "the" structure the run reached.
+
+    A ``direction both`` run writes both branch files, and its path table
+    starts at one endpoint rather than at the saddle -- 45.5 kcal/mol
+    below it on this archived run. Serving either end as the reached
+    structure is how one geometry comes to be delivered under another's
+    name, so the geometry selectors refuse and name the route.
+    """
+
+    reader = reader_for("orca")
+    handle = reader.open_output(
+        Path("tests/data/ORCATests/outputs/hcn_hnc_ircboth.out")
     )
+    assert reader.accessors["irc_direction"](handle) == "both"
+    for selector in (
+        "trajectory_start_positions",
+        "trajectory_end_positions",
+        "trajectory_connectivity_changed",
+    ):
+        with pytest.raises(MissingQuantityError) as failure:
+            reader.accessors[selector](handle)
+        assert "one direction per irc node" in str(failure.value)
+    # The profile itself is direction-independent and stays readable.
+    energies = reader.accessors["trajectory_energies"](handle)
+    saddle = [
+        record["energy"]
+        for record in handle.irc_path_records
+        if record["is_transition_state"]
+    ]
+    assert len(saddle) == 1
+    assert energies[0] < saddle[0]
 
 
 def test_orca_scan_declares_the_surface_it_was_run_to_produce():

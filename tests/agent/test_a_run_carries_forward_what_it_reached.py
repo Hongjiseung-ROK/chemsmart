@@ -264,6 +264,63 @@ def test_the_host_names_the_ending_its_own_streams_recorded(tmp_path):
     assert "no ending recorded in this workspace" in header
 
 
+@pytest.mark.capability("selector:orca:irc:trajectory_end_positions")
+@pytest.mark.capability("tool:bind_reached_geometry")
+def test_an_orca_irc_branch_carries_the_structure_it_walked_to(tmp_path):
+    """The product of an IRC is a structure, and it must be reusable.
+
+    An ORCA IRC ends on the minimum its branch descended towards, and
+    that structure is the whole reason to run one: the next act is to
+    optimise it and see which minimum the saddle connects to. The log
+    prints only the saddle, so this route used to refuse the jobtype
+    outright and a session that had spent an engine call on the branch
+    could bind nothing from it. ORCA writes the endpoint to its own
+    sidecar; the host reads it through the declared ``as_reached`` role,
+    writes it as a new starting structure and seals that sidecar's name
+    and digest on the receipt.
+    """
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for("orca")
+    source = _artifact("hcn_hnc_ircf.out")
+    output = reader.open_output(Path(source.path))
+    assert output.jobtype == "irc"
+    assert "trajectory_end_positions" in reader.selectors_in_state_for_output(
+        output, "as_reached"
+    )
+
+    artifact, receipt = build_reached_geometry(
+        approved_workspace=tmp_path,
+        reached_artifact_id="hnc-branch-end",
+        result_artifact=source,
+        program="orca",
+    )
+
+    expected = np.asarray(
+        reader.accessors["trajectory_end_positions"](output), dtype=float
+    )
+    observed = np.asarray(
+        [
+            line.split()[1:4]
+            for line in Path(artifact.path).read_text().splitlines()[2:]
+        ],
+        dtype=float,
+    )
+    assert np.allclose(observed, expected, atol=1e-9)
+    # Not the saddle the branch started from: delivering that as the
+    # endpoint is the defect this route exists to stop repeating.
+    started = np.asarray(output.molecule.positions, dtype=float)
+    assert not np.allclose(observed, started, atol=1e-6)
+    assert receipt.source_geometry_filename == "hcn_hnc_ircf_IRC_F.xyz"
+    assert (
+        receipt.source_geometry_sha256
+        == hashlib.sha256(
+            (_OUT / "hcn_hnc_ircf_IRC_F.xyz").read_bytes()
+        ).hexdigest()
+    )
+
+
 @pytest.mark.capability("tool:bind_reached_geometry")
 def test_the_refusals_are_structural_and_name_the_shape(tmp_path):
     with pytest.raises(ContractError, match="geometry_xyz"):

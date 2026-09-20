@@ -1140,6 +1140,91 @@ class ORCAOutput(ORCAFileMixin):
         return True if saw_converged else None
 
     @cached_property
+    def irc_path_records(self):
+        """ORCA's own IRC PATH SUMMARY table, one record per path point.
+
+        An IRC log prints exactly one structure -- the transition state the
+        run was handed -- so every state-dependent value read from the log
+        body describes the saddle rather than the path.  Measured on a real
+        forward branch (HCN -> HNC, B3LYP/def2-SVP, ORCA 6.1.1, job
+        2142379): ``final_energy`` is the saddle's -93.224281 Eh while the
+        branch descended to -93.277515 Eh, a difference of 33.40 kcal/mol,
+        which is the whole of that side of the barrier.
+
+        The profile itself was printed all along, in this table, and
+        nothing read it.  Step 1 is the transition state (ORCA marks it
+        ``<= TS``) and the last step is the point the branch reached, so
+        the records span the same two ends as the geometry selectors.
+        Energies stay in hartree, the unit ORCA prints.
+
+        Returns an empty tuple when the run printed no such table.  The
+        last table wins: a branch that is restarted or re-summarised must
+        not be reported from its first pass, the same rule the
+        thermochemistry sections follow.
+        """
+
+        number = r"[-+]?\d+\.\d+"
+        row = re.compile(
+            rf"^\s*(\d+)\s+({number})\s+({number})\s+({number})\s+"
+            rf"({number})\s*(<=\s*TS)?\s*$"
+        )
+        blocks: list[list[dict[str, float | int | bool]]] = []
+        collecting = False
+        for line in self.contents:
+            if "IRC PATH SUMMARY" in line:
+                blocks.append([])
+                collecting = True
+                continue
+            if not collecting:
+                continue
+            match = row.match(line)
+            if match is not None:
+                blocks[-1].append(
+                    {
+                        "index": int(match.group(1)),
+                        "energy": float(match.group(2)),
+                        "energy_change_kcal_per_mol": float(match.group(3)),
+                        "max_gradient": float(match.group(4)),
+                        "rms_gradient": float(match.group(5)),
+                        "is_transition_state": match.group(6) is not None,
+                    }
+                )
+                continue
+            if blocks[-1]:
+                # The table ends at the first line that is not a row.
+                collecting = False
+        tables = [block for block in blocks if block]
+        return tuple(tables[-1]) if tables else ()
+
+    @cached_property
+    def irc_endpoint_records(self):
+        """Each IRC branch endpoint, joined to the files ORCA wrote for it.
+
+        ORCA writes a branch's final structure to ``<stem>_IRC_F.xyz`` or
+        ``<stem>_IRC_B.xyz``; a ``direction both`` run writes both of them
+        (observed on job 2142379).  Neither was reachable, so a completed
+        IRC -- whose endpoint is the entire point of running one -- left
+        its product structure on disk with no route into a later
+        calculation.
+
+        Every endpoint the run wrote is reported and none is ranked: which
+        end of a reaction coordinate is the reactant is a scientific
+        judgement, and a run that walked both directions has two endpoints
+        rather than one.
+        """
+
+        stem, _extension = os.path.splitext(self.filename)
+        records = []
+        for direction, suffix in (("forward", "F"), ("backward", "B")):
+            geometry_file = f"{stem}_IRC_{suffix}.xyz"
+            if not os.path.isfile(geometry_file):
+                continue
+            records.append(
+                {"direction": direction, "geometry_file": geometry_file}
+            )
+        return tuple(records)
+
+    @cached_property
     def all_structures(self):
         """Obtain all structures in ORCA output file,
         including intermediate points if present.

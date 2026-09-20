@@ -315,32 +315,49 @@ def test_the_role_is_resolved_against_this_results_own_jobtype():
     )
 
 
-@pytest.mark.capability("selector:orca:irc:irc_direction")
-def test_a_jobtype_with_one_printed_structure_declares_no_state():
+@pytest.mark.capability("selector:orca:irc:trajectory_end_positions")
+def test_an_irc_state_selector_never_answers_with_the_printed_saddle():
     """The charter's IRC restriction, made computable.
 
-    ORCA writes the reaction path to an XYZ sidecar; the log's only
-    printed structure is where the path started, so its printed energy
-    differs from the true endpoint by the entire barrier. The charter
-    says every state-dependent selector is therefore undeclared for the
-    jobtype -- and until this test, nothing checked it. A selector
-    declared here in any state but ``stateless`` is the IRC defect
-    returning, and it would now arrive through the role resolver that
-    the reached-geometry route asks.
+    An ORCA IRC log prints one structure and it is where the path
+    started, so a state-bearing selector reading the log body answers
+    every question with the saddle: the first Agent-executed IRC
+    delivered its distances as both endpoints. The restriction is not
+    "declare nothing" -- it is that no selector may serve a state this
+    result does not establish. ORCA does establish the branch endpoint,
+    in a sidecar of its own, so the oracle is the metamorphic one this
+    file is built on: a selector declaring a state other than
+    ``as_supplied`` must not return the structure the log printed.
     """
 
     reader = RESULT_READERS["orca"]
     declared = reader.selectors_for_jobtype("irc")
     assert declared, "orca no longer declares an irc jobtype"
-    state_bearing = {
-        name: reader.structural_state(name)
-        for name in declared
-        if reader.structural_state(name) != "stateless"
-    }
-    assert not state_bearing, (
-        "orca irc declares selectors that belong to a molecular state, "
-        "but its log prints only the structure the path started from: "
-        f"{state_bearing}"
+    root = pathlib.Path(__file__).resolve().parents[2]
+    path = root / "tests/data/ORCATests/outputs/hcn_hnc_ircf.out"
+    if not path.is_file():
+        pytest.skip("archived ORCA IRC branch is absent")
+    handle = reader.open_output(path)
+    assert handle.jobtype == "irc"
+    printed = np.asarray(handle.molecule.positions, dtype=float)
+    checked = 0
+    for name in declared:
+        state = reader.structural_state(name)
+        if state == "stateless" or not name.endswith("positions"):
+            continue
+        served = np.asarray(reader.accessors[name](handle), dtype=float)
+        checked += 1
+        if state == "as_supplied":
+            # The saddle *is* what the branch was supplied.
+            assert np.allclose(served, printed, atol=1e-8), name
+            continue
+        assert not np.allclose(served, printed, atol=1e-8), (
+            f"orca irc serves {name} ({state}) with the structure the "
+            "log printed, which is where the path started"
+        )
+    assert checked >= 2, (
+        "orca irc no longer declares both ends of the path, so the "
+        "relation that catches one structure serving as both is untested"
     )
 
 
