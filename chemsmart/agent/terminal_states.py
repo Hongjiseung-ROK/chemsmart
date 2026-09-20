@@ -288,6 +288,11 @@ class NodeTerminalStateV1:
     #: signal id, status, the numbers that tripped it, the receipt
     #: digest. Empty for streams that predate the sensor.
     anomalies: tuple[Mapping[str, Any], ...] = ()
+    #: What the recorded path was, for a node that walked one: the
+    #: validator's own measurements of the branch plus how many of its
+    #: frames are path steps. Empty for every node that walked no path
+    #: and for streams whose program records no account.
+    path_account: Mapping[str, Any] = MappingProxyType({})
 
     def __post_init__(self) -> None:
         if self.state not in NODE_TERMINAL_STATES:
@@ -318,6 +323,7 @@ class NodeTerminalStateV1:
             "evidence_artifact_sha256s": self.evidence_artifact_sha256s,
             "evidence_artifact_ids": self.evidence_artifact_ids,
             "anomalies": tuple(dict(item) for item in self.anomalies),
+            "path_account": dict(self.path_account),
         }
 
 
@@ -388,6 +394,113 @@ def _structured_findings(
             if isinstance(item, Mapping) and "rule_id" in item:
                 bodies.append(dict(item))
     return tuple(bodies)
+
+
+#: Where each program's result validation records its account of a path
+#: it walked.  One entry per program, so a second program that walks a
+#: path is one line rather than a second reader of the same shape.  The
+#: validator is the author: it already measures the first step against
+#: the transition vector, every step against the steepest descent, and
+#: the energy along the way, and recomputing any of it here would be two
+#: organs answering one question.
+PATH_ACCOUNT_OBSERVATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {"pyscf": ("irc_validation", "ts_validation")}
+)
+
+#: The path facts a session is given, in the order a chemist reads them.
+#: Every one is a measurement or a count the validator already made; none
+#: is a verdict, because what a path means is the session's to say.
+#: A stage that carries none of them contributes none; the union is
+#: taken because an IRC's branch and a saddle search's climb answer
+#: overlapping halves of one question.
+PATH_ACCOUNT_FIELDS: tuple[str, ...] = (
+    "frames",
+    "iterations",
+    "maxsteps",
+    "path_converged",
+    "search_converged",
+    "seed_frequencies_cm1",
+    "energy_rise_eh",
+    "seed_max_abs_gradient_eh_per_bohr",
+    "end_max_abs_gradient_eh_per_bohr",
+    "requested_direction",
+    "direction_followed",
+    "first_step_projection_measured",
+    "start_frequencies_cm1",
+    "start_max_abs_gradient_eh_per_bohr",
+    "energy_rises_along_path",
+    "steepest_descent_cosine_median",
+    "steepest_descent_cosine_min_after_first_step",
+    "steepest_descent_steps_compared",
+    "switched_to_minimisation",
+)
+
+
+def _path_account(
+    program: str, observations: Mapping[str, Any]
+) -> Mapping[str, Any]:
+    """What the recorded path was, for the session that must read it.
+
+    A branch's own account lived entirely inside the program's result
+    validation: a session could read the path energies, the frame count,
+    the start's spectrum and the end's connectivity through selectors and
+    could not learn that the walk had run out of steps, that its tail was
+    a minimisation rather than path steps, or how far any step lay from
+    the surface's steepest descent.  So "the IRC reached X" and "a
+    minimisation started from the IRC's tail reached X" read identically,
+    and they are different scientific statements.
+
+    Nothing is graded here and no threshold is applied -- no threshold has
+    been earned, and geomeTRIC reaching the basin and then minimising is
+    ordinary IRC practice rather than a fault.  What the host adds to the
+    validator's numbers is the one fact none of them states: how many of
+    the recorded frames are path steps, how many are the minimisation
+    after it, and therefore by which of the two mechanisms the endpoint
+    was reached.  ``reached_by`` names a mechanism, never a chemistry.
+    """
+
+    validation = observations.get("result_validation")
+    if not isinstance(validation, Mapping):
+        return {}
+    keys = PATH_ACCOUNT_OBSERVATIONS.get(str(program).strip().lower()) or ()
+    account = next(
+        (
+            validation[key]
+            for key in keys
+            if isinstance(validation.get(key), Mapping)
+        ),
+        None,
+    )
+    if account is None:
+        return {}
+    record: dict[str, Any] = {
+        name: account[name]
+        for name in PATH_ACCOUNT_FIELDS
+        if account.get(name) is not None
+    }
+    if not record:
+        return {}
+    frames = account.get("frames")
+    switch = account.get("switch_after_iteration")
+    switched = account.get("switched_to_minimisation")
+    if switched is True:
+        # Silence here would read as "the path stepped all the way",
+        # which is the reading this record exists to prevent, so the
+        # word is written from the flag and the counts only from an
+        # index that indexes these frames.
+        record["reached_by"] = "minimisation_from_path_tail"
+        if (
+            isinstance(frames, int)
+            and isinstance(switch, int)
+            and 0 <= switch < frames
+        ):
+            record["path_step_frames"] = switch + 1
+            record["minimisation_frames"] = frames - (switch + 1)
+    elif switched is False and isinstance(frames, int) and frames >= 1:
+        record["reached_by"] = "path_step"
+        record["path_step_frames"] = frames
+        record["minimisation_frames"] = 0
+    return record
 
 
 def _native_failure(
@@ -901,6 +1014,9 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
                     if program and digest
                 ),
                 anomalies=tuple(anomalies_by_node.get(node_id, ())),
+                path_account=MappingProxyType(
+                    dict(_path_account(program, observations))
+                ),
             )
         )
 

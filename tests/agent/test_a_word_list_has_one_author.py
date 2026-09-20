@@ -113,6 +113,17 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     (
         "chemsmart/agent/terminal_states.py",
         "<module>",
+        "PATH_ACCOUNT_OBSERVATIONS",
+        ("pyscf",),
+    ): _DECLARATION
+    + ": where each program's result validation files its own "
+    "account of a path it walked. The key beside the program is that "
+    "validator's field name, which only that validator can declare, so "
+    "a second walking program is one line here rather than a second "
+    "reader of the same shape",
+    (
+        "chemsmart/agent/terminal_states.py",
+        "<module>",
         "SURFACE_SAMPLING_JOBTYPES",
         ("scan",),
     ): _DECLARATION
