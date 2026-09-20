@@ -330,7 +330,7 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
         "chemsmart/jobs/pyscf/settings.py",
         "<module>",
         "PYSCF_JOBTYPES",
-        ("hess", "irc", "opt", "sp", "td"),
+        ("hess", "irc", "opt", "sp", "td", "ts"),
     ): _DECLARATION,
     (
         "chemsmart/agent/execution.py",
@@ -351,14 +351,14 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
         "chemsmart/jobs/pyscf/settings.py",
         "<module>",
         "PYSCF_MOVING_STAGES",
-        ("irc", "opt"),
+        ("irc", "opt", "ts"),
     ): _DECLARATION
     + ": the stages that move the geometry they were handed",
     (
         "chemsmart/jobs/pyscf/settings.py",
         "<module>",
         "PYSCF_ANALYTIC_HESSIAN_STAGES",
-        ("hess", "irc"),
+        ("hess", "irc", "ts"),
     ): _DECLARATION
     + ": the stages whose first act can be PySCF's analytic Hessian",
     (
@@ -405,7 +405,7 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
         "chemsmart/agent/live_session.py",
         "_pyscf_conformance_sections",
         None,
-        ("hess", "irc", "opt", "sp", "td"),
+        ("hess", "irc", "opt", "sp", "td", "ts"),
     ): "table keyed by the PySCF vocabulary; the coverage test below "
     "holds it to PYSCF_JOBTYPES, so a new jobtype cannot lose its "
     "conformance section",
@@ -454,7 +454,7 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
         "chemsmart/settings/pyscf.py",
         "<module>",
         "PYSCF_STAGE_SOURCES",
-        ("hess", "irc", "opt", "sp", "td"),
+        ("hess", "irc", "opt", "sp", "td", "ts"),
     ): "table keyed by the PySCF vocabulary; the coverage test below "
     "holds it to PYSCF_JOBTYPES",
     (

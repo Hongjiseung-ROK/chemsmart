@@ -48,7 +48,7 @@ PYSCF_OPT_SOLVERS = ("geometric", "berny", "ase")
 
 #: Execution engines. ``gpu`` routes through gpu4pyscf via ``.to_gpu()``.
 PYSCF_ENGINES = ("cpu", "gpu")
-PYSCF_JOBTYPES = ("hess", "irc", "opt", "sp", "td")
+PYSCF_JOBTYPES = ("hess", "irc", "opt", "sp", "td", "ts")
 #: Which branch of the steepest-descent path an ``irc`` walks from the
 #: saddle it was handed. The words have no chemical meaning of their own:
 #: the transition vector's sign is fixed by a host rule (the first
@@ -79,17 +79,21 @@ PYSCF_EXCITED_SURFACE_JOBTYPES = frozenset({"hess", "opt"})
 #: Every tuple archived under contract v5 -- scf,opt,td; scf,opt,corr;
 #: scf,corr; scf,td; scf,hess -- is unchanged by this ordering. An IRC
 #: walks from the supplied geometry and ends where its branch ended, so
-#: it sits where an optimisation does and composes with nothing after it.
-PYSCF_STAGE_ORDER = ("scf", "opt", "irc", "corr", "td", "hess")
-#: Stages that move the geometry they were handed: an optimisation and an
-#: IRC branch. ``results/positions`` is where they ended, both are bounded
-#: by geomeTRIC's step ceiling, and neither is held to its input geometry.
-PYSCF_MOVING_STAGES = ("irc", "opt")
+#: it sits where an optimisation does and composes with nothing after it;
+#: a saddle search is the same kind of thing and sits beside it.
+PYSCF_STAGE_ORDER = ("scf", "opt", "ts", "irc", "corr", "td", "hess")
+#: Stages that move the geometry they were handed: an optimisation, a
+#: saddle search and an IRC branch. ``results/positions`` is where they
+#: ended, all are bounded by geomeTRIC's step ceiling, and none is held
+#: to its input geometry.
+PYSCF_MOVING_STAGES = ("irc", "opt", "ts")
 #: Stages whose first act can be PySCF's analytic Hessian of the job's
-#: own surface: a Hessian node, and an IRC, which takes it at its start.
-#: The references PySCF 2.14 cannot differentiate twice are refused for
-#: both before the engine is spent.
-PYSCF_ANALYTIC_HESSIAN_STAGES = ("hess", "irc")
+#: own surface: a Hessian node, an IRC, which takes it at its start, and
+#: a saddle search, whose partitioned rational-function step needs the
+#: curvature at the seed to know which mode to climb.  The references
+#: PySCF 2.14 cannot differentiate twice are refused for all three
+#: before the engine is spent.
+PYSCF_ANALYTIC_HESSIAN_STAGES = ("hess", "irc", "ts")
 #: The displacement a finite-difference Hessian steps by, in Angstrom:
 #: the unit the geometry is carried in and the one a scientist reads.
 #: ORCA's NumFreq default is 0.005 Bohr, a different convention, and the
@@ -224,6 +228,8 @@ def pyscf_stages(jobtype, *, ab_initio=None, excited_state_root=None):
         running.add("opt")
     if normal == "irc":
         running.add("irc")
+    if normal == "ts":
+        running.add("ts")
     if normal == "hess":
         running.add("hess")
     if normal == "td" or excited_state_root is not None:
@@ -668,6 +674,7 @@ class PySCFJobSettings(MolecularJobSettings):
         self._validate_response()
         self._validate_hessian_derivative()
         self._validate_irc()
+        self._validate_ts()
         if self.scf_tol is not None and (
             isinstance(self.scf_tol, bool)
             or not isinstance(self.scf_tol, Real)
@@ -981,6 +988,57 @@ class PySCFJobSettings(MolecularJobSettings):
             raise ValueError(
                 "fd_step_angstrom must be a finite displacement > 0 in "
                 f"Angstrom, got {step!r}."
+            )
+
+    def _validate_ts(self):
+        """The executable saddle-search contract.
+
+        A ``ts`` climbs to a first-order saddle with geomeTRIC's
+        partitioned rational-function step, which needs the curvature at
+        the seed to know which mode to climb; the driver gives it PySCF's
+        analytic Hessian of the job's own surface there, so the surface
+        must be one PySCF differentiates twice analytically -- an HF or
+        DFT reference on the CPU engine.  Each refusal names what answers
+        the question instead.
+
+        An excited root is refused where every job type outside
+        ``PYSCF_EXCITED_SURFACE_JOBTYPES`` is, so there is no branch for
+        it here.
+
+        What a ``ts`` node does *not* do is take a Hessian where it
+        arrives.  The order of the structure a search reaches is a
+        Hessian's question and a ``hess`` node is where this program
+        answers it, exactly as an ``opt`` is held: an in-process Hessian
+        would put two stage identities in one artifact and hide the
+        geometry the curvature belongs to.
+        """
+
+        if self.jobtype != "ts":
+            return
+        method = self.correlated_method
+        if method is not None:
+            raise ValueError(
+                f"A {method} transition-state search is not available "
+                "through this driver: the climb needs the surface's own "
+                f"Hessian and PySCF has no {method} Hessian. Locate the "
+                "saddle on an HF or DFT surface and take correlated "
+                "single points on the geometry it reaches."
+            )
+        if str(self.opt_solver) != "geometric":
+            raise ValueError(
+                "PySCF ts is geomeTRIC's transition-state optimiser; "
+                f"opt_solver must be 'geometric', got {self.opt_solver!r}."
+            )
+        if str(self.engine or "cpu").strip().lower() != "cpu":
+            raise ValueError(
+                "PySCF ts is a CPU capability; GPU4PySCF has run no "
+                "saddle search here."
+            )
+        if self.hessian_derivative is not None:
+            raise ValueError(
+                "A ts takes the analytic Hessian of its own surface at "
+                "the seed; hessian_derivative applies to a hess node. "
+                "Remove it from the ts section."
             )
 
     def _validate_irc(self):

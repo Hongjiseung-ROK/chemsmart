@@ -3043,6 +3043,11 @@ def _pyscf_conformance_sections(
             "opt_maxsteps": 100,
             "opt_solver": "geometric",
         },
+        "ts": {
+            **common,
+            "opt_maxsteps": 100,
+            "opt_solver": "geometric",
+        },
         "td": {
             **common,
             "nstates": 5,

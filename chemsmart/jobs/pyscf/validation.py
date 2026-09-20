@@ -156,6 +156,8 @@ RULE_RESULT_IRC = "pyscf.result.irc_invalid"
 RULE_RESULT_IRC_START_ORDER = "pyscf.result.irc_start_imaginary_mode_count"
 #: The branch the first step took, measured, disagrees with the one asked.
 RULE_RESULT_IRC_DIRECTION = "pyscf.result.irc_direction_not_followed"
+#: The saddle search's arrays: the seed's curvature and the climb.
+RULE_RESULT_TS = "pyscf.result.ts_invalid"
 #: A number the artifact records *about* its path disagrees with the same
 #: number re-derived from the arrays the driver derived it from. Every
 #: scalar an IRC stage writes beside its frames -- the start's spectrum,
@@ -2102,6 +2104,14 @@ def validate_pyscf_result(
                         "h5:/status/stages/opt",
                     )
                 )
+    ts_observation = None
+    if "ts" in required_stages:
+        ts_observation, ts_findings = _validate_ts_results(
+            results,
+            stage_statuses,
+            expected_symbols=expected_symbols,
+        )
+        findings.extend(ts_findings)
     irc_observation = None
     if "irc" in required_stages:
         irc_observation, irc_findings = _validate_irc_results(
@@ -2585,6 +2595,8 @@ def validate_pyscf_result(
         # Present only on an IRC, so every receipt of every other job
         # type keeps the exact shape it has always had.
         receipt["irc_validation"] = irc_observation
+    if ts_observation is not None:
+        receipt["ts_validation"] = ts_observation
     return receipt
 
 
@@ -2710,9 +2722,9 @@ _IRC_ENERGY_ATOL_EH = 1.0e-10
 
 
 #: What a path stage's primitive arrays and derived scalars are called.
-#: One entry per stage: the arithmetic that re-derives one path stage's
-#: account re-derives any other's, so a second such stage is a table
-#: rather than a second copy of the checks.
+#: One entry per stage, because an IRC's branch and a saddle search's
+#: climb are the same shape of evidence under different names, and the
+#: arithmetic that re-derives one re-derives the other.
 _IRC_ACCOUNT_NAMES = {
     "stage": "irc",
     "hessian": "start_hessian",
@@ -2730,6 +2742,16 @@ _IRC_ACCOUNT_NAMES = {
         "energy_rises_along_path": "count_of_rises",
         "largest_energy_rise_eh": "largest_rise",
     },
+}
+_TS_ACCOUNT_NAMES = {
+    "stage": "ts",
+    "hessian": "seed_hessian",
+    "frequencies": "seed_frequencies",
+    "positions": "search_positions",
+    "masses": "search_masses",
+    "energies": "search_energies",
+    "distance": "search_displacements",
+    "energy_statistics": {"energy_rise_eh": "last_minus_first"},
 }
 
 
@@ -2963,6 +2985,174 @@ def _mass_weighted_arc_lengths(frames, masses):
         norm = float(np.sqrt((weights[:, None] * displacement**2).sum()))
         lengths.append(lengths[-1] + norm / bohr)
     return np.asarray(lengths, dtype=float)
+
+
+def _validate_ts_results(results, stage_statuses, *, expected_symbols):
+    """The saddle search's invariants, and the facts a reader weighs.
+
+    Identity and shape, never chemistry: that the climb starts at the
+    geometry the run was handed, ends at the structure every property
+    belongs to, that the arrays are finite and aligned, and that every
+    number the stage records about its own frames is the number those
+    frames give.
+
+    What is deliberately not checked is the order of the structure the
+    search reached.  This artifact carries no Hessian there -- geomeTRIC's
+    updated curvature is a quasi-Newton estimate of it and is recorded
+    under a name that says so -- and a validator that read that estimate
+    as a spectrum would certify a saddle from an approximation.  A
+    ``hess`` node on the reached geometry is what answers it.
+    """
+
+    findings = []
+    ts = results.get("ts")
+    ts = ts if isinstance(ts, Mapping) else {}
+    stage = stage_statuses.get("ts")
+    stage = stage if isinstance(stage, Mapping) else {}
+    atoms = len(expected_symbols)
+    observation = {
+        "frames": None,
+        "end_matches_positions": None,
+        "seed_frequencies_cm1": None,
+        "seed_max_abs_gradient_eh_per_bohr": (
+            (stage.get("seed") or {}).get("max_abs_gradient_eh_per_bohr")
+            if isinstance(stage.get("seed"), Mapping)
+            else None
+        ),
+        "end_max_abs_gradient_eh_per_bohr": stage.get(
+            "end_max_abs_gradient_eh_per_bohr"
+        ),
+        "search_converged": stage.get("search_converged"),
+        "iterations": stage.get("iterations"),
+        "maxsteps": stage.get("maxsteps"),
+    }
+
+    def _array(name, shape):
+        values = _result_array(ts.get(name))
+        if values is None or values.shape != shape:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_TS,
+                    f"results.ts.{name}",
+                    shape,
+                    _array_observation(values),
+                    f"h5:/results/ts/{name}",
+                )
+            )
+            return None
+        if not bool(np.isfinite(values).all()):
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_NONFINITE,
+                    f"results.ts.{name}",
+                    "finite values",
+                    _array_observation(values),
+                    f"h5:/results/ts/{name}",
+                )
+            )
+            return None
+        return values
+
+    frequencies = _result_array(ts.get("seed_frequencies"))
+    if frequencies is None or frequencies.ndim != 1 or not frequencies.size:
+        findings.append(
+            _result_finding(
+                RULE_RESULT_TS,
+                "results.ts.seed_frequencies",
+                "the seed's harmonic spectrum on the climbed surface",
+                _array_observation(frequencies),
+                "h5:/results/ts/seed_frequencies",
+            )
+        )
+    else:
+        observation["seed_frequencies_cm1"] = [
+            float(value) for value in frequencies[:3]
+        ]
+    _array("seed_hessian", (atoms, atoms, 3, 3))
+    _array("search_masses", (atoms,))
+    positions = _result_array(ts.get("search_positions"))
+    frames = (
+        int(positions.shape[0])
+        if positions is not None
+        and positions.ndim == 3
+        and positions.shape[1:] == (atoms, 3)
+        else None
+    )
+    observation["frames"] = frames
+    if frames is None or frames < 1:
+        findings.append(
+            _result_finding(
+                RULE_RESULT_TS,
+                "results.ts.search_positions",
+                ("frames >= 1", atoms, 3),
+                _array_observation(positions),
+                "h5:/results/ts/search_positions",
+            )
+        )
+        return observation, findings
+    positions = _array("search_positions", (frames, atoms, 3))
+    _array("search_energies", (frames,))
+    _array("search_gradients", (frames, atoms, 3))
+    displacements = _array("search_displacements", (frames,))
+    if displacements is not None and (
+        abs(float(displacements[0])) > 0.0
+        or bool((np.diff(displacements) < 0.0).any())
+    ):
+        findings.append(
+            _result_finding(
+                RULE_RESULT_TS,
+                "results.ts.search_displacements",
+                "zero at the seed and never decreasing",
+                displacements.tolist(),
+                "h5:/results/ts/search_displacements",
+            )
+        )
+    final = _result_array(results.get("positions"))
+    if positions is not None and final is not None:
+        ends = bool(
+            final.shape == (atoms, 3)
+            and np.allclose(
+                positions[-1],
+                final,
+                rtol=0.0,
+                atol=_IRC_FRAME_ATOL_ANGSTROM,
+            )
+        )
+        observation["end_matches_positions"] = ends
+        if not ends:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_TS,
+                    "results.positions",
+                    {
+                        "last_search_frame": positions[-1].tolist(),
+                        "absolute_tolerance_angstrom": (
+                            _IRC_FRAME_ATOL_ANGSTROM
+                        ),
+                    },
+                    final.tolist(),
+                    "h5:/results/ts/search_positions",
+                )
+            )
+    observation["account"] = _validate_path_account(
+        arrays=ts,
+        stage=stage,
+        symbols=list(expected_symbols),
+        findings=findings,
+        names=_TS_ACCOUNT_NAMES,
+    )
+    for field in ("search_converged", "final_scf_converged"):
+        if stage.get(field) is not True:
+            findings.append(
+                _result_finding(
+                    RULE_RESULT_STAGE,
+                    f"status.stages.ts.{field}",
+                    True,
+                    stage.get(field),
+                    f"h5:/status/stages/ts/{field}",
+                )
+            )
+    return observation, findings
 
 
 def _validate_irc_results(results, stage_statuses, spec, *, expected_symbols):

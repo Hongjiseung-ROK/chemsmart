@@ -1148,7 +1148,6 @@ class ResultReaderV1:
     resolve_reference_diagnostics: (
         Callable[[Any], Mapping[str, Any] | None] | None
     ) = None
-
     def surface_for_output(self, output: Any) -> Mapping[str, Any] | None:
         """The surface this result is on, or None when unknowable."""
 
@@ -3104,6 +3103,27 @@ def _pyscf_irc_path_energies(output: Any) -> list[float]:
     return [float(item) for item in values]
 
 
+def _pyscf_ts_seed_frequencies(output: Any) -> list[float]:
+    """The spectrum at the geometry a saddle search was handed.
+
+    Served under the same name an IRC's start spectrum is, because it is
+    the same fact -- the harmonic spectrum of the structure this stage
+    started from, on the surface it walked -- and a second name would buy
+    a second vocabulary for one question.  What differs is the promise:
+    ``START_POINT_PROMISES`` declares one imaginary mode for an ``irc``
+    and declares nothing for a ``ts``, whose seed is a guess and is
+    allowed to be anything.
+    """
+
+    values = getattr(output, "ts_seed_frequencies", None)
+    if values is None:
+        raise MissingQuantityError(
+            "pyscf result records no transition-state seed spectrum "
+            "(results/ts/seed_frequencies)"
+        )
+    return [float(item) for item in values]
+
+
 def _pyscf_irc_start_frequencies(output: Any) -> list[float]:
     """The saddle's spectrum on the surface the IRC walked.
 
@@ -3286,7 +3306,13 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
         ),
         "trajectory_connectivity_changed": _trajectory_connectivity_changed,
         "trajectory_energies": _pyscf_irc_path_energies,
-        "trajectory_start_frequencies": _pyscf_irc_start_frequencies,
+        # One accessor for one question: the spectrum of the geometry a
+        # path stage was handed, whichever stage ran.
+        "trajectory_start_frequencies": lambda output: (
+            _pyscf_ts_seed_frequencies(output)
+            if getattr(output, "ts_stage", None) is not None
+            else _pyscf_irc_start_frequencies(output)
+        ),
         "irc_direction": _pyscf_irc_direction,
         "irc_converged": _irc_run_converged,
     }
@@ -3413,6 +3439,25 @@ _PYSCF_IRC_SELECTORS = tuple(
 )
 _PYSCF_TD_JOBTYPE_SELECTORS = tuple(
     sorted(_PYSCF_SCF_SELECTORS + _PYSCF_TD_SELECTORS)
+)
+#: A saddle search (contract v9): the SCF set belongs to where the climb
+#: ended, as for an optimisation, plus the spectrum of the seed it was
+#: handed.  The trajectory vocabulary is deliberately absent: the frames
+#: of a search are an optimiser's route to a structure and not a path on
+#: the surface, and serving them under the name an IRC's path answers to
+#: would invite reading a climb as a reaction coordinate.
+#: ``vibrational_frequencies`` is absent for the reason it is on an
+#: ``irc``: the artifact holds no Hessian where the search ended, and
+#: serving the seed's under that name would describe the wrong structure.
+_PYSCF_TS_SELECTORS = tuple(
+    sorted(
+        _PYSCF_SCF_SELECTORS
+        + (
+            "converged",
+            "reached_positions",
+            "trajectory_start_frequencies",
+        )
+    )
 )
 
 #: What each PySCF selector's value belongs to.  One structure per
@@ -4219,6 +4264,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             # beside its roots, so the SCF set is declared with the
             # excitation set and the provenance axis says whose each is.
             ("td", _PYSCF_TD_JOBTYPE_SELECTORS),
+            ("ts", _PYSCF_TS_SELECTORS),
         ),
         selector_structural_states=_PYSCF_STRUCTURAL_STATES,
         selector_electronic_provenance=_PYSCF_ELECTRONIC_PROVENANCE,

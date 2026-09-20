@@ -927,10 +927,12 @@ class PySCFOutput(FileMixin):
         """Whether the geometry-moving stage converged; None for a
         fixed-geometry job.
 
-        Read from the driver's own stage status, so an optimiser or an IRC
-        branch that stopped on its step limit answers False rather than an
-        absence.  For an IRC it is the branch's walk and the SCF where it
-        ended, both.
+        Read from the driver's own stage status, so an optimisation, an
+        IRC branch or a saddle search that stopped on its step limit
+        answers False rather than an absence.  For an IRC it is the
+        branch's walk and the SCF where it ended, both; for a saddle
+        search the climb and that SCF, and never the order of what it
+        reached, which is a Hessian's question.
         """
         from chemsmart.jobs.pyscf.settings import PYSCF_MOVING_STAGES
 
@@ -945,6 +947,60 @@ class PySCFOutput(FileMixin):
         if not isinstance(record, dict) or "converged" not in record:
             return None
         return bool(record.get("converged"))
+
+    # ------------------------------------------------------------------
+    # transition-state search (contract v9)
+    # ------------------------------------------------------------------
+
+    @property
+    def ts_stage(self):
+        """The saddle-search stage's own record, or None for any other job."""
+        stages = self.status.get("stages")
+        record = stages.get("ts") if isinstance(stages, dict) else None
+        return record if isinstance(record, dict) else None
+
+    @property
+    def _ts_results(self):
+        record = self.results.get("ts")
+        return record if isinstance(record, dict) else {}
+
+    @property
+    def ts_converged(self):
+        """Whether geomeTRIC's climb met the optimiser's criteria.
+
+        Convergence is a statement about the gradient and the step, never
+        about the order of the structure reached: a ``hess`` node on that
+        geometry is what says which stationary point it is.
+        """
+        stage = self.ts_stage
+        if stage is None or "search_converged" not in stage:
+            return None
+        return bool(stage.get("search_converged"))
+
+    @cached_property
+    def ts_search_positions(self):
+        """Every accepted frame of the search, the seed first (Angstrom)."""
+        values = self._ts_results.get("search_positions")
+        return np.asarray(values, dtype=float) if values is not None else None
+
+    @cached_property
+    def ts_search_energies(self):
+        """The energy of each accepted frame on the climbed surface (Eh)."""
+        values = self._ts_results.get("search_energies")
+        return [float(v) for v in values] if values is not None else None
+
+    @cached_property
+    def ts_seed_frequencies(self):
+        """The seed's harmonic spectrum on the climbed surface (cm^-1).
+
+        These belong to the geometry the search was *handed*, never to
+        the structure every other property describes.  A search that
+        started at a minimum, at a saddle of another surface, or far from
+        stationary is visible here rather than inferred from where it
+        ended; negative values are imaginary modes.
+        """
+        values = self._ts_results.get("seed_frequencies")
+        return [float(v) for v in values] if values is not None else None
 
     # ------------------------------------------------------------------
     # intrinsic reaction coordinate (contract v8)
@@ -1014,12 +1070,16 @@ class PySCFOutput(FileMixin):
 
     @cached_property
     def start_forces(self):
-        """Forces at the geometry an IRC was handed (Eh/Bohr), or None.
+        """Forces at the geometry a path stage was handed (Eh/Bohr).
 
-        The negative of the gradient the walk evaluated at its first frame:
-        how far from stationary the start was on the surface walked.
+        The negative of the gradient the walk evaluated at its first
+        frame: how far from stationary the geometry the stage started
+        from was, on the surface it walked or climbed.  None where no
+        such stage ran.
         """
         values = self._irc_results.get("path_gradients")
+        if values is None or not len(values):
+            values = self._ts_results.get("search_gradients")
         if values is None or not len(values):
             return None
         return -np.asarray(values[0], dtype=float)
@@ -1030,17 +1090,23 @@ class PySCFOutput(FileMixin):
 
     @cached_property
     def all_structures(self):
-        """The IRC's accepted frames as molecules, saddle first.
+        """The accepted frames of a path stage, the supplied one first.
 
-        Each frame carries the energy the walk evaluated there; the SCF
-        properties of the artifact belong to the last frame only.
+        An IRC's branch from its saddle, or a saddle search's climb from
+        its seed.  Each frame carries the energy the walk evaluated
+        there; the SCF properties of the artifact belong to the last
+        frame only.
         """
         from chemsmart.io.molecules.structure import Molecule
 
         frames = self.irc_path_positions
+        energies = self.irc_path_energies
+        if frames is None:
+            frames = self.ts_search_positions
+            energies = self.ts_search_energies
         if frames is None:
             return []
-        energies = self.irc_path_energies or [None] * len(frames)
+        energies = energies or [None] * len(frames)
         return [
             Molecule(
                 symbols=self.chemical_symbols,

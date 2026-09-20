@@ -62,22 +62,21 @@ def _source_function(source, name, namespace=None):
 
 
 def test_run_and_sub_expose_the_same_pyscf_command_tree():
+    """Every declared job type is a live command under both entry points.
+
+    Held to ``PYSCF_JOBTYPES`` rather than to a second copy of it: this
+    is the reachability half of the vocabulary, and a hand-list here is
+    how a job type comes to be declared in one place and unreachable in
+    another.
+    """
+
+    from chemsmart.jobs.pyscf.settings import PYSCF_JOBTYPES
+
     assert run.commands["pyscf"] is pyscf
     assert sub.commands["pyscf"] is pyscf
-    assert tuple(sorted(run.commands["pyscf"].commands)) == (
-        "hess",
-        "irc",
-        "opt",
-        "sp",
-        "td",
-    )
-    assert tuple(sorted(sub.commands["pyscf"].commands)) == (
-        "hess",
-        "irc",
-        "opt",
-        "sp",
-        "td",
-    )
+    expected = tuple(sorted(PYSCF_JOBTYPES))
+    assert tuple(sorted(run.commands["pyscf"].commands)) == expected
+    assert tuple(sorted(sub.commands["pyscf"].commands)) == expected
 
 
 def _td_preview_job():

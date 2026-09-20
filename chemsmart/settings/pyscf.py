@@ -41,9 +41,11 @@ PYSCF_STAGE_SOURCES = {
     "sp": ("sp", "solv"),
     "opt": ("opt", "gas"),
     "hess": ("hess", "gas"),
-    # An IRC has no migration source: the historical gas/solv dialect
-    # predates it, and nothing in it ever meant "walk a path".
+    # Neither an IRC nor a saddle search has a migration source: the
+    # historical gas/solv dialect predates both, and nothing in it ever
+    # meant "walk a path" or "climb to a saddle".
     "irc": ("irc",),
+    "ts": ("ts",),
     "td": ("td",),
 }
 
@@ -114,6 +116,13 @@ class PySCFProjectSettings(RegistryMixin):
 
         settings = self.main_settings().copy()
         settings.jobtype = "irc"
+        return settings
+
+    def ts_settings(self):
+        """Return transition-state search settings."""
+
+        settings = self.main_settings().copy()
+        settings.jobtype = "ts"
         return settings
 
     def explicit_fields(self, jobtype):
@@ -266,6 +275,9 @@ class YamlPySCFProjectSettings(PySCFProjectSettings):
 
     def irc_settings(self):
         return self._settings_for_job("irc")
+
+    def ts_settings(self):
+        return self._settings_for_job("ts")
 
     def canonical_sections(self, jobtypes=None):
         """Return stage-keyed settings suitable for canonical YAML output."""

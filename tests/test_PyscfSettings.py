@@ -226,7 +226,7 @@ class TestPySCFJobSettings:
     @pytest.mark.parametrize(
         ("kwargs", "message"),
         [
-            ({"jobtype": "ts"}, "jobtype"),
+            ({"jobtype": "scan"}, "jobtype"),
             ({"density_fit": 1}, "strict boolean"),
             ({"freq": 1}, "strict boolean"),
             ({"scf_tol": 0.0}, "finite and > 0"),

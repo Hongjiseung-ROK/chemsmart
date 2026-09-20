@@ -20,6 +20,7 @@ from .runner import (
 from .settings import PySCFJobSettings
 from .singlepoint import PySCFSinglePointJob
 from .td import PySCFTDJob
+from .ts import PySCFTSJob
 
 # Get all available PySCF job subclasses
 jobs = PySCFJob.subclasses()
@@ -37,5 +38,6 @@ __all__ = [
     "PySCFOptJob",
     "PySCFSinglePointJob",
     "PySCFTDJob",
+    "PySCFTSJob",
     "jobs",
 ]

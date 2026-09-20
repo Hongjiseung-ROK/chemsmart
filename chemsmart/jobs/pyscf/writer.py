@@ -51,7 +51,7 @@ LEGACY_RESULTS_SCHEMA_VERSION = "1.0"
 #: remains schema 2.0 so historical artifacts stay readable; this marker
 #: identifies records that satisfy the stricter state, status, and runtime
 #: reference checks required for new execution/data-edge admission.
-RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v8"
+RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v9"
 #: Contract versions this ChemSmart still reads as executed evidence.  v3 and
 #: v4 share one applied-spec vocabulary; v4 adds datasets (forces at the
 #: Hessian geometry, spin populations) and status facts (the mass convention
@@ -77,12 +77,21 @@ RESULT_CONTRACT_VERSION = "chemsmart.pyscf-result-contract.v8"
 #: spectrum on the walked surface, the transition vector followed, and
 #: the accepted path with its energies, gradients and mass-weighted arc
 #: length.  Under its own version for the same reason v7 was.
+#: v9 adds the ``ts`` stage and ``results/ts/`` -- the seed's Hessian and
+#: spectrum on the surface the search climbs, and the accepted search
+#: path with its energies, gradients and cumulative mass-weighted
+#: displacement.  It adds no applied-spec field, because a saddle search
+#: is driven entirely by settings the vocabulary already carries, so its
+#: digest vocabulary *is* v8's; the version still moves because an
+#: artifact whose ``stages`` names a stage an older reader has never
+#: heard of is a different contract.
 PREVIOUS_RESULT_CONTRACT_VERSIONS = (
     "chemsmart.pyscf-result-contract.v3",
     "chemsmart.pyscf-result-contract.v4",
     "chemsmart.pyscf-result-contract.v5",
     "chemsmart.pyscf-result-contract.v6",
     "chemsmart.pyscf-result-contract.v7",
+    "chemsmart.pyscf-result-contract.v8",
 )
 SUPPORTED_RESULT_CONTRACT_VERSIONS = PREVIOUS_RESULT_CONTRACT_VERSIONS + (
     RESULT_CONTRACT_VERSION,
@@ -175,8 +184,14 @@ APPLIED_SPEC_FIELDS_V6 = APPLIED_SPEC_FIELDS_V5 + (
 #: reference was asked for.
 APPLIED_SPEC_FIELDS_V7 = APPLIED_SPEC_FIELDS_V6 + ("scf_stability",)
 
-#: The current (v8) vocabulary: the branch an IRC was asked to walk.
-APPLIED_SPEC_FIELDS = APPLIED_SPEC_FIELDS_V7 + ("irc_direction",)
+#: The v8 vocabulary, frozen: the branch an IRC was asked to walk.
+APPLIED_SPEC_FIELDS_V8 = APPLIED_SPEC_FIELDS_V7 + ("irc_direction",)
+
+#: The current (v9) vocabulary.  Identical to v8's by construction: the
+#: ts stage introduced no setting the vocabulary did not already carry,
+#: and inventing a field to mark the version would change nothing a
+#: digest reconstructs.
+APPLIED_SPEC_FIELDS = APPLIED_SPEC_FIELDS_V8
 
 #: Digest vocabulary per contract version.  Extending the current tuple in
 #: place would silently change the reconstruction for every archived
@@ -187,6 +202,7 @@ APPLIED_SPEC_FIELDS_BY_CONTRACT = {
     "chemsmart.pyscf-result-contract.v5": APPLIED_SPEC_FIELDS_V5,
     "chemsmart.pyscf-result-contract.v6": APPLIED_SPEC_FIELDS_V6,
     "chemsmart.pyscf-result-contract.v7": APPLIED_SPEC_FIELDS_V7,
+    "chemsmart.pyscf-result-contract.v8": APPLIED_SPEC_FIELDS_V8,
     RESULT_CONTRACT_VERSION: APPLIED_SPEC_FIELDS,
 }
 
@@ -222,6 +238,19 @@ RESULT_UNITS = {
     "reduced_masses": "atomic_mass_unit",
     "reference_energy": "Eh",
     "scf_energy": "Eh",
+    # The transition-state stage (contract v9), under ``results/ts/``.
+    # The seed's curvature on the climbed surface, and the accepted
+    # search path, whose cumulative displacement is mass-weighted with
+    # geomeTRIC's own table the way the IRC's arc length is -- it is the
+    # distance the structure moved, never a reaction coordinate.
+    "search_displacements": "atomic_mass_unit^1/2*Bohr",
+    "search_energies": "Eh",
+    "search_gradients": "Eh/Bohr",
+    "search_masses": "atomic_mass_unit",
+    "search_positions": "Angstrom",
+    "seed_frequencies": "cm^-1",
+    "seed_hessian": "Eh/Bohr^2",
+    "seed_normal_modes": "atomic_mass_unit^-1/2",
     "spin_square": "dimensionless",
     "spin_square_effective_multiplicity": "dimensionless",
     "start_frequencies": "cm^-1",
@@ -1160,6 +1189,222 @@ def _aligned_mass_weighted_step(previous, current, masses):
     displacement = second_centred @ rotation.T - first_centred
     norm = float(np.sqrt((weights[:, None] * displacement ** 2).sum()))
     return displacement, norm
+
+
+def _run_ts(config, mf, mol, results, status, runtime):
+    """Climb to a first-order saddle of this surface, recorded.
+
+    geomeTRIC's partitioned rational-function step maximises along one
+    Hessian eigenvector and minimises along the rest, so it needs the
+    curvature at the seed to know which mode to climb.  PySCF has the
+    analytic second derivative of an HF or DFT surface, so the driver
+    takes it there and hands it over as ``hess_data`` -- the same route
+    ``_run_irc`` uses, and the reason neither pays geomeTRIC's 6N
+    finite-difference gradients for an initial Hessian.
+
+    Taking that Hessian costs nothing extra and buys the one fact a
+    chemist needs about a search that has not run yet: what the seed was
+    on this surface.  Its spectrum and the gradient there ride the
+    artifact, so a search that started at a minimum, at a saddle of
+    another surface, or far from stationary is visible as that rather
+    than inferred from where it ended.
+
+    What this stage does **not** do is take a Hessian where it arrives.
+    The order of the structure a search reaches is a Hessian's question
+    and a ``hess`` node answers it, exactly as an ``opt``'s minimum is
+    held.  geomeTRIC's own updated curvature at the end is a
+    quasi-Newton estimate, not a second derivative, and it is recorded
+    as an estimate under its own name.
+
+    The SCF is re-converged where the search ended, from the density of
+    the last geometry the walk evaluated, so every property the artifact
+    carries belongs to that structure.
+    """
+
+    import geometric
+    import geometric.optimize as geometric_optimize
+    from geometric.errors import GeomOptNotConvergedError
+    from geometric.molecule import PeriodicTable
+    from geometric.params import OptParams
+    from pyscf import lib
+    from pyscf.geomopt import geometric_solver
+    from pyscf.hessian import thermo
+
+    natm = int(mol.natm)
+    ts = {}
+    results["ts"] = ts
+    stage = {
+        "converged": False,
+        "search_converged": False,
+        "final_scf_converged": None,
+        "optimizer": (
+            "geometric.optimize.run_optimizer(transition=True): "
+            "partitioned rational-function optimisation in internal "
+            "coordinates"
+        ),
+        "geometric_version": str(getattr(geometric, "__version__", "")),
+        "maxsteps": int(config["opt_maxsteps"]),
+        "seed_mass_source": "geometric.molecule.PeriodicTable",
+    }
+    status["stages"]["ts"] = stage
+
+    # The seed's own curvature, on the surface the search climbs.
+    raw_hessian = _to_host_array(mf.Hessian().kernel()).astype(float)
+    hessian, raw_antisymmetry = _symmetrize_cartesian_hessian(raw_hessian)
+    analysis = thermo.harmonic_analysis(mol, hessian, imaginary_freq=False)
+    ts["seed_hessian"] = hessian
+    ts["seed_frequencies"] = np.asarray(
+        analysis["freq_wavenumber"], dtype=float
+    )
+    ts["seed_normal_modes"] = np.asarray(analysis["norm_mode"], dtype=float)
+    stage["seed"] = {
+        "hessian_derivative": "analytic",
+        "raw_max_abs_antisymmetry_eh_per_bohr2": raw_antisymmetry,
+        "mass_convention": "isotope_averaged",
+        "mass_source": "pyscf.gto.Mole.atom_mass_list(isotope_avg=True)",
+    }
+
+    scanner = mf.nuc_grad_method().as_scanner()
+    engine = geometric_solver.PySCFEngine(scanner)
+    engine.mol = scanner.mol.copy()
+    # geomeTRIC turns bond orders into bonds for a transition-state run
+    # (``bothre`` defaults to 0.6 when ``transition``), and PySCF's engine
+    # builds a Molecule whose topology nobody built; the IRC needs the
+    # same call for the same reason.
+    engine.M.build_topology()
+    evaluations = []
+    engine.callback = lambda _locals: evaluations.append(1)
+    captured = {}
+
+    class _RecordingOptimizer(geometric_optimize.Optimizer):
+        """geomeTRIC's optimiser, observed rather than changed.
+
+        ``optimizeGeometry`` raises when the search does not converge and
+        the accepted path it holds would leave with the exception, so the
+        progress object is captured in a ``finally``: a search that ran
+        out of steps still says where it went.
+        """
+
+        def optimizeGeometry(self):
+            try:
+                return super().optimizeGeometry()
+            finally:
+                captured["progress"] = self.progress
+                captured["iterations"] = int(self.Iteration)
+                captured["trust"] = float(self.params.trust)
+                captured["tmax"] = float(self.params.tmax)
+                captured["coordinate_system"] = type(self.IC).__name__
+                # geomeTRIC's own updated curvature at the last point it
+                # held is deliberately *not* recorded.  It is a
+                # quasi-Newton update in the optimiser's internal
+                # coordinates, unprojected, and its negative-eigenvalue
+                # count is not the order of the structure: on the
+                # H2CO/HCOH saddle this driver located to 0.0001 A of
+                # ORCA's -- a genuine first-order saddle -- that count
+                # was four.  A number nothing can read correctly is
+                # worse than no number; the order comes from a hess node
+                # and the stationarity from the gradient below.
+                captured["projected"] = bool(
+                    self.params.subfrctor == 2
+                    or (
+                        self.params.subfrctor == 1
+                        and self.lowq_tr_count >= self.lowq_tr_limit
+                    )
+                )
+
+    stock = geometric_optimize.Optimizer
+    geometric_optimize.Optimizer = _RecordingOptimizer
+    try:
+        with tempfile.TemporaryDirectory(dir=lib.param.TMPDIR) as scratch:
+            geometric_optimize.run_optimizer(
+                customengine=engine,
+                input=os.path.join(scratch, "ts"),
+                transition=True,
+                hess_data=hessian.transpose(0, 2, 1, 3)
+                .reshape(3 * natm, 3 * natm)
+                .tolist(),
+                maxiter=int(config["opt_maxsteps"]),
+                logIni=os.path.join(
+                    os.path.dirname(os.path.abspath(geometric_solver.__file__)),
+                    "log.ini",
+                ),
+            )
+        stage["search_converged"] = True
+    except GeomOptNotConvergedError as exc:
+        stage["search_failure"] = {
+            "type": type(exc).__name__,
+            "message": str(exc),
+        }
+    finally:
+        geometric_optimize.Optimizer = stock
+
+    stage["gradient_evaluations"] = len(evaluations)
+    stage["iterations"] = captured.get("iterations")
+    stage["coordinate_system"] = captured.get("coordinate_system")
+    stage["gradients_net_force_torque_projected"] = captured.get("projected")
+    params = OptParams(transition=True)
+    stage["step"] = {
+        "trust_angstrom": captured.get("trust", float(params.trust)),
+        "tmax_angstrom": captured.get("tmax", float(params.tmax)),
+    }
+    stage["convergence_criteria"] = _optimizer_criteria(config)
+    progress = captured.get("progress")
+    frames = (
+        np.asarray(progress.xyzs, dtype=float)
+        if progress is not None and len(progress.xyzs)
+        else np.zeros((0, natm, 3))
+    )
+    masses = np.asarray(
+        [float(PeriodicTable[element]) for element in engine.M.elem],
+        dtype=float,
+    )
+    ts["search_masses"] = masses
+    if len(frames):
+        energies = np.asarray(progress.qm_energies, dtype=float)
+        gradients = np.asarray(
+            [np.asarray(item, dtype=float).reshape(natm, 3)
+             for item in progress.qm_grads]
+        )
+        displacement = [0.0]
+        for index in range(1, len(frames)):
+            _step, norm = _aligned_mass_weighted_step(
+                frames[index - 1], frames[index], masses
+            )
+            displacement.append(
+                displacement[-1] + norm * float(lib.param.BOHR) ** -1
+            )
+        ts["search_positions"] = frames
+        ts["search_energies"] = energies
+        ts["search_gradients"] = gradients
+        ts["search_displacements"] = np.asarray(displacement, dtype=float)
+        stage["frames"] = int(len(frames))
+        stage["seed"]["max_abs_gradient_eh_per_bohr"] = float(
+            np.max(np.abs(gradients[0]))
+        )
+        # The number behind ``search_converged``: how far from stationary
+        # the structure the search ended on actually is.
+        stage["end_max_abs_gradient_eh_per_bohr"] = float(
+            np.max(np.abs(gradients[-1]))
+        )
+        stage["displacement_amu_half_bohr"] = float(displacement[-1])
+        stage["energy_rise_eh"] = float(energies[-1] - energies[0])
+    else:
+        stage["frames"] = 0
+        raise RuntimeError("geomeTRIC returned no transition-state frame")
+
+    # Where the search ended: every property the artifact carries is read
+    # after this SCF, which starts from the density of the last geometry
+    # the walk evaluated rather than from the seed's.
+    end = mol.set_geom_(frames[-1], unit="Angstrom", inplace=False)
+    guess = scanner.base.make_rdm1()
+    mf.reset(end)
+    energy = float(mf.kernel(dm0=guess))
+    stage["final_scf_converged"] = bool(mf.converged)
+    stage["final_scf_guess"] = "density of the last geometry the walk evaluated"
+    stage["converged"] = bool(
+        stage["search_converged"] and stage["final_scf_converged"]
+    )
+    return end, energy
 
 
 def _run_irc(config, mf, mol, results, status, runtime):
@@ -2475,6 +2720,11 @@ def main():
                         else "correlated"
                     ] = surface_record
                 status["stages"]["opt"] = stage_status
+            elif stage == "ts":
+                mol, energy = _run_ts(
+                    CONFIG, mf, mol, results, status, runtime
+                )
+                energies.append(float(energy))
             elif stage == "irc":
                 mol, energy = _run_irc(CONFIG, mf, mol, results, status, runtime)
                 energies.append(float(energy))

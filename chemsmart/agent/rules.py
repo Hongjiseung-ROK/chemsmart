@@ -545,7 +545,8 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "project.stage_keys_and_phases",
         "tool:project_yaml",
         "T0",
-        "PySCF project stage keys are exactly sp, opt, hess, irc and td; xTB "
+        "PySCF project stage keys are exactly sp, opt, hess, ts, irc and "
+        "td; xTB "
         "project stage keys are exactly sp, opt, and hess. Gaussian and "
         "ORCA projects retain gas/solv phase sections: SP consumes solv "
         "when present, otherwise gas, and an explicit sp override takes "
@@ -553,7 +554,8 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "settings themselves.",
         "PySCF td became executable under result contract v5 (15d2de22, "
         "2026-09-13) and this sentence still called it preview-only; irc "
-        "joined the keys under contract v8",
+        "joined the keys under contract v8 and ts under v9, which is what "
+        "gives a PySCF irc a saddle of its own surface to walk from",
         boundaries=(
             _b(
                 "pyscf",
@@ -573,7 +575,9 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
                 state_manifold="singlet",
                 nstates=3,
             ),
-            _b("pyscf", "ts", "refused", functional="b3lyp", basis="def2-svp"),
+            _b(
+                "pyscf", "ts", "admitted", functional="b3lyp", basis="def2-svp"
+            ),
             _b("xtb", "td", "refused", gfn_version="gfn2"),
         ),
     ),

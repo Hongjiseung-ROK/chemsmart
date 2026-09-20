@@ -32,6 +32,7 @@ from chemsmart.jobs.pyscf.writer import (
     APPLIED_SPEC_FIELDS_V5,
     APPLIED_SPEC_FIELDS_V6,
     APPLIED_SPEC_FIELDS_V7,
+    APPLIED_SPEC_FIELDS_V8,
     LEGACY_APPLIED_SPEC_FIELDS,
     PREVIOUS_RESULT_CONTRACT_VERSIONS,
     RESULT_CONTRACT_VERSION,
@@ -101,6 +102,7 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
         "chemsmart.pyscf-result-contract.v5": APPLIED_SPEC_FIELDS_V5,
         "chemsmart.pyscf-result-contract.v6": APPLIED_SPEC_FIELDS_V6,
         "chemsmart.pyscf-result-contract.v7": APPLIED_SPEC_FIELDS_V7,
+        "chemsmart.pyscf-result-contract.v8": APPLIED_SPEC_FIELDS_V8,
     }
     for version in PREVIOUS_RESULT_CONTRACT_VERSIONS:
         vocabulary = applied_pyscf_spec_fields(
@@ -128,10 +130,15 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
     assert APPLIED_SPEC_FIELDS_V7[len(APPLIED_SPEC_FIELDS_V6) :] == (
         "scf_stability",
     )
-    # What v8 adds: the branch an IRC was asked to walk.
-    assert APPLIED_SPEC_FIELDS[len(APPLIED_SPEC_FIELDS_V7) :] == (
+    # What v8 added: the branch an IRC was asked to walk.
+    assert APPLIED_SPEC_FIELDS_V8[len(APPLIED_SPEC_FIELDS_V7) :] == (
         "irc_direction",
     )
+    # What v9 adds: nothing. A saddle search is driven by settings the
+    # vocabulary already carries, so the version moves for the stage and
+    # the datasets it writes while the digest vocabulary stands still --
+    # which is what keeps every archived v8 digest reconstructible.
+    assert APPLIED_SPEC_FIELDS == APPLIED_SPEC_FIELDS_V8
 
     complete_spec = {
         "reference_family": "rks",
@@ -166,7 +173,7 @@ def test_a_previous_supported_contract_is_evidence_not_a_downgrade():
         applied_pyscf_spec_fields({}) == LEGACY_APPLIED_SPEC_FIELDS
     ), "a contract-less artifact keeps the legacy digest vocabulary"
     observation, _current, findings, _advisories = _result_contract_validation(
-        {"result_contract_version": "chemsmart.pyscf-result-contract.v9"},
+        {"result_contract_version": "chemsmart.pyscf-result-contract.v999"},
         {},
     )
     assert observation["state"] == "unsupported"
