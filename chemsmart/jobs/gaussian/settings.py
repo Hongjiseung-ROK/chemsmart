@@ -19,6 +19,7 @@ import re
 from chemsmart.io.gaussian import GAUSSIAN_SOLVATION_MODELS
 from chemsmart.io.gaussian.gengenecp import GenGenECPSection
 from chemsmart.io.gaussian.route import (
+    gaussian_frequency_token,
     normalize_gaussian_dispersion,
     split_gaussian_dispersion_tokens,
     split_gaussian_functional_dispersion_shorthand,
@@ -719,7 +720,25 @@ class GaussianJobSettings(MolecularJobSettings):
         # suppresses a ``gas.freq`` value that was inherited only for the
         # level of theory.  Preserve an explicit ``sp.freq``/``solv.freq``
         # request here so it materializes as Gaussian's native ``Freq``.
-        if self.freq and not self.numfreq:
+        # A route parameter naming `freq` explicitly is the frequency
+        # request, and writing the typed one beside it makes Gaussian run
+        # no frequency step at all (see `gaussian_frequency_token`).  The
+        # explicit spelling is left where the caller put it, in the
+        # route-parameter position, and is not repeated here.
+        explicit_frequency = gaussian_frequency_token(
+            self.additional_route_parameters
+        )
+        if explicit_frequency is not None:
+            if self.numfreq and explicit_frequency.lower() != "freq=numer":
+                raise ValueError(
+                    "Conflicting Gaussian frequency declarations: numfreq "
+                    f"asks for freq=numer and the route parameters ask for "
+                    f"{explicit_frequency}."
+                )
+            logger.debug(
+                f"Frequency step is the route parameter {explicit_frequency}"
+            )
+        elif self.freq and not self.numfreq:
             route_string += " freq"
             logger.debug("Added frequency calculation")
         elif not self.freq and self.numfreq:

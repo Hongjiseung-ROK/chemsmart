@@ -68,6 +68,41 @@ def split_gaussian_dispersion_tokens(route_text):
     return " ".join(retained), observed[0]
 
 
+def gaussian_frequency_token(route_text):
+    """Return an explicit ``freq`` request written in a route parameter.
+
+    The route-parameter channel is appended verbatim, so a keyword the
+    project section already emits is written twice -- and Gaussian answers
+    a route naming ``freq`` twice by running no frequency step and
+    terminating normally.  Measured on this exact case (CUHK Slurm
+    2142393): ``# opt freq b3lyp 6-31G* freq=hpmodes`` produced an FOpt
+    archive with no ``Frequencies --`` line anywhere in the log, so a run
+    asked for a Hessian returned none and neither program said so.
+
+    The dispersion channel one function above already reconciles rather
+    than appends; this answers the same question for the frequency
+    keyword, and the caller writes the explicit spelling in place of the
+    bare one.  ``None`` means the parameter names no frequency step, which
+    is the ordinary case.
+    """
+
+    if route_text is None:
+        return None
+    observed = [
+        token
+        for token in str(route_text).split()
+        if token.lower() == "freq" or token.lower().startswith("freq=")
+    ]
+    if not observed:
+        return None
+    if len({token.lower() for token in observed}) != 1:
+        raise ValueError(
+            "Conflicting Gaussian frequency declarations in the route "
+            "parameters: " + ", ".join(observed)
+        )
+    return observed[0]
+
+
 _FUNCTIONAL_SUFFIX_DISPERSION = (
     ("d3zero", "gd3"),
     ("d3bj", "gd3bj"),
