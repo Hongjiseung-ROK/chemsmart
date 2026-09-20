@@ -19,7 +19,7 @@ from chemsmart.agent.driver import _analysis_delivery, _goal_delivered_ids
 from chemsmart.agent.goal import GoalLedger
 from chemsmart.agent.workspace_record import record_run
 
-from .test_a_guide_opens_when_something_asks import _host
+from .test_a_declared_observable_carries_its_band import _host
 
 pytestmark = pytest.mark.capability(
     "rule:wake.claim_by_id_costs_no_engine_call"

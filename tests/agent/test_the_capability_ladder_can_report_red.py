@@ -46,7 +46,7 @@ from chemsmart.agent.capability_registry import (
 #: Kinds whose members genuinely share one wiring mechanism, so a single
 #: `wired_by` string is the truth rather than a decoration: every
 #: expression operation is joined by `evaluate_quantity_expression`,
-#: every guide by `open_guide`, and so on. A kind absent from this set
+#: every reference by the catalogue search, and so on. A kind absent from this set
 #: must compute the rung per capability. Adding a kind therefore forces
 #: the decision at declaration time, which is the whole point.
 UNIFORM_WIRING = frozenset(

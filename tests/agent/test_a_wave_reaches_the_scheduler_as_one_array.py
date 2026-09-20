@@ -285,7 +285,9 @@ def test_the_manifest_names_the_digest_admission_compares(tmp_path, submitted):
         )
 
 
-def test_a_bundle_that_names_no_digest_is_refused_before_sbatch(tmp_path, submitted):
+def test_a_bundle_that_names_no_digest_is_refused_before_sbatch(
+    tmp_path, submitted
+):
     """A cohort that cannot be bound is not submitted and then discovered."""
 
     from chemsmart.agent._contracts import ContractError

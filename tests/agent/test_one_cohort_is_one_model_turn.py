@@ -501,7 +501,7 @@ def test_a_dispatch_that_could_not_happen_is_not_an_ambiguous_submission(
 
 
 def test_a_failure_after_sbatch_is_ambiguous_not_abandoned(tmp_path):
-    """"Abandoned" must mean nothing reached the scheduler.
+    """ "Abandoned" must mean nothing reached the scheduler.
 
     The abandoned branch catches the whole dispatch, and the dispatcher
     does real work *after* the irreversible act: it submits the array,
@@ -586,9 +586,9 @@ def test_a_failure_after_sbatch_is_ambiguous_not_abandoned(tmp_path):
         "send a human to look for it"
     )
     submitted = [r for r in rows if r["kind"] == "run_dispatch_submitted"]
-    assert submitted and submitted[0]["payload"]["job_id"] == "4242", (
-        "the job that exists must be named on the record a human reads"
-    )
+    assert (
+        submitted and submitted[0]["payload"]["job_id"] == "4242"
+    ), "the job that exists must be named on the record a human reads"
     # And the cycle keeps its claim, so nothing resubmits it: the
     # abandoned row is what releases a claim, and this is not one.
     assert [r["kind"] for r in rows].count("run_dispatch_claimed") == 1

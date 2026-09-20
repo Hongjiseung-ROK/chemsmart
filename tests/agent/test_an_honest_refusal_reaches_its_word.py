@@ -18,7 +18,7 @@ from chemsmart.agent._contracts import RoutedContractError
 from chemsmart.agent.driver import _analysis_delivery, _settle_from_delivery
 from chemsmart.agent.goal import GoalLedger, GoalRecordV1
 
-from .test_a_guide_opens_when_something_asks import _host
+from .test_a_declared_observable_carries_its_band import _host
 
 pytestmark = pytest.mark.capability("tool:record_scientific_decision")
 

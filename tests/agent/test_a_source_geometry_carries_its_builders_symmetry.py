@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from chemsmart.agent._contracts import ContractError
-from chemsmart.agent.guides import GUIDES_BY_ID
+from chemsmart.agent.catalogue import ACT_FAMILIES
 from chemsmart.agent.symmetry import (
     idealised_internal_coordinate_count,
     point_group_estimate,
@@ -241,12 +241,10 @@ def test_break_symmetry_is_a_structure_leaf_and_the_hop_renders():
     from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
     from chemsmart.agent.tui.review import _geometry_lineage_panels
 
-    assert "break_symmetry" in GUIDES_BY_ID["structure"].tools
+    assert ACT_FAMILIES["break_symmetry"] == "structure"
     names = {
         item["function"]["name"]
-        for item in build_command_compiled_tool_surface(
-            guides=("structure",)
-        ).tool_definitions
+        for item in build_command_compiled_tool_surface().tool_definitions
     }
     assert "break_symmetry" in names
 

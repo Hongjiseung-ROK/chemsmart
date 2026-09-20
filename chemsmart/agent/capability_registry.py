@@ -33,7 +33,7 @@ CAPABILITY_KINDS = (
     "constant",
     "policy",
     "skill",
-    "guide",
+    "reference",
     "rule",
 )
 
@@ -215,8 +215,11 @@ def build_capability_registry(
     """Every capability, from the registries that already own each kind."""
 
     from chemsmart.agent.capabilities import load_program_capabilities
+    from chemsmart.agent.catalogue import (
+        SEARCH_TOOL_NAME,
+        build_tool_catalogue,
+    )
     from chemsmart.agent.execution import ANOMALY_SIGNALS
-    from chemsmart.agent.guides import GUIDES, LEAF_OPERATIONS, LEAF_TOOLS
     from chemsmart.agent.rules import CODE_GATES, HOST_POLICIES, POLICY_RULES
     from chemsmart.agent.scientific_toolchain import (
         ANALYSIS_VALIDATION_PREDICATES,
@@ -225,7 +228,6 @@ def build_capability_registry(
     from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
     from chemsmart.agent.tool_specs import (
         build_approved_execution_tool_surface,
-        build_command_compiled_tool_surface,
     )
     from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
     from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
@@ -293,25 +295,27 @@ def build_capability_registry(
             )
 
     handled = set(CommandCompiledToolHostV1.TOOL_HANDLERS)
-    every_leaf = tuple(guide.guide_id for guide in GUIDES)
-    planning = {
-        item["function"]["name"]
-        for item in build_command_compiled_tool_surface(
-            guides=every_leaf
-        ).tool_definitions
+    # The catalogue is the author of ``family`` now. It used to be
+    # ``LEAF_TOOLS.get(name, "stem")`` -- which guide hid a tool, with
+    # "stem" for the eighteen that no guide hid, and "stem" is not a
+    # family, it is the absence of one.
+    catalogue = build_tool_catalogue()
+    catalogue_acts = {
+        entry.name: entry for entry in catalogue.entries if entry.kind == "act"
     }
+    core = set(catalogue.core_names())
+    planning = set(catalogue_acts)
     execution = {
         item["function"]["name"]
         for item in build_approved_execution_tool_surface().tool_definitions
     }
     for name in sorted(handled | planning | execution):
         key = f"tool:{name}"
+        entry = catalogue_acts.get(name)
         advertised = []
-        if name in planning:
+        if entry is not None:
             advertised.append(
-                f"planning (leaf {LEAF_TOOLS[name]})"
-                if name in LEAF_TOOLS
-                else "planning (stem)"
+                f"planning catalogue ({entry.family}, {entry.loading})"
             )
         if name in execution:
             advertised.append("execution")
@@ -319,8 +323,8 @@ def build_capability_registry(
             CapabilityV1(
                 kind="tool",
                 id=name,
-                family=LEAF_TOOLS.get(name, "stem"),
-                tier="T3" if name in LEAF_TOOLS else "T0",
+                family=entry.family if entry is not None else "unadvertised",
+                tier="T0" if name in core else "T3",
                 declared_by="chemsmart.agent.tool_specs",
                 wired_by=(
                     "CommandCompiledToolHostV1.TOOL_HANDLERS"
@@ -462,20 +466,24 @@ def build_capability_registry(
             )
         )
 
+    from chemsmart.analysis.quantity_expressions import OPERATION_FAMILIES
+
     for name in sorted(OPERATION_DESCRIPTIONS):
-        leaf = LEAF_OPERATIONS.get(name)
+        family = OPERATION_FAMILIES[name]
         records.append(
             CapabilityV1(
                 kind="operation",
                 id=name,
-                family=leaf or "stem",
-                tier="T3" if leaf else "T1",
+                family=family,
+                tier="T1",
                 declared_by="chemsmart.analysis.quantity_expressions",
                 wired_by="evaluate_quantity_expression",
+                # Every operation is on every surface that has the tool
+                # at all: the fifteen that were unnameable from the stem
+                # are named now, and their prose is the family reference.
                 advertised_in=(
-                    f"evaluate_quantity_expression (leaf {leaf})"
-                    if leaf
-                    else "evaluate_quantity_expression (stem)"
+                    "evaluate_quantity_expression; "
+                    f"about_operations_{family}"
                 ),
                 tested_by=tested(f"operation:{name}"),
                 family_tested_by=family_tested(f"operation:{name}"),
@@ -520,26 +528,28 @@ def build_capability_registry(
                 family="skills",
                 tier="T1",
                 declared_by="chemsmart/agent/skills",
-                wired_by="open_guide",
+                wired_by="advisory_skill_documents",
                 advertised_in="system prompt skill index",
                 tested_by=tested(f"skill:{name}"),
                 family_tested_by=family_tested(f"skill:{name}"),
                 qualified_by=qualified(f"skill:{name}"),
             )
         )
-    for guide in GUIDES:
+    for entry in catalogue.entries:
+        if entry.kind != "reference":
+            continue
         records.append(
             CapabilityV1(
-                kind="guide",
-                id=guide.guide_id,
-                family=guide.guide_id,
-                tier=guide.tier,
-                declared_by="chemsmart.agent.guides",
-                wired_by="activate_guides",
-                advertised_in="system prompt guide index; open_guide",
-                tested_by=tested(f"guide:{guide.guide_id}"),
-                family_tested_by=family_tested(f"guide:{guide.guide_id}"),
-                qualified_by=qualified(f"guide:{guide.guide_id}"),
+                kind="reference",
+                id=entry.name,
+                family=entry.family,
+                tier="T3",
+                declared_by=entry.derived_from,
+                wired_by="catalogue search and load",
+                advertised_in=f"{SEARCH_TOOL_NAME}; loaded by name",
+                tested_by=tested(f"reference:{entry.name}"),
+                family_tested_by=family_tested(f"reference:{entry.name}"),
+                qualified_by=qualified(f"reference:{entry.name}"),
             )
         )
     for rule in POLICY_RULES:

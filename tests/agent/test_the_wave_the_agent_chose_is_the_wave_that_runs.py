@@ -46,13 +46,11 @@ def _result(**overrides):
     }
     selected = tuple(overrides.get("selected_execution_wave") or ())
     if selected and "execution_wave_decision" not in overrides:
-        overrides["execution_wave_decision"] = (
-            build_execution_wave_decision(
-                state="selected",
-                workflow_id="w1",
-                ready_node_ids=selected,
-                node_ids=selected,
-            )
+        overrides["execution_wave_decision"] = build_execution_wave_decision(
+            state="selected",
+            workflow_id="w1",
+            ready_node_ids=selected,
+            node_ids=selected,
         )
     return LiveAgentSessionResultV1(
         **body, result_sha256=canonical_sha256(body), **overrides
@@ -203,9 +201,7 @@ def test_an_undecided_frontier_never_dispatches_as_one_serial_job(tmp_path):
     result = driver.run()
     assert result.settlement == "execution_wave_decision_pending"
     assert seen == {}, "the old empty cohort path submitted one serial job"
-    runs_root = (
-        workspace / ".chemsmart-agent" / "goals" / "goal-w2" / "runs"
-    )
+    runs_root = workspace / ".chemsmart-agent" / "goals" / "goal-w2" / "runs"
     assert not runs_root.exists() or not list(runs_root.glob("*"))
     pending = [
         entry

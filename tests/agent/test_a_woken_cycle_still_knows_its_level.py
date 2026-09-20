@@ -23,7 +23,6 @@ from __future__ import annotations
 import json
 
 
-
 def _goal_with_review(tmp_path):
     from chemsmart.agent.driver import GoalDriver
 

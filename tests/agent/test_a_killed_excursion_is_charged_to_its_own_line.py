@@ -19,7 +19,6 @@ launch leaves anything at all.
 
 from __future__ import annotations
 
-
 from chemsmart.agent.runtime.event_store import (
     RuntimeEventStore,
     engine_calls_spent,
@@ -70,11 +69,17 @@ def test_the_fence_and_the_outcome_agree_on_an_excursion(tmp_path):
 
     events = _reserved(tmp_path, excursion="d" * 64)
     outcome = derive_run_outcome(events)
-    assert engine_calls_spent(
-        events, excursion_node_ids=frozenset({"sp-initial"})
-    ) == outcome.engine_calls_consumed
-    assert engine_calls_spent(
-        events,
-        excursion_node_ids=frozenset({"sp-initial"}),
-        excursions=True,
-    ) == outcome.excursion_calls_consumed
+    assert (
+        engine_calls_spent(
+            events, excursion_node_ids=frozenset({"sp-initial"})
+        )
+        == outcome.engine_calls_consumed
+    )
+    assert (
+        engine_calls_spent(
+            events,
+            excursion_node_ids=frozenset({"sp-initial"}),
+            excursions=True,
+        )
+        == outcome.excursion_calls_consumed
+    )

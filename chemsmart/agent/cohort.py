@@ -407,9 +407,7 @@ def validate_wave(
     if not members:
         summary = "the proposed wave is empty"
     elif all(row.status == "ready" for row in rows):
-        summary = (
-            f"{len(members)} calculations ready to run together" + note
-        )
+        summary = f"{len(members)} calculations ready to run together" + note
     else:
         summary = (
             "; ".join(

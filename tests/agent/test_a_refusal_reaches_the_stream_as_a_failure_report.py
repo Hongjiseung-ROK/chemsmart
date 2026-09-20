@@ -125,7 +125,7 @@ def test_a_routed_refusal_rides_the_tool_failed_event(tmp_path):
 
 
 def test_the_refusals_novel_3_met_are_failure_reports(tmp_path):
-    from tests.agent.test_a_guide_opens_when_something_asks import _host
+    from tests.agent.test_a_declared_observable_carries_its_band import _host
 
     host = _host(tmp_path, approved_requested_observable_declarations=[])
     with pytest.raises(RoutedContractError) as caught:
@@ -184,7 +184,7 @@ def test_the_refusals_reach_1_met_are_now_reports(tmp_path):
     unroutable run reference, a cause-less plan refusal, a periodic
     dihedral refused on its range."""
 
-    from tests.agent.test_a_guide_opens_when_something_asks import _host
+    from tests.agent.test_a_declared_observable_carries_its_band import _host
 
     host = _host(tmp_path, approved_requested_observable_declarations=[])
     digest = "0ac07d4977dfbe94" + "a" * 48

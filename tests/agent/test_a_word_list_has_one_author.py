@@ -60,7 +60,6 @@ _DECLARATION = "declaration: this is the authority others derive from"
 _GAUSSIAN_NATIVE = "Gaussian's own ircf/ircr spellings inside one reader"
 _GAS_SOLV = "the gas/solv project shape of the route-building programs"
 _READER_PROGRAMS = "to derive from the reader registry (deferred, recorded)"
-_GUIDE_SIGNAL = "declaration: one guide's activation signal"
 _SURFACING_SIGNAL = "declaration: which reference a planned job type surfaces"
 _A4 = "derives in A.4: keyed on the Hessian stage the artifact records"
 
@@ -181,36 +180,6 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
         "PROGRAM_REFERENCES",
         ("pyscf",),
     ): _SURFACING_SIGNAL,
-    (
-        "chemsmart/agent/guides.py",
-        "<module>",
-        "GUIDES",
-        ("ts",),
-    ): _GUIDE_SIGNAL,
-    (
-        "chemsmart/agent/guides.py",
-        "<module>",
-        "GUIDES",
-        ("scan",),
-    ): _GUIDE_SIGNAL,
-    (
-        "chemsmart/agent/guides.py",
-        "<module>",
-        "GUIDES",
-        ("td",),
-    ): _GUIDE_SIGNAL,
-    (
-        "chemsmart/agent/guides.py",
-        "<module>",
-        "GUIDES",
-        ("pyscf",),
-    ): _GUIDE_SIGNAL,
-    (
-        "chemsmart/agent/guides.py",
-        "<module>",
-        "GUIDES",
-        ("irc", "ts"),
-    ): _GUIDE_SIGNAL,
     (
         "chemsmart/agent/knowledge.py",
         "assess_typed_program_substitution",

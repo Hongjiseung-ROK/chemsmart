@@ -429,6 +429,441 @@ def make_catalogue(entries: Sequence[CatalogueEntryV1]) -> ToolCatalogueV1:
     )
 
 
+# ---------------------------------------------------------------------
+# Reference text.
+#
+# These bodies were the guide tree's eleven guide bodies. They moved
+# here whole, not because the catalogue is a nicer home for prose but
+# because they have to have exactly one author: a sentence that states
+# what the host can do is resolved from the registry that owns that
+# fact, through the ``<<token>>`` mechanism below, and a rule placed on
+# a topic still renders from ``chemsmart.agent.rules``.
+#
+# What did *not* come with them is the way they were reached. A guide
+# opened on four signals, one of which read the human's prose through
+# ~90 activation terms; these are found by searching, promoted by typed
+# session state, or surfaced by a typed act -- and a reference that
+# belongs to an act family arrives with the first act of that family.
+# ---------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReferenceTopicV1:
+    """One body of reference text the catalogue publishes as an entry."""
+
+    name: str
+    family: str
+    title: str
+    body: str
+    rule_placement: str
+
+    def __post_init__(self) -> None:
+        if not self.name.startswith("about_"):
+            raise ContractError(
+                f"a reference topic is named about_*: {self.name!r}"
+            )
+
+
+def _declared_stages(topic: "ReferenceTopicV1", registry: Any) -> str:
+    """The job types the capability registry declares for this program.
+
+    From the same object ``inspect_program`` answers from, so reference
+    text and the capability reply cannot disagree about what exists.
+    Stages only: which engine binds them, and whether this release
+    qualifies that engine, is what ``inspect_program`` answers for the
+    exact cell, and text that narrated it would be the second organ
+    answering one question.
+    """
+
+    if registry is None:
+        from chemsmart.agent.capabilities import load_program_capabilities
+
+        registry = load_program_capabilities()
+    stages: set[str] = set()
+    for item in getattr(registry, "programs", ()):
+        if str(getattr(item, "program", "")).lower() == topic.family:
+            stages.update(str(name) for name in getattr(item, "jobtypes", ()))
+    return ", ".join(sorted(stages)) if stages else "none on this host"
+
+
+def _registered_constants(topic: "ReferenceTopicV1", registry: Any) -> str:
+    """Every registered literature constant, with what it is for."""
+
+    from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
+
+    return " || ".join(
+        f"{name} [{entry.unit}, {entry.convention_family}]"
+        + (f" -- {entry.purpose}" if entry.purpose else "")
+        for name, entry in sorted(LITERATURE_CONSTANTS.items())
+    )
+
+
+#: What a ``<<token>>`` in reference text resolves to, and which registry
+#: owns it. Text that would state a host capability writes the token;
+#: adding a token means naming the registry that can already answer it.
+#: A token nobody registered raises rather than reaching the model.
+REFERENCE_BODY_TOKENS = {
+    "declared_stages": _declared_stages,
+    "registered_constants": _registered_constants,
+}
+
+
+def render_reference_body(
+    topic: ReferenceTopicV1, *, registry: Any = None
+) -> str:
+    """The topic's body with every registry-owned token resolved."""
+
+    body = topic.body
+    for token, resolve in REFERENCE_BODY_TOKENS.items():
+        marker = f"<<{token}>>"
+        if marker in body:
+            body = body.replace(marker, resolve(topic, registry))
+    unresolved = re.search(r"<<([a-z_]+)>>", body)
+    if unresolved:
+        raise ContractError(
+            f"reference topic {topic.name} names an unregistered body "
+            f"token {unresolved.group(1)!r}; registered: "
+            f"{sorted(REFERENCE_BODY_TOKENS)}"
+        )
+    return body
+
+
+#: Reference text with no act of its own, and the text that rides on an
+#: operation family's generated entry. A topic whose ``name`` is empty
+#: is absorbed into ``about_operations_<family>`` rather than given an
+#: entry beside it: two entries about one subject is the split this
+#: catalogue exists to end.
+REFERENCE_TOPICS: tuple[ReferenceTopicV1, ...] = (
+    ReferenceTopicV1(
+        name="about_building_structures",
+        family="structure",
+        title="building a starting structure: compose, derive, edit, append, displace",
+        rule_placement="reference:about_building_structures",
+        body=(
+            "Every host-built geometry is a starting structure, never a "
+            "relaxed one: compose places two identity-bound fragments at "
+            "one or two explicit atomic contacts; derive keeps an ordered "
+            "subset of one parent's atoms (homolysis, deprotonation, "
+            "fragment extraction are that one operation); edit sets one "
+            "internal coordinate as a rigid motion of a side you name; "
+            "append places one atom by three internal coordinates against "
+            "three anchors; displace steps a frequency-bearing result along "
+            "one of its own printed modes. None of them infers an "
+            "electronic state -- removing a hydrogen gives a radical or an "
+            "anion depending on where its electron went -- so bind charge "
+            "and multiplicity explicitly afterwards, and the consuming "
+            "stage is a new workflow for review. A requested value is never "
+            "refused on scientific merit: the optimisation that consumes "
+            "the structure grades it, and requested-versus-relaxed is the "
+            "delivered observable. For a transition-state guess, place the "
+            "forming bonds with compose's second contact rather than "
+            "editing a distance between separate fragments, which is not an "
+            "edit at all. Read which atoms move in a mode before you name "
+            "it. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_relaxed_scans",
+        family="scan",
+        title="relaxed coordinate scans and what to do with the surface",
+        rule_placement="reference:about_relaxed_scans",
+        body=(
+            "A relaxed scan's driven coordinate is a fact about this "
+            "molecule in this calculation: it lives on the workflow node "
+            "(internal_coordinates on compile_command), not in project "
+            "YAML. A scan ends at a surface, and which point travels is a "
+            "scientific judgement. The validated minimum-energy sampled "
+            "point may feed a downstream optimisation inside one approval "
+            "through the declared producer edge; any other point is an "
+            "explicit scan-point binding whose consuming stage is a new "
+            "workflow. coordinate_at_minimum and coordinate_at_maximum read "
+            "the surface's own ordered vectors -- a barrier position cannot "
+            "come from max alone. A step that failed to converge leaves the "
+            "surface so far readable as it stands; say how far it reached. "
+            "A scan grid does not locate a stationary point: optimise the "
+            "minima you find and characterise them by frequencies before "
+            "calling any of them a minimum, and count the distinct "
+            "stationary points with their orders. scan_coordinate_values is "
+            "dimensionless -- positional numbers in the scan's own unit -- "
+            "so declare it with unit '1'; a physical distance or angle is "
+            "measured from a delivered geometry with the "
+            "distance/angle/dihedral operations. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_workspace_databases",
+        family="database",
+        title="workspace databases and batches",
+        rule_placement="reference:about_workspace_databases",
+        body=(
+            "A workspace database is an inspectable artifact whose stored "
+            "fields -- charge, multiplicity, energy, optimised flags -- are "
+            "observations from the records' own provenance, never bindings. "
+            "Enumerate the records, extract one record's exact coordinates "
+            "into a lineage-carrying geometry artifact, and bind identity "
+            "and electronic state explicitly per record; a stored state "
+            "that contradicts the electron count is flagged loudly in the "
+            "review, not silently corrected and not silently copied. N "
+            "records plan as N disconnected sub-DAGs in one workflow under "
+            "one decision; execution is record-major, one record's failure "
+            "settles that record while the others deliver, and there is "
+            "deliberately no aggregate quantity: a batch of N is N "
+            "observations. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_failed_runs_and_repair",
+        family="recovery",
+        title="answering a run that failed or landed on the wrong stationary point",
+        rule_placement="reference:about_failed_runs_and_repair",
+        body=(
+            "A failed run is evidence, and the wake context's repair_menu "
+            "names, for each way a node ended, the ordinary route that "
+            "answers it; the host names the route and the next run's "
+            "physics grades it. Read the run's typed outcome (inspect_run) "
+            "and the native findings before choosing. A wrong stationary "
+            "point calls for reading which atoms carry the offending mode "
+            "(vibrational_mode_atom_participation, checking "
+            "vibrational_mode_degeneracy_group first), then displacing "
+            "along it or editing the coordinate it moves; an SCF failure is "
+            "a state question before it is a solver question; a convergence "
+            "failure or timeout restarts from the reached geometry inside "
+            "the remaining budget. A revision may change the structure or a "
+            "setting the project exposes; it may not change identity, "
+            "electronic state, or conditions -- those return to the human. "
+            "A re-run of a failed node takes a fresh node id: its earlier "
+            "directory is evidence and the plan refuses an id that already "
+            "holds outputs. Recovering the structure does not recover "
+            "numbers computed from the rejected one: re-derive and re-claim "
+            "them. Standing by a result with a cited validation receipt is "
+            "also an answer; leaving the failure unanswered is the one "
+            "thing that is not. Beside every repair route stands a "
+            "disposition: the ending may itself be the finding. A saddle "
+            "where a minimum was promised is a stationary point of that "
+            "surface with an energy -- an inversion, a symmetry breaking, a "
+            "hidden reaction coordinate -- and the run outcome's anomalies "
+            "name its mode and which heavy atoms carry it; an SCF that will "
+            "not settle may be an instability; a geometry that walked away "
+            "may have found another basin. Read the anomaly, say what the "
+            "structure is in the decision citing its receipt, and then "
+            "repair, stand by, or both. What the host records here is an "
+            "observation, never a verdict; naming it is yours. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_transition_states",
+        family="saddle",
+        title="transition states, imaginary modes, and intrinsic reaction coordinates",
+        rule_placement="reference:about_transition_states",
+        body=(
+            "A transition-state search promises exactly one imaginary mode "
+            "under the 20 cm-1 convention; the host judges every executed "
+            "result on that promise and a mismatch is a typed failure, not "
+            "a result to report. Seed a search from a validated frequency- "
+            "bearing producer's Hessian where one exists; a hand-built "
+            "guess is a starting structure. Which channel a saddle belongs "
+            "to is decided from the atoms that carry its imaginary mode, "
+            "never from how the guess was built or named. An ORCA IRC "
+            "consumes the transition state's own geometry and analytic "
+            "Hessian as role-distinct producer edges, one per direction; "
+            "the path goes to an XYZ sidecar. A PySCF irc takes only the "
+            "geometry and computes its own Hessian there, and its result "
+            "carries the path, so its endpoint can feed a later node. "
+            "Either way, whether the saddle connects two particular minima "
+            "is an observation you make from the two branches, not a host- "
+            "rendered claim. A barrier is stated relative to a reference "
+            "you name and defend; a difference between two barriers at a "
+            "small basis without dispersion licenses a direction, rarely a "
+            "magnitude, and the delivery says so. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_cross_program_work",
+        family="crossprogram",
+        title="geometries that cross programs, numbers that must not",
+        rule_placement="reference:about_cross_program_work",
+        body=(
+            "The optimised-geometry handoff is keyed on the producing "
+            "program and refuses any change of atom identity or order, so "
+            "an xTB optimisation may feed an ORCA or PySCF single point "
+            "with parent atom i as child atom i. A typed value carries its "
+            "unit and dimension, not the method that produced it, so a "
+            "tight-binding energy and a hybrid-DFT energy subtract without "
+            "complaint: mixing levels is a method when it is deliberate and "
+            "a mistake when it is not, and the displayed chain names the "
+            "level behind every input so the reviewer can tell. Naming the "
+            "level is necessary and not sufficient: ORCA's B3LYP and "
+            "PySCF's b3lyp differ in their local correlation (VWN5 versus "
+            "VWN3) and gave total energies 0.24 hartree apart under "
+            "identical strings; compare differences across programs, never "
+            "totals, and say which variant each program means. A correlated "
+            "energy carries a second convention, the frozen core, which the "
+            "level line shows and the placed rule below explains. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_pyscf",
+        family="pyscf",
+        title="PySCF: a library backend with one structure per result",
+        rule_placement="reference:about_pyscf",
+        body=(
+            "PySCF is a library, not a binary: the host writes the driver, "
+            "runs it in the registered PySCF interpreter, and the HDF5 "
+            "result (pyscf_hdf5) is the program's typed account; its log is "
+            "never read. One node per stage; the stages this host declares "
+            "are <<declared_stages>>. Every quantity belongs to one "
+            "structure, the final one: the SCF is re-converged there before "
+            "anything is read. supplied_positions is what the run was "
+            "handed; reached_positions (opt, ts and irc) is where the walk "
+            "stopped, converged or not; for sp, hess and td supplied and "
+            "final coincide and the host checks it. A ts climbs to a saddle "
+            "of its own surface from the seed you hand it, taking that "
+            "surface's analytic Hessian there and recording the seed's "
+            "spectrum and gradient, so what the search started from is "
+            "visible. It claims no order where it lands: converged means "
+            "the gradient is zero, and a hess node on the geometry it "
+            "reached is what says which stationary point that is -- seeded "
+            "at a minimum, a ts converges at once and returns the minimum. "
+            "Its endpoint is what gives an irc a saddle of the surface the "
+            "branch will walk. A hess is judged by the 20 cm-1 rule like "
+            "every program (one imaginary mode types the node "
+            "failed_wrong_stationary_point); its D3/D4 and SMD cavity "
+            "blocks are finite differences. No imaginary mode means none "
+            "was found, not stationarity -- the outcome reports the "
+            "gradient at the Hessian geometry. functional is the name the "
+            "project asked for; b3lyp and b3lypg are one libxc functional "
+            "(VWN3) and b3lyp5 the VWN5 form, so compare differences across "
+            "programs, never totals. td (TDA or TDDFT on a Kohn-Sham "
+            "reference) gives roots ascending within one manifold at this "
+            "geometry: singlet or triplet on a closed shell, the one "
+            "unrestricted manifold on an open shell, which prints no per- "
+            "root <S^2>. A root is an index, never a state identity; select "
+            "it with ref and indices. An opt carrying excited_state_root "
+            "follows root k by index, re-evaluates the spectrum at the "
+            "reached geometry and reports the gap to the ground state and "
+            "to the neighbouring root -- a small gap is a sensor fact, not "
+            "a verdict; gas phase only. PCM/SMD give td energies at a fixed "
+            "geometry under PySCF's non-equilibrium response, whose "
+            "dielectric (1.78 for every solvent) the artifact records. An "
+            "unconverged root or CC amplitude set ends the node typed; "
+            "td_max_cycle and cc_max_cycle are the repair controls. "
+            "ab_initio mp2, ccsd and ccsd(t) run on an HF reference: sp for "
+            "all, opt for mp2 and ccsd. reference_energy and "
+            "correlation_energy are the program's own components and "
+            "correlation_energy includes the triples; PySCF correlates "
+            "every electron unless frozen_core (a count or auto) says "
+            "otherwise, where ORCA and Gaussian freeze core by default. On "
+            "every result the dipole, populations, orbital energies and "
+            "<S^2> belong to the SCF reference and energy to the surface "
+            "the job computed on; inspect_run says which beside each "
+            "selector. Not available here: scans, a ccsd(t) optimisation, "
+            "EOM or CASSCF, GPU execution, double hybrids, mixed basis/ECP, "
+            "a Hessian for ROHF or an open-shell NLC functional; only the "
+            "geometric optimiser is installed. A non-converged optimisation "
+            "still writes its last structure. Free energies come from the "
+            "host's RRHO engine (derive_thermochemistry; state T and p), "
+            "never PySCF's thermo; the receipt states the isotope-averaged "
+            "masses and the symmetry number behind them. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_rotational_constants_and_excitations",
+        family="spectroscopy",
+        title="rotational constants, moments of inertia, excitations",
+        rule_placement="reference:about_rotational_constants_and_excitations",
+        body=(
+            "Rotational constants follow from the principal moments of the "
+            "optimised geometry; a linear molecule has one constant and its "
+            "own operation. Excited-state selectors answer per manifold "
+            "root, singlet and triplet apart, with oscillator strengths "
+            "beside energies; a wavelength is the photon operation on an "
+            "excitation energy, never a hand conversion. PySCF stores "
+            "excitation energies in hartree where the log-parsing programs "
+            "print electronvolts; the reader states its unit and the "
+            "arithmetic is canonical. A root is an ordinal within its "
+            "manifold at the artifact's own geometry, never a state label: "
+            "fewer roots may come back than were requested and the ordinals "
+            "shift with them, an open-shell reference has one unrestricted "
+            "manifold with no per-root <S^2>, and TDA and full response "
+            "order roots differently. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_operations_cbs",
+        family="cbs",
+        title="complete-basis-set extrapolation",
+        rule_placement="reference:about_operations_cbs",
+        body=(
+            "The basis-set limit is one named operation, not fifteen "
+            "arithmetic nodes: a session that rebuilt the three-point "
+            "exponential form from multiply, subtract and divide nodes was "
+            "the reason these operations exist. SCF and correlation "
+            "energies converge by different laws -- exponential and "
+            "inverse-power respectively -- so extrapolate them separately "
+            "and add, never the total energy under one law. The cardinal "
+            "numbers must be consecutive and the exponent, where one is "
+            "required, comes from the method's own protocol and is recorded "
+            "as such -- supply extrapolation_exponent only when the "
+            "protocol you are reproducing states it. When the protocol just "
+            "says the energy was extrapolated exponentially and you have "
+            "three successive cardinal numbers, prefer "
+            "exponential_cbs_limit: it fits the decay from the data and "
+            "introduces no constant of your own. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_operations_ensemble",
+        family="ensemble",
+        title="conformer ensembles and Boltzmann averaging",
+        rule_placement="reference:about_operations_ensemble",
+        body=(
+            "A conformer set is a sample, not the ensemble; say what was "
+            "sampled. Populations come from free energies at the stated "
+            "temperature with the degeneracy of each multiply-realisable "
+            "state (an enantiomeric pair counts twice). A Boltzmann average "
+            "of a vector magnitude is linear in the property unless the "
+            "observable is a mean square; say which you took. A 0.0000 "
+            "energy tie between mirror-image minima is correct physics, not "
+            "a defect. "
+        ),
+    ),
+    ReferenceTopicV1(
+        name="about_operations_constants",
+        family="constants",
+        title="literature constants, conventions, pKa and redox potentials",
+        rule_placement="reference:about_operations_constants",
+        body=(
+            "A value the record supplies rather than the calculation -- the "
+            "aqueous proton free energy, a standard-state correction, a "
+            "reference acid's measured pKa, an electrode's absolute "
+            "potential -- is selected by registered name through the "
+            "constant operation; the host owns the value, unit and "
+            "standard-state convention, and a literal is recorded as model- "
+            "authored. What each registered name is for, which the "
+            "expression schema no longer repeats: <<registered_constants>>. "
+            "Constants that look independent are often matched pairs: read "
+            "the convention family and the purpose phrase before combining "
+            "two, and prefer a registered composed value where one exists. "
+            "A family says nothing about standard state, so two entries on "
+            "one scale can still need the term that bridges them. "
+            "gibbs_to_pka owns pKa = dG/(RT ln 10); "
+            "gibbs_to_redox_potential owns E = -dG/(nF) with the IUPAC "
+            "sign, so a favourable reduction has a negative free energy and "
+            "a positive potential, and referencing an electrode stays "
+            "ordinary subtraction so the electrode you chose stays visible. "
+            "Its n is the electron count, and you can derive it instead of "
+            "typing it: subtract the two states' own charge selectors. A "
+            "typed n is a number of yours, so nothing downstream of it can "
+            "serve as measured evidence for an uncertainty; a derived one "
+            "keeps the whole chain the host's. Continuum solvation of a "
+            "small localised anion carries a documented systematic of "
+            "roughly ten kcal/mol; state it beside the number and license "
+            "no accuracy claim. "
+        ),
+    ),
+)
+
+
 #: The family each act belongs to: what a scientist would say they were
 #: doing, not which internal module answers.  This is the catalogue's own
 #: statement and the capability ladder now reads it from here.  It
@@ -439,11 +874,6 @@ def make_catalogue(entries: Sequence[CatalogueEntryV1]) -> ToolCatalogueV1:
 ACT_FAMILIES: Mapping[str, str] = MappingProxyType(
     {
         SEARCH_TOOL_NAME: "discovery",
-        # The stem-and-guide tree's own discovery act. It is here
-        # because the catalogue is assembled from the live builders
-        # rather than written beside them; the commit that deletes
-        # the guide tree deletes this line with the tool.
-        "open_guide": "discovery",
         # What exists, what this workspace holds, what is ready.
         "inspect_program": "program",
         "inspect_run": "results",
@@ -496,31 +926,6 @@ FAMILY_REFERENCES: Mapping[str, str] = MappingProxyType(
         "saddle": "about_transition_states",
         "database": "about_workspace_databases",
     }
-)
-
-#: Former guide bodies, by the reference entry that now carries each.
-#: The text still has exactly one author -- ``guides.render_guide_body``
-#: resolves its registry-owned tokens and ``render_rules`` appends the
-#: rules placed on it -- so nothing here restates a host capability.
-_TOPIC_REFERENCES: Mapping[str, str] = MappingProxyType(
-    {
-        "structure": "about_building_structures",
-        "scan": "about_relaxed_scans",
-        "database": "about_workspace_databases",
-        "crossprogram": "about_cross_program_work",
-        "pyscf": "about_pyscf",
-        "recovery": "about_failed_runs_and_repair",
-        "saddle": "about_transition_states",
-        "spectroscopy": "about_rotational_constants_and_excitations",
-    }
-)
-
-#: Former guide bodies that are wholly about one operation family, so
-#: they ride on that family's generated operation reference rather than
-#: on an entry of their own: two entries about one subject is the split
-#: this catalogue exists to end.
-_OPERATION_TOPIC_REFERENCES: Mapping[str, str] = MappingProxyType(
-    {"cbs": "cbs", "ensemble": "ensemble", "constants": "constants"}
 )
 
 #: What each operation family is for, in one line, so a search result is
@@ -775,43 +1180,36 @@ def _selector_reference_entries() -> tuple[CatalogueEntryV1, ...]:
     return tuple(entries)
 
 
-def _guide_reference_entries() -> (
-    tuple[tuple[CatalogueEntryV1, ...], dict[str, str]]
-):
-    """Former guide bodies as reference entries, and the operation-family
-    bodies the operation references absorb.
+def _topic_reference_entries(
+    registry: Any = None,
+) -> tuple[tuple[CatalogueEntryV1, ...], dict[str, str]]:
+    """Reference entries from the topic declarations, and the bodies the
+    operation-family entries absorb.
 
-    ``render_guide_body`` resolves every ``<<token>>`` from the registry
-    that owns the fact, so a capability statement here cannot drift from
-    what the host does; ``render_rules`` appends the rules placed on that
-    guide, so a rule still renders exactly once.
+    A topic named ``about_operations_*`` has no entry of its own: its
+    text rides on the entry that family's operations already generate.
     """
 
-    from chemsmart.agent.guides import GUIDES_BY_ID, render_guide_body
     from chemsmart.agent.rules import render_rules
 
-    def body_of(guide_id: str) -> str:
-        guide = GUIDES_BY_ID[guide_id]
-        placed = render_rules(guide.rule_placement)
-        text = render_guide_body(guide)
-        return (text + " " + placed).strip() if placed else text
-
-    absorbed = {
-        family: body_of(guide_id)
-        for guide_id, family in _OPERATION_TOPIC_REFERENCES.items()
-    }
-    entries = []
-    for guide_id, name in sorted(_TOPIC_REFERENCES.items()):
-        guide = GUIDES_BY_ID[guide_id]
+    entries: list[CatalogueEntryV1] = []
+    absorbed: dict[str, str] = {}
+    for topic in REFERENCE_TOPICS:
+        placed = render_rules(topic.rule_placement)
+        body = render_reference_body(topic, registry=registry)
+        text = (body + " " + placed).strip() if placed else body
+        if topic.name.startswith("about_operations_"):
+            absorbed[topic.family] = text
+            continue
         entries.append(
             CatalogueEntryV1(
-                name=name,
-                family=ACT_FAMILIES.get(next(iter(guide.tools), ""), guide_id),
+                name=topic.name,
+                family=topic.family,
                 kind="reference",
                 loading="deferred",
-                derived_from="chemsmart.agent.guides",
+                derived_from="chemsmart.agent.catalogue",
                 definition=_reference_definition(
-                    name, f"{guide.title.capitalize()}. {body_of(guide_id)}"
+                    topic.name, f"{topic.title.capitalize()}. {text}"
                 ),
             )
         )
@@ -826,13 +1224,9 @@ def build_tool_catalogue(registry: Any = None) -> ToolCatalogueV1:
     the host does not have: there is no second list to drift.
     """
 
-    from chemsmart.agent.guides import GUIDES
     from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
 
-    every_family = tuple(guide.guide_id for guide in GUIDES)
-    surface = build_command_compiled_tool_surface(
-        registry, guides=every_family
-    )
+    surface = build_command_compiled_tool_surface(registry)
     entries: list[CatalogueEntryV1] = [
         CatalogueEntryV1(
             name=SEARCH_TOOL_NAME,
@@ -861,10 +1255,10 @@ def build_tool_catalogue(registry: Any = None) -> ToolCatalogueV1:
                 definition=item,
             )
         )
-    guide_entries, absorbed = _guide_reference_entries()
+    topic_entries, absorbed = _topic_reference_entries(registry)
     entries.extend(_operation_reference_entries(absorbed))
     entries.extend(_selector_reference_entries())
-    entries.extend(guide_entries)
+    entries.extend(topic_entries)
     return make_catalogue(entries)
 
 
@@ -879,10 +1273,13 @@ __all__ = [
     "MAX_QUERY_CHARACTERS",
     "MAX_SEARCH_LIMIT",
     "SEARCH_TOOL_NAME",
+    "REFERENCE_TOPICS",
     "CatalogueEntryV1",
+    "ReferenceTopicV1",
     "SearchResultV1",
     "ToolCatalogueV1",
     "build_tool_catalogue",
     "catalogue_digest",
     "make_catalogue",
+    "render_reference_body",
 ]

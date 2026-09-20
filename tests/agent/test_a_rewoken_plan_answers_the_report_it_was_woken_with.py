@@ -115,7 +115,7 @@ def test_the_stream_a_rewake_names_is_read_or_refused_with_a_route(tmp_path):
     from chemsmart.agent._contracts import RoutedContractError
     from chemsmart.agent.runtime.event_store import RuntimeEventStore
 
-    from .test_a_guide_opens_when_something_asks import _host
+    from .test_a_declared_observable_carries_its_band import _host
 
     workspace = tmp_path / "ws"
     stream = workspace / ".chemsmart-agent" / "runs" / "live-1"

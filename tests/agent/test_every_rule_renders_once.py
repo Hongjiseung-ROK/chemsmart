@@ -25,41 +25,38 @@ def test_rule_ids_are_unique_and_placements_valid():
     assert set(rules_by_id()) == set(ids)
 
 
-def test_every_stem_rule_renders_once_and_leaf_rules_only_in_their_guide(
+def test_every_rule_renders_once_where_it_was_placed(
     tmp_path,
 ):
-    """A leaf rule used to render in the stem of every session whether
-    or not its guide was open; it renders once, inside its guide's
-    record, when the guide opens.
+    """A placed rule renders exactly once, where it was placed.
 
-    The record is read off a real host rather than an unbound method: a
-    body's registry-owned tokens resolve against the session's own
-    capability registry, and a test that builds the record by hand would
-    be reading a different object from the one a session reads.
+    A leaf rule used to render in the stem of every session whether or
+    not its guide was open; it then rendered inside its guide's body.
+    There are no guides: a rule placed on a reference entry renders
+    inside that entry's text, and a rule placed on a tool inside that
+    tool's description -- which is read at the one moment that matters,
+    because the schema is loaded before any argument is composed for it.
+
+    Read off the real catalogue rather than a hand-built record: the
+    registry-owned tokens in a body resolve against the session's own
+    capability registry.
     """
 
-    from chemsmart.agent.guides import GUIDES_BY_ID
-    from chemsmart.agent.runtime.event_store import RuntimeEventStore
-    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+    from chemsmart.agent.catalogue import build_tool_catalogue
 
-    host = CommandCompiledToolHostV1(
-        event_store=RuntimeEventStore(
-            tmp_path / "events.jsonl", session_id="rule-session"
-        ),
-        artifacts={},
-        task_spec_sha256s=("a" * 64,),
-        approved_workspace=tmp_path / "workspace",
-    )
+    catalogue = build_tool_catalogue()
     prompt = _system_prompt({})
     for rule in POLICY_RULES:
         if rule.placement == "stem":
             assert prompt.count(rule.text.strip()) == 1, rule.rule_id
         else:
             assert rule.text.strip() not in prompt, rule.rule_id
-        if rule.placement.startswith("leaf:"):
-            guide = GUIDES_BY_ID[rule.placement.split(":", 1)[1]]
-            body = host._guide_record(guide)["body"]
-            assert body.count(rule.text.strip()) == 1, rule.rule_id
+        kind, _, target = rule.placement.partition(":")
+        if kind not in {"reference", "tool"}:
+            continue
+        entry = catalogue.entry(target)
+        assert entry is not None, rule.rule_id
+        assert entry.description.count(rule.text.strip()) == 1, rule.rule_id
 
 
 def test_the_owners_policing_rules_are_in_the_stem():

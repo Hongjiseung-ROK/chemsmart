@@ -15,7 +15,6 @@ harness can actually produce, and every operation states what it computes.
 
 import pytest
 
-from chemsmart.agent.guides import GUIDES
 from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
 from chemsmart.analysis.quantity_expressions import (
     OPERATION_DESCRIPTIONS,
@@ -25,9 +24,6 @@ from chemsmart.analysis.quantity_expressions import (
     evaluate_quantity_expression,
 )
 from chemsmart.analysis.result_quantities import ENERGY, make_quantity_value
-
-#: The whole vocabulary is on the surface only when every leaf is open.
-_ALL_GUIDES = tuple(guide.guide_id for guide in GUIDES)
 
 # Hartree-Fock total energies of water at the experimental equilibrium
 # geometry in cc-pVDZ, cc-pVTZ and cc-pVQZ, computed by ChemSmart.
@@ -122,7 +118,7 @@ def test_a_vector_among_three_inputs_is_refused_rather_than_flattened():
 
 
 def test_every_operation_the_model_may_choose_says_what_it_computes():
-    surface = build_command_compiled_tool_surface(guides=_ALL_GUIDES)
+    surface = build_command_compiled_tool_surface()
     definition = next(
         item["function"]
         for item in surface.tool_definitions
@@ -138,7 +134,7 @@ def test_every_operation_the_model_may_choose_says_what_it_computes():
 
 
 def test_the_schema_tells_the_model_to_prefer_the_named_convention():
-    surface = build_command_compiled_tool_surface(guides=_ALL_GUIDES)
+    surface = build_command_compiled_tool_surface()
     definition = next(
         item["function"]
         for item in surface.tool_definitions
@@ -168,7 +164,7 @@ def test_every_validation_predicate_the_model_may_choose_is_derived():
         ANALYSIS_VALIDATION_PREDICATES,
     )
 
-    surface = build_command_compiled_tool_surface(guides=_ALL_GUIDES)
+    surface = build_command_compiled_tool_surface()
     definition = next(
         item["function"]
         for item in surface.tool_definitions

@@ -186,7 +186,7 @@ def test_the_budget_block_leads_with_the_binding_line(tmp_path):
 
 
 def test_inspect_run_resolves_the_outcomes_run_id(tmp_path):
-    from tests.agent.test_a_guide_opens_when_something_asks import _host
+    from tests.agent.test_a_declared_observable_carries_its_band import _host
 
     host = _host(tmp_path)
     evidence = tmp_path / "evidence"

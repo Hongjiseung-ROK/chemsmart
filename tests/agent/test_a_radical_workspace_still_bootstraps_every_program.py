@@ -75,7 +75,9 @@ def test_every_program_bootstraps_over_the_supplied_molecule(
     assert ("cpu", "td") in pyscf.effective_engine_job_pairs
 
 
-def test_probe_artifact_bootstraps_every_program_without_workspace_xyz(tmp_path):
+def test_probe_artifact_bootstraps_every_program_without_workspace_xyz(
+    tmp_path,
+):
     from chemsmart.agent.live_session import _conformance_probe_artifact
 
     probe = _conformance_probe_artifact(tmp_path)
@@ -99,4 +101,3 @@ def test_probe_artifact_bootstraps_every_program_without_workspace_xyz(tmp_path)
     assert ("cpu", "opt") in pyscf.effective_engine_job_pairs
     assert ("cpu", "hess") in pyscf.effective_engine_job_pairs
     assert ("cpu", "td") in pyscf.effective_engine_job_pairs
-

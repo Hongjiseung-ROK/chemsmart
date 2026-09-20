@@ -96,8 +96,6 @@ def test_the_check_can_fail():
     """A guard that cannot go red guards nothing."""
 
     assert (
-        _package_readers(
-            "a_name_this_package_does_not_contain", _MODULES[0]
-        )
+        _package_readers("a_name_this_package_does_not_contain", _MODULES[0])
         == ()
     )

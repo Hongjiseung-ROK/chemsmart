@@ -1136,22 +1136,6 @@ def _legacy_tool_definitions(
             ("project_artifact_id", "capability_receipt_sha256"),
         ),
         _tool(
-            "open_guide",
-            (
-                "Open one guide named in the system prompt -- a family unit "
-                "of tools, operations and guidance (structure, scan, "
-                "constants, cbs, ensemble, spectroscopy, database, "
-                "crossprogram, recovery, saddle) -- or one advisory "
-                "domain-knowledge skill. Returns the text and, for a guide, "
-                "the tools and operations that join the surface on the next "
-                "turn. Guidance only: it never establishes readiness, "
-                "approval, terminal state, or an accuracy claim, and never "
-                "substitutes for a typed host receipt."
-            ),
-            {"guide_id": _public_identifier()},
-            ("guide_id",),
-        ),
-        _tool(
             "declare_requested_observable",
             (
                 "Restate the task's requested observables as your first "
@@ -2464,42 +2448,33 @@ def _merge_planning_tools(tools: tuple[dict, ...]) -> tuple[dict, ...]:
     return tuple(result)
 
 
-def stem_operations(guides: tuple[str, ...] = ()) -> tuple[str, ...]:
-    """The operation vocabulary the surface exposes: every operation that
-    belongs to no leaf, plus the operations of the open guides."""
+def stem_operations() -> tuple[str, ...]:
+    """Every operation the host owns, on every surface that has any.
 
-    from chemsmart.agent.guides import LEAF_OPERATIONS
+    It used to be the operations belonging to no guide, plus the ones the
+    open guides added -- 29 of 44 for a session with nothing open. A
+    session that needed ``center_of_mass`` was refused by the generic
+    enum check with "is not one of [29 names]", which names no route, and
+    one rebuilt it from fifteen arithmetic nodes with integer masses. The
+    names cost 797 bytes; the prose that used to ride beside them is a
+    reference entry per family now.
+    """
 
-    active = set(guides)
-    return tuple(
-        sorted(
-            name
-            for name in OPERATION_DESCRIPTIONS
-            if LEAF_OPERATIONS.get(name) is None
-            or LEAF_OPERATIONS[name] in active
-        )
-    )
+    return tuple(sorted(OPERATION_DESCRIPTIONS))
 
 
 def build_command_compiled_tool_surface(
     registry: ProgramCapabilityRegistryV1 | None = None,
-    *,
-    guides: tuple[str, ...] = (),
 ) -> AgentToolSurfaceV1:
-    """The planning surface the model reads: the stem, plus the tools and
-    operations of every open guide."""
+    """Every planning tool the host implements, with one definition each.
 
-    from chemsmart.agent.guides import LEAF_TOOLS
+    This is now the *assembly* the catalogue is built from rather than a
+    prompt anything reads directly: what a request carries is
+    ``exposure.py``'s answer, and it is not this.
+    """
 
-    active = set(guides)
     tools = _merge_planning_tools(
-        _legacy_tool_definitions(registry, operations=stem_operations(guides))
-    )
-    tools = tuple(
-        item
-        for item in tools
-        if LEAF_TOOLS.get(item["function"]["name"]) is None
-        or LEAF_TOOLS[item["function"]["name"]] in active
+        _legacy_tool_definitions(registry, operations=stem_operations())
     )
     # Advertise only what this runtime can actually deliver.  The handlers and
     # contracts stay, so restoring one of these is a producer away.

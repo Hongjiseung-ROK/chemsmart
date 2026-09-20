@@ -86,9 +86,7 @@ def test_an_element_that_starts_before_the_job_id_lands_reads_the_grant(
     def fake_run(argv, **kwargs):
         # Exactly what a promptly-started element sees: the job exists,
         # and this process has not finished writing its receipt.
-        seen.append(
-            _allocated_execution_resources(run_directory, approved)
-        )
+        seen.append(_allocated_execution_resources(run_directory, approved))
         return subprocess.CompletedProcess(
             argv, 0, stdout=f"Submitted batch job 4{len(seen)}2\n", stderr=""
         )

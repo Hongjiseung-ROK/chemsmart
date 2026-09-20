@@ -91,8 +91,8 @@ def test_an_element_without_a_cohort_is_refused(tmp_path):
 def test_an_element_of_a_real_cohort_is_admitted(tmp_path):
     executor = _executor(tmp_path, element=1)
     executor._verify_launch_and_claim_once(
-            node_id="a1", invocation_sha256="9" * 64
-        )
+        node_id="a1", invocation_sha256="9" * 64
+    )
     assert executor._bundle_claimed is True
     assert executor._cohort_scope() == ("a2",)
 

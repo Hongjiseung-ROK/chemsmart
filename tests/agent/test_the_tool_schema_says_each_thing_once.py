@@ -14,13 +14,16 @@ from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
 from chemsmart.analysis.result_readers import registered_reader_selectors
 
 
-def _surface_json(*, every_leaf: bool = False) -> str:
-    from chemsmart.agent.guides import GUIDES
+def _surface_json() -> str:
+    """Every planning definition the host implements.
 
-    guides = tuple(guide.guide_id for guide in GUIDES) if every_leaf else ()
-    return json.dumps(
-        build_command_compiled_tool_surface(guides=guides).tool_definitions
-    )
+    There is one surface now rather than a stem and eleven leaf
+    variants; what a request carries is the exposure's answer, and a
+    guidance block serialised twice here would be twice in the
+    catalogue.
+    """
+
+    return json.dumps(build_command_compiled_tool_surface().tool_definitions)
 
 
 def test_each_guidance_block_is_serialised_once():
@@ -34,8 +37,23 @@ def test_each_guidance_block_is_serialised_once():
     assert text.count("each with its unit, the convention family") == 1
 
 
-def test_nothing_was_lost_and_the_surface_fits_the_budget():
-    text = _surface_json(every_leaf=True)
+def test_nothing_reachable_was_lost():
+    """Every name the host owns is on the one planning assembly.
+
+    This replaces the second of the round's two byte guards. What that
+    guard protected was a *product* budget: the surface every session
+    read grew with every capability, so a ceiling was the only thing
+    standing between capability growth and an unreadable prompt. That
+    coupling is gone -- what a request carries is the exposure's answer
+    and it does not grow with the catalogue (see
+    ``test_the_initial_context_does_not_grow_with_the_catalogue``) -- so
+    a ceiling on the assembly would now be a number protecting nothing.
+    What it also did, and what is kept here, is witness that nothing
+    reachable was lost: every operation, constant and selector is still
+    on the surface the catalogue is assembled from.
+    """
+
+    text = _surface_json()
     for name in OPERATION_DESCRIPTIONS:
         assert f'"{name}"' in text, name
     for name in LITERATURE_CONSTANTS:
@@ -43,44 +61,68 @@ def test_nothing_was_lost_and_the_surface_fits_the_budget():
     for selectors in registered_reader_selectors().values():
         for selector in selectors:
             assert selector in text, selector
-    # 139,229 bytes before de-duplication, 110,525 after, 100,408 after
-    # the merge; with every leaf open the ceiling keeps the whole tree in
-    # bounds, and the stem alone is pinned below 90,000 in the guides test.
-    # Raised from 115,000 in ROUND 8 for two affordances REACH-1 earned
-    # (the result-id rule and break_symmetry), not for duplication.
-    # Not raised in ROUND 10: fetch_pubchem_geometry was paid for out of
-    # the identifier spelling rule's 46 copies.
-    # Raised to 118,400 in ROUND 12 for `approximates` and
-    # `uncertainty_combination`, then **returned to 118,000 in the same
-    # round** and not raised again. The next round was authorised to
-    # expand this budget and found it did not need to: the provenance
-    # work it carried (the lineage authority, the PubChem review panel,
-    # the arrival observations) cost the model-visible surface exactly
-    # zero bytes, because host-internal readers, human-facing panels and
-    # runtime replies are not schema. What the measurement did show was
-    # 7 bytes of stem headroom -- and the cause was misallocation, not
-    # insufficiency: a ~500-character CBS `extrapolation_exponent`
-    # description sat in the shared expression-node schema every session
-    # reads, duplicating guidance the `cbs` guide already carried, for a
-    # family whose operations the stem does not even expose. Moving it
-    # to its guide recovered 834 bytes on both surfaces. A ceiling is
-    # paid for, never banked.
-    # Raised to 119,500 in the PySCF expansion round (2026-09-13) for
-    # affordances earned on seventeen real fixtures: an executable
-    # response stage, five selectors (transition_dipole_moments,
-    # excited_state_converged, excited_state_followed_root,
-    # ccsd_correlation_energy, triples_correction) that enter the two
-    # selector enums, and the pyscf leaf's account of manifolds, root
-    # indices, the frozen-core convention and electronic provenance. The
-    # stem ceiling (91,000) was not raised: every new sentence sits on a
-    # leaf, and the one sentence tried on a stem tool was moved to the
-    # leaf when the stem measured 53 bytes over.
-    # Raised to 120,500 (2026-09-16, Round A) for select_execution_wave,
-    # the one affordance a session needs to name the wave it wants: 868
-    # bytes on the stem surface and the same tool here. Its contract
-    # sentence is a registered rule at `tool:select_execution_wave`
-    # rather than prose in the schema, so the registry stays the one
-    # author and `test_every_rule_renders_once` covers it.
-    # Raised to 121,000 (2026-09-17) for wiberg_bond_orders entering the
-    # selector enums across all leaf tools.
-    assert len(text) < 121_000, len(text)
+
+
+def test_the_initial_context_does_not_grow_with_the_catalogue():
+    """The guard that replaces the two byte ceilings.
+
+    The stem guard was ``< 93_000`` and the every-guide-open guard
+    ``< 121_000``; they were raised six times between them, each time
+    for one affordance, and each raise is recorded in this file's
+    history. Both protected the same thing -- that what every session
+    reads stays readable -- by capping a number that grew with the
+    product.
+
+    What protects it now is structural rather than numerical: the
+    initial context is core plus what typed session state promoted, and
+    it is the same size whether the catalogue holds fifty entries or
+    four thousand. The assertion is that relation, not a ceiling: a
+    ceiling could be raised for one more affordance, and this cannot be
+    satisfied by raising anything.
+    """
+
+    import json as _json
+
+    from chemsmart.agent.catalogue import (
+        CatalogueEntryV1,
+        build_tool_catalogue,
+        make_catalogue,
+    )
+    from chemsmart.agent.exposure import build_exposure
+
+    real = build_tool_catalogue()
+    grown = make_catalogue(
+        real.entries
+        + tuple(
+            CatalogueEntryV1(
+                name=f"about_synthetic_growth_{index:04d}",
+                family="synthetic",
+                kind="reference",
+                loading="deferred",
+                derived_from="tests",
+                definition={
+                    "type": "function",
+                    "function": {
+                        "name": f"about_synthetic_growth_{index:04d}",
+                        "description": "Synthetic reference text.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {},
+                            "required": [],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+            )
+            for index in range(2000)
+        )
+    )
+
+    def initial_bytes(catalogue):
+        exposure = build_exposure("host_search", catalogue=catalogue)
+        return len(_json.dumps(list(exposure.tool_definitions())))
+
+    assert initial_bytes(grown) == initial_bytes(real)
+    # And it is materially smaller than the stem it replaces, which was
+    # 92,848 bytes on this tree the day before this commit.
+    assert initial_bytes(real) < 60_000

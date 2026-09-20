@@ -23,10 +23,9 @@ import json
 from types import SimpleNamespace
 
 
-
 def _driver(tmp_path, *, non_executable=(), wave=()):
-    from chemsmart.agent.driver import GoalDriver
     from chemsmart.agent.cohort import build_execution_wave_decision
+    from chemsmart.agent.driver import GoalDriver
 
     from .test_the_goal_loop_recovers_or_returns import _envelope_file
 
@@ -97,8 +96,8 @@ def test_a_session_that_selected_nothing_stays_a_single_job(tmp_path):
 
 
 def _driver_with_reviewed_nodes(tmp_path, *, reviewed, non_executable, wave):
-    from chemsmart.agent.driver import GoalDriver
     from chemsmart.agent.cohort import build_execution_wave_decision
+    from chemsmart.agent.driver import GoalDriver
 
     from .test_the_goal_loop_recovers_or_returns import _envelope_file
 
@@ -160,9 +159,9 @@ def test_a_wave_from_a_workflow_the_session_replanned_away_from_is_dropped(
         non_executable=(),
         wave=("opt-a", "stale-from-w1"),
     )
-    assert driver._dispatchable_wave() == ("opt-a",), (
-        "a node this approval has never heard of reached the manifest"
-    )
+    assert driver._dispatchable_wave() == (
+        "opt-a",
+    ), "a node this approval has never heard of reached the manifest"
 
     rows = [
         json.loads(line)
@@ -189,7 +188,7 @@ def test_a_review_that_names_no_nodes_leaves_the_wave_alone(tmp_path):
 
 
 def test_the_goal_records_which_wave_each_cycle_ran(tmp_path):
-    """"Which waves did this goal try" must be answerable from the record.
+    """ "Which waves did this goal try" must be answerable from the record.
 
     The verdict lived in a tool reply and, at best, in the public
     transcript. The dispatch receipt names the current cycle's members
@@ -255,9 +254,9 @@ def test_the_two_causes_of_a_drop_are_told_apart(tmp_path):
         for line in driver.ledger.ledger_path.read_text().splitlines()
         if line.strip()
     ]
-    dropped = next(
-        r for r in rows if r["kind"] == "wave_members_dropped"
-    )["payload"]["dropped"]
+    dropped = next(r for r in rows if r["kind"] == "wave_members_dropped")[
+        "payload"
+    ]["dropped"]
     reasons = {row["node_id"]: row["reason"] for row in dropped}
     assert "non-executable intent" in reasons["irc-blocked"]
     assert "another workflow" in reasons["stale-from-w1"]

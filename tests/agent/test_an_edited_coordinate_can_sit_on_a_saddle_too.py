@@ -25,7 +25,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-
 from chemsmart.agent.symmetry import (
     idealised_coordinate_observation,
     idealised_internal_coordinate_count,
@@ -121,7 +120,7 @@ def test_the_symmetry_walk_offers_its_edits_to_the_sensor():
 
 
 def test_the_observation_reports_the_lattice_and_not_the_chemistry():
-    """"starts on its own saddle" is periodicity-dependent, and the host
+    """ "starts on its own saddle" is periodicity-dependent, and the host
     does not know the periodicity.
 
     For the threefold methyl rotor this function was written from,

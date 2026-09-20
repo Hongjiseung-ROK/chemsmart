@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from .test_a_guide_opens_when_something_asks import _host, _operations
+from .test_a_declared_observable_carries_its_band import _host, _operations
 
 pytestmark = pytest.mark.capability("operation:coordinate_at_minimum")
 
@@ -21,4 +21,3 @@ def test_the_extremum_operations_are_on_the_bare_stem(tmp_path):
     operations = _operations(host.surface)
     assert "coordinate_at_minimum" in operations
     assert "coordinate_at_maximum" in operations
-    assert "scan" not in host.active_guides

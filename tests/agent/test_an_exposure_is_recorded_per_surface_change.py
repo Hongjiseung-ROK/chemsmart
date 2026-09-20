@@ -23,7 +23,7 @@ from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.runtime.events import EventKind
 from tests.agent.provider_fakes import _DispatchSpyHost, _run_contracts
 
-pytestmark = pytest.mark.capability("guide:*")
+pytestmark = pytest.mark.capability("reference:*")
 
 
 def _tool(name: str) -> dict:

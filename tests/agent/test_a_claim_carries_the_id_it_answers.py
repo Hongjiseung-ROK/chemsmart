@@ -24,7 +24,7 @@ from chemsmart.agent.scientific_toolchain import (
 
 
 def _host(tmp_path, declarations):
-    from tests.agent.test_a_guide_opens_when_something_asks import _host
+    from tests.agent.test_a_declared_observable_carries_its_band import _host
 
     return _host(
         tmp_path, approved_requested_observable_declarations=declarations

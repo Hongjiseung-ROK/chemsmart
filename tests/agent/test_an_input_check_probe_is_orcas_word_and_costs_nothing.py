@@ -28,7 +28,7 @@ from chemsmart.agent.input_check import (
 from chemsmart.agent.runtime.events import EventKind
 from chemsmart.agent.terminal_states import derive_run_outcome, read_run_events
 
-from .test_a_guide_opens_when_something_asks import _host
+from .test_a_declared_observable_carries_its_band import _host
 from .test_a_terminal_state_is_derived_not_grepped import _reserve
 
 _ABORT_TAIL = """\

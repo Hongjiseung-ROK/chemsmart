@@ -21,7 +21,10 @@ from typing import Any, Mapping
 
 from chemsmart.agent._contracts import ContractError
 
-PLACEMENT_KINDS = ("stem", "leaf", "wake", "tool")
+#: ``reference`` replaced ``leaf``: a sentence no longer sits on a
+#: guide the host opens, it sits on a catalogue reference entry the
+#: model finds, or is promoted or surfaced by typed state.
+PLACEMENT_KINDS = ("stem", "reference", "wake", "tool")
 BOUNDARY_VERDICTS = ("admitted", "refused")
 
 
@@ -811,7 +814,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.structure.builders_symmetry",
-        "leaf:structure",
+        "reference:about_building_structures",
         "T3",
         "A built or idealised start carries its builder's symmetry and "
         "converges to the nearest stationary point of that symmetry: a "
@@ -828,7 +831,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.structure.each_hop_is_bound",
-        "leaf:structure",
+        "reference:about_building_structures",
         "T3",
         "A built geometry is a chain and every hop is a new artifact: bind "
         "charge and multiplicity on each intermediate before the next "
@@ -840,7 +843,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.two_nodes_make_a_minimum",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "A PySCF opt carries no frequencies and a hess moves no atom: a "
         "minimum is an opt node then a hess node bound to the validated "
@@ -851,7 +854,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.one_structure_per_result",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "Every PySCF quantity belongs to the final structure; "
         "supplied_positions is what was handed in and reached_positions "
@@ -862,7 +865,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.a_matching_name_is_not_a_matching_functional",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "functional is the name the project asked for; b3lyp and b3lypg "
         "are one libxc functional here and b3lyp5 another, and ORCA's "
@@ -873,7 +876,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.no_imaginary_mode_is_not_a_stationary_point",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "A PySCF Hessian's frequencies are projected free of rotations, so "
         "all-real modes prove only that no imaginary mode was found; the "
@@ -884,7 +887,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.a_root_is_an_index_not_an_identity",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "An excited root is an ordinal within its manifold at the "
         "artifact's own geometry, never a state identity: an excited-root "
@@ -902,7 +905,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "A PySCF hess is the curvature of the surface its section names. "
         "Carrying the response_method, state_manifold, nstates and "
@@ -957,7 +960,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "A PySCF irc walks one branch of the intrinsic reaction coordinate "
         "from the geometry it is handed, HF or DFT on the CPU: it takes "
@@ -1005,7 +1008,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.correlated_methods_are_ab_initio_values",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "mp2, ccsd and ccsd(t) are ab_initio values on an HF reference: "
         "energies for all three, gradients for MP2 and CCSD, no Hessian, "
@@ -1046,7 +1049,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.pyscf.a_converged_reference_can_be_a_saddle",
-        "leaf:pyscf",
+        "reference:about_pyscf",
         "T1",
         "A converged SCF can be a saddle in orbital-rotation space, and "
         "every number above it then describes a solution that is not its "
@@ -1087,7 +1090,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.crossprogram.frozen_core_is_a_convention",
-        "leaf:crossprogram",
+        "reference:about_cross_program_work",
         "T3",
         "PySCF correlates every electron unless frozen_core says otherwise, "
         "while ORCA and Gaussian freeze the core by default, so two MP2 or "
@@ -1102,7 +1105,7 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "leaf.saddle.seed_a_bimolecular_saddle",
-        "leaf:saddle",
+        "reference:about_transition_states",
         "T3",
         "A bimolecular saddle is seeded from the optimised fragments at "
         "contacts near the forming bonds (2.0-2.3 A), never from a loose "
@@ -1219,7 +1222,10 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "recovery.restart_from_what_it_reached",
-        "leaf:recovery",
+        # Onto the tool it names. It governs one act, and a rule on a
+        # tool is read at the one moment that matters: the schema is
+        # loaded before any argument is composed for it.
+        "tool:bind_reached_geometry",
         "T4",
         "An optimisation that ran out of iterations or wall time did not "
         "fail to move -- it moved and was cut off, and the structure it "
@@ -1237,7 +1243,8 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     _r(
         "saddle.characterise_what_it_is",
-        "leaf:saddle",
+        # Onto the tool it names, for the same reason.
+        "tool:characterise_stationary_point",
         "T5",
         "A search that converged onto a stationary point of a different "
         "order than it promised keeps that failure, and its printed "
@@ -1421,13 +1428,13 @@ def render_rules(*placements: str, separator: str = " ") -> str:
     )
 
 
-def leaf_placements() -> tuple[str, ...]:
+def reference_placements() -> tuple[str, ...]:
     return tuple(
         sorted(
             {
                 rule.placement
                 for rule in POLICY_RULES
-                if rule.placement.startswith("leaf:")
+                if rule.placement.startswith("reference:")
             }
         )
     )
@@ -1441,7 +1448,7 @@ __all__ = [
     "PLACEMENT_KINDS",
     "POLICY_RULES",
     "PolicyRuleV1",
-    "leaf_placements",
+    "reference_placements",
     "render_rules",
     "rules_by_id",
     "rules_for",

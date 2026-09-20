@@ -314,8 +314,8 @@ def test_the_menu_and_the_guide_name_a_route_that_exists():
 
     import re
 
+    from chemsmart.agent.catalogue import REFERENCE_TOPICS
     from chemsmart.agent.driver import REPAIR_MENU
-    from chemsmart.agent.guides import GUIDES
     from chemsmart.agent.rules import POLICY_RULES
     from chemsmart.agent.tool_specs import (
         build_command_compiled_tool_surface,
@@ -323,15 +323,13 @@ def test_the_menu_and_the_guide_name_a_route_that_exists():
 
     surface = {
         item["function"]["name"]
-        for item in build_command_compiled_tool_surface(
-            guides=tuple(guide.guide_id for guide in GUIDES)
-        ).tool_definitions
+        for item in build_command_compiled_tool_surface().tool_definitions
     }
     assert "bind_reached_geometry" in surface
 
     prose = list(REPAIR_MENU.values())
     prose += [rule.text for rule in POLICY_RULES]
-    prose += [guide.body for guide in GUIDES]
+    prose += [topic.body for topic in REFERENCE_TOPICS]
 
     # Tools are named by a verb; the rest of the host's snake_case
     # vocabulary (terminal states, selectors, artifact kinds) is not.

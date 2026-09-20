@@ -24,7 +24,6 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-
 from chemsmart.agent.cohort import read_cohort_manifest
 
 

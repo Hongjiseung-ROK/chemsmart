@@ -170,19 +170,13 @@ def test_skills_off_restores_historical_prompt_and_tool_surface(monkeypatch):
     documents = advisory_skill_documents()
     assert documents
     enabled_surface = build_command_compiled_tool_surface()
-    assert "open_guide" in {
-        item["function"]["name"] for item in enabled_surface.tool_definitions
-    }
 
     monkeypatch.setenv("CHEMSMART_AGENT_SKILLS", "0")
     disabled_documents = advisory_skill_documents()
     assert disabled_documents == ()
     disabled_surface = build_command_compiled_tool_surface()
-    # Guides are the host's own family units and do not switch off with
-    # the advisory skills; open_guide stays, and the surface is the same.
-    assert "open_guide" in {
-        item["function"]["name"] for item in disabled_surface.tool_definitions
-    }
+    # The host's own capabilities do not switch off with the advisory
+    # skills: the planning assembly is the same either way.
     assert _system_prompt({}, skill_index=()) == _system_prompt({})
     assert (
         disabled_surface.tool_schema_sha256

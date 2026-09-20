@@ -826,8 +826,6 @@ def run_live_agent_session(
         name for names in session_promotions.values() for name in names
     )
     surface = build_catalogue_tool_surface(exposure)
-    active_guides: set[str] = set()
-    session_guides: dict[str, tuple[str, ...]] = {}
 
     event_store = RuntimeEventStore(
         run_directory / "events.jsonl", session_id=session_id
@@ -981,21 +979,13 @@ def run_live_agent_session(
         host_kwargs["analysis_only_run_directory"] = run_directory
         host_kwargs["analysis_only_workspace"] = workspace_path
     host = CommandCompiledToolHostV1(**host_kwargs)
-    # Guides open before the first turn are opened on the host, so each
-    # leaves the same event as one opened mid-session -- with its signal.
-    # Observed live (R2c): the leaves were open and the stream showed none.
-    # The body travels with the tools: a host-opened guide used to expose
-    # its tools and deliver no guidance at all -- 36 activations over one
-    # day's sessions, and every body that reached the model was a manual
-    # re-read through open_guide (audit, 2026-09-03).
-    open_guide_records = _open_session_guides(host, session_guides)
     surface = host.surface
 
     context = _public_context(
         task=task,
         task_spec_sha256=task_spec_sha256,
         observations=observations,
-        open_guides=tuple(open_guide_records),
+        promoted_capabilities=session_promotions,
         result_observations=result_observations,
         failed_result_observations=failed_result_observations,
         database_observations=database_observations,
@@ -1032,7 +1022,6 @@ def run_live_agent_session(
         approved_workflow=approved_workflow_record,
         bounded_review_requested=bounded_review_requested,
         task=task,
-        active_guides=tuple(sorted(active_guides)),
         exposure=exposure,
     )
     # Consume the helper's list wholesale: rebuilding index 1 by hand at
@@ -1362,7 +1351,6 @@ def _coordinator_base_messages(
     approved_workflow: Mapping[str, Any] | None,
     bounded_review_requested: bool = False,
     task: str = "",
-    active_guides: tuple[str, ...] = (),
     exposure: Any = None,
 ) -> list[dict[str, str]]:
     documents = advisory_skill_documents()
@@ -1374,7 +1362,6 @@ def _coordinator_base_messages(
                 approved_workflow,
                 bounded_review_requested=bounded_review_requested,
                 skill_index=tuple(item.index_entry() for item in documents),
-                active_guides=active_guides,
                 exposure=exposure,
                 goal_record=goal_record,
             ),
@@ -3574,29 +3561,6 @@ def _record_sort_key(value: Mapping[str, Any]) -> tuple[str, str, str]:
     )
 
 
-def _open_session_guides(
-    host: Any, session_guides: Mapping[str, tuple[str, ...]]
-) -> tuple[dict[str, Any], ...]:
-    """Open the host's session-start guides and return their records.
-
-    Each activation leaves the same event as one opened mid-session,
-    with its signal, and each opened guide's record -- body included --
-    is returned so the context can carry it: exposing a guide's tools
-    without its guidance is a surface change wearing a guidance label.
-    """
-
-    records: list[dict[str, Any]] = []
-    for signal, guides in session_guides.items():
-        if guides:
-            records.extend(
-                host._guide_record(guide)
-                for guide in host.activate_guides(
-                    "session-start", guides, signal=signal
-                )
-            )
-    return tuple(records)
-
-
 def _public_context(
     *,
     task: str,
@@ -3619,7 +3583,7 @@ def _public_context(
     approved_identity_records: tuple[dict[str, Any], ...] = (),
     approved_input_records: tuple[dict[str, Any], ...] = (),
     analysis_completion_record: Mapping[str, Any] | None = None,
-    open_guides: tuple[Mapping[str, Any], ...] = (),
+    promoted_capabilities: Mapping[str, tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
     public_workflow = dict(approved_workflow_record or {})
     return {
@@ -3650,8 +3614,14 @@ def _public_context(
         # a key rather than a message, because the recency slot and the
         # transcript reader find their messages by index.
         **(
-            {"open_guides": tuple(dict(item) for item in open_guides)}
-            if open_guides
+            {
+                "promoted_capabilities": {
+                    signal: list(names)
+                    for signal, names in (promoted_capabilities or {}).items()
+                    if names
+                }
+            }
+            if any((promoted_capabilities or {}).values())
             else {}
         ),
         "approved_molecular_identities": approved_identity_records,
@@ -3714,7 +3684,6 @@ def _system_prompt(
     *,
     bounded_review_requested: bool = False,
     skill_index: tuple[str, ...] = (),
-    active_guides: tuple[str, ...] = (),
     exposure: Any = None,
     goal_record: Mapping[str, Any] | None = None,
 ) -> str:
@@ -3766,19 +3735,16 @@ def _system_prompt(
             "any required unavailable observable as blocked_unsupported. "
         )
     )
-    if exposure is not None:
-        from chemsmart.agent.exposure import catalogue_index_sentence
+    from chemsmart.agent.exposure import catalogue_index_sentence
 
-        skill_sentence = catalogue_index_sentence(exposure)
-    else:
-        from chemsmart.agent.guides import guide_index_sentence
-
-        skill_sentence = guide_index_sentence(active_guides)
+    skill_sentence = (
+        catalogue_index_sentence(exposure) if exposure is not None else ""
+    )
     if skill_index:
         listing = " ".join(f"({item})" for item in skill_index)
         skill_sentence += (
-            " Domain-knowledge skills are available through "
-            "open_guide(guide_id). Available now: "
+            " Domain-knowledge skills are advisory reading carried in "
+            "this prompt. Available now: "
             f"{listing}. Consult the relevant skill before you commit to a "
             "reporting convention, an electronic-state assignment, or a "
             "workflow shape it covers; before you judge whether a method, "
@@ -3792,8 +3758,9 @@ def _system_prompt(
         )
     # The body renders from the rules registry (chemsmart.agent.rules):
     # every sentence has an id, a placement and a provenance there. A
-    # leaf rule renders inside its guide's body when the guide opens
-    # (see CommandCompiledToolHostV1._guide_record), never in the stem.
+    # rule placed on a reference entry renders inside that entry's text,
+    # and one placed on a tool inside that tool's description; neither
+    # is ever in the stem.
     from chemsmart.agent.rules import render_rules
 
     return (

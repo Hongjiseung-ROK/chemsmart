@@ -69,7 +69,6 @@ def test_the_loser_of_the_race_sees_the_winners_bytes(tmp_path):
     identical bytes, and one of them called the winner a conflict.
     """
 
-
     path = tmp_path / "execution-server.yaml"
     payload = b"SERVER:\n  NUM_CORES: 16\n"
 

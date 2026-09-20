@@ -154,7 +154,6 @@ from chemsmart.agent.execution import (
     transform_trusted_molecular_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
-from chemsmart.agent.guides import guide_for_tool
 from chemsmart.agent.identity import (
     ApprovedMolecularIdentityV1,
     refuse_impossible_electronic_state,
@@ -2184,6 +2183,17 @@ def promotion_field_observations(
     return tuple(observations)
 
 
+#: The typed acts whose own body may surface a reference. Not prose: a
+#: plan names job types, operations and programs the host validates.
+_PLAN_SHAPED_TOOLS = frozenset(
+    {
+        "plan_scientific_workflow",
+        "amend_scientific_workflow",
+        "declare_requested_observable",
+    }
+)
+
+
 class CapabilityNotInCatalogueError(ContractError):
     """A name the catalogue does not hold.
 
@@ -2290,7 +2300,6 @@ class CommandCompiledToolHostV1:
         execution_server_file_sha256: str = "",
         execution_environment: Mapping[str, str] = {},
         execution_environment_remove: tuple[str, ...] = (),
-        active_guides: Iterable[str] = (),
         exposure: Any = None,
         execute_analysis_only_plans: bool = False,
         analysis_only_run_directory: str | Path = "",
@@ -2317,17 +2326,15 @@ class CommandCompiledToolHostV1:
             conformance_receipts=component_conformance_receipts,
             live_schema=self.live_schema,
         )
-        self.active_guides: set[str] = set(active_guides)
-        # Exposure, where a caller gave one, is the authority for what
-        # the model may call; the guide tree stays the default so every
-        # existing entry point behaves exactly as it did.
+        # Exposure is the authority for what the model may call. Without
+        # one -- the provider-free executor, and every tool-level test --
+        # the surface is the whole assembly and everything on it is
+        # callable, which is what those callers always saw.
         self.exposure = exposure
         command_surface = (
             build_catalogue_tool_surface(exposure)
             if exposure is not None
-            else build_command_compiled_tool_surface(
-                self.registry, guides=tuple(sorted(self.active_guides))
-            )
+            else build_command_compiled_tool_surface(self.registry)
         )
         execution_surface = build_approved_execution_tool_surface(
             self.registry
@@ -3091,7 +3098,6 @@ class CommandCompiledToolHostV1:
         "declare_requested_observable": "_declare_requested_observable",
         "execute_approved_program_node": "_execute_approved_program_node",
         "consult_domain_skill": "_consult_domain_skill",
-        "open_guide": "_open_guide",
         SEARCH_TOOL_NAME: "_search_capabilities",
     }
 
@@ -3111,22 +3117,6 @@ class CommandCompiledToolHostV1:
             # guide and the same blind arguments were then validated
             # against the surface that had just appeared.
             return self._discover_by_name(turn_id, tool_name)
-        # A leaf tool called by name before its guide opened: the model
-        # asked, so the guide opens on that signal and the call proceeds.
-        owner = guide_for_tool(tool_name)
-        opened_by_call: tuple[Any, ...] = ()
-        if owner and owner not in self.active_guides:
-            opened_by_call = self.activate_guides(
-                turn_id, (owner,), signal="model_call"
-            )
-        # The body travels with the tools whether or not the call stood. A
-        # leaf tool called by name opens its guide before its arguments
-        # are checked, so a refused first call used to leave the guide's
-        # tools on the surface and deliver none of its guidance -- the
-        # same defect the session-start helper was written for (audit,
-        # 2026-09-03), now on the path a first, unpractised call is most
-        # likely to take. The schema check is inside: getting the
-        # arguments wrong is how an unfamiliar tool is usually met.
         try:
             _validate_tool_arguments(self.surface, tool_name, values)
             if self.exposure is not None:
@@ -3159,11 +3149,14 @@ class CommandCompiledToolHostV1:
                 )
             self._reply_observations = ()
             result = handler(turn_id, values)
-        except Exception as exc:
-            if opened_by_call and not hasattr(exc, "guides_opened"):
-                exc.guides_opened = tuple(
-                    self._guide_record(guide) for guide in opened_by_call
-                )
+        except Exception:
+            # The context a failed call caused to load used to have to be
+            # re-attached to the exception here, because a leaf tool
+            # called by name opened its guide and then met the schema
+            # check with blind arguments. Discovery and the call are two
+            # turns now: the definition and its family's reference arrive
+            # in their own reply, so nothing a refusal could carry is
+            # lost by not carrying it.
             raise
         reply = {
             "schema_version": "chemsmart.tool-result.v1",
@@ -3179,13 +3172,8 @@ class CommandCompiledToolHostV1:
             self._reply_observations = ()
         # Every guide this call opened travels back with its body, whether
         # the call itself asked (a leaf tool by name) or the plan did.
-        opened = tuple(opened_by_call) + tuple(
-            self._guides_from_planning(turn_id, tool_name, result)
-        )
-        if opened:
-            reply["guides_opened"] = tuple(
-                self._guide_record(guide) for guide in opened
-            )
+        if tool_name in _PLAN_SHAPED_TOOLS and self.exposure is not None:
+            self._surface_from_plan(turn_id)
         return reply
 
     # -- discovery: finding what exists, and reading it before using it ----
@@ -3350,107 +3338,6 @@ class CommandCompiledToolHostV1:
             ),
         }
 
-    # -- guides: the leaves of the surface ---------------------------------
-
-    def activate_guides(
-        self, turn_id: str, guide_ids: Iterable[str], *, signal: str
-    ) -> tuple[Any, ...]:
-        """Open guides not yet open; rebuild the surface; record each."""
-
-        if self.exposure is not None:
-            # A session driven by the catalogue has no guide tree to open,
-            # and rebuilding the guide surface here would throw away the
-            # exposure the model has been reading from.
-            return ()
-
-        from chemsmart.agent.guides import GUIDES_BY_ID
-
-        opened = []
-        for guide_id in guide_ids:
-            guide = GUIDES_BY_ID.get(str(guide_id))
-            if guide is None or guide.guide_id in self.active_guides:
-                continue
-            self.active_guides.add(guide.guide_id)
-            opened.append(guide)
-        if not opened:
-            return ()
-        if self.surface.profile == "command_compiled_preview":
-            self.surface = build_command_compiled_tool_surface(
-                self.registry, guides=tuple(sorted(self.active_guides))
-            )
-        for guide in opened:
-            self.event_store.append(
-                turn_id=turn_id,
-                kind=EventKind.GUIDE_ACTIVATED.value,
-                payload={
-                    "guide_id": guide.guide_id,
-                    "signal": signal,
-                    "tools": list(guide.tools),
-                    "operations": list(guide.operations),
-                    "tool_schema_sha256": self.surface.tool_schema_sha256,
-                },
-                idempotency_key=f"guide:{turn_id}:{guide.guide_id}:{signal}",
-            )
-        return tuple(opened)
-
-    def _guide_record(self, guide: Any) -> dict[str, Any]:
-        # The guide's own rules render inside its body, once, when it
-        # opens; they used to render in the stem for every session. The
-        # body's registry-owned tokens resolve against this session's own
-        # capability registry, so what a guide says the host can run is
-        # what inspect_program would answer.
-        from chemsmart.agent.guides import render_guide_body
-        from chemsmart.agent.rules import render_rules
-
-        leaf_rules = render_rules(f"leaf:{guide.guide_id}")
-        body = render_guide_body(guide, registry=self.registry)
-        return {
-            "guide_id": guide.guide_id,
-            "title": guide.title,
-            "body": (body + " " + leaf_rules if leaf_rules else body),
-            "tools_now_available": list(guide.tools),
-            "operations_now_available": list(guide.operations),
-        }
-
-    def _guides_from_planning(
-        self, turn_id: str, tool_name: str, result: Any
-    ) -> tuple[Any, ...]:
-        """The plan-derived signal: what the DAG the model just planned
-        needs. Read from the typed plan, never from prose."""
-
-        from chemsmart.agent.guides import guides_from_plan
-
-        if tool_name not in {
-            "plan_scientific_workflow",
-            "amend_scientific_workflow",
-            "declare_requested_observable",
-        }:
-            return ()
-        if self.exposure is not None:
-            self._surface_from_plan(turn_id)
-            return ()
-        jobtypes: set[str] = set()
-        operations: set[str] = set()
-        constants: set[str] = set()
-        programs: set[str] = set()
-        for plan in self.scientific_workflow_plans.values():
-            for node in getattr(plan, "nodes", ()):
-                jobtypes.add(str(getattr(node, "jobtype", "")))
-                programs.add(str(getattr(node, "program", "")))
-        for toolchain in self.scientific_toolchain_plans.values():
-            for node in getattr(toolchain, "analysis_nodes", ()):
-                for item in getattr(node, "expression_nodes", ()):
-                    operations.add(str(item.get("operation", "")))
-                    if str(item.get("operation", "")) == "constant":
-                        constants.add(str(item.get("constant_name", "")))
-        wanted = guides_from_plan(
-            jobtypes=jobtypes,
-            operations=operations,
-            constants=constants,
-            programs=programs,
-        )
-        return self.activate_guides(turn_id, wanted, signal="plan")
-
     def _surface_from_plan(self, turn_id: str) -> None:
         """A planned DAG is a typed act, so it may surface references.
 
@@ -3481,34 +3368,6 @@ class CommandCompiledToolHostV1:
             self._rebuild_exposure(
                 turn_id, self.exposure.with_loaded(wanted), signal="plan"
             )
-
-    def _open_guide(self, turn_id: str, values: dict) -> Any:
-        """The model-pull path: a guide, or an advisory skill."""
-
-        from chemsmart.agent.guides import GUIDES_BY_ID
-        from chemsmart.agent.skills import available_skill_ids
-
-        guide_id = require_identifier(values["guide_id"], "guide_id")
-        guide = GUIDES_BY_ID.get(guide_id)
-        if guide is not None:
-            self.activate_guides(turn_id, (guide_id,), signal="model")
-            return {
-                "schema_version": "chemsmart.guide-opened.v1",
-                **self._guide_record(guide),
-                "guidance": (
-                    "You opened this guide, so work under it from here. Its "
-                    "tools and operations are on the surface now. It settles "
-                    "no scientific status: readiness, approval, terminal "
-                    "state, validity and accuracy come only from typed host "
-                    "receipts."
-                ),
-            }
-        if guide_id in available_skill_ids():
-            return self._consult_domain_skill(turn_id, {"skill_id": guide_id})
-        raise ContractError(
-            f"unknown guide {guide_id!r}; guides: {sorted(GUIDES_BY_ID)}; "
-            f"skills: {list(available_skill_ids())}"
-        )
 
     def execution_wait_timeout_seconds(self) -> float:
         """Return the bounded wait advertised before an engine launch."""

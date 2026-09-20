@@ -20,7 +20,7 @@ from chemsmart.agent.capability_registry import (
 )
 
 pytestmark = pytest.mark.capability(
-    "tool:*", "guide:*", "rule:*", "program_jobtype:*"
+    "tool:*", "reference:*", "rule:*", "program_jobtype:*"
 )
 
 _TESTS = Path(__file__).resolve().parents[1]

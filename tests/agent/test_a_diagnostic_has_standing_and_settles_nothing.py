@@ -22,7 +22,7 @@ from chemsmart.agent.driver import _required_declared_ids
 from chemsmart.agent.goal import GoalLedger
 from chemsmart.agent.tool_runtime import ContractError
 
-from .test_a_guide_opens_when_something_asks import _host
+from .test_a_declared_observable_carries_its_band import _host
 from .test_an_excursion_is_a_grant_line_never_the_deliverable import _goal
 
 _TASK = "a" * 64

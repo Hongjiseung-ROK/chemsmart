@@ -42,12 +42,9 @@ def test_every_planning_tool_is_one_catalogue_act():
     """The catalogue is assembled from the live builder, so a tool cannot
     exist on the surface and be missing from what can be searched."""
 
-    from chemsmart.agent.guides import GUIDES
     from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
 
-    surface = build_command_compiled_tool_surface(
-        guides=tuple(guide.guide_id for guide in GUIDES)
-    )
+    surface = build_command_compiled_tool_surface()
     exposed = {item["function"]["name"] for item in surface.tool_definitions}
     catalogue = build_tool_catalogue()
     acts = {entry.name for entry in catalogue.entries if entry.kind == "act"}

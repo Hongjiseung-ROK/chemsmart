@@ -76,7 +76,7 @@ def test_node_observations_ride_the_review_the_display_and_the_bundle(
 def test_a_re_promotion_that_drops_a_field_is_told_so(tmp_path):
     """ino3's shape: v1 carried geom_maxiter, v2 did not."""
 
-    from tests.agent.test_a_guide_opens_when_something_asks import _host
+    from tests.agent.test_a_declared_observable_carries_its_band import _host
 
     host = _host(tmp_path)
     first = host._render_project_yaml(

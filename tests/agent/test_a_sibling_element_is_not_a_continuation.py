@@ -27,7 +27,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-
 from chemsmart.agent._contracts import ContractError
 from chemsmart.agent.cohort import build_cohort_manifest
 
@@ -54,9 +53,7 @@ def _executor(tmp_path, *, element, run_state):
         approval=None,
     )
     host = SimpleNamespace(
-        event_store=SimpleNamespace(
-            workflow_frontier=lambda **_kw: frontier
-        ),
+        event_store=SimpleNamespace(workflow_frontier=lambda **_kw: frontier),
     )
     return ApprovedWorkflowExecutor(
         host=host,

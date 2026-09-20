@@ -24,7 +24,7 @@ from chemsmart.agent.delivery import (
 from chemsmart.agent.driver import _AnalysisDelivery
 from chemsmart.agent.tool_runtime import ContractError
 
-from .test_a_guide_opens_when_something_asks import _host
+from .test_a_declared_observable_carries_its_band import _host
 
 _SPIN = {
     "observable_id": "spin-ni",
