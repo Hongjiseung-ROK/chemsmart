@@ -185,13 +185,6 @@ class GaussianRoute:
         """
         return self.get_jobtype()
 
-    @jobtype.setter
-    def jobtype(self, value):
-        """
-        Set the job type.
-        """
-        self._jobtype = value
-
     @property
     def freq(self):
         """

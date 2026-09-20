@@ -113,8 +113,9 @@ class Gaussian16Output(GaussianFileMixin):
         parser still answered ``modred`` after ``.modred`` had been read,
         and the analysis plane, which declares nothing for ``modred``,
         found a completed relaxed scan unreadable in every selector.  The
-        setter is kept so that assignment still reaches the route object
-        exactly as before.
+        assignment and the setter it reached are gone with this property:
+        what a completed log is a result of is read from the log, and
+        nothing pretends to store it.
         """
 
         route_jobtype = self.route_object.jobtype
@@ -123,12 +124,6 @@ class Gaussian16Output(GaussianFileMixin):
         if route_jobtype == "sp" and self._route_has_excited_state_block:
             return "td"
         return route_jobtype
-
-    @jobtype.setter
-    def jobtype(self, value):
-        """Keep the historical assignment path onto the route object."""
-
-        self.route_object.jobtype = value
 
     @cached_property
     def _modredundant_is_scan(self):
