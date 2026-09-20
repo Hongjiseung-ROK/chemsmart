@@ -21,7 +21,10 @@ $PY .agents/research/loop/replay.py [ROOT ...]
 ```
 
 A lesson or a result is added to `graph.yaml` with a pointer that `check` can
-resolve; it is never restated in `AGENTS.md`.
+resolve; it is never restated in `AGENTS.md`. Edit `graph.yaml` as text: its
+comment header is the file's own instructions, and loading and re-dumping the
+file keeps every node and erases them. An anchor is a verbatim sentence and may
+cross a line break in the prose it points at.
 
 **Concepts arrive through their registries.** Two closed vocabularies are
 nodes whole: `program_jobtype:<program>:<engine>:<jobtype>` with its ladder

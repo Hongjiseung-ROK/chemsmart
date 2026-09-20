@@ -2,7 +2,7 @@
 # earned (evidence a skeptic could reconstruct), partial, open, refuted.
 # The story changes when the evidence disagrees; this file is how we notice.
 version: 1
-updated: 2026-09-20
+updated: 2026-09-21
 
 claims:
   - id: C1_hub
@@ -28,6 +28,7 @@ claims:
     evidence_added_2026_09_19: ["a repair (7001355b) passed its own five red-to-green witnesses and 3767 tests and still let a pre-v7 artifact validate against a request for an analysis it cannot carry; found in review, closed in 94d6e9f6", "080535cd: a guard whose only red state was hand-built, declined in review (ec1f5ba5)"]
     evidence_added_2026_09_20: ["four sealed four-atom PySCF goals on CUHK (jobs 2140018-2140021) found six host defects under a suite of 3,806 passing tests: a Hessian taken a cycle later never credited to its optimisation, a correct refusal the verifier could not verify, live sessions never naming their stream (the test supplied an attribute the live type lacks), a re-woken goal refused for not reading a run that never existed, a wave-selection reply promising a submission that could not happen, and a termination notice calling it legitimate to end after a wave was selected; three fixed (f6ce5374; one witnessed by the parent's replay of the goal's real streams), three stated", "one direct CLI probe (job 2140014) found an analytic Hessian of an excited root certified as the root's while it was the ground state's (94376da3)"]
     evidence_added_2026_09_20_irc: ["five sealed IRC-shaped goals (jobs 2140676-2140682) found five further host reply defects under 3,884 passing tests -- a re-woken plan refused for a run that never existed, a wave promised to an unapprovable workflow, a node fed a raw result file given no route, inspect_run answering found 0 on the reference a wake names, and a wake promised in a goal's last cycle (which cost two goals their deliveries); all fixed in the series, none re-observed live yet"]
+    evidence_added_2026_09_21: ["four TS/IRC-shaped goals (jobs 2141228-2141231) settled none achieved and found, under 3,927 passing tests: a correct Hessian of a nearly linear molecule refused (0.047 degrees from linear against a 0.01 tolerance), two Hessians confirming a saddle typed failed_wrong_stationary_point, and an ORCA startup death typed as a geometry non-convergence; the first two fixed with real-byte witnesses, none re-observed live", "the same round's author lost a committed refusal to a stray git checkout under a green suite and found it by replaying an adversarial artifact"]
     strongest_counterexample: No denominator -- defects found by the suite first are not counted anywhere.
     missing_experiment: A defect ledger by detection channel (suite, witness bank, audit, live goal) over the commit history.
     status: open
@@ -44,6 +45,7 @@ claims:
   - id: C5_anomaly_standing
     claim: Host sensors turn unexpected structures into findings instead of failures.
     evidence: ["SUCCESSOR.md: r10 acetamide saddle at -35.2 cm^-1 delivered as achieved_with_observations", "AGENTS.md: planar S1 formaldehyde, N-methylacetamide rotor saddles"]
+    evidence_added_2026_09_21: ["a live goal handed a foreign-level saddle relaxed it with the new PySCF ts stage and held its saddle verification open rather than claim it (job 2141228); the host now refuses to certify an order on a point whose own gradient says it is not stationary, naming 0.0485 against 0.00045 Eh/Bohr on the real methoxy artifact of the round before"]
     strongest_counterexample: The first STANDING window was confounded because the task text asked for the observation.
     missing_experiment: The exactly_symmetric_start family with text that never asks.
     status: partial
