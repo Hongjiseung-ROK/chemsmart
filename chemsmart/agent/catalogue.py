@@ -228,6 +228,27 @@ _BM25_B = 0.75
 #: there is refused here rather than silently behaving differently.
 MAX_QUERY_CHARACTERS = 500
 DEFAULT_SEARCH_LIMIT = 5
+#: How much of a ranking is loaded, and how much is only offered.
+#:
+#: Measured on this round's own seven search sessions, replayed: with
+#: every hit loading, ``host_search`` ends at 149-168 KB of model-visible
+#: schema against ``eager``'s 169 -- deferral holds at the first request
+#: and nowhere else, and 4 to 9 of the 34-43 entries loaded are ever
+#: called. The cause is a ranking with no floor: a limit of five on a
+#: fifty-two entry catalogue is a tenth of everything, and the tail of a
+#: ranking arrives with its head. A relative floor (a hit must score at
+#: least this fraction of the top hit) and a small cap end the same
+#: sessions at 57-138 KB with 11-17 of 10-37 entries called.
+#:
+#: Nothing is lost by it. The full ranked list still comes back with a
+#: one-line summary per entry, so the model sees everything the query
+#: matched; what does not clear the floor is one exact-name call away,
+#: on the load-then-re-issue path that already exists. This is the
+#: difference between offering and loading, and only loading costs
+#: context.
+SEARCH_LOAD_SCORE_RATIO = 0.6
+SEARCH_LOAD_CAP = 3
+
 #: Deliberately unlike the reference backend, which admits a limit up to
 #: 10,000. There, a large limit returns references the API expands
 #: server-side; here a search *loads* what it returns into the request
@@ -1284,6 +1305,8 @@ __all__ = [
     "LOADING_MODES",
     "MAX_QUERY_CHARACTERS",
     "MAX_SEARCH_LIMIT",
+    "SEARCH_LOAD_CAP",
+    "SEARCH_LOAD_SCORE_RATIO",
     "SEARCH_TOOL_NAME",
     "REFERENCE_TOPICS",
     "CatalogueEntryV1",

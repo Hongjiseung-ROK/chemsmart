@@ -17,7 +17,10 @@ from chemsmart.agent.scientific_toolchain import (
     ANALYSIS_VALIDATION_PREDICATES,
 )
 from chemsmart.analysis.literature_constants import LITERATURE_CONSTANTS
-from chemsmart.analysis.quantity_expressions import OPERATION_DESCRIPTIONS
+from chemsmart.analysis.quantity_expressions import (
+    CONVENTION_OPERATIONS,
+    OPERATION_DESCRIPTIONS,
+)
 from chemsmart.analysis.result_quantities import (
     SUPPORTED_SELECTORS,
     derivable_thermochemistry_quantities,
@@ -3756,11 +3759,18 @@ def _quantity_expression_node_schema(
             "operation exists for a scientific convention, use it "
             "rather than rebuilding the convention from arithmetic "
             "primitives: the named one carries the convention, its "
-            "validity conditions, and its provenance. "
+            "validity conditions, and its provenance. Stated here are "
+            "the operations that own a convention, because their input "
+            "order and units are an invariant and values and energies "
+            "the other way round is arithmetic that runs and a number "
+            "that is wrong. What the rest compute is in the "
+            "about_operations_<family> reference entries; every name "
+            "the host owns is in the enum either way. "
             + " | ".join(
                 f"{name}: {text}"
                 for name, text in sorted(OPERATION_DESCRIPTIONS.items())
-                if operations is None or name in set(operations)
+                if name in CONVENTION_OPERATIONS
+                and (operations is None or name in set(operations))
             )
         )
     )
@@ -3828,32 +3838,25 @@ def _quantity_expression_node_schema(
                     "units, convention families and purposes are listed on "
                     "evaluate_quantity_expression.nodes.constant_name."
                     if compact
-                    else "For constant, the registered literature-constant name. "
-                    "The host owns the value, unit, and standard-state "
-                    "convention; an unregistered name is refused when "
-                    "planned. Other operations omit this. Registered names, "
-                    "each with its unit, the convention family it may be "
-                    "combined within, and what it is for: "
+                    else "For constant, the registered literature-constant "
+                    "name. The host owns the value, unit, and "
+                    "standard-state convention; an unregistered name is "
+                    "refused when planned, and the values themselves are "
+                    "deliberately not listed -- select by meaning and let "
+                    "the host supply the number. Other operations omit "
+                    "this. The unit and the convention family are stated "
+                    "here because two constants determined on different "
+                    "scales are not interchangeable even when each is "
+                    "correct on its own, and that is a fact about the "
+                    "arithmetic rather than advice: "
                     + " || ".join(
                         f"{name} [{entry.unit}, {entry.convention_family}]"
-                        + (f" -- {entry.purpose}" if entry.purpose else "")
                         for name, entry in sorted(LITERATURE_CONSTANTS.items())
                     )
-                    + ". Read the purpose before composing several entries by "
-                    "hand: a family says which scale an entry sits on and "
-                    "says nothing about its standard state, and two entries "
-                    "on one scale at different standard states still need "
-                    "the term that bridges them. Where a finished composed "
-                    "value is registered, prefer it. Two entries sharing a "
-                    "family combine freely. Two "
-                    "families in one chain is not refused, but it is "
-                    "displayed to the reviewer, because constants determined "
-                    "on different scales are not interchangeable even when "
-                    "each is correct on its own -- pick the electrode "
-                    "potential belonging to the solvation scale you used. "
-                    "An entry marked independent combines with any family. "
-                    "The values themselves are deliberately not listed here: "
-                    "select by meaning, and let the host supply the number."
+                    + ". What each one is for -- which to reach for, when a "
+                    "composed value is already registered, and which pairs "
+                    "need a bridging term -- is in the "
+                    "about_operations_constants reference entry."
                 ),
             },
             "scale_factor": {"type": "number"},

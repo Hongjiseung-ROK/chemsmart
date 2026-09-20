@@ -34,7 +34,7 @@ def test_each_guidance_block_is_serialised_once():
     )
     assert text.count("Pick the operation that owns the step") == 1
     assert text.count("program-wide reader selector union") == 1
-    assert text.count("each with its unit, the convention family") == 1
+    assert text.count("the convention family are stated") == 1
 
 
 def test_nothing_reachable_was_lost():

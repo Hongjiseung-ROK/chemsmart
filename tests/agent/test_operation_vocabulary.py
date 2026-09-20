@@ -124,13 +124,39 @@ def test_every_operation_the_model_may_choose_says_what_it_computes():
         for item in surface.tool_definitions
         if item["function"]["name"] == "evaluate_quantity_expression"
     )
-    # The operation semantics are stated once, on the evaluator; the
-    # planner's expression nodes carry the same enum and point here.
+    # Every operation the host owns is nameable: the enum is the whole
+    # set, so no capability is unreachable. What each one *means* is
+    # stated exactly once -- and where depends on whether it owns a
+    # convention. An operation whose input order and units are a
+    # convention states them inline, because values and energies the
+    # other way round is arithmetic that runs and a number that is
+    # wrong, and an invariant never goes behind a search. The rest say
+    # what they compute in their family's reference entry, which the
+    # enum's description names. Before this split the same 8,412
+    # characters were in both places.
+    from chemsmart.agent.catalogue import build_tool_catalogue
+    from chemsmart.analysis.quantity_expressions import (
+        CONVENTION_OPERATIONS,
+        OPERATION_FAMILIES,
+    )
+
     node_schema = definition["parameters"]["properties"]["nodes"]["items"]
     operation = node_schema["properties"]["operation"]
     assert set(operation["enum"]) == set(OPERATION_DESCRIPTIONS)
-    for name in operation["enum"]:
-        assert f"{name}: " in operation["description"], name
+    # Compare the description bodies, not the names: one operation's
+    # prose legitimately mentions another by name
+    # (harmonic_zero_point_energy warns against "sum -> scale 0.5 ->
+    # convert"), so a name-substring test reads that as a definition.
+    catalogue = build_tool_catalogue()
+    inline = operation["description"]
+    for name, text in OPERATION_DESCRIPTIONS.items():
+        assert (text in inline) is (name in CONVENTION_OPERATIONS), name
+        reference = catalogue.entry(
+            f"about_operations_{OPERATION_FAMILIES[name]}"
+        )
+        assert reference is not None, name
+        assert text in reference.description, name
+    assert "about_operations_" in operation["description"]
 
 
 def test_the_schema_tells_the_model_to_prefer_the_named_convention():

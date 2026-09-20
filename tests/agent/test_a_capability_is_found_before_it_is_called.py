@@ -432,3 +432,59 @@ def test_an_empty_result_says_which_kind_of_empty_it_is(tmp_path):
     assert "cannot" in absent["how_to_use"] or "Nothing in this host" in (
         absent["how_to_use"]
     )
+
+
+def test_a_search_offers_the_whole_ranking_and_loads_only_its_head(tmp_path):
+    """Offering and loading are different, and only loading costs context.
+
+    Red before the floor: every hit loaded, and this round's own seven
+    search sessions ended at 149-168 KB of model-visible schema against
+    the eager arm's 169 -- deferral held at the first request and
+    nowhere else, with 4 to 9 of the 34-43 loaded entries ever called.
+    Nothing is lost: the full ranking comes back with a summary per
+    entry, and what did not clear the floor is one exact-name call away.
+    """
+
+    from chemsmart.agent.catalogue import (
+        SEARCH_LOAD_CAP,
+        SEARCH_LOAD_SCORE_RATIO,
+    )
+
+    host, store = _live_host(tmp_path)
+    before = len(host.exposure.available_names())
+    reply = host.dispatch(
+        turn_id="protocol-session.turn-1",
+        tool_name=SEARCH_TOOL_NAME,
+        arguments={
+            "query": "Boltzmann populations over conformers",
+            "limit": 8,
+        },
+    )["result"]
+
+    matches = reply["matches"]
+    assert len(matches) > SEARCH_LOAD_CAP, "the ranking must exceed the cap"
+    loaded = [item for item in matches if item["loaded"]]
+    assert 1 <= len(loaded) <= SEARCH_LOAD_CAP
+    assert [item["name"] for item in loaded] == reply["load_capabilities"]
+    # Exactly the head: what loaded is a prefix of the ranking.
+    assert [item["name"] for item in matches[: len(loaded)]] == [
+        item["name"] for item in loaded
+    ]
+    grew = len(host.exposure.available_names()) - before
+    assert grew <= SEARCH_LOAD_CAP + 1  # +1 for a family reference
+
+    (searched,) = _events(store, EventKind.CAPABILITY_SEARCHED)
+    assert searched.payload["loaded"] == reply["load_capabilities"]
+    assert searched.payload["offered_only"]
+    assert SEARCH_LOAD_SCORE_RATIO < 1.0
+
+    # And an offered-only entry is reachable by its exact name.
+    offered = searched.payload["offered_only"][0]
+    assert not host.exposure.is_available(offered)
+    again = host.dispatch(
+        turn_id="protocol-session.turn-1",
+        tool_name=offered,
+        arguments={},
+    )
+    assert again["status"] == "schema_loaded"
+    assert host.exposure.is_available(offered)

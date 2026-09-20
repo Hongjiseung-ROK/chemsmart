@@ -3336,6 +3336,8 @@ class CommandCompiledToolHostV1:
         from chemsmart.agent.catalogue import (
             DEFAULT_SEARCH_LIMIT,
             MAX_SEARCH_LIMIT,
+            SEARCH_LOAD_CAP,
+            SEARCH_LOAD_SCORE_RATIO,
         )
 
         query = str(values.get("query") or "")
@@ -3360,15 +3362,23 @@ class CommandCompiledToolHostV1:
             for item in ranked
             if item.name in exposed and item.score >= floor
         )[:limit]
-        # A search *loads* what it returns. It did not, for one live
-        # session, and that session issued twenty-five searches -- four
-        # of them for the literal string `declare_requested_observable`,
-        # a name it already had from an earlier result -- because a
-        # result that is only a name gives a model nothing it can act
-        # on. It is also what the reference backend does: its
-        # `tool_reference` blocks are expanded into the request by the
-        # API, so finding and loading are one turn there. They are one
-        # turn here.
+        # Offering and loading are different, and only loading costs
+        # context. Every match is offered -- name, family, kind and a
+        # one-line summary -- and the head of the ranking is loaded, so
+        # the ordinary case is still one turn. Measured on this round's
+        # own sessions: loading every hit ended them at 149-168 KB
+        # against eager's 169, with 4 to 9 of 34-43 loaded entries ever
+        # called; the floor ends the same sessions at 57-138 KB. What
+        # does not clear the floor is one exact-name call away.
+        top = results[0].score if results else 0.0
+        loadable = tuple(
+            item
+            for item in results
+            if item.score >= SEARCH_LOAD_SCORE_RATIO * top
+        )[:SEARCH_LOAD_CAP]
+        offered_only = tuple(
+            item.name for item in results if item not in loadable
+        )
         self._search_ordinal = getattr(self, "_search_ordinal", 0) + 1
         self.event_store.append(
             turn_id=turn_id,
@@ -3378,6 +3388,8 @@ class CommandCompiledToolHostV1:
                 "limit": limit,
                 "backend": "host_bm25",
                 "results": [result.name for result in results],
+                "loaded": [result.name for result in loadable],
+                "offered_only": list(offered_only),
                 "already_exposed": list(already),
                 "catalogue_sha256": catalogue.catalogue_sha256,
                 "exposure_sha256": self.exposure.exposure_sha256,
@@ -3391,15 +3403,21 @@ class CommandCompiledToolHostV1:
                 f"capability-search:{turn_id}:{self._search_ordinal}"
             ),
         )
-        if results:
+        if loadable:
             self._rebuild_exposure(
                 turn_id,
-                self.exposure.with_loaded(result.name for result in results),
+                self.exposure.with_loaded(item.name for item in loadable),
                 signal="search",
             )
         return {
-            "load_capabilities": [result.name for result in results],
-            "matches": [result.record() for result in results],
+            "load_capabilities": [item.name for item in loadable],
+            "matches": [
+                {
+                    **result.record(),
+                    "loaded": result in loadable,
+                }
+                for result in results
+            ],
             "already_available": list(already),
             "how_to_use": (
                 (
@@ -3416,11 +3434,15 @@ class CommandCompiledToolHostV1:
                 )
                 if not results
                 else (
-                    "Every match above is in your tools now and callable "
-                    "by name; a reference entry's text is its "
-                    "description, so a match of that kind you have "
-                    "already read. Searching again for a name you can "
-                    "already see costs a turn and loads nothing new."
+                    f"{len(loadable)} of {len(results)} matches are in "
+                    "your tools now and callable by name; a reference "
+                    "entry's text is its description, so one of that "
+                    "kind you have already read. A match marked "
+                    '"loaded": false is offered, not loaded: call it by '
+                    "its exact name and the host loads it and asks you "
+                    "to issue the call again. Searching again for a "
+                    "name you can already see costs a turn and loads "
+                    "nothing new."
                 )
             ),
         }
