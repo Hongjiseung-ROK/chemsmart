@@ -1,493 +1,250 @@
+# Instruction / evidence graph -- the AUTHORED JOIN only.
+# Derived at check time, never copied here: the 69 rules and their text
+# (chemsmart.agent.rules), the code gates, the capability ladder, word and
+# token costs (loop/census.py).
+# A node points at evidence; it never restates it. `anchor` is a verbatim
+# single-line substring, so a moved or reworded source turns graphcheck red.
 version: 1
+
 nodes:
-- id: fundamental.hub
-  kind: fundamental
-  source:
-    path: CONDUCT.md
-    anchor: one public
-  note: No model-authored native input, path, shell or status; one YAML-and-CLI layer.
-- id: fundamental.researcher
-  kind: fundamental
-  source:
-    path: CONDUCT.md
-    anchor: The anomaly has standing.
-  note: Honesty, provenance, freedom of route, anomalies as evidence.
-- id: invariant.gates
-  kind: invariant
-  source:
-    path: CONDUCT.md
-    anchor: A refusal lives in code only when it protects an invariant that
-  note: The closed list of what may be a code gate; everything else is a sentence at the point of use.
-- id: invariant.claim_ladder
-  kind: invariant
-  source:
-    path: CONDUCT.md
-    anchor: The claim ladder -- proposed, planned, materialised, previewed,
-  duplicates:
-  - AGENTS.md "Scientific invariants"
-  - .agents/skills/chemsmart-agent/SKILL.md
-- id: charter.mission
-  kind: charter_section
-  class: FUNDAMENTAL
-  source:
-    path: AGENTS.md
-    anchor: '## Mission'
-- id: charter.architecture
-  kind: charter_section
-  class: HARD_INVARIANT
-  source:
-    path: AGENTS.md
-    anchor: '## Architecture'
-  consumed_by:
-  - tests/agent/test_the_architecture_diagram_names_real_symbols.py
-- id: charter.product_boundary
-  kind: charter_section
-  class: BOUNDARY_FACT
-  source:
-    path: AGENTS.md
-    anchor: '## Product boundary for version 3.1.4'
-  derivable_from: chemsmart agent capabilities --json
-  note: kernel keeps the supports list only; the per-surface narrative was relocated verbatim to .agents/charter/
-    (e8dd7a50) and is reachable as topic:<slug>
-- id: charter.authority_chain
-  kind: charter_section
-  class: HARD_INVARIANT
-  source:
-    path: AGENTS.md
-    anchor: '## Authority and approval chain'
-  note: kernel keeps the seven steps; the rest was relocated verbatim to .agents/charter/ (e8dd7a50)
-- id: charter.scientific_invariants
-  kind: charter_section
-  class: FUNDAMENTAL
-  source:
-    path: AGENTS.md
-    anchor: '## Scientific invariants'
-- id: charter.implementation_discipline
-  kind: charter_section
-  class: PROCEDURE
-  source:
-    path: AGENTS.md
-    anchor: '## Implementation discipline'
-- id: lesson.computed_not_consumed
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: the mechanism is right where it is computed
-  revalidate: every audit
-  falsifier: An audit round finds no mechanism whose value is computed and then read by nothing.
-- id: lesson.refusal_teaches
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: the refusal message, not the guide, is where
-  falsifier: Routed refusals show no change in retry or recovery against unrouted ones on matched tasks.
-- id: lesson.refusals_that_grade_chemistry
-  kind: lesson
-  source:
-    path: MAINTENANCE.md
-    anchor: Refusals that graded chemistry
-  falsifier: A refusal on scientific merit prevents a wrong delivery that an observation would have let
-    through.
-- id: lesson.witness_must_be_red
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: a witness that was never red witnesses
-  consumed_by:
-  - loop/graph.py
-- id: lesson.defect_as_probe
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: as a probe, not a ticket
-- id: lesson.explanation_is_not_authority
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: an explanation string never confers authority
-- id: lesson.record_is_not_grant
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: a record's existence is not a
-- id: lesson.survive_vs_preserve
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: surviving an error and preserving what
-- id: lesson.check_physics_before_code
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: were wrong tests
-- id: lesson.task_text_never_asks
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: the task text never asks
-- id: lesson.no_reroll
-  kind: lesson
-  source:
-    path: CONDUCT.md
-    anchor: weak run is never
-- id: lesson.small_cases_find_defects
-  kind: lesson
-  source:
-    path: MAINTENANCE.md
-    anchor: found two host defects
-  falsifier: A long window finds a host defect class that three unrelated four-atom cases could not reach.
-- id: lesson.writer_reader_two_tables
-  kind: lesson
-  source:
-    path: MAINTENANCE.md
-    anchor: A writer and a reader are two tables
-- id: result.xtb_mode_tables_agree
-  kind: negative_result
-  commit: 080535cd
-  note: Seven real xTB Hessians - vibspectrum and g98.out agree row for row (max 0.0050 cm^-1). The guard
-    built for a disagreement was declined; the sealing was absorbed (ec1f5ba5).
-  falsifier: One real xTB result whose two native tables disagree in order, count or frequency beyond
-    print rounding.
-- id: commit.44499f2a
-  kind: commit
-  commit: 44499f2a
-  note: pyscf - a Hessian of any surface the driver can differentiate (finite difference of the analytic
-    gradient).
-- id: commit.ec1f5ba5
-  kind: commit
-  commit: ec1f5ba5
-  note: xTB mode-table sealing, absorbed selectively from 080535cd.
-- id: result.pak_campaign_pyscf_20260919
-  kind: result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: A sealed four-goal campaign ran that tree on CUHK (jobs 2140018-2140021,
-  note: Four sealed goals, four observations, no arm without the sentences. The root's Hessian was planned
-    in both excited-state goals and ran in one (all modes real); stability was asked on the twisted ethylene
-    and on ozone's RHF reference, and of a closed-shell ground state only where ethylene's planar optimisation
-    shared the twisted structure's project; the MP2 Hessian boundary was quoted and held.
-  falsifier: A sealed goal on an excited-state equilibrium structure plans no Hessian on the root, or
-    one on the ground state; or a session delivers DFT frequencies as MP2.
-- id: negative.geometric_kernel_irc_never_steps
-  kind: negative_result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: not reach the first step under PySCF 2.14 and geomeTRIC 1.1.1 --
-  note: 'pyscf.geomopt.geometric_solver.kernel(mf, irc=True) raises AttributeError (''super'' object has
-    no attribute ''molecules'') before any gradient: run_optimizer reads M.molecules for every IRC and
-    PySCF''s engine never builds the topology. The TS search does not meet the line because it is guarded
-    by params.irc.'
-  falsifier: Under the pinned PySCF and geomeTRIC, kernel(mf, irc=True) takes a first IRC step from a
-    first-order saddle.
-- id: negative.geometric_forward_is_a_sign
-  kind: negative_result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: 'sign, not a species: geomeTRIC''s ``forward`` steps against the eigenvector it'
-  note: 'Measured on the formaldehyde 1,2-H shift: with the eigenvector geomeTRIC holds made canonical,
-    its ''forward'' first step projected -0.756 on it and ''backward'' +0.742; the host now hands geomeTRIC
-    the negated vector and measures the projection from the recorded frames.'
-  falsifier: geomeTRIC's first IRC step for 'forward' is observed along +TSNormal_modes_x[0].
-- id: result.irc_path_is_not_everywhere_steepest_descent
-  kind: result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: shift at HF/6-31G* the median cosine is 0.999 while single mid-path steps fall
-  note: 'Two implementations agree (the validator and reference_irc.py): per-step cosines with the mean
-    unit negative mass-weighted gradient, median 0.999, minima 0.60 and 0.18 mid-path and -0.15 among
-    the last steps at a minimum. Stated, never graded.'
-  falsifier: Recomputing the cosines from an archived IRC's frames and gradients disagrees with the validator's,
-    or a finer-step walk of the same surface reaches a different basin.
-- id: result.opt_final_scf_started_from_the_input_density
-  kind: result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: 'geometry''s density while its record said ``final_scf_from_optimizer_density:'
-  note: PySCF's gradient scanner is a copy of the mean field; mf.mo_coeff is untouched by the walk, and
-    the archived water_opt final SCF took six cycles where a restart from the walk's density takes one.
-  falsifier: An optimisation's final SCF, run by a driver before this round, took as few cycles as a restart
-    from the walk's last density.
-- id: result.pyscf_irc_campaign_20260920
-  kind: result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: Five sealed goals ran the IRC tree on CUHK (jobs 2140676, 2140679-2140682;
-  note: Five sealed goals, 20 of 32 engine calls. Vinyl alcohol, HONO (ORCA saddle, PySCF branches) and
-    H2CO -> H2 + CO delivered barriers within 0.01 kcal/mol of the direct-CLI references; every walked
-    branch was read for where it ended before it was named. Ethane (a minimum called a TS) was recognised
-    before any engine and settled exhausted; methoxy (a saddle from another surface) declined the IRC,
-    found the true minima by displacement, withdrew its biased barriers and was returned. Twice the session
-    inverted which barrier a more stable minimum carries; the host's expectation rows caught both.
-  falsifier: A sealed goal names the minima a saddle connects from the branch word or from one branch,
-    or delivers an IRC endpoint reached from a saddle of another surface as a minimum of this one.
-- id: result.a_last_cycle_wave_was_promised_a_wake
-  kind: negative_result
-  source:
-    path: .agents/charter/goal-grain-recovery-wake.md
-    anchor: 'woken once, when all of them have ended": a woken cycle''s plan is admitted'
-  note: g3-ethane and g5-methoxy each selected a wave in their last cycle, were told they would be woken,
-    deferred claims to that wake and were settled without it (exhausted; returned_to_human with four numbers
-    unclaimed). Every goal context now states wakes_after_this_cycle.
-  falsifier: A goal context's wakes_after_this_cycle differs from the number of further cycles the goal
-    loop opens after that cycle's run.
-- id: result.a_result_file_is_not_a_structure_edge
-  kind: negative_result
-  source:
-    path: .agents/charter/goal-grain-recovery-wake.md
-    anchor: A node fed its producer's result
-  note: g3-ethane bound Hessian and IRC nodes to an optimisation's pyscf_hdf5; none could be previewed
-    or deferred and its first cycle ran nothing while every reply named the routes for a node lacking
-    a preview. The blocking node now carries a blocking_reason naming geometry_xyz.
-  falsifier: A consumer bound to a structure producer's result file is deferred and runs inside one approval,
-    or blocks with no reason naming the structure edge.
-- id: negative.mode_count_certified_a_non_stationary_saddle
-  kind: negative_result
-  source:
-    path: .agents/charter/validity-rules.md
-    anchor: The mode count is not stationarity, and one organ read it as such.
-  note: 'characterise_stationary_point issued order 1 for a Hessian taken at 0.0485 Eh/Bohr, with the
-    host''s own gradient anomaly uncited. Its own falsifier fired on 2026-09-21: the certification now
-    refuses a measured gradient above the criterion, naming both numbers and the routes that remain, and
-    the archived water_stretched_hess -- which this organ certified as ''a minimum'' at 0.0185 Eh/Bohr
-    -- is refused with it. Closed for the programs whose reader can bind a gradient to one structure;
-    ORCA and Gaussian serve a gradient per optimisation step and answer nothing, which the receipt records
-    as unmeasured rather than as stationarity.'
-  falsifier: characterise_stationary_point refuses, or cites the gradient anomaly for, a result whose
-    stationarity gradient exceeds the policy criterion.
-- id: negative.geometric_updated_hessian_is_not_an_order
-  kind: negative_result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: geomeTRIC's own updated curvature at the end was recorded for one revision
-  note: 'geomeTRIC''s updated (quasi-Newton) Hessian at a converged P-RFO transition-state search is in
-    the optimiser''s internal coordinates and unprojected, so its negative-eigenvalue count is not the
-    order of the structure: on the H2CO/HCOH saddle the PySCF ts stage located to 0.0001 A of ORCA''s
-    -- a genuine first-order saddle by an analytic Hessian at -2700.0 cm-1 -- that count was four. The
-    number is deliberately not recorded.'
-  falsifier: On a set of converged searches whose analytic Hessians give a known order, geomeTRIC's updated-Hessian
-    negative-eigenvalue count matches that order.
-- id: negative.a_converged_ts_search_can_be_a_minimum
-  kind: negative_result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: a search seeded at a *minimum* of its own surface converges in one iteration
-  note: 'A PySCF ts node seeded at a minimum of its own surface converges in one iteration, moves 0.007
-    amu^1/2 bohr and delivers that minimum under a validated receipt (archived h2co_ts_from_minimum, CUHK
-    2141124). ''Converged'' is a statement about the gradient and the step. No host rule types it: the
-    artifact prints no spectrum, so it makes no claim, and a number delivered from it is worded uncharacterised
-    until a hess node on its geometry joins it.'
-  falsifier: A ts artifact carries a spectrum of the structure it reached, so the program-neutral order
-    rule can judge the node in-run.
-- id: result.pyscf_ts_cli_20260921
-  kind: result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: The direct CLI evidence (CUHK Slurm 2141124, four minutes)
-  note: 'Two programs'' saddle searches on one surface agree without sharing an optimiser or an initial
-    Hessian: PySCF''s new ts stage reaches ORCA''s OptTS H2CO/trans-HCOH saddle to 1e-4 A in every interatomic
-    distance from a seed 0.24 A away carrying two imaginary modes, and HCN/HNC to 3e-4 A. The Hessian
-    at what it reached gives -2700.0 cm-1, the frequency the archived IRC branches start from, and both
-    branches walked from it reach the two minima. A four-goal sealed campaign then ran the same tree (2141227-2141231):
-    all four goals planned a PySCF ts node from ordinary language and executed one, six searches over
-    four molecules, all validated, none settling achieved.'
-  falsifier: A PySCF ts and an ORCA OptTS on one surface from one seed reach structures differing by more
-    than optimiser convergence, or the Hessian at the PySCF one does not carry the archived branches'
-    start frequency.
-- id: lesson.a_summary_nothing_rederives_is_not_evidence
-  kind: lesson
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: Result contract v9 adds ``ts``
-  note: 'Six adversarial mutations of a real archived v8 IRC artifact -- the start spectrum made all-real,
-    the mass table set to 1.0, two interior frames swapped, the energies reversed, the path appended to
-    itself walked back to the saddle, the start Hessian replaced -- all validated, because every derived
-    scalar was read and none re-derived. The class: a summary written beside the arrays it came from,
-    with nothing re-deriving it, is a claim the bytes need not support.'
-  falsifier: A derived scalar an artifact records beside its primitives survives a mutation of those primitives
-    without a finding.
-- id: lesson.an_order_is_a_property_of_a_stationary_point
-  kind: lesson
-  source:
-    path: .agents/charter/validity-rules.md
-    anchor: The mode count is not stationarity, and one organ read it as such.
-  note: A count of imaginary modes is not an order. The archived water_stretched_hess -- three real modes
-    at max|g| = 0.0185 Eh/Bohr, 41x geomeTRIC's criterion, on the artifact the host's own sensor flags
-    -- was certified 'a minimum'. An order is a claim about a geometry, on a surface, from a Hessian taken
-    there, at a gradient that says the point is stationary at all; the receipt names all four and the
-    gradient refuses.
-  falsifier: A host-rendered stationary-point order is issued for a structure whose measured gradient
-    exceeds the optimiser's criterion.
-- id: lesson.the_authoring_interpreter_is_not_the_controllers
-  kind: lesson
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: An earlier submission of that same batch (2141121)
-  note: 'Ten real engine runs produced no receipt at all: a MappingProxyType dataclass default that Python
-    3.12 accepts, 3.11 refuses, and the deployed controller is 3.11. Every test on the authoring interpreter
-    was green. A probe that imports every module under the compute interpreter now runs beside the suite.'
-  falsifier: Importing every chemsmart module under the deployed controller's and compute interpreters
-    raises nothing the suite did not catch.
-- id: negative.a_linear_polyatomic_hessian_was_refused
-  kind: negative_result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: that Hessian is the first on a linear polyatomic in this corpus
-  note: 'The mode-count rule expected 3N-6 unless its own geometric linearity test said otherwise, and
-    that test answers about 0.01 degrees for a triatomic. HNC reached by a live PySCF IRC is 0.047 degrees
-    from linear: PySCF''s correct 3N-5 spectrum was refused with four findings and typed failed_native,
-    and the independent reconstruction at the same rank dropped half a degenerate bending pair. It is
-    the node a live goal''s analysis chain was waiting on. Repaired by taking the translation-rotation
-    rank from the run''s own mode count.'
-  falsifier: A Hessian on a molecule near the linear boundary is refused, or validated, on a geometric
-    tolerance rather than on whether its spectrum reconstructs at the rank its own count implies.
-- id: lesson.a_promise_belongs_to_the_structure_not_the_node
-  kind: lesson
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: a Hessian that confirms a saddle was being typed
-  note: ORCA runs OptTS Freq as one node; PySCF and xTB split the search and the Hessian. Judged by its
-    own job type, the Hessian half typed two live saddles failed_wrong_stationary_point for carrying the
-    one imaginary mode they were run to find. The promise is about the structure, and the node that produced
-    it already said what it was searching for, so a fixed-geometry curvature node inherits it -- which
-    also catches the reverse, a saddle search that converged onto a minimum, which its own artifact cannot
-    detect.
-  falsifier: The same physics gets a different terminal word because one program runs the search and the
-    Hessian as one node and another runs them as two.
-- id: result.an_irc_endpoint_reached_by_minimising
-  kind: result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: its backward branch recording 77 frames
-  note: 'The H2CO -> H2 + CO backward branch records 77 frames of which 37 are Gonzalez-Schlegel path
-    steps and 40 are the minimisation after them; its endpoint is separated H2 (0.730 A) and CO (1.1135
-    A). The first recorded case of reached_by: minimisation_from_path_tail, and the case the record exists
-    for -- a previous round delivered an H2...CO complex as ''separated H2 + CO''.'
-  falsifier: A branch whose tail geomeTRIC minimised reports the same account as one that stepped all
-    the way, or the frame split does not sum to the frames recorded.
-- id: negative.small_molecules_disable_the_basin_sensor
-  kind: negative_result
-  source:
-    path: .agents/charter/pyscf.md
-    anchor: the basin sensor's three-heavy-atom floor stopped
-  note: 'Every node of all four campaign goals raised geometry.same_structure_comparison_not_made: the
-    heavy-atom RMSD floor is three and the molecules had two. The sensor said it stopped, which is correct;
-    the campaign''s own molecule choice removed the basin and same-structure evidence from the whole round.'
-  falsifier: A campaign of two-heavy-atom molecules obtains basin or same-structure evidence, or the floor
-    is shown to be unnecessary below three heavy atoms.
+  - id: fundamental.hub
+    kind: fundamental
+    source: {path: CONDUCT.md, anchor: "one public"}
+    note: No model-authored native input, path, shell or status; one YAML-and-CLI layer.
+  - id: fundamental.researcher
+    kind: fundamental
+    source: {path: CONDUCT.md, anchor: "The anomaly has standing."}
+    note: Honesty, provenance, freedom of route, anomalies as evidence.
+  - id: invariant.gates
+    kind: invariant
+    source: {path: CONDUCT.md, anchor: "A refusal lives in code only when it protects an invariant that"}
+    note: The closed list of what may be a code gate; everything else is a sentence at the point of use.
+  - id: invariant.claim_ladder
+    kind: invariant
+    source: {path: CONDUCT.md, anchor: "The claim ladder -- proposed, planned, materialised, previewed,"}
+    duplicates: [AGENTS.md "Scientific invariants", .agents/skills/chemsmart-agent/SKILL.md]
+
+  # Charter sections, classified. Words come from census.py, not from here.
+  - {id: charter.mission, kind: charter_section, class: FUNDAMENTAL, source: {path: AGENTS.md, anchor: "## Mission"}}
+  - {id: charter.architecture, kind: charter_section, class: HARD_INVARIANT, source: {path: AGENTS.md, anchor: "## Architecture"}, consumed_by: [tests/agent/test_the_architecture_diagram_names_real_symbols.py]}
+  - {id: charter.product_boundary, kind: charter_section, class: BOUNDARY_FACT, source: {path: AGENTS.md, anchor: "## Product boundary for version 3.1.4"}, derivable_from: "chemsmart agent capabilities --json", note: "kernel keeps the supports list only; the per-surface narrative was relocated verbatim to .agents/charter/ (e8dd7a50) and is reachable as topic:<slug>"}
+  - {id: charter.authority_chain, kind: charter_section, class: HARD_INVARIANT, source: {path: AGENTS.md, anchor: "## Authority and approval chain"}, note: "kernel keeps the seven steps; the rest was relocated verbatim to .agents/charter/ (e8dd7a50)"}
+  - {id: charter.scientific_invariants, kind: charter_section, class: FUNDAMENTAL, source: {path: AGENTS.md, anchor: "## Scientific invariants"}}
+  - {id: charter.implementation_discipline, kind: charter_section, class: PROCEDURE, source: {path: AGENTS.md, anchor: "## Implementation discipline"}}
+
+  # Lessons the laboratory paid for. Each points at its source; none restates it.
+  - id: lesson.computed_not_consumed
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "the mechanism is right where it is computed"}
+    revalidate: every audit
+    falsifier: An audit round finds no mechanism whose value is computed and then read by nothing.
+  - id: lesson.refusal_teaches
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "the refusal message, not the guide, is where"}
+    falsifier: Routed refusals show no change in retry or recovery against unrouted ones on matched tasks.
+  - id: lesson.refusals_that_grade_chemistry
+    kind: lesson
+    source: {path: MAINTENANCE.md, anchor: "Refusals that graded chemistry"}
+    falsifier: A refusal on scientific merit prevents a wrong delivery that an observation would have let through.
+  - id: lesson.witness_must_be_red
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "a witness that was never red witnesses"}
+    consumed_by: [loop/graph.py]
+  - id: lesson.defect_as_probe
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "as a probe, not a ticket"}
+  - id: lesson.explanation_is_not_authority
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "an explanation string never confers authority"}
+  - id: lesson.record_is_not_grant
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "a record's existence is not a"}
+  - id: lesson.survive_vs_preserve
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "surviving an error and preserving what"}
+  - id: lesson.check_physics_before_code
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "were wrong tests"}
+  - id: lesson.task_text_never_asks
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "the task text never asks"}
+  - id: lesson.no_reroll
+    kind: lesson
+    source: {path: CONDUCT.md, anchor: "weak run is never"}
+  - id: lesson.small_cases_find_defects
+    kind: lesson
+    source: {path: MAINTENANCE.md, anchor: "found two host defects"}
+    falsifier: A long window finds a host defect class that three unrelated four-atom cases could not reach.
+  - id: lesson.writer_reader_two_tables
+    kind: lesson
+    source: {path: MAINTENANCE.md, anchor: "A writer and a reader are two tables"}
+
+  # Results that came back negative, and the commits that replaced a sentence.
+  - id: result.xtb_mode_tables_agree
+    kind: negative_result
+    commit: "080535cd"
+    note: Seven real xTB Hessians - vibspectrum and g98.out agree row for row (max 0.0050 cm^-1). The guard built for a disagreement was declined; the sealing was absorbed (ec1f5ba5).
+    falsifier: One real xTB result whose two native tables disagree in order, count or frequency beyond print rounding.
+  - id: commit.44499f2a
+    kind: commit
+    commit: "44499f2a"
+    note: pyscf - a Hessian of any surface the driver can differentiate (finite difference of the analytic gradient).
+  - id: commit.ec1f5ba5
+    kind: commit
+    commit: "ec1f5ba5"
+    note: xTB mode-table sealing, absorbed selectively from 080535cd.
+  - id: result.pak_campaign_pyscf_20260919
+    kind: result
+    source: {path: .agents/charter/pyscf.md, anchor: "A sealed four-goal campaign ran that tree on CUHK (jobs 2140018-2140021,"}
+    note: "Four sealed goals, four observations, no arm without the sentences. The root's Hessian was planned in both excited-state goals and ran in one (all modes real); stability was asked on the twisted ethylene and on ozone's RHF reference, and of a closed-shell ground state only where ethylene's planar optimisation shared the twisted structure's project; the MP2 Hessian boundary was quoted and held."
+    falsifier: "A sealed goal on an excited-state equilibrium structure plans no Hessian on the root, or one on the ground state; or a session delivers DFT frequencies as MP2."
+
+  - id: negative.geometric_kernel_irc_never_steps
+    kind: negative_result
+    source: {path: .agents/charter/pyscf.md, anchor: "not reach the first step under PySCF 2.14 and geomeTRIC 1.1.1 --"}
+    note: "pyscf.geomopt.geometric_solver.kernel(mf, irc=True) raises AttributeError ('super' object has no attribute 'molecules') before any gradient: run_optimizer reads M.molecules for every IRC and PySCF's engine never builds the topology. The TS search does not meet the line because it is guarded by params.irc."
+    falsifier: "Under the pinned PySCF and geomeTRIC, kernel(mf, irc=True) takes a first IRC step from a first-order saddle."
+  - id: negative.geometric_forward_is_a_sign
+    kind: negative_result
+    source: {path: .agents/charter/pyscf.md, anchor: "sign, not a species: geomeTRIC's ``forward`` steps against the eigenvector it"}
+    note: "Measured on the formaldehyde 1,2-H shift: with the eigenvector geomeTRIC holds made canonical, its 'forward' first step projected -0.756 on it and 'backward' +0.742; the host now hands geomeTRIC the negated vector and measures the projection from the recorded frames."
+    falsifier: "geomeTRIC's first IRC step for 'forward' is observed along +TSNormal_modes_x[0]."
+  - id: result.irc_path_is_not_everywhere_steepest_descent
+    kind: result
+    source: {path: .agents/charter/pyscf.md, anchor: "shift at HF/6-31G* the median cosine is 0.999 while single mid-path steps fall"}
+    note: "Two implementations agree (the validator and reference_irc.py): per-step cosines with the mean unit negative mass-weighted gradient, median 0.999, minima 0.60 and 0.18 mid-path and -0.15 among the last steps at a minimum. Stated, never graded."
+    falsifier: "Recomputing the cosines from an archived IRC's frames and gradients disagrees with the validator's, or a finer-step walk of the same surface reaches a different basin."
+  - id: result.opt_final_scf_started_from_the_input_density
+    kind: result
+    source: {path: .agents/charter/pyscf.md, anchor: "geometry's density while its record said ``final_scf_from_optimizer_density:"}
+    note: "PySCF's gradient scanner is a copy of the mean field; mf.mo_coeff is untouched by the walk, and the archived water_opt final SCF took six cycles where a restart from the walk's density takes one."
+    falsifier: "An optimisation's final SCF, run by a driver before this round, took as few cycles as a restart from the walk's last density."
+
+  - id: result.pyscf_irc_campaign_20260920
+    kind: result
+    source: {path: .agents/charter/pyscf.md, anchor: "Five sealed goals ran the IRC tree on CUHK (jobs 2140676, 2140679-2140682;"}
+    note: "Five sealed goals, 20 of 32 engine calls. Vinyl alcohol, HONO (ORCA saddle, PySCF branches) and H2CO -> H2 + CO delivered barriers within 0.01 kcal/mol of the direct-CLI references; every walked branch was read for where it ended before it was named. Ethane (a minimum called a TS) was recognised before any engine and settled exhausted; methoxy (a saddle from another surface) declined the IRC, found the true minima by displacement, withdrew its biased barriers and was returned. Twice the session inverted which barrier a more stable minimum carries; the host's expectation rows caught both."
+    falsifier: "A sealed goal names the minima a saddle connects from the branch word or from one branch, or delivers an IRC endpoint reached from a saddle of another surface as a minimum of this one."
+  - id: result.a_last_cycle_wave_was_promised_a_wake
+    kind: negative_result
+    source: {path: .agents/charter/goal-grain-recovery-wake.md, anchor: "woken once, when all of them have ended\": a woken cycle's plan is admitted"}
+    note: "g3-ethane and g5-methoxy each selected a wave in their last cycle, were told they would be woken, deferred claims to that wake and were settled without it (exhausted; returned_to_human with four numbers unclaimed). Every goal context now states wakes_after_this_cycle."
+    falsifier: "A goal context's wakes_after_this_cycle differs from the number of further cycles the goal loop opens after that cycle's run."
+  - id: result.a_result_file_is_not_a_structure_edge
+    kind: negative_result
+    source: {path: .agents/charter/goal-grain-recovery-wake.md, anchor: "A node fed its producer's result"}
+    note: "g3-ethane bound Hessian and IRC nodes to an optimisation's pyscf_hdf5; none could be previewed or deferred and its first cycle ran nothing while every reply named the routes for a node lacking a preview. The blocking node now carries a blocking_reason naming geometry_xyz."
+    falsifier: "A consumer bound to a structure producer's result file is deferred and runs inside one approval, or blocks with no reason naming the structure edge."
+  - id: negative.mode_count_certified_a_non_stationary_saddle
+    kind: negative_result
+    source: {path: .agents/charter/validity-rules.md, anchor: "The mode count is not stationarity, and one organ read it as such."}
+    note: "characterise_stationary_point issued order 1 for a Hessian taken at 0.0485 Eh/Bohr, with the host's own gradient anomaly uncited. Its own falsifier fired on 2026-09-21: the certification now refuses a measured gradient above the criterion, naming both numbers and the routes that remain, and the archived water_stretched_hess -- which this organ certified as 'a minimum' at 0.0185 Eh/Bohr -- is refused with it. Closed for the programs whose reader can bind a gradient to one structure; ORCA and Gaussian serve a gradient per optimisation step and answer nothing, which the receipt records as unmeasured rather than as stationarity."
+    falsifier: "characterise_stationary_point refuses, or cites the gradient anomaly for, a result whose stationarity gradient exceeds the policy criterion."
+
+  - id: negative.geometric_updated_hessian_is_not_an_order
+    kind: negative_result
+    source: {path: ".agents/charter/pyscf.md", anchor: "geomeTRIC's own updated curvature at the end was recorded for one revision"}
+    note: "geomeTRIC's updated (quasi-Newton) Hessian at a converged P-RFO transition-state search is in the optimiser's internal coordinates and unprojected, so its negative-eigenvalue count is not the order of the structure: on the H2CO/HCOH saddle the PySCF ts stage located to 0.0001 A of ORCA's -- a genuine first-order saddle by an analytic Hessian at -2700.0 cm-1 -- that count was four. The number is deliberately not recorded."
+    falsifier: "On a set of converged searches whose analytic Hessians give a known order, geomeTRIC's updated-Hessian negative-eigenvalue count matches that order."
+
+  - id: negative.a_converged_ts_search_can_be_a_minimum
+    kind: negative_result
+    source: {path: ".agents/charter/pyscf.md", anchor: "a search seeded at a *minimum* of its own surface converges in one iteration"}
+    note: "A PySCF ts node seeded at a minimum of its own surface converges in one iteration, moves 0.007 amu^1/2 bohr and delivers that minimum under a validated receipt (archived h2co_ts_from_minimum, CUHK 2141124). 'Converged' is a statement about the gradient and the step. No host rule types it: the artifact prints no spectrum, so it makes no claim, and a number delivered from it is worded uncharacterised until a hess node on its geometry joins it."
+    falsifier: "A ts artifact carries a spectrum of the structure it reached, so the program-neutral order rule can judge the node in-run."
+
+  - id: result.pyscf_ts_cli_20260921
+    kind: result
+    source: {path: ".agents/charter/pyscf.md", anchor: "The direct CLI evidence (CUHK Slurm 2141124, four minutes)"}
+    note: "Two programs' saddle searches on one surface agree without sharing an optimiser or an initial Hessian: PySCF's new ts stage reaches ORCA's OptTS H2CO/trans-HCOH saddle to 1e-4 A in every interatomic distance from a seed 0.24 A away carrying two imaginary modes, and HCN/HNC to 3e-4 A. The Hessian at what it reached gives -2700.0 cm-1, the frequency the archived IRC branches start from, and both branches walked from it reach the two minima. A four-goal sealed campaign then ran the same tree (2141227-2141231): all four goals planned a PySCF ts node from ordinary language and executed one, six searches over four molecules, all validated, none settling achieved."
+    falsifier: "A PySCF ts and an ORCA OptTS on one surface from one seed reach structures differing by more than optimiser convergence, or the Hessian at the PySCF one does not carry the archived branches' start frequency."
+
+  - id: lesson.a_summary_nothing_rederives_is_not_evidence
+    kind: lesson
+    source: {path: ".agents/charter/pyscf.md", anchor: "Result contract v9 adds ``ts``"}
+    note: "Six adversarial mutations of a real archived v8 IRC artifact -- the start spectrum made all-real, the mass table set to 1.0, two interior frames swapped, the energies reversed, the path appended to itself walked back to the saddle, the start Hessian replaced -- all validated, because every derived scalar was read and none re-derived. The class: a summary written beside the arrays it came from, with nothing re-deriving it, is a claim the bytes need not support."
+    falsifier: "A derived scalar an artifact records beside its primitives survives a mutation of those primitives without a finding."
+
+  - id: lesson.an_order_is_a_property_of_a_stationary_point
+    kind: lesson
+    source: {path: ".agents/charter/validity-rules.md", anchor: "The mode count is not stationarity, and one organ read it as such."}
+    note: "A count of imaginary modes is not an order. The archived water_stretched_hess -- three real modes at max|g| = 0.0185 Eh/Bohr, 41x geomeTRIC's criterion, on the artifact the host's own sensor flags -- was certified 'a minimum'. An order is a claim about a geometry, on a surface, from a Hessian taken there, at a gradient that says the point is stationary at all; the receipt names all four and the gradient refuses."
+    falsifier: "A host-rendered stationary-point order is issued for a structure whose measured gradient exceeds the optimiser's criterion."
+
+  - id: lesson.the_authoring_interpreter_is_not_the_controllers
+    kind: lesson
+    source: {path: ".agents/charter/pyscf.md", anchor: "An earlier submission of that same batch (2141121)"}
+    note: "Ten real engine runs produced no receipt at all: a MappingProxyType dataclass default that Python 3.12 accepts, 3.11 refuses, and the deployed controller is 3.11. Every test on the authoring interpreter was green. A probe that imports every module under the compute interpreter now runs beside the suite."
+    falsifier: "Importing every chemsmart module under the deployed controller's and compute interpreters raises nothing the suite did not catch."
+
+  - id: negative.a_linear_polyatomic_hessian_was_refused
+    kind: negative_result
+    source: {path: ".agents/charter/pyscf.md", anchor: "that Hessian is the first on a linear polyatomic in this corpus"}
+    note: "The mode-count rule expected 3N-6 unless its own geometric linearity test said otherwise, and that test answers about 0.01 degrees for a triatomic. HNC reached by a live PySCF IRC is 0.047 degrees from linear: PySCF's correct 3N-5 spectrum was refused with four findings and typed failed_native, and the independent reconstruction at the same rank dropped half a degenerate bending pair. It is the node a live goal's analysis chain was waiting on. Repaired by taking the translation-rotation rank from the run's own mode count."
+    falsifier: "A Hessian on a molecule near the linear boundary is refused, or validated, on a geometric tolerance rather than on whether its spectrum reconstructs at the rank its own count implies."
+
+  - id: lesson.a_promise_belongs_to_the_structure_not_the_node
+    kind: lesson
+    source: {path: ".agents/charter/pyscf.md", anchor: "a Hessian that confirms a saddle was being typed"}
+    note: "ORCA runs OptTS Freq as one node; PySCF and xTB split the search and the Hessian. Judged by its own job type, the Hessian half typed two live saddles failed_wrong_stationary_point for carrying the one imaginary mode they were run to find. The promise is about the structure, and the node that produced it already said what it was searching for, so a fixed-geometry curvature node inherits it -- which also catches the reverse, a saddle search that converged onto a minimum, which its own artifact cannot detect."
+    falsifier: "The same physics gets a different terminal word because one program runs the search and the Hessian as one node and another runs them as two."
+
+  - id: result.an_irc_endpoint_reached_by_minimising
+    kind: result
+    source: {path: ".agents/charter/pyscf.md", anchor: "its backward branch recording 77 frames"}
+    note: "The H2CO -> H2 + CO backward branch records 77 frames of which 37 are Gonzalez-Schlegel path steps and 40 are the minimisation after them; its endpoint is separated H2 (0.730 A) and CO (1.1135 A). The first recorded case of reached_by: minimisation_from_path_tail, and the case the record exists for -- a previous round delivered an H2...CO complex as 'separated H2 + CO'."
+    falsifier: "A branch whose tail geomeTRIC minimised reports the same account as one that stepped all the way, or the frame split does not sum to the frames recorded."
+
+  - id: negative.small_molecules_disable_the_basin_sensor
+    kind: negative_result
+    source: {path: ".agents/charter/pyscf.md", anchor: "the basin sensor's three-heavy-atom floor stopped"}
+    note: "Every node of all four campaign goals raised geometry.same_structure_comparison_not_made: the heavy-atom RMSD floor is three and the molecules had two. The sensor said it stopped, which is correct; the campaign's own molecule choice removed the basin and same-structure evidence from the whole round."
+    falsifier: "A campaign of two-heavy-atom molecules obtains basin or same-structure evidence, or the floor is shown to be unnecessary below three heavy atoms."
+
+# Annotations keyed by DERIVED rule_id; no rule text is repeated here.
+# class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
+# stay true about chemistry) | AUTHORITY | EARNED (names its loss).
 annotations:
-  stem.never_author_native:
-    class: FUNDAMENTAL
-    backstop:
-      gate: CONDUCT.md section 2 "no model-authored native input
-      path: null
-      shell: null
-      or status": null
-    ablate: never
-  stem.host_renders_claims:
-    class: FUNDAMENTAL
-    ablate: never
-    note: record_analysis_claims binds values, but nothing stops a model *reporting* an unbound number
+  stem.never_author_native: {class: FUNDAMENTAL, backstop: {gate: CONDUCT.md section 2 "no model-authored native input, path, shell, or status"}, ablate: never}
+  stem.host_renders_claims: {class: FUNDAMENTAL, ablate: never, note: "record_analysis_claims binds values, but nothing stops a model *reporting* an unbound number"}
   stem.validation_is_typed:
     class: MECHANICS
-    backstop:
-      refusal: validation_requires_typed_analysis
-      commit: 00002087
-    falsifier: With the sentence removed, a session that reaches a scientific_validation node still ends
-      with a typed verdict, at a cost of at most one refused call.
+    backstop: {refusal: validation_requires_typed_analysis, commit: "00002087"}
+    falsifier: With the sentence removed, a session that reaches a scientific_validation node still ends with a typed verdict, at a cost of at most one refused call.
     last_validated: null
-  stem.receipts_travel_typed:
-    class: MECHANICS
-    backstop:
-      gate: tool.dispatch.rejected
-    falsifier: Removed, sessions still bind the right receipt within two refused calls.
-    last_validated: null
-  stem.plan_repair_and_inputs:
-    class: MECHANICS
-    backstop:
-      refusal: plan findings returned by plan_scientific_workflow
-    falsifier: Removed, plans still reach `planned` with no more than two extra planning calls.
-    last_validated: null
-  stem.amend_not_resubmit:
-    class: MECHANICS
-    backstop: null
-    falsifier: Removed, repair costs more turns but no plan is lost.
-    last_validated: null
+  stem.receipts_travel_typed: {class: MECHANICS, backstop: {gate: tool.dispatch.rejected}, falsifier: "Removed, sessions still bind the right receipt within two refused calls.", last_validated: null}
+  stem.plan_repair_and_inputs: {class: MECHANICS, backstop: {refusal: plan findings returned by plan_scientific_workflow}, falsifier: "Removed, plans still reach `planned` with no more than two extra planning calls.", last_validated: null}
+  stem.amend_not_resubmit: {class: MECHANICS, backstop: null, falsifier: "Removed, repair costs more turns but no plan is lost.", last_validated: null}
   leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names:
     class: SCIENCE
-    backstop:
-      refusal: has no analytic Hessian of an excited root
-    falsifier: A session that optimises on an excited root and is asked for that state's equilibrium structure
-      plans no Hessian on that root, or one without the root's response settings.
-    last_validated: '2026-09-19'
+    backstop: {refusal: "has no analytic Hessian of an excited root"}
+    falsifier: "A session that optimises on an excited root and is asked for that state's equilibrium structure plans no Hessian on that root, or one without the root's response settings."
+    last_validated: "2026-09-19"
   leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface:
     class: SCIENCE
-    backstop:
-      refusal: PySCF irc walks one branch per node
-    falsifier: A session asked which minima a saddle connects plans one PySCF irc node only, or reads
-      forward and backward as reactant and product without reading where each branch ended.
+    backstop: {refusal: "PySCF irc walks one branch per node"}
+    falsifier: "A session asked which minima a saddle connects plans one PySCF irc node only, or reads forward and backward as reactant and product without reading where each branch ended."
     last_validated: null
   leaf.pyscf.a_converged_reference_can_be_a_saddle:
     class: SCIENCE
     backstop: null
-    falsifier: Removed, sessions working on a singlet with diradical character or on an HF reference under
-      a correlated method ask for scf_stability no less often.
+    falsifier: "Removed, sessions working on a singlet with diradical character or on an HF reference under a correlated method ask for scf_stability no less often."
     last_validated: null
+
 edges:
-- from: fundamental.hub
-  to: stem.never_author_native
-  rel: expressed_by
-- from: invariant.claim_ladder
-  to: charter.scientific_invariants
-  rel: duplicates
-- from: charter.product_boundary
-  to: invariant.gates
-  rel: depends_on
-- from: leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names
-  to: commit.44499f2a
-  rel: depends_on
-  note: replaces leaf.pyscf.an_excited_minimum_has_no_hessian_here, which denied what 44499f2a shipped;
-    the new sentence carries settings boundaries asked of the project loader
-- from: commit.ec1f5ba5
-  to: result.xtb_mode_tables_agree
-  rel: depends_on
-- from: leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names
-  to: result.pak_campaign_pyscf_20260919
-  rel: evidenced_by
-  note: formaldehyde and trans-glyoxal each planned the root's Hessian with the root's settings; only
-    formaldehyde's ran
-- from: leaf.pyscf.a_converged_reference_can_be_a_saddle
-  to: result.pak_campaign_pyscf_20260919
-  rel: evidenced_by
-  note: asked where the sentence names (twisted ethylene, ozone's RHF under MP2); the falsifier compares
-    against an arm without the sentence, which this campaign did not run, so it stays unvalidated
-- from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface
-  to: negative.geometric_forward_is_a_sign
-  rel: depends_on
-  note: the branch word is a host-fixed sign because geomeTRIC's word is not a direction
-- from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface
-  to: negative.geometric_kernel_irc_never_steps
-  rel: depends_on
-  note: the driver walks geomeTRIC with PySCF's engine itself
-- from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface
-  to: result.pyscf_irc_campaign_20260920
-  rel: evidenced_by
-  note: every session that walked branches read each endpoint's connectivity before naming it; methoxy
-    declined to walk from another surface's saddle. No arm ran without the sentence, so it stays unvalidated
-- from: result.pyscf_ts_cli_20260921
-  to: negative.a_converged_ts_search_can_be_a_minimum
-  rel: evidenced_by
-- from: result.pyscf_ts_cli_20260921
-  to: negative.geometric_updated_hessian_is_not_an_order
-  rel: evidenced_by
-- from: lesson.an_order_is_a_property_of_a_stationary_point
-  to: invariant.gates
-  rel: depends_on
-- from: lesson.an_order_is_a_property_of_a_stationary_point
-  to: negative.mode_count_certified_a_non_stationary_saddle
-  rel: supersedes
-- from: result.an_irc_endpoint_reached_by_minimising
-  to: result.irc_path_is_not_everywhere_steepest_descent
-  rel: depends_on
-- from: lesson.a_promise_belongs_to_the_structure_not_the_node
-  to: negative.a_converged_ts_search_can_be_a_minimum
-  rel: evidenced_by
+  - {from: fundamental.hub, to: stem.never_author_native, rel: expressed_by}
+  - {from: invariant.claim_ladder, to: charter.scientific_invariants, rel: duplicates}
+  - {from: charter.product_boundary, to: invariant.gates, rel: depends_on}
+  - {from: leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names, to: commit.44499f2a, rel: depends_on, note: "replaces leaf.pyscf.an_excited_minimum_has_no_hessian_here, which denied what 44499f2a shipped; the new sentence carries settings boundaries asked of the project loader"}
+  - {from: commit.ec1f5ba5, to: result.xtb_mode_tables_agree, rel: depends_on}
+  - {from: leaf.pyscf.a_hessian_is_the_curvature_of_the_surface_it_names, to: result.pak_campaign_pyscf_20260919, rel: evidenced_by, note: "formaldehyde and trans-glyoxal each planned the root's Hessian with the root's settings; only formaldehyde's ran"}
+  - {from: leaf.pyscf.a_converged_reference_can_be_a_saddle, to: result.pak_campaign_pyscf_20260919, rel: evidenced_by, note: "asked where the sentence names (twisted ethylene, ozone's RHF under MP2); the falsifier compares against an arm without the sentence, which this campaign did not run, so it stays unvalidated"}
+  - {from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface, to: negative.geometric_forward_is_a_sign, rel: depends_on, note: "the branch word is a host-fixed sign because geomeTRIC's word is not a direction"}
+  - {from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface, to: negative.geometric_kernel_irc_never_steps, rel: depends_on, note: "the driver walks geomeTRIC with PySCF's engine itself"}
+  - {from: leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface, to: result.pyscf_irc_campaign_20260920, rel: evidenced_by, note: "every session that walked branches read each endpoint's connectivity before naming it; methoxy declined to walk from another surface's saddle. No arm ran without the sentence, so it stays unvalidated"}
+  - {from: result.pyscf_ts_cli_20260921, to: negative.a_converged_ts_search_can_be_a_minimum, rel: evidenced_by}
+  - {from: result.pyscf_ts_cli_20260921, to: negative.geometric_updated_hessian_is_not_an_order, rel: evidenced_by}
+  - {from: lesson.an_order_is_a_property_of_a_stationary_point, to: invariant.gates, rel: depends_on}
+  - {from: lesson.an_order_is_a_property_of_a_stationary_point, to: negative.mode_count_certified_a_non_stationary_saddle, rel: supersedes}
+  - {from: result.an_irc_endpoint_reached_by_minimising, to: result.irc_path_is_not_everywhere_steepest_descent, rel: depends_on}
+  - {from: lesson.a_promise_belongs_to_the_structure_not_the_node, to: negative.a_converged_ts_search_can_be_a_minimum, rel: evidenced_by}

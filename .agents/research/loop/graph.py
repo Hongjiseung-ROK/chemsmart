@@ -348,8 +348,11 @@ def authored(graph: Graph) -> list[str]:
             problems.append(f"{node['id']}: no such file {source.get('path')}")
         else:
             path = _source_path(source)
-            lines = path.read_text(encoding="utf-8").splitlines()
-            if not any(source["anchor"] in line for line in lines):
+            # Prose here is hard-wrapped, so a verbatim sentence may cross a
+            # line break: three of ten anchors written in one round did, and
+            # a per-line match called each of them missing.
+            flat = " ".join(path.read_text(encoding="utf-8").split())
+            if " ".join(str(source["anchor"]).split()) not in flat:
                 problems.append(
                     f"{node['id']}: anchor not verbatim in {source['path']}"
                 )
