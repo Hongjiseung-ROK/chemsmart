@@ -1651,7 +1651,9 @@ def _legacy_tool_definitions(
         _tool(
             "select_execution_wave",
             (
-                "Choose the currently-ready calculation outcomes you want "
+                "Run the reviewed workflow: execute, start or dispatch the "
+                "ready calculations. Choose the currently-ready calculation "
+                "outcomes you want "
                 "completed before you reason again. One member is valid; "
                 "several mean you do not need one member's result before "
                 "deciding whether the others run. Name them in the order "
