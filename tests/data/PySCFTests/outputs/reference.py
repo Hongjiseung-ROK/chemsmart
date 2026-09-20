@@ -273,6 +273,39 @@ def main(path):
         mf.kernel()
         out["scf_energy_eh"] = float(mf.e_tot)
         out["scf_converged"] = bool(mf.converged)
+    if needs_reference and spec.get("multiplicity") is not None:
+        # The frontier levels PySCF's own rebuilt reference carries, per
+        # spin channel and in eV, so the selector plane's HOMO/LUMO/gap
+        # can be checked against the program rather than against us.
+        occ_e, occ_o = np.asarray(mf.mo_energy), np.asarray(mf.mo_occ)
+        ev = 27.211386245988
+        if occ_e.ndim == 2:
+            channels = {
+                "alpha": (occ_e[0], occ_o[0] > 0),
+                "beta": (occ_e[1], occ_o[1] > 0),
+            }
+        else:
+            channels = {
+                "alpha": (occ_e, occ_o >= 1.0),
+                "beta": (occ_e, occ_o >= 2.0),
+            }
+        frontier = {}
+        for name, (energies, filled) in channels.items():
+            if filled.any():
+                frontier[name + "_homo_ev"] = (
+                    float(energies[filled].max()) * ev
+                )
+            if (~filled).any():
+                frontier[name + "_lumo_ev"] = (
+                    float(energies[~filled].min()) * ev
+                )
+        homo = [v for k, v in frontier.items() if k.endswith("homo_ev")]
+        lumo = [v for k, v in frontier.items() if k.endswith("lumo_ev")]
+        if homo and lumo:
+            frontier["homo_ev"] = max(homo)
+            frontier["lumo_ev"] = min(lumo)
+            frontier["gap_ev"] = min(lumo) - max(homo)
+        out["frontier_orbitals"] = frontier
     if decomposed:
         summary = dict(getattr(mf, "scf_summary", {}) or {})
         for stored_name, summary_key in (

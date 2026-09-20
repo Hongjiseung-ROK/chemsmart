@@ -752,3 +752,34 @@ energy of solvation -- and it wrote down that the printed terms "do not
 exactly partition the net (residual +1.36 kcal/mol measured)", which is the
 electronic reorganisation the solute pays to polarise. No session could
 state that decomposition here before.
+
+An open-shell PySCF result served no HOMO and no LUMO, and served a gap.
+``homo_energy`` answers only off multiplicity 1, so those two selectors
+refused on every open shell, while ``fmo_gap``'s open-shell branch
+subtracted the highest SOMO from the lowest virtual of *either* channel --
+one channel's occupied level paired with the other channel's virtual one.
+On the archived hydroxyl radical the two orbitals it subtracts are the
+alpha and beta halves of the singly occupied orbital, so 4.7957 eV was
+reported under the name a session reads as a frontier separation while the
+beta channel's own separation is 4.0674. The ORCA reader had settled the
+definition and states the reason -- for an unrestricted reference the
+frontier orbitals need not share a channel, so the extremum over both is
+what survives that case -- and this program had grown its own. PySCF's
+reader states the same relation now and declares ``alpha_homo``,
+``alpha_lumo``, ``beta_homo`` and ``beta_lumo`` beside it, each an
+extremum over the orbital energies and occupations the artifact already
+stores; nothing is authored. Triplet dioxygen is the case the definition
+exists for: its highest occupied level is alpha and its lowest virtual
+beta, so alpha alone reports 14.23 eV and beta alone 9.50 where the
+separation is 5.34, and its gap is unchanged because the extremum was
+already what it had. Three archived numbers move and no closed-shell one
+does, since a restricted reference hands one orbital array to both
+channels: hydroxyl at UKS 4.7957 to 4.0674, the same radical at UHF
+18.6471 to 17.3843. The one-electron ROHF hydrogen atom keeps the zero gap
+it already reported and now says why -- its one spatial orbital is
+occupied in alpha and empty in beta, so the pair is that orbital twice --
+and ``beta_homo`` refuses by name rather than returning a level that is
+not there. What is not claimed: ``fmo_gap`` in the shared mixin still
+carries the SOMO pairing for the log-parsing readers, so Gaussian and xTB
+answer ``gap`` on an open shell by a construction ORCA and PySCF no longer
+use; that is one shared function and it is not this program's to move.

@@ -437,6 +437,11 @@ _SELECTOR_RESULT_DATASETS: dict[str, tuple[str, ...]] = {
     "homo": ("results/mo_energy",),
     "lumo": ("results/mo_energy",),
     "gap": ("results/mo_energy",),
+    # The same dataset, read through ``results/mo_occ`` per spin channel.
+    "alpha_homo": ("results/mo_energy",),
+    "alpha_lumo": ("results/mo_energy",),
+    "beta_homo": ("results/mo_energy",),
+    "beta_lumo": ("results/mo_energy",),
     "spin_square": ("results/spin_square",),
     "spin_square_deviation": ("results/spin_square",),
     "effective_multiplicity": ("results/spin_square_effective_multiplicity",),

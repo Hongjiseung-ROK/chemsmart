@@ -3105,6 +3105,75 @@ def _pyscf_correlated_scalar(name: str) -> Callable[[Any], float]:
     return accessor
 
 
+def _pyscf_channel_eigenvalues(
+    output: Any, channel: str
+) -> tuple[list[float], list[float]]:
+    """``(occupied, virtual)`` orbital energies of one spin channel, in eV.
+
+    The artifact's own ``results/mo_energy`` split by ``results/mo_occ``.
+    A restricted reference carries the same array in both channels, and a
+    restricted-open-shell one puts its singly occupied orbital in the
+    alpha occupied list and the beta virtual list, which is what its one
+    spatial orbital set means.
+    """
+
+    if str(channel) == "alpha":
+        return (
+            list(output.alpha_occ_eigenvalues or ()),
+            list(output.alpha_virtual_eigenvalues or ()),
+        )
+    return (
+        list(output.beta_occ_eigenvalues or ()),
+        list(output.beta_virtual_eigenvalues or ()),
+    )
+
+
+def _pyscf_frontier_pair(output: Any) -> tuple[float, float]:
+    """Return (HOMO, LUMO) in eV as extrema over every occupied channel.
+
+    The same definition the ORCA reader states, for the same reason: for
+    an unrestricted reference the frontier orbitals need not share a spin
+    channel, and the extremum over both is what survives that case.  This
+    program had grown its own -- ``homo`` and ``lumo`` refused outright
+    for any open shell while ``gap`` was served as the lowest virtual of
+    either channel minus the *highest SOMO*, which pairs a channel's
+    occupied level with the other channel's virtual one.  On the archived
+    hydroxyl radical that pairing is the alpha and beta halves of one
+    singly occupied orbital, so 4.80 eV was reported under a name a
+    session reads as a frontier separation when the beta channel's own
+    separation is 4.07.  One selector name, one meaning, on both
+    programs; a question about one channel is asked through the
+    spin-resolved selectors beside these.
+    """
+
+    occupied: list[float] = []
+    virtual: list[float] = []
+    for channel in ("alpha", "beta"):
+        channel_occupied, channel_virtual = _pyscf_channel_eigenvalues(
+            output, channel
+        )
+        occupied.extend(channel_occupied)
+        virtual.extend(channel_virtual)
+    if not occupied or not virtual:
+        raise MissingQuantityError(
+            "pyscf result establishes no occupied and virtual orbital pair "
+            "(results/mo_energy read through results/mo_occ)"
+        )
+    return max(occupied), min(virtual)
+
+
+def _pyscf_channel_frontier(
+    output: Any, channel: str, occupied: bool
+) -> float:
+    values = _pyscf_channel_eigenvalues(output, channel)[0 if occupied else 1]
+    if not values:
+        raise MissingQuantityError(
+            f"pyscf result establishes no "
+            f"{'occupied' if occupied else 'virtual'} {channel} orbital"
+        )
+    return max(values) if occupied else min(values)
+
+
 def _pyscf_solvation_model(output: Any) -> str:
     """The continuum model the run applied, from what it recorded.
 
@@ -3371,9 +3440,29 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
         "multiplicity": lambda output: int(output.multiplicity),
         "method": lambda output: str(output.method),
         "basis": lambda output: str(output.basis),
-        "homo": lambda output: float(output.homo_energy),
-        "lumo": lambda output: float(output.lumo_energy),
-        "gap": lambda output: float(output.fmo_gap),
+        # The frontier pair and the four spin-resolved levels, all read
+        # from this artifact's own orbital energies and occupations. An
+        # open-shell result served no HOMO and no LUMO at all and served
+        # a ``gap`` built from a different pairing; a radical in a redox
+        # or hydrogen-transfer workflow needs the channel it is actually
+        # asking about.
+        "homo": lambda output: _pyscf_frontier_pair(output)[0],
+        "lumo": lambda output: _pyscf_frontier_pair(output)[1],
+        "gap": lambda output: (lambda pair: pair[1] - pair[0])(
+            _pyscf_frontier_pair(output)
+        ),
+        "alpha_homo": lambda output: _pyscf_channel_frontier(
+            output, "alpha", True
+        ),
+        "alpha_lumo": lambda output: _pyscf_channel_frontier(
+            output, "alpha", False
+        ),
+        "beta_homo": lambda output: _pyscf_channel_frontier(
+            output, "beta", True
+        ),
+        "beta_lumo": lambda output: _pyscf_channel_frontier(
+            output, "beta", False
+        ),
         "dipole_moment": lambda output: [
             float(value) for value in output.dipole_moment
         ],
@@ -3548,6 +3637,10 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
 #: can answer it, and a run that applied no continuum refuses it as absent.
 _PYSCF_SCF_SELECTORS = (
     "ab_initio",
+    "alpha_homo",
+    "alpha_lumo",
+    "beta_homo",
+    "beta_lumo",
     "surface_id",
     "basis",
     "charge",
@@ -3685,6 +3778,10 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             ("connectivity", "as_reached"),
             ("converged", "as_reached"),
             ("correlation_energy", "as_reached"),
+            ("alpha_homo", "as_reached"),
+            ("alpha_lumo", "as_reached"),
+            ("beta_homo", "as_reached"),
+            ("beta_lumo", "as_reached"),
             ("dipole_moment", "as_reached"),
             ("dipole_moment_magnitude", "as_reached"),
             ("dispersion_energy", "as_reached"),
@@ -3741,6 +3838,10 @@ _PYSCF_STRUCTURAL_STATES = tuple(
 _PYSCF_ELECTRONIC_PROVENANCE = tuple(
     sorted(
         [
+            ("alpha_homo", "reference"),
+            ("alpha_lumo", "reference"),
+            ("beta_homo", "reference"),
+            ("beta_lumo", "reference"),
             ("ccsd_correlation_energy", "correlated"),
             ("correlation_energy", "correlated"),
             ("dipole_moment", "reference"),
