@@ -3070,6 +3070,54 @@ def _xtb_level(output: Any) -> dict[str, Any]:
     return level
 
 
+def _xtb_stationarity_gradient(output: Any) -> float | None:
+    """max|g| at the geometry this xTB result's numbers belong to, Eh/Bohr.
+
+    xTB is the second program whose reader can bind a gradient to one
+    structure, and it is the one where the question bites hardest.
+    ChemSmart's Hessian job is ``--hess``: the second derivatives are
+    taken at the geometry the job was handed and that geometry is never
+    relaxed, so a GFN2 Hessian at a structure optimised with another
+    Hamiltonian -- or handed in from another program -- is the ordinary
+    case rather than the exotic one.  One xTB invocation touches one
+    geometry, so the gradient it writes and the spectrum it prints
+    describe the same structure, which is exactly what ORCA's and
+    Gaussian's per-step ``forces`` cannot promise.
+
+    The number is read from a gradient **vector** -- ``.engrad`` first,
+    then the Turbomole ``gradient`` sidecar -- and never from the
+    ``GRADIENT NORM`` the summary prints.  A norm over 3N components is
+    an upper bound on the largest one, so reporting it here would raise
+    the anomaly at geometries whose largest component is under the
+    criterion: a wrong number under a right name.  A result that wrote
+    no gradient answers nothing, which is what "the host cannot say"
+    means, and the receipt records ``unmeasured``.
+    """
+
+    import numpy as np
+
+    vectors = getattr(output, "final_forces", None)
+    if vectors is None:
+        gradient_file = getattr(output, "gradient_file", None)
+        forces = getattr(gradient_file, "forces", None)
+        vectors = forces[-1] if forces else None
+    if vectors is None:
+        return None
+    values = np.asarray(vectors, dtype=float)
+    if values.ndim != 2 or values.shape[1] != 3:
+        return None
+    if not values.size or not bool(np.isfinite(values).all()):
+        return None
+    # The gradient belongs to this result's structure only if it counts
+    # the same atoms.  A stale or foreign sidecar is an absence, never a
+    # number read against the wrong molecule.
+    molecule = getattr(output, "molecule", None)
+    num_atoms = getattr(molecule, "num_atoms", None)
+    if num_atoms is not None and int(num_atoms) != int(values.shape[0]):
+        return None
+    return float(np.max(np.abs(values)))
+
+
 def _xtb_geometry_source_path(output: Any, selector: str) -> Path | None:
     """Name the xTB sidecar only for the reached-optimisation selector."""
 
@@ -5368,6 +5416,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # absent rather than labelling every quantity ``computed_surface``
         # without an identity a consumer can resolve.
         resolve_level=_xtb_level,
+        resolve_stationarity_gradient=_xtb_stationarity_gradient,
     ),
     "pyscf": ResultReaderV1(
         program="pyscf",

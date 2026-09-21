@@ -144,11 +144,16 @@ def test_a_program_that_cannot_bind_a_gradient_says_unmeasured():
     geometry. Those readers answer nothing here rather than a number read
     from the wrong structure, and nothing reads that as stationarity."""
 
-    for program in ("orca", "gaussian", "xtb"):
+    for program in ("orca", "gaussian"):
         assert (
             reader_for(program).resolve_stationarity_gradient is None
         ), program
-    assert reader_for("pyscf").resolve_stationarity_gradient is not None
+    # One xTB invocation touches one geometry, so the gradient it writes
+    # and the spectrum it prints describe the same structure.
+    for program in ("pyscf", "xtb"):
+        assert (
+            reader_for(program).resolve_stationarity_gradient is not None
+        ), program
 
 
 def test_the_word_is_one_of_two_and_never_invented():
