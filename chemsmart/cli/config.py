@@ -703,14 +703,7 @@ def gaussian(ctx, folder):
     Examples:
         chemsmart config gaussian --folder <G16FOLDER>
     """
-    cfg = ctx.obj["cfg"]
-    if "~" in folder:
-        g16_folder = os.path.expanduser(folder)
-        assert os.path.exists(
-            os.path.abspath(g16_folder)
-        ), f"Gaussian folder not found: {g16_folder}"
-    logger.info(f"Configuring Gaussian with folder: {folder}")
-    update_yaml_files(cfg.chemsmart_server, "~/bin/g16", folder)
+    _configure_program_folder(ctx.obj["cfg"], "GAUSSIAN", "~/bin/g16", folder)
 
 
 @config.command()
@@ -731,14 +724,29 @@ def orca(ctx, folder):
     Examples:
         chemsmart config orca --folder <ORCAFOLDER>
     """
-    cfg = ctx.obj["cfg"]
-    if "~" in folder:
-        orca_folder = os.path.expanduser(folder)
-        assert os.path.exists(
-            os.path.abspath(orca_folder)
-        ), f"ORCA folder not found: {orca_folder}"
-    logger.info(f"Configuring ORCA with folder: {folder}")
-    update_yaml_files(cfg.chemsmart_server, "~/bin/orca_6_0_0", folder)
+    _configure_program_folder(
+        ctx.obj["cfg"], "ORCA", "~/bin/orca_6_0_0", folder
+    )
+
+
+def _configure_program_folder(cfg, program, placeholder, folder):
+    """Record a program's executable folder in every server profile.
+
+    Two steps, because a profile is in one of two states. A fresh template
+    names the placeholder in the field *and* in the lines that depend on it
+    (Gaussian's login script, ``GAUSS_EXEDIR``, ``g16root``), so the
+    placeholder is replaced wherever it stands. A profile that no longer holds
+    the placeholder -- wizard-written with ``EXEFOLDER: null``, or configured
+    once already -- used to be left exactly as it was while the command
+    reported success; the field itself is therefore set as well. The folder is
+    held to the one standard every route uses, not to a bare ``assert`` that
+    ran only when the path contained ``~`` and vanishes under ``python -O``.
+    """
+
+    resolved = validated_program_exefolder(program, folder)
+    logger.info(f"Configuring {program} with folder: {resolved}")
+    update_yaml_files(cfg.chemsmart_server, placeholder, str(resolved))
+    set_program_exefolder(cfg.chemsmart_server, program, resolved)
 
 
 def validated_program_exefolder(program, folder):

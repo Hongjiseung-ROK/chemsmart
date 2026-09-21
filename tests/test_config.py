@@ -883,7 +883,7 @@ class TestConfigHonoursTheConfiguredDirectory:
 
 
 class TestConfigureAProgramFolder:
-    """``chemsmart config gaussian|orca`` write into the configured directory."""
+    """``chemsmart config gaussian|orca`` set the folder they were given."""
 
     @staticmethod
     def _invoke(tmp_path, monkeypatch, program, folder):
@@ -902,6 +902,38 @@ class TestConfigureAProgramFolder:
         monkeypatch.setenv("HOME", str(fenced_home))
         monkeypatch.setenv("CHEMSMART_CONFIG_DIR", str(tmp_path / "site"))
         return CliRunner().invoke(config, [program, "-f", str(folder)])
+
+    def test_a_profile_without_the_template_placeholder_is_still_configured(
+        self, tmp_path, monkeypatch
+    ):
+        """The command replaced the template's ``~/bin/g16`` and nothing else,
+        so on a wizard-written profile (``EXEFOLDER: null``) or one configured
+        once already it succeeded and changed nothing."""
+
+        server = tmp_path / "site" / "server"
+        server.mkdir(parents=True)
+        profile = server / "CUHK.yaml"
+        profile.write_text(
+            "SERVER:\n    SCHEDULER: SLURM\n"
+            "GAUSSIAN:\n    EXEFOLDER: null\n    LOCAL_RUN: true\n"
+            "ORCA:\n    EXEFOLDER: null\n    LOCAL_RUN: true\n"
+        )
+        g16 = tmp_path / "g16C02"
+        g16.mkdir()
+        orca = tmp_path / "orca_6_1_1"
+        orca.mkdir()
+
+        assert (
+            self._invoke(tmp_path, monkeypatch, "gaussian", g16).exit_code == 0
+        )
+        assert self._invoke(tmp_path, monkeypatch, "orca", orca).exit_code == 0
+
+        import yaml
+
+        written = yaml.safe_load(profile.read_text())
+        assert written["GAUSSIAN"]["EXEFOLDER"] == str(g16)
+        assert written["ORCA"]["EXEFOLDER"] == str(orca)
+        assert written["GAUSSIAN"]["LOCAL_RUN"] is True
 
     def test_a_fresh_template_still_carries_every_line_that_names_the_folder(
         self, tmp_path, monkeypatch
@@ -931,3 +963,13 @@ class TestConfigureAProgramFolder:
         text = profile.read_text()
         assert "~/bin/g16" not in text
         assert text.count(str(g16)) == 4
+
+    def test_a_folder_that_is_not_there_is_refused(
+        self, tmp_path, monkeypatch
+    ):
+        (tmp_path / "site" / "server").mkdir(parents=True)
+        result = self._invoke(
+            tmp_path, monkeypatch, "orca", tmp_path / "no-such-orca"
+        )
+        assert result.exit_code != 0
+        assert "not found" in result.output
