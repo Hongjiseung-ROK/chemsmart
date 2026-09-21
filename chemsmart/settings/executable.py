@@ -60,6 +60,10 @@ class Executable(RegistryMixin):
 
     PROGRAM: Optional[str] = None
     EXEFOLDER_REQUIRED = True
+    #: The companion binary a program starts its own parallel ranks with, if
+    #: it has one. ChemSmart never launches it; the program does, from the
+    #: search path it is given.
+    PARALLEL_LAUNCHER: Optional[str] = None
 
     def __init__(
         self,
@@ -280,6 +284,28 @@ class Executable(RegistryMixin):
             known[key] = resolved[key] = _resolve_declared_value(raw, known)
         return resolved
 
+    def resolve_in_program_path(self, name, base=None):
+        """
+        Locate a companion binary where this program's engine will look.
+
+        That is the search path the program's own ``ENVARS`` build on top of
+        the inherited one -- not the controller's, which is what a bare
+        ``shutil.which`` would ask and which can differ in exactly the
+        directory that matters. Nothing is launched.
+
+        Args:
+            name (str): The binary's name, e.g. ``mpirun``.
+            base (Mapping, optional): The environment the engine inherits.
+
+        Returns:
+            str: The resolved path, or an empty string when it is not found.
+        """
+        inherited = os.environ if base is None else base
+        search_path = self.resolved_env(inherited).get(
+            "PATH", inherited.get("PATH", "")
+        )
+        return shutil.which(name, path=search_path) or ""
+
 
 class GaussianExecutable(Executable):
     """
@@ -325,6 +351,7 @@ class ORCAExecutable(Executable):
     """
 
     PROGRAM = "ORCA"
+    PARALLEL_LAUNCHER = "mpirun"
 
     def __init__(self, executable_folder=None, **kwargs):
         """

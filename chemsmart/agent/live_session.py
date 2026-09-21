@@ -3520,9 +3520,58 @@ def _observe_environments() -> tuple[
                 # Recording that keeps "a binary was found" distinct from "a
                 # scientific result is obtainable" in the evidence chain.
                 "is_discovery_stub": is_discovery_stub,
+                **_declared_runtime_observations(program, folder),
             }
         )
     return tuple(targets), tuple(receipts), tuple(records)
+
+
+#: Program-block keys that are shell text for a job script. ``chemsmart sub``
+#: writes them; an engine started by ``chemsmart run`` never sees them.
+_JOB_SCRIPT_ONLY_KEYS = ("MODULES", "SCRIPTS", "CONDA_ENV")
+
+
+def _declared_runtime_observations(program: str, folder: str) -> dict:
+    """What the declared block says about running, beyond the binary existing.
+
+    A binary being present is not the program being runnable: ORCA starts its
+    own ranks with ``mpirun`` and died in 22 seconds, three approved calls in
+    a row, under a record that read ``available`` (CUHK job 2142445). The
+    launcher is looked for on the search path the block's own ENVARS build,
+    which is where the engine will look, and nothing is launched to find out.
+    """
+
+    from chemsmart.settings.executable import Executable
+    from chemsmart.utils.utils import strip_out_comments
+
+    block = _active_server_program_blocks().get(program.upper()) or {}
+    observed: dict[str, Any] = {}
+    unapplied = [
+        key
+        for key in _JOB_SCRIPT_ONLY_KEYS
+        if strip_out_comments(str(block.get(key) or "")).strip()
+    ]
+    if unapplied:
+        observed["applied_only_by_job_scripts"] = unapplied
+    for subclass in Executable.subclasses():
+        if str(subclass.PROGRAM or "").lower() != program:
+            continue
+        launcher = getattr(subclass, "PARALLEL_LAUNCHER", None)
+        if not launcher:
+            break
+        envars = block.get("ENVARS")
+        executable = subclass(
+            executable_folder=folder,
+            envars=strip_out_comments(str(envars)) if envars else None,
+        )
+        path = executable.resolve_in_program_path(launcher)
+        observed["parallel_launcher"] = launcher
+        observed["parallel_launcher_path"] = path
+        observed["parallel_launcher_status"] = (
+            "available" if path else "missing"
+        )
+        break
+    return observed
 
 
 def _conformance_record(

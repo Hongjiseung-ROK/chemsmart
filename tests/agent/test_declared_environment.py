@@ -172,3 +172,93 @@ def test_environment_observation_does_not_depend_on_the_process_path(
         if item.get("record_kind") == "program_environment"
     ]
     assert {item["program"] for item in records} >= {"orca", "gaussian"}
+
+
+def _orca_record(tmp_path, monkeypatch, *, envars, extra=""):
+    """The environment record of an ORCA declared with ``envars``."""
+
+    server_dir = tmp_path / "server"
+    server_dir.mkdir(parents=True, exist_ok=True)
+    present = tmp_path / "present"
+    present.mkdir(exist_ok=True)
+    (present / "orca").write_text("#!/bin/sh\nexit 0\n")
+    (present / "orca").chmod(0o700)
+    block = "".join(f"    {line}\n" for line in envars)
+    (server_dir / "local.yaml").write_text(
+        "SERVER:\n"
+        "  SCHEDULER: SLURM\n"
+        "  NUM_CORES: 8\n"
+        "ORCA:\n"
+        f"  EXEFOLDER: {present}\n"
+        "  ENVARS: |\n"
+        f"{block}"
+        f"{extra}"
+    )
+    monkeypatch.setenv("CHEMSMART_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setenv("CHEMSMART_AGENT_SERVER", "local")
+    records = [
+        item
+        for item in live_session._observe_environments()[2]
+        if item.get("record_kind") == "program_environment"
+        and item.get("program") == "orca"
+    ]
+    assert len(records) == 1
+    return records[0]
+
+
+def test_a_parallel_program_says_whether_its_launcher_can_be_found(
+    tmp_path, monkeypatch
+):
+    """ORCA starts its own ranks with ``mpirun``; the binary being there is
+    not the program being runnable.
+
+    Three approved ORCA calls died in 22 seconds with ``mpirun: command not
+    found`` (CUHK job 2142445, 2026-09-21) under an environment record that
+    read ``available``, because the record asked only whether ``orca``
+    existed. The launcher is looked for where the engine will look: on the
+    search path the program's own ENVARS build, not the controller's.
+    """
+
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    monkeypatch.setenv("PATH", str(bare))
+    missing = _orca_record(
+        tmp_path, monkeypatch, envars=[f"export PATH={bare}:$PATH"]
+    )
+    assert missing["status"] == "available"
+    assert missing["parallel_launcher"] == "mpirun"
+    assert missing["parallel_launcher_status"] == "missing"
+    assert missing["parallel_launcher_path"] == ""
+
+    openmpi = tmp_path / "openmpi" / "bin"
+    openmpi.mkdir(parents=True)
+    (openmpi / "mpirun").write_text("#!/bin/sh\nexit 0\n")
+    (openmpi / "mpirun").chmod(0o700)
+    found = _orca_record(
+        tmp_path, monkeypatch, envars=[f"export PATH={openmpi}:$PATH"]
+    )
+    assert found["parallel_launcher_status"] == "available"
+    assert found["parallel_launcher_path"] == str(openmpi / "mpirun")
+
+
+def test_what_only_a_job_script_would_apply_is_said_not_dropped(
+    tmp_path, monkeypatch
+):
+    """``MODULES``, ``SCRIPTS`` and ``CONDA_ENV`` are shell text that only
+    ``chemsmart sub`` writes into a job script. An engine started by ``run``
+    never sees them, and an operator who put ``module load openmpi`` there
+    should be told so rather than find out at the first parallel job."""
+
+    monkeypatch.setenv("PATH", str(tmp_path))
+    record = _orca_record(
+        tmp_path,
+        monkeypatch,
+        envars=["export OMPI_MCA_plm=isolated"],
+        extra=(
+            "  MODULES: |\n"
+            "    module load openmpi/4.1.8\n"
+            "  CONDA_ENV: |\n"
+            "    # nothing is activated\n"
+        ),
+    )
+    assert record["applied_only_by_job_scripts"] == ["MODULES"]
