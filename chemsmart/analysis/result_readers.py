@@ -1103,6 +1103,11 @@ class ResultReaderV1:
     #: chosen method/settings emit them. Missing coverage means unknown, never
     #: that the job produces no quantities.
     jobtype_selectors: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    #: Where the word a plan names a stage with is not the word a finished
+    #: result of that stage answers to, as ``((stage, (jobtype, ...)), ...)``.
+    #: A stage absent here is its own result word.  See
+    #: ``result_jobtypes_for_stage``.
+    stage_result_jobtypes: tuple[tuple[str, tuple[str, ...]], ...] = ()
     #: Which structural state each selector reads, as
     #: ``((selector, state), ...)``. A selector absent from this tuple is
     #: ``stateless``.
@@ -1416,6 +1421,62 @@ class ResultReaderV1:
             ),
             None,
         )
+
+    def result_jobtypes_for_stage(self, stage: str) -> tuple[str, ...]:
+        """The result words one planned ChemSmart stage's results answer to.
+
+        A plan names a stage with the word the public CLI takes, and a
+        reader is keyed on the word a finished log says it is.  They are
+        usually the same word and this answers ``(stage,)``.  They are not
+        always: ChemSmart runs one Gaussian ``irc`` job as two native
+        one-direction inputs, and each log's route says ``ircf`` or
+        ``ircr``, so the stage word appears in no Gaussian log ever
+        written by this hub.
+
+        Declaring the correspondence here rather than teaching each
+        consumer the stage word keeps it one fact.  It was three: the
+        plan-time selector gate and the geometry-producer predicate both
+        assumed stage-is-key and so found a Gaussian IRC unreadable and
+        unusable, while the preview verifier spelled the branch pair out
+        by hand.
+        """
+
+        normalized = str(stage).strip().lower()
+        declared = next(
+            (
+                jobtypes
+                for declared_stage, jobtypes in self.stage_result_jobtypes
+                if declared_stage == normalized
+            ),
+            None,
+        )
+        if declared is not None:
+            return declared
+        if self.selectors_for_jobtype(normalized) is None:
+            return ()
+        return (normalized,)
+
+    def selectors_for_stage(self, stage: str) -> tuple[str, ...] | None:
+        """Coverage every result of one planned stage declares.
+
+        The intersection, not the union: a stage that can produce more
+        than one result promises only what all of them carry, because a
+        plan built before any of them exists cannot know which one an
+        extraction will be handed.  For Gaussian's two IRC branches the
+        two declarations are identical, so the intersection costs the
+        stage nothing and states the rule for the next stage that splits.
+        """
+
+        jobtypes = self.result_jobtypes_for_stage(stage)
+        if not jobtypes:
+            return None
+        declared = [self.selectors_for_jobtype(item) for item in jobtypes]
+        if any(item is None for item in declared):
+            return None
+        shared = set(declared[0] or ())
+        for item in declared[1:]:
+            shared &= set(item or ())
+        return tuple(sorted(shared))
 
     def available_selectors(self, output: Any) -> tuple[str, ...]:
         """Return the selectors this one opened result actually resolves.
@@ -5172,6 +5233,23 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 ),
             ),
         ),
+        # ChemSmart runs one Gaussian ``irc`` job as two native
+        # one-direction inputs, so the word a plan names the stage with
+        # appears in no log it writes.  Nothing joined the two, and the
+        # consequence was not a missing selector but a stage that could
+        # not be used at all: an extraction reading an IRC producer was
+        # refused while the plan was still being built, and no geometry
+        # edge could leave the node, although both branch declarations
+        # carry ``reached_positions`` in the ``as_reached`` state.
+        #
+        # The bare word is deliberately not declared above instead.  A
+        # route that says ``irc`` with no direction is Gaussian's own
+        # both-direction job: one log holding two legs, whose last frame
+        # is the end of the second leg and whose first and last frames
+        # are not the two ends of one walk.  ``reached_positions`` and
+        # the trajectory pair mean something else there, and that log has
+        # not been audited.
+        stage_result_jobtypes=(("irc", ("ircf", "ircr")),),
         # Which molecular state each value belongs to.  The reader declared
         # none at all until this round, which is not the same as every
         # value being stateless: it meant no consumer could ask this reader

@@ -480,6 +480,15 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     ): _DECLARATION
     + ": the job types whose own surface can be an "
     "excited root",
+    (
+        "chemsmart/analysis/result_readers.py",
+        "<module>",
+        "RESULT_READERS",
+        ("ircf", "ircr"),
+    ): _DECLARATION
+    + ": the result words one planned Gaussian irc stage writes under, "
+    "which is what lets every consumer derive them instead of "
+    "spelling the pair out again",
 }
 
 
