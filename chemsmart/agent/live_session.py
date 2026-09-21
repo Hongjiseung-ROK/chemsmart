@@ -3185,8 +3185,7 @@ def local_orca_input_check() -> tuple[Path | None, dict[str, str] | None]:
     if not path:
         return None, None
     env = dict(os.environ)
-    for key, value in (executable.env or {}).items():
-        env[str(key)] = os.path.expanduser(str(value))
+    env.update(executable.resolved_env(env))
     return Path(os.path.expanduser(str(path))), env
 
 

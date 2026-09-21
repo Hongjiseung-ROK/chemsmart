@@ -1528,6 +1528,16 @@ def test_bounded_server_profile_preserves_program_environment_and_timeout(
         observed["GAUSSIAN"]["ENVARS"]
     )
 
+    # Surviving as text is half of it.  The engine-side loader reads this
+    # profile and hands the block to a process with no shell in between, so
+    # the reference has to be resolved by then or ORCA never finds mpirun.
+    from chemsmart.settings.executable import ORCAExecutable
+
+    engine_side = ORCAExecutable.from_servername(str(profile))
+    handed = engine_side.resolved_env({"PATH": "/usr/bin"})
+    assert handed["PATH"] == "/opt/openmpi/bin:/usr/bin"
+    assert handed["LD_LIBRARY_PATH"] == "/opt/openmpi/lib:"
+
 
 def test_xtb_optimized_geometry_handoff_preserves_identity_and_state(tmp_path):
     input_path = tmp_path / "input.xyz"

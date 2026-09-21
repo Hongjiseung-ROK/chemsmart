@@ -1,6 +1,7 @@
 import logging
 import os.path
 import platform
+import re
 import shutil
 import sys
 from typing import Optional
@@ -13,6 +14,36 @@ from chemsmart.utils.utils import strip_out_comments
 user_settings = CHEMSMARTUserSettings()
 
 logger = logging.getLogger(__name__)
+
+#: The references a declared value may make to another variable: ``$NAME``,
+#: ``${NAME}`` and ``${NAME:-default}``.  Nothing else a shell can do is
+#: interpreted; a command substitution stays the text it was written as.
+_REFERENCE = re.compile(r"\$(?:(\w+)|\{(\w+)(?::-([^}]*))?\})")
+
+
+def _resolve_declared_value(raw, known):
+    """One declared value as a shell would hand it to a process.
+
+    A single-quoted value is taken as written.  Otherwise surrounding double
+    quotes are dropped, each reference is replaced from ``known`` (an unset
+    name is empty, or its ``:-`` default, as it is in a shell), and a leading
+    ``~`` is expanded.
+    """
+
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == value[-1] == "'":
+        return value[1:-1]
+    if len(value) >= 2 and value[0] == value[-1] == '"':
+        value = value[1:-1]
+
+    def replace(match):
+        name = match.group(1) or match.group(2)
+        found = known.get(name)
+        if found:
+            return str(found)
+        return match.group(3) or ""
+
+    return os.path.expanduser(_REFERENCE.sub(replace, value))
 
 
 class Executable(RegistryMixin):
@@ -191,42 +222,63 @@ class Executable(RegistryMixin):
     @property
     def scratch_dir(self):
         """
-        Extract scratch directory path from environment variables.
+        The scratch directory this program's ``ENVARS`` declare.
 
-        Parses the envars configuration to find SCRATCH directory definition.
+        Read through the same parser a process is given, so ``SCRATCH`` is
+        the variable of that name and its value is resolved.
 
         Returns:
             str or None: Path to scratch directory if defined, None otherwise.
         """
-        if self.envars is not None:
-            for line in self.envars.split("\n"):
-                line = line.split("#")[0].strip()  # Remove comments
-                if "SCRATCH" in line:
-                    return line.split("=")[1]
-        return None
+        return self.resolved_env().get("SCRATCH") or None
 
     @property
     def env(self):
         """
-        Parse environment variables from envars configuration.
+        The ``export`` lines of ``ENVARS``, exactly as they were written.
 
-        Extracts export statements from the envars string and returns them
-        as a dictionary of environment variables.
+        This is the rendering a job script needs: the compute node's shell
+        expands ``$PATH`` when the job starts, so expanding it here would
+        freeze the submitting host's value into a script that runs somewhere
+        else.  A process needs :meth:`resolved_env` instead.
 
         Returns:
-            dict or None: Dictionary of environment variables if envars is set,
-                         None otherwise.
+            dict or None: Declared names to their written values, in
+                         declaration order, if envars is set; None otherwise.
         """
         if self.envars is not None:
             env = {}
             for line in self.envars.split("\n"):
-                if line.startswith("export"):
-                    line = line.split("#")[0].strip()  # Remove comments
-                    line = line[7:]  # Remove 'export ' prefix
-                    key, value = line.split("=")
-                    env[key] = value
+                line = line.split("#")[0].strip()  # Remove comments
+                if line.startswith("export "):
+                    key, _, value = line[7:].partition("=")
+                    if key.strip():
+                        env[key.strip()] = value
             return env
         return None
+
+    def resolved_env(self, base=None):
+        """
+        The declared variables as a process must receive them.
+
+        No shell stands between ``subprocess`` and the engine, so nothing
+        expands ``export PATH=/opt/openmpi/bin:$PATH`` unless this does; the
+        engine would start with the literal text and ORCA would not find
+        ``mpirun``.  Lines are resolved in declaration order against ``base``
+        (the inherited environment by default) and against the lines before
+        them, which is what a shell reading the block would do.
+
+        Args:
+            base (Mapping, optional): The environment the process inherits.
+
+        Returns:
+            dict: Declared names to their resolved values; empty if none.
+        """
+        known = dict(os.environ if base is None else base)
+        resolved = {}
+        for key, raw in (self.env or {}).items():
+            known[key] = resolved[key] = _resolve_declared_value(raw, known)
+        return resolved
 
 
 class GaussianExecutable(Executable):

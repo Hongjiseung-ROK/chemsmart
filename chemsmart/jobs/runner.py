@@ -407,14 +407,11 @@ class JobRunner(RegistryMixin):
 
     def _update_os_environ(self, job):
         env = os.environ.copy()
-        env_vars = self.executable.env if self.executable else None
-        if not env_vars:
+        if not self.executable:
             return env
-        logger.debug(f"Environment variables to update: \n{env_vars}")
-        for k, v in env_vars.items():
-            if isinstance(v, str):
-                v = os.path.expanduser(v)
-            env[k] = str(v)
+        declared = self.executable.resolved_env(env)
+        logger.debug(f"Environment variables to update: \n{declared}")
+        env.update(declared)
         return env
 
     def run(self, job, **kwargs):
