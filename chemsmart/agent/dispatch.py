@@ -358,9 +358,11 @@ def dispatch_run_to_scheduler(
             --unsealed`` drops the headroom and holds the request to the
             profile alone, which is the escape for a profile too small to
             leave anything above it.
-        envelope: The approved execution envelope, whose episode window
-            and postprocessing reserve are the wall clock asked for. The
-            operator's NUM_HOURS caps it and no longer sets it.
+        envelope: The approved execution envelope. The wall clock asked
+            of the scheduler is the server profile's NUM_HOURS, not the
+            episode window: the profile is the scheduler authority and
+            nothing here caps or sets it. An episode longer than that
+            allocation is recorded beside the request as an observation.
         cohort_node_ids: The wave the Agent selected, in the order it
             selected it. Given, the run is submitted as one throttled
             array -- one element per approved calculation -- plus one

@@ -550,3 +550,40 @@ def test_the_sealed_flag_reaches_the_dispatcher_from_the_command_line():
     }
     assert "--unsealed" in flags or "--sealed" in flags
     assert '"sealed": bool(sealed)' in inspect.getsource(GoalDriver.__init__)
+
+
+def test_an_episode_longer_than_the_allocation_is_said_beside_it(tmp_path):
+    """Hours are the one allocated number that was never compared.
+
+    Cores and memory ride along as an observation when the profile and the
+    episode differ. Hours did not, although a job whose episode outlives its
+    allocation is ended by the scheduler with the wake in its own tail, and
+    the goal stays parked with nothing typed to say why. Still an
+    observation, never a refusal and never a clamp: the profile owns the
+    number.
+    """
+
+    from types import SimpleNamespace
+
+    from chemsmart.settings.scheduler_request import resolve_scheduler_request
+
+    server = _slurm_server()  # NUM_HOURS=24
+    fits = resolve_scheduler_request(
+        resources=_resources(cores=6, memory_gb=46),
+        server=server,
+        sealed=True,
+        envelope=SimpleNamespace(episode_wall_time_seconds=20 * 3600),
+    )
+    assert fits.hours == 24
+    assert not any("hours" in o for o in fits.observations)
+
+    outlives = resolve_scheduler_request(
+        resources=_resources(cores=6, memory_gb=46),
+        server=server,
+        sealed=True,
+        envelope=SimpleNamespace(episode_wall_time_seconds=40 * 3600),
+    )
+    assert outlives.hours == 24, "the profile still decides"
+    said = [o for o in outlives.observations if "hours" in o]
+    assert len(said) == 1
+    assert "40" in said[0] and "24" in said[0]

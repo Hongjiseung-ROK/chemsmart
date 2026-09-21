@@ -131,8 +131,9 @@ def resolve_scheduler_request(
             them.
         server: The server profile, which supplies every applied number.
         sealed: Whether the sealed-job memory headroom applies.
-        envelope: The approved execution envelope, accepted so callers do
-            not have to know whether it is consulted. It is not.
+        envelope: The approved execution envelope. It changes no applied
+            number. Its episode window is compared with the profile's hours
+            and the difference is recorded, exactly as cores and memory are.
 
     Returns:
         SchedulerRequestV1: What to ask the scheduler for, and what the
@@ -171,6 +172,19 @@ def resolve_scheduler_request(
                     else ""
                 )
             )
+
+    episode_seconds = getattr(envelope, "episode_wall_time_seconds", None)
+    if hours and episode_seconds and int(episode_seconds) > hours * 3600:
+        # Hours were the one allocated number never compared. A job whose
+        # episode outlives its allocation is ended by the scheduler with its
+        # own wake in its tail. Said, never refused and never clamped: the
+        # profile owns the number, and an operator who reads this edits it.
+        observations.append(
+            "the approved episode may run for "
+            f"{_as_number(int(episode_seconds) / 3600)} hours; the server "
+            f"profile allocates {hours} hours, so the scheduler may end the "
+            "job before the episode does"
+        )
 
     return SchedulerRequestV1(
         cores=cores,
