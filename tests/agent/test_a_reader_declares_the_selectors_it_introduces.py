@@ -111,11 +111,27 @@ def test_two_readers_may_not_disagree_about_a_selector_they_both_introduce():
 
 
 def test_every_live_declaration_names_a_real_dimension_and_an_accessor():
-    """What the live readers declare is usable, whatever they come to declare."""
+    """What the live readers declare is usable, whatever they come to declare.
+
+    The unit is checked by resolving it, not by its truthiness. ``""`` is
+    how the shared table has always spelled a dimensionless selector --
+    ``oscillator_strengths``, ``connectivity``, ``solvation_model`` -- and
+    the arithmetic reads it as such, so demanding a non-empty string made
+    a dimensionless quantity the one kind of selector a reader could not
+    declare and had to add to the flat table instead. That held only
+    while every declared selector happened to be an energy.
+    """
+
+    from chemsmart.analysis.quantity_expressions import unit_dimension
 
     for program, reader in RESULT_READERS.items():
         for selector, unit, dimension in reader.selector_declarations:
-            assert unit, (program, selector)
             assert hasattr(rq, dimension), (program, selector, dimension)
+            assert unit_dimension(unit) == getattr(rq, dimension), (
+                program,
+                selector,
+                unit,
+                dimension,
+            )
             assert selector in reader.accessors, (program, selector)
             assert selector in supported_selectors(), (program, selector)

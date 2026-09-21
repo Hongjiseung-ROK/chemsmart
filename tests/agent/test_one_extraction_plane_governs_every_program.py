@@ -125,8 +125,18 @@ def test_the_hartree_versus_electronvolt_disagreement_is_one_entry():
 
 
 def test_every_pyscf_accessor_is_in_the_shared_vocabulary():
-    """The invariant the separate plane was outside of."""
+    """The invariant the separate plane was outside of.
+
+    The vocabulary is ``supported_selectors()``: the shared set plus what
+    each reader declares beside its own accessors. Asking the flat set
+    alone would say a program leaves the plane the moment it declares
+    anything, which is the opposite of what a declaration is -- and it
+    would push the declaration back into the table every program shares.
+    """
+
+    from chemsmart.analysis.result_quantities import supported_selectors
 
     accessors = set(reader_for("pyscf").accessors)
-    assert accessors <= set(SUPPORTED_SELECTORS)
+    assert set(SUPPORTED_SELECTORS) <= supported_selectors()
+    assert accessors <= supported_selectors()
     assert accessors <= set(SELECTOR_UNITS)
