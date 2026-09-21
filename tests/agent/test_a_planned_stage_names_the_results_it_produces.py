@@ -186,3 +186,44 @@ def test_a_path_that_reaches_one_structure_may_hand_it_on():
     assert not _ends_on_one_reached_structure("orca", "irc")
     assert _ends_on_one_reached_structure("gaussian", "ts")
     assert _ends_on_one_reached_structure("gaussian", "opt")
+
+
+def test_an_empty_appended_field_keeps_the_record_it_had():
+    """A cell that states nothing new keeps the digest evidence cites.
+
+    ``result_jobtypes`` was appended to a v1 record whose receipts are
+    already quoted as the evidence behind recorded runs. Carrying it into
+    the canonical body unconditionally moved the receipt digest of every
+    cell of every program -- measured 38 of 38 against the frozen base --
+    which is a track reaching into three other programs' surfaces to say
+    nothing about them. Empty leaves the body exactly as it was, so only
+    the cell whose fact changed moves; the execution review holds every
+    one of its appended fields to the same rule.
+    """
+
+    from chemsmart.agent.capabilities import (
+        CapabilityQueryV1,
+        query_capability,
+    )
+    from chemsmart.settings.capabilities import PROGRAM_CAPABILITIES
+
+    carrying = []
+    for program, capability in sorted(PROGRAM_CAPABILITIES.items()):
+        for jobtype in sorted(capability.jobtypes):
+            # Constructing the receipt re-derives its own digest from the
+            # canonical body and raises on a mismatch, so reaching here
+            # is the statement that the digest follows the body below.
+            receipt = query_capability(
+                CapabilityQueryV1(program, jobtype, "cpu")
+            )
+            coverage = receipt.job_result_selector_coverage
+            if coverage is None:
+                continue
+            body = coverage.canonical_body()
+            assert ("result_jobtypes" in body) == bool(
+                coverage.result_jobtypes
+            )
+            if coverage.result_jobtypes:
+                carrying.append((program, jobtype))
+    # One stage in the product spells its results differently from itself.
+    assert carrying == [("gaussian", "irc")]

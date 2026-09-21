@@ -508,6 +508,23 @@ class JobResultSelectorCoverageV1:
         )
         _require_sorted_unique(self.validity_rules, "validity rules")
 
+    def canonical_body(self) -> dict[str, Any]:
+        """The body this record is digested from.
+
+        ``result_jobtypes`` is an additive field on a v1 record that
+        already has receipts cited as evidence. A cell where the stage
+        and its results share a word states nothing it did not state
+        before, so it keeps the body -- and therefore the digest -- it
+        always had, and only the cell whose fact actually changed moves.
+        Every appended optional field on the execution review is held to
+        the same rule.
+        """
+
+        body = dict(self.__dict__)
+        if not self.result_jobtypes:
+            body.pop("result_jobtypes", None)
+        return body
+
 
 #: The typed axes a result can be read on. Progress is filled cells.
 COVERAGE_AXES = (
@@ -619,7 +636,7 @@ class CapabilityQueryReceiptV1:
                     "job-result selector coverage must bind the queried jobtype"
                 )
             body["job_result_selector_coverage"] = (
-                self.job_result_selector_coverage
+                self.job_result_selector_coverage.canonical_body()
             )
         expected = canonical_sha256(body)
         if self.receipt_sha256 != expected:
@@ -1566,8 +1583,16 @@ def query_capability(
         body["effective_engine_job_pairs"] = effective_engine_job_pairs
     if job_result_selector_coverage is not None:
         body["job_result_selector_coverage"] = job_result_selector_coverage
+    # The record travels whole; only what it is digested from drops an
+    # appended field that states nothing, so a cell whose fact did not
+    # change keeps the receipt digest earlier evidence cites.
+    digest_body = dict(body)
+    if job_result_selector_coverage is not None:
+        digest_body["job_result_selector_coverage"] = (
+            job_result_selector_coverage.canonical_body()
+        )
     return CapabilityQueryReceiptV1(
-        **body, receipt_sha256=canonical_sha256(body)
+        **body, receipt_sha256=canonical_sha256(digest_body)
     )
 
 
