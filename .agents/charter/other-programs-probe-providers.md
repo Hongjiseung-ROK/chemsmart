@@ -2,13 +2,13 @@
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
-results. Gaussian ``opt`` and ``sp`` are release-qualified for Agent
-execution on CPU, each recorded from two live goals on the configuration
-they ran -- goals whose task text was fixed before their first issue and
-re-issued unchanged, but which no seal record binds, so they are not
-called sealed; ``ts``, ``irc``, ``scan``, ``modred``, ``td`` and
-``link`` have real engine runs on that target through the human CLI and no
-approved Agent execution, which is a different fact and stays unclaimed.
+results. Gaussian ``opt``, ``sp``, ``ts`` and ``irc`` are release-qualified for
+Agent execution on CPU, each recorded from live goals on the
+configuration they ran -- goals whose task text was fixed before their
+first issue, but which no seal record binds, so they are not called
+sealed; ``scan``, ``modred``, ``td`` and ``link`` have real engine runs
+on that target through the human CLI and no approved Agent execution,
+which is a different fact and stays unclaimed.
 
 What a completed Gaussian result answers is decided by the job the log says
 produced it, and its route line alone cannot say: ``opt=modredundant`` is
@@ -18,9 +18,14 @@ reader is therefore asked the question the log can answer -- the
 ModRedundant section Gaussian echoes, whose scan rows end ``S <steps>
 <size>`` -- and declares ``opt``, ``ts``, ``sp``, ``td``, ``modred``,
 ``scan`` and the two IRC branch words. Never a bare ``irc``: ChemSmart
-writes a Gaussian IRC as two one-direction inputs, so no log answers to it
-and no IRC producer edge is admitted, which is the mirror of ORCA's reason
-rather than the same one. Never ``link`` either, because a link job's
+writes a Gaussian IRC as two one-direction inputs, so no log answers to
+it. What the reader declares instead is which result words a planned
+``irc`` stage produces, so the stage's own coverage is the two branches'
+intersection and an extraction can be planned against it -- but the
+producer edge stays closed, because a stage that writes two results ends
+on two structures and has no one structure to hand on. That is a
+different reason from ORCA's, whose IRC log prints only where the path
+started. Never ``link`` either, because a link job's
 route resolves to its linked target and the result reads as that job. A
 relaxed scan's surface is assembled by the parser from the points the log
 marks converged and each point's own driven coordinate, because Gaussian
@@ -45,6 +50,41 @@ geometry and then taking a single point on the structure the optimisation
 reached, and each settling ``achieved`` under the host completion gate.
 Both optimisations reproduce the same calculation run through the human
 CLI to every printed digit.
+
+``ts`` and ``irc`` were earned together, because a walk starts from the
+saddle a search reached (goal g1, Slurm 2142871). Handed a deliberately
+symmetrised malonaldehyde enol -- the enolic hydrogen at the midpoint of
+the two oxygens, O...O 2.683 A -- the search reached the C2v proton-
+transfer saddle in 29.0 s: one imaginary mode of twenty-one at
+-1231.2699 cm^-1, O...O 2.3781 A, and the C-O and C-C pairs equal to
+2e-4 A, which the input was not. The host's geometry handoff carried
+that structure into the path, and the path was verified as the two
+one-direction results it is: 15 accepted points per branch, net reaction
+coordinates 1.50918 and 1.50917, endpoints at -267.148804378 and
+-267.148803942 Eh -- mirror images to 4.4e-7 Eh across a 3.447 kcal/mol
+barrier, which nothing told the engine to expect. Each branch reads
+through the typed layer with its own direction, 17 frames and
+``trajectory_connectivity_changed`` = 1: the hydrogen is bonded to both
+oxygens at the saddle and to one at each end, so which minima the saddle
+connects is observed. The goal settled ``achieved_with_observations``,
+the observation being the host's own unasked-for record that the saddle's
+molecular graph differs from the one it was handed.
+
+A Gaussian reaction path is configured by the class that owns it. The
+project loader validated every Gaussian section against the shared
+one-geometry defaults, so ``direction``, ``maxpoints``, ``recalc_step``
+and the rest of what ``run gaussian irc`` has always taken were refused
+as unknown keys; ORCA had been given the lift out of that and Gaussian
+never was. Measured on two live goals an hour apart on the same target
+and the same task family: before the lift, ``irc: {maxpoints: 50}``,
+``irc: {direction: forward}`` and ``irc: {direction: reverse}`` were each
+answered ``invalid`` and the session fell back first to
+``additional_route_parameters: maxpoints=50`` -- which appends a bare
+token beside the keyword it belongs inside -- and then to one
+directionless node; after it, ``irc: {maxpoints: 60, stepsize: 0.1}``
+validated and reached the route. What a plan still cannot say is a
+direction per node: ``CommandNodeIntentV1`` has no such field, and a
+session that wants the two branches as two nodes has no way to ask.
 
 One boundary of the Gaussian route channel is worth stating because the
 program does not state it. A route parameter is appended verbatim, so a

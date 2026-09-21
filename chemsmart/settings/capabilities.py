@@ -636,11 +636,11 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
             project_owned_parameters=_GAUSSIAN_PROJECT_PARAMETERS,
             engines=("cpu",),
             engine_job_capabilities=(
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="irc",
-                    execution_supported=False,
-                ),
+                # A reaction path, walked from a saddle this Agent
+                # found. Declared here because this flag is what admits a
+                # node to approval at all, which is the order `ts` and
+                # ORCA's `scan` were held to; the recorded runs keep it.
+                EngineJobCapability(engine="cpu", jobtype="irc"),
                 EngineJobCapability(
                     engine="cpu",
                     jobtype="link",
@@ -676,9 +676,9 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                 # "bounded execution has no executable jobs" before any
                 # planning. It is withdrawn if the runs do not hold.
                 #
-                # `ts`, `irc`, `scan`, `modred`, `td` and `link` have real
-                # engine runs on this target through the human CLI and no
-                # approved Agent execution. That is a different fact and stays
+                # `scan`, `modred`, `td` and `link` have real engine runs
+                # on this target through the human CLI and no approved
+                # Agent execution. That is a different fact and stays
                 # unclaimed.
                 EngineJobCapability(engine="cpu", jobtype="opt"),
                 EngineJobCapability(
@@ -692,11 +692,7 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                     jobtype="td",
                     execution_supported=False,
                 ),
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="ts",
-                    execution_supported=False,
-                ),
+                EngineJobCapability(engine="cpu", jobtype="ts"),
             ),
             project_section_names=loader_project_section_names("gaussian"),
             project_parameter_domains=tuple(
