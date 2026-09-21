@@ -1080,7 +1080,13 @@ def build_scientific_toolchain_plan(
             reader = reader_for(calculation.program)
             if reader is None or not reader.jobtype_selectors:
                 continue
-            declared = reader.selectors_for_jobtype(calculation.jobtype)
+            # A plan holds a stage word; the reader is keyed on what a
+            # finished log calls itself. Asking for the stage's coverage
+            # rather than assuming the two spellings agree is what lets a
+            # program whose job writes its results under other words --
+            # ChemSmart's Gaussian irc, as a forward and a reverse branch
+            # -- be read at all.
+            declared = reader.selectors_for_stage(calculation.jobtype)
             if declared is None:
                 raise ScientificToolchainContractError(
                     f"extraction node {node.node_id!r} reads "
