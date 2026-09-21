@@ -126,6 +126,23 @@ _ORCA_RULES = (
             re.compile(r"\bno\b.*\bauxc\b.*\bbasis\b", re.I),
         ),
     ),
+    # The program could not start its own ranks: the launcher it called is
+    # not on the search path it was given. Three approved calls died this way
+    # in 22 seconds (CUHK job 2142445, 2026-09-21), fell through undiagnosed,
+    # and were typed as geometry non-convergence -- the second instance of the
+    # fall-through the input-check class above was written for. Before
+    # ``mpi_runtime``: a launcher that is absent and ranks that fail are
+    # different facts, and only the second says anything about MPI itself.
+    (
+        "parallel_launcher_missing",
+        (
+            re.compile(
+                r"\b(?:mpirun|orterun|mpiexec)\b\s*:\s*"
+                r"(?:command not found|No such file or directory)",
+                re.I,
+            ),
+        ),
+    ),
     (
         "mpi_runtime",
         (
@@ -254,6 +271,12 @@ _CANONICAL_DIAGNOSTICS = {
         ),
         "auxiliary_basis": (
             "ORCA rejected the auxiliary basis for a correlated method.",
+        ),
+        "parallel_launcher_missing": (
+            "ORCA could not start its parallel ranks: the launcher it called "
+            "was not found on the search path the engine was given. No "
+            "calculation began; this is the host's environment, not the "
+            "chemistry.",
         ),
         "mpi_runtime": ("ORCA subprocess reported an MPI runtime failure.",),
         "scf_convergence": ("ORCA SCF did not converge.",),
@@ -493,6 +516,7 @@ def _summarize(
     last_error_index = -1
     explicit_error = False
     engine_lines: list[str] = []
+    decisive_lines: list[str] = []
     recent: list[str] = []
     trailing = 0
 
@@ -513,6 +537,7 @@ def _summarize(
                 last_error_index = line_index
                 matches[error_class] = True
                 matched = True
+                _append_engine_line(decisive_lines, _redact(line))
         # Quote a window around the line the program failed on.  The lines
         # before it carry the diagnosis and usually the remedy; the matched
         # line itself is often only the abort marker.
@@ -530,6 +555,17 @@ def _summarize(
 
     if last_normal_index >= 0 and last_normal_index > last_error_index:
         return None
+
+    # The line a class was chosen FOR is the program's own reason and is
+    # always quoted. It used to compete with the window opened by an earlier,
+    # generic abort marker: ORCA prints "error termination in Startup" in its
+    # output and the shell's "mpirun: command not found" on the error stream,
+    # so four basis-set rows and the marker filled the quota and the one line
+    # that said why never reached the session.
+    engine_lines = [
+        *decisive_lines,
+        *(line for line in engine_lines if line not in decisive_lines),
+    ][:_MAX_ENGINE_LINES]
 
     error_class = next(
         (candidate for candidate, _patterns in rules if matches[candidate]),
