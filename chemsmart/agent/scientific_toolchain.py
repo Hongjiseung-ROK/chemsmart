@@ -1094,8 +1094,9 @@ def build_scientific_toolchain_plan(
                 # result of its node -- and being refused here, while the
                 # plan is built, is the whole difference from being
                 # refused once the engine has finished. ChemSmart runs one
-                # Gaussian `irc` as both branches because nothing in a
-                # node or a project section can ask for one direction.
+                # Gaussian `irc` as both branches wherever the plan has
+                # not fixed a direction, and a planning node has no field
+                # that fixes one.
                 raise ScientificToolchainContractError(
                     f"extraction node {node.node_id!r} reads "
                     f"{calculation.program!r} stage "

@@ -148,10 +148,10 @@ def test_a_stage_that_writes_several_results_is_no_producer():
     most expensive job in the workflow.
 
     Which end of a path travels is a statement the displayed plan has to
-    make. Nothing in a node can make it today: ``direction`` is neither a
-    Gaussian project-section key (the loader refuses it) nor a field of
-    ``CommandNodeIntentV1``, so every Gaussian IRC the Agent compiles
-    walks both ways and writes two logs.
+    make, and a plan cannot yet make it per node: ``direction`` reaches
+    the route through the project section, but it is not a field of
+    ``CommandNodeIntentV1``, so a plan that has not fixed one expresses a
+    Gaussian IRC that walks both ways and writes two logs.
     """
 
     for _program, reader in sorted(RESULT_READERS.items()):

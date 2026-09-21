@@ -6926,9 +6926,10 @@ def _ends_on_one_reached_structure(program: str, stage: str) -> bool:
     id and kind, so such a node would be admitted here while the plan is
     built and then found ambiguous after the most expensive job in it had
     finished. Which end of a reaction path travels is a statement the
-    displayed plan has to make, and today nothing in a node can make it:
-    ``direction`` is neither a Gaussian project-section key nor a field
-    of a planning node, so every IRC the Agent compiles walks both ways.
+    displayed plan has to make, and a plan cannot yet make it per node:
+    ``direction`` is a Gaussian project-section key but not a field of
+    ``CommandNodeIntentV1``, and one workflow carries one project per
+    node role, so a two-branch IRC is still what a plan expresses.
     """
 
     if stage in OPTIMIZED_GEOMETRY_PRODUCER_STAGES:
