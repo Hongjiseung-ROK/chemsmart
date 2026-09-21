@@ -4320,8 +4320,15 @@ def _characterised_geometry_digest(reader: Any, output: Any) -> str:
     no geometry yields "", which the receipt omits.
     """
 
+    # Both halves come through the reader.  The symbols used to be taken
+    # from ``output.chemical_symbols``, a parser attribute rather than a
+    # selector: every reader serves ``symbols``, but xTB's parser does not
+    # spell it that way, so an xTB order certified with the geometry field
+    # silently empty while its positions were right there.
     try:
-        symbols = tuple(str(item) for item in output.chemical_symbols)
+        symbols = tuple(
+            str(item) for item in reader.read(output, "symbols")[0]
+        )
         positions = tuple(
             tuple(float(value) for value in row)
             for row in reader.read(output, "positions")[0]
