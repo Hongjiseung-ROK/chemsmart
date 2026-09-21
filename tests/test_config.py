@@ -854,3 +854,80 @@ class TestWheelInstallGuard:
             assert cfg.ps_env_vars == [
                 "Set-Alias -Name chemsmart -Value chemsmart.exe"
             ]
+
+
+class TestConfigHonoursTheConfiguredDirectory:
+    """``chemsmart config`` writes where ChemSmart reads.
+
+    Every reader of user configuration resolves the directory through
+    ``CHEMSMART_CONFIG_DIR`` (``CHEMSMARTUserSettings.resolve_config_dir``).
+    The command that *writes* it went to ``~/.chemsmart`` regardless, so on a
+    host where the operator had pointed ChemSmart at a project-local
+    configuration, ``chemsmart config orca`` edited a different set of files
+    from the ones every job then read -- and edited the home directory of an
+    account that had asked for it to be left alone.
+    """
+
+    def test_the_destination_follows_the_override(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(Path, "home", lambda: tmp_path / "home")
+        monkeypatch.setenv("CHEMSMART_CONFIG_DIR", str(tmp_path / "site"))
+        assert Config().chemsmart_dest == tmp_path / "site"
+        assert Config().chemsmart_server == tmp_path / "site" / "server"
+
+    def test_without_an_override_it_is_the_home_directory(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.delenv("CHEMSMART_CONFIG_DIR", raising=False)
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        assert Config().chemsmart_dest == tmp_path / ".chemsmart"
+
+
+class TestConfigureAProgramFolder:
+    """``chemsmart config gaussian|orca`` write into the configured directory."""
+
+    @staticmethod
+    def _invoke(tmp_path, monkeypatch, program, folder):
+        from click.testing import CliRunner
+
+        from chemsmart.cli.config import config
+
+        # Two independent fences. While this command ignored the override,
+        # the first run of this very test rewrote the real
+        # ``~/.chemsmart/server`` of the machine it ran on: a witness for
+        # "the override is honoured" is red in exactly the state where the
+        # override is not. The home directory is therefore moved as well.
+        fenced_home = tmp_path / "home"
+        fenced_home.mkdir(exist_ok=True)
+        monkeypatch.setattr(Path, "home", lambda: fenced_home)
+        monkeypatch.setenv("HOME", str(fenced_home))
+        monkeypatch.setenv("CHEMSMART_CONFIG_DIR", str(tmp_path / "site"))
+        return CliRunner().invoke(config, [program, "-f", str(folder)])
+
+    def test_a_fresh_template_still_carries_every_line_that_names_the_folder(
+        self, tmp_path, monkeypatch
+    ):
+        """Gaussian's folder is named four times in the template: the field,
+        the login script, GAUSS_EXEDIR and g16root. All four must move."""
+
+        server = tmp_path / "site" / "server"
+        server.mkdir(parents=True)
+        profile = server / "fresh.yaml"
+        profile.write_text(
+            "GAUSSIAN:\n"
+            "    EXEFOLDER: ~/bin/g16\n"
+            "    SCRIPTS: |\n"
+            '        tcsh -c "source ~/bin/g16/bsd/g16.login"\n'
+            "    ENVARS: |\n"
+            "        export GAUSS_EXEDIR=~/bin/g16\n"
+            "        export g16root=~/bin/g16\n"
+        )
+        g16 = tmp_path / "g16C02"
+        g16.mkdir()
+
+        assert (
+            self._invoke(tmp_path, monkeypatch, "gaussian", g16).exit_code == 0
+        )
+
+        text = profile.read_text()
+        assert "~/bin/g16" not in text
+        assert text.count(str(g16)) == 4

@@ -53,7 +53,18 @@ class Config:
 
     @property
     def chemsmart_dest(self):
-        """Destination path for the user's ``.chemsmart`` configuration."""
+        """Destination path for the user's ChemSmart configuration.
+
+        The directory every reader resolves through ``CHEMSMART_CONFIG_DIR``
+        (``CHEMSMARTUserSettings.resolve_config_dir``), and ``~/.chemsmart``
+        without it. This command used to write to the home directory
+        regardless, so where an operator had pointed ChemSmart at another
+        configuration it edited files no job would read -- in a home
+        directory that had been asked to be left alone.
+        """
+        configured = os.environ.get("CHEMSMART_CONFIG_DIR")
+        if configured:
+            return Path(configured).expanduser()
         return Path.home() / ".chemsmart"
 
     @property
