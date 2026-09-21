@@ -3308,10 +3308,27 @@ def _internal_coordinates_schema() -> dict:
             "constrained": {
                 "type": "array",
                 "maxItems": 32,
+                # A constraint carries no value here because it carries
+                # none in the program either: ChemSmart writes `{B i j C}`,
+                # which freezes the coordinate where the bound geometry
+                # already has it. Said nowhere, a live session read "held
+                # fixed while everything else relaxes" as "moved there and
+                # held", invented a `value: 0.0` key inside a modred
+                # project YAML to say which value it meant, had it
+                # correctly rejected, and fell back to a relaxed scan --
+                # the only vocabulary that carries a target
+                # (CUHK r9o-g1, 2026-09-21).
                 "description": (
                     "Coordinates held fixed while everything else relaxes. "
                     "These are the constraint of a constrained optimisation, "
-                    "and may also accompany a scan."
+                    "and may also accompany a scan. Each is held at the "
+                    "value the bound geometry already has -- a constraint "
+                    "states which coordinate, never which value, here or in "
+                    "the project. To relax a molecule at a value it does "
+                    "not yet have, first move the coordinate there with "
+                    "set_bond_length, set_angle or set_dihedral and "
+                    "constrain the edited geometry; to sample a range of "
+                    "values instead, drive it with a scan."
                 ),
                 "items": {
                     "type": "object",
