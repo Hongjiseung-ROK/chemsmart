@@ -440,11 +440,12 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     ): _GAUSSIAN_NATIVE,
     (
         "chemsmart/settings/gaussian.py",
-        "YamlGaussianProjectSettingsBuilder/_project_settings_for_job",
-        "settings_mapping",
+        "gaussian_jobtype_settings_classes",
+        None,
         ("irc", "link", "qmmm", "td"),
     ): _DECLARATION
-    + ": Gaussian's per-jobtype settings classes",
+    + ": Gaussian's per-jobtype settings classes, now read by the project "
+    "reader as well as by the builder, which is why it is a function",
     (
         "chemsmart/settings/orca.py",
         "YamlORCAProjectSettingsBuilder/_project_settings_for_job",

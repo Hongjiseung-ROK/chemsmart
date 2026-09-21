@@ -80,7 +80,21 @@ def test_every_kind_is_represented(registry):
 #: again. Leaving it unadvertised to keep this number would hide a
 #: setting from the one human decision. The number resumes falling
 #: from 87.
-ADVERTISED_UNWIRED_BUDGET = 87
+#:
+#: 2026-09-21 (Gaussian reaction paths): 87 -> 92. What a Gaussian IRC
+#: is -- which way it walks, how far, how often the curvature is
+#: recomputed, how big a step is -- was settable on the CLI and refused
+#: by the project loader, so a live session that asked for
+#: ``irc: {maxpoints: 50}`` fell back to appending a bare
+#: ``maxpoints=50`` beside the IRC keyword, which is not a Gaussian
+#: route keyword at all (CUHK r9g-g1). Eight controls are now
+#: loader-accepted and advertised. Three are ``click.Choice`` options,
+#: so their domains are read from the command itself and they arrive
+#: wired; ``maxpoints``, ``maxcycles``, ``recalc_step``, ``stepsize``
+#: and ``flat_irc`` are the ``nstates`` and ``density_fit`` classes
+#: again -- a bound and a boolean, neither of which a tuple of strings
+#: can say. The number resumes falling from 92.
+ADVERTISED_UNWIRED_BUDGET = 92
 
 
 def test_everything_advertised_is_wired(registry):

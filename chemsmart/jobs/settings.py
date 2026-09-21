@@ -593,6 +593,32 @@ def read_molecular_job_yaml(filename, program="gaussian"):
             all_project_configs[job] = settings_class(
                 **all_project_configs[job]
             ).__dict__.copy()
+        if program == "gaussian":
+            # The same lift, for the same reason, on the program that
+            # never got it. Gaussian's shared defaults describe a
+            # one-geometry job, so every setting a path, a response or a
+            # link job owns -- ``direction`` and ``maxpoints`` on an IRC,
+            # ``nstates`` and ``root`` on a TD -- was refused as an
+            # unknown key although the CLI takes it and the native writer
+            # writes it. Observed live (CUHK r9g-g1, 2026-09-21): a
+            # session asked for ``irc: {maxpoints: 50}`` to bound a
+            # reaction path, was told the keyword was not in the list of
+            # keywords, and fell back to ``additional_route_parameters:
+            # maxpoints=50``, which appends a bare token beside
+            # ``irc(...)`` instead of inside it -- a route keyword that
+            # is not one.
+            #
+            # Which class owns which section is the Gaussian loader's own
+            # declaration, read from there rather than written again.
+            from chemsmart.settings.gaussian import (
+                gaussian_jobtype_settings_classes,
+            )
+
+            gaussian_class = gaussian_jobtype_settings_classes().get(job)
+            if gaussian_class is not None:
+                all_project_configs[job] = gaussian_class(
+                    **all_project_configs[job]
+                ).__dict__.copy()
         all_project_configs[job] = update_dict_with_existing_keys(
             all_project_configs[job], stage_config
         )
