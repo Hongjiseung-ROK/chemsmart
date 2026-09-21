@@ -485,6 +485,13 @@ class JobResultSelectorCoverageV1:
     #: Whether the reader declared this jobtype at all. False is the cell
     #: that says unsupported out loud.
     declared: bool = True
+    #: The words this stage's results answer to, when they are not the
+    #: stage's own word, and empty when they are. ChemSmart runs one
+    #: Gaussian ``irc`` as a forward and a reverse branch, so the stage
+    #: writes two results; a session that learns this before planning can
+    #: read each branch by name instead of discovering from a refusal
+    #: that a node with two results has no "the" result.
+    result_jobtypes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         require_identifier(self.jobtype, "jobtype")
@@ -1503,14 +1510,28 @@ def query_capability(
         from chemsmart.analysis.result_readers import reader_for
 
         reader = reader_for(query.program)
+        # Asked of the *stage*, which is the word this query carries and
+        # the word a plan will hold. Where a hub job writes its results
+        # under other words -- ChemSmart's Gaussian irc, as a forward and
+        # a reverse branch -- the stage word reaches no log, and asking
+        # the reader for it told a session the walk yields nothing while
+        # the plan-time gate it has to satisfy was about to say the same.
         selectors = (
-            reader.selectors_for_jobtype(query.jobtype)
+            reader.selectors_for_stage(query.jobtype)
             if reader is not None
             else None
         )
+        # Named only where the stage and its results are spelled
+        # differently, so every other cell keeps the record it had.
+        produced = (
+            reader.result_jobtypes_for_stage(query.jobtype)
+            if reader is not None
+            else ()
+        )
+        produced_jobtypes = produced if produced != (query.jobtype,) else ()
         # A jobtype the agent can run but no reader has declared is a cell
         # that says unsupported out loud, not an absent field: gaussian
-        # irc/link/modred/scan/td, orca modred/neb and pyscf td planned and
+        # link/modred/scan/td, orca modred/neb and pyscf td planned and
         # previewed with coverage silently None.
         axes, validity_rules = coverage_for(
             query.program, query.jobtype, selectors or ()
@@ -1525,6 +1546,7 @@ def query_capability(
             axes=axes,
             validity_rules=validity_rules if selectors is not None else (),
             declared=selectors is not None,
+            result_jobtypes=produced_jobtypes,
         )
 
     body = {

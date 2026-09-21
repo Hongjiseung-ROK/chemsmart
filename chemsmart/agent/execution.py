@@ -6918,11 +6918,17 @@ def _ends_on_one_reached_structure(program: str, stage: str) -> bool:
     lift, so this edge and ``build_reached_geometry`` answer one question
     with one fact.
 
-    The declaration is asked for by the *stage*, because a stage and the
-    results it produces need not share a word: ChemSmart writes one
+    "One" is load-bearing, and it is asked of the stage's *results*. A
+    stage and its results need not share a word -- ChemSmart writes one
     Gaussian ``irc`` as a forward and a reverse branch, so the stage word
-    reaches no log, and asking the reader for it answered "no coverage"
-    where both branches declare a reached structure.
+    reaches no log -- and where the results are plural the node ends on
+    two structures, not one. The host binds a producer's result by node
+    id and kind, so such a node would be admitted here while the plan is
+    built and then found ambiguous after the most expensive job in it had
+    finished. Which end of a reaction path travels is a statement the
+    displayed plan has to make, and today nothing in a node can make it:
+    ``direction`` is neither a Gaussian project-section key nor a field
+    of a planning node, so every IRC the Agent compiles walks both ways.
     """
 
     if stage in OPTIMIZED_GEOMETRY_PRODUCER_STAGES:
@@ -6934,7 +6940,12 @@ def _ends_on_one_reached_structure(program: str, stage: str) -> bool:
     reader = reader_for(program)
     if reader is None:
         return False
-    return "reached_positions" in (reader.selectors_for_stage(stage) or ())
+    produced = reader.result_jobtypes_for_stage(stage)
+    if len(produced) != 1:
+        return False
+    return "reached_positions" in (
+        reader.selectors_for_jobtype(produced[0]) or ()
+    )
 
 
 #: The stages whose results print a Hessian to hand on. It is the

@@ -1081,11 +1081,31 @@ def build_scientific_toolchain_plan(
             if reader is None or not reader.jobtype_selectors:
                 continue
             # A plan holds a stage word; the reader is keyed on what a
-            # finished log calls itself. Asking for the stage's coverage
-            # rather than assuming the two spellings agree is what lets a
-            # program whose job writes its results under other words --
-            # ChemSmart's Gaussian irc, as a forward and a reverse branch
-            # -- be read at all.
+            # finished log calls itself. Asking the reader which results
+            # a stage produces, rather than assuming the two spellings
+            # agree, is what lets the refusal below be about the right
+            # fact.
+            stage_results = reader.result_jobtypes_for_stage(
+                calculation.jobtype
+            )
+            if len(stage_results) > 1:
+                # The walk binds a producer's result by node id and kind,
+                # so a stage that writes several cannot be read as "the"
+                # result of its node -- and being refused here, while the
+                # plan is built, is the whole difference from being
+                # refused once the engine has finished. ChemSmart runs one
+                # Gaussian `irc` as both branches because nothing in a
+                # node or a project section can ask for one direction.
+                raise ScientificToolchainContractError(
+                    f"extraction node {node.node_id!r} reads "
+                    f"{calculation.program!r} stage "
+                    f"{calculation.jobtype!r}, which produces "
+                    f"{len(stage_results)} results "
+                    f"({', '.join(stage_results)}); this host binds one "
+                    "result per producer node, so read each one as a "
+                    "registered result after the run instead of naming "
+                    "the node"
+                )
             declared = reader.selectors_for_stage(calculation.jobtype)
             if declared is None:
                 raise ScientificToolchainContractError(

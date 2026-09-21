@@ -137,28 +137,52 @@ def test_a_gaussian_irc_stage_is_read_under_the_branches_it_writes():
     assert reader.selectors_for_jobtype("irc") is None
 
 
-def test_an_extraction_may_read_the_stage_a_program_splits():
-    """The plan-time gate asks the reader what the stage will produce."""
+def test_a_stage_that_writes_several_results_is_no_producer():
+    """What the plan admits, the walk can carry.
 
-    plan = _plan(
-        "gaussian", "irc", "trajectory_connectivity_changed", "count", "1"
-    )
-    assert "read-the-walk" in plan.node_order
-    # A selector no branch declares is still refused while the plan is
-    # built, which is the whole point of the gate: an IRC runs no
-    # frequency step, so it has no free energy to give.
-    with pytest.raises(ScientificToolchainContractError):
-        _plan("gaussian", "irc", "gibbs_free_energy", "energy", "hartree")
+    The host binds a producer node's result by node id and result kind,
+    both where a geometry travels and where an extraction reads. A stage
+    whose job writes more than one such result therefore has no "the"
+    result, and admitting one while the plan is built would move the
+    refusal to after the engines had finished -- for a reaction path, the
+    most expensive job in the workflow.
 
-
-def test_a_path_that_reaches_a_structure_may_hand_it_on():
-    """A producer edge follows the declaration, on either spelling.
-
-    ORCA's IRC log prints only where the path started, so its reader
-    declares no reached structure and its node stays no producer. The
-    fact the predicate reads is the declaration, not the program.
+    Which end of a path travels is a statement the displayed plan has to
+    make. Nothing in a node can make it today: ``direction`` is neither a
+    Gaussian project-section key (the loader refuses it) nor a field of
+    ``CommandNodeIntentV1``, so every Gaussian IRC the Agent compiles
+    walks both ways and writes two logs.
     """
 
-    assert _ends_on_one_reached_structure("gaussian", "irc")
+    for _program, reader in sorted(RESULT_READERS.items()):
+        for stage, _selectors in reader.jobtype_selectors:
+            if _ends_on_one_reached_structure(_program, stage):
+                assert len(reader.result_jobtypes_for_stage(stage)) == 1
+    assert reader_for("gaussian").result_jobtypes_for_stage("irc") == (
+        "ircf",
+        "ircr",
+    )
+    assert not _ends_on_one_reached_structure("gaussian", "irc")
+    with pytest.raises(ScientificToolchainContractError) as refusal:
+        _plan(
+            "gaussian", "irc", "trajectory_connectivity_changed", "count", "1"
+        )
+    assert "ircf" in str(refusal.value) and "ircr" in str(refusal.value)
+
+
+def test_a_path_that_reaches_one_structure_may_hand_it_on():
+    """A producer edge follows the declaration, not the program.
+
+    ORCA walks one direction per node, so its IRC is single-resulted --
+    and still hands nothing on, because its log prints only where the
+    path started and its reader declares no reached structure. The two
+    reasons a node may not be a producer are different facts and the
+    predicate holds both.
+    """
+
+    orca = reader_for("orca")
+    assert orca.result_jobtypes_for_stage("irc") == ("irc",)
+    assert "reached_positions" not in orca.selectors_for_jobtype("irc")
     assert not _ends_on_one_reached_structure("orca", "irc")
     assert _ends_on_one_reached_structure("gaussian", "ts")
+    assert _ends_on_one_reached_structure("gaussian", "opt")
