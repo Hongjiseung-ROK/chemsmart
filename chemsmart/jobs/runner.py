@@ -343,6 +343,31 @@ class JobRunner(RegistryMixin):
         return self.server.num_hours
 
     @property
+    def granted_wall_seconds(self):
+        """The wall clock this runner's server profile grants one process.
+
+        A runner holds no clock of its own. ``NUM_HOURS`` is what the
+        operator granted and what ``#SBATCH --time`` asks the scheduler for;
+        on the Agent's path it is written from the node timeout a human
+        approved (rounded up to whole hours, so the Agent's own exact bound
+        on the wrapping process always fires first). It is therefore also
+        all this process may spend. A profile that states no hours grants no
+        particular clock, which is what Gaussian, ORCA and xTB have always
+        run under, and a runner may not invent one in its place.
+
+        The policy lives here and nowhere else. The grant is taken exactly:
+        a margin that lets a runner write its typed timeout receipt before an
+        external SIGKILL would be a property of a site's scheduler (its
+        KillWait), not of a runner, and subtracting one by default would stop
+        a ``chemsmart run`` the operator's own profile still permits.
+        """
+
+        hours = self.num_hours
+        if not hours:
+            return None
+        return float(hours) * 3600.0
+
+    @property
     def num_threads(self):
         """Threads one process runs, inside this runner's own allocation.
 

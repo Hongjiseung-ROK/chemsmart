@@ -46,7 +46,7 @@ class ProcessObservationV1:
     pid: int | None
     process_group_id: int | None
     process_group_owned: bool
-    timeout_seconds: float
+    timeout_seconds: float | None
     memory_limit_mb: float | None
     returncode: int | None
     timed_out: bool
@@ -78,7 +78,7 @@ class ProcessObservationV1:
             "external_signal_ambiguous",
         }:
             raise ValueError("unsupported process observation state")
-        if (
+        if self.timeout_seconds is not None and (
             not math.isfinite(self.timeout_seconds)
             or self.timeout_seconds <= 0
         ):
@@ -371,7 +371,7 @@ def _build_observation(**values: Any) -> ProcessObservationV1:
 
 def launch_failure_observation(
     *,
-    timeout_seconds: float,
+    timeout_seconds: float | None,
     memory_limit_mb: float | None,
     error_type: str,
     wall_seconds: float = 0.0,
@@ -389,7 +389,9 @@ def launch_failure_observation(
         pid=None,
         process_group_id=None,
         process_group_owned=False,
-        timeout_seconds=float(timeout_seconds),
+        timeout_seconds=(
+            None if timeout_seconds is None else float(timeout_seconds)
+        ),
         memory_limit_mb=(
             None if memory_limit_mb is None else float(memory_limit_mb)
         ),
@@ -457,13 +459,19 @@ class ProcessSignalGuard:
 def observe_process(
     process: subprocess.Popen,
     *,
-    timeout_seconds: float,
+    timeout_seconds: float | None,
     memory_limit_mb: float | None = None,
     sample_interval_seconds: float = 0.1,
     termination_grace_seconds: float = 1.0,
     signal_guard: ProcessSignalGuard | None = None,
 ) -> ObservedProcessResult:
     """Wait for one process while enforcing time and observed-RSS bounds.
+
+    ``timeout_seconds`` is the wall clock the caller was granted.  ``None``
+    means no clock was granted, exactly as ``memory_limit_mb=None`` means no
+    memory bound: the process is still watched, sampled and interruptible,
+    and the receipt records that no deadline applied rather than a number
+    nobody chose.
 
     Memory is sampled for the root and all descendants visible in a portable
     ``ps`` snapshot.  Crossing the configured memory boundary is a failed
@@ -483,9 +491,10 @@ def observe_process(
                 signal_guard=active_guard,
             )
 
-    timeout_seconds = float(timeout_seconds)
-    if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
-        raise ValueError("timeout_seconds must be finite and positive")
+    if timeout_seconds is not None:
+        timeout_seconds = float(timeout_seconds)
+        if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be finite and positive")
     if memory_limit_mb is not None:
         memory_limit_mb = float(memory_limit_mb)
         if not math.isfinite(memory_limit_mb) or memory_limit_mb <= 0:
@@ -498,7 +507,7 @@ def observe_process(
         raise ValueError("sample interval must be finite and positive")
 
     started = time.monotonic()
-    deadline = started + timeout_seconds
+    deadline = None if timeout_seconds is None else started + timeout_seconds
     known_process_ids = {int(process.pid)}
     known_process_group_ids: set[int] = set()
     try:
@@ -549,15 +558,15 @@ def observe_process(
             # mark at all.
             limit_reason = "external_signal"
             break
-        now = time.monotonic()
-        remaining = deadline - now
-        if remaining <= 0:
-            limit_reason = "timed_out"
-            break
+        wait_seconds = sample_interval_seconds
+        if deadline is not None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                limit_reason = "timed_out"
+                break
+            wait_seconds = min(sample_interval_seconds, remaining)
         try:
-            stdout, stderr = process.communicate(
-                timeout=min(sample_interval_seconds, remaining)
-            )
+            stdout, stderr = process.communicate(timeout=wait_seconds)
             break
         except subprocess.TimeoutExpired:
             continue

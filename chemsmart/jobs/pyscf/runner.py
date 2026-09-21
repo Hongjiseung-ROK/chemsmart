@@ -207,7 +207,6 @@ class PySCFJobRunner(JobRunner):
     ]
     FAKE = False
     SCRATCH = False
-    NODE_TIMEOUT_SECONDS = 600
     PROCESS_SAMPLE_INTERVAL_SECONDS = 0.1
 
     def __init__(
@@ -719,7 +718,7 @@ class PySCFJobRunner(JobRunner):
             except Exception as exc:
                 self._child_returncode = None
                 self._process_observation = launch_failure_observation(
-                    timeout_seconds=self.NODE_TIMEOUT_SECONDS,
+                    timeout_seconds=self.granted_wall_seconds,
                     memory_limit_mb=self._process_memory_limit_mb(),
                     error_type=type(exc).__name__,
                 ).as_dict()
@@ -767,12 +766,12 @@ class PySCFJobRunner(JobRunner):
         return None if self.mem_gb is None else float(self.mem_gb) * 1024.0
 
     def _run(self, process, *, signal_guard=None, **kwargs):
-        """Observe the child tree under fixed time and memory boundaries."""
+        """Observe the child tree under the profile's time and memory grant."""
 
         del kwargs
         result = observe_process(
             process,
-            timeout_seconds=self.NODE_TIMEOUT_SECONDS,
+            timeout_seconds=self.granted_wall_seconds,
             memory_limit_mb=self._process_memory_limit_mb(),
             sample_interval_seconds=self.PROCESS_SAMPLE_INTERVAL_SECONDS,
             signal_guard=signal_guard,

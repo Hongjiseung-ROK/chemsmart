@@ -7,9 +7,27 @@ from unittest.mock import patch
 from chemsmart.jobs.pyscf.runner import PySCFJobRunner
 
 
-def test_pyscf_runner_observes_exact_default_limits():
-    runner = object.__new__(PySCFJobRunner)
-    runner.mem_gb = 4
+def _runner(tmp_path):
+    """A runner as production builds it: from a server profile."""
+
+    profile = tmp_path / "site.yaml"
+    profile.write_text(
+        "SERVER:\n"
+        "    SCHEDULER: SLURM\n"
+        "    NUM_HOURS: 3\n"
+        "    MEM_GB: 4\n"
+        "    NUM_CORES: 1\n"
+        "    NUM_GPUS: 0\n"
+        "    SUBMIT_COMMAND: sbatch\n"
+        "    SCRATCH_DIR: null\n"
+        "PYSCF:\n"
+        "    LOCAL_RUN: true\n"
+    )
+    return PySCFJobRunner(server=str(profile), scratch=False)
+
+
+def test_pyscf_runner_observes_the_limits_its_profile_grants(tmp_path):
+    runner = _runner(tmp_path)
     process = subprocess.Popen(
         [sys.executable, "-c", "print('complete')"],
         stdout=subprocess.PIPE,
@@ -22,7 +40,7 @@ def test_pyscf_runner_observes_exact_default_limits():
 
     assert returncode == 0
     assert runner._process_observation["state"] == "exited"
-    assert runner._process_observation["timeout_seconds"] == 600
+    assert runner._process_observation["timeout_seconds"] == 3 * 3600
     assert runner._process_observation["memory_limit_mb"] == 4096
     assert runner._process_observation["peak_rss_mb"] > 0
 
@@ -43,9 +61,8 @@ def test_pyscf_process_creation_owns_a_new_session(tmp_path):
     assert popen.call_args.kwargs.get("shell", False) is False
 
 
-def test_pyscf_launch_failure_records_boundaries_without_retry():
-    runner = object.__new__(PySCFJobRunner)
-    runner.mem_gb = 4
+def test_pyscf_launch_failure_records_boundaries_without_retry(tmp_path):
+    runner = _runner(tmp_path)
     command = ("/missing/pyscf/python", "water.py")
     with (
         patch.object(runner, "_prerun"),
@@ -65,6 +82,6 @@ def test_pyscf_launch_failure_records_boundaries_without_retry():
     assert returncode is None
     assert create_process.call_count == 1
     assert runner._process_observation["state"] == "launch_failed"
-    assert runner._process_observation["timeout_seconds"] == 600
+    assert runner._process_observation["timeout_seconds"] == 3 * 3600
     assert runner._process_observation["memory_limit_mb"] == 4096
     assert runner._process_observation["termination_requested"] is False
