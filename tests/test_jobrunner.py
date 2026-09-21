@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -544,3 +545,46 @@ class TestScratchYamlOverride:
             fake=True,
         )
         assert runner.scratch is False
+
+
+class TestScratchMustBeWritable:
+    """A scratch directory that exists and refuses every write is not scratch.
+
+    A shared cluster normally owns ``/scratch`` as a root only its
+    administrator may write to and hands each user a directory beneath it.
+    The wizard's probe learned this (``scratch_candidates``); the runner that
+    actually uses the directory went on asking only whether it existed, so the
+    refusal arrived later, from inside an engine, as an I/O error about a
+    program's own temporary file.
+    """
+
+    @pytest.fixture
+    def sealed(self, tmp_path):
+        if os.geteuid() == 0:
+            pytest.skip("root may write anywhere")
+        directory = tmp_path / "scratch-root"
+        directory.mkdir()
+        directory.chmod(0o555)
+        yield directory
+        directory.chmod(0o755)
+
+    def test_an_explicit_scratch_dir_that_cannot_be_written_is_refused(
+        self, pbs_server, sealed
+    ):
+        with pytest.raises(PermissionError, match="not writable"):
+            GaussianJobRunner(
+                server=pbs_server, scratch=True, scratch_dir=str(sealed)
+            ).scratch_dir = str(sealed)
+
+    def test_a_resolved_scratch_dir_that_cannot_be_written_is_refused(
+        self, tmp_path, sealed
+    ):
+        profile = _write_server_yaml(
+            tmp_path / "site.yaml", gaussian_scratch=True, orca_scratch=None
+        )
+        text = profile.read_text().replace(
+            "export SCRATCH=~/scratch", f"export SCRATCH={sealed}"
+        )
+        profile.write_text(text)
+        with pytest.raises(PermissionError, match="not writable"):
+            GaussianJobRunner(server=str(profile), scratch=True)

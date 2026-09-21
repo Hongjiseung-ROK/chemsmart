@@ -23,6 +23,17 @@ def _mem_total_kb(meminfo_path: str = "/proc/meminfo") -> int | None:
     return None
 
 
+def is_usable_scratch(path: str | os.PathLike) -> bool:
+    """Whether ``path`` is a directory this process may actually write in.
+
+    One predicate for everyone who picks or accepts a scratch directory: the
+    wizard's probe, the runner that uses it, and the Agent's executor. A
+    directory that exists and refuses every write is not scratch.
+    """
+
+    return Path(path).is_dir() and os.access(path, os.W_OK)
+
+
 def scratch_candidates(
     env: Mapping[str, str], *, user: str
 ) -> tuple[str, ...]:
@@ -50,9 +61,7 @@ def scratch_candidates(
         if candidate and candidate not in ordered:
             ordered.append(candidate)
     return tuple(
-        candidate
-        for candidate in ordered
-        if Path(candidate).is_dir() and os.access(candidate, os.W_OK)
+        candidate for candidate in ordered if is_usable_scratch(candidate)
     )
 
 

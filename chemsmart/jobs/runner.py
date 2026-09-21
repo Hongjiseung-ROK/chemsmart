@@ -190,6 +190,23 @@ def decide_phase_transition(
     return PhaseTransitionDecision(proceed=True, should_raise=False)
 
 
+def _require_writable_scratch(scratch_dir):
+    """Refuse a scratch directory that exists and cannot be written.
+
+    A shared cluster's ``/scratch`` is commonly a root only its administrator
+    may write to, with each user's directory beneath it. Accepting it because
+    it exists moves the refusal into the engine, where it arrives as an I/O
+    error about a program's own temporary file.
+    """
+
+    from chemsmart.settings.probe.localhost import is_usable_scratch
+
+    if not is_usable_scratch(scratch_dir):
+        raise PermissionError(
+            f"Specified scratch dir is not writable: {scratch_dir}"
+        )
+
+
 class JobRunner(RegistryMixin):
     """Abstract base class for job runner for running a job on a server.
 
@@ -279,6 +296,7 @@ class JobRunner(RegistryMixin):
                 raise FileNotFoundError(
                     f"Specified scratch dir does not exist: {value}"
                 )
+            _require_writable_scratch(value)
         self._scratch_dir = value
 
     @lru_cache(maxsize=12)
@@ -329,6 +347,7 @@ class JobRunner(RegistryMixin):
                 raise FileNotFoundError(
                     f"Specified scratch dir does not exist: {scratch_dir}"
                 )
+            _require_writable_scratch(scratch_dir)
         return scratch_dir
 
     def __repr__(self):

@@ -2213,6 +2213,14 @@ def _execution_inputs_from_bundle(
         raise ContractError("execution scratch root cannot be a symlink")
     scratch_root = requested_scratch_root.resolve()
     scratch_root.mkdir(parents=True, exist_ok=True)
+    # ``exist_ok`` accepts a directory someone else owns. The honest question
+    # after creating it is whether this process can write in it.
+    from chemsmart.settings.probe.localhost import is_usable_scratch
+
+    if not is_usable_scratch(scratch_root):
+        raise ContractError(
+            f"execution scratch root is not writable: {scratch_root}"
+        )
     # One allocation has three readers: the scheduler that was asked for it,
     # the engine that is told it, and the host's own resident-set kill. The
     # third went on reading the episode's numbers, so it is resolved once
