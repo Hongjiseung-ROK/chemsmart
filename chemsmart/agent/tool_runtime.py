@@ -2272,6 +2272,7 @@ class CommandCompiledToolHostV1:
         run_evidence_root: str | Path | None = None,
         cycle_label: str | None = None,
         execution_resources: ExecutionResourceSpecV1 | None = None,
+        granted_execution_resources: ExecutionResourceSpecV1 | None = None,
         workflow_execution_approval: WorkflowExecutionApprovalV1 | None = None,
         frozen_workflow_approval: FrozenWorkflowApprovalV1 | None = None,
         bounded_execution_envelope: BoundedExecutionEnvelopeV1 | None = None,
@@ -2403,6 +2404,10 @@ class CommandCompiledToolHostV1:
 
         self.execution_wave_decision = build_execution_wave_decision()
         self.execution_resources = execution_resources
+        #: What the scheduler actually granted, where that differs from what
+        #: was approved. The approved record above is what digests and the
+        #: review bind to; this one sizes only what the engine is held to.
+        self.granted_execution_resources = granted_execution_resources
         self.workflow_execution_approval = workflow_execution_approval
         self.frozen_workflow_approval = frozen_workflow_approval
         self.bounded_execution_envelope = bounded_execution_envelope
@@ -13159,9 +13164,7 @@ class CommandCompiledToolHostV1:
             except OSError as exc:
                 process_observation = launch_failure_observation(
                     timeout_seconds=effective_timeout_seconds,
-                    memory_limit_mb=(
-                        self.execution_resources.memory_gb * 1024.0
-                    ),
+                    memory_limit_mb=self._engine_memory_limit_mb(),
                     error_type=type(exc).__name__,
                 )
                 stdout_text = ""
@@ -13170,9 +13173,7 @@ class CommandCompiledToolHostV1:
                 process_result = observe_process(
                     process,
                     timeout_seconds=effective_timeout_seconds,
-                    memory_limit_mb=(
-                        self.execution_resources.memory_gb * 1024.0
-                    ),
+                    memory_limit_mb=self._engine_memory_limit_mb(),
                     # The wrapper traps SIGTERM to stop the engine and copy
                     # its partial outputs back from scratch before exiting.
                     # The default one-second grace SIGKILLed it mid-copy, so a
@@ -13844,6 +13845,18 @@ class CommandCompiledToolHostV1:
             "process_observation": process_observation.as_dict(),
             "result_validation": result_validation_receipt,
         }
+
+    def _engine_memory_limit_mb(self) -> float:
+        """The resident-set ceiling the host holds an engine's tree to.
+
+        It is the memory of the allocation the engine runs inside -- the
+        number the scheduler was asked for and the engine was told -- and
+        the approved memory only when no scheduler stood in between.
+        """
+
+        granted = getattr(self, "granted_execution_resources", None)
+        resources = granted or self.execution_resources
+        return float(resources.memory_gb) * 1024.0
 
     def _require_bounded_launch_budget(
         self,

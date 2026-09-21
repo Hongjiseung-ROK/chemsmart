@@ -2190,6 +2190,7 @@ def _execution_inputs_from_bundle(
     """
 
     from chemsmart.agent.live_session import (
+        _allocated_execution_resources,
         _approved_project_artifacts,
         _parse_bounded_execution_envelope_record,
         _write_execution_server_profile,
@@ -2212,9 +2213,16 @@ def _execution_inputs_from_bundle(
         raise ContractError("execution scratch root cannot be a symlink")
     scratch_root = requested_scratch_root.resolve()
     scratch_root.mkdir(parents=True, exist_ok=True)
+    # One allocation has three readers: the scheduler that was asked for it,
+    # the engine that is told it, and the host's own resident-set kill. The
+    # third went on reading the episode's numbers, so it is resolved once
+    # here and handed to both. ``resources`` stays the approved record: every
+    # digest and the review equality bind to it, and only the ceiling follows
+    # the grant.
+    granted = _allocated_execution_resources(run_directory, resources)
     server_profile = _write_execution_server_profile(
         run_directory,
-        resources,
+        granted,
         scratch_root=scratch_root,
     )
     path_value = os.environ.get("PATH", "")
@@ -2249,6 +2257,7 @@ def _execution_inputs_from_bundle(
             else None
         ),
         "execution_resources": resources,
+        "granted_execution_resources": granted,
         "workflow_execution_approval": approval,
         "frozen_workflow_approval": bundle.frozen_workflow_approval,
         "execution_server": str(server_profile),

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from chemsmart.agent.execution import build_execution_resource_spec
 from chemsmart.agent.live_session import _write_execution_server_profile
@@ -164,4 +165,96 @@ def test_a_larger_allocation_than_the_episode_asked_for_is_used(tmp_path):
         "64",
         "64",
         "154",
+    )
+
+
+def test_the_hosts_own_memory_kill_reads_the_same_allocation(tmp_path):
+    """Three readers of one allocation, and the third had been forgotten.
+
+    The scheduler is asked for the profile's memory and the engine is told
+    the profile's memory, but the host's own resident-set kill went on
+    reading the episode's. Approve 300 GB against a profile granting 154 and
+    the cgroup ends the job first with nothing typed to say why; approve 32
+    against a profile granting 160 and the host kills a healthy engine that
+    was told it had 160 -- and either way the woken session is offered a
+    scientific repair menu for a host arithmetic decision.
+
+    The approved record stays what every digest and the review equality bind
+    to. Only the ceiling follows the grant.
+    """
+
+    import yaml
+
+    from chemsmart.agent.execution import canonical_data
+    from chemsmart.agent.execution_envelope import (
+        load_bounded_execution_envelope,
+    )
+    from chemsmart.agent.executor import _execution_inputs_from_bundle
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    workspace = (tmp_path / "workspace").resolve()
+    run_directory = workspace / "run"
+    run_directory.mkdir(parents=True)
+    envelope_path = tmp_path / "envelope.yaml"
+    envelope_path.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": "chemsmart.bounded-execution-envelope.v1",
+                "mode": "bounded-local",
+                "allowed_program_engines": {"orca": ["cpu"]},
+                "resources": {
+                    "execution_target": "run",
+                    "cores": 64,
+                    "memory_gb": 300,
+                    "gpu_count": 0,
+                    "scratch_policy": "server",
+                    "node_timeout_seconds": 900,
+                },
+                "episode_wall_time_seconds": 3600,
+                "postprocess_reserve_seconds": 300,
+                "max_engine_calls": 4,
+                "scratch_root": str(tmp_path / "scratch"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    envelope = load_bounded_execution_envelope(envelope_path)
+    approved = envelope.resources
+    _write_receipt(
+        run_directory,
+        applied={"cores": 32, "memory_gb": 154, "gpu_count": 0},
+        requested={"cores": 64, "memory_gb": 300, "gpu_count": 0},
+        ceiling={"cores": 32, "memory_gb": 154, "gpu_count": 0},
+    )
+    task = "a" * 64
+    bundle = SimpleNamespace(
+        workflow_approval=SimpleNamespace(
+            workspace=str(workspace), task_spec_sha256=task, node_bindings=()
+        ),
+        execution_resources=approved,
+        approved_scientific_plan=SimpleNamespace(task_spec_sha256=task),
+        execution_envelope=canonical_data(envelope),
+        frozen_workflow_approval=None,
+        approved_materialized_workflow=None,
+        approved_environment_identities=(),
+    )
+
+    inputs = _execution_inputs_from_bundle(
+        bundle=bundle, workspace=workspace, run_directory=run_directory
+    )
+
+    engine_is_told = _profile_values(
+        Path(inputs["execution_server"]).read_text()
+    )
+    assert engine_is_told["MEM_GB"] == "154"
+    # What was approved is still what every digest binds to.
+    assert inputs["execution_resources"] == approved
+    host = object.__new__(CommandCompiledToolHostV1)
+    host.execution_resources = inputs["execution_resources"]
+    host.granted_execution_resources = inputs.get(
+        "granted_execution_resources"
+    )
+    assert host._engine_memory_limit_mb() == 154 * 1024.0, (
+        "the host would kill on a memory the allocation never had: the "
+        "engine is told 154 GB and the scheduler was asked for 154 GB"
     )
