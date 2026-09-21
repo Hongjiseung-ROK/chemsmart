@@ -1749,20 +1749,18 @@ def _neutral_sensor_facts(
                 }
         except Exception:  # noqa: BLE001 - no readable input geometry
             pass
-    forces = getattr(output, "forces", None)
-    if (
-        jobtype in {"hess", "freq"}
-        and forces is not None
-        and getattr(output, "forces_unit", None) == "Eh/Bohr"
-    ):
-        try:
-            import numpy as np
-
-            gradient = float(np.max(np.abs(np.asarray(forces, dtype=float))))
+    # The charter says this gradient "reaches that refusal through one
+    # reader-plane function, the same one the run sensor reads, so the two
+    # cannot drift".  The sensor did not read it: it reached into
+    # ``output.forces`` and ``output.forces_unit``, which are one parser's
+    # attribute names, so the two organs already disagreed about which
+    # programs can answer.  A reader that binds a gradient to one structure
+    # was invisible here unless its parser happened to spell it PySCF's way.
+    if jobtype in {"hess", "freq"}:
+        gradient = reader.stationarity_gradient_for_output(output)
+        if gradient is not None:
             block["max_abs_gradient_eh_per_bohr"] = gradient
             inputs["stationarity_gradient"] = gradient
-        except (TypeError, ValueError):
-            pass
     # The geometry a path was handed, where its job type promises what it
     # is (an IRC leaves a first-order saddle of the surface it walks): the
     # spectrum and the gradient the run took there, through the same reader
