@@ -1102,10 +1102,12 @@ def build_scientific_toolchain_plan(
                     f"{calculation.program!r} stage "
                     f"{calculation.jobtype!r}, which produces "
                     f"{len(stage_results)} results "
-                    f"({', '.join(stage_results)}); this host binds one "
-                    "result per producer node, so read each one as a "
-                    "registered result after the run instead of naming "
-                    "the node"
+                    f"({', '.join(stage_results)}), and this host binds "
+                    "one result per producer node. Withdraw this "
+                    f"extraction and plan {calculation.node_id!r} "
+                    "without one: each result is registered when it "
+                    "finishes, and a later cycle reads them by naming "
+                    "those artifacts, one extraction each."
                 )
             declared = reader.selectors_for_stage(calculation.jobtype)
             if declared is None:
