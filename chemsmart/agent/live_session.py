@@ -3122,13 +3122,32 @@ def _declared_server_programs() -> tuple[tuple[str, str], ...]:
         return ()
     rows = []
     for key, value in (content or {}).items():
-        if key in _NON_PROGRAM_SERVER_KEYS or not isinstance(value, dict):
+        if str(key).upper() in _NON_PROGRAM_SERVER_KEYS or not isinstance(
+            value, dict
+        ):
             continue
         folder = value.get("EXEFOLDER")
         if not folder:
+            # Declared, and the one line that says where it lives is empty.
+            # Dropping the block here made a session conclude the program
+            # did not exist. A program that needs no folder (PySCF runs in
+            # an interpreter, xTB may come from PATH) lacks nothing.
+            if _exefolder_is_required(str(key).lower()):
+                rows.append((str(key).lower(), ""))
             continue
         rows.append((str(key).lower(), str(Path(str(folder)).expanduser())))
     return tuple(sorted(set(rows)))
+
+
+def _exefolder_is_required(program: str) -> bool:
+    """Whether ChemSmart's own executable for ``program`` needs a folder."""
+
+    from chemsmart.settings.executable import Executable
+
+    for subclass in Executable.subclasses():
+        if str(subclass.PROGRAM or "").lower() == program:
+            return bool(subclass.EXEFOLDER_REQUIRED)
+    return False
 
 
 def _active_server_program_blocks() -> dict[str, dict[str, Any]]:
@@ -3496,6 +3515,26 @@ def _observe_environments() -> tuple[
             )
     for program, folder in _declared_server_programs():
         if program == "pyscf":
+            continue
+        if not folder:
+            # ChemSmart will not run this program from PATH: its runner asks
+            # the profile for a folder. Finding a binary elsewhere would
+            # report a program the host cannot actually start.
+            records.append(
+                {
+                    "record_kind": "program_environment",
+                    "program": program,
+                    "engine": "cpu",
+                    "status": "misconfigured",
+                    "misconfiguration": (
+                        f"{program.upper()}: EXEFOLDER is not set in the "
+                        "active server profile"
+                    ),
+                    "declared_folder": "",
+                    "observation_method": "declared_server_exefolder",
+                    "is_discovery_stub": False,
+                }
+            )
             continue
         candidate = _declared_executable_path(program, folder)
         located = (

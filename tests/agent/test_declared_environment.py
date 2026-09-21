@@ -262,3 +262,71 @@ def test_what_only_a_job_script_would_apply_is_said_not_dropped(
         ),
     )
     assert record["applied_only_by_job_scripts"] == ["MODULES"]
+
+
+def test_a_declared_program_with_no_folder_set_is_misconfigured_not_gone(
+    tmp_path, monkeypatch
+):
+    """Misconfigured is not the same fact as absent, or as undeclared.
+
+    A wizard-written profile declares ``GAUSSIAN:`` and ``ORCA:`` with
+    ``EXEFOLDER: null`` until someone fills them in. Those blocks used to be
+    dropped while the profile was read, so a session concluded the programs
+    did not exist on this installation -- when ChemSmart knew about them and
+    one line was missing. A library program that needs no folder (PySCF runs
+    in an interpreter, xTB may come from PATH) is not misconfigured by lacking
+    one.
+    """
+
+    server_dir = tmp_path / "server"
+    server_dir.mkdir(parents=True)
+    (server_dir / "local.yaml").write_text(
+        "SERVER:\n"
+        "  SCHEDULER: SLURM\n"
+        "  NUM_CORES: 8\n"
+        "GAUSSIAN:\n"
+        "  EXEFOLDER: null\n"
+        "  LOCAL_RUN: true\n"
+        "ORCA:\n"
+        "  EXEFOLDER: null\n"
+        "PYSCF:\n"
+        "  LOCAL_RUN: true\n"
+        "XTB:\n"
+        "  LOCAL_RUN: true\n"
+    )
+    monkeypatch.setenv("CHEMSMART_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setenv("CHEMSMART_AGENT_SERVER", "local")
+
+    declared = dict(live_session._declared_server_programs())
+    assert declared == {"gaussian": "", "orca": ""}
+
+    by_program = {
+        item["program"]: item
+        for item in live_session._observe_environments()[2]
+        if item.get("record_kind") == "program_environment"
+        and item.get("engine") == "cpu"
+    }
+    assert by_program["gaussian"]["status"] == "misconfigured"
+    assert by_program["orca"]["status"] == "misconfigured"
+
+
+def test_a_program_asked_to_run_without_its_folder_says_which_key_is_missing(
+    tmp_path,
+):
+    """``None input.com`` is not an error message."""
+
+    from chemsmart.settings.executable import (
+        GaussianExecutable,
+        ORCAExecutable,
+    )
+
+    profile = tmp_path / "site.yaml"
+    profile.write_text(
+        "SERVER:\n  SCHEDULER: SLURM\n"
+        "GAUSSIAN:\n  EXEFOLDER: null\n"
+        "ORCA:\n  EXEFOLDER: null\n"
+    )
+    for executable_class in (GaussianExecutable, ORCAExecutable):
+        executable = executable_class.from_servername(str(profile))
+        with pytest.raises(FileNotFoundError, match="EXEFOLDER"):
+            executable.get_executable()

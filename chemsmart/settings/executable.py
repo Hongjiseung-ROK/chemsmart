@@ -284,6 +284,22 @@ class Executable(RegistryMixin):
             known[key] = resolved[key] = _resolve_declared_value(raw, known)
         return resolved
 
+    def _require_executable_folder(self):
+        """The configured folder, or an error that names the missing key.
+
+        A program that needs a folder and was given none used to answer
+        ``None``, and the runner built the command ``None input.com`` from
+        it. The operator is told which key of which block to fill in.
+        """
+        if self.executable_folder is None:
+            raise FileNotFoundError(
+                f"{self.PROGRAM} EXEFOLDER is not set in the server profile: "
+                f"give the folder that holds the executable under "
+                f"{self.PROGRAM}: EXEFOLDER, or run `chemsmart config "
+                f"{str(self.PROGRAM).lower()}`."
+            )
+        return self.executable_folder
+
     def resolve_in_program_path(self, name, base=None):
         """
         Locate a companion binary where this program's engine will look.
@@ -333,13 +349,12 @@ class GaussianExecutable(Executable):
         Get the full path to the Gaussian executable.
 
         Returns:
-            str or None: Full path to g16
-            executable if executable_folder is set,
-                        None otherwise.
+            str: Full path to g16.
+
+        Raises:
+            FileNotFoundError: If no executable folder is configured.
         """
-        if self.executable_folder is not None:
-            executable_path = os.path.join(self.executable_folder, "g16")
-            return executable_path
+        return os.path.join(self._require_executable_folder(), "g16")
 
 
 class ORCAExecutable(Executable):
@@ -369,13 +384,12 @@ class ORCAExecutable(Executable):
         Get the full path to the ORCA executable.
 
         Returns:
-            str or None: Full path to orca
-            executable if executable_folder is set,
-                        None otherwise.
+            str: Full path to orca.
+
+        Raises:
+            FileNotFoundError: If no executable folder is configured.
         """
-        if self.executable_folder is not None:
-            executable_path = os.path.join(self.executable_folder, "orca")
-            return executable_path
+        return os.path.join(self._require_executable_folder(), "orca")
 
 
 class NCIPLOTExecutable(Executable):
@@ -404,13 +418,12 @@ class NCIPLOTExecutable(Executable):
         Get the full path to the NCIPLOT executable.
 
         Returns:
-            str or None: Full path to nciplot
-            executable if executable_folder is set,
-                        None otherwise.
+            str: Full path to nciplot.
+
+        Raises:
+            FileNotFoundError: If no executable folder is configured.
         """
-        if self.executable_folder is not None:
-            executable_path = os.path.join(self.executable_folder, "nciplot")
-            return executable_path
+        return os.path.join(self._require_executable_folder(), "nciplot")
 
 
 class PySCFExecutable(Executable):
