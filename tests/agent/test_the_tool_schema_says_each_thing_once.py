@@ -77,13 +77,16 @@ def test_each_guidance_block_is_serialised_once_per_field_it_governs():
         if carries_workflow_id(item)
     }, "the rule never lands on a tool without the argument"
 
-    # These three belong to one tool each and still appear once.
+    # These two belong to one tool each and still appear once. The third
+    # that stood here, the program-wide reader selector union, now appears on
+    # no planning tool at all: it is retrieved per program as a generated
+    # reference (see test_model_tool_surface_exposes_the_registered_result_plane).
     for marker in (
         "Pick the operation that owns the step",
-        "program-wide reader selector union",
         "the convention family are stated",
     ):
         assert blocks_per_tool(marker) == [1], marker
+    assert blocks_per_tool("program-wide reader selector union") == []
 
 
 def test_nothing_reachable_was_lost():

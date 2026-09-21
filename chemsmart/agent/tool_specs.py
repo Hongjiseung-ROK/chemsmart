@@ -172,10 +172,11 @@ def _legacy_tool_definitions(
         "enum": list(result_programs),
         "description": (
             "Select the parser matching the registered artifact. Which "
-            "selectors each program serves, per job type, is listed on "
-            "inspect_run.program (with artifact_id) and on the capability "
-            "receipt's coverage; the selected method/settings must still "
-            "emit the quantity."
+            "selectors each program serves, per job type, is the reference "
+            "about_result_selectors_<program> (search_capabilities finds "
+            "it) and the capability receipt's coverage; inspect_run with "
+            "artifact_id lists what one finished result actually resolves. "
+            "The selected method/settings must still emit the quantity."
         ),
     }
     thermochemistry_program = {
@@ -1918,7 +1919,15 @@ def _legacy_tool_definitions(
                 "reported."
             ),
             {
-                "program": structured_result_program,
+                # The brief form, not the four-program selector union. The
+                # union rode into ``inspect_run`` -- a core tool every session
+                # loads -- at 4.5 KB, 31 % of the always-loaded surface, and
+                # grew with every selector any program declared, so a session
+                # about one program read all four programs' lists. The same
+                # lists are generated per program as deferred references
+                # (``about_result_selectors_<program>``) and arrive when asked
+                # for: retrieve, do not preload.
+                "program": structured_result_program_brief,
                 "artifact_id": _string(),
             },
             ("program", "artifact_id"),

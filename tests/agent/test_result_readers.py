@@ -105,8 +105,6 @@ def test_model_tool_surface_exposes_the_registered_result_plane():
         for item in surface.tool_definitions
         if item["function"]["name"] == "inspect_run"
     )
-    # The per-program selector union is stated once, on the tool whose
-    # job is listing selectors; extract_result_quantities points here.
     properties = tool["function"]["parameters"]["properties"]
     assert properties["program"]["enum"] == [
         "gaussian",
@@ -115,13 +113,24 @@ def test_model_tool_surface_exposes_the_registered_result_plane():
         "xtb",
         "xyz",
     ]
-    # Stated once: what every reader serves, then what each adds; a
-    # geometry file adds only its trajectory view.
-    description = properties["program"]["description"]
-    assert "every reader: connectivity, energy, positions, symbols" in (
-        description
-    )
-    assert "xyz: trajectory_connectivity_changed" in description
+    # Which selectors each program serves is retrieved, not preloaded. The
+    # four-program union used to ride here, on a core tool every session
+    # loads -- 4.5 KB, 31 % of the always-loaded surface, growing with every
+    # selector any program declared. What must hold is that nothing became
+    # unreachable: every reader has a generated reference, on demand, that
+    # names every selector that reader serves.
+    import json
+
+    from chemsmart.agent.catalogue import build_tool_catalogue
+    from chemsmart.analysis.result_readers import registered_reader_selectors
+
+    catalogue = build_tool_catalogue()
+    for program, selectors in registered_reader_selectors().items():
+        name = f"about_result_selectors_{program}"
+        assert catalogue.entry(name).loading == "deferred"
+        reference = json.dumps(catalogue.definitions([name])[0])
+        assert [item for item in selectors if item not in reference] == []
+    assert "about_result_selectors_" in properties["program"]["description"]
     extract = next(
         item
         for item in surface.tool_definitions
