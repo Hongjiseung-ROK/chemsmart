@@ -219,12 +219,6 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
         ("gaussian", "orca"),
     ): _GAS_SOLV,
     (
-        "chemsmart/agent/program_verifiers.py",
-        "_validate_gaussian_irc_bundle",
-        None,
-        ("ircf", "ircr"),
-    ): _GAUSSIAN_NATIVE,
-    (
         "chemsmart/agent/projects.py",
         "project_section_application_observation",
         None,
