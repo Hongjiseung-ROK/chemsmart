@@ -136,7 +136,6 @@ def test_a_registry_that_loses_a_capability_stops_advertising_it(monkeypatch):
     adds it, with no edit to any sentence.
     """
 
-    from chemsmart.agent import tool_specs
     from chemsmart.analysis import result_readers
 
     def tokens_of(catalogue) -> set[str]:
@@ -147,12 +146,13 @@ def test_a_registry_that_loses_a_capability_stops_advertising_it(monkeypatch):
     assert retired in real["orca"]
     assert retired in tokens_of(build_tool_catalogue())
 
-    # Two organs read this one registry and both are rebound: the
-    # catalogue's generated reference entries, and ``tool_specs``, which
-    # renders the same inventory into an act's argument description and
-    # binds the accessor name at import. Patching only one would leave
-    # the other advertising a selector the registry no longer has, which
-    # is the exact split this witness exists to forbid.
+    # One organ renders this registry into searchable text: the catalogue's
+    # generated reference entries. There used to be a second -- ``tool_specs``
+    # rendered the same inventory into a core act's argument description and
+    # bound the accessor at import -- and this witness had to rebind both, or
+    # one would go on advertising a selector the registry no longer had. That
+    # second rendering is deleted, so the registry is patched once and
+    # everything the model can find must follow.
     def selectors():
         return {
             program: (
@@ -165,7 +165,6 @@ def test_a_registry_that_loses_a_capability_stops_advertising_it(monkeypatch):
     monkeypatch.setattr(
         result_readers, "registered_reader_selectors", selectors
     )
-    monkeypatch.setattr(tool_specs, "registered_reader_selectors", selectors)
     after = tokens_of(build_tool_catalogue())
     assert "a_selector_that_arrived" in after
     assert retired not in after

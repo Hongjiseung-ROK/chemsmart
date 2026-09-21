@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -29,7 +29,6 @@ from chemsmart.analysis.result_quantities import (
 )
 from chemsmart.analysis.result_readers import (
     registered_reader_programs,
-    registered_reader_selectors,
 )
 
 
@@ -100,44 +99,6 @@ def build_catalogue_tool_surface(exposure: Any) -> AgentToolSurfaceV1:
     )
 
 
-def _reader_selector_inventory(
-    readers: Mapping[str, tuple[str, ...]], *, programs: Sequence[str]
-) -> str:
-    """Each reader's selectors, with what they all share said once.
-
-    The inventory had listed every reader's whole union, so the dozen
-    selectors every program answers were spelled five times in the stem
-    every session reads. Factoring them out states the same sets: a
-    selector is served by a reader when it is in the shared prefix that
-    reader belongs to or in that reader's own list.
-    """
-
-    selector_sets = {name: set(values) for name, values in readers.items()}
-    if not selector_sets:
-        return ""
-    shared = set.intersection(*selector_sets.values())
-    program_readers = [name for name in selector_sets if name in programs]
-    shared_by_programs = (
-        set.intersection(*(selector_sets[name] for name in program_readers))
-        - shared
-        if program_readers
-        else set()
-    )
-    parts = []
-    if shared:
-        parts.append(f"every reader: {', '.join(sorted(shared))}")
-    if shared_by_programs:
-        parts.append(
-            "every program reader also: "
-            f"{', '.join(sorted(shared_by_programs))}"
-        )
-    for name, values in readers.items():
-        own = shared | (shared_by_programs if name in programs else set())
-        rest = [item for item in values if item not in own]
-        parts.append(f"{name}: {', '.join(rest) if rest else 'nothing more'}")
-    return "; ".join(parts)
-
-
 def _legacy_tool_definitions(
     registry: ProgramCapabilityRegistryV1 | None = None,
     *,
@@ -152,21 +113,6 @@ def _legacy_tool_definitions(
     programs = [item.program for item in registry.programs]
     program = {"type": "string", "enum": programs}
     result_programs = tuple(sorted({"pyscf", *registered_reader_programs()}))
-    reader_selector_inventory = _reader_selector_inventory(
-        registered_reader_selectors(), programs=programs
-    )
-    structured_result_program = {
-        "type": "string",
-        "enum": list(result_programs),
-        "description": (
-            "Select the parser matching the registered artifact. Current "
-            "program-wide reader selector union (not a promise for every job "
-            "type): "
-            f"{reader_selector_inventory}. Query inspect_program for "
-            "job-scoped parser support where declared; the selected "
-            "method/settings must still emit the quantity."
-        ),
-    }
     structured_result_program_brief = {
         "type": "string",
         "enum": list(result_programs),
