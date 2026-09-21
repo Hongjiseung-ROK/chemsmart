@@ -805,3 +805,42 @@ total-energy difference between the two runs of -1.026. It settled
 three-heavy-atom floor on a four-atom molecule, as in the earlier
 campaigns. This is the decomposition arriving from a calculation the
 Agent planned and ran, rather than from one prepared for it.
+
+A continuum is two numbers, not a name, and until now a session could
+read only the name. The density is polarised with the static relative
+permittivity; a vertical excitation leaves the solvent's nuclei where the
+ground state put them, so PySCF answers a non-equilibrium response with
+the optical permittivity instead -- a single hard-coded 1.78 for every
+solvent it is handed, which is water's n squared. This topic has said
+since contract v5 that the artifact records both and that "a toluene
+fixture shows the divergence instead of hiding it behind water". The
+recording was real and the reading never existed:
+``status/stages/td/solvent`` has carried both numbers all along, a green
+test has asserted them on the archived artifact for a round, and no
+selector, level line or receipt served either, so what reached a session
+was "C-PCM, toluene". Two such spectra differenced and called a
+solvatochromic shift would have passed every digest, unit, geometry and
+surface check on the way, which is the class of defect this laboratory
+names by heart: the mechanism is right where it is computed and
+unconnected where it is consumed. The reader declares both now, as
+identities of the run rather than values on a density, exactly as the
+model and the solvent name already are: ``solvent_dielectric`` wherever
+an SCF converges, because a solvent name is not a permittivity and two
+legs of one cycle can both say "water"; and
+``excitation_response_dielectric`` on ``td`` alone -- an excited-root
+``opt`` inherits the excitation set, PySCF has no solvated excited-state
+gradient and the settings validator refuses one, so there the question
+could never be answered and a declaration a job type can never satisfy is
+worse than none. The level record ``inspect_run`` shows and every
+extraction receipt carries names both numbers and the word that makes the
+second operative. No contract version moves: these are bytes that were
+already written, so every archived digest is untouched. On the archived
+``water_td_cpcm_toluene`` the density was polarised with toluene's 2.3741
+and the excitations were answered with 1.78, which against PySCF's own
+``solvent_db`` is water's n squared of 1.7764 to 5e-3 and sits 0.46 away
+from toluene's own 2.2383; so the whole solvent dependence a PySCF 2.14
+spectrum can carry enters through the ground-state density. What is not
+claimed here: no reader but this one answers either selector, and the two
+numbers ORCA prints (``Epsilon``, ``Refrac``) and the two Gaussian prints
+(``Eps``, ``EpsInf``) are where the shared names will meet a second
+program when one of them declares them.

@@ -394,6 +394,16 @@ nodes:
     source: {path: chemsmart/jobs/orca/writer.py, anchor: "String equality is not file identity."}
     note: "Three ORCA staging guards skipped a copy when two absolute paths compared equal as strings. /project/xlzhang is a symlink to /lustre/project/xlzhang, so one file had two absolute spellings, shutil.copy2 raised SameFileError, and three IRC branches died in the writer before ORCA was reached (job 2142378). Every existing writer test ran under one spelling of tmp_path."
     falsifier: "A staging or idempotence guard decides file identity by comparing path strings and still behaves correctly when a parent directory is reached through a symlink."
+  - id: negative.a_recorded_response_dielectric_had_no_reader
+    kind: negative_result
+    source: {path: .agents/charter/pyscf.md, anchor: "a toluene fixture shows the divergence instead of hiding it behind water"}
+    note: "The recording was true and the reading never existed. status/stages/td/solvent has carried static_eps_applied and response_eps_applied since contract v5, tests/test_pyscf_archived_results.py::test_the_solvated_response_records_the_dielectric_it_applied has asserted both on the archived water_td_cpcm_toluene for a round, and no selector, level field or receipt served either -- so what reached a session was the pair (cpcm, toluene) and nothing about the 1.78 the excitations ran on. Two such spectra differenced and delivered as a solvatochromic shift would pass every digest, unit, geometry and surface check. Same class as the predicate read as a value and the classification written into a setter nothing reads: right where computed, unconnected where consumed. Closed by 583cb8f0 at the reader, with no contract bump, because the bytes were already there."
+    falsifier: "A PySCF result reader on this tree answers neither solvent_dielectric nor excitation_response_dielectric, or a solvated td artifact's status/stages/td/solvent is absent."
+  - id: result.pyscf_response_permittivity_is_waters
+    kind: result
+    commit: "583cb8f0"
+    note: "Read through the shared extraction plane off the archived water_td_cpcm_toluene (real PySCF 2.14.0 through the ordinary CLI, with PySCF's own reference.json beside it): the density was polarised with toluene's 2.3741 and the excitations were answered with 1.78, which reference.json independently recomputes as td_response_eps. Checked against PySCF's own solvent_db rather than a recalled constant: water's n^2 is 1.7764, so the applied number is water's to 5e-3, and toluene's own n^2 is 2.2383, 0.46 away. PySCF 2.14 hard-codes the non-equilibrium response permittivity in solvent/_attach_solvent.py, so the entire solvent dependence a PySCF spectrum can carry enters through the ground-state density, whatever solvent the run is named for. No Agent goal has run a solvated spectrum, so the two selector cells are declared and tested and not qualified."
+    falsifier: "A solvated PySCF td artifact on this build records a response_eps_applied that differs between two solvents, or that is not within 5e-3 of solvent_db['water'][0]**2."
 
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
@@ -462,3 +472,5 @@ edges:
   - {from: result.orca_irc_path_and_endpoints_20260921, to: lesson.a_path_string_is_not_a_file_identity, rel: depends_on, note: "the three branches ran only after the staging guard stopped comparing path strings"}
   - {from: leaf.saddle.orca_irc_walks_one_direction, to: result.orca_irc_path_and_endpoints_20260921, rel: evidenced_by, note: "the direction-both table opens on an endpoint, not on the saddle; no arm ran without the sentence, so it stays unvalidated"}
   - {from: negative.i_read_the_wrong_hessian_block_by_eye, to: result.orca_irc_path_and_endpoints_20260921, rel: depends_on, note: "the campaign's own reference numbers were read by eye once and were wrong once"}
+  - {from: result.pyscf_response_permittivity_is_waters, to: negative.a_recorded_response_dielectric_had_no_reader, rel: evidenced_by, note: "the divergence the fixture was written to show, read for the first time through a selector rather than asserted on the raw stage record"}
+  - {from: negative.a_recorded_response_dielectric_had_no_reader, to: lesson.a_classification_written_into_a_setter_nothing_reads_was_never_made, rel: depends_on, note: "one layer out: there a value the host resolved and discarded, here two values the host stored and nothing on the reader plane asked for"}
