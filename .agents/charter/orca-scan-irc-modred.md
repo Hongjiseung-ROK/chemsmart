@@ -47,7 +47,38 @@ approval is still refused — the in-approval producer edge asks for
 ``reached_positions`` by name — so the reuse route is a new workflow with
 its own review.
 
-ORCA ``modred`` is declared for planning, preview, and native-input generation
-only. Constrained optimisation is expressible and previewable, and no
-constrained optimisation has yet run here, so this release does not describe it
-as completed Agent execution.
+ORCA ``modred`` is a constrained optimisation: it relaxes every degree of
+freedom except the ones it holds, so what it returns is a structure on the
+surface at a chosen value of a chosen coordinate, which is what seeds a
+saddle search. A completed one now answers. The reader declares the job
+type the host's classifier had already been assigning it, and the
+constraint family says which coordinates were held, by which atoms and at
+what value -- each kind under its own name so a bond keeps its Angstrom
+and an angle its degrees, and each value measured in the structure ORCA
+returned rather than copied from ORCA's declaration of it, because a
+reader that echoed the table would say "held at 2.4714" about any
+geometry at all. Disagreement beyond the reader's tolerance is reported
+with both numbers and names ``reached_positions``: a constraint that did
+not hold is a finding, not a parse error. The vibrational family is
+absent by decision -- a constrained optimum is a stationary point only in
+the subspace orthogonal to what is held, ORCA projects nothing out of the
+Hessian it prints, and no thermochemistry is derived from one. The
+structure it reaches may cross a producer edge inside one approval, as an
+optimisation's or a saddle search's may.
+
+Two sentences were bought by live streams on a BINOL racemisation task.
+Asked to relax the molecule with its biaryl torsion brought to a coplanar
+value, the first session read "coordinates held fixed while everything
+else relaxes" as "moved there and held", wrote the value it meant into a
+``modred`` project YAML as a key the loader does not have, had it
+correctly rejected, and replanned the stage as a relaxed scan -- the only
+coordinate vocabulary that carries a target. A constraint holds a
+coordinate where the bound geometry already has it, in ChemSmart as in
+ORCA's own ``{B i j C}``, and the two legal routes to a value a structure
+does not yet have are to edit the coordinate there first or to drive a
+range with a scan. The second session took the edit, and then offered the
+coordinate to an ``opt`` node; the refusal it met was true and named no
+route, so it dropped the coordinate and compiled a plain optimisation,
+which relaxes straight off the coordinate it had been asked to hold. A
+refused job option now names the job types of that program whose live
+Click scope carries it.
