@@ -9,6 +9,8 @@ the node although both branch declarations carry ``reached_positions``.
 The reader states the correspondence and the consumers ask it.
 """
 
+import pathlib
+
 import pytest
 
 from chemsmart.agent.execution import _ends_on_one_reached_structure
@@ -227,3 +229,74 @@ def test_an_empty_appended_field_keeps_the_record_it_had():
                 carrying.append((program, jobtype))
     # One stage in the product spells its results differently from itself.
     assert carrying == [("gaussian", "irc")]
+
+
+@pytest.mark.capability("selector:gaussian:ircf:irc_direction")
+@pytest.mark.capability("selector:gaussian:ircf:reached_positions")
+@pytest.mark.capability(
+    "selector:gaussian:ircf:trajectory_connectivity_changed"
+)
+@pytest.mark.capability("selector:gaussian:ircf:trajectory_end_positions")
+@pytest.mark.capability("selector:gaussian:ircf:trajectory_frame_count")
+@pytest.mark.capability("selector:gaussian:ircf:trajectory_start_positions")
+@pytest.mark.capability("selector:gaussian:ircr:irc_direction")
+@pytest.mark.capability("selector:gaussian:ircr:reached_positions")
+@pytest.mark.capability(
+    "selector:gaussian:ircr:trajectory_connectivity_changed"
+)
+@pytest.mark.capability("selector:gaussian:ircr:trajectory_end_positions")
+@pytest.mark.capability("selector:gaussian:ircr:trajectory_frame_count")
+@pytest.mark.capability("selector:gaussian:ircr:trajectory_start_positions")
+def test_each_gaussian_irc_branch_answers_to_its_own_word():
+    """Both halves of one Gaussian IRC, read from the logs it wrote.
+
+    The declaration these branch words carry had no archived Gaussian
+    IRC to be read against. These two are the forward and reverse legs
+    of the one ChemSmart job the Agent ran on the malonaldehyde
+    proton-transfer saddle it had just found (CUHK r9g-g1, cycle 2,
+    B3LYP/6-31G(d)), so what the reader promises for ``ircf`` and
+    ``ircr`` is now checked on results of exactly that shape.
+
+    The reaction is degenerate, which is what makes the pair a check
+    rather than two samples: the two legs must be each other's mirror,
+    and nothing told the engine so.
+    """
+
+    import numpy as np
+
+    reader = reader_for("gaussian")
+    root = pathlib.Path(__file__).resolve().parents[2]
+    read = {}
+    for word, name in (
+        ("forward", "malonaldehyde_pt_ircf.log"),
+        ("reverse", "malonaldehyde_pt_ircr.log"),
+    ):
+        path = root / "tests/data/GaussianTests/outputs" / name
+        output = reader.open_output(path)
+        # The log's own word is what the reader is keyed on, and it is a
+        # branch word, never the stage's.
+        assert output.jobtype == ("ircf" if word == "forward" else "ircr")
+        assert reader.accessors["irc_direction"](output) == word
+        start = np.asarray(
+            reader.accessors["trajectory_start_positions"](output)
+        )
+        end = np.asarray(reader.accessors["trajectory_end_positions"](output))
+        reached = np.asarray(reader.accessors["reached_positions"](output))
+        # Where the walk ended is the structure it reached; the saddle it
+        # was handed is not.
+        assert np.allclose(reached, end)
+        assert not np.allclose(reached, start)
+        # A path that changes the molecular graph is the whole answer to
+        # which minima a saddle connects.
+        assert reader.accessors["trajectory_connectivity_changed"](output) == 1
+        read[word] = {
+            "frames": reader.accessors["trajectory_frame_count"](output),
+            "energy": reader.accessors["energy"](output),
+            "walk": float(np.abs(end - start).max()),
+        }
+    forward, reverse = read["forward"], read["reverse"]
+    assert forward["frames"] == reverse["frames"]
+    # Mirror images: the two ends of a degenerate transfer are the same
+    # energy, to far better than the barrier that separates them.
+    assert forward["energy"] == pytest.approx(reverse["energy"], abs=1e-5)
+    assert forward["walk"] == pytest.approx(reverse["walk"], abs=1e-2)
