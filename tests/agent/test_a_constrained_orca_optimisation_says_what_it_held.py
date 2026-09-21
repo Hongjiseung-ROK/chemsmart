@@ -32,7 +32,10 @@ from chemsmart.analysis.result_quantities import (
     QuantitySelectorV1,
     supported_selectors,
 )
-from chemsmart.analysis.result_readers import reader_for
+from chemsmart.analysis.result_readers import (
+    atom_resolved_selector_metadata,
+    reader_for,
+)
 
 OUTPUTS = (
     Path(__file__).resolve().parents[1] / "data" / "ORCATests" / "outputs"
@@ -111,7 +114,10 @@ def test_a_held_torsion_is_reported_by_atoms_and_by_value():
     delivered = {item.quantity_id: item for item in receipt.quantities}
 
     assert delivered["constrained_coordinate_count"].value == 1
-    assert delivered["constrained_dihedral_atoms"].value == ((18, 14, 13, 4),)
+    # ORCA prints this torsion as D(O18,H14,C13,C4), counting from one.
+    # What the extraction plane delivers indexes the plane's own vectors,
+    # which are zero-based, so the row is that label minus one.
+    assert delivered["constrained_dihedral_atoms"].value == ((17, 13, 12, 3),)
 
     # The value is measured in the structure ORCA returned and agrees
     # with the -125.9028 degrees ORCA declared it was holding; the
@@ -134,12 +140,12 @@ def test_two_kinds_of_constraint_keep_their_own_units_and_widths():
     delivered = {item.quantity_id: item for item in receipt.quantities}
 
     assert delivered["constrained_coordinate_count"].value == 2
-    assert delivered["constrained_bond_atoms"].value == ((10, 9),)
+    assert delivered["constrained_bond_atoms"].value == ((9, 8),)
     assert delivered["constrained_bond_lengths"].unit == "angstrom"
     assert delivered["constrained_bond_lengths"].value == pytest.approx(
         (2.4714,), abs=1e-4
     )
-    assert delivered["constrained_angle_atoms"].value == ((2, 6, 9),)
+    assert delivered["constrained_angle_atoms"].value == ((1, 5, 8),)
     assert delivered["constrained_bond_angles"].unit == "radian"
     assert delivered["constrained_bond_angles"].value == pytest.approx(
         (math.radians(69.0631),), abs=1e-6
@@ -164,6 +170,50 @@ def test_a_held_value_belongs_to_the_structure_that_came_back():
         "constrained_dihedral_angles",
     ):
         assert reader.structural_state(selector) == "as_reached"
+
+
+@pytest.mark.capability("selector:orca:modred:constrained_dihedral_atoms")
+@pytest.mark.capability("selector:orca:modred:constrained_bond_atoms")
+@pytest.mark.capability("selector:orca:modred:constrained_angle_atoms")
+def test_a_delivered_atom_index_indexes_what_this_plane_delivers():
+    """One plane, one base, said where the model reads it.
+
+    ORCA labels its constraints from one and the Agent *writes* a
+    constrained coordinate from one, while every vector this plane
+    delivers -- symbols, positions, every population -- is zero-based.
+    An index that silently kept ORCA's base would be off by one against
+    the arrays it is used to index, with every digest and unit green.
+    """
+
+    for artifact, artifact_id, rows in (
+        (_DIHEDRAL, "orca-dihedral", ("constrained_dihedral_atoms",)),
+        (
+            _BOND_AND_ANGLE,
+            "orca-pair",
+            ("constrained_bond_atoms", "constrained_angle_atoms"),
+        ),
+    ):
+        receipt = _extract(artifact, artifact_id, rows + ("symbols",))
+        delivered = {item.quantity_id: item for item in receipt.quantities}
+        symbols = delivered["symbols"].value
+        reader = reader_for("orca")
+        output = reader.open_output(Path(artifact))
+        printed = {
+            record["label"]: record["symbols"]
+            for record in output.constrained_coordinate_records
+        }
+        for name in rows:
+            item = delivered[name]
+            # The convention is typed metadata the session reads on the
+            # same surface as the populations', not a convention of this
+            # test.
+            assert (
+                atom_resolved_selector_metadata(name)["atom_order"]
+                == "zero-based molecular atom order"
+            )
+            for row in item.value:
+                read_back = tuple(symbols[int(index)] for index in row)
+                assert read_back in printed.values(), (name, row, read_back)
 
 
 @pytest.mark.capability("program_jobtype:orca:cpu:modred")

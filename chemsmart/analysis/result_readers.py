@@ -2241,6 +2241,11 @@ def _orca_held_coordinates(output: Any, kind: str) -> list[dict[str, Any]]:
     }[kind]
     held = []
     for record in records:
+        # ``Molecule.get_distance`` and its siblings number atoms from
+        # one, as everything the Agent *writes* does. What the extraction
+        # plane *delivers* is zero-based, because it indexes the vectors
+        # this same plane delivers -- symbols, positions, populations --
+        # so the two bases are converted here and never mixed.
         reached = float(measure(*record["atoms"]))
         declared = float(record["value"])
         if abs(reached - declared) > _ORCA_CONSTRAINT_TOLERANCE[kind]:
@@ -2251,7 +2256,13 @@ def _orca_held_coordinates(output: Any, kind: str) -> list[dict[str, Any]]:
                 "carries, and the geometry itself is readable as "
                 "reached_positions"
             )
-        held.append({"atoms": record["atoms"], "value": reached})
+        held.append(
+            {
+                "atoms": tuple(int(index) - 1 for index in record["atoms"]),
+                "label": record["label"],
+                "value": reached,
+            }
+        )
     return held
 
 
@@ -4662,6 +4673,48 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("constrained_coordinate_count", "1", "DIMENSIONLESS"),
             ("constrained_dihedral_angles", "degree", "ANGLE"),
             ("constrained_dihedral_atoms", "1", "DIMENSIONLESS"),
+        ),
+        #: An atom index this plane delivers indexes the vectors this
+        #: plane delivers -- symbols, positions, every population -- so it
+        #: is zero-based like all of them, and it says so where the model
+        #: reads it rather than where the reader remembers it. ORCA's own
+        #: label counts from one; that is a label, never the index, and
+        #: the two are converted at the accessor. What the Agent *writes*
+        #: -- the constrained coordinate on a modred node -- is one-based,
+        #: which is the round trip this record exists to keep honest.
+        atom_resolved_declarations=(
+            (
+                "constrained_bond_atoms",
+                (
+                    ("semantic_quantity", "constrained_internal_coordinate"),
+                    ("atom_order", "zero-based molecular atom order"),
+                    ("data_shape", "rows of [atom_i, atom_j]"),
+                ),
+            ),
+            (
+                "constrained_angle_atoms",
+                (
+                    ("semantic_quantity", "constrained_internal_coordinate"),
+                    ("atom_order", "zero-based molecular atom order"),
+                    (
+                        "data_shape",
+                        "rows of [atom_i, atom_j, atom_k], vertex in the "
+                        "middle",
+                    ),
+                ),
+            ),
+            (
+                "constrained_dihedral_atoms",
+                (
+                    ("semantic_quantity", "constrained_internal_coordinate"),
+                    ("atom_order", "zero-based molecular atom order"),
+                    (
+                        "data_shape",
+                        "rows of [atom_i, atom_j, atom_k, atom_l], about "
+                        "the j-k bond",
+                    ),
+                ),
+            ),
         ),
         # Coverage is ``parser_supported_when_emitted``: it states what a job
         # of this type can be asked for, while method and settings still
