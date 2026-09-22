@@ -805,3 +805,74 @@ total-energy difference between the two runs of -1.026. It settled
 three-heavy-atom floor on a four-atom molecule, as in the earlier
 campaigns. This is the decomposition arriving from a calculation the
 Agent planned and ran, rather than from one prepared for it.
+
+A continuum is two numbers, not a name, and until now a session could
+read only the name. The density is polarised with the static relative
+permittivity; a vertical excitation leaves the solvent's nuclei where the
+ground state put them, so PySCF answers a non-equilibrium response with
+the optical permittivity instead -- a single hard-coded 1.78 for every
+solvent it is handed, which is water's n squared. This topic has said
+since contract v5 that the artifact records both and that "a toluene
+fixture shows the divergence instead of hiding it behind water". The
+recording was real and the reading never existed:
+``status/stages/td/solvent`` has carried both numbers all along, a green
+test has asserted them on the archived artifact for a round, and no
+selector, level line or receipt served either, so what reached a session
+was "C-PCM, toluene". Two such spectra differenced and called a
+solvatochromic shift would have passed every digest, unit, geometry and
+surface check on the way, which is the class of defect this laboratory
+names by heart: the mechanism is right where it is computed and
+unconnected where it is consumed. The reader declares both now, as
+identities of the run rather than values on a density, exactly as the
+model and the solvent name already are: ``solvent_dielectric`` wherever
+an SCF converges, because a solvent name is not a permittivity and two
+legs of one cycle can both say "water"; and
+``excitation_response_dielectric`` on ``td`` alone -- an excited-root
+``opt`` inherits the excitation set, PySCF has no solvated excited-state
+gradient and the settings validator refuses one, so there the question
+could never be answered and a declaration a job type can never satisfy is
+worse than none. The level record ``inspect_run`` shows and every
+extraction receipt carries names both numbers and the word that makes the
+second operative. No contract version moves: these are bytes that were
+already written, so every archived digest is untouched. On the archived
+``water_td_cpcm_toluene`` the density was polarised with toluene's 2.3741
+and the excitations were answered with 1.78, which against PySCF's own
+``solvent_db`` is water's n squared of 1.7764 to 5e-3 and sits 0.46 away
+from toluene's own 2.2383; so the whole solvent dependence a PySCF 2.14
+spectrum can carry enters through the ground-state density. What is not
+claimed here: no reader but this one answers either selector, and the two
+numbers ORCA prints (``Epsilon``, ``Refrac``) and the two Gaussian prints
+(``Eps``, ``EpsInf``) are where the shared names will meet a second
+program when one of them declares them.
+
+One live goal ran that surface (CUHK Slurm 2142833, three hours seventeen,
+settled ``achieved``, the approval delegated by the owner and recorded as
+``claude-researcher-pyscf-owner-delegated``). The task named no selector,
+no permittivity and no solvent model; it asked how far the absorption band
+of trans-4-(dimethylamino)-4'-nitrostilbene, a push-pull dye of twenty
+heavy atoms, moves with solvent. The session chose CAM-B3LYP itself and
+recorded rejecting B3LYP and PBE0 for placing the charge-transfer state
+too low, optimised once, and carried that geometry into three ``td`` nodes
+through the optimised-geometry edge -- each node's supplied structure
+equals the reached one to 4.9e-11 Angstrom, so the three spectra differ
+only by the continuum. The bright root is root 1 everywhere: gas 3.51179
+eV at f 1.24279, C-PCM n-hexane 3.31881, C-PCM acetonitrile 3.20362, and
+the host's own arithmetic gave the n-hexane-to-acetonitrile shift as
+-0.11519 eV and +13.43 nm, red as a charge-transfer band must be. The two
+runs applied static permittivities differing by a factor of nineteen,
+1.8819 and 35.688, and their responses applied the same 1.78; so that
+shift is ground-state density polarisation and the excited-state fast
+response contributed identically in both solvents, which is the sentence
+this surface exists to make sayable.
+
+It was not said. The cycle-1 plan asked for both permittivities on both
+solvated nodes and on neither the gas node, which is the discovery half
+working; woken after the optimisation, the session replanned and bound
+only the excitation energies and oscillator strengths, and delivered the
+shift without naming the permittivity that bounds it. The numbers were on
+every receipt it held -- the level record inside each extraction receipt's
+digest carries both on a solvated node and neither on the gas one -- so
+what the goal qualifies is ``excitation_energies`` and
+``oscillator_strengths`` on ``td``, and the two permittivity selectors
+stay tested. Reachable is not used, and a level field a session never has
+to ask for may be a field it does not read.

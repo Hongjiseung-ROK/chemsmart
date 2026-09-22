@@ -3807,6 +3807,62 @@ def _pyscf_solvent(output: Any) -> str:
     return str(value)
 
 
+def _pyscf_static_dielectric(output: Any) -> float:
+    """The permittivity the continuum polarised the density with.
+
+    A solvent name is not a solvent: two legs of one cycle can both say
+    "water" and run at different permittivities, and PySCF's PCM runs at
+    water's whatever name it was given unless the driver sets the number.
+    The artifact records what was set, so a claim can carry it.
+    """
+
+    value = getattr(output, "solvent_dielectric", None)
+    if value is None:
+        if not getattr(output, "solvent_model", None):
+            raise MissingQuantityError(
+                "this pyscf result applied no continuum solvent model, so "
+                "there is no dielectric constant to report"
+            )
+        raise MissingQuantityError(
+            "this pyscf result applied a continuum model and recorded no "
+            "dielectric constant (spec/solvent_eps)"
+        )
+    return float(value)
+
+
+def _pyscf_response_dielectric(output: Any) -> float:
+    """The permittivity the excitation stage's fast term applied.
+
+    Declared beside the excitation energies for the reason ``solvent``
+    and ``solvation_model`` are declared beside the solvation terms: a
+    number whose solvent a claim cannot carry is how two spectra come to
+    be compared as a solvatochromic shift. Here the trap is sharper than
+    a missing name, because the static permittivity a session *can* see
+    is not the one the response ran on. PySCF 2.14 answers every
+    non-equilibrium response with 1.78; a run named for toluene records
+    2.3741 on its density and 1.78 on its spectrum, and only the second
+    number bounds how far that spectrum can shift.
+    """
+
+    value = getattr(output, "response_dielectric", None)
+    if value is None:
+        if getattr(output, "td_stage", None) is None:
+            raise MissingQuantityError(
+                "this pyscf result ran no response stage, so no dielectric "
+                "was applied to an excitation"
+            )
+        if not getattr(output, "solvent_model", None):
+            raise MissingQuantityError(
+                "this pyscf response stage ran in the gas phase, so no "
+                "dielectric was applied to it"
+            )
+        raise MissingQuantityError(
+            "this pyscf response stage recorded no applied dielectric "
+            "(status/stages/td/solvent/response_eps_applied)"
+        )
+    return float(value)
+
+
 def _pyscf_absence_reason(
     read: Callable[[Any], Any],
     output: Any,
@@ -3912,6 +3968,8 @@ def _pyscf_level(output: Any) -> dict[str, Any]:
     if getattr(output, "solvent_on", False):
         level["solvent_model"] = output.solvent_model
         level["solvent"] = output.solvent_id
+        if output.solvent_dielectric is not None:
+            level["solvent_dielectric"] = output.solvent_dielectric
     correlated = getattr(output, "correlated_method", None)
     if correlated:
         level["ab_initio"] = correlated
@@ -3927,6 +3985,20 @@ def _pyscf_level(output: Any) -> dict[str, Any]:
         ):
             if stage.get(key) is not None:
                 level[name] = stage[key]
+        # Which continuum the spectrum itself ran under. The equilibrium
+        # word is what makes the second permittivity the operative one,
+        # and it is a level fact rather than a quantity: it says how the
+        # numbers beside it were computed, not what they are.
+        if output.response_dielectric is not None:
+            level["excitation_response_dielectric"] = (
+                output.response_dielectric
+            )
+        if output.response_equilibrium_solvation is not None:
+            level["excitation_response_solvation"] = (
+                "equilibrium"
+                if output.response_equilibrium_solvation
+                else "non_equilibrium"
+            )
     record = getattr(output, "excited_state_record", None)
     if isinstance(record, Mapping) and record.get("root") is not None:
         level["excited_state_root"] = int(record["root"])
@@ -4149,6 +4221,12 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
         # thermodynamic cycle can disagree about silently.
         "solvation_model": _pyscf_solvation_model,
         "solvent": _pyscf_solvent,
+        # The two permittivities the run applied. They are identities, as
+        # the model and the solvent name are, and they are the identities
+        # that decide what a difference between two solvated results is
+        # allowed to be called.
+        "solvent_dielectric": _pyscf_static_dielectric,
+        "excitation_response_dielectric": _pyscf_response_dielectric,
         "solvation_electrostatic_energy": _pyscf_decomposition_scalar(
             "solvation_electrostatic_energy"
         ),
@@ -4270,6 +4348,7 @@ _PYSCF_SCF_SELECTORS = (
     "solvation_model",
     "solvation_nonelectrostatic_energy",
     "solvent",
+    "solvent_dielectric",
     "spin_square",
     "spin_square_deviation",
     "spin_square_target",
@@ -4346,8 +4425,18 @@ _PYSCF_IRC_SELECTORS = tuple(
         )
     )
 )
+#: ``excitation_response_dielectric`` is declared here and not in
+#: ``_PYSCF_TD_SELECTORS``, which an ``opt`` inherits: an excited-root
+#: optimisation is gas phase only -- PySCF has no solvated excited-state
+#: gradient and the settings validator refuses one -- so on that job type
+#: the selector could never be answered, and declaring a question a job
+#: type cannot ever have is worse than not declaring it.
 _PYSCF_TD_JOBTYPE_SELECTORS = tuple(
-    sorted(_PYSCF_SCF_SELECTORS + _PYSCF_TD_SELECTORS)
+    sorted(
+        _PYSCF_SCF_SELECTORS
+        + _PYSCF_TD_SELECTORS
+        + ("excitation_response_dielectric",)
+    )
 )
 #: A saddle search (contract v9): the SCF set belongs to where the climb
 #: ended, as for an optimisation, plus the spectrum of the seed it was
@@ -5457,6 +5546,17 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # programs print electronvolts.  One entry closes a cross-program
         # disagreement this project had recorded and never reconciled.
         source_units={"excitation_energies": "Eh"},
+        #: Two relative permittivities, both dimensionless, both applied
+        #: rather than requested.  The names are program-neutral because
+        #: the facts are: every continuum program has a dielectric, and
+        #: every non-equilibrium response has a second one.  ORCA prints
+        #: both (``Epsilon``, ``Refrac``) and Gaussian both (``Eps``,
+        #: ``EpsInf``); neither reader serves them yet, and the shared
+        #: vocabulary is where they will meet when one does.
+        selector_declarations=(
+            ("solvent_dielectric", "", "DIMENSIONLESS"),
+            ("excitation_response_dielectric", "", "DIMENSIONLESS"),
+        ),
         jobtype_selectors=(
             (
                 "hess",

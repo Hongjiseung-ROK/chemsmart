@@ -1104,14 +1104,21 @@ def test_the_level_names_the_convention_and_the_root():
         "basis": "def2-svp",
         "frozen_core": 1,
     }, "'auto' is displayed as the count it applied"
+    # A solvent name is not a level. The permittivity the density was
+    # polarised with, the one the spectrum's fast term ran on, and the
+    # word that makes the second the operative one are what separate two
+    # spectra at one functional and one basis in "toluene".
     assert reader.level_for_output(_open("water_td_cpcm_toluene")) == {
         "functional": "b3lyp",
         "basis": "def2-svp",
         "solvent_model": "cpcm",
         "solvent": "toluene",
+        "solvent_dielectric": 2.3741,
         "response_method": "tda",
         "state_manifold": "singlet",
         "nstates": 3,
+        "excitation_response_dielectric": 1.78,
+        "excitation_response_solvation": "non_equilibrium",
     }
     assert reader.level_for_output(_open("formaldehyde_s1_opt")) == {
         "functional": "b3lyp",
@@ -1241,13 +1248,20 @@ def test_every_declared_pyscf_selector_is_requestable_and_provenanced():
 
     from chemsmart.analysis import result_readers as readers_module
     from chemsmart.analysis.result_quantities import (
-        SUPPORTED_SELECTORS,
         QuantitySelectorV1,
+        supported_selectors,
     )
     from chemsmart.analysis.result_readers import (
         ELECTRONIC_PROVENANCES,
         SELECTOR_UNITS,
     )
+
+    # The gate is the function, never the flat constant beneath it: a
+    # selector only this program's parser can answer is declared on this
+    # reader and joins the vocabulary there. Asking ``SUPPORTED_SELECTORS``
+    # passed for as long as this reader declared nothing, which made it a
+    # test of that accident rather than of requestability.
+    requestable = supported_selectors()
 
     reader = reader_for("pyscf")
     identity = {
@@ -1272,6 +1286,11 @@ def test_every_declared_pyscf_selector_is_requestable_and_provenanced():
         # it, which is the distinction this roster draws.
         "solvation_model",
         "solvent",
+        # The permittivities the run applied are job-level facts for the
+        # same reason the solvent's name is: they say what the continuum
+        # was set up as, not what came out of a density.
+        "solvent_dielectric",
+        "excitation_response_dielectric",
         # An IRC's path is geometry and bookkeeping: which frames, which
         # branch, whether the walk met its criteria. Its energies and the
         # start's spectrum are values on a density and declare it.
@@ -1286,7 +1305,7 @@ def test_every_declared_pyscf_selector_is_requestable_and_provenanced():
     }
     for jobtype, _selectors in reader.jobtype_selectors:
         for selector in reader.selectors_for_jobtype(jobtype):
-            assert selector in SUPPORTED_SELECTORS, selector
+            assert selector in requestable, selector
             QuantitySelectorV1(quantity_id="q", selector=selector)
             assert selector in SELECTOR_UNITS, selector
             assert selector in readers_module._SELECTOR_DIMENSIONS, selector

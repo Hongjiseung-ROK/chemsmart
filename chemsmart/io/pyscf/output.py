@@ -550,6 +550,58 @@ class PySCFOutput(FileMixin):
         return None
 
     @property
+    def solvent_dielectric(self):
+        """The relative permittivity the continuum ran with, or None.
+
+        ``spec/solvent_eps`` is what the driver resolved in the target
+        environment and set on the solvent object -- PySCF's PCM defaults
+        to water whatever solvent was named, so an unset value is an
+        aqueous run under another solvent's name -- and the artifact
+        validator holds it equal to the ``solvent_dielectric``
+        materialisation record. So this is the number the SCF applied and
+        never the one a project asked for.
+        """
+        if not self.solvent_on:
+            return None
+        value = self.spec.get("solvent_eps")
+        return None if value is None else float(value)
+
+    @property
+    def response_solvent(self):
+        """What the solvent model did to the response stage, or None."""
+        stage = self.td_stage
+        record = stage.get("solvent") if isinstance(stage, dict) else None
+        return record if isinstance(record, dict) else None
+
+    @property
+    def response_dielectric(self):
+        """The permittivity the excitation stage's fast term applied.
+
+        A vertical excitation leaves the solvent's nuclei where the ground
+        state polarised them, so a non-equilibrium continuum answers the
+        response with the optical permittivity rather than the static one.
+        PySCF 2.14 uses a single hard-coded 1.78 -- water's -- for every
+        solvent (``pyscf/solvent/_attach_solvent.py``), so this is the
+        number that decides how much of a solvatochromic shift a PySCF
+        spectrum can contain, and it is not toluene's 2.24 or
+        acetonitrile's 1.81 merely because the run was named for them.
+        """
+        record = self.response_solvent
+        if record is None:
+            return None
+        value = record.get("response_eps_applied")
+        return None if value is None else float(value)
+
+    @property
+    def response_equilibrium_solvation(self):
+        """Whether the response stage ran an equilibrium continuum."""
+        record = self.response_solvent
+        if record is None:
+            return None
+        value = record.get("equilibrium_solvation")
+        return None if value is None else bool(value)
+
+    @property
     def route_string(self):
         """Return a canonical one-line description of the calculation.
 
