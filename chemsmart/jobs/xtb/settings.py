@@ -122,7 +122,17 @@ class XTBJobSettings:
         self.charge = charge
         self.multiplicity = multiplicity
         self.jobtype = self._normalized_text(jobtype)
-        self.grad = grad
+        # A ChemSmart xTB Hessian is ``--hess``: the second derivatives are
+        # taken at the geometry the job was handed, which this job kind never
+        # relaxes.  Whether that geometry is a stationary point of this
+        # Hamiltonian is decided nowhere else in the result, and the only
+        # thing that decides it is the gradient there.  xTB has already
+        # computed it; ``--grad`` only writes it down.  So a Hessian job
+        # carries the request in its own settings rather than having the
+        # runner add an argument the settings do not declare -- the result
+        # validator's whole strength is that the command is the settings --
+        # and the preview and the receipt then say a gradient was asked for.
+        self.grad = bool(grad) or self.jobtype == "hess"
         self.solvent_model = self._normalized_text(solvent_model)
         self.solvent_id = self._normalized_solvent_id(solvent_id)
         self.validate()
@@ -218,13 +228,18 @@ class XTBJobSettings:
             or self.multiplicity < 1
         ):
             raise ValueError("xTB multiplicity must be a positive integer.")
+        # ``--grad`` used to be refused for every job kind but ``sp``, on the
+        # claim that xTB does not combine it with a relaxation or a Hessian.
+        # This repository's own archived xTB 6.7.1 outputs falsify that:
+        # ``co2_ohess`` was produced by ``xtb co2.xyz --ohess vtight --grad
+        # --copy`` and ``p_benzyne_opt_alpb_toluene`` by ``xtb p_benzyne.xyz
+        # --opt loose --alpb toluene --uhf 2 --grad --json``.  They are also
+        # the only archived folders carrying a gradient vector, so the
+        # restriction forbade asking for the evidence exactly where it says
+        # something: whether the geometry a spectrum belongs to is a
+        # stationary point of the surface that produced it.
         if not isinstance(self.grad, bool):
             raise TypeError("xTB grad must be a boolean.")
-        if self.grad and self.jobtype not in (None, "sp"):
-            raise ValueError(
-                "xTB --grad is supported only for the sp job kind; it must "
-                "not be combined with opt or hess."
-            )
 
         has_model = self.solvent_model is not None
         has_identifier = self.solvent_id is not None

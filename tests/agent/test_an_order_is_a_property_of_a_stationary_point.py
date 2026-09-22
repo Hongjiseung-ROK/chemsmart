@@ -144,11 +144,55 @@ def test_a_program_that_cannot_bind_a_gradient_says_unmeasured():
     geometry. Those readers answer nothing here rather than a number read
     from the wrong structure, and nothing reads that as stationarity."""
 
-    for program in ("orca", "gaussian", "xtb"):
+    for program in ("orca", "gaussian"):
         assert (
             reader_for(program).resolve_stationarity_gradient is None
         ), program
-    assert reader_for("pyscf").resolve_stationarity_gradient is not None
+    # One xTB invocation touches one geometry, so the gradient it writes
+    # and the spectrum it prints describe the same structure.
+    for program in ("pyscf", "xtb"):
+        assert (
+            reader_for(program).resolve_stationarity_gradient is not None
+        ), program
+
+
+def test_an_xtb_order_is_measured_and_names_its_structure():
+    """The certification reaches a second program, on real xTB bytes.
+
+    ``co2_ohess`` is an archived xTB 6.7.1 run that wrote both a
+    spectrum and a gradient vector, so the word is measured rather than
+    ``unmeasured`` and the receipt carries the digest of the structure
+    the order is about.
+    """
+
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "XTBTests"
+        / "outputs"
+        / "co2_ohess"
+        / "co2_ohess.out"
+    )
+    receipt = build_stationary_point_characterisation(
+        result_artifact=TrustedArtifactRefV1(
+            artifact_id="xtb-co2-ohess",
+            kind="xtb_output",
+            sha256=file_sha256(path),
+            size_bytes=path.stat().st_size,
+            path=str(path),
+            cli_value=path.name,
+        ),
+        program="xtb",
+        order_claimed=0,
+    )
+    assert receipt.stationarity == "stationary"
+    assert (
+        0.0
+        <= receipt.max_abs_gradient_eh_per_bohr
+        <= HESS_STATIONARITY_GRADIENT_EH_PER_BOHR
+    )
+    assert len(receipt.geometry_sha256) == 64
+    assert receipt.receipt_sha256 == canonical_sha256(receipt._body())
 
 
 def test_the_word_is_one_of_two_and_never_invented():

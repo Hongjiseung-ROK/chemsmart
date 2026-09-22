@@ -421,10 +421,32 @@ class TestXTBSettingsContract:
                 solvent_id="water",
             )
 
-    @pytest.mark.parametrize("jobtype", ["opt", "hess"])
-    def test_grad_is_rejected_outside_single_point(self, jobtype):
-        with pytest.raises(ValueError, match="supported only for the sp"):
-            XTBJobSettings(jobtype=jobtype, grad=True)
+    @pytest.mark.parametrize("jobtype", ["sp", "opt", "hess"])
+    @pytest.mark.capability("setting:xtb:grad")
+    def test_grad_is_accepted_on_every_job_kind(self, jobtype):
+        # The sp-only refusal was falsified by this repository's own
+        # archived xTB 6.7.1 outputs: co2_ohess ran ``--ohess vtight
+        # --grad`` and p_benzyne_opt_alpb_toluene ran ``--opt loose ...
+        # --grad``.
+        settings = XTBJobSettings(jobtype=jobtype, grad=True)
+        assert "--grad" in XTBJobRunner._settings_args(settings)
+
+    @pytest.mark.capability("setting:xtb:grad")
+    def test_a_hessian_job_writes_the_gradient_at_the_geometry_it_uses(self):
+        # ``--hess`` differentiates the geometry it was handed and never
+        # relaxes it, so the gradient there is the only thing that says
+        # whether the spectrum belongs to a stationary point.  The request
+        # lives in the settings, so the command is still exactly what the
+        # settings declare and the receipt records that it was asked for.
+        settings = XTBJobSettings(jobtype="hess")
+        assert settings.grad is True
+        args = XTBJobRunner._settings_args(settings)
+        assert "--hess" in args and args.count("--grad") == 1
+        # An optimisation stops at its own stationary point, so nothing is
+        # implied there and the flag stays a request.
+        opt = XTBJobSettings(jobtype="opt")
+        assert opt.grad is False
+        assert "--grad" not in XTBJobRunner._settings_args(opt)
 
     def test_title_is_not_an_execution_setting(self):
         with pytest.raises(ValueError, match="Unknown xTB setting"):
@@ -463,7 +485,18 @@ class TestXTBSettingsContract:
             ),
             (
                 "hess",
-                ["--gfn", "2", "--hess", "--chrg", "0", "--uhf", "0"],
+                # ``--grad`` is the host's, not a request: it writes the
+                # gradient at the one geometry ``--hess`` differentiates.
+                [
+                    "--gfn",
+                    "2",
+                    "--hess",
+                    "--chrg",
+                    "0",
+                    "--uhf",
+                    "0",
+                    "--grad",
+                ],
             ),
         ],
     )
@@ -1170,16 +1203,13 @@ class TestXTBPreviewAndValidationReceipts:
                 },
                 "p_benzyne.xyz",
             ),
-            (
-                "acetaldehyde_hess",
-                XTBHessJob,
-                "hess",
-                {},
-                "acetaldehyde.xyz",
-            ),
+            # ``acetaldehyde_hess`` was produced by ``xtb acetaldehyde.xyz
+            # --hess``, before a ChemSmart Hessian recorded its gradient,
+            # and no archived folder holds a plain ``--hess --grad`` run.
+            # What it is now is the witness below.
         ],
     )
-    def test_archived_sp_opt_hess_require_green_bound_receipt(
+    def test_archived_sp_opt_require_green_bound_receipt(
         self,
         tmp_path,
         monkeypatch,
@@ -1300,6 +1330,79 @@ class TestXTBPreviewAndValidationReceipts:
         with open(job.outputfile, "a") as handle:
             handle.write("mutated\n")
         assert job.is_complete() is False
+
+    @pytest.mark.capability("gate:xtb.result.requested_settings")
+    def test_a_hessian_without_its_gradient_is_named_incomplete(
+        self, tmp_path, monkeypatch
+    ):
+        """A spectrum whose geometry nothing measures is not a green result.
+
+        ``acetaldehyde_hess`` is a real xTB 6.7.1 ``--hess`` run that wrote
+        no gradient.  Under the rule that a Hessian records the gradient at
+        the geometry it differentiates, the host now says exactly what is
+        missing instead of certifying the run: the output's own program
+        call did not ask for one, and no gradient artifact exists.  Both
+        halves matter -- the second is what the reader would have read.
+        """
+
+        fixture = (
+            Path(__file__).parent
+            / "data"
+            / "XTBTests"
+            / "outputs"
+            / "acetaldehyde_hess"
+        )
+        source = fixture / "acetaldehyde.xyz"
+        monkeypatch.chdir(tmp_path)
+        settings = XTBJobSettings(jobtype="hess")
+        job = XTBHessJob(
+            molecule=Molecule.from_filepath(source),
+            settings=settings,
+            label="acetaldehyde_hess",
+            source_filename=source,
+        )
+        shutil.copytree(fixture, job.folder, dirs_exist_ok=True)
+        Path(job.inputfile).write_bytes(source.read_bytes())
+        copied_source = Path(job.folder) / "acetaldehyde.xyz"
+        if copied_source != Path(job.inputfile):
+            copied_source.unlink()
+
+        binary = tmp_path / "xtb-6.7.1"
+        binary.write_bytes(b"synthetic pinned executable identity\n")
+        binary.chmod(0o700)
+        environment = finalize_receipt(
+            job.environment_receiptfile,
+            {
+                "schema_version": "chemsmart.xtb-environment.v1",
+                "required_version": "6.7.1",
+                "status": "available",
+                "preflight_state": "ready",
+                "execution_ready": True,
+                "observed_version": "6.7.1",
+                "executable": str(binary.resolve()),
+                "executable_sha256": sha256_file(binary),
+                "findings": [],
+            },
+        )
+        command = [str(binary), job.inputfile]
+        command.extend(XTBJobRunner._settings_args(settings))
+        provenance = dict(job.declared_provenance_binding)
+        provenance["execution_input_artifact"] = bind_xtb_execution_input(
+            job.inputfile
+        )
+        receipt = validate_xtb_result(
+            job=job,
+            command=command,
+            environment_receipt=environment,
+            provenance_binding=provenance,
+            returncode=0,
+            receipt_path=job.result_receiptfile,
+        )
+        assert receipt["ready"] is False
+        assert {item["field"] for item in receipt["findings"]} >= {
+            "settings.grad",
+            "result.gradient",
+        }
 
 
 class TestXTBExamples:

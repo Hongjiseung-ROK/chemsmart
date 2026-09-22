@@ -559,6 +559,78 @@
       "commit": "304de2af",
       "date": "2026-09-22",
       "source": "trans-4-(dimethylamino)-4'-nitrostilbene, 20 heavy atoms / 36 atoms, at one CAM-B3LYP/def2-SVP geometry a PySCF opt reached (cycle 1, 2538.3 s), carried into three TDDFT nodes through the optimised-geometry edge: every td node's supplied geometry equals that reached structure to 4.9e-11 A and its own results/positions to 8.9e-16 A, so the three spectra differ only by the continuum. Six singlet roots each; the bright root is root 1 everywhere. Gas 3.51179 eV / 353.05 nm / f 1.24279; C-PCM n-hexane 3.31881 / 373.58 / 1.35775; C-PCM acetonitrile 3.20362 / 387.01 / 1.31496. The host's own arithmetic gave the n-hexane-to-acetonitrile shift as -0.11519 eV and +13.43 nm, red as a push-pull charge-transfer band must be, and the analysis chain executed provider-free with all three nodes validated. The session chose CAM-B3LYP itself and recorded rejecting B3LYP and PBE0 for placing the CT state too low. What the two cells do NOT cover: the permittivities. The cycle-1 plan requested solvent_dielectric and excitation_response_dielectric on both solvated nodes and on neither the gas node; the session replanned in cycle 2 and bound only these two spectral selectors, so no live extraction has bound either permittivity and both stay tested. They did reach the session on the level record inside every extraction receipt's digest (n-hexane solvent_dielectric 1.8819, acetonitrile 35.688, excitation_response_dielectric 1.78 on both, excitation_response_solvation non_equilibrium, and none of the three on the gas node)."
+    },
+    {
+      "kind": "setting",
+      "id": "xtb:grad",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880, Agent goal g3), cycles 2 and 3",
+      "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
+      "date": "2026-09-22",
+      "source": "Both Hessian nodes carried grad in their own settings and their argv ended '--gfn 2 --hess --chrg 0 --uhf 0 --grad'; xTB 6.7.1 wrote the gradient vector and the reader read it. The host record carries max_abs_gradient_eh_per_bohr 9.425503e-05 at the GFN2 minimum and 0.024746598481 at the GFN-FF geometry, and stationary_point.gradient_above_optimizer_criterion fired on the second. On the frozen base both were absent: the xTB reader declared no gradient and the run sensor read another parser's attribute names. An apparatus check (Slurm 2142839) first confirmed the human CLI path: receipt ready true, validated, no findings, settings.grad true."
+    },
+    {
+      "kind": "setting",
+      "id": "xtb:gfn_version",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), cycles 1-3",
+      "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
+      "date": "2026-09-22",
+      "source": "Two Hamiltonians were requested and reached the engine as written: '--gfnff' and '--gfn 2' in the program call of their own outputs. They are different surfaces, not a relabelling: the GFN-FF minimum sits 0.0283212 Eh (17.77 kcal/mol) above the GFN2 minimum on the GFN2 surface, and a GFN2 Hessian there carries max|g| 0.024747 Eh/Bohr against 9.4255e-05 at the GFN2 minimum. GFN-FF also exposed a reader limit recorded as a defect: its output prints no 'net charge'/'unpaired electrons' block, so both GFN-FF nodes failed xtb.result.settings_mismatch with charge and multiplicity observed as None."
+    },
+    {
+      "kind": "setting",
+      "id": "xtb:optimization_level",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), cycles 1-2",
+      "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
+      "date": "2026-09-22",
+      "source": "The session chose 'normal' rather than ChemSmart's 'vtight' default, and the choice survived to the engine: the argv reads '--opt normal' and the output's own SETUP block reports 'optimization level normal'. The GFN2 optimisation converged after 88 iterations to |g|norm 2.75908e-04 and the GFN-FF one after 72 to 9.37685e-04, which a later cycle re-tightened to 1.52528e-04."
+    },
+    {
+      "kind": "setting",
+      "id": "xtb:jobtype",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), cycles 1-3",
+      "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
+      "date": "2026-09-22",
+      "source": "Five nodes over three waves: three 'opt' and two 'hess', each rendering the job kind it declared ('--opt <level>' and '--hess') and each audited against it by the result validator. The two GFN2 nodes returned ready true and validated; the cross-Hamiltonian Hessian returned ready true and was then failed by the host's own stationary-point rule (result.stationary_point_order), which is the job kind's promise being enforced rather than a job kind that did not run."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:vibrational_mode_atom_participation",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min on the GFN2-minimum Hessian",
+      "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
+      "date": "2026-09-22",
+      "source": "This is what carried the carbonyl assignment on a 41-atom molecule with three C=O groups, where a frequency alone decides nothing. Read in one receipt with the frequencies and IR intensities: the beta-lactam stretch is mode 99 at 1866.33 cm-1 with C10+O1 participation 0.969, the side-chain amide is mode 97 at 1752.42 cm-1 with C14+O2 participation 0.980, and the carboxyl C=O at mode 98 sits between them, which is why the session refused to reuse those indices on the other route's Hessian."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:positions",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
+      "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
+      "date": "2026-09-22",
+      "source": "Read in one receipt with symbols and connectivity from the GFN2-minimum Hessian result, as the structure the spectrum and the gradient both belong to; the same coordinates the host digests into the stationary-point characterisation."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:symbols",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
+      "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
+      "date": "2026-09-22",
+      "source": "Read beside positions and connectivity on the GFN2-minimum Hessian. C16H17N3O4S in source atom order, which is what makes the per-atom participation rows above nameable as C10+O1 and C14+O2."
+    },
+    {
+      "kind": "selector",
+      "id": "xtb:hess:connectivity",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
+      "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
+      "date": "2026-09-22",
+      "source": "Geometry-perceived adjacency on the relaxed structure, read to establish that the GFN2 relaxation of a database conformer preserved the beta-lactam ring before any band was assigned to it."
     }
   ]
 }

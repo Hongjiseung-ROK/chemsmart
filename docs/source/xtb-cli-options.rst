@@ -63,7 +63,9 @@ Program-Level Options
 
    -  -  ``--grad/--no-grad``
       -  boolean
-      -  Gradient request, valid only for ``sp``.
+      -  Write the gradient beside the result; accepted for every job kind. A ``hess`` job always writes it,
+         whatever is requested, because the Hessian is taken at the geometry the job was handed and the
+         gradient there is what says whether that geometry is a stationary point of the selected method.
 
    -  -  ``--optimization-level``
       -  xTB level
@@ -105,10 +107,10 @@ section. If both are omitted, the selected source structure's electronic state i
      multiplicity: 1
      solvent_model: null
      solvent_id: null
-     grad: false
+     grad: true
 
 Unknown keys, a contradictory ``jobtype``, optimization settings outside ``opt``, and an electron-count/multiplicity
-parity mismatch are rejected.
+parity mismatch are rejected. A ``hess`` section reads back ``grad: true`` however it was written.
 
 ************************
  Preview and Validation
