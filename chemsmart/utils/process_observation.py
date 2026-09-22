@@ -128,6 +128,15 @@ class _ProcessRow:
     state: str
 
 
+#: ``kill(2)`` and ``killpg(2)`` take a C ``int``. procps prints ``pgid`` with
+#: ``%u``, so a group it read as negative arrives as 4294967295: a value the
+#: kernel will refuse, not a group. Such a row still names a process the
+#: observer can address, so the process stays in the table and its group
+#: becomes "none" (0, the value kernel threads already carry). A row whose
+#: own id or parent id is unaddressable names nothing and is dropped.
+_MAX_ADDRESSABLE_ID = 2**31 - 1
+
+
 def _process_table() -> dict[int, _ProcessRow] | None:
     """Return one portable ``ps`` snapshot, or ``None`` if unavailable."""
 
@@ -164,6 +173,10 @@ def _process_table() -> dict[int, _ProcessRow] | None:
             )
         except ValueError:
             continue
+        if pid > _MAX_ADDRESSABLE_ID or parent_pid > _MAX_ADDRESSABLE_ID:
+            continue
+        if process_group_id > _MAX_ADDRESSABLE_ID:
+            process_group_id = 0
         rows[pid] = _ProcessRow(
             pid=pid,
             parent_pid=parent_pid,

@@ -121,6 +121,69 @@ def test_timeout_terminates_the_owned_process_group():
         raise AssertionError("timed-out descendant remains alive")
 
 
+def test_a_group_the_kernel_cannot_address_does_not_stop_the_teardown(
+    monkeypatch,
+):
+    """procps prints ``pgid`` with ``%u``; a group it read as negative reaches
+    the table as 4294967295, and ``killpg`` refuses anything above a C int.
+
+    ORCA g4 (R9, Slurm 2142894): the approved 14400 s expired on a 64-rank
+    constrained optimisation, the observer sorted the known groups largest
+    first, the first ``os.killpg`` raised ``OverflowError``, nothing was
+    signalled, and the goal driver died without a settlement. A row whose
+    group the observer cannot address still names a process it can; the
+    process stays in the tree and the group does not.
+    """
+
+    import chemsmart.utils.process_observation as process_observation
+
+    process = _python_process(
+        "import subprocess, sys, time; "
+        "child = subprocess.Popen([sys.executable, '-c', "
+        "'import time; time.sleep(30)']); "
+        "print(child.pid, flush=True); time.sleep(30)"
+    )
+    real_run = subprocess.run
+    unaddressable = 2**32 - 1
+
+    def run_with_one_unreadable_group(*args, **kwargs):
+        completed = real_run(*args, **kwargs)
+        if (
+            args
+            and isinstance(args[0], list)
+            and "-axo" in args[0]
+            and process.poll() is None
+        ):
+            # a descendant of the observed engine whose group procps
+            # could not read, exactly as the table then prints it
+            completed = subprocess.CompletedProcess(
+                completed.args,
+                completed.returncode,
+                completed.stdout
+                + f"4194303 {process.pid} {unaddressable} 1024 S\n",
+                completed.stderr,
+            )
+        return completed
+
+    monkeypatch.setattr(
+        process_observation.subprocess, "run", run_with_one_unreadable_group
+    )
+
+    result = observe_process(
+        process,
+        timeout_seconds=0.2,
+        memory_limit_mb=256,
+        sample_interval_seconds=0.02,
+        termination_grace_seconds=0.2,
+    )
+
+    child_pid = int(result.stdout.strip())
+    assert result.observation.state == "timed_out_terminated"
+    assert result.observation.termination_confirmed is True
+    assert "process.timeout" in result.observation.findings
+    _wait_for_pid_exit(child_pid)
+
+
 def test_observed_memory_limit_is_not_silently_relaxed():
     process = _python_process(
         "import time; value = bytearray(8 * 1024 * 1024); time.sleep(30)"
