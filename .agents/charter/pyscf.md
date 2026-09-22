@@ -844,3 +844,35 @@ claimed here: no reader but this one answers either selector, and the two
 numbers ORCA prints (``Epsilon``, ``Refrac``) and the two Gaussian prints
 (``Eps``, ``EpsInf``) are where the shared names will meet a second
 program when one of them declares them.
+
+One live goal ran that surface (CUHK Slurm 2142833, three hours seventeen,
+settled ``achieved``, the approval delegated by the owner and recorded as
+``claude-researcher-pyscf-owner-delegated``). The task named no selector,
+no permittivity and no solvent model; it asked how far the absorption band
+of trans-4-(dimethylamino)-4'-nitrostilbene, a push-pull dye of twenty
+heavy atoms, moves with solvent. The session chose CAM-B3LYP itself and
+recorded rejecting B3LYP and PBE0 for placing the charge-transfer state
+too low, optimised once, and carried that geometry into three ``td`` nodes
+through the optimised-geometry edge -- each node's supplied structure
+equals the reached one to 4.9e-11 Angstrom, so the three spectra differ
+only by the continuum. The bright root is root 1 everywhere: gas 3.51179
+eV at f 1.24279, C-PCM n-hexane 3.31881, C-PCM acetonitrile 3.20362, and
+the host's own arithmetic gave the n-hexane-to-acetonitrile shift as
+-0.11519 eV and +13.43 nm, red as a charge-transfer band must be. The two
+runs applied static permittivities differing by a factor of nineteen,
+1.8819 and 35.688, and their responses applied the same 1.78; so that
+shift is ground-state density polarisation and the excited-state fast
+response contributed identically in both solvents, which is the sentence
+this surface exists to make sayable.
+
+It was not said. The cycle-1 plan asked for both permittivities on both
+solvated nodes and on neither the gas node, which is the discovery half
+working; woken after the optimisation, the session replanned and bound
+only the excitation energies and oscillator strengths, and delivered the
+shift without naming the permittivity that bounds it. The numbers were on
+every receipt it held -- the level record inside each extraction receipt's
+digest carries both on a solvated node and neither on the gas one -- so
+what the goal qualifies is ``excitation_energies`` and
+``oscillator_strengths`` on ``td``, and the two permittivity selectors
+stay tested. Reachable is not used, and a level field a session never has
+to ask for may be a field it does not read.

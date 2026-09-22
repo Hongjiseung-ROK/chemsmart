@@ -523,6 +523,24 @@
       "commit": "cf9224ab",
       "date": "2026-09-21",
       "source": "One extract_result_quantities call on a completed forward branch resolved the whole family in one receipt: direction forward, irc_converged 0, 21 path points, both ends' positions and connectivity, the connectivity change, and the path energies. The receipt names the endpoint sidecar hcn_hnc_ircf_IRC_F.xyz and its digest as native evidence; an expression over the path energies gave the branch's 33.4048 kcal/mol descent with no model-authored constant, and bind_reached_geometry then carried the endpoint structure into a new starting geometry."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:td:excitation_energies",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/pyscf/goals/g1-dans (Slurm 2142833, COMPLETED 0:0, 03:17:23) workspace goals/g1-dans/runs/cycle-2; code tree = chemsmart/ subtree 5478099e of 304de2af, verified content-identical on the node",
+      "commit": "304de2af",
+      "date": "2026-09-22",
+      "source": "trans-4-(dimethylamino)-4'-nitrostilbene, 20 heavy atoms / 36 atoms, at one CAM-B3LYP/def2-SVP geometry a PySCF opt reached (cycle 1, 2538.3 s), carried into three TDDFT nodes through the optimised-geometry edge: every td node's supplied geometry equals that reached structure to 4.9e-11 A and its own results/positions to 8.9e-16 A, so the three spectra differ only by the continuum. Six singlet roots each; the bright root is root 1 everywhere. Gas 3.51179 eV / 353.05 nm / f 1.24279; C-PCM n-hexane 3.31881 / 373.58 / 1.35775; C-PCM acetonitrile 3.20362 / 387.01 / 1.31496. The host's own arithmetic gave the n-hexane-to-acetonitrile shift as -0.11519 eV and +13.43 nm, red as a push-pull charge-transfer band must be, and the analysis chain executed provider-free with all three nodes validated. The session chose CAM-B3LYP itself and recorded rejecting B3LYP and PBE0 for placing the CT state too low. What the two cells do NOT cover: the permittivities. The cycle-1 plan requested solvent_dielectric and excitation_response_dielectric on both solvated nodes and on neither the gas node; the session replanned in cycle 2 and bound only these two spectral selectors, so no live extraction has bound either permittivity and both stay tested. They did reach the session on the level record inside every extraction receipt's digest (n-hexane solvent_dielectric 1.8819, acetonitrile 35.688, excitation_response_dielectric 1.78 on both, excitation_response_solvation non_equilibrium, and none of the three on the gas node)."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:td:oscillator_strengths",
+      "status": "recorded",
+      "run": "CUHK Charles /project/xlzhang/jiseung/r9/pyscf/goals/g1-dans (Slurm 2142833, COMPLETED 0:0, 03:17:23) workspace goals/g1-dans/runs/cycle-2; code tree = chemsmart/ subtree 5478099e of 304de2af, verified content-identical on the node",
+      "commit": "304de2af",
+      "date": "2026-09-22",
+      "source": "trans-4-(dimethylamino)-4'-nitrostilbene, 20 heavy atoms / 36 atoms, at one CAM-B3LYP/def2-SVP geometry a PySCF opt reached (cycle 1, 2538.3 s), carried into three TDDFT nodes through the optimised-geometry edge: every td node's supplied geometry equals that reached structure to 4.9e-11 A and its own results/positions to 8.9e-16 A, so the three spectra differ only by the continuum. Six singlet roots each; the bright root is root 1 everywhere. Gas 3.51179 eV / 353.05 nm / f 1.24279; C-PCM n-hexane 3.31881 / 373.58 / 1.35775; C-PCM acetonitrile 3.20362 / 387.01 / 1.31496. The host's own arithmetic gave the n-hexane-to-acetonitrile shift as -0.11519 eV and +13.43 nm, red as a push-pull charge-transfer band must be, and the analysis chain executed provider-free with all three nodes validated. The session chose CAM-B3LYP itself and recorded rejecting B3LYP and PBE0 for placing the CT state too low. What the two cells do NOT cover: the permittivities. The cycle-1 plan requested solvent_dielectric and excitation_response_dielectric on both solvated nodes and on neither the gas node; the session replanned in cycle 2 and bound only these two spectral selectors, so no live extraction has bound either permittivity and both stay tested. They did reach the session on the level record inside every extraction receipt's digest (n-hexane solvent_dielectric 1.8819, acetonitrile 35.688, excitation_response_dielectric 1.78 on both, excitation_response_solvation non_equilibrium, and none of the three on the gas node)."
     }
   ]
 }
