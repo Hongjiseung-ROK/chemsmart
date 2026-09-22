@@ -219,12 +219,6 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
         ("gaussian", "orca"),
     ): _GAS_SOLV,
     (
-        "chemsmart/agent/program_verifiers.py",
-        "_validate_gaussian_irc_bundle",
-        None,
-        ("ircf", "ircr"),
-    ): _GAUSSIAN_NATIVE,
-    (
         "chemsmart/agent/projects.py",
         "project_section_application_observation",
         None,
@@ -440,11 +434,12 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     ): _GAUSSIAN_NATIVE,
     (
         "chemsmart/settings/gaussian.py",
-        "YamlGaussianProjectSettingsBuilder/_project_settings_for_job",
-        "settings_mapping",
+        "gaussian_jobtype_settings_classes",
+        None,
         ("irc", "link", "qmmm", "td"),
     ): _DECLARATION
-    + ": Gaussian's per-jobtype settings classes",
+    + ": Gaussian's per-jobtype settings classes, now read by the project "
+    "reader as well as by the builder, which is why it is a function",
     (
         "chemsmart/settings/orca.py",
         "YamlORCAProjectSettingsBuilder/_project_settings_for_job",
@@ -480,6 +475,15 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     ): _DECLARATION
     + ": the job types whose own surface can be an "
     "excited root",
+    (
+        "chemsmart/analysis/result_readers.py",
+        "<module>",
+        "RESULT_READERS",
+        ("ircf", "ircr"),
+    ): _DECLARATION
+    + ": the result words one planned Gaussian irc stage writes under, "
+    "which is what lets every consumer derive them instead of "
+    "spelling the pair out again",
 }
 
 

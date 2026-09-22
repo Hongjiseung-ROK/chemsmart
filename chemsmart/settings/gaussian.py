@@ -27,6 +27,25 @@ project_settings_registry: list[str] = []
 # like mypy or stricter typing practices.
 
 
+def gaussian_jobtype_settings_classes():
+    """Which settings class owns each Gaussian project section.
+
+    The job types whose settings are not the shared one-geometry
+    defaults: a path, a response calculation, a link job and a QM/MM
+    job each carry fields of their own. This is the declaration those
+    facts have one author, so the YAML reader can lift a section into
+    the class that owns it instead of validating every section against
+    the base class and refusing ``direction`` or ``nstates``.
+    """
+
+    return {
+        "irc": GaussianIRCJobSettings,
+        "link": GaussianLinkJobSettings,
+        "td": GaussianTDDFTJobSettings,
+        "qmmm": GaussianQMMMJobSettings,
+    }
+
+
 class GaussianProjectSettings(RegistryMixin):
     """
     Base class for Gaussian project settings with default configurations.
@@ -534,12 +553,7 @@ class YamlGaussianProjectSettingsBuilder:
             RuntimeError: If configuration for the job type is not found.
         """
         # Map job types to their specific settings classes
-        settings_mapping = {
-            "irc": GaussianIRCJobSettings,
-            "link": GaussianLinkJobSettings,
-            "td": GaussianTDDFTJobSettings,
-            "qmmm": GaussianQMMMJobSettings,
-        }
+        settings_mapping = gaussian_jobtype_settings_classes()
 
         try:
             jobtype_config = self._read_config().get(jobtype)

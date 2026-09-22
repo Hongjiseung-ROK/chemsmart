@@ -482,6 +482,77 @@ def _validate_gaussian_link_input(
     return findings
 
 
+#: What a Gaussian reaction path is, as the ``irc(...)`` leaf spells it.
+#: ``recalc_step`` is written as ``recalc`` and ``maxcycles`` as
+#: ``maxcycle``; ``direction`` is a bare flag. ``stepsize`` is written only
+#: when a predictor is, and ``flat_irc`` is never written at all -- it only
+#: moves the defaults of the other three -- so neither is checkable from an
+#: input and both are verified by the loader that applied them instead.
+_GAUSSIAN_IRC_ROUTE_FIELDS = (
+    "direction",
+    "flat_irc",
+    "maxcycles",
+    "maxpoints",
+    "predictor",
+    "recalc_step",
+    "recorrect",
+    "stepsize",
+)
+_GAUSSIAN_IRC_ROUTE_NAMES = {
+    "maxcycles": "maxcycle",
+    "recalc_step": "recalc",
+}
+
+
+def _gaussian_irc_route_findings(path, expected_settings):
+    """Check the path settings against the route the writer actually wrote."""
+
+    import re
+
+    from chemsmart.io.gaussian.input import Gaussian16Input
+
+    route = str(Gaussian16Input(filename=str(path)).route_string).casefold()
+    match = re.search(r"\birc\s*\(([^)]*)\)", route)
+    if match is None:
+        return [_missing("irc_route", "irc(...) route", path.name)]
+    values = {}
+    flags = set()
+    for token in (
+        item.strip() for item in match.group(1).split(",") if item.strip()
+    ):
+        if "=" in token:
+            key, value = token.split("=", 1)
+            values[key.strip()] = value.strip()
+        else:
+            flags.add(token)
+    findings = []
+    direction = (
+        str(expected_settings.get("direction") or "").strip().casefold()
+    )
+    if direction and direction not in flags:
+        findings.append(
+            _mismatch("direction", direction, tuple(sorted(flags)), path.name)
+        )
+    for field in ("maxpoints", "maxcycles", "recalc_step"):
+        expected = expected_settings.get(field)
+        if expected is None:
+            continue
+        token = _GAUSSIAN_IRC_ROUTE_NAMES.get(field, field)
+        if values.get(token) != str(expected):
+            findings.append(
+                _mismatch(field, expected, values.get(token), path.name)
+            )
+    for field in ("predictor", "recorrect"):
+        expected = str(expected_settings.get(field) or "").strip().casefold()
+        if not expected:
+            continue
+        if expected not in flags and values.get(field) != expected:
+            findings.append(
+                _mismatch(field, expected, tuple(sorted(flags)), path.name)
+            )
+    return findings
+
+
 def _validate_gaussian_irc_bundle(
     expectation,
     parsed_candidates,
@@ -496,11 +567,36 @@ def _validate_gaussian_irc_bundle(
             for _path, parsed in parsed_candidates
         )
     )
-    if directions != ("ircf", "ircr"):
+    # A node that names no direction writes both branches; one that names a
+    # direction writes that branch alone, and the project section can now
+    # name one. Either is the same node, so admit both shapes and let the
+    # route of each input say which branch it is.
+    expected_direction = (
+        str(expected_settings.get("direction") or "").strip().casefold()
+    )
+    # Which branch word is that direction is the reader's own answer, asked
+    # of the reader rather than written here again: the stage's result words
+    # come from its declaration and the direction of each from the accessor
+    # that reads one, so this function holds no branch spelling at all.
+    from types import SimpleNamespace
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for("gaussian")
+    wanted = tuple(reader.result_jobtypes_for_stage("irc"))
+    if expected_direction:
+        named = tuple(
+            word
+            for word in wanted
+            if reader.accessors["irc_direction"](SimpleNamespace(jobtype=word))
+            == expected_direction
+        )
+        wanted = named or wanted
+    if directions != wanted:
         return [
             _mismatch(
                 "jobtype_bundle",
-                ("ircf", "ircr"),
+                wanted,
                 directions,
                 "generated:native_input_bundle",
             )
@@ -508,8 +604,19 @@ def _validate_gaussian_irc_bundle(
 
     shared_expected = dict(expected_settings)
     shared_expected.pop("jobtype", None)
+    # The semantic settings parser projects an IRC input onto the base
+    # Gaussian surface, exactly as it does a TD one, so the fields that
+    # belong to the path live only in the `irc(...)` leaf of the route.
+    # They became project-owned in this round, which is what first put them
+    # in front of this comparison: a live goal's one-direction nodes failed
+    # preview with `maxpoints`, `maxcycles`, `recalc_step`, `stepsize` and
+    # `flat_irc` all `missing_from_parsed_native_input` (CUHK r9g-g2). They
+    # are read from the route below instead.
+    for field in _GAUSSIAN_IRC_ROUTE_FIELDS:
+        shared_expected.pop(field, None)
     findings = []
     for path, parsed in parsed_candidates:
+        findings.extend(_gaussian_irc_route_findings(path, expected_settings))
         findings.extend(_settings_match(parsed, shared_expected))
         if not _geometry_sets_equal(expectation.input_artifact.path, [path]):
             findings.append(

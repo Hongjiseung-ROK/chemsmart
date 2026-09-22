@@ -309,18 +309,33 @@ _GAUSSIAN_PROJECT_PARAMETERS = tuple(
         + (
             "additional_opt_options_in_route",
             "additional_solvent_options",
+            # What a reaction path is: which way it walks, how far, how
+            # often the curvature is recomputed and how big a step is.
+            # The CLI has taken all of these since the job existed and
+            # the native writer writes them inside ``irc(...)``; the
+            # project loader refused them, so the only channel a session
+            # had was to append a bare ``maxpoints=50`` beside the IRC
+            # keyword, which is not a Gaussian route keyword at all.
+            "direction",
             "eqsolv",
+            "flat_irc",
             "forces",
             "freq",
             "heavy_elements_basis",
             "guess",
             "jobtype",
             "link_route",
+            "maxcycles",
+            "maxpoints",
             "nstates",
             "numfreq",
+            "predictor",
+            "recalc_step",
+            "recorrect",
             "root",
             "stable",
             "states",
+            "stepsize",
         )
     )
 )
@@ -329,6 +344,7 @@ _GAUSSIAN_PROJECT_PARAMETERS = _settable_parameters(
     "chemsmart.jobs.gaussian.settings",
     (
         "GaussianJobSettings",
+        "GaussianIRCJobSettings",
         "GaussianTDDFTJobSettings",
         "GaussianLinkJobSettings",
     ),
@@ -519,6 +535,31 @@ def gaussian_method_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     )
 
 
+def gaussian_path_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """What a Gaussian reaction path may be asked for, from the CLI itself.
+
+    ``direction``, ``predictor`` and ``recorrect`` are ``click.Choice``
+    options of ``run gaussian irc``, so the public command is already the
+    authority on their vocabulary and this reads it rather than repeating
+    it. Declaring them is what wires the settings: a setting advertised
+    with no domain is a word the model may write and cannot check.
+
+    The integer controls of the same job -- ``maxpoints``, ``maxcycles``,
+    ``recalc_step``, ``stepsize`` -- and the boolean ``flat_irc`` stay
+    undeclared here, because this table holds tuples of strings and a
+    bound is not one.
+    """
+
+    from chemsmart.cli.gaussian.irc import irc
+
+    domains = {}
+    for parameter in irc.params:
+        choices = getattr(getattr(parameter, "type", None), "choices", None)
+        if choices:
+            domains[parameter.name] = _normalized_domain(choices)
+    return tuple(sorted(domains.items()))
+
+
 def xtb_solvent_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     """The xTB solvent vocabulary, previously invisible to the model."""
 
@@ -595,11 +636,11 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
             project_owned_parameters=_GAUSSIAN_PROJECT_PARAMETERS,
             engines=("cpu",),
             engine_job_capabilities=(
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="irc",
-                    execution_supported=False,
-                ),
+                # A reaction path, walked from a saddle this Agent
+                # found. Declared here because this flag is what admits a
+                # node to approval at all, which is the order `ts` and
+                # ORCA's `scan` were held to; the recorded runs keep it.
+                EngineJobCapability(engine="cpu", jobtype="irc"),
                 EngineJobCapability(
                     engine="cpu",
                     jobtype="link",
@@ -635,9 +676,9 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                 # "bounded execution has no executable jobs" before any
                 # planning. It is withdrawn if the runs do not hold.
                 #
-                # `ts`, `irc`, `scan`, `modred`, `td` and `link` have real
-                # engine runs on this target through the human CLI and no
-                # approved Agent execution. That is a different fact and stays
+                # `scan`, `modred`, `td` and `link` have real engine runs
+                # on this target through the human CLI and no approved
+                # Agent execution. That is a different fact and stays
                 # unclaimed.
                 EngineJobCapability(engine="cpu", jobtype="opt"),
                 EngineJobCapability(
@@ -651,11 +692,7 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                     jobtype="td",
                     execution_supported=False,
                 ),
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="ts",
-                    execution_supported=False,
-                ),
+                EngineJobCapability(engine="cpu", jobtype="ts"),
             ),
             project_section_names=loader_project_section_names("gaussian"),
             project_parameter_domains=tuple(
@@ -663,6 +700,7 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                     (
                         ("states", ("50-50", "singlets", "triplets")),
                         *gaussian_method_domains(),
+                        *gaussian_path_domains(),
                     )
                 )
             ),

@@ -152,6 +152,23 @@ Standard IRC calculation:
 
    chemsmart sub gaussian -p project -f ts.xyz irc
 
+The same settings may be carried in the project YAML instead of on the
+command line, in an ``irc`` section:
+
+.. code:: yaml
+
+   gas:
+     functional: b3lyp
+     basis: 6-31g(d)
+   irc:
+     direction: forward
+     maxpoints: 50
+     recalc_step: 8
+
+which writes ``irc(calcfc,recalc=8,forward,maxpoints=50,maxcycle=128)``.
+A ``td``, ``link`` or ``qmmm`` section likewise accepts the settings that
+job type owns, such as ``nstates`` and ``root`` for ``td``.
+
 ***********************************
  Potential Energy Surface Scanning
 ***********************************
