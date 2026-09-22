@@ -4069,6 +4069,89 @@ def _pyscf_response_dielectric(output: Any) -> float:
     return float(value)
 
 
+def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
+    """One question's entry from the recorded analysis, or why there is none.
+
+    Four absences a session reads differently, so each names itself: the
+    run was never asked, the artifact predates result contract v7, PySCF
+    could not answer this question for this reference (an ROHF reference
+    has no external answer at all), or it returned no answer. None of
+    them is stability, which is why absence is spelled out rather than
+    defaulted.
+    """
+
+    record = getattr(output, "scf_stability", None)
+    if not isinstance(record, Mapping):
+        if getattr(output, "scf_stability_requested", None) is False:
+            raise MissingQuantityError(
+                "this run was not asked for a stability analysis (project "
+                "key scf_stability); an absent analysis is not a stable "
+                "reference"
+            )
+        raise MissingQuantityError(
+            "this pyscf result records no stability analysis: it was "
+            "either not asked or written before result contract v7, and "
+            "neither says the reference is stable"
+        )
+    entry = (record.get("analyses") or {}).get(question)
+    if not isinstance(entry, Mapping):
+        raise MissingQuantityError(
+            f"this stability analysis carries no {question!r} question"
+        )
+    if entry.get("unavailable"):
+        raise MissingQuantityError(
+            f"PySCF could not answer the {question!r} stability question "
+            f"for this {record.get('reference_family') or 'reference'} "
+            f"reference: {str(entry['unavailable']).strip()}"
+        )
+    return entry
+
+
+def _pyscf_stability_verdict(question: str) -> Callable[[Any], str]:
+    """``stable`` or ``unstable`` for one orbital-rotation question.
+
+    Deliberately not served under Gaussian's ``wavefunction_stability_*``
+    names. Gaussian prints one unnamed verdict in a vocabulary of its
+    own; PySCF answers two questions separately and names the rotation
+    space of each, and on triplet dioxygen at UKS the two answers differ.
+    One name carrying both would make two programs look comparable where
+    only one of them says which question it answered -- the same trap as
+    two equal level strings that are not equal methods.
+    """
+
+    def accessor(output: Any) -> str:
+        entry = _pyscf_stability_entry(output, question)
+        answered = entry.get("stable")
+        if answered is None:
+            raise MissingQuantityError(
+                f"PySCF returned no answer to the {question!r} stability "
+                "question for this reference"
+            )
+        return "stable" if bool(answered) else "unstable"
+
+    return accessor
+
+
+def _pyscf_stability_rotation_space(output: Any) -> str:
+    """Which rotation the external answer is an answer about.
+
+    ``external`` is not one question: PySCF searches RHF/RKS -> UHF/UKS
+    for a restricted reference and UHF/UKS -> GHF/GKS for an unrestricted
+    one, so ``unstable`` means a different thing in each. The space
+    travels as a value a claim can carry rather than as a display detail,
+    because the last goal on this surface showed that a fact a session
+    never has to ask for is a fact it may not read.
+    """
+
+    entry = _pyscf_stability_entry(output, "external")
+    space = entry.get("rotation_space")
+    if not space:
+        raise MissingQuantityError(
+            "this external stability answer names no rotation space"
+        )
+    return str(space)
+
+
 def _pyscf_absence_reason(
     read: Callable[[Any], Any],
     output: Any,
@@ -4433,6 +4516,16 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
         # allowed to be called.
         "solvent_dielectric": _pyscf_static_dielectric,
         "excitation_response_dielectric": _pyscf_response_dielectric,
+        # What PySCF's own analysis said about the reference every number
+        # above it stands on. The host sensor has read this record since
+        # contract v7 and raised an anomaly on it; nothing could extract
+        # it, so a session could not state, or claim, that the orbitals
+        # its energy came from are not a minimum in rotation space.
+        "scf_stability_internal": _pyscf_stability_verdict("internal"),
+        "scf_stability_external": _pyscf_stability_verdict("external"),
+        "scf_stability_external_rotation_space": (
+            _pyscf_stability_rotation_space
+        ),
         "solvation_electrostatic_energy": _pyscf_decomposition_scalar(
             "solvation_electrostatic_energy"
         ),
@@ -4550,6 +4643,9 @@ _PYSCF_SCF_SELECTORS = (
     "multiplicity",
     "positions",
     "scf_energy",
+    "scf_stability_external",
+    "scf_stability_external_rotation_space",
+    "scf_stability_internal",
     "solvation_electrostatic_energy",
     "solvation_model",
     "solvation_nonelectrostatic_energy",
@@ -4703,6 +4799,12 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             ("reached_positions", "as_reached"),
             ("reference_energy", "as_reached"),
             ("scf_energy", "as_reached"),
+            # An answer about the density the final SCF converged, so it
+            # belongs to the structure that SCF ran on, as every other
+            # mean-field property here does.
+            ("scf_stability_external", "as_reached"),
+            ("scf_stability_external_rotation_space", "as_reached"),
+            ("scf_stability_internal", "as_reached"),
             ("singlet_excitation_energies", "as_reached"),
             ("singlet_oscillator_strengths", "as_reached"),
             ("solvation_electrostatic_energy", "as_reached"),
@@ -4771,6 +4873,13 @@ _PYSCF_ELECTRONIC_PROVENANCE = tuple(
             ("oscillator_strengths", "excited_root"),
             ("reference_energy", "reference"),
             ("scf_energy", "reference"),
+            # The analysis is about the reference itself, on every
+            # configuration: a correlated or excited-root artifact
+            # carries a total that is not the reference's beside a
+            # verdict that is.
+            ("scf_stability_external", "reference"),
+            ("scf_stability_external_rotation_space", "reference"),
+            ("scf_stability_internal", "reference"),
             ("surface_id", "stateless"),
             ("trajectory_energies", "reference"),
             ("trajectory_start_frequencies", "reference"),
@@ -5906,9 +6015,16 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         #: both (``Epsilon``, ``Refrac``) and Gaussian both (``Eps``,
         #: ``EpsInf``); neither reader serves them yet, and the shared
         #: vocabulary is where they will meet when one does.
+        #: The stability triple is program-local on purpose: Gaussian's
+        #: ``wavefunction_stability_verdict`` is one word about one
+        #: unnamed question, and PySCF answers two questions and names
+        #: the rotation space of each.
         selector_declarations=(
             ("solvent_dielectric", "", "DIMENSIONLESS"),
             ("excitation_response_dielectric", "", "DIMENSIONLESS"),
+            ("scf_stability_internal", "", "DIMENSIONLESS"),
+            ("scf_stability_external", "", "DIMENSIONLESS"),
+            ("scf_stability_external_rotation_space", "", "DIMENSIONLESS"),
         ),
         jobtype_selectors=(
             (

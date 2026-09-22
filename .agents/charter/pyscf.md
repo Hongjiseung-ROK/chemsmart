@@ -876,3 +876,51 @@ what the goal qualifies is ``excitation_energies`` and
 ``oscillator_strengths`` on ``td``, and the two permittivity selectors
 stay tested. Reachable is not used, and a level field a session never has
 to ask for may be a field it does not read.
+
+The reference-stability record is now read the way the permittivities are.
+``status/properties/scf_stability`` has carried PySCF's own analysis since
+result contract v7 and one organ consumed it, the sensor step that raises
+``scf.reference_unstable``; no selector served it, so a session could not
+state that the orbitals its energy came from are a saddle in rotation
+space, and could not report a sound reference at all. Three selectors
+answer it now -- ``scf_stability_internal``, ``scf_stability_external``
+and ``scf_stability_external_rotation_space`` -- declared wherever an SCF
+converges, as the spin diagnostic is. They are deliberately not served
+under Gaussian's ``wavefunction_stability_verdict``: Gaussian prints one
+word about one unnamed question, PySCF answers two questions and names
+each rotation space, and the archived dioxygen pair is why that matters --
+the singlet at RKS and the triplet at UKS are both ``unstable`` and the
+first is about ``RHF/RKS -> UHF/UKS`` while the second is about
+``UHF/UKS -> GHF/GKS``, which is two different physical statements. Four
+absences stay four facts and none of them is stability: not asked, older
+than v7, a question PySCF cannot answer for this reference -- an ROHF
+hydrogen atom has no external answer while its internal one is still
+served -- or no answer returned.
+
+A live goal (CUHK Slurm 2145043, 24 minutes) asked whether the
+closed-shell description of the push-pull dye of the previous goal is a
+sound one, starting from that goal's own reached-geometry handoff file. It
+ran one single point with the analysis, and the answer is that the RKS
+reference of trans-4-(dimethylamino)-4'-nitrostilbene at CAM-B3LYP/def2-SVP
+is stable both internally and to ``RHF/RKS -> UHF/UKS`` -- so the
+absorption energies of the previous goal do rest on a sound reference --
+with ``real -> complex`` undetermined by construction. The energy there,
+-878.0848750592156 Eh, reproduces the optimisation's own total to 5e-12 Eh,
+which is the handoff arriving intact across two goals.
+
+The goal did not settle ``achieved``. Its session declared its observables
+as *numbers* -- the lowest eigenvalue of each stability matrix -- and the
+host verified, against the reader, that no program exposes such a number
+for ``sp``; it settled ``unreachable_from_evidence`` with the verdicts
+delivered inside the recorded decision and the word ``stable`` quoted from
+the reader, rather than converting a word into a number. That is the
+refusal behaving correctly, and it exposes a boundary this topic did not
+have before: a declared observable carries a unit and the completion gate
+requires a claim in its dimension, so a *categorical* selector can be
+extracted and can ride a receipt but can never be the thing a goal
+delivers. That holds for every word-valued selector in the shared
+vocabulary -- ``solvation_model``, ``solvent``, ``irc_direction``,
+``functional``, ``basis`` -- and not only for these three. The three cells
+are therefore exercised and not qualified: no extraction receipt bound
+them and the host wrote no qualification row, and a capability is not
+qualified because a settlement quoted it.
