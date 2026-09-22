@@ -66,6 +66,14 @@ Hessian it prints, and no thermochemistry is derived from one. The
 structure it reaches may cross a producer edge inside one approval, as an
 optimisation's or a saddle search's may.
 
+Execution is still not claimed. A live goal did run one under the approval
+chain -- ORCA held BINOL's biaryl torsion to -1.4e-5 degrees for 103
+cycles and the whole approved node budget, relieving the strain a rigid
+turn to coplanarity had created -- and it neither converged nor left a
+receipt, because the host's own teardown crashed at the approved timeout.
+No node completed, so the execution flag stays false and is earned by a
+goal that finishes one.
+
 Two sentences were bought by live streams on a BINOL racemisation task.
 Asked to relax the molecule with its biaryl torsion brought to a coplanar
 value, the first session read "coordinates held fixed while everything
