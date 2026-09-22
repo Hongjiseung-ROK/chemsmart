@@ -395,6 +395,22 @@ nodes:
     note: "Three ORCA staging guards skipped a copy when two absolute paths compared equal as strings. /project/xlzhang is a symlink to /lustre/project/xlzhang, so one file had two absolute spellings, shutil.copy2 raised SameFileError, and three IRC branches died in the writer before ORCA was reached (job 2142378). Every existing writer test ran under one spelling of tmp_path."
     falsifier: "A staging or idempotence guard decides file identity by comparing path strings and still behaves correctly when a parent directory is reached through a symlink."
 
+  - id: negative.a_constraint_with_no_value_sent_the_science_to_a_scan
+    kind: negative_result
+    source: {path: chemsmart/agent/tool_specs.py, anchor: "value the bound geometry already has"}
+    note: "ORCA modred was executable, readable and reachable, and the science still went elsewhere. Told only that constrained coordinates are held fixed while everything else relaxes, a live session (CUHK r9o-g1, 2026-09-21) asked to relax BINOL with its biaryl torsion brought coplanar read that as moved there and held, wrote the value it meant into a modred project YAML as `value: 0.0` -- a key the loader does not have -- had it correctly rejected, and replanned the stage as a relaxed scan, the only coordinate vocabulary that carries a target. A capability is not reachable until the one fact that decides how to use it is written where the model reads it."
+    falsifier: "A session asked to relax a structure at a coordinate value it does not yet have plans a constrained optimisation without first moving the coordinate, or invents a target value for a constraint."
+  - id: lesson.a_refusal_that_names_no_route_is_a_route_not_taken
+    kind: lesson
+    source: {path: chemsmart/agent/commands.py, anchor: "the job types of this program that do are"}
+    note: "With the constraint sentence in place the next session (r9o-g3) took the right first step -- set_dihedral onto the coordinate -- then attached the coordinate to an opt node and met `live Click scope run/orca/opt has no coordinates option`. True, protective, and silent about where a coordinate may go: the session dropped the coordinate and compiled a plain optimisation, which relaxes straight off the coordinate it had just been asked to hold. With the refusal naming the job types the live Click tree says carry the option, the next session compiled modred --coordinates instead. Two streams, one seam, and the message was the whole difference."
+    falsifier: "A session that meets a refusal naming a legal route takes it no more often than one that meets the same refusal without it."
+  - id: negative.a_rigid_turn_to_coplanarity_is_a_bad_seed_for_a_constrained_optimisation
+    kind: negative_result
+    source: {path: .agents/charter/orca-scan-irc-modred.md, anchor: "edit the coordinate there first"}
+    note: "The composition the host names -- edit the coordinate, then constrain it -- is legal and was taken, and for a 106 degree turn it seeds the optimisation from a structure the molecule cannot adopt. On BINOL, set_dihedral to 0 degrees left H-H at 0.314 A and the host said so on its edit receipt. ORCA then held the torsion exactly (-1.4e-5 degrees measured at cycle 103) and spent 103 cycles and the whole approved 4 h node budget relieving 1560 kcal/mol of that strain, reaching -919.8208 Eh while still descending 0.26 kcal/mol per cycle, 60.5 kcal/mol above the free minimum, with max step 24x tolerance. The constraint worked; the seed did not."
+    falsifier: "A constrained optimisation seeded by a large rigid rotation converges in a cycle count comparable to one seeded from a neighbouring point of a relaxed scan."
+
 # Annotations keyed by DERIVED rule_id; no rule text is repeated here.
 # class: FUNDAMENTAL | MECHANICS (how to drive a tool) | SCIENCE (what must
 # stay true about chemistry) | AUTHORITY | EARNED (names its loss).
@@ -462,3 +478,5 @@ edges:
   - {from: result.orca_irc_path_and_endpoints_20260921, to: lesson.a_path_string_is_not_a_file_identity, rel: depends_on, note: "the three branches ran only after the staging guard stopped comparing path strings"}
   - {from: leaf.saddle.orca_irc_walks_one_direction, to: result.orca_irc_path_and_endpoints_20260921, rel: evidenced_by, note: "the direction-both table opens on an endpoint, not on the saddle; no arm ran without the sentence, so it stays unvalidated"}
   - {from: negative.i_read_the_wrong_hessian_block_by_eye, to: result.orca_irc_path_and_endpoints_20260921, rel: depends_on, note: "the campaign's own reference numbers were read by eye once and were wrong once"}
+  - {from: negative.a_constraint_with_no_value_sent_the_science_to_a_scan, to: lesson.a_refusal_that_names_no_route_is_a_route_not_taken, rel: depends_on, note: "the same seam two streams apart: first nothing said what a constraint holds at, then nothing said which stage may carry one"}
+  - {from: negative.a_rigid_turn_to_coplanarity_is_a_bad_seed_for_a_constrained_optimisation, to: negative.a_constraint_with_no_value_sent_the_science_to_a_scan, rel: depends_on, note: "the edit-then-constrain route exists because a constraint carries no value; its cost on a large turn is what that route buys"}
