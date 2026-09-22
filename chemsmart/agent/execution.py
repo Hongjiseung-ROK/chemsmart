@@ -6905,10 +6905,20 @@ def _frozen_producer_edge_rule(
 #: reached structure for ``irc`` and no ORCA IRC edge is admitted.
 PATH_ENDPOINT_PRODUCER_STAGES = frozenset({"irc"})
 
+#: Stages that relax every degree of freedom except the ones they hold and
+#: end on the structure at that held value. A constrained optimisation is
+#: the ordinary way to reach a chosen point on a surface -- the seed of a
+#: saddle search -- and it was the one geometry producer with no way into
+#: an approval, so the only route the host could name for "hold this and
+#: let the rest respond" was a relaxed scan. Admitted per program the same
+#: way a path endpoint is: by what that program's reader declares.
+CONSTRAINED_GEOMETRY_PRODUCER_STAGES = frozenset({"modred"})
+
 DEFERRABLE_GEOMETRY_PRODUCER_STAGES = (
     GEOMETRY_SEARCH_JOBTYPES
     | SURFACE_SAMPLING_JOBTYPES
     | PATH_ENDPOINT_PRODUCER_STAGES
+    | CONSTRAINED_GEOMETRY_PRODUCER_STAGES
 )
 
 #: Stages the optimized-geometry rule itself covers. A scan is deferrable
@@ -6921,11 +6931,11 @@ def _ends_on_one_reached_structure(program: str, stage: str) -> bool:
     """Whether a producer node ends on one structure a consumer may take.
 
     An optimisation or a saddle search does for every program. A path
-    walked from the geometry it was handed does where that program's
-    reader declares the path's end as the reached structure for the job
-    type -- a declaration the reader already makes for the geometry
-    lift, so this edge and ``build_reached_geometry`` answer one question
-    with one fact.
+    walked from the geometry it was handed, and a relaxation that held a
+    coordinate, do where that program's reader declares the reached
+    structure for what the stage produces -- a declaration the reader
+    already makes for the geometry lift, so this edge and
+    ``build_reached_geometry`` answer one question with one fact.
 
     "One" is load-bearing, and it is asked of the stage's *results*. A
     stage and its results need not share a word -- ChemSmart writes one
@@ -6939,11 +6949,23 @@ def _ends_on_one_reached_structure(program: str, stage: str) -> bool:
     ``direction`` is a Gaussian project-section key but not a field of
     ``CommandNodeIntentV1``, and one workflow carries one project per
     node role, so a two-branch IRC is still what a plan expresses.
+
+    The stage lists name which kinds of stage may be asked at all; the
+    reader answers for the program. The list once admitted only ``irc``
+    while ORCA ``modred`` declared ``reached_positions``, so a constrained
+    optimisation could be planned, approved and run and the structure it
+    exists to produce could not cross an edge. Whether the lists should
+    go entirely -- every non-optimised stage admitted by its reader's
+    declaration and the exactly-one rule alone -- is one ruling across
+    the four programs and the deferrable set ``tool_runtime`` reads, not
+    a change made while merging two tracks that each needed one entry.
     """
 
     if stage in OPTIMIZED_GEOMETRY_PRODUCER_STAGES:
         return True
-    if stage not in PATH_ENDPOINT_PRODUCER_STAGES:
+    if stage not in (
+        PATH_ENDPOINT_PRODUCER_STAGES | CONSTRAINED_GEOMETRY_PRODUCER_STAGES
+    ):
         return False
     from chemsmart.analysis.result_readers import reader_for
 

@@ -435,6 +435,74 @@ class ORCAOutput(ORCAFileMixin):
         return constrained_dihedral_angles
 
     @cached_property
+    def constrained_coordinate_records(self):
+        """Every internal coordinate ORCA held, in the order it printed them.
+
+        ORCA states its constraints once, in the first Redundant Internal
+        Coordinates table, by marking the held rows with a trailing ``C``::
+
+            10. B(H   9,H   8)                  2.4714         0.000431 C
+
+        The value on such a row is the value the program imposed, which is
+        the fact a constrained optimisation has to carry: what it held, and
+        at what value.  Each record is
+
+            {"kind": "bond"|"angle"|"dihedral",
+             "label": "B(H10,H9)",          # symbols with 1-based indices
+             "symbols": ("H", "H"),
+             "atoms": (10, 9),               # ORCA's own printed order
+             "value": 2.4714}                # Angstrom for a bond, degrees
+
+        ORCA counts atoms from zero and this restates them from one, as
+        every other ChemSmart surface does.  A result with no such table --
+        a single point, an IRC, a QM/MM run -- held nothing and returns an
+        empty tuple; it used to return ``None`` from the private helper
+        below and raise ``TypeError`` on unpacking for 17 archived outputs.
+        """
+
+        kinds = {"b": "bond", "a": "angle", "d": "dihedral"}
+        records = []
+        for i, line in enumerate(self.contents):
+            if "Redundant Internal Coordinates" not in line:
+                continue
+            for line_j in self.contents[i + 5 :]:
+                if "------------------------------------" in line_j:
+                    continue
+                if len(line_j) == 0:
+                    break
+                if not re.match(orca_constrained_coordinates_pattern, line_j):
+                    continue
+                line_elements = line_j.split()
+                letter = line_elements[1][0].lower()
+                kind = kinds.get(letter)
+                if kind is None:
+                    raise ValueError(
+                        f"Unknown parameter type in line: {line_j}"
+                    )
+                # ORCA prints ``B(H   9,H   8)`` with the definition split
+                # across one token per atom plus the opening one, so a bond
+                # spans three tokens, an angle four and a dihedral five.
+                tokens = {"bond": 3, "angle": 4, "dihedral": 5}[kind]
+                label = "".join(line_elements[1 : 1 + tokens])
+                label = increment_numbers(label, 1)
+                atoms = tuple(
+                    int(number)
+                    for number in re.findall(r"[A-Za-z]+(\d+)", label)
+                )
+                symbols = tuple(re.findall(r"([A-Za-z]+)\d+", label))
+                records.append(
+                    {
+                        "kind": kind,
+                        "label": label,
+                        "symbols": symbols,
+                        "atoms": atoms,
+                        "value": float(line_elements[-3]),
+                    }
+                )
+            break
+        return tuple(records)
+
+    @cached_property
     def _get_constraints(self):
         """Extract constrained internal coordinates from ORCA output.
         Reads from Redundant Internal Coordinates
@@ -449,49 +517,14 @@ class ORCAOutput(ORCAFileMixin):
                     "B(H2,O0)": 0.9627,
                     "A(H1,O0,H2)": 103.35,
                 }
-        """
-        constrained_bond_lengths = {}
-        constrained_bond_angles = {}
-        constrained_dihedral_angles = {}
 
-        for i, line in enumerate(self.contents):
-            if "Redundant Internal Coordinates" in line:
-                for j, line_j in enumerate(self.contents[i + 5 :]):
-                    if "------------------------------------" in line_j:
-                        continue
-                    if len(line_j) == 0:
-                        break
-                    if re.match(orca_constrained_coordinates_pattern, line_j):
-                        line_elements = line_j.split()
-                        if line_elements[1].lower().startswith("b"):  # bond
-                            parameter = f"{line_elements[1]}{line_elements[2]}{line_elements[3]}"
-                            parameter = increment_numbers(parameter, 1)
-                            constrained_bond_lengths[parameter] = float(
-                                line_elements[-3]
-                            )
-                        elif line_elements[1].lower().startswith("a"):  # angle
-                            parameter = f"{line_elements[1]}{line_elements[2]}{line_elements[3]}{line_elements[4]}"
-                            parameter = increment_numbers(parameter, 1)
-                            constrained_bond_angles[parameter] = float(
-                                line_elements[-3]
-                            )
-                        elif (
-                            line_elements[1].lower().startswith("d")
-                        ):  # dihedral
-                            parameter = f"{line_elements[1]}{line_elements[2]}{line_elements[3]}{line_elements[4]}{line_elements[5]}"
-                            parameter = increment_numbers(parameter, 1)
-                            constrained_dihedral_angles[parameter] = float(
-                                line_elements[-3]
-                            )
-                        else:
-                            raise ValueError(
-                                f"Unknown parameter type in line: {line_j}"
-                            )
-                return (
-                    constrained_bond_lengths,
-                    constrained_bond_angles,
-                    constrained_dihedral_angles,
-                )
+        Derived from ``constrained_coordinate_records`` so the block is read
+        once: two host organs that answer one question call one function.
+        """
+        by_kind = {"bond": {}, "angle": {}, "dihedral": {}}
+        for record in self.constrained_coordinate_records:
+            by_kind[record["kind"]][record["label"]] = record["value"]
+        return (by_kind["bond"], by_kind["angle"], by_kind["dihedral"])
 
     @cached_property
     def optimized_output_lines(self):

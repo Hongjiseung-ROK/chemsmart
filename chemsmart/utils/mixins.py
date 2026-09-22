@@ -1640,12 +1640,36 @@ class ORCAFileMixin(FileMixin):
         ``end``. Echoed output lines carry a ``| n>`` prefix, which is
         stripped here so one parser serves a generated ``.inp`` and a
         completed ``.out`` alike, as the %tddft and %irc readers already do.
+
+        Where the line breaks is not chemistry. ORCA accepts the sub-block
+        name on the ``%geom`` line itself, and that is the idiom of its own
+        manual: ``%geom Constraints`` / ``{ D 3 12 13 17 C }`` / ``end`` /
+        ``end``. This reader used to drop everything after ``%geom``, so a
+        constrained optimisation written that way declared no constraints
+        and ``jobtype`` called it a plain ``opt`` -- while the printed
+        Redundant Internal Coordinates table of the same file showed the
+        held dihedral. Two organs answering one question disagreed, and the
+        one the Agent reads said something false about a real structure.
         """
 
+        openers = {"scan", "constraints", "modify_internal"}
         blocks: dict[str, list[str]] = {}
         echo_pattern = re.compile(r"^\|\s*\d+>\s?(.*)$")
         inside_geom = False
         current = None
+
+        def _open(text):
+            """Start the sub-block *text* names and keep its first line."""
+
+            name = text.casefold().split()[0]
+            if name not in openers:
+                return None
+            blocks.setdefault(name, [])
+            remainder = text.split(None, 1)
+            if len(remainder) > 1:
+                blocks[name].append(remainder[1])
+            return name
+
         for raw_line in self.contents:
             stripped = raw_line.strip()
             match = echo_pattern.match(stripped)
@@ -1658,6 +1682,9 @@ class ORCAFileMixin(FileMixin):
             if lowered.split()[0] == "%geom":
                 inside_geom = True
                 current = None
+                tail = stripped.split(None, 1)
+                if len(tail) > 1:
+                    current = _open(tail[1])
                 continue
             if not inside_geom:
                 continue
@@ -1668,13 +1695,7 @@ class ORCAFileMixin(FileMixin):
                     current = None
                 continue
             if current is None:
-                name = lowered.split()[0]
-                if name in {"scan", "constraints", "modify_internal"}:
-                    current = name
-                    blocks.setdefault(current, [])
-                    remainder = stripped.split(None, 1)
-                    if len(remainder) > 1:
-                        blocks[current].append(remainder[1])
+                current = _open(stripped)
                 continue
             blocks[current].append(stripped)
         return blocks

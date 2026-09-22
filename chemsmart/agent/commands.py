@@ -539,6 +539,46 @@ def compile_command(
             "run an ordinary optimisation under this node's name"
         )
 
+    # The mirror of that guard, and the one a live session actually met.
+    # A coordinate offered to a job type that cannot take one used to be
+    # refused as "live Click scope run/orca/opt has no coordinates
+    # option", which states the invariant and names no route. A session
+    # that had correctly edited a torsion into place and wanted it held
+    # there read that, dropped the coordinate, and compiled a plain
+    # optimisation -- which relaxes straight off the coordinate it was
+    # asked to hold (CUHK r9o-g3, 2026-09-21). The job types that do
+    # carry the option are read from the live Click tree, so the refusal
+    # cannot name a set that has gone stale.
+    program_scope_length = len(job_scope) - 1
+    for parameter_name in sorted(job_option_values or {}):
+        if parameter_name in _HOST_OWNED_OPTIONS:
+            continue
+        command = live_schema.command(job_scope)
+        if command is not None and command.option(parameter_name) is not None:
+            continue
+        carriers = sorted(
+            {
+                item.path[-1]
+                for item in live_schema.commands
+                if len(item.path) == len(job_scope)
+                and item.path[:program_scope_length]
+                == job_scope[:program_scope_length]
+                and item.option(parameter_name) is not None
+            }
+        )
+        raise ContractError(
+            f"a {proposal.program} {proposal.jobtype} takes no "
+            f"{parameter_name}, so this node cannot carry one"
+            + (
+                "; the job types of this program that do are "
+                + ", ".join(carriers)
+                + " -- plan the stage as one of those rather than dropping "
+                "the coordinate, which computes something else"
+                if carriers
+                else ""
+            )
+        )
+
     # Some scientific intent is neither a project setting nor a file.  A
     # scanned coordinate -- which atoms, over what range, in how many steps --
     # is a fact about this molecule in this calculation, so freezing it into a

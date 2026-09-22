@@ -2203,6 +2203,130 @@ def _orca_irc_end_molecule(output: Any) -> Any:
     return molecule
 
 
+def _orca_constraint_records(output: Any) -> tuple[Any, ...]:
+    """The internal coordinates ORCA held, checked against the molecule.
+
+    The parser reads ORCA's own constraint table, whose definitions carry
+    an element symbol beside each index.  Those labels are resolved
+    against the molecule's own symbols rather than trusted, exactly as the
+    per-atom population vectors are: a label that does not match is a
+    reader that has drifted from the structure, and guessing is what the
+    populations lesson cost this repository once already.
+    """
+
+    records = tuple(getattr(output, "constrained_coordinate_records", ()))
+    if not records:
+        # True of a plain optimisation and equally true of one that froze
+        # Cartesian positions: ORCA constrains those atom by atom and
+        # prints no internal coordinate for them, so this family has
+        # nothing to say about such a run rather than nothing being held.
+        raise MissingQuantityError(
+            "this ORCA result held no internal coordinate; this family "
+            "answers bonds, angles and dihedrals, and a Cartesian atom "
+            "freeze is not one of them"
+        )
+    symbols = _orca_symbols(output)
+    for record in records:
+        for index, symbol in zip(record["atoms"], record["symbols"]):
+            if not 1 <= int(index) <= len(symbols):
+                raise MissingQuantityError(
+                    f"constraint {record['label']} names atom {index}, "
+                    f"outside this molecule's {len(symbols)} atoms"
+                )
+            if symbols[int(index) - 1] != str(symbol):
+                raise MissingQuantityError(
+                    f"constraint {record['label']} calls atom {index} "
+                    f"{symbol!r} while the molecule has "
+                    f"{symbols[int(index) - 1]!r} there"
+                )
+    return records
+
+
+#: How far a held coordinate may sit from the value ORCA declared before
+#: the reader stops calling it held.  ORCA holds a constraint to its own
+#: optimiser tolerance: across this repository's archived constrained
+#: results the largest disagreement between the declared value and the
+#: returned structure is 5.5e-7 Angstrom and 1.1e-5 degrees.  These bounds
+#: are three orders of magnitude above that and far below any change a
+#: chemist would call a different structure, so they separate "the reader
+#: and the geometry disagree" from optimiser noise and from chemistry.
+_ORCA_CONSTRAINT_TOLERANCE = {"bond": 1e-3, "angle": 1e-2, "dihedral": 1e-2}
+
+
+def _orca_held_coordinates(output: Any, kind: str) -> list[dict[str, Any]]:
+    """The held coordinates of one kind, measured in the reached structure.
+
+    ORCA declares the value it imposed in its constraint table; this
+    measures the same coordinate in the structure ORCA handed back, which
+    is the value the geometry a later stage consumes actually has.  The
+    two must agree, and disagreement is reported with both numbers rather
+    than resolved: a constrained optimisation whose constraint did not
+    hold is not the calculation that was approved, and that is a finding,
+    not a parse error.
+
+    One kind per selector because a bond is a length and an angle is an
+    angle.  Mixing them would force a dimensionless vector and lose the
+    unit, and it would also make the atom rows ragged, which the typed
+    layer cannot carry.
+    """
+
+    records = [
+        record
+        for record in _orca_constraint_records(output)
+        if record["kind"] == kind
+    ]
+    if not records:
+        raise MissingQuantityError(
+            f"this ORCA result held no {kind}; it held "
+            + ", ".join(
+                sorted(
+                    {
+                        str(item["kind"])
+                        for item in _orca_constraint_records(output)
+                    }
+                )
+            )
+        )
+    molecule = output.molecule
+    if isinstance(molecule, (list, tuple)):
+        molecule = molecule[-1] if molecule else None
+    if molecule is None:
+        raise MissingQuantityError(
+            "this ORCA result prints no reached structure to measure a "
+            "held coordinate in"
+        )
+    measure = {
+        "bond": molecule.get_distance,
+        "angle": molecule.get_angle,
+        "dihedral": molecule.get_dihedral,
+    }[kind]
+    held = []
+    for record in records:
+        # ``Molecule.get_distance`` and its siblings number atoms from
+        # one, as everything the Agent *writes* does. What the extraction
+        # plane *delivers* is zero-based, because it indexes the vectors
+        # this same plane delivers -- symbols, positions, populations --
+        # so the two bases are converted here and never mixed.
+        reached = float(measure(*record["atoms"]))
+        declared = float(record["value"])
+        if abs(reached - declared) > _ORCA_CONSTRAINT_TOLERANCE[kind]:
+            raise MissingQuantityError(
+                f"ORCA declared {record['label']} held at {declared} but "
+                f"the structure it returned has {reached}; the constraint "
+                "this result was run under is not the one its geometry "
+                "carries, and the geometry itself is readable as "
+                "reached_positions"
+            )
+        held.append(
+            {
+                "atoms": tuple(int(index) - 1 for index in record["atoms"]),
+                "label": record["label"],
+                "value": reached,
+            }
+        )
+    return held
+
+
 def _orca_geometry_source_path(output: Any, selector: str) -> Path | None:
     """Name the ORCA sidecar behind the structure an IRC branch reached."""
 
@@ -2250,6 +2374,40 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             ],
             "scan_point_indices": lambda output: [
                 float(record["index"]) for record in output.scan_point_records
+            ],
+            # A constrained optimisation is defined by what it held. Each
+            # kind answers under its own name so the value keeps its unit
+            # and the atom rows keep one width, with the atoms beside the
+            # values in the same order. The count is the whole of them and
+            # is the number a claim is rendered from, which is how a
+            # session states that the program applied the constraint it
+            # was approved for instead of describing it.
+            "constrained_coordinate_count": lambda output: float(
+                len(_orca_constraint_records(output))
+            ),
+            "constrained_bond_atoms": lambda output: [
+                [float(index) for index in held["atoms"]]
+                for held in _orca_held_coordinates(output, "bond")
+            ],
+            "constrained_bond_lengths": lambda output: [
+                held["value"]
+                for held in _orca_held_coordinates(output, "bond")
+            ],
+            "constrained_angle_atoms": lambda output: [
+                [float(index) for index in held["atoms"]]
+                for held in _orca_held_coordinates(output, "angle")
+            ],
+            "constrained_bond_angles": lambda output: [
+                held["value"]
+                for held in _orca_held_coordinates(output, "angle")
+            ],
+            "constrained_dihedral_atoms": lambda output: [
+                [float(index) for index in held["atoms"]]
+                for held in _orca_held_coordinates(output, "dihedral")
+            ],
+            "constrained_dihedral_angles": lambda output: [
+                held["value"]
+                for held in _orca_held_coordinates(output, "dihedral")
             ],
             # Reached versus planned is the whole diagnosis when a scan
             # dies partway. The parser has always known both -- the step
@@ -4695,6 +4853,67 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # receipt of every selector that reads it.
         geometry_source_path_for_selector=_orca_geometry_source_path,
         native_evidence_paths_for_selector=_orca_native_evidence_paths,
+        #: A held coordinate is a distance for a bond and an angle for a
+        #: torsion, so the kinds answer under their own names and each
+        #: keeps its true unit. ``scan_coordinate_values`` has to declare
+        #: none because a scan drives one coordinate whose kind the
+        #: declaration cannot know; a constraint table states the kind of
+        #: every row, so nothing here has to be dimensionless.
+        #: An atom row and a count are pure numbers, and this vocabulary
+        #: spells that ``1`` rather than leaving the unit empty: an
+        #: introduced selector says what it is measured in, and "" reads
+        #: as nobody having said.
+        selector_declarations=(
+            ("constrained_angle_atoms", "1", "DIMENSIONLESS"),
+            ("constrained_bond_angles", "degree", "ANGLE"),
+            ("constrained_bond_atoms", "1", "DIMENSIONLESS"),
+            ("constrained_bond_lengths", "Angstrom", "LENGTH"),
+            ("constrained_coordinate_count", "1", "DIMENSIONLESS"),
+            ("constrained_dihedral_angles", "degree", "ANGLE"),
+            ("constrained_dihedral_atoms", "1", "DIMENSIONLESS"),
+        ),
+        #: An atom index this plane delivers indexes the vectors this
+        #: plane delivers -- symbols, positions, every population -- so it
+        #: is zero-based like all of them, and it says so where the model
+        #: reads it rather than where the reader remembers it. ORCA's own
+        #: label counts from one; that is a label, never the index, and
+        #: the two are converted at the accessor. What the Agent *writes*
+        #: -- the constrained coordinate on a modred node -- is one-based,
+        #: which is the round trip this record exists to keep honest.
+        atom_resolved_declarations=(
+            (
+                "constrained_bond_atoms",
+                (
+                    ("semantic_quantity", "constrained_internal_coordinate"),
+                    ("atom_order", "zero-based molecular atom order"),
+                    ("data_shape", "rows of [atom_i, atom_j]"),
+                ),
+            ),
+            (
+                "constrained_angle_atoms",
+                (
+                    ("semantic_quantity", "constrained_internal_coordinate"),
+                    ("atom_order", "zero-based molecular atom order"),
+                    (
+                        "data_shape",
+                        "rows of [atom_i, atom_j, atom_k], vertex in the "
+                        "middle",
+                    ),
+                ),
+            ),
+            (
+                "constrained_dihedral_atoms",
+                (
+                    ("semantic_quantity", "constrained_internal_coordinate"),
+                    ("atom_order", "zero-based molecular atom order"),
+                    (
+                        "data_shape",
+                        "rows of [atom_i, atom_j, atom_k, atom_l], about "
+                        "the j-k bond",
+                    ),
+                ),
+            ),
+        ),
         # Coverage is ``parser_supported_when_emitted``: it states what a job
         # of this type can be asked for, while method and settings still
         # decide whether the engine prints it.  The spin family and the
@@ -4720,6 +4939,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         # declared.
         selector_structural_states=(
             ("connectivity", "thermochemistry_reference"),
+            # A held coordinate is delivered as the structure ORCA
+            # returned actually has it, cross-checked against the value
+            # ORCA declared it was holding. Held means the two agree, and
+            # the reader checks rather than repeats the declaration.
+            ("constrained_bond_angles", "as_reached"),
+            ("constrained_bond_lengths", "as_reached"),
+            ("constrained_dihedral_angles", "as_reached"),
             ("correlation_energy", "as_reached"),
             ("dispersion_energy", "as_reached"),
             ("energy", "as_reached"),
@@ -4862,6 +5088,84 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "trajectory_frame_count",
                     "trajectory_start_connectivity",
                     "trajectory_start_positions",
+                ),
+            ),
+            (
+                # A constrained optimisation is an optimisation that was
+                # not allowed to finish the job: it relaxes every degree
+                # of freedom except the ones it holds, so what it returns
+                # is a structure on the surface at a chosen value of a
+                # chosen coordinate. That is the calculation whose result
+                # seeds a saddle search, and until now a completed one
+                # answered nothing -- the classifier already called it
+                # ``modred`` and no reader had declared the name, so every
+                # selector on it was refused, including its energy.
+                #
+                # The vibrational family is deliberately absent. A
+                # constrained optimum is a stationary point only in the
+                # subspace orthogonal to what is held; the gradient along
+                # the constraint is whatever it is, ORCA projects nothing
+                # out of the Hessian it prints, and the spectrum of that
+                # Hessian is not the spectrum of a stationary point. So no
+                # frequency, no thermochemistry and no stationary-point
+                # claim is promised here, even when the project's modred
+                # section runs ``! Opt Freq`` and ORCA prints one. That is
+                # the same rule ``scan`` already follows, stated for the
+                # job type that can actually emit the numbers.
+                "modred",
+                (
+                    "ab_initio",
+                    "alpha_homo",
+                    "alpha_lumo",
+                    "basis",
+                    "beta_homo",
+                    "beta_lumo",
+                    "charge",
+                    "connectivity",
+                    "constrained_angle_atoms",
+                    "constrained_bond_angles",
+                    "constrained_bond_atoms",
+                    "constrained_bond_lengths",
+                    "constrained_coordinate_count",
+                    "constrained_dihedral_angles",
+                    "constrained_dihedral_atoms",
+                    # ORCA converges a constrained optimisation on the
+                    # free coordinates and says so in the same words, so
+                    # the flag keeps its meaning: the relaxation finished.
+                    "converged",
+                    "correlation_energy",
+                    "dipole_moment",
+                    "dipole_moment_magnitude",
+                    "dispersion_energy",
+                    "effective_multiplicity",
+                    "energies",
+                    "energy",
+                    "functional",
+                    "gap",
+                    "hirshfeld_atomic_charges",
+                    "homo",
+                    "loewdin_atomic_charges",
+                    "loewdin_atomic_spin_populations",
+                    "lumo",
+                    "mulliken_atomic_charges",
+                    "mulliken_atomic_spin_populations",
+                    "multiplicity",
+                    "positions",
+                    # The structure at the held value is the whole point
+                    # of running one, and it is what a later saddle search
+                    # or single point consumes.
+                    "reached_positions",
+                    "reference_energy",
+                    "scf_energy",
+                    "solvation_cavity_surface_area",
+                    "solvation_electrostatic_energy",
+                    "solvation_model",
+                    "solvation_nonelectrostatic_energy",
+                    "solvent",
+                    "spin_square",
+                    "spin_square_deviation",
+                    "spin_square_target",
+                    "symbols",
                 ),
             ),
             (

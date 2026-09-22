@@ -146,3 +146,41 @@ def test_a_node_without_coordinates_is_unaffected():
     node = _node("opt", None)
     assert node.internal_coordinates is None
     assert native_coordinate_options("orca", None) == {}
+
+
+def test_the_refusal_for_a_coordinate_names_the_job_types_that_take_one():
+    """A refusal states the invariant and, where one exists, the route.
+
+    A held coordinate offered to a plain optimisation used to be refused
+    as "live Click scope run/orca/opt has no coordinates option". A live
+    session read that, dropped the coordinate and compiled an ordinary
+    optimisation, which relaxes straight off the coordinate it had just
+    been asked to hold (CUHK r9o-g3, 2026-09-21). The job types that do
+    take one are read from the live Click tree rather than listed, so the
+    route named cannot go stale.
+    """
+
+    from chemsmart.agent.cli_schema import build_live_click_schema
+
+    schema = build_live_click_schema()
+
+    def carriers(program):
+        return sorted(
+            {
+                item.path[-1]
+                for item in schema.commands
+                if len(item.path) == 3
+                and item.path[:2] == ("run", program)
+                and item.option("coordinates") is not None
+            }
+        )
+
+    # The live tree is the authority: a constrained optimisation takes a
+    # coordinate and a plain optimisation does not, for both programs
+    # that spell one.
+    for program in ("orca", "gaussian"):
+        assert "modred" in carriers(program)
+        assert "opt" not in carriers(program)
+        command = schema.command(("run", program, "opt"))
+        assert command is not None
+        assert command.option("coordinates") is None

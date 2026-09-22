@@ -337,6 +337,15 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     + ": the path-walking stages whose endpoint may hand on, admitted per "
     "program by the reader's own declaration of a reached structure",
     (
+        "chemsmart/agent/execution.py",
+        "<module>",
+        "CONSTRAINED_GEOMETRY_PRODUCER_STAGES",
+        ("modred",),
+    ): _DECLARATION
+    + ": the stages that relax around a held coordinate and end on the "
+    "structure at it, admitted per program by the reader's own "
+    "declaration of a reached structure",
+    (
         "chemsmart/agent/terminal_states.py",
         "<module>",
         "START_POINT_PROMISES",
