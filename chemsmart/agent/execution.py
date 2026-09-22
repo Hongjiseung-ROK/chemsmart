@@ -4322,9 +4322,11 @@ def _characterised_geometry_digest(reader: Any, output: Any) -> str:
 
     # Both halves come through the reader.  The symbols used to be taken
     # from ``output.chemical_symbols``, a parser attribute rather than a
-    # selector: every reader serves ``symbols``, but xTB's parser does not
-    # spell it that way, so an xTB order certified with the geometry field
-    # silently empty while its positions were right there.
+    # selector: every reader serves ``symbols``, but only PySCF's parser
+    # spells it that way, so every ORCA, Gaussian and xTB order certified
+    # with the geometry field silently empty while its positions were
+    # right there (0 of 78 archived ORCA and Gaussian outputs carried a
+    # digest before this read went through the reader).
     try:
         symbols = tuple(
             str(item) for item in reader.read(output, "symbols")[0]

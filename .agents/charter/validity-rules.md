@@ -84,14 +84,42 @@ refused is the separate act of the host saying what the structure is, and
 the policy's sentence carries both halves.
 
 The gradient reaches that refusal through one reader-plane function, the
-same one the run sensor reads, so the two cannot drift. Today only PySCF
-declares it: ORCA's and Gaussian's ``forces`` are the gradient at *every*
-optimisation step, and a maximum over them belongs to no single geometry,
-so those readers answer nothing rather than a number read from the wrong
-structure. Where no reader can say, the receipt records ``unmeasured``
-and certification proceeds exactly as it did, which is also what keeps
-every characterisation minted before this verifying unchanged: the three
-new fields enter the digest body only where the host determined them.
-What is not claimed is a refusal that reaches every program -- it reaches
-the program whose reader can bind a gradient to one structure, and the
-others are an absence with a name rather than a silence.
+same one the run sensor reads, so the two cannot drift. At ``13e2f58b``
+they had drifted: the sensor read a parser's attribute names
+(``forces``, ``forces_unit``, PySCF's spellings), and the structure an
+order stands on was read the same way (``chemical_symbols``), so the
+geometry digest was empty for every archived ORCA and Gaussian output --
+0 of 78 on the frozen base, 35 of 37 and 43 of 43 on the merged tree,
+measured -- while the sentence above said it was named. Both organs now
+reach the gradient and the structure through the reader plane alone
+(``7f769864``, ``3baca244``).
+
+Two readers declare it. PySCF's ``hess`` stage records the gradient at
+the one structure it differentiated. xTB's Hessian is ``--hess``, taken
+at the geometry the job was handed and never relaxed, so one invocation's
+gradient and spectrum describe the same structure, and the job now
+writes that gradient (``--grad``) because nothing else in the result
+decides whether the spectrum means anything; the number is the largest
+component of the written vector, never the printed ``GRADIENT NORM``,
+which is an upper bound on it (``p_benzyne_opt_alpb_toluene``: 5.508e-4
+against 1.182e-3). ORCA's and Gaussian's ``forces`` are the gradient at
+*every* optimisation step, and a maximum over them belongs to no single
+geometry, so those readers answer nothing rather than a number read from
+the wrong structure. Where no reader can say, the receipt records
+``unmeasured`` and certification proceeds exactly as it did, which is
+also what keeps every characterisation minted before this verifying
+unchanged: the three new fields enter the digest body only where the
+host determined them. What is not claimed is a refusal that reaches
+every program -- it reaches the two programs whose readers can bind a
+gradient to one structure, and the others are an absence with a name
+rather than a silence. On a real system the two halves did their work
+(cephalexin, 24 heavy atoms, CUHK Slurm 2142880, read from the goal's
+own receipts): a GFN2 Hessian at the GFN-FF geometry validated as a run
+and raised ``stationary_point.gradient_above_optimizer_criterion`` with
+max|g| 0.0247 Eh/Bohr, 55 times the criterion, beside
+``stationary_point.unexpected_order`` with three imaginary modes; the
+thermochemistry node planned on it settled ``failed`` and the expression
+downstream was skipped, while the spectrum stayed readable -- its
+strongest carbonyl band sat *nearer* the experimental value than the
+true minimum's, which is the number the refusal exists to keep from
+being reported as a property of a minimum.
