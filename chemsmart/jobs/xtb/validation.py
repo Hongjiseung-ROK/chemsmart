@@ -612,6 +612,21 @@ def _route_solvent_id(route):
     return None
 
 
+def _has_no_spin_record(main):
+    """True where the method itself has no spin state to print.
+
+    Read from the result's own reported method rather than from the
+    request, so a run that was asked for one Hamiltonian and performed
+    by another is judged by what it actually did.
+    """
+
+    try:
+        method = main.method
+    except Exception:  # noqa: BLE001 - an unreadable method is not proof
+        return False
+    return str(method or "").strip().lower() == "gfnff"
+
+
 def _route_settings(
     route, *, method=_MISSING, charge=_MISSING, multiplicity=_MISSING
 ):
@@ -937,7 +952,24 @@ def validate_xtb_result(
                     findings,
                     evidence_ref="output:settings/charge",
                 ),
-                multiplicity=None if unpaired is None else unpaired + 1,
+                # A force field has no electronic structure and so no
+                # spin state to print: no line of a GFN-FF output
+                # records one, and asking it for the count that the SCC
+                # setup block carries failed every GFN-FF run this host
+                # has ever validated (live goal g3, CUHK 2142880, both
+                # GFN-FF nodes: "multiplicity expected 1, observed
+                # None").  ``_MISSING`` is the word this function
+                # already uses for "the result cannot say, so read the
+                # program call the engine echoed" -- it is what
+                # ``jobtype``, ``optimization_level``, the solvent pair
+                # and ``grad`` are all observed through.  A GFN0/1/2
+                # result stays exactly as strict: it prints the block,
+                # and a missing one is still a mismatch there.
+                multiplicity=(
+                    _MISSING
+                    if unpaired is None and _has_no_spin_record(main)
+                    else (None if unpaired is None else unpaired + 1)
+                ),
             )
         for field in ("jobtype", "gfn_version", "charge", "multiplicity"):
             _compare(

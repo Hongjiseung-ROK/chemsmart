@@ -209,11 +209,42 @@ class XTBMainOut(XTBFileMixin):
 
     @property
     def net_charge(self):
+        """The molecular charge this run applied.
+
+        ``net charge`` is printed in the SCC setup block.  GFN-FF has no
+        SCC and prints no such block, so for a force-field result this
+        fell through to ``None`` and every GFN-FF run failed the host's
+        own result audit with "charge expected 0, observed None" (live
+        goal g3, CUHK 2142880).  What GFN-FF does print is the total
+        charge in its energy summary, and xTB constrains that to the
+        charge it was handed, so it is integral by construction and is
+        the same quantity under a different heading.  The setup block
+        still wins where there is one: it is the value the SCC actually
+        ran on, while the summary is the charge that came out of it.
+        """
         net_charge = self._get_setup_information("net charge")
-        return int(net_charge) if net_charge else None
+        if net_charge:
+            return int(net_charge)
+        total_charge = self.total_charge
+        if total_charge is None:
+            return None
+        rounded = round(float(total_charge))
+        # A non-integral total charge is not a charge this reader can
+        # name; saying nothing is the honest answer, not rounding one.
+        if abs(float(total_charge) - rounded) > 1.0e-6:
+            return None
+        return int(rounded)
 
     @property
     def unpaired_electrons(self):
+        """The unpaired-electron count this run applied, where it has one.
+
+        Deliberately not given the same fallback as ``net_charge``: a
+        force field has no electronic structure and therefore no spin
+        state to report, and no line of a GFN-FF output records one.
+        An absence is the honest answer; what the run was *asked* for
+        travels in the program call the engine echoed.
+        """
         unpaired_electrons = self._get_setup_information("unpaired electrons")
         return int(unpaired_electrons) if unpaired_electrons else None
 
