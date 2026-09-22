@@ -25,7 +25,12 @@ intersection and an extraction can be planned against it -- but the
 producer edge stays closed, because a stage that writes two results ends
 on two structures and has no one structure to hand on. That is a
 different reason from ORCA's, whose IRC log prints only where the path
-started. Never ``link`` either, because a link job's
+started. The closure is now wider than the fact: a node whose project
+names a direction writes one result and ends on one structure, and both
+plan-time gates are asked only for the program and the stage, so they
+cannot see it. They refuse such a node conservatively rather than
+wrongly, which is the safe direction, and the live goal that ran two
+one-direction nodes planned its extractions in a later cycle instead. Never ``link`` either, because a link job's
 route resolves to its linked target and the result reads as that job. A
 relaxed scan's surface is assembled by the parser from the points the log
 marks converged and each point's own driven coordinate, because Gaussian
@@ -70,6 +75,28 @@ connects is observed. The goal settled ``achieved_with_observations``,
 the observation being the host's own unasked-for record that the saddle's
 molecular graph differs from the one it was handed.
 
+Both were then repeated on a scientifically non-trivial system, and the
+path was walked the way the architecture means it (goal g3, Slurm
+2142917, 42 minutes wall). 1,3-Bis(4-cyanophenyl)propane-1,3-dione is
+twenty-one heavy atoms, rigid and symmetric, so its two path ends are
+guaranteed minima and the graph change is exact. The saddle search
+reached one imaginary mode of eighty-seven at -1106.1223 cm^-1 with
+O...O 2.3636 A, the two O-H equal to 2e-4 A and the two C-O identical to
+four decimals, from a guess at 2.737 A; the host recorded two
+observations nobody asked for on that node, a changed molecular graph
+and a 0.467 A heavy-atom displacement, which is what tightening a
+chelate into a symmetric saddle does. The path then ran as ``irc-forward``
+and ``irc-reverse``, two nodes of one direction each, qualified
+separately: 20 accepted points apiece to the same net reaction
+coordinate of 2.05099, ends at -913.759967594 and -913.759967404 Eh --
+mirror images to 1.9e-7 Eh across a 2.16 kcal/mol barrier -- each
+reading through the typed layer with its own direction, 23 frames, a
+reached structure equal to the end of its own walk, and
+``trajectory_connectivity_changed`` = 1. That this barrier is lower than
+malonaldehyde's 3.45 kcal/mol while its O...O is shorter (2.3636 against
+2.3781 A) is the resonance-assisted hydrogen bond, measured across the
+two systems rather than asserted.
+
 A Gaussian reaction path is configured by the class that owns it. The
 project loader validated every Gaussian section against the shared
 one-geometry defaults, so ``direction``, ``maxpoints``, ``recalc_step``
@@ -82,9 +109,17 @@ answered ``invalid`` and the session fell back first to
 ``additional_route_parameters: maxpoints=50`` -- which appends a bare
 token beside the keyword it belongs inside -- and then to one
 directionless node; after it, ``irc: {maxpoints: 60, stepsize: 0.1}``
-validated and reached the route. What a plan still cannot say is a
-direction per node: ``CommandNodeIntentV1`` has no such field, and a
-session that wants the two branches as two nodes has no way to ask.
+validated and reached the route -- and a third goal on the same molecule
+and the byte-identical task then ran the two branches as two nodes, one
+direction each, which is what the architecture means by a path and what
+the first two goals had been refused. Making those controls
+project-owned also put them in front of the preview's settings
+comparison for the first time, which reads an input back through the
+base Gaussian surface and so found every one of them missing; that cost
+the second goal its path, and the fields are read from the ``irc(...)``
+leaf of the route now, as the TD leaf already was. What a plan still
+cannot say is a direction per *node*: ``CommandNodeIntentV1`` has no
+such field, so the direction travels in the project a node names.
 
 One boundary of the Gaussian route channel is worth stating because the
 program does not state it. A route parameter is appended verbatim, so a
