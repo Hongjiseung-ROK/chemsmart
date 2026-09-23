@@ -7,7 +7,8 @@ description: Operate, audit, document, or improve the production ChemSmart compu
 
 Treat ChemSmart as the execution authority and the model as the scientific
 reasoner. Read `AGENTS.md` and the matching topic under `.agents/charter/`
-before changing the product boundary.
+before changing a surface. What the Agent can reach is computed, never
+restated here: ``chemsmart agent capabilities``.
 
 ## Start from the live product
 
@@ -32,13 +33,11 @@ capability/environment inspection, identity and project-YAML binding, causal
 DAG/frontier operations, validated geometry handoff, registered-result
 inspection, semantic quantity extraction, RRHO or parameterised qRRHO,
 unit-aware expression DAGs, evidence-bound claims, and scientific decisions
-when the task calls for them. The supported expression vocabulary includes
-CBS extrapolation, Boltzmann populations and averages, harmonic ZPE,
-imaginary-mode counts, geometry measurements, centres of mass, inertia,
-rotational constants, and connectivity changes.
+when the task calls for them. Which operations, selectors and job types
+exist is ``chemsmart agent capabilities --kind operation|selector|program_jobtype``.
 
 A frequency says how fast a mode moves, never which atoms move in it.
-For that, ORCA opt/ts, xTB hess, and PySCF serve
+For that, a reader that declares it serves
 ``vibrational_mode_atom_participation``: each atom's share of a mode's
 squared displacement, one row per mode summing to one. It is host-derived
 from the displacement vectors the program printed, renormalised so it
@@ -48,15 +47,12 @@ observation -- "these three atoms carry 96% of this imaginary mode" is
 evidence; "this is a methyl rotor" is your claim, not the host's. Inside
 a degenerate set the individual eigenvectors are an arbitrary basis, so
 consult ``vibrational_mode_degeneracy_group`` before assigning motion to
-one mode. Gaussian is deliberately undeclared: we never run it, and its
-displacement block comes in variants (``freq=HPModes``, ``freq=raman``)
-this reader cannot yet tell apart.
+one mode.
 
-A completed solvated ORCA result carries its own solvation
-decomposition: ``solvation_electrostatic_energy``,
-``solvation_nonelectrostatic_energy`` and
-``solvation_cavity_surface_area`` are declared for ``opt``, ``sp`` and
-``ts`` beside ``solvation_model`` and ``solvent``. Read them together --
+A completed solvated result can carry its own solvation decomposition
+(``solvation_electrostatic_energy``, ``solvation_nonelectrostatic_energy``,
+``solvation_cavity_surface_area``) beside ``solvation_model`` and
+``solvent``, where its reader declares them. Read them together --
 the terms say what the program applied, which can differ from what the
 route asked for. A gas-phase result reports them absent, and a CPCM run
 carries no cavity-dispersion term; that absence is how the models differ,
@@ -65,10 +61,9 @@ to conclude that solvation is the source of a discrepancy: a basis-set or
 functional error of the same size looks identical in that decomposition.
 
 Per-atom charges arrive as a positional vector in molecular order, paired
-with ``symbols``, and named by scheme. ORCA declares
-``mulliken_atomic_charges``, ``loewdin_atomic_charges`` and
-``hirshfeld_atomic_charges``; PySCF declares ``mulliken_atomic_charges``.
-They are different quantities, not different spellings, and can disagree
+with ``symbols``, and named by scheme (Mulliken, Loewdin, Hirshfeld where a
+reader declares them). They are different quantities, not different
+spellings, and can disagree
 by more than a third of an electron on the same atom, so quote the scheme
 with the number. The two basis partitions divide a sum over basis
 functions and inherit its sensitivity; Hirshfeld divides real space
@@ -89,16 +84,12 @@ vectors across electronic states, check the sum in the direction where a
 wrong reading would change its sign, not the direction where charges and
 spins happen to agree.
 
-Every program answers the shared selector vocabulary the same way, and
-that now includes PySCF: its structured HDF5 result is a registered
-reader with job-type declarations for ``sp``, ``opt`` and ``hess``, so
-the capability query reports what it carries and the declaration gate
-refuses a selector whose meaning was never audited for that job type.
-Excitation energies come back in hartree there and in electronvolts from
-the log-parsing programs; the reader states its own native unit and the
-arithmetic is canonical either way, so never convert one yourself.
-PySCF ``td`` is executable and declares the SCF set beside the excitation
-set; a second declaration axis says whose density each value is.
+Every program answers the shared selector vocabulary the same way: the
+capability query reports what each reader carries, and the declaration
+gate refuses a selector whose meaning was never audited for that job
+type. A reader states its own native unit and the arithmetic is canonical
+either way, so never convert one yourself; a second declaration axis says
+whose density each value is.
 
 A geometry may cross programs -- an xTB optimisation feeding an ORCA or
 PySCF single point is the ordinary multi-program protocol, and the
@@ -140,34 +131,23 @@ or may choose a different causal decomposition. Use only the operations needed
 to answer the scientific request, and keep every source quantity and convention
 visible.
 
-## Apply the production support boundary
+## Read the support boundary from the host
 
-- Gaussian CPU ``sp/opt/ts/irc/td/link`` has project-backed planning, native
-  input preview, and typed analysis of supplied completed outputs; do not claim
-  Agent execution in this release.
-- ORCA CPU planning covers ``sp/opt/ts/irc/td/neb/scan/modred``.
-  Release-qualified execution covers single-points, optimization/frequency,
-  transition-state, excited-state, relaxed coordinate scans, intrinsic
-  reaction coordinates, and serial DAG workflows. Treat ``neb`` and
-  constrained optimisation (``modred``) as preview paths until the selected
-  target is qualified.
-- PySCF CPU ``sp/opt/hess`` and xTB CPU ``sp/opt/hess`` have approved real
-  execution paths. PySCF CPU ``td``, excited-root ``opt``, ``irc`` (one
-  branch per node, walked from a saddle on its own HF or DFT surface)
-  and the ``mp2``, ``ccsd`` and ``ccsd(t)`` methods are recorded from sealed
-  live goals on the configurations they ran.
-- GPU4PySCF ``sp/opt/hess`` is a PySCF-engine configuration and preview
-  surface until a compatible GPU target is qualified. NCIPLOT and other human
-  CLI families without an Agent declaration are not Agent execution paths.
+What the Agent can plan, preview, execute and analyse is computed:
+``chemsmart agent capabilities`` renders every capability on one ladder
+(declared, wired, advertised, tested, qualified; a ``claimed`` record
+never earns the qualified rung), and
+``chemsmart/agent/qualification/release.json`` names the run behind each
+executable program job type. No sentence in this skill restates it.
+
 - Keep product capability, observed scientific evidence, and current-host
-  readiness distinct. A supported Gaussian path does not imply a licensed
-  executable is present; a supported GPU path does not imply a compatible GPU
-  stack. The live environment probe and human review decide whether the exact
-  operation can run here.
-- Runtime semantics are provider-neutral. Registered adapters in this release
-  are Alibaba Token Plan and DeepSeek, configured entirely by a user profile.
-  There is no default model; the profile must explicitly state the selected
-  model and its context/output limits.
+  readiness distinct. A supported path does not imply that a licensed
+  executable or a compatible GPU stack is present; the live environment
+  probe and human review decide whether the exact operation can run here.
+- Runtime semantics are provider-neutral. Adapters are registered in
+  ``chemsmart/agent/providers.py`` and configured entirely by a user
+  profile; there is no default model, so the profile states the selected
+  model and its context and output limits.
 
 ## Use visible one-shot approval
 
