@@ -5858,7 +5858,11 @@ def handoff_optimized_native_geometry(
     consumer_charge: int | None = None,
     consumer_multiplicity: int | None = None,
 ) -> tuple[TrustedArtifactRefV1, OptimizedGeometryHandoffV1]:
-    """Extract a validated ORCA/Gaussian OPT or TS final geometry."""
+    """Extract the structure a validated ORCA or Gaussian producer reached.
+
+    An optimisation, a saddle search, or a constrained optimisation --
+    whatever the one owner admitted for this program and stage.
+    """
 
     normalized_program = require_identifier(program, "program")
     if normalized_program not in {"gaussian", "orca"}:
@@ -5925,13 +5929,35 @@ def handoff_optimized_native_geometry(
         raise ContractError(
             f"{normalized_program} result changed while extracting geometry"
         )
-    if (
-        not normal_termination
-        or not converged
-        or jobtype not in GEOMETRY_SEARCH_JOBTYPES
+    # The handoff hands on exactly what the one owner admitted for this
+    # program and stage (``producer_edge_selection_rule``): an
+    # optimisation or a saddle search, and a constrained optimisation
+    # where the program's reader declares the structure it reached. It
+    # used to accept opt and ts alone, so an admitted ORCA modred ran
+    # 19,578 s, validated, and was then refused here and recorded as a
+    # launch refusal of the node that had run (CUHK r9o-g5 cycle 2).
+    if not normal_termination or not _ends_on_one_reached_structure(
+        normalized_program, jobtype
     ):
         raise ContractError(
+            f"{normalized_program} result is not a structure an admitted "
+            f"edge hands on (jobtype {jobtype or 'unknown'!r})"
+        )
+    # Convergence is a promise only where the stage promises a stationary
+    # structure; there the validator has already refused a run that did
+    # not keep it. A constrained optimisation's convergence is its own
+    # ``converged`` selector (owner ruling, 2026-09-23), so its structure
+    # hands on either way and the handoff says which it was.
+    if jobtype in GEOMETRY_SEARCH_JOBTYPES and not converged:
+        raise ContractError(
             f"{normalized_program} result is not a converged OPT or TS"
+        )
+    comment_label = f"{normalized_program} {jobtype.upper()}"
+    if jobtype not in GEOMETRY_SEARCH_JOBTYPES:
+        comment_label += (
+            " (relaxation converged)"
+            if converged
+            else " (relaxation did not converge; its last structure)"
         )
     if (charge, multiplicity) != (
         int(expected_charge),
@@ -5977,7 +6003,7 @@ def handoff_optimized_native_geometry(
         positions=positions,
         charge=charge,
         multiplicity=multiplicity,
-        comment_label=f"{normalized_program} {jobtype.upper()}",
+        comment_label=comment_label,
         consumer_fields=consumer_fields,
     )
 
@@ -6847,15 +6873,8 @@ def _frozen_producer_edge_rule(
     *,
     environment_receipt_sha256: str,
 ) -> FrozenProducerEdgeRuleV1:
-    if is_validated_optimized_geometry_edge(plan, edge):
-        selection_rule = "validated_optimized_geometry"
-    elif is_validated_scan_minimum_geometry_edge(plan, edge):
-        selection_rule = "validated_scan_minimum_geometry"
-    elif is_validated_orca_ts_hessian_edge(plan, edge):
-        selection_rule = "validated_final_orca_ts_hessian"
-    elif is_validated_producer_orca_hessian_edge(plan, edge):
-        selection_rule = "validated_producer_orca_hessian"
-    else:
+    selection_rule = producer_edge_selection_rule(plan, edge)
+    if not selection_rule:
         raise ContractError(
             "future data edge has no registered exact artifact selection rule: "
             "supported edges are an opt/ts geometry_xyz input, an ORCA scan "
@@ -7150,15 +7169,25 @@ def result_file_structure_edges(
     )
     if any(edge.artifact_class == "geometry_xyz" for edge in edges):
         return ()
-    nodes = {node.node_id: node for node in plan.nodes}
+    # The route this reason names is a geometry_xyz edge from the same
+    # producer, so a producer qualifies exactly when the one owner would
+    # admit that edge -- a relaxed scan under its named rule included.
     return tuple(
         edge
         for edge in edges
-        if edge.source_node_id in nodes
-        and _ends_on_one_reached_structure(
-            nodes[edge.source_node_id].program,
-            nodes[edge.source_node_id].stage,
+        if producer_edge_selection_rule(
+            plan,
+            ScientificWorkflowEdgeV2(
+                edge_id=edge.edge_id,
+                source_node_id=edge.source_node_id,
+                target_node_id=edge.target_node_id,
+                edge_kind="data",
+                artifact_class="geometry_xyz",
+                producer_output_id=edge.producer_output_id,
+                consumer_input_id=edge.consumer_input_id,
+            ),
         )
+        in STRUCTURE_SELECTION_RULES
     )
 
 
@@ -7221,6 +7250,142 @@ def is_validated_producer_orca_hessian_edge(
     return _is_hessian_role_edge(
         plan, edge, HESSIAN_CONSUMER_ROLES["inhess_filename"]
     )
+
+
+#: The registered rules under which a producer hands its consumer the
+#: *structure* it starts from. The other registered rules hand an
+#: auxiliary artifact (a Hessian) beside one of these, and a consumer
+#: waits inside one approval exactly when one of these carries its
+#: structure.
+STRUCTURE_SELECTION_RULES = frozenset(
+    {"validated_optimized_geometry", "validated_scan_minimum_geometry"}
+)
+
+
+def producer_edge_selection_rule(
+    plan: ScientificWorkflowPlanV2,
+    edge: ScientificWorkflowEdgeV2,
+) -> str:
+    """The registered rule under which one data edge crosses an approval.
+
+    The one answer to "may this consumer wait on its producer inside the
+    approval that runs the producer, and what will the host hand it?",
+    or "" when no registered rule admits the edge. The execution review,
+    the bounded admission, the frozen approval, the frontier that tells a
+    session whether its workflow can be approved, the reply to a waiting
+    node and the reason a result-file edge blocks all ask this, and the
+    handoff that runs after the producer hands on exactly what it
+    admitted.
+
+    Four organs used to answer separately and disagreed on real plans:
+    the review admitted an ORCA relaxed scan's minimum-energy point while
+    the frontier called its consumer blocking -- every one of 24 archived
+    sessions that planned that edge ended "workflow recorded but not
+    approvable" and 11 of the edges then executed (Hetzner, 2026-08-21 to
+    09-04) -- and the review admitted an ORCA ``modred`` whose handoff,
+    after 19,578 s of engine, refused it as "not a converged OPT or TS"
+    (CUHK r9o-g5 cycle 2). A new rule is one branch here.
+    """
+
+    if getattr(edge, "edge_kind", "") != "data":
+        return ""
+    if is_validated_optimized_geometry_edge(plan, edge):
+        return "validated_optimized_geometry"
+    if is_validated_scan_minimum_geometry_edge(plan, edge):
+        return "validated_scan_minimum_geometry"
+    if is_validated_orca_ts_hessian_edge(plan, edge):
+        return "validated_final_orca_ts_hessian"
+    if is_validated_producer_orca_hessian_edge(plan, edge):
+        return "validated_producer_orca_hessian"
+    return ""
+
+
+#: The programs whose validated structure a host handoff can write out.
+STRUCTURE_HANDOFF_PROGRAMS = frozenset({"gaussian", "orca", "pyscf", "xtb"})
+
+
+def admitted_producer_edge_rules(
+    plan: ScientificWorkflowPlanV2,
+    data_edges: Sequence[ScientificWorkflowEdgeV2],
+    *,
+    organ: str,
+) -> tuple[ProducerEdgeRuleV1, ...]:
+    """The producer rules one approval freezes for these data edges.
+
+    Every edge must carry a registered rule, a structure edge must come
+    from a program whose structure a handoff can write, and every
+    consumer must take its structure from exactly one edge. ``organ``
+    names who asked, so a refusal says which step refused.
+    """
+
+    nodes = {node.node_id: node for node in plan.nodes}
+    rules = []
+    for edge in data_edges:
+        selection_rule = producer_edge_selection_rule(plan, edge)
+        if not selection_rule:
+            raise ContractError(
+                f"{organ} has no exact selection rule for data "
+                f"edge {edge.edge_id!r}; expected optimized geometry, "
+                "an ORCA scan minimum-energy point geometry, an ORCA "
+                "final-TS Hessian for IRC, or an ORCA producer "
+                "Hessian for a TS inhess_filename role"
+            )
+        producer = nodes[edge.source_node_id]
+        if (
+            selection_rule == "validated_optimized_geometry"
+            and producer.program not in STRUCTURE_HANDOFF_PROGRAMS
+        ):
+            raise ContractError(
+                f"{organ} has no optimized-geometry handoff for "
+                f"producer program {producer.program!r}"
+            )
+        rules.append(
+            build_producer_edge_rule(
+                producer_node_id=edge.source_node_id,
+                consumer_node_id=edge.target_node_id,
+                artifact_kind=edge.artifact_class,
+                selection_rule=selection_rule,
+            )
+        )
+    structure_rules = tuple(
+        rule
+        for rule in rules
+        if rule.selection_rule in STRUCTURE_SELECTION_RULES
+    )
+    by_target = {rule.consumer_node_id for rule in structure_rules}
+    if len(by_target) != len(structure_rules) or by_target != {
+        edge.target_node_id for edge in data_edges
+    }:
+        raise ContractError(
+            "every producer-dependent calculation requires exactly one "
+            "validated geometry input"
+        )
+    return tuple(rules)
+
+
+def structure_edge_by_target(
+    plan: ScientificWorkflowPlanV2,
+) -> dict[str, ScientificWorkflowEdgeV2]:
+    """Each consumer that takes its structure from one admitted edge.
+
+    A consumer is keyed only when exactly one of its ``geometry_xyz``
+    edges exists and the one owner admits it under a structure rule;
+    its auxiliary edges (a Hessian beside the geometry) do not count, as
+    admission keys each producer edge by its consumer role. This is the
+    set of consumers that may wait inside one approval.
+    """
+
+    geometry_edges: dict[str, list[ScientificWorkflowEdgeV2]] = {}
+    for edge in plan.edges:
+        if edge.edge_kind == "data" and edge.artifact_class == "geometry_xyz":
+            geometry_edges.setdefault(edge.target_node_id, []).append(edge)
+    return {
+        target: edges[0]
+        for target, edges in geometry_edges.items()
+        if len(edges) == 1
+        and producer_edge_selection_rule(plan, edges[0])
+        in STRUCTURE_SELECTION_RULES
+    }
 
 
 @dataclass(frozen=True)
@@ -9749,6 +9914,9 @@ __all__ = [
     "handoff_optimized_pyscf_geometry",
     "handoff_optimized_xtb_geometry",
     "handoff_final_orca_ts_hessian",
+    "producer_edge_selection_rule",
+    "structure_edge_by_target",
+    "admitted_producer_edge_rules",
     "is_validated_orca_ts_hessian_edge",
     "is_validated_optimized_geometry_edge",
     "is_validated_scan_minimum_geometry_edge",

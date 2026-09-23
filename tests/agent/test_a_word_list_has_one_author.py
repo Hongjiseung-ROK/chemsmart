@@ -500,6 +500,15 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     # R10 Q3 knowledge: append entries below this line
     # R10 Q3 knowledge: end
     # R10 Q4 composition: append entries below this line
+    (
+        "chemsmart/agent/execution.py",
+        "<module>",
+        "STRUCTURE_HANDOFF_PROGRAMS",
+        ("gaussian", "orca", "pyscf", "xtb"),
+    ): _DECLARATION
+    + ": the programs a structure handoff exists for; the review, the "
+    "bounded admission and the frontier each spelled the four out and "
+    "now read this one",
     # R10 Q4 composition: end
 }
 
