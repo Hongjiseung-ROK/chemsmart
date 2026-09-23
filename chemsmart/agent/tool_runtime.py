@@ -16388,6 +16388,23 @@ class CommandCompiledToolHostV1:
                         if character.isalnum()
                     )
 
+                def _method_token(value: Any) -> str:
+                    # The route reader writes an empirical dispersion into
+                    # the functional word ("b3lyp-d3bj") while a project
+                    # states the two apart, so every Gaussian run with a
+                    # dispersion was typed failed_native on
+                    # gaussian.result.method_mismatch: R10 Q5 goal g1
+                    # (CUHK 2149940), three normally terminated
+                    # B3LYP-D3(BJ) optimisations. The method is compared
+                    # without the suffix on either side.
+                    return _level_token(
+                        re.sub(
+                            r"-(?:d2|d3|d3bj|d3zero|d4)$",
+                            "",
+                            str(value or "").casefold(),
+                        )
+                    )
+
                 expected_method = next(
                     (
                         requested.get(field)
@@ -16543,9 +16560,9 @@ class CommandCompiledToolHostV1:
                                 findings.append(
                                     "gaussian.result.transitions_missing"
                                 )
-                        if expected_method is not None and _level_token(
+                        if expected_method is not None and _method_token(
                             output.method
-                        ) != _level_token(expected_method):
+                        ) != _method_token(expected_method):
                             findings.append("gaussian.result.method_mismatch")
                         expected_basis = requested.get("basis")
                         if expected_basis is not None and _level_token(
