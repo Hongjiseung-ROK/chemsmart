@@ -1,6 +1,6 @@
 ---
 name: typed-analysis-contract
-version: 0.1.1
+version: 0.1.2
 description: How an already-chosen analysis is expressed so the host can carry its evidence - identifiers, units, declared quantity kinds, evidence references, the bookkeeping the host derives for you - and how to read and repair an analysis stage the host refused.
 ---
 
@@ -38,8 +38,9 @@ before it will combine anything. Two consequences follow:
 
 - A quantity that genuinely has no dimension — a count, a population or mole
   fraction, an oscillator strength, a degeneracy, a verdict — is dimensionless
-  and says so with the dimensionless unit. It is not unitless-by-omission, and
-  a word describing what is being counted is not a unit.
+  and says so with the dimensionless unit, written `1`. It is not
+  unitless-by-omission, and a word describing what is being counted is not a
+  unit.
 - A percentage is a presentation of a fraction, not a separate dimension.
   Choose the dimensionless form and present it however you like afterwards.
 
