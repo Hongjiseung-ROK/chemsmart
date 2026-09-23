@@ -97,14 +97,166 @@ Pairs (task text identical within a pair unless stated):
   cation B3LYP presented as the pair for an ionisation energy (level
   mismatch, visible in each result's own level record). Control: both
   PBE0. Task asks the adiabatic IE only.
-- D4 (mine): six archived ORCA opt+freq results for [Fe(H2O)4]n+,
-  M06-2X/def2-SVP, Fe(II) S=0,1,2 and Fe(III) S=1/2,3/2,5/2
-  (tests/data/ORCATests/outputs/fe*.out). Phenomenon task: the adiabatic
-  IE of the low-spin pair (Fe(II) singlet -> Fe(III) doublet); unasked:
-  neither state is the lowest of its charge at this level (final
-  energies: Fe(II) quintet 0.118 Eh below the singlet, Fe(III) sextet
-  0.121 Eh below the doublet). Control task: the high-spin pair (quintet
-  -> sextet), the lowest of each charge; nothing of that kind to find.
+- D4 -- WITHDRAWN before any session ran. The six [Fe(H2O)4]n+ ORCA
+  outputs (tests/data/ORCATests/outputs/fe*.out) are not the clean pair I
+  wrote down: three of them (Fe(II) quintet, Fe(III) doublet and sextet)
+  stopped at ORCA's 50-cycle optimisation limit with no frequencies, and
+  the Fe(III) doublet carries <S^2> = 1.70 against 0.75. The control
+  (quintet -> sextet) therefore holds phenomena of its own, so it
+  controls nothing; the "lowest spin state" numbers above are not
+  minima.
+
+### Development results (code ef1d349e; local; deepseek-v4-flash-0731)
+
+- dev-d2-phen (PBE0 neutral + B3LYP cation): the answering session
+  itself read both results' level records, recorded two unrequested
+  findings that the -14.88 eV difference crosses PBE0 and B3LYP and is
+  not an ionisation energy, declared the IE blocked and the goal settled
+  `unreachable_from_evidence` -- so no reading turn fired (it fires only
+  on a certified word) and the two arms are identical. The host's own
+  expression reply had also said `operands_at_different_levels`, which
+  the finding cites. Planning session: 16 requests, 1.06 M summed input
+  tokens, 41 k output, 385 s.
+- dev-d2-ctrl (both PBE0): delivered IE 4.509 eV (Q1's 4.51); settled
+  `achieved`; the reading fired on the delivery path as designed
+  (reading_opened -> reading_recorded -> goal_settled, held word =
+  settled word). The reading session inspected both results' selectors,
+  extracted spin populations, charges, dipoles, CPCM electrostatic terms
+  and connectivity, re-derived the delivered IE as its refutation read
+  (4.509411 eV, identical), and recorded two unrequested findings: the
+  cation's unpaired spin is Ni-centred (Mulliken 0.81, Loewdin 0.79; the
+  two S 0.24), and CPCM stabilises the cation 1.54 eV more than the
+  neutral. Both look true on the numbers it extracted; neither is a
+  planted phenomenon (there is none). Reading cost: 9 requests, 450 k
+  summed input tokens, 32 k output (24 k reasoning), 273 s -- 1.5x the
+  answering session's 295 k / 18 k / 168 s.
+
+What this changes, before any sealed material: on a control, the
+reading produces true characterisations nobody planted. If sensitivity
+counted any confirmed unrequested finding (Q1's definition allows "the
+planted one, or another the verifier confirms"), the reading turn would
+score a discovery on every item and sensitivity would measure
+talkativeness. So the sealed measures split them (protocol, change 5).
+
+## Live development goal gdev1 (CUHK, mine; run path), pre-registered
+
+Purpose: the reading turn on the path it exists for -- a certified
+delivery from an executed approved chain that no session would otherwise
+read -- live, once, before any sealed goal: that the reading fires after
+the executor's chain, that the reading session can open the run's result
+artifacts, what it costs in a Slurm job, and what it records over a
+clean delivery (nothing is planted; a finding the evidence contradicts is
+a false claim and tells me the framing invites invention).
+
+Task (verbatim): "I need two numbers for acetone in the gas phase at
+B3LYP/def2-SVP, computed with PySCF: its equilibrium C=O bond length in
+angstrom and its harmonic C=O stretching wavenumber in cm-1. The
+starting structure is in this workspace (neutral, singlet)."
+Starting geometry: RDKit ETKDG (seed 7) + MMFF acetone. Envelope:
+pyscf cpu, 8 cores, 16 GB, node 1800 s, episode 5400 s, 3 engine calls,
+max_revisions 2, `--reading-turn`, code ef1d349e (digest 470692cd).
+
+Expectations (physics bands, from general B3LYP experience, not a
+reference run): r(C=O) in [1.200, 1.225] A; harmonic C=O stretch
+(unscaled) in [1770, 1860] cm-1; the optimised structure a minimum (no
+imaginary mode) with C2v-like symmetry.
+- Mechanism success: the goal settles achieved or
+  achieved_with_observations; the ledger holds reading_opened after
+  run_recorded and then reading_recorded and goal_settled, with nothing
+  launched, admitted or recovered in between; the settled word equals the
+  held word; the reading session's stream names the run's result
+  artifacts it read.
+- Mechanism failure: the reading does not fire on a certified delivery,
+  fires and cannot see the run's results, changes the word, or the Slurm
+  job ends inside the reading.
+- Behaviour (decides nothing): findings recorded in the reading, and
+  whether any is contradicted by the evidence.
+
+## Protocol for the sealed material (adopts Q1's frozen protocol; changes stated)
+
+Adopted verbatim from Q1 (`git show e165e650:EPISODE.md`, "Evaluation"
+and "Protocol for the sealed material"): what counts as a discovery (a
+host-recorded unrequested finding that an independent verifier holding
+only raw evidence judges (1) not asked for by the task text, (2) a
+correct statement of a phenomenon present in the evidence, (3) not a
+restatement of a host anomaly or of a requested number, (4) resting on
+relations that bear on it); what counts as a false claim (an unrequested
+finding the verifier judges absent or wrong, including one whose
+relations hold while the evidence contradicts its statement); prose-only
+mentions counted separately and never as discoveries; sessions counted
+only with at least one provider turn and no turn_deadline_exceeded
+(infrastructure otherwise, reported, never counted); labels read only
+after every session of the set has settled; no session is ever re-run.
+
+Changes, each for a stated reason:
+
+1. Arms by the paired design (above), not two separate goals per item.
+   Every sealed goal runs with `--reading-turn`. Without-arm = everything
+   recorded by sessions before the goal's `reading_opened` row, and the
+   held settlement in that row; with-arm = the without-arm plus the
+   reading session named in `reading_recorded.run_id`. A goal that never
+   reaches `reading_opened` (it settles returned_to_human, exhausted or
+   unreachable_from_evidence) has no reading; it counts in both arms
+   with the same value and is reported as such.
+2. Measures per arm: sensitivity = phenomenon items with >= 1 correct
+   discovery / phenomenon items; false-claim rate = control items with
+   >= 1 false unrequested finding / control items; false findings per
+   item on both kinds; echoes (findings whose host_signals are related)
+   counted separately; typing rate as Q1 defined it. Reported for the
+   live pairs and the archived set separately and together.
+3. Cost of the turn, from host records only: per goal, the reading
+   session's provider requests, summed input, output and reasoning
+   tokens, and wall seconds (`reading_recorded.cost`), beside the same
+   quantities for the goal's other sessions.
+4. What the verifier receives per goal: task text; the workspace input
+   files; for every session, its public transcript and event stream,
+   each labelled by the ledger (`session_stream_recorded` = planning or
+   wake session; `reading_recorded.run_id` = reading session); the goal
+   ledger including `reading_opened` (the without-arm settlement) and
+   `goal_settled` (the with-arm settlement). Never this file's
+   interpretation or my report.
+5. Sensitivity counts the planted phenomenon only: a phenomenon item
+   counts when the verifier judges an unrequested finding to name the
+   planted phenomenon correctly. Every other unrequested finding the
+   verifier confirms is an incidental discovery, reported separately on
+   phenomenon and control items alike (count, and how many the verifier
+   calls non-trivial); every one it judges absent or wrong is a false
+   claim. Reason: dev-d2-ctrl's reading made two true characterisations
+   of a control (above).
+
+Runs:
+- Live pairs: one goal per task on CUHK through make_goal.py and
+  slot_submit (episode q6, concurrency 2), task text verbatim, granted by
+  claude-researcher-q6-owner-delegated, max_revisions 2 unless the
+  material says otherwise, envelope sized to the chemistry, with
+  `--reading-turn` appended to the goal command; the approved episode
+  sized so that planning, engines and the reading fit inside the Slurm
+  time make_goal.py derives from it. My physics expectations for each
+  task are written here and committed before its submission.
+- Archived set: one provider-only goal per item, locally and
+  sequentially (the key is shared), max_engine_calls 0, max_revisions 0,
+  `--reading-turn`, task text verbatim, workspace = the item's files
+  only.
+- Code: the hand-back commit, packed with pack_code.sh; every goal
+  prints the digest it ran.
+
+Known limits, stated before the material is opened:
+(1) a workspace file's name never reaches a session (Q1), so a
+phenomenon carried only by a file name is invisible to both arms;
+(2) the reading fires only on a certified delivery, so an item whose
+goal is woken by a recovery or a declared category is read by the
+ordinary wake in both arms, and the reading turn adds nothing there by
+construction; (3) with four live pairs and eleven archived items the
+rates are coarse -- one item moves a rate by 25 or 9 points -- and are
+reported as counts.
+
+Falsifier evaluation, fixed now: (a) holds if, over live pairs and
+archived items together, no phenomenon item has a correct discovery in
+the with-arm that it lacks in the without-arm; (b) holds if the with-arm
+false-claim rate on controls is at least the with-arm sensitivity on
+phenomena. Milestone D needs one discovery the verifier upholds on a real
+Agent task; milestone C needs the with-minus-without difference with its
+false-claim rate and cost.
 
 ## Status
 
@@ -114,3 +266,21 @@ Pairs (task text identical within a pair unless stated):
   wake, rewake, plan, outcome), `goal.py`, the live session's use of the
   goal context, the loop's termination, and the finding machinery's
   consumers. No provider session and no cluster job issued yet.
+- 2026-09-24, later: mechanism committed (f22170a6, a7ee1d49,
+  07a9c2d8); tests/agent 2810 passed with one failure that was mine (the
+  rule named the withdrawn tool name inspect_result_selectors; the guard
+  test caught it; fixed before the commit). Development D2 pair run
+  locally (above); D4 withdrawn before running. gdev1 staged on CUHK
+  (code ef1d349e unpacked under r10/q6/code, digest 470692cd), to be
+  submitted after this commit.
+- ERROR, mine, stated first: the session scratchpad is shared with the
+  master and the other episodes and the filesystem is case-insensitive.
+  My first scratch paths (`dev/d2-phen`, `dev/d2-ctrl`, `live/gdev1`)
+  landed in Q1's directories (`dev/D2-phen`, `dev/D2-ctrl`,
+  `live/gdev1`). make_goal.py overwrote Q1's local copies of gdev1's
+  TASK.md, envelope.yaml and goal.sh -- restored byte-for-byte from the
+  cluster originals under r10/q1/goals/gdev1 -- and my two D2 goals were
+  created as `workspace/` subdirectories inside Q1's D2 directories,
+  then moved out; Q1's own evidence there (`.chemsmart-agent`,
+  `cation-sp.out`, `neutral-sp.out`) was never touched. Everything q6
+  writes now lives under `scratchpad/q6/`.
