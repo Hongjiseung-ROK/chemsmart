@@ -212,6 +212,19 @@ Pre-registered expectations beyond the G1' bands:
 G2 is a new observation on a repaired tree, not a re-roll of G1': G1' is
 reported as it settles.
 
+## G1' settled (ledger, CUHK 2149940): achieved, 3 cycles, 1 revision
+
+Cycle 3 was analysis-only on the cycle-2 results: dS = -197.71 J/(mol K)
+(anchor -198.11: inside the success band), dH = -87.79 kJ/mol (anchor
+-91.88), dG = -28.85 kJ/mol +/- 3.0 asserted (anchor -32.81: 3.96 off, just
+outside the Agent's own asserted budget), Kp = 1.13e5 (anchor 5.6e5).
+sigma(NH3) = 3 on the receipt beside "the program itself stated 1"; the
+base tree would have delivered -179.4 (the failure band). The Agent's
+recorded decision states the verifier caveat itself: "The producing runs
+were recorded failed_native on gaussian.result.method_mismatch; the level
+attribution ... rests on the parsed applied literal ... not on run
+validation." Verifier repaired afterwards in 5383d679; G2 probes it.
+
 ## Jobs issued
 
 * 2149853 (r10-q5-a) O1 stage A, CLI, code b971ee96, prereg 1f8e0d51a36a.
