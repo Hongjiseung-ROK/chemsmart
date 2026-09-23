@@ -46,7 +46,6 @@ from chemsmart.agent.scientific_toolchain import ScientificToolchainPlanV1
 from chemsmart.agent.terminal_states import (
     GEOMETRY_SEARCH_JOBTYPES,
     STATIONARY_POINT_PROMISES,
-    SURFACE_SAMPLING_JOBTYPES,
 )
 from chemsmart.agent.workflows import (
     PREVIEW_RESOURCE_SHA256,
@@ -6901,27 +6900,30 @@ def _frozen_producer_edge_rule(
     return FrozenProducerEdgeRuleV1(**body, rule_sha256=canonical_sha256(body))
 
 
-#: Producer stages whose geometry a consumer may wait on inside one approval.
-#:
-#: ``opt`` and ``ts`` end at a single stationary structure that ChemSmart's
-#: parser selects and validates without anyone choosing between candidates.
-#: A relaxed scan ends at a surface, and which point to carry forward is a
+#: Which producers a consumer may wait on inside one approval is the one
+#: owner's answer (``producer_edge_selection_rule``). ``opt`` and ``ts``
+#: end at a single stationary structure that ChemSmart's parser selects
+#: and validates without anyone choosing between candidates. A relaxed
+#: scan ends at a surface, and which point to carry forward is a
 #: scientific judgement -- the earlier registry therefore excluded scans
-#: entirely, so the one expressible escape from a torsional saddle (scan the
-#: dihedral, refine the well) could never run under one approval; the first
-#: composed-pKa qualification hit exactly that wall. The judgement has not
-#: moved to the host: a scan edge is admitted only under the named rule
-#: ``validated_scan_minimum_geometry``, whose meaning -- carry the
+#: entirely, so the one expressible escape from a torsional saddle (scan
+#: the dihedral, refine the well) could never run under one approval; the
+#: first composed-pKa qualification hit exactly that wall. The judgement
+#: has not moved to the host: a scan edge is admitted only under the named
+#: rule ``validated_scan_minimum_geometry``, whose meaning -- carry the
 #: minimum-energy sampled point -- the planning session chooses and the
 #: displayed review states, so the scientist approves that settlement
 #: explicitly. Any other point on the surface remains the explicit
 #: bind-a-scan-point route with its own new workflow and review.
+#:
 #: Stages that walk a path from the geometry they were handed and end on
 #: one structure a consumer may take inside the same approval: an IRC
 #: branch ends where its walk converged. Admitted per program by what that
 #: program's reader declares (``_ends_on_one_reached_structure``): ORCA's
-#: IRC log prints only where the path started, so its reader declares no
-#: reached structure for ``irc`` and no ORCA IRC edge is admitted.
+#: IRC log prints only where the path started and its endpoint lives in a
+#: sidecar the reader binds as ``trajectory_end_positions``, not
+#: ``reached_positions``, so no ORCA IRC edge is admitted and the endpoint
+#: travels by ``bind_reached_geometry`` into a new workflow.
 PATH_ENDPOINT_PRODUCER_STAGES = frozenset({"irc"})
 
 #: Stages that relax every degree of freedom except the ones they hold and
@@ -6933,16 +6935,9 @@ PATH_ENDPOINT_PRODUCER_STAGES = frozenset({"irc"})
 #: way a path endpoint is: by what that program's reader declares.
 CONSTRAINED_GEOMETRY_PRODUCER_STAGES = frozenset({"modred"})
 
-DEFERRABLE_GEOMETRY_PRODUCER_STAGES = (
-    GEOMETRY_SEARCH_JOBTYPES
-    | SURFACE_SAMPLING_JOBTYPES
-    | PATH_ENDPOINT_PRODUCER_STAGES
-    | CONSTRAINED_GEOMETRY_PRODUCER_STAGES
-)
-
-#: Stages the optimized-geometry rule itself covers. A scan is deferrable
-#: (set above) but is never an "optimized geometry": its edge carries the
-#: scan-minimum rule instead.
+#: Stages the optimized-geometry rule itself covers. A scan's consumer may
+#: wait too, but a scan is never an "optimized geometry": its edge
+#: carries the scan-minimum rule instead.
 OPTIMIZED_GEOMETRY_PRODUCER_STAGES = GEOMETRY_SEARCH_JOBTYPES
 
 
@@ -6976,8 +6971,11 @@ def _ends_on_one_reached_structure(program: str, stage: str) -> bool:
     exists to produce could not cross an edge. Whether the lists should
     go entirely -- every non-optimised stage admitted by its reader's
     declaration and the exactly-one rule alone -- is one ruling across
-    the four programs and the deferrable set ``tool_runtime`` reads, not
-    a change made while merging two tracks that each needed one entry.
+    the four programs, not a change made while merging two tracks that
+    each needed one entry. Every organ that asks reaches this through
+    ``producer_edge_selection_rule``, and the native handoff asks it of
+    the result it is handed, so the answer given at approval is the
+    answer kept after the producer has run.
     """
 
     if stage in OPTIMIZED_GEOMETRY_PRODUCER_STAGES:
