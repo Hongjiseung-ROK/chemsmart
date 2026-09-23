@@ -74,7 +74,11 @@ class CapabilityV1:
 
     @property
     def status(self) -> str:
-        if self.qualified_by:
+        # A `claimed` release record stays in `qualified_by`, where the
+        # ladder displays it, but only a reference to a run earns the rung.
+        if any(
+            not ref.startswith("release:claimed") for ref in self.qualified_by
+        ):
             return "qualified"
         if self.tested_by:
             return "tested"
