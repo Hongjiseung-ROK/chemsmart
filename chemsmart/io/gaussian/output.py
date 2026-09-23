@@ -191,24 +191,96 @@ class Gaussian16Output(GaussianFileMixin):
         anchored on the row's own trailing tokens.
         """
 
-        group = self.modredundant_group
-        if not group:
-            return False
-        for line in group:
-            tokens = str(line).split()
-            for index, token in enumerate(tokens):
-                if token.upper() != "S":
-                    continue
-                if len(tokens) - index >= 3:
-                    return True
-        return False
+        from chemsmart.io.gaussian.route import (
+            modredundant_rows_drive_a_scan,
+        )
+
+        return modredundant_rows_drive_a_scan(self.modredundant_group)
 
     @cached_property
     def _route_has_excited_state_block(self):
-        """Whether the route asks for a response (TD/CIS) calculation."""
+        """Whether the route asks for a response (TD/TDA/CIS) calculation.
+
+        ``TDA`` is Gaussian's Tamm-Dancoff keyword, which ChemSmart writes
+        for ``response_method: tda``; a route carrying it and no other job
+        keyword is a fixed-geometry response calculation like ``TD``.
+        """
+
+        from chemsmart.io.gaussian.route import route_requests_response
+
+        return route_requests_response(self.route_string)
+
+    @cached_property
+    def excited_state_request(self):
+        """The response the route asked for, in the shared vocabulary.
+
+        ``{"response_method", "state_manifold", "nstates"}`` read from the
+        route's ``TD(...)``/``TDA(...)`` leaf through the writer's own
+        tables, or None for a route with no such leaf.  ``TD`` is
+        ``tddft`` and ``TDA`` is ``tda``; the spin option is read back to
+        the manifold word it was written for, and a route with no spin
+        option reads ``singlet`` for a closed-shell reference (Gaussian's
+        default) and ``unrestricted`` for an open-shell one.  ``nstates``
+        is Gaussian's default of 3 when the leaf does not name it.
+        """
+
+        from chemsmart.jobs.gaussian.settings import (
+            GAUSSIAN_TD_MANIFOLD_OPTIONS,
+            GAUSSIAN_TD_RESPONSE_KEYWORDS,
+        )
 
         route = self.route_string or ""
-        return bool(re.search(r"(?<![a-z0-9_])(td|cis)(?![a-z0-9_])", route))
+        # ``td(...)``, ``td=(...)``, ``td=word`` or a bare ``td``; an
+        # option list is attached to the keyword, never after a space.
+        match = re.search(
+            r"(?<![a-z0-9_])(tda|td)(?![a-z0-9_])"
+            r"(?:\s*=?\s*\(([^)]*)\)|=([^\s(]+))?",
+            route,
+        )
+        if match is None:
+            return None
+        keyword = match.group(1)
+        body = match.group(2) or match.group(3) or ""
+        options = [item.strip() for item in body.split(",") if item.strip()]
+        response = next(
+            word
+            for word, native in GAUSSIAN_TD_RESPONSE_KEYWORDS.items()
+            if native.lower() == keyword
+        )
+        manifold_by_option = {
+            option: word
+            for word, option in GAUSSIAN_TD_MANIFOLD_OPTIONS.items()
+            if option is not None
+        }
+        manifold = None
+        nstates = 3
+        for option in options:
+            if option in manifold_by_option:
+                manifold = manifold_by_option[option]
+            elif option.startswith("nstates="):
+                try:
+                    nstates = int(option.split("=", 1)[1])
+                except ValueError:
+                    pass
+        if manifold is None:
+            multiplicity = getattr(self, "multiplicity", None)
+            manifold = (
+                "unrestricted"
+                if multiplicity is not None and int(multiplicity) != 1
+                else "singlet"
+            )
+        elif manifold != "unrestricted":
+            multiplicity = getattr(self, "multiplicity", None)
+            if multiplicity is not None and int(multiplicity) != 1:
+                # Gaussian's spin options act on closed shells only; an
+                # open-shell reference ran its one manifold whatever the
+                # route said.
+                manifold = "unrestricted"
+        return {
+            "response_method": response,
+            "state_manifold": manifold,
+            "nstates": nstates,
+        }
 
     @property
     def heavy_elements(self):
@@ -2012,6 +2084,76 @@ class Gaussian16Output(GaussianFileMixin):
             if "Sum of electronic and thermal Free Energies=" in line:
                 return float(line.split()[-1])
         return None
+
+    @cached_property
+    def converged(self):
+        """Whether a geometry optimisation in this log converged.
+
+        A tri-state, as ORCA's reader has it: ``False`` where Gaussian
+        printed ``Optimization stopped.`` (its step limit, "Number of steps
+        exceeded"), ``True`` where it printed ``Optimization completed.``
+        and never stopped, ``None`` where no optimisation marker exists at
+        all.  A constrained optimisation converges on its free coordinates
+        and says so in the same words; the archived failed constrained
+        optimisation in this repository says ``Optimization stopped.``
+        after 58 steps.
+        """
+
+        saw_completed = False
+        for line in self.contents:
+            if "Optimization stopped." in line:
+                return False
+            if "Optimization completed." in line:
+                saw_completed = True
+        return True if saw_completed else None
+
+    @cached_property
+    def held_internal_coordinates(self):
+        """The internal coordinates a constrained optimisation froze.
+
+        Read from the ModRedundant rows Gaussian echoes, a frozen row ending
+        ``F``: its letter (``B``, ``A``, ``D``) or its atom count says
+        which kind, the one-based atoms follow, and a number among them is
+        a value Gaussian was told to set before freezing.  A Cartesian
+        (``X``) freeze is not an internal coordinate and is not listed.
+        ``[{"kind", "atoms", "value", "label"}]`` in the order echoed; an
+        unfrozen or unparseable row is skipped rather than guessed.
+        """
+
+        kinds = {2: "bond", 3: "angle", 4: "dihedral"}
+        letters = {"B": 2, "A": 3, "D": 4}
+        held = []
+        for line in self.modredundant_group or ():
+            tokens = str(line).split()
+            if len(tokens) < 3 or tokens[-1].upper() != "F":
+                continue
+            body = tokens[:-1]
+            letter = body[0].upper() if body[0].isalpha() else ""
+            if letter and letter not in letters:
+                continue
+            atoms = []
+            value = None
+            for token in body[1:] if letter else body:
+                if token.isdigit():
+                    atoms.append(int(token))
+                    continue
+                try:
+                    value = float(token)
+                except ValueError:
+                    atoms = []
+                    break
+            kind = kinds.get(len(atoms))
+            if kind is None or (letter and letters[letter] != len(atoms)):
+                continue
+            held.append(
+                {
+                    "kind": kind,
+                    "atoms": tuple(atoms),
+                    "value": value,
+                    "label": " ".join(tokens),
+                }
+            )
+        return held
 
     # check for convergence criterion not met (happens for some output files)
     @property

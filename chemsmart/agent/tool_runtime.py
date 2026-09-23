@@ -388,11 +388,19 @@ def _undeferrable_producer_finding(
     }
 
 
-def _node_coordinates(node) -> dict[str, str]:
-    """Render a planning node's internal coordinates into program options."""
+def _node_coordinates(node, input_artifact=None) -> dict[str, str]:
+    """Render a planning node's internal coordinates into program options.
+
+    With the geometry the node will run on, a program that scans from that
+    geometry's own value is held to the start the node states.
+    """
 
     return native_coordinate_options(
-        node.program, getattr(node, "internal_coordinates", None)
+        node.program,
+        getattr(node, "internal_coordinates", None),
+        geometry_path=(
+            input_artifact.path if input_artifact is not None else None
+        ),
     )
 
 
@@ -10244,7 +10252,7 @@ class CommandCompiledToolHostV1:
             input_artifact=input_artifact,
             scientific_identity=identity,
             job_artifact_options=dict(job_artifact_options),
-            job_option_values=_node_coordinates(node),
+            job_option_values=_node_coordinates(node, input_artifact),
             live_schema=self.live_schema,
             server=(
                 self.execution_server
@@ -11205,7 +11213,9 @@ class CommandCompiledToolHostV1:
             input_artifact=input_artifact,
             scientific_identity=identity,
             job_option_values=native_coordinate_options(
-                values["program"], coordinates
+                values["program"],
+                coordinates,
+                geometry_path=input_artifact.path,
             ),
             live_schema=self.live_schema,
             server=(

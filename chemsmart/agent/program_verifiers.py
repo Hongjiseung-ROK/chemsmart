@@ -323,12 +323,12 @@ def _validate_gaussian_td_input(
     from chemsmart.io.gaussian.input import Gaussian16Input
 
     route = str(Gaussian16Input(filename=str(path)).route_string).casefold()
-    match = re.search(r"\btd\s*\(([^)]*)\)", route)
+    match = re.search(r"\b(tda|td)\s*\(([^)]*)\)", route)
     if match is None:
-        return [_missing("td_route", "TD(...) route", path.name)]
+        return [_missing("td_route", "TD(...) or TDA(...) route", path.name)]
     tokens = tuple(
         item.strip().casefold()
-        for item in match.group(1).split(",")
+        for item in match.group(2).split(",")
         if item.strip()
     )
     values = {}
@@ -340,10 +340,33 @@ def _validate_gaussian_td_input(
         else:
             flags.add(token)
     findings = []
-    states = str(expected_settings.get("states") or "").strip().casefold()
-    if states and states not in flags:
+    # What the writer spells for the declared response and manifold is
+    # asked of the writer's own resolution, not restated here: TD or TDA,
+    # and the spin option (none for an unrestricted manifold).
+    from chemsmart.jobs.gaussian.settings import GaussianTDDFTJobSettings
+
+    expected_keyword, expected_option = GaussianTDDFTJobSettings(
+        states=expected_settings.get("states"),
+        response_method=expected_settings.get("response_method"),
+        state_manifold=expected_settings.get("state_manifold"),
+    ).td_route_parts()
+    if match.group(1) != expected_keyword.casefold():
         findings.append(
-            _mismatch("states", states, tuple(sorted(flags)), path.name)
+            _mismatch(
+                "response_method",
+                expected_keyword,
+                match.group(1).upper(),
+                path.name,
+            )
+        )
+    if expected_option and expected_option.casefold() not in flags:
+        findings.append(
+            _mismatch(
+                "state_manifold",
+                expected_option,
+                tuple(sorted(flags)),
+                path.name,
+            )
         )
     for field in ("nstates", "root"):
         expected = expected_settings.get(field)
@@ -357,7 +380,14 @@ def _validate_gaussian_td_input(
             _mismatch("eqsolv", eqsolv, tuple(sorted(flags)), path.name)
         )
     target_settings = dict(expected_settings)
-    for field in ("eqsolv", "nstates", "root", "states"):
+    for field in (
+        "eqsolv",
+        "nstates",
+        "response_method",
+        "root",
+        "state_manifold",
+        "states",
+    ):
         target_settings.pop(field, None)
     # Gaussian's base parser calls a TD route an SP; the TD leaf itself is
     # established by the explicit route semantics above.

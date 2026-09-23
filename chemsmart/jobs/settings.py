@@ -259,7 +259,12 @@ def molecular_project_section_sources(project_config, *, program, jobtype):
     direct = jobtype if jobtype in available else None
     if jobtype in {"qmmm", "link"}:
         return (direct,) if direct is not None else ()
-    if jobtype == "td" and "gas" in available:
+    # A ``td:`` section is read on its own: the loader seeds it from the
+    # stage defaults, never from ``gas:`` or ``solv:``.  This answered
+    # ``('solv', 'td')`` for a project with no ``gas:``, so the Agent's
+    # project observation reported the solv level feeding a td stage whose
+    # route the writer then built with no method at all.
+    if jobtype == "td" and (direct is not None or "gas" in available):
         return (direct,) if direct is not None else ()
     if jobtype == "sp":
         phase = "solv" if "solv" in available else "gas"
@@ -630,6 +635,16 @@ def read_molecular_job_yaml(filename, program="gaussian"):
             all_project_configs[job] = update_dict_with_existing_keys(
                 all_project_configs[job], phase_config
             )
+            if job == "td":
+                # A td stage is a vertical spectrum at the supplied
+                # geometry, as the td: branch below says; the solv phase
+                # is borrowed here for its level, and neither the shared
+                # default's ``freq: true`` nor that phase's own frequency
+                # flag makes it a frequency job. Gaussian wrote
+                # ``freq TD(...)`` -- an excited-state frequency
+                # calculation -- for a solv-only project, where ORCA's td
+                # settings refuse ``freq`` outright.
+                all_project_configs[job]["freq"] = False
     else:
         # settings for gas phase exist - also solv settings exist
         for job in gas_phase_jobs:  # jobs using gas config

@@ -332,8 +332,14 @@ _GAUSSIAN_PROJECT_PARAMETERS = tuple(
             "predictor",
             "recalc_step",
             "recorrect",
+            # The response and the manifold of a td stage, in the words
+            # ORCA's and PySCF's settings take, so one td section is one
+            # request in all three programs; ``states`` is Gaussian's own
+            # older word for the manifold and is still read.
+            "response_method",
             "root",
             "stable",
+            "state_manifold",
             "states",
             "stepsize",
         )
@@ -555,6 +561,26 @@ def gaussian_method_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     )
 
 
+def gaussian_response_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """What a Gaussian td stage may be asked for, from the writer's tables.
+
+    The words are ORCA's and PySCF's (``response_method``,
+    ``state_manifold``); the table that spells each in Gaussian's grammar
+    is the one read here, so the declaration cannot name a word the
+    writer does not translate.
+    """
+
+    from chemsmart.jobs.gaussian.settings import (
+        GAUSSIAN_TD_MANIFOLD_OPTIONS,
+        GAUSSIAN_TD_RESPONSE_KEYWORDS,
+    )
+
+    return (
+        ("response_method", tuple(sorted(GAUSSIAN_TD_RESPONSE_KEYWORDS))),
+        ("state_manifold", tuple(sorted(GAUSSIAN_TD_MANIFOLD_OPTIONS))),
+    )
+
+
 def gaussian_path_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     """What a Gaussian reaction path may be asked for, from the CLI itself.
 
@@ -666,11 +692,17 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                     jobtype="link",
                     execution_supported=False,
                 ),
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="modred",
-                    execution_supported=False,
-                ),
+                # A constrained optimisation, a relaxed scan and a
+                # fixed-geometry response calculation are admitted to
+                # approval for their first Agent runs (R10 Q7), the order
+                # `ts`, `irc` and ORCA's `scan` were held to: this flag is
+                # what admits a node to approval at all. Until those runs
+                # are recorded in release.json they are admitted, not
+                # qualified, and the flags are withdrawn if the runs do not
+                # hold. Each had real engine runs through the human CLI on
+                # CUHK (Slurm 2142374/2142393); what the Agent could not do
+                # before was preview a scan at all (cb1acd9a, f412dac0).
+                EngineJobCapability(engine="cpu", jobtype="modred"),
                 # Qualified by real approved runs rather than by inspection.
                 #
                 # Gaussian 16 C.02 had never been driven through ChemSmart on
@@ -696,22 +728,13 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                 # "bounded execution has no executable jobs" before any
                 # planning. It is withdrawn if the runs do not hold.
                 #
-                # `scan`, `modred`, `td` and `link` have real engine runs
-                # on this target through the human CLI and no approved
-                # Agent execution. That is a different fact and stays
-                # unclaimed.
+                # `link` has real engine runs on this target through the
+                # human CLI and no approved Agent execution. That is a
+                # different fact and stays unclaimed.
                 EngineJobCapability(engine="cpu", jobtype="opt"),
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="scan",
-                    execution_supported=False,
-                ),
+                EngineJobCapability(engine="cpu", jobtype="scan"),
                 EngineJobCapability(engine="cpu", jobtype="sp"),
-                EngineJobCapability(
-                    engine="cpu",
-                    jobtype="td",
-                    execution_supported=False,
-                ),
+                EngineJobCapability(engine="cpu", jobtype="td"),
                 EngineJobCapability(engine="cpu", jobtype="ts"),
             ),
             project_section_names=loader_project_section_names("gaussian"),
@@ -721,6 +744,7 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                         ("states", ("50-50", "singlets", "triplets")),
                         *gaussian_method_domains(),
                         *gaussian_path_domains(),
+                        *gaussian_response_domains(),
                     )
                 )
             ),

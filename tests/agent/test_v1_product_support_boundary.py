@@ -33,21 +33,26 @@ def test_v1_agent_programs_exclude_human_only_programs_and_gpu_execution():
         if pair[0] == "gpu"
     ]
     assert "nciplot" in PROGRAM_CAPABILITIES
-    # Four Gaussian pairs were qualified by approved runs; the other four
-    # have real engine runs on that target through the human CLI only,
-    # which is a different fact. `ts` and `irc` were earned together,
-    # because the walk starts from the saddle the search reached.
+    # Four Gaussian pairs were qualified by approved runs; `modred`,
+    # `scan` and `td` are admitted to approval for their first Agent runs
+    # (R10 Q7) and are qualified only by the runs release.json records.
+    # `link` has real engine runs on that target through the human CLI
+    # only, which is a different fact. `ts` and `irc` were earned
+    # together, because the walk starts from the saddle the search reached.
     assert records["gaussian"].execution_engine_job_pairs == (
         ("cpu", "irc"),
+        ("cpu", "modred"),
         ("cpu", "opt"),
+        ("cpu", "scan"),
         ("cpu", "sp"),
+        ("cpu", "td"),
         ("cpu", "ts"),
     )
     assert {
         pair[1]
         for pair in records["gaussian"].preview_engine_job_pairs
         if pair not in records["gaussian"].execution_engine_job_pairs
-    } == {"link", "modred", "scan", "td"}
+    } == {"link"}
     assert records["orca"].execution_engine_job_pairs == (
         ("cpu", "irc"),
         ("cpu", "modred"),
@@ -90,10 +95,10 @@ def test_gaussian_preview_cannot_be_upgraded_to_agent_execution():
         registry_sha256=registry.registry_sha256,
         live_cli_schema_sha256=schema.schema_sha256,
         fixture_bundle_sha256="1" * 64,
-        # `modred` rather than `ts`: the invariant is that a preview-only
-        # pair cannot be approved for execution, so the example has to be a
-        # pair that is still preview-only, and `ts` no longer is.
-        covered_jobtypes=("modred",),
+        # `link`: the invariant is that a preview-only pair cannot be
+        # approved for execution, so the example has to be a pair that is
+        # still preview-only, and `ts` and then `modred` no longer are.
+        covered_jobtypes=("link",),
         covered_engines=("cpu",),
         compiler_receipt_sha256="2" * 64,
         preview_receipt_sha256="3" * 64,
@@ -112,7 +117,7 @@ def test_gaussian_preview_cannot_be_upgraded_to_agent_execution():
         build_approved_execution_overlay(
             registry=registry,
             preview_overlay=preview,
-            approved_nodes=(("gaussian", "modred", "cpu"),),
+            approved_nodes=(("gaussian", "link", "cpu"),),
             execution_evidence_sha256="5" * 64,
         )
 
