@@ -256,18 +256,6 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     ): _READER_PROGRAMS,
     (
         "chemsmart/agent/tool_runtime.py",
-        "CommandCompiledToolHostV1/build_execution_review",
-        None,
-        ("gaussian", "orca", "pyscf", "xtb"),
-    ): _READER_PROGRAMS,
-    (
-        "chemsmart/agent/tool_runtime.py",
-        "CommandCompiledToolHostV1/_admit_bounded_workflow",
-        None,
-        ("gaussian", "orca", "pyscf", "xtb"),
-    ): _READER_PROGRAMS,
-    (
-        "chemsmart/agent/tool_runtime.py",
         "CommandCompiledToolHostV1/_evaluate_execution_outputs",
         None,
         ("gaussian", "orca", "xtb"),

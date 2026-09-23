@@ -83,6 +83,7 @@ from chemsmart.agent.delivery import (
 from chemsmart.agent.execution import (
     DEFERRABLE_GEOMETRY_PRODUCER_STAGES,
     HESSIAN_CONSUMER_ROLES,
+    STRUCTURE_SELECTION_RULES,
     AnomalyObservationV1,
     ApprovedNodeBindingV1,
     AtomAppendReceiptV1,
@@ -106,13 +107,13 @@ from chemsmart.agent.execution import (
     WorkflowExecutionReviewV1,
     WorkflowNodeRunStateV1,
     WorkflowRunStateV1,
+    admitted_producer_edge_rules,
     anomaly_standing,
     append_trusted_molecular_atom,
     bind_project_promotion_validation,
     break_trusted_molecular_symmetry,
     build_anomaly_observation,
     build_frozen_workflow_approval,
-    build_producer_edge_rule,
     build_program_execution_invocation,
     build_program_execution_receipt,
     build_program_result_validation_receipt,
@@ -144,9 +145,6 @@ from chemsmart.agent.execution import (
     hessian_role_for_rule,
     invocation_identity_sha256,
     is_validated_optimized_geometry_edge,
-    is_validated_orca_ts_hessian_edge,
-    is_validated_producer_orca_hessian_edge,
-    is_validated_scan_minimum_geometry_edge,
     node_branch_directory,
     project_real_execution_argv,
     promote_project_candidate,
@@ -14271,66 +14269,14 @@ class CommandCompiledToolHostV1:
                 "nodes: " + ", ".join(unsupported)
             )
         materialized = self._latest_bounded_materialization(plan)
-        producer_edges = []
-        for edge in data_edges:
-            producer = next(
-                item
-                for item in plan.nodes
-                if item.node_id == edge.source_node_id
-            )
-            if is_validated_optimized_geometry_edge(plan, edge):
-                selection_rule = "validated_optimized_geometry"
-            elif is_validated_scan_minimum_geometry_edge(plan, edge):
-                selection_rule = "validated_scan_minimum_geometry"
-            elif is_validated_orca_ts_hessian_edge(plan, edge):
-                selection_rule = "validated_final_orca_ts_hessian"
-            elif is_validated_producer_orca_hessian_edge(plan, edge):
-                selection_rule = "validated_producer_orca_hessian"
-            else:
-                raise ContractError(
-                    "execution review has no exact selection rule for data "
-                    f"edge {edge.edge_id!r}; expected optimized geometry, "
-                    "an ORCA scan minimum-energy point geometry, an ORCA "
-                    "final-TS Hessian for IRC, or an ORCA producer "
-                    "Hessian for a TS inhess_filename role"
-                )
-            if (
-                selection_rule == "validated_optimized_geometry"
-                and producer.program
-                not in {"gaussian", "orca", "pyscf", "xtb"}
-            ):
-                raise ContractError(
-                    "execution review has no optimized-geometry handoff for "
-                    f"producer program {producer.program!r}"
-                )
-            producer_edges.append(
-                build_producer_edge_rule(
-                    producer_node_id=edge.source_node_id,
-                    consumer_node_id=edge.target_node_id,
-                    artifact_kind=edge.artifact_class,
-                    selection_rule=selection_rule,
-                )
-            )
-        geometry_edges = tuple(
-            edge
-            for edge in producer_edges
-            if edge.selection_rule
-            in {
-                "validated_optimized_geometry",
-                "validated_scan_minimum_geometry",
-            }
+        producer_edges = admitted_producer_edge_rules(
+            plan, data_edges, organ="execution review"
         )
         edge_by_target = {
-            edge.consumer_node_id: edge for edge in geometry_edges
+            edge.consumer_node_id: edge
+            for edge in producer_edges
+            if edge.selection_rule in STRUCTURE_SELECTION_RULES
         }
-        if (
-            len(edge_by_target) != len(geometry_edges)
-            or set(edge_by_target) != data_target_ids
-        ):
-            raise ContractError(
-                "every producer-dependent calculation requires exactly one "
-                "validated geometry input"
-            )
         node_bindings = []
         environment_bindings = []
         node_reviews: list[WorkflowExecutionNodeReviewV1] = []
@@ -14976,66 +14922,16 @@ class CommandCompiledToolHostV1:
             )
         materialized = self._latest_bounded_materialization(plan)
         node_bindings = []
-        producer_edges = []
-        for edge in data_edges:
-            producer = next(
-                item
-                for item in plan.nodes
-                if item.node_id == edge.source_node_id
+        producer_edges = list(
+            admitted_producer_edge_rules(
+                plan, data_edges, organ="bounded execution"
             )
-            if is_validated_optimized_geometry_edge(plan, edge):
-                selection_rule = "validated_optimized_geometry"
-            elif is_validated_scan_minimum_geometry_edge(plan, edge):
-                selection_rule = "validated_scan_minimum_geometry"
-            elif is_validated_orca_ts_hessian_edge(plan, edge):
-                selection_rule = "validated_final_orca_ts_hessian"
-            elif is_validated_producer_orca_hessian_edge(plan, edge):
-                selection_rule = "validated_producer_orca_hessian"
-            else:
-                raise ContractError(
-                    "bounded execution has no exact selection rule for data "
-                    f"edge {edge.edge_id!r}; expected optimized geometry, "
-                    "an ORCA scan minimum-energy point geometry, an ORCA "
-                    "final-TS Hessian for IRC, or an ORCA producer "
-                    "Hessian for a TS inhess_filename role"
-                )
-            if (
-                selection_rule == "validated_optimized_geometry"
-                and producer.program
-                not in {"gaussian", "orca", "pyscf", "xtb"}
-            ):
-                raise ContractError(
-                    "bounded execution has no optimized-geometry handoff for "
-                    f"producer program {producer.program!r}"
-                )
-            producer_edges.append(
-                build_producer_edge_rule(
-                    producer_node_id=edge.source_node_id,
-                    consumer_node_id=edge.target_node_id,
-                    artifact_kind=edge.artifact_class,
-                    selection_rule=selection_rule,
-                )
-            )
-        geometry_edges = tuple(
-            edge
-            for edge in producer_edges
-            if edge.selection_rule
-            in {
-                "validated_optimized_geometry",
-                "validated_scan_minimum_geometry",
-            }
         )
         edge_by_target = {
-            edge.consumer_node_id: edge for edge in geometry_edges
+            edge.consumer_node_id: edge
+            for edge in producer_edges
+            if edge.selection_rule in STRUCTURE_SELECTION_RULES
         }
-        if (
-            len(edge_by_target) != len(geometry_edges)
-            or set(edge_by_target) != data_target_ids
-        ):
-            raise ContractError(
-                "every producer-dependent calculation requires exactly one "
-                "validated geometry input"
-            )
         environment_identities = set()
         future_environments = {}
         for planned_node in plan.nodes:
