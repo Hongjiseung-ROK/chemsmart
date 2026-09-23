@@ -1728,7 +1728,11 @@ def _legacy_tool_definitions(
                 "doubt:{receipt_sha256} and the completion gate will not "
                 "certify past it (passed becomes partial naming the doubted "
                 "quantity, and the goal returns to the human). A doubt kept "
-                "in prose alone binds to nothing."
+                "in prose alone binds to nothing, and so does a conclusion: "
+                "one of yours that is not a number -- a verdict, a relation "
+                "between structures or results, or something the task did "
+                "not ask about that you judge important -- stands only as a "
+                "finding bound to the claims it rests on."
             ),
             {
                 "decision_id": _string(),
@@ -1818,6 +1822,91 @@ def _legacy_tool_definitions(
                         "tools. The host validates and canonicalizes them; do "
                         "not embed receipt IDs in free-form evidence strings."
                     ),
+                },
+                "findings": {
+                    "type": "array",
+                    "maxItems": 16,
+                    "description": (
+                        "Your conclusions, each as your own sentence plus "
+                        "the relations it rests on over claims recorded on "
+                        "this task (record_analysis_claims first; a claim "
+                        "may be a number or a word the program printed). "
+                        "The host evaluates every relation from the values "
+                        "it rendered, refuses one that does not hold with "
+                        "the values it read, and never reads your sentence. "
+                        "A finding that answers a question declared in unit "
+                        "'category' delivers it; one the task did not ask "
+                        "for is carried to the settlement as your "
+                        "observation, with any host anomaly already "
+                        "standing on its evidence named beside it."
+                    ),
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "finding_id": _public_identifier(),
+                            "statement": {
+                                **_string(),
+                                "description": (
+                                    "The conclusion, in your words; it is "
+                                    "recorded as yours and never checked."
+                                ),
+                            },
+                            "answers_observable_id": {
+                                **_public_identifier(),
+                                "description": (
+                                    "Optional: the declared observable "
+                                    "(unit 'category') this finding "
+                                    "answers."
+                                ),
+                            },
+                            "rests_on": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 16,
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "claim_id": _public_identifier(),
+                                        "relation": {
+                                            "type": "string",
+                                            "enum": [
+                                                "<",
+                                                "<=",
+                                                ">",
+                                                ">=",
+                                                "==",
+                                                "!=",
+                                            ],
+                                        },
+                                        "value": {
+                                            "type": ["number", "string"],
+                                            "description": (
+                                                "What the claim is compared "
+                                                "with: a number (in the "
+                                                "claim's display unit "
+                                                "unless unit says "
+                                                "otherwise) or a word. "
+                                                "Recorded as yours."
+                                            ),
+                                        },
+                                        "unit": _string(),
+                                        "other_claim_id": {
+                                            **_public_identifier(),
+                                            "description": (
+                                                "Compare with another "
+                                                "claim instead of a value."
+                                            ),
+                                        },
+                                    },
+                                    "required": ["claim_id", "relation"],
+                                    "additionalProperties": False,
+                                },
+                            },
+                            "supersedes_finding_id": _public_identifier(),
+                        },
+                        "required": ["finding_id", "statement", "rests_on"],
+                        "additionalProperties": False,
+                    },
                 },
             },
             (
@@ -2110,9 +2199,11 @@ def _legacy_tool_definitions(
         _tool(
             "record_analysis_claims",
             (
-                "Bind reportable numerical claims to exact typed receipt "
-                "quantities. Supply identifiers and display units only; the "
-                "host copies and converts the values. Where a claim "
+                "Bind reportable claims to exact typed receipt quantities: "
+                "a number, or a word the program printed (a verdict, a "
+                "branch word), which is copied as read and never delivers a "
+                "declared number. Supply identifiers and display units only; "
+                "the host copies and converts the values. Where a claim "
                 "answers an observable you declared, set its "
                 "``claim_id`` to that observable's id -- the "
                 "expectation you recorded is printed beside the "
