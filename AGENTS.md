@@ -1,5 +1,51 @@
 # ChemSmart Product Charter
 
+## The two CHEMSMART Fundamentals
+
+These are the owner-given foundations of the project. They outrank
+inherited RSL machinery, old prompts, old architectural choices, and
+historical implementation conventions.
+
+### FUNDAMENTAL 1 — CHEMSMART IS THE CANONICAL COMPUTATIONAL HUB
+
+CHEMSMART is one powerful toolkit through which models operate widely
+used computational-chemistry programs.
+
+The model should reason as a computational scientist. It should not be
+required to memorize and reproduce Gaussian, ORCA, PySCF, xTB, or other
+program-specific input languages, conventions, file layouts, execution
+details, or hidden configuration.
+
+Scientific rationale and reusable computational configuration belong in
+CHEMSMART's project YAML and typed scientific representations.
+
+CHEMSMART owns translation to native program representation, execution
+contracts, parsing, typed evidence, provenance, reusable scientific
+artifacts, and reproducible configuration.
+
+Do not solve an Agent limitation by creating a second hidden execution
+language beside CHEMSMART.
+
+### FUNDAMENTAL 2 — THE CHEMSMART AGENT IS AN AUTONOMOUS SCIENTIFIC RESEARCHER
+
+The CHEMSMART Agent is not merely a workflow executor.
+
+Its development must preserve and improve:
+
+- scientific honesty;
+- open-ended scientific reasoning;
+- model-authored scientific ontology and hypotheses;
+- critical thinking and self-correction;
+- accountable evidence and provenance;
+- the ability to decide what should be computed, observed, measured,
+  compared, falsified, questioned, or challenged;
+- the ability to discover when a requested conclusion is not supported;
+- the ability to treat unexpected computational results as scientific
+  evidence rather than workflow noise.
+
+More Agent intelligence must not mean less reproducibility.
+More host control must not mean suppressing legitimate scientific choice.
+
 ## Mission
 
 ChemSmart is the canonical, CLI-first hub through which humans and AI agents
@@ -49,25 +95,18 @@ flowchart TD
     HUM["HUMAN: reads receipts"]
 ```
 
-## Product boundary for version 3.1.4
+## Product boundary
 
-The production Agent supports:
-
-- project-YAML creation and validation;
-- ChemSmart CLI compilation and safe preview;
-- causal scientific workflow planning;
-- inspection and typed analysis of supported results; and
-- explicitly approved execution on release-qualified CPU paths: ORCA
-  single-points, optimization/frequency, transition-state, excited-state,
-  relaxed coordinate scans, constrained optimisations (recorded from one
-  live goal whose node reached ORCA's cycle limit unconverged with its
-  constraint held), intrinsic reaction coordinates (one direction per
-  node), and serial DAG workflows; Gaussian ``opt``, ``sp``, ``ts`` and
-  ``irc`` (one direction per node), recorded from live goals; PySCF ``sp/opt/hess/td``, ``irc`` (one branch per node,
-  from a saddle of the surface it walks), optimisation on an excited
-  root, and the ``mp2``, ``ccsd`` and ``ccsd(t)`` methods, each recorded
-  from a sealed live goal on the configuration it ran; and xTB
-  ``sp/opt/hess``.
+The production Agent creates and validates project YAML, compiles and
+safely previews the ChemSmart CLI, plans causal scientific workflows,
+executes explicitly approved CPU calculations, and analyses supported
+results with typed evidence. Which program job types, selectors,
+operations and rules it can reach, and which were qualified by a live
+run, is computed, never narrated: ``chemsmart agent capabilities``
+renders every capability on one ladder, and
+``chemsmart/agent/qualification/release.json`` names the run behind each
+executable program job type. A record whose status is ``claimed`` has no
+machine-recorded run behind it.
 
 ## Authority and approval chain
 
@@ -101,8 +140,8 @@ the topic before changing or describing that surface. Capability state
 is computed, not narrated: ``chemsmart agent capabilities`` and
 ``chemsmart/agent/qualification/release.json``.
 
-- `.agents/charter/architecture.md` -- step machine and resume, stem-and-guide tool tree, rule registry, capability ladder
-- `.agents/charter/orca-scan-irc-modred.md` -- ORCA scan and irc qualification, why irc declares no state selectors, modred preview-only
+- `.agents/charter/architecture.md` -- step machine and resume, the provider-neutral catalogue and its exposure modes, rule registry, capability ladder
+- `.agents/charter/orca-scan-irc-modred.md` -- ORCA scan and irc qualification, why irc declares no state selectors, modred execution recorded from one live goal
 - `.agents/charter/analysis-chain-and-validation.md` -- approved analysis chain; acceptance criteria reaching the claims they judge
 - `.agents/charter/geometry-origins.md` -- compose, public-identifier lookup, derive; none binds an electronic state
 - `.agents/charter/producer-edges.md` -- producer-Hessian and scan-minimum edges; which is completed execution
@@ -112,7 +151,7 @@ is computed, not narrated: ``chemsmart agent capabilities`` and
 - `.agents/charter/vibrational-modes.md` -- per-atom mode participation and degeneracy groups
 - `.agents/charter/redox-constants-pcet.md` -- electrode potentials, convention families of constants, impossible states, the PCET square scheme
 - `.agents/charter/solvation-and-populations.md` -- ORCA solvation terms, populations named by scheme, the reader defect a delivery found
-- `.agents/charter/pyscf.md` -- extraction plane, contracts v4-v6, td / excited-root / correlated stages, provenance axis, surfaces, numerical Hessians, sealed goals and repaired losses
+- `.agents/charter/pyscf.md` -- extraction plane, contracts v4-v10 (irc, ts, energy composition), td / excited-root / correlated stages, provenance axis, surfaces, numerical Hessians, sealed goals and repaired losses
 - `.agents/charter/crossprogram.md` -- multi-program qualification, bound identity as state authority, geometry handoff, why equal level strings are not equal methods
 - `.agents/charter/other-programs-probe-providers.md` -- Gaussian / GPU4PySCF / NEB / NCIPLOT status, the ORCA input-check probe, provider-neutral orchestration
 - `.agents/charter/dispatch-excursion-results-review.md` -- scheduler dispatch and wake, excursion line, results registered by content id, review built while planning
@@ -209,6 +248,8 @@ evidence chain is complete.
   user work without explicit authority.
 - Do not commit credentials, user configuration, engine binaries, generated
   inputs, outputs, scratch data, private transcripts, or one-off reports.
+- Commit messages carry no AI attribution lines: no ``Co-Authored-By:
+  Claude``, no ``Claude-Session:``, no "Generated with Claude Code".
 - Keep controller and program compute environments explicit in user or server
   YAML. Never replace an operator-selected executable implicitly.
 - Validate a target host from its actual operating system, architecture,
