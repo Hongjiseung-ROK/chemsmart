@@ -46,8 +46,10 @@ returned_to_human 26, unreachable_from_evidence 8.
   and carried no receipts into the settlement (r9/orca g5,
   r8/orca goal-irc2: "achieved_with_observations settles on receipts,
   never prose alone"; executed-run streams carry no decision).
-- (b) is PARTLY met. 62 declared observables in unit '1' encode
-  categorical conclusions as counts or 0/1 verdicts ("Verdict (1 =
+- (b) is PARTLY met. Of 341 declarations, 89 are in unit '1' and 61 of
+  those (in 43 ledgers; regex over the meaning: verdict, whether, 1 if,
+  imaginary, graph, connectivity, converge, reached) encode a
+  categorical conclusion as a count or a 0/1 verdict ("Verdict (1 =
   passed)", "1 if the forward graph differs", imaginary-mode counts);
   the Agent reaches for numeric proxies whenever the host serves one.
   The losses are where it did not: the stability eigenvalue is not
