@@ -3302,9 +3302,10 @@ PRINTED_THERMOCHEMISTRY_CONVENTIONS: Mapping[str, str] = {
     "xtb": (
         "xTB's printed free energy: modified RRHO (Grimme's free-rotor "
         "interpolation below xTB's rotor cutoff, 50 cm-1 by default), "
-        "298.15 K and 1 atm unless set, xTB's own rotational symmetry "
-        "number, and no electronic spin-degeneracy entropy -- an open shell "
-        "sits RT ln(multiplicity) above the host's derivation"
+        "298.15 K unless set, xTB's own rotational symmetry number (its "
+        "symmetry search tolerates 0.1 A), and no electronic "
+        "spin-degeneracy entropy -- an open shell sits RT ln(multiplicity) "
+        "above the host's derivation"
     ),
 }
 
