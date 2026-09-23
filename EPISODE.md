@@ -222,6 +222,27 @@ mechanism.py, signed_rank.py, make_sealed_plan.py, pack_commit.py
 (packs a commit exactly as pack_code.sh packs a checkout; digest checked
 equal on a270eca6).
 
+## Sealed material (arrived after 2015c2f3; never committed)
+
+- 16 question folders, 52 files (TASK.md and .xyz files), in the
+  worktree's `sealed-questions/` (excluded from git). The master's manifest
+  digest is `e5e7585050d13e68`; recomputed here and equal, as the sha256
+  of `cd sealed-questions && find . -type f | LC_ALL=C sort | xargs
+  shasum -a 256`. Questions are named here only by ordinal (q01-q16).
+- All 16 run as written: every folder has its TASK.md and the geometries
+  it names. Clarification of the pre-registration, not a change: the
+  questions arrived with their own starting geometries, so the RDKit build
+  step is not used; each session's workspace is exactly its question's
+  .xyz files, copied unchanged (a verification step in the job checks all
+  52 files against the manifest and stops the job on any mismatch or
+  extra file).
+- Seeded order (input: sorted folder names; `random.Random(20260924)`):
+  q10, q05, q02, q06, q04, q08, q12, q07, q16, q13, q03, q15, q09, q11,
+  q14, q01, each question's three arms in the drawn permutation; the
+  48-row plan's sha256 prefix is 06ac75152061672a.
+- Nothing under `chemsmart/` changed after 2015c2f3: the arms are the
+  ones pinned before the questions were copied in.
+
 ## Jobs issued
 
 | job | slot | what | pre-registration | outcome |
@@ -230,8 +251,6 @@ equal on a270eca6).
 
 ## Status
 
-Phase 1 complete: arms fixed (A = 292b9bf3, B and C = 64fc0ca1), delivery
-fixed (pull), N and grading fixed above. Ready for the sealed questions.
-On resume: build workspaces from the question texts only (rubrics unread
-until packets exist), run one sequential batch job, build packets, commit
-the mapping digest, hand packets and GRADER.md to the master.
+Phase 2: the sealed run (plans/sealed1, 48 sessions, strictly sequential,
+one slot job) is being submitted. Then: packets, the mapping digest
+committed here, hand-back "packets ready". Grading is the master's.
