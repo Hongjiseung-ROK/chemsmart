@@ -158,7 +158,10 @@ n->pi* and the brightest pi->pi* and how much TDA moves each."
 
 ## Jobs issued
 
-(none yet)
+| Slurm | slot | what | code | pre-registration |
+|---|---|---|---|---|
+| 2150076 | r10-q7-a | cli/oracle1: O1 + O2 + V1 (26 CLI runs, one raw g16) | 7111e2a6 | 934ac3012b56 |
+| 2150077 | r10-q7-b | goals/g1-td: Gaussian TD-DFT + TDA on acrolein | 7111e2a6 | 934ac3012b56 |
 
 ## Status
 
