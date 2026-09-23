@@ -433,3 +433,20 @@ the workspace holding the item's `data/` directory exactly as released
   8ffe800d...) to r10/q6/goals/<id>/.
 - Provider concurrency: the cluster slots run at most two goals at once;
   the local archived goals run strictly one after another beside them.
+
+### Sealed run log
+
+- Live goals submitted through slot_submit with pre-registration digest
+  f9f9465411aa (EPISODE.md at f1376394): slot a -- 2150178 pair3-a,
+  2150181 pair4-b, 2150182 pair1-a, 2150184 pair2-a; slot b -- 2150179
+  pair3-b, 2150180 pair4-a, 2150183 pair1-b, 2150185 pair2-b.
+- Archived set started locally, ar01 first, one at a time
+  (scratchpad/q6/run_archived_set.sh). Import path, stated as found: the
+  runner exports PYTHONPATH to the unpacked pack, but it runs python from
+  the worktree root, so the current directory comes first on sys.path
+  and every archived goal imports chemsmart from the worktree (its
+  run.log says so). The worktree's tracked chemsmart/ files are the
+  packed tree -- verify_code.py over the worktree reproduces 124de73a,
+  and nothing under chemsmart/ is ignored or untracked except
+  __pycache__ -- so the bytes that run are the pack's; the check is
+  repeated when the set has settled.
