@@ -64,24 +64,71 @@ returned_to_human 26, unreachable_from_evidence 8.
   them (a recovery, a re-wake, or a first cycle over results already in
   the workspace).
 
-## Mechanism under construction
+## Mechanism (built; commits 58d024fb, 9450b2d4, c4b35040, f8c67ebf, 7ca5bddb)
 
 - A finding (`record_scientific_decision.findings`): the session's own
   sentence plus relations (`<`, `<=`, `>`, `>=`, `==`, `!=`) over claims
   the host rendered. The host evaluates every relation from the
   rendered values and refuses a finding whose relation does not hold,
   naming the values; it never judges the sentence. It records which
-  host anomalies already stand on the finding's evidence, so a finding
-  that restates a sensor is visibly one.
+  host anomalies already stand on the finding's evidence
+  (`host_signals`), so a finding that restates a sensor is visibly one.
 - A claim may bind a program-printed word (text quantity); the host
   copies the word exactly as it copies a number. A word never delivers
   a declared number.
 - A categorical observable (`unit: category`) is delivered only by a
   finding that answers it; an unrequested finding rides the settlement
-  as an observation attributed to the session.
+  as the session's observation (`finding:<id>:<receipt8>`, word
+  `achieved_with_observations`), and every finding's statement and
+  receipt ride the settlement evidence under every word.
 - An observation's own receipts reach the settlement, so the word that
   requires receipts is never lost for want of a decision in the
   executor's stream.
+- Consequence for live goals: a declared category cannot be delivered
+  by the provider-free executor, so a goal that declares one always
+  wakes a session over its results (budget permitting); a goal that
+  declares none still settles a complete delivery unread.
+
+## Evaluation, pre-registered before any provider session (2026-09-24)
+
+What counts as a discovery. A typed finding the host recorded with a
+receipt, standing `unrequested` (no `answers_observable_id`), such that
+an independent verifier holding only raw evidence (task text, workspace
+files, the finding record with its host-rendered relation values, the
+public transcript) judges: (1) the task text did not ask for it; (2) its
+statement correctly names a phenomenon present in the evidence -- the
+planted one, or another the verifier confirms; (3) it is not a
+restatement of a host anomaly (its `host_signals` are empty or
+unrelated) nor of a number the task asked for; (4) its relations bear on
+the phenomenon (they would read differently were it absent). Prose-only
+mentions are counted separately and never as discoveries.
+
+What counts as a false claim. An unrequested finding the verifier judges
+absent or wrong in the evidence, on either arm, including one whose
+relations hold but whose statement the evidence contradicts.
+
+Measures, per arm, sessions counted only when the provider answered at
+least one turn and the session did not die on turn_deadline_exceeded
+(those are infrastructure, reported, never counted): sensitivity =
+phenomenon sessions with a correct discovery / phenomenon sessions;
+false-claim rate = control sessions with >= 1 false unrequested finding
+/ control sessions (and false findings per session on both arms); typing
+rate = sessions that mention the phenomenon in prose that also type it.
+
+Development pairs (mine, never presented as the sealed ones; provider
+-only goals, max_engine_calls 0, max_revisions 0, real archived files):
+- D1 label transposition: the two po3-r19 product files. Phenomenon arm:
+  names as supplied to po3 (ester-at-c4 holds the 5-ester). Control:
+  the same bytes under names that match their connectivity. Task asks
+  a geometric quantity of "the ester-at-C4 isomer" only.
+- D2 level mismatch: ino3-r12 neutral and cation single points.
+  Phenomenon arm: neutral PBE0 and cation B3LYP presented as the pair
+  for an ionisation energy. Control: both PBE0. Task asks the
+  ionisation energy only.
+Outcome bands for the development pairs are not physics bands; they are
+behaviour and decide nothing about the milestone: a mechanism is
+working if a phenomenon arm can produce a host-recorded finding and a
+control arm does not force one.
 
 ## Status
 
