@@ -9,6 +9,8 @@ a level of theory in ``gas:`` and nothing else, and the same with
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from tests.agent.gaussian_fake_preview import fake_preview
@@ -185,3 +187,89 @@ def test_no_reader_serves_a_spectrum_where_nothing_is_stationary(jobtype):
         for program, reader in RESULT_READERS.items()
     }
     assert not any(served.values()), served
+
+
+_DATA = Path(__file__).resolve().parents[1] / "data"
+#: One constrained optimisation (H2O2 held at a 90 degree torsion, CUHK
+#: Slurm 2150076) in each program, and an archived Gaussian one that ran
+#: out of steps.
+_HELD_90 = {
+    "gaussian": _DATA
+    / "GaussianTests"
+    / "constrained_dihedral"
+    / "h2o2_b3lyp_def2svp_hooh90.log",
+    "orca": _DATA
+    / "ORCATests"
+    / "constrained_dihedral"
+    / "h2o2_b3lyp_def2svp_hooh90.out",
+}
+_EXHAUSTED = (
+    _DATA / "GaussianTests" / "outputs" / "cage_free_failed_modred.log"
+)
+_HELD_ANSWERS = (
+    "constrained_coordinate_count",
+    "constrained_dihedral_angles",
+    "constrained_dihedral_atoms",
+    "converged",
+)
+
+
+@pytest.mark.capability("selector:gaussian:modred:converged")
+@pytest.mark.capability("selector:gaussian:modred:constrained_dihedral_angles")
+def test_a_constrained_optimum_answers_the_same_questions_in_both_programs():
+    """What it held, where, and whether it finished -- in either program.
+
+    ORCA's constrained optimisation says which coordinates it held, at
+    what value in the structure it returned, and whether the relaxation
+    converged; Gaussian's said none of it, so the same question about
+    the same calculation had an answer in one program and a refusal in
+    the other.
+    """
+
+    from chemsmart.analysis.result_readers import RESULT_READERS
+
+    answers = {}
+    for program, path in _HELD_90.items():
+        reader = RESULT_READERS[program]
+        output = reader.open_output(path)
+        assert output.jobtype == "modred"
+        assert set(_HELD_ANSWERS) <= set(
+            reader.selectors_for_jobtype("modred")
+        )
+        answers[program] = {
+            selector: reader.read(output, selector)
+            for selector in _HELD_ANSWERS
+        }
+    gaussian, orca = answers["gaussian"], answers["orca"]
+    for selector in _HELD_ANSWERS:
+        assert gaussian[selector][1] == orca[selector][1], selector
+
+    # One torsion, whichever end a program names first: ORCA prints the
+    # held dihedral as 4-2-1-3, Gaussian echoes 3-1-2-4 as written.
+    def torsion(rows):
+        return [min(tuple(row), tuple(reversed(row))) for row in rows]
+
+    assert torsion(gaussian["constrained_dihedral_atoms"][0]) == [
+        (2.0, 0.0, 1.0, 3.0)
+    ]
+    assert torsion(orca["constrained_dihedral_atoms"][0]) == [
+        (2.0, 0.0, 1.0, 3.0)
+    ]
+    for program in _HELD_90:
+        assert answers[program]["converged"][0] == 1
+        assert answers[program]["constrained_coordinate_count"][0] == 1.0
+        (held,) = answers[program]["constrained_dihedral_angles"][0]
+        assert held == pytest.approx(90.0, abs=0.01)
+
+
+@pytest.mark.capability("selector:gaussian:modred:converged")
+def test_a_constrained_optimisation_that_ran_out_of_steps_says_so():
+    """``Optimization stopped.`` after 58 steps is an observation, 0."""
+
+    from chemsmart.analysis.result_readers import RESULT_READERS
+
+    reader = RESULT_READERS["gaussian"]
+    output = reader.open_output(_EXHAUSTED)
+    assert reader.read(output, "converged") == (0, "1")
+    count, _unit = reader.read(output, "constrained_coordinate_count")
+    assert count == 3.0

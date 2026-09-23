@@ -2085,6 +2085,76 @@ class Gaussian16Output(GaussianFileMixin):
                 return float(line.split()[-1])
         return None
 
+    @cached_property
+    def converged(self):
+        """Whether a geometry optimisation in this log converged.
+
+        A tri-state, as ORCA's reader has it: ``False`` where Gaussian
+        printed ``Optimization stopped.`` (its step limit, "Number of steps
+        exceeded"), ``True`` where it printed ``Optimization completed.``
+        and never stopped, ``None`` where no optimisation marker exists at
+        all.  A constrained optimisation converges on its free coordinates
+        and says so in the same words; the archived failed constrained
+        optimisation in this repository says ``Optimization stopped.``
+        after 58 steps.
+        """
+
+        saw_completed = False
+        for line in self.contents:
+            if "Optimization stopped." in line:
+                return False
+            if "Optimization completed." in line:
+                saw_completed = True
+        return True if saw_completed else None
+
+    @cached_property
+    def held_internal_coordinates(self):
+        """The internal coordinates a constrained optimisation froze.
+
+        Read from the ModRedundant rows Gaussian echoes, a frozen row ending
+        ``F``: its letter (``B``, ``A``, ``D``) or its atom count says
+        which kind, the one-based atoms follow, and a number among them is
+        a value Gaussian was told to set before freezing.  A Cartesian
+        (``X``) freeze is not an internal coordinate and is not listed.
+        ``[{"kind", "atoms", "value", "label"}]`` in the order echoed; an
+        unfrozen or unparseable row is skipped rather than guessed.
+        """
+
+        kinds = {2: "bond", 3: "angle", 4: "dihedral"}
+        letters = {"B": 2, "A": 3, "D": 4}
+        held = []
+        for line in self.modredundant_group or ():
+            tokens = str(line).split()
+            if len(tokens) < 3 or tokens[-1].upper() != "F":
+                continue
+            body = tokens[:-1]
+            letter = body[0].upper() if body[0].isalpha() else ""
+            if letter and letter not in letters:
+                continue
+            atoms = []
+            value = None
+            for token in body[1:] if letter else body:
+                if token.isdigit():
+                    atoms.append(int(token))
+                    continue
+                try:
+                    value = float(token)
+                except ValueError:
+                    atoms = []
+                    break
+            kind = kinds.get(len(atoms))
+            if kind is None or (letter and letters[letter] != len(atoms)):
+                continue
+            held.append(
+                {
+                    "kind": kind,
+                    "atoms": tuple(atoms),
+                    "value": value,
+                    "label": " ".join(tokens),
+                }
+            )
+        return held
+
     # check for convergence criterion not met (happens for some output files)
     @property
     def convergence_criterion_not_met(self):
