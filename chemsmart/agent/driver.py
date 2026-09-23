@@ -264,20 +264,35 @@ def _achieved_word(
         # The session's conclusions in its own words, each on relations
         # the host checked and on nothing else the host vouches for; a
         # finding standing on a result a sensor had already flagged says
-        # which, because repeating a sensor is not a discovery.
+        # which, because repeating a sensor is not a discovery. A
+        # declared category's answer is the word the host read, stated
+        # first; the sentence beside it is the session's interpretation.
         provenance = provenance + tuple(
-            f"the session's finding {row.get('finding_id')}"
-            + (
-                f" (answers {row.get('answers_observable_id')})"
-                if row.get("answers_observable_id")
-                else (
-                    " (not asked for)"
-                    if row.get("standing") == "unrequested"
-                    else " (on the requested answer)"
+            (
+                f"{row.get('answers_observable_id')} = "
+                + ", ".join(
+                    f"{word.get('word')!r} (read by the host: "
+                    f"{word.get('selector') or 'selector unrecorded'} on "
+                    f"{str(word.get('source_receipt_sha256') or '')[:8]})"
+                    for word in row.get("answer") or ()
                 )
+                + f"; the session's finding {row.get('finding_id')}, "
+                "its interpretation: "
+                if row.get("answers_observable_id") and row.get("answer")
+                else f"the session's finding {row.get('finding_id')}"
+                + (
+                    f" (names {row.get('answers_observable_id')} and rests "
+                    "on no word the host read, so it answers nothing)"
+                    if row.get("answers_observable_id")
+                    else (
+                        " (not asked for)"
+                        if row.get("standing") == "unrequested"
+                        else " (on the requested answer)"
+                    )
+                )
+                + ", its words, on relations the host checked: "
             )
-            + f", its words, on relations the host checked: "
-            f"{row.get('statement')}"
+            + str(row.get("statement"))
             + (
                 "; host anomalies already under its evidence: "
                 + ", ".join(row.get("host_signals") or ())
@@ -1361,6 +1376,11 @@ def _goal_delivered_ids(
                     "finding_receipt_sha256": entry.get(
                         "finding_receipt_sha256"
                     ),
+                    # The words the host read; the predicate delivers a
+                    # category by them and by nothing else.
+                    "answer": tuple(
+                        dict(item) for item in entry.get("answer") or ()
+                    ),
                 }
             continue
         if entry.get("kind") != "claim":
@@ -1420,6 +1440,7 @@ def _goal_findings(
             "supersedes_finding_id": str(
                 entry.get("supersedes_finding_id") or ""
             ),
+            "answer": tuple(dict(item) for item in entry.get("answer") or ()),
             "cycle": int(entry.get("cycle") or 0),
         }
     return tuple(by_id.values())
@@ -2533,6 +2554,7 @@ def _analysis_delivery(
             "supersedes_finding_id": str(
                 row.get("supersedes_finding_id") or ""
             ),
+            "answer": tuple(dict(item) for item in row.get("answer") or ()),
         }
         for row in goal_findings
         if row.get("finding_id") and row.get("receipt_sha256")
@@ -2584,6 +2606,11 @@ def _analysis_delivery(
                     ),
                     "supersedes_finding_id": str(
                         item.get("supersedes_finding_id") or ""
+                    ),
+                    "answer": tuple(
+                        dict(word)
+                        for word in item.get("answer") or ()
+                        if isinstance(word, Mapping)
                     ),
                 }
             for item in payload.get("unreachable_observables") or ():
@@ -2966,11 +2993,15 @@ def _analysis_delivery(
     answered_ids: set[str] = set()
     for row in standing_findings:
         receipts.append(row["receipt_sha256"])
-        if row["answers_observable_id"]:
+        if row["answers_observable_id"] and row["answer"]:
+            # Delivered only by the words the host read; a finding recorded
+            # without them (before the answer was bound to a word) answers
+            # nothing.
             answered_ids.add(row["answers_observable_id"])
             claim_rows[row["answers_observable_id"]] = {
                 "finding_receipt_sha256": row["receipt_sha256"],
                 "finding_id": row["finding_id"],
+                "answer": row["answer"],
             }
         # A finding never joins the observations the word names. The word
         # is the host's: what its sensors detected and what the physics

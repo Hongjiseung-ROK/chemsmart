@@ -412,6 +412,12 @@ def record_run(
                         "finding_receipt_sha256": str(
                             finding.get("receipt_sha256") or ""
                         ),
+                        # The words the host read, when it answers.
+                        "answer": tuple(
+                            dict(item)
+                            for item in finding.get("answer") or ()
+                            if isinstance(item, Mapping)
+                        ),
                         "recorded_at": stamp,
                     }
                 )

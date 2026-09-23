@@ -1144,9 +1144,13 @@ def _legacy_tool_definitions(
                                     "(e.g. 'kcal/mol', 'eV', "
                                     "'angstrom', '1' for a count), or "
                                     "'category' when the answer is a word "
-                                    "or a relation -- which state, which "
-                                    "minimum, which isomer -- delivered "
-                                    "by a finding that answers it."
+                                    "a program prints -- a stability "
+                                    "verdict, an IRC branch word -- "
+                                    "delivered as the host read it through "
+                                    "a finding that answers it. A relation "
+                                    "between numbers (which minimum, which "
+                                    "isomer) is delivered by its numbers "
+                                    "and stated as a finding."
                                 ),
                             },
                             "meaning": {
@@ -1839,7 +1843,8 @@ def _legacy_tool_definitions(
                         "it rendered, refuses one that does not hold with "
                         "the values it read, and never reads your sentence. "
                         "A finding that answers a question declared in unit "
-                        "'category' delivers it. A number the task asked "
+                        "'category' delivers the word the host read through "
+                        "its == relation on that word. A number the task asked "
                         "for is delivered by its claim; a finding resting "
                         "only on claims of declared observables is recorded "
                         "as on the request; one resting on evidence no "
@@ -1867,7 +1872,12 @@ def _legacy_tool_definitions(
                                 "description": (
                                     "Optional: the declared observable "
                                     "(unit 'category') this finding "
-                                    "answers."
+                                    "answers. Its answer is the word the "
+                                    "program printed, so rests_on must "
+                                    "include '<claim of that word> == <the "
+                                    "word>'; the delivered answer is the "
+                                    "host's word and your statement is shown "
+                                    "beside it as your interpretation."
                                 ),
                             },
                             "rests_on": {

@@ -2736,6 +2736,9 @@ class CommandCompiledToolHostV1:
         #: after checking the relations each rests on.
         self.analysis_findings: dict[str, Any] = {}
         self._declared_observable_join_fields = {}
+        #: The words the host read that the last completion certified as
+        #: each declared category's answer.
+        self._declared_categorical_answers: dict[str, Any] = {}
         self._reply_observations: tuple[dict[str, Any], ...] = ()
         #: The current sufficiency assessment of each declared
         #: requirement, by observable id.
@@ -4303,33 +4306,51 @@ class CommandCompiledToolHostV1:
         retired = superseded_observable_ids(
             tuple(self.requested_observable_declarations.values())
         )
-        answered = {
-            finding.answers_observable_id
-            for finding in self.analysis_findings.values()
-            if finding.task_spec_sha256 == task_spec_sha256
-            and finding.answers_observable_id
-        }
+        # The words the host read that answer each declared category, from
+        # the newest finding that answers it. A finding answers only
+        # through a word the host read (the finding verifier refuses any
+        # other), and those words -- never the finding's sentence -- are
+        # what this gate certifies as delivered.
+        answered: dict[str, tuple[Mapping[str, Any], ...]] = {}
+        for finding in self.analysis_findings.values():
+            if (
+                finding.task_spec_sha256 == task_spec_sha256
+                and finding.answers_observable_id
+                and finding.answer
+            ):
+                answered[finding.answers_observable_id] = tuple(
+                    {
+                        **dict(word),
+                        "finding_id": finding.finding_id,
+                        "finding_receipt_sha256": finding.receipt_sha256,
+                    }
+                    for word in finding.answer
+                )
         misses = []
         limitations = []
         for observable_id, record in sorted(
             self.requested_observable_declarations.items()
         ):
             if str(record.get("unit") or "") == "category":
-                # A question whose answer is a word or a relation is
-                # answered by a finding, never by a claim's dimension.
+                # A question whose answer is a word is answered by a word
+                # the host read, bound through a finding's relation, and
+                # never by a claim's dimension.
                 if observable_id in answered:
                     self._declared_observable_join_fields[observable_id] = (
                         "finding"
+                    )
+                    self._declared_categorical_answers[observable_id] = (
+                        answered[observable_id]
                     )
                     continue
                 if observable_id in retired:
                     continue
                 misses.append(
                     f"declared question {observable_id!r} (category) has "
-                    "no finding answering it; a finding in "
-                    "record_scientific_decision with answers_observable_id "
-                    f"{observable_id!r}, resting on claims this task "
-                    "rendered, delivers it"
+                    "no word the host read answering it; claim the word the "
+                    "program printed and record a finding with "
+                    f"answers_observable_id {observable_id!r} resting on "
+                    "'<that claim> == <the word>'"
                 )
                 limitations.append(f"declared_observable:{observable_id}")
                 continue
@@ -7145,6 +7166,11 @@ class CommandCompiledToolHostV1:
                     f"finding {finding_id!r} rests on nothing the host can "
                     "check: give rests_on at least one relation over a claim"
                 )
+            answer = (
+                self._categorical_answer(finding_id, answers, relations)
+                if answers
+                else ()
+            )
             # What the evidence is, not what the session calls it: a
             # finding every operand of which delivers a declaration
             # restates or qualifies what was asked. The first
@@ -7173,6 +7199,7 @@ class CommandCompiledToolHostV1:
                     relations=relations,
                     standing=standing,
                     answers_observable_id=answers,
+                    answer=answer,
                     host_signals=self._host_signals_beneath(
                         relations, cited_anomalies
                     ),
@@ -7182,6 +7209,79 @@ class CommandCompiledToolHostV1:
                 )
             )
         return tuple(findings)
+
+    def _categorical_answer(
+        self,
+        finding_id: str,
+        observable_id: str,
+        relations: Sequence[Mapping[str, Any]],
+    ) -> tuple[dict[str, Any], ...]:
+        """The words the host read that answer a declared category.
+
+        A delivered categorical answer is a word the host read, bound to
+        the question through a relation that holds over the claim of that
+        word. The session's sentence is its interpretation and is shown
+        beside the word, never as the answer. A boundary probe of the
+        first version (the master's, on 0adf6c27) certified a stability
+        question answered by a finding resting only on a bond distance,
+        and a finding saying "UNSTABLE" over a relation that read
+        'stable': the completion's word was false both times.
+        """
+
+        answer: list[dict[str, Any]] = []
+        for row in relations:
+            left = row.get("left") or {}
+            if row.get("relation") != "==" or left.get("data_kind") != "text":
+                continue
+            source = str(left.get("source_receipt_sha256") or "")
+            quantity_id = str(left.get("quantity_id") or "")
+            receipt = self.quantity_extractions.get(source)
+            bindings = dict(getattr(receipt, "selector_bindings", ()) or ())
+            bindings = bindings or dict(
+                self.quantity_extraction_bindings.get(source) or {}
+            )
+            answer.append(
+                {
+                    "claim_id": str(left.get("claim_id") or ""),
+                    "word": left.get("value"),
+                    "selector": str(bindings.get(quantity_id) or ""),
+                    "source_receipt_sha256": source,
+                    "quantity_id": quantity_id,
+                }
+            )
+        if not answer:
+            read = "; ".join(
+                f"{(row.get('left') or {}).get('claim_id')} "
+                f"{row.get('relation')} "
+                f"({(row.get('left') or {}).get('data_kind')})"
+                for row in relations
+            )
+            raise RoutedContractError(
+                gate="finding.answers_through_a_word_the_host_read",
+                invariant=(
+                    "a declared category is answered by a word the host "
+                    "read, bound to it through an == relation that holds "
+                    "over the claim of that word; the finding's sentence is "
+                    "the session's interpretation, shown beside the word."
+                ),
+                diagnosis=(
+                    f"finding {finding_id!r} answers {observable_id!r} and "
+                    f"rests on {read}: none is an == over a word the "
+                    "program printed, so nothing the host read answers the "
+                    "question."
+                ),
+                route=(
+                    "claim the word the program printed with "
+                    "record_analysis_claims (its extraction's selector, "
+                    "e.g. scf_stability_external or irc_direction) and "
+                    "rest the answer on '<that claim> == <the word>'; keep "
+                    "the other relations as support, or record the finding "
+                    "without answers_observable_id -- a relation between "
+                    "numbers stands as a finding, and the number it rests "
+                    "on is delivered by its own claim"
+                ),
+            )
+        return tuple(answer)
 
     def _host_signals_beneath(
         self,
@@ -12148,6 +12248,17 @@ class CommandCompiledToolHostV1:
                 "declared_observable_predictions": declared_predictions,
                 "declared_observable_join_fields": dict(
                     sorted(self._declared_observable_join_fields.items())
+                ),
+                # What the gate certified for each declared category: the
+                # words the host read, never the session's sentence.
+                **(
+                    {
+                        "declared_categorical_answers": dict(
+                            sorted(self._declared_categorical_answers.items())
+                        )
+                    }
+                    if self._declared_categorical_answers
+                    else {}
                 ),
                 "completion_kind": "scientific_toolchain",
                 "record": completion_record,

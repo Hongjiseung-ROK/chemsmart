@@ -69,11 +69,12 @@ def observable_is_delivered(
 
     if not claim_row:
         return False
-    # A question declared as a category is answered by a finding and by
-    # nothing else, and a finding answers no declared number.
+    # A question declared as a category is answered by a word the host
+    # read, bound through a finding's relation, and by nothing else; a
+    # finding answers no declared number.
     answered_by_finding = bool(claim_row.get("finding_receipt_sha256"))
     if str(declaration.get("unit") or "") == "category":
-        return answered_by_finding
+        return answered_by_finding and bool(claim_row.get("answer"))
     if answered_by_finding:
         return False
     declared = _dimension_of(declaration)

@@ -486,6 +486,11 @@ class AnalysisFindingV1:
     host_signals: tuple[str, ...]
     supersedes_finding_id: str
     receipt_sha256: str
+    #: What a finding that answers a declared category delivers: the
+    #: words the host read, each with the claim, selector and receipt it
+    #: was read through. Empty exactly when the finding answers nothing.
+    #: The statement is the session's interpretation of these words.
+    answer: tuple[Mapping[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema_version != "chemsmart.analysis-finding.v1":
@@ -503,6 +508,19 @@ class AnalysisFindingV1:
                 "a finding answers a declared question exactly when its "
                 "standing says so"
             )
+        if bool(self.answers_observable_id) != bool(self.answer):
+            raise ContractError(
+                "a finding answers a declared question exactly when it "
+                "carries the words the host read for it"
+            )
+        for word in self.answer:
+            if not isinstance(word.get("word"), str) or not word.get(
+                "source_receipt_sha256"
+            ):
+                raise ContractError(
+                    "a categorical answer is a word the host read, with "
+                    "the receipt it was read from"
+                )
         if self.answers_observable_id:
             require_identifier(
                 self.answers_observable_id, "answers_observable_id"
@@ -541,6 +559,9 @@ def analysis_finding_body(finding: AnalysisFindingV1) -> dict[str, Any]:
         "relations": finding.relations,
         "host_signals": finding.host_signals,
         "supersedes_finding_id": finding.supersedes_finding_id,
+        # Present only on a finding that answers, so a finding minted
+        # before the field existed verifies under the same arithmetic.
+        **({"answer": finding.answer} if finding.answer else {}),
     }
 
 
@@ -552,6 +573,7 @@ def build_analysis_finding(
     relations: Sequence[Mapping[str, Any]],
     standing: str,
     answers_observable_id: str = "",
+    answer: Sequence[Mapping[str, Any]] = (),
     host_signals: Sequence[str] = (),
     supersedes_finding_id: str = "",
 ) -> AnalysisFindingV1:
@@ -566,6 +588,9 @@ def build_analysis_finding(
         "host_signals": tuple(sorted(set(str(item) for item in host_signals))),
         "supersedes_finding_id": str(supersedes_finding_id or ""),
     }
+    words = tuple(canonical_data(dict(item)) for item in answer)
+    if words:
+        body["answer"] = words
     return AnalysisFindingV1(**body, receipt_sha256=canonical_sha256(body))
 
 
@@ -596,6 +621,7 @@ def analysis_finding_from_record(
         dict(item) for item in record.get("relations") or ()
     )
     values["host_signals"] = tuple(record.get("host_signals") or ())
+    values["answer"] = tuple(dict(item) for item in record.get("answer") or ())
     return AnalysisFindingV1(**values, receipt_sha256=receipt_sha256)
 
 

@@ -642,8 +642,130 @@ def test_a_finding_that_answers_a_declared_question_delivers_it(tmp_path):
     )
     assert result.settlement == "achieved", result.reasons
     text = " ".join(result.reasons)
-    assert "the session's finding reference-stable" in text
-    assert "(answers reference-stability)" in text
+    assert (
+        "reference-stability = 'stable_under_considered_perturbations' "
+        "(read by the host: wavefunction_stability_verdict on"
+    ) in text
+    assert "the session's finding reference-stable, its interpretation" in (
+        text
+    )
+
+
+def _probe_rows(tmp_path, finding):
+    """The master's boundary probe (2026-09-24, on 0adf6c27): a declared
+    category, the verdict claim and the distance claim, then one finding
+    that answers the category. Written by the host's own tools."""
+
+    build = tmp_path / "probe-build"
+    host = _host(build / "events.jsonl", tmp_path / "probe-workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "reference-stability",
+                "unit": "category",
+                "meaning": "whether the re-optimised reference is stable",
+            }
+        ],
+    )
+    _verdict_claim(host)
+    _measured_distance(host)
+    refused = None
+    try:
+        _decide(host, [finding])
+    except ContractError as exc:
+        refused = exc
+        # The decision without the refused finding, so a delivery exists
+        # to certify: the numbers stay delivered either way.
+        _decide(host, [], decision_id="d-without-finding")
+    host.completion_receipts_for_delivered_claims()
+    rows = tuple(
+        json.loads(line)
+        for line in (build / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    )
+    completion = next(
+        row for row in rows if row["kind"] == "analysis_completion_evaluated"
+    )["payload"]
+    return refused, completion, rows
+
+
+def test_a_category_is_not_answered_by_a_relation_that_does_not_bear_on_it(
+    tmp_path,
+):
+    """Probe B: a stability question 'answered' by a finding resting only
+    on a bond distance was certified delivered. A relation between numbers
+    is no word the host read, so it answers nothing: the finding is refused
+    naming the route, and the question stays a limitation."""
+
+    refused, completion, _rows = _probe_rows(
+        tmp_path,
+        {
+            "finding_id": "stable-by-distance",
+            "statement": "The reference is stable.",
+            "answers_observable_id": "reference-stability",
+            "rests_on": [
+                {
+                    "claim_id": "d-ester-c-benzyl-n",
+                    "relation": "<",
+                    "value": 1.6,
+                }
+            ],
+        },
+    )
+    assert refused is not None
+    assert "finding.answers_through_a_word_the_host_read" in str(refused)
+    assert completion["limitation_output_ids"] == [
+        "declared_observable:reference-stability"
+    ]
+    assert "reference-stability" not in completion.get(
+        "declared_observable_join_fields", {}
+    )
+
+
+def test_a_category_delivers_the_word_the_host_read_not_the_sentence(
+    tmp_path,
+):
+    """Probe C: a finding saying 'UNSTABLE' over a relation that read
+    'stable' was certified delivered with the sentence as its only
+    statement. What the completion certifies, and what the settlement
+    states first, is the word the host read; the sentence is shown beside
+    it as the session's interpretation."""
+
+    _refused, completion, rows = _probe_rows(
+        tmp_path,
+        {
+            "finding_id": "says-unstable",
+            "statement": "The reference is UNSTABLE.",
+            "answers_observable_id": "reference-stability",
+            "rests_on": [
+                {
+                    "claim_id": "stability-verdict",
+                    "relation": "==",
+                    "value": "stable_under_considered_perturbations",
+                }
+            ],
+        },
+    )
+    assert _refused is None
+    assert completion["status"] == "passed"
+    ((word,),) = completion["declared_categorical_answers"].values()
+    assert word["word"] == "stable_under_considered_perturbations"
+    assert word["selector"] == "wavefunction_stability_verdict"
+    assert word["claim_id"] == "stability-verdict"
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session("live-1", terminal="complete", wake_rows=rows)
+        ],
+        executes=[],
+    )
+    text = " ".join(result.reasons)
+    answer = text.index(
+        "reference-stability = 'stable_under_considered_perturbations'"
+    )
+    sentence = text.index("its interpretation: The reference is UNSTABLE.")
+    assert answer < sentence
 
 
 def test_an_unanswered_question_is_a_limitation_naming_the_route(tmp_path):
