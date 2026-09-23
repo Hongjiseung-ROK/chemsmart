@@ -22,9 +22,9 @@ import re
 from pathlib import Path
 
 import pytest
-import yaml
 
 from chemsmart.settings.capabilities import PROGRAM_CAPABILITIES
+from tests.agent.gaussian_fake_preview import fake_preview, validate
 
 pytestmark = pytest.mark.capability("program_jobtype:gaussian:cpu:td")
 
@@ -33,135 +33,6 @@ _WATER_XYZ = (
 )
 _HYDROXYL_XYZ = "2\nhydroxyl radical\nO 0.0 0.0 0.0\nH 0.0 0.0 0.97\n"
 _DATA = Path(__file__).resolve().parents[1] / "data" / "GaussianTests"
-
-
-def _artifact(path: Path, kind: str):
-    from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
-
-    return TrustedArtifactRefV1(
-        artifact_id=path.stem,
-        kind=kind,
-        sha256=file_sha256(path),
-        size_bytes=path.stat().st_size,
-        path=str(path),
-        cli_value=str(path),
-    )
-
-
-def _capability(program: str, jobtype: str):
-    """The capability receipt a planning session holds for one stage."""
-
-    from chemsmart.agent.capabilities import (
-        ProgramCapabilityQueryV1,
-        build_command_compiled_preview_overlay,
-        build_program_component_conformance_receipt,
-        load_program_capabilities,
-        query_capability,
-    )
-    from chemsmart.agent.cli_schema import build_live_click_schema
-
-    registry = load_program_capabilities()
-    live_schema = build_live_click_schema()
-    pairs = tuple(
-        sorted(
-            pair
-            for pair in registry.get(program).preview_engine_job_pairs
-            if pair[0] == "cpu"
-        )
-    )
-    conformance = build_program_component_conformance_receipt(
-        program=program,
-        registry_sha256=registry.registry_sha256,
-        live_cli_schema_sha256=live_schema.schema_sha256,
-        fixture_bundle_sha256="1" * 64,
-        covered_jobtypes=tuple(sorted({jobtype for _e, jobtype in pairs})),
-        covered_engines=("cpu",),
-        covered_engine_job_pairs=pairs,
-        compiler_receipt_sha256="2" * 64,
-        preview_receipt_sha256="3" * 64,
-        preflight_receipt_sha256="4" * 64,
-        verifier_receipt_sha256="5" * 64,
-        compiler_status="passed",
-        preview_status="passed",
-        preflight_status="passed",
-        verifier_status="passed",
-    )
-    overlay = build_command_compiled_preview_overlay(
-        registry, conformance_receipts=(conformance,), live_schema=live_schema
-    )
-    return query_capability(
-        ProgramCapabilityQueryV1(program, jobtype, "cpu"),
-        registry=registry,
-        live_schema=live_schema,
-        overlay=overlay,
-    )
-
-
-def _validate(tmp_path: Path, program: str, sections: dict, jobtype: str):
-    from chemsmart.agent.projects import validate_project_yaml
-
-    project = tmp_path / f"{program}-{jobtype}.yaml"
-    project.write_text(yaml.safe_dump(sections), encoding="utf-8")
-    return project, validate_project_yaml(
-        _artifact(project, "project_yaml"),
-        capability=_capability(program, jobtype),
-    )
-
-
-def _gaussian_fake_preview(tmp_path, sections, xyz_text, state, jobtype):
-    """Public ``run --fake`` of one Gaussian stage and the live verifier."""
-
-    from click.testing import CliRunner
-
-    from chemsmart.agent.live_session import _preview_server_profile
-    from chemsmart.agent.program_verifiers import (
-        build_preview_expectation,
-        validate_preview_workspace,
-    )
-    from chemsmart.cli.main import entry_point
-
-    charge, multiplicity = state
-    xyz = tmp_path / "input.xyz"
-    xyz.write_text(xyz_text, encoding="utf-8")
-    project, validation = _validate(tmp_path, "gaussian", sections, jobtype)
-    assert validation.status == "valid", validation.diagnostic
-    server = tmp_path / "preview-server.yaml"
-    server.write_text(_preview_server_profile(), encoding="utf-8")
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    argv = [
-        "run",
-        "--server",
-        str(server),
-        "--fake",
-        "--no-scratch",
-        "gaussian",
-        "--project",
-        str(project),
-        "--filename",
-        str(xyz),
-        "--charge",
-        str(charge),
-        "--multiplicity",
-        str(multiplicity),
-        jobtype,
-    ]
-    runner = CliRunner()
-    with runner.isolated_filesystem(temp_dir=workspace) as cwd:
-        result = runner.invoke(entry_point, argv)
-        preview_dir = Path(cwd)
-    assert result.exit_code == 0, (result.output[-600:], result.exception)
-    expectation = build_preview_expectation(
-        program="gaussian",
-        jobtype=jobtype,
-        input_artifact=_artifact(xyz, "geometry_xyz"),
-        project=validation,
-        charge=charge,
-        multiplicity=multiplicity,
-    )
-    receipt = validate_preview_workspace(expectation, preview_dir)
-    written = next(preview_dir.rglob("*.com")).read_text(encoding="utf-8")
-    return receipt, written
 
 
 def _declared(name: str) -> tuple[str, ...]:
@@ -204,8 +75,9 @@ def test_a_declared_gaussian_response_round_trips_through_the_fake_preview(
     }
     section[parameter] = value
     open_shell = section["state_manifold"] == "unrestricted"
-    receipt, written = _gaussian_fake_preview(
+    receipt, written = fake_preview(
         tmp_path,
+        "gaussian",
         {"td": section},
         _HYDROXYL_XYZ if open_shell else _WATER_XYZ,
         (0, 2) if open_shell else (0, 1),
@@ -245,7 +117,7 @@ def test_one_td_section_validates_unchanged_in_all_three_programs(
         "state_manifold": "singlet",
     }
     for program in ("gaussian", "orca", "pyscf"):
-        _project, receipt = _validate(
+        _project, receipt = validate(
             tmp_path, program, {"td": dict(section)}, "td"
         )
         assert receipt.status == "valid", (program, receipt.diagnostic)
@@ -257,7 +129,7 @@ def test_one_td_section_validates_unchanged_in_all_three_programs(
 def test_two_words_for_two_manifolds_are_one_ambiguous_request(tmp_path):
     """Gaussian's own word and the shared word may not disagree."""
 
-    _project, receipt = _validate(
+    _project, receipt = validate(
         tmp_path,
         "gaussian",
         {

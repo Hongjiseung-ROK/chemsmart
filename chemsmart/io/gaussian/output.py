@@ -191,17 +191,11 @@ class Gaussian16Output(GaussianFileMixin):
         anchored on the row's own trailing tokens.
         """
 
-        group = self.modredundant_group
-        if not group:
-            return False
-        for line in group:
-            tokens = str(line).split()
-            for index, token in enumerate(tokens):
-                if token.upper() != "S":
-                    continue
-                if len(tokens) - index >= 3:
-                    return True
-        return False
+        from chemsmart.io.gaussian.route import (
+            modredundant_rows_drive_a_scan,
+        )
+
+        return modredundant_rows_drive_a_scan(self.modredundant_group)
 
     @cached_property
     def _route_has_excited_state_block(self):

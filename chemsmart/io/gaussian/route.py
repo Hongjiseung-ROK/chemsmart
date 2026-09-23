@@ -40,6 +40,26 @@ def route_requests_response(route_string):
     )
 
 
+def modredundant_rows_drive_a_scan(rows):
+    """Whether ModRedundant rows drive a coordinate rather than hold one.
+
+    ``opt=modredundant`` is written for a relaxed scan and for a
+    constrained optimisation alike, so the rows decide: a scan row ends
+    ``S <steps> <size>`` and a frozen row ends ``F``.  The test is
+    positional, on a row's own trailing tokens, because the bare letter
+    ``S`` is also an element symbol a row may carry.  An input writes the
+    same grammar a log echoes after "The following ModRedundant input
+    section has been read:", so one function reads both.
+    """
+
+    for line in rows or ():
+        tokens = str(line).split()
+        for index, token in enumerate(tokens):
+            if token.upper() == "S" and len(tokens) - index >= 3:
+                return True
+    return False
+
+
 def normalize_gaussian_dispersion(value):
     """Return the Gaussian-native empirical-dispersion value."""
 

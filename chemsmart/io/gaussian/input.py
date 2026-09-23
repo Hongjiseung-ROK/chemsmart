@@ -58,6 +58,40 @@ class Gaussian16Input(GaussianFileMixin):
         return cb
 
     @property
+    def jobtype(self):
+        """What this written input asks Gaussian to do, read as its log is.
+
+        The route alone cannot say.  ``opt=modredundant`` is written for a
+        relaxed scan and for a constrained optimisation alike, and a
+        fixed-geometry response calculation carries no job keyword, so the
+        route-word chain calls a scan ``modred`` and a TD input ``sp``.
+        That made every Agent preview of a Gaussian scan red --
+        ``preview.semantic.mismatch``, jobtype expected 'scan', observed
+        'modred' -- on an input that was correct, with no project setting
+        able to change it (ORCA's input reader had the same defect,
+        9961af6a4).  The rows this input writes decide a scan and the
+        route's response keyword decides a response, by the functions the
+        completed log's reader uses, so a preview and a result cannot
+        classify one calculation two ways.
+        """
+
+        from chemsmart.io.gaussian.route import (
+            modredundant_rows_drive_a_scan,
+            route_requests_response,
+        )
+
+        route_jobtype = super().jobtype
+        if route_jobtype == "modred" and modredundant_rows_drive_a_scan(
+            self.modredundant_group
+        ):
+            return "scan"
+        if route_jobtype == "sp" and route_requests_response(
+            self.route_string
+        ):
+            return "td"
+        return route_jobtype
+
+    @property
     def modredundant_group(self):
         """
         Get the modredundant coordinates group if present.
