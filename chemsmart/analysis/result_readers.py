@@ -5863,6 +5863,15 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 # relaxes, so the run ends on one converged structure, and
                 # the scan family is absent because no coordinate was
                 # driven.
+                #
+                # No Gibbs energy is declared here, for the reason ORCA's
+                # modred gives: a constrained optimum is stationary only
+                # orthogonal to what it held, so the free energy Gaussian
+                # prints after one belongs to no stationary point. The
+                # archived fe_ch_quintet_modred_link.log printed a
+                # "Sum of electronic and thermal Free Energies" beside a
+                # -1380 cm-1 mode it silently left out, and this
+                # declaration served that number as gibbs_free_energy.
                 "modred",
                 (
                     "ab_initio",
@@ -5876,7 +5885,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energy",
                     "functional",
                     "gap",
-                    "gibbs_free_energy",
                     "hirshfeld_atomic_charges",
                     "homo",
                     "ir_intensities",
