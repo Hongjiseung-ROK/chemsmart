@@ -123,7 +123,10 @@ Every `about_*` name, advisory-document id and the words skill /
 advisory knowledge / knowledge entry are replaced by `[reference]` in
 every arm. Packet ids are random; the packet-to-arm mapping file's
 sha256 is committed here before any packet reaches a grader, and the
-mapping stays with me until grading is returned.
+mapping stays with me until grading is returned. Four sessions, drawn
+with the seed, appear twice under different ids, so the grader's
+agreement with itself is measured rather than assumed; only the first
+copy of each enters the tests.
 
 **Grading (by the grader the master commissions; nothing in the product
 grades).** Per packet, against its question's sealed rubric:

@@ -1,6 +1,6 @@
 ---
 name: method-adequacy
-version: 0.2.0
+version: 0.2.1
 description: Whether a method, basis set, dispersion treatment, solvation model or conformer sample can resolve the effect a question asks about - effect size against the method's own error, which errors cancel in a comparison, the traps of charged and open-shell species, and how to state the uncertainty and its dominant source.
 ---
 
@@ -152,7 +152,13 @@ underestimates charge-transfer and Rydberg excitation energies; a
 range-separated functional, and diffuse functions for the Rydberg case, address
 them. States of double-excitation character are absent from linear response
 entirely, and a state whose character changes along a coordinate can change
-its root index.
+its root index. In solution, a vertical excitation sees only the solvent's
+fast electronic polarisation — non-equilibrium solvation, set by the optical
+dielectric constant, the square of the refractive index — while a relaxed state
+sees the full static response. Which regime and which dielectric constants a
+calculation applied are part of its result, read from the result: a solvent
+shift computed in the wrong regime, or with another solvent's constants, is not
+that solvent's shift.
 
 **Multireference character.** Single-reference methods assume one dominant
 electron configuration. Stretched bonds, diradicals, many transition-metal
