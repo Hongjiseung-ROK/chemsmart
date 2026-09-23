@@ -254,6 +254,59 @@ pre-registered success condition holds: milestone A's live path is
 exercised. Three stability selectors are recorded in release.json
 (920345ea).
 
+## Acceptance hold (master's boundary probe on 0adf6c27) and its repair
+
+The probe declared `reference-stability` (unit category), claimed the
+verdict word and the po3 distance, and recorded one answering finding:
+- A. rests on verdict == 'stable_under_considered_perturbations': passed.
+  Correct.
+- B. rests only on distance < 1.6, says "stable": passed. A stability
+  verdict was delivered on a bond distance.
+- C. rests on verdict == 'stable...', says "UNSTABLE": passed. The
+  delivered answer contradicted the relation the host checked.
+In B and C "the host completion gate certified the delivery" was false.
+
+Rule now (relation layer, the smallest owning one): a declared category
+is answered only through an `==` relation that holds over a word the
+program printed (a text claim). The finding verifier refuses any other
+answer with `finding.answers_through_a_word_the_host_read`; the finding
+receipt carries `answer` -- the host's words, each with its claim,
+extraction selector and receipt -- and nothing else delivers the
+category (completion gate, shared predicate, workspace record, goal
+grain). The completion event names what it certified
+(`declared_categorical_answers`), and the settlement states
+"<id> = '<word>' (read by the host: <selector> on <receipt8>)" before
+the session's sentence, which is labelled its interpretation. A finding
+recorded before this rule, answering without words, answers nothing.
+
+Witnesses (public path: host tools over real archived files, then
+completion and run_goal_loop): probe B and probe C, both red on
+0adf6c27 and green on the repair.
+
+gdev1 replay (provider-free, the woken session's recorded calls
+re-dispatched in order through a host seeded as run_live_agent_session
+seeds one, over the fetched result and sibling receipts, digests verified
+17fa1c94.../ac5abff5...): every call's outcome equals the recording --
+the word under the declared id refused by
+claim.a_word_delivers_no_declared_number, the first decision refused by
+the functional-convention gate, the second accepted -- and the completion
+passes with no limitation: rks-stability-verdict = 'unstable', read by
+scf_stability_external via claim rks-stab-external-word. The rule is a
+strict tightening that gdev1 passes; no re-run.
+
+Residual, stated: the host checks that the answer is a word it read and
+names the selector; it does not judge whether that selector's word is
+the right kind of answer to the question (as it does not judge which
+energy answers a declared energy beyond dimension). A declaration that
+names its answering selectors would close that at the cost of a new
+required declaration field; gdev1's declaration names none and would
+not have passed.
+
+Doubt link from a finding (dev-d2-phen): left. The typed route exists
+(`doubt:<receipt>` in the decision's evidence), the session did not use
+it, and a second route that lets a finding move the completion status
+has no evidence behind it yet.
+
 ## Status
 
 - 2026-09-24: read CONDUCT.md, the four charter topics, both public
