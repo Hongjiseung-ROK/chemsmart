@@ -32,6 +32,7 @@ from chemsmart.io.molecules.perception import (
 
 __all__ = [
     "DECLARED_SELECTORS",
+    "PRINTED_THERMOCHEMISTRY_CONVENTIONS",
     "RESULT_READERS",
     "MissingQuantityError",
     "ResultReaderV1",
@@ -3280,6 +3281,35 @@ def _xtb_state_integer(attribute: str) -> Callable[[Any], int]:
     return _read
 
 
+#: What a program's own printed free energy is, in the host's terms, for the
+#: readers that serve one under ``gibbs_free_energy``.  Each sentence was
+#: measured, not recalled: oracle O1 (R10 Q5, CUHK Slurm 2149853/2149909)
+#: re-derived every printed value from the same program's frequencies.
+#: Gaussian 16's equals the host's RRHO derivation with Gaussian's own
+#: symmetry number to <= 5e-7 Eh over ten molecules -- and that number was
+#: 1 for a C3v NH3. xTB 6.7.1's equals the host's Grimme derivation with a
+#: 50 cm-1 cutoff and alpha 4 to within 0.005 kcal/mol for nine closed-shell
+#: molecules, and sits RT ln 2 = 0.41 kcal/mol above it for doublet NO2: it
+#: carries no electronic spin-degeneracy entropy.  ORCA's printed value
+#: (Grimme, 100 cm-1) is not served at all; its reader says why.
+PRINTED_THERMOCHEMISTRY_CONVENTIONS: Mapping[str, str] = {
+    "gaussian": (
+        "Gaussian's printed free energy: harmonic (RRHO), ideal gas at the "
+        "temperature and pressure the route set (298.15 K and 1 atm unless "
+        "it said otherwise), Gaussian's own rotational symmetry number, "
+        "imaginary modes left out"
+    ),
+    "xtb": (
+        "xTB's printed free energy: modified RRHO (Grimme's free-rotor "
+        "interpolation below xTB's rotor cutoff, 50 cm-1 by default), "
+        "298.15 K unless set, xTB's own rotational symmetry number (its "
+        "symmetry search tolerates 0.1 A), and no electronic "
+        "spin-degeneracy entropy -- an open shell sits RT ln(multiplicity) "
+        "above the host's derivation"
+    ),
+}
+
+
 def _xtb_gibbs(output: Any) -> float:
     """xTB prints G only when a Hessian ran; None is an absent quantity."""
 
@@ -5863,6 +5893,15 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 # relaxes, so the run ends on one converged structure, and
                 # the scan family is absent because no coordinate was
                 # driven.
+                #
+                # No Gibbs energy is declared here, for the reason ORCA's
+                # modred gives: a constrained optimum is stationary only
+                # orthogonal to what it held, so the free energy Gaussian
+                # prints after one belongs to no stationary point. The
+                # archived fe_ch_quintet_modred_link.log printed a
+                # "Sum of electronic and thermal Free Energies" beside a
+                # -1380 cm-1 mode it silently left out, and this
+                # declaration served that number as gibbs_free_energy.
                 "modred",
                 (
                     "ab_initio",
@@ -5876,7 +5915,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energy",
                     "functional",
                     "gap",
-                    "gibbs_free_energy",
                     "hirshfeld_atomic_charges",
                     "homo",
                     "ir_intensities",

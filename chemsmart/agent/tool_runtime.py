@@ -288,8 +288,10 @@ from chemsmart.analysis.quantity_expressions import (
     convert_normalized_value,
     expression_level_observations,
     expression_node_from_plan,
+    expression_thermochemical_convention_observations,
     normalize_numeric_value,
     quantity_expression_receipt_from_record,
+    thermochemical_convention,
     unit_dimension,
 )
 from chemsmart.analysis.result_quantities import (
@@ -304,6 +306,7 @@ from chemsmart.analysis.result_quantities import (
     thermochemistry_receipt_from_record,
 )
 from chemsmart.analysis.result_readers import (
+    PRINTED_THERMOCHEMISTRY_CONVENTIONS,
     atom_resolved_selector_metadata,
     reader_for,
     registered_reader_programs,
@@ -16907,6 +16910,23 @@ class CommandCompiledToolHostV1:
                         if character.isalnum()
                     )
 
+                def _method_token(value: Any) -> str:
+                    # The route reader writes an empirical dispersion into
+                    # the functional word ("b3lyp-d3bj") while a project
+                    # states the two apart, so every Gaussian run with a
+                    # dispersion was typed failed_native on
+                    # gaussian.result.method_mismatch: R10 Q5 goal g1
+                    # (CUHK 2149940), three normally terminated
+                    # B3LYP-D3(BJ) optimisations. The method is compared
+                    # without the suffix on either side.
+                    return _level_token(
+                        re.sub(
+                            r"-(?:d2|d3|d3bj|d3zero|d4)$",
+                            "",
+                            str(value or "").casefold(),
+                        )
+                    )
+
                 expected_method = next(
                     (
                         requested.get(field)
@@ -17062,9 +17082,9 @@ class CommandCompiledToolHostV1:
                                 findings.append(
                                     "gaussian.result.transitions_missing"
                                 )
-                        if expected_method is not None and _level_token(
+                        if expected_method is not None and _method_token(
                             output.method
-                        ) != _level_token(expected_method):
+                        ) != _method_token(expected_method):
                             findings.append("gaussian.result.method_mismatch")
                         expected_basis = requested.get("basis")
                         if expected_basis is not None and _level_token(
@@ -17693,6 +17713,34 @@ class CommandCompiledToolHostV1:
                 native_evidence=receipt.native_evidence,
             )
         )
+        # A program's printed free energy is that program's quantity, not
+        # the host's: say which one it is where it is read, so the session
+        # never has to know a program's thermochemistry conventions.
+        printed = tuple(
+            {
+                "kind": "printed_thermochemistry",
+                "quantity_id": quantity_id,
+                "selector": selector,
+                "program": receipt.program,
+                "meaning": (
+                    PRINTED_THERMOCHEMISTRY_CONVENTIONS.get(
+                        receipt.program, f"{receipt.program}'s own"
+                    )
+                    + ". derive_thermochemistry derives the host's from "
+                    "the same frequencies under the conventions its "
+                    "receipt states"
+                ),
+            }
+            for quantity_id, selector in sorted(
+                self.quantity_extraction_bindings[
+                    receipt.receipt_sha256
+                ].items()
+            )
+            if selector in {"gibbs_free_energy", "entropy_times_temperature"}
+            and any(
+                item.quantity_id == quantity_id for item in receipt.quantities
+            )
+        )
         self._emit(
             turn_id,
             EventKind.RESULT_QUANTITIES_EXTRACTED,
@@ -17706,7 +17754,10 @@ class CommandCompiledToolHostV1:
                 receipt.receipt_sha256
             ],
             record=record,
+            **({"observations": printed} if printed else {}),
         )
+        if printed:
+            self._reply_observations = printed
         return receipt
 
     def _derive_thermochemistry(self, turn_id: str, values: dict) -> Any:
@@ -17904,6 +17955,26 @@ class CommandCompiledToolHostV1:
                 for dependency in receipt.output_dependencies
                 for digest in dependency.source_receipt_sha256s
             },
+        )
+        # The level says which Hamiltonian a number came from; a free
+        # energy also carries a treatment, a temperature and a standard
+        # state, which only the receipt it was read from can say.
+        level_observations += (
+            expression_thermochemical_convention_observations(
+                request,
+                {
+                    str(item["input_id"]): thermochemical_convention(
+                        self.thermochemistry_receipts.get(
+                            str(item["receipt_sha256"])
+                        )
+                        or self.quantity_extractions.get(
+                            str(item["receipt_sha256"])
+                        ),
+                        str(item["quantity_id"]),
+                    )
+                    for item in values["inputs"]
+                },
+            )
         )
         self._emit(
             turn_id,
