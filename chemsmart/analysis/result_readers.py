@@ -485,6 +485,42 @@ def _orca_excitation_energies(output: Any) -> list[float]:
     return [float(item) for item in output.excitation_energies_eV]
 
 
+def _orca_absorption_per_state(output: Any, key: str) -> list[float]:
+    """One absorption-table value per state, in ``excitation_energies`` order.
+
+    ORCA prints its ``STATE`` table singlets first and triplets after,
+    which is the order ``excitation_energies`` serves, and its absorption
+    table in energy order, so for a singlet_triplet run the two lists were
+    not parallel: acrolein's bright S2 (6.536 eV) was served beside
+    f = 0 and its T2 (3.196 eV) beside f = 0.381 (CUHK Slurm 2150076).
+    Each state is paired with the absorption row that names it -- the
+    row's ``N-MA`` label is the state's manifold root and multiplicity --
+    so the i-th strength belongs to the i-th energy, as it does in every
+    other program's reader.
+    """
+
+    records = list(output.excited_state_records or ())
+    rows = list(output.electronic_absorption_transition_records or ())
+    if not records:
+        # A spectrum-only fragment: the table is the only record, in the
+        # order the energies fall back to as well.
+        return [float(row[key]) for row in rows]
+    by_state = {
+        (row["manifold_root"], row["multiplicity"]): row for row in rows
+    }
+    values = []
+    for record in records:
+        row = by_state.get((record["manifold_root"], record["multiplicity"]))
+        if row is None:
+            raise MissingQuantityError(
+                "ORCA printed no electric-dipole absorption row for root "
+                f"{record['manifold_root']} of multiplicity "
+                f"{record['multiplicity']}"
+            )
+        values.append(float(row[key]))
+    return values
+
+
 def _last_spin_square(output: Any, key: str | None = None) -> float:
     """Return the last printed ``<S^2>``, or say why the run has none.
 
@@ -2684,13 +2720,13 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             # step 2 of 12 and no tool could state either number.
             "scan_steps_reached": _scan_steps_reached,
             "scan_steps_planned": _scan_steps_planned,
-            "absorption_wavelengths": lambda output: [
-                float(item) for item in output.absorption_wavelengths
-            ],
+            "absorption_wavelengths": lambda output: (
+                _orca_absorption_per_state(output, "wavelength_nm")
+            ),
             "excitation_energies": _orca_excitation_energies,
-            "oscillator_strengths": lambda output: [
-                float(item) for item in output.oscillator_strengths
-            ],
+            "oscillator_strengths": lambda output: (
+                _orca_absorption_per_state(output, "oscillator_strength")
+            ),
             "excited_state_indices": lambda output: [
                 int(item["state_index"])
                 for item in output.excited_state_records
