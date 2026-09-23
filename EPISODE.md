@@ -248,9 +248,13 @@ equal on a270eca6).
 | job | slot | what | pre-registration | outcome |
 |---|---|---|---|---|
 | 2149579 | r10-q3-a | batch-dev1: D1 in C, B, A; D3 in C (dev, provider-only) | e7f1723f7b06 | COMPLETED; 4 sessions, exit 0, waiting_for_approval each |
+| 2149677 | r10-q3-a | sealed1: the 48 sealed sessions (provider-only), plan 06ac7515 | 34a1e57ab05a | running; the job verified both code digests (d3652db7 = 292b9bf3, cdfd90c9 = 64fc0ca1), all 52 sealed files and the plan digest before the first session |
 
 ## Status
 
-Phase 2: the sealed run (plans/sealed1, 48 sessions, strictly sequential,
-one slot job) is being submitted. Then: packets, the mapping digest
-committed here, hand-back "packets ready". Grading is the master's.
+Phase 2: waiting on job 2149677 (the sealed run, plans/sealed1, 48
+sessions, strictly sequential; about 6-7 h). Then: infrastructure check of
+every session (zero provider turns or a provider error before any
+scientific call is re-issued once in a continuation job), packets, the
+mapping digest committed here, hand-back "packets ready". Grading is the
+master's.
