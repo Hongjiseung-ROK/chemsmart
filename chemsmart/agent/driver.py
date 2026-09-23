@@ -484,6 +484,7 @@ def _settle_from_delivery(
         ),
         goal_delivered_ids=_goal_delivered_ids(workspace, goal_id),
         declared_observables=_first_declarations(ledger),
+        goal_findings=_goal_findings(workspace, goal_id),
     )
     evidence = _settlement_evidence(delivery)
     # What the goal declared and has not delivered under its id in any
@@ -1385,6 +1386,43 @@ def _goal_delivered_ids(
                     "sufficiency": entry.get("sufficiency"),
                 }
     return delivered
+
+
+def _goal_findings(
+    workspace: Path | None, goal_id: str
+) -> tuple[dict[str, Any], ...]:
+    """Every finding this goal's sessions recorded, from the record.
+
+    A finding written in one cycle is settled on in another: a session
+    that reads a run, records what it found and plans the next stage
+    hands the settlement a run stream that carries no decision. The
+    record keeps each finding; the latest statement of an id stands and
+    a supersession retires the id it names.
+    """
+
+    if workspace is None:
+        return ()
+    by_id: dict[str, dict[str, Any]] = {}
+    for entry in read_workspace_record(workspace):
+        if entry.get("kind") != "finding" or entry.get("goal_id") != goal_id:
+            continue
+        finding_id = str(entry.get("finding_id") or "")
+        receipt = str(entry.get("finding_receipt_sha256") or "")
+        if not finding_id or not receipt:
+            continue
+        by_id[finding_id] = {
+            "finding_id": finding_id,
+            "receipt_sha256": receipt,
+            "statement": str(entry.get("statement") or ""),
+            "answers_observable_id": str(entry.get("claim_id") or ""),
+            "standing": str(entry.get("standing") or ""),
+            "host_signals": tuple(entry.get("host_signals") or ()),
+            "supersedes_finding_id": str(
+                entry.get("supersedes_finding_id") or ""
+            ),
+            "cycle": int(entry.get("cycle") or 0),
+        }
+    return tuple(by_id.values())
 
 
 def _required_declared_ids(ledger: GoalLedger) -> tuple[str, ...]:
@@ -2406,6 +2444,7 @@ def _analysis_delivery(
     flagged_artifact_sha256s: Sequence[str] = (),
     failed_artifact_sha256s: Sequence[str] = (),
     inherited_unreachable: Mapping[str, str] = {},
+    goal_findings: Sequence[Mapping[str, Any]] = (),
 ) -> _AnalysisDelivery:
     """Read the delivery facts a settlement stands on.
 
@@ -2479,7 +2518,25 @@ def _analysis_delivery(
     last_plan_refusal = ""
     terminal_reason = ""
     anomaly_ids: tuple[str, ...] = ()
-    findings_by_id: dict[str, dict[str, Any]] = {}
+    # The goal's earlier findings first, from the record; this stream's
+    # own statement of an id comes after and stands.
+    findings_by_id: dict[str, dict[str, Any]] = {
+        str(row.get("finding_id") or ""): {
+            "finding_id": str(row.get("finding_id") or ""),
+            "receipt_sha256": str(row.get("receipt_sha256") or ""),
+            "statement": str(row.get("statement") or ""),
+            "answers_observable_id": str(
+                row.get("answers_observable_id") or ""
+            ),
+            "standing": str(row.get("standing") or ""),
+            "host_signals": tuple(row.get("host_signals") or ()),
+            "supersedes_finding_id": str(
+                row.get("supersedes_finding_id") or ""
+            ),
+        }
+        for row in goal_findings
+        if row.get("finding_id") and row.get("receipt_sha256")
+    }
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -2986,8 +3043,9 @@ def _analysis_delivery(
 def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
     """Receipts a settlement cites, from the session's own stream."""
 
+    evidence: dict[str, Any] = {}
     if delivery.decisions and delivery.receipt_sha256s:
-        evidence: dict[str, Any] = {
+        evidence = {
             "scientific_decisions": delivery.decisions,
             "receipt_sha256s": delivery.receipt_sha256s,
         }
@@ -2995,15 +3053,7 @@ def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
             evidence["decision_uncertainties"] = (
                 delivery.decision_uncertainties
             )
-        if delivery.findings:
-            # Under every word, not only the one that names them: a
-            # conclusion the session bound to receipts is part of what
-            # the goal delivered whatever else the settlement says.
-            evidence["findings"] = tuple(
-                dict(row) for row in delivery.findings
-            )
-        return evidence
-    if delivery.anomaly_output_ids and delivery.receipt_sha256s:
+    elif delivery.anomaly_output_ids and delivery.receipt_sha256s:
         # An observation brings its own receipts. The executor's stream
         # never carries a decision, and a diverged pre-registration --
         # the session's expectation, scored by the completion receipt
@@ -3011,8 +3061,14 @@ def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
         # and handed it none: r9 g5 and r8 goal-irc2 delivered every
         # declared observable and returned to the human with a
         # contract error in place of the delivery.
-        return {"receipt_sha256s": delivery.receipt_sha256s}
-    return {}
+        evidence = {"receipt_sha256s": delivery.receipt_sha256s}
+    if delivery.findings:
+        # Under every word, not only the one that names them: a
+        # conclusion the session bound to receipts is part of what the
+        # goal delivered whatever else the settlement says -- including
+        # a settlement read off an executor's stream, which holds none.
+        evidence["findings"] = tuple(dict(row) for row in delivery.findings)
+    return evidence
 
 
 #: The goal's task text, kept beside its ledger so a resumed driver plans
@@ -4129,6 +4185,14 @@ class GoalDriver:
         self._record_dispositions()
         self._record_approaches()
         self._record_input_checks()
+        if terminal == "waiting_for_approval" and self.events_path is not None:
+            # A session that read results, claimed, found, and then
+            # planned the next stage delivered those rows as surely as one
+            # that stopped. Only a stopping session's stream was projected,
+            # so ino3-r12's cycle-2 claims (26 of them) reached no record
+            # and a finding written before a further run could not reach
+            # the settlement that run ends in.
+            self._record_workspace(self.events_path, "")
         if terminal != "waiting_for_approval":
             # No executable partition was planned. Either the session
             # delivered over registered results, refused with receipts,
@@ -5293,6 +5357,10 @@ class GoalDriver:
             goal_delivered_ids=_goal_delivered_ids(
                 self.workspace, self.goal_id
             ),
+            # The executor's stream holds no decision, so a finding the
+            # session recorded before this run reaches the word's
+            # reasons only through the record.
+            goal_findings=_goal_findings(self.workspace, self.goal_id),
         )
         self.rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
         if run_delivery.claims_rendered:

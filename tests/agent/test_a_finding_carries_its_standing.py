@@ -958,3 +958,71 @@ def test_the_ledger_keeps_the_results_a_sensor_flagged(tmp_path):
     )
     (anomaly,) = entry["payload"]["anomalies"]
     assert list(anomaly["flagged_artifact_sha256s"]) == [flagged]
+
+
+def test_a_finding_written_before_a_further_run_reaches_its_settlement(
+    tmp_path,
+):
+    """A session that reads results, records what it found and plans the
+    next stage ends waiting for approval, and the driver projected only
+    a stopping session's stream into the workspace record: ino3-r12's
+    cycle-2 claims (26) reached no record, and a finding written there
+    could not reach the settlement the next run ends in, whose executor
+    stream holds no decision."""
+
+    from chemsmart.agent.workspace_record import read_workspace_record
+
+    from .test_the_goal_loop_recovers_or_returns import (
+        _execute,
+        _review_payload,
+    )
+
+    build = tmp_path / "session-build"
+    host = _host(build / "events.jsonl", tmp_path / "session-workspace")
+    _measured_distance(host)
+    _decide(
+        host,
+        [
+            {
+                "finding_id": "product-files-transposed",
+                "statement": _TRANSPOSED,
+                "rests_on": [
+                    {
+                        "claim_id": "d-ester-c-benzyl-n",
+                        "relation": "<",
+                        "value": 1.6,
+                    }
+                ],
+            }
+        ],
+    )
+    rows = tuple(
+        json.loads(line)
+        for line in (build / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    )
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1", review=_review_payload(), wake_rows=rows
+            )
+        ],
+        executes=[_execute(tmp_path, failed=False, status="completed")],
+    )
+    assert result.settlement == "achieved", result.reasons
+    assert "product-files-transposed (not asked for)" in " ".join(
+        result.reasons
+    )
+    record = read_workspace_record(tmp_path / "ws")
+    assert any(
+        row.get("kind") == "claim"
+        and row.get("claim_id") == "d-ester-c-benzyl-n"
+        for row in record
+    )
+    assert any(
+        row.get("kind") == "finding"
+        and row.get("finding_id") == "product-files-transposed"
+        and row.get("standing") == "unrequested"
+        for row in record
+    )
