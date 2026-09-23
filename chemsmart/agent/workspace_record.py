@@ -380,6 +380,32 @@ def record_run(
                     "recorded_at": stamp,
                 }
             )
+        elif kind == "scientific_decision_recorded":
+            # A finding that answers a declared question is that
+            # question's delivery at goal grain, exactly as a claim row is
+            # a number's: a later cycle's settlement reads this record,
+            # not the stream the finding was written in.
+            for finding in payload.get("findings") or ():
+                if not isinstance(finding, Mapping):
+                    continue
+                answered = str(finding.get("answers_observable_id") or "")
+                if not answered:
+                    continue
+                entries.append(
+                    {
+                        "kind": "finding",
+                        "goal_id": goal_id,
+                        "cycle": int(cycle),
+                        "run": run,
+                        "claim_id": answered,
+                        "finding_id": str(finding.get("finding_id") or ""),
+                        "statement": str(finding.get("statement") or ""),
+                        "finding_receipt_sha256": str(
+                            finding.get("receipt_sha256") or ""
+                        ),
+                        "recorded_at": stamp,
+                    }
+                )
         elif kind == "analysis_claims_recorded":
             record = payload.get("record") or {}
             # The assessment travels with the number it judges. Without

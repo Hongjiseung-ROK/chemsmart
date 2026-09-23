@@ -260,6 +260,28 @@ def _achieved_word(
             "delivered in an earlier cycle: "
             + ", ".join(delivery.delivered_in_earlier_cycles),
         )
+    if delivery.findings:
+        # The session's conclusions in its own words, each on relations
+        # the host checked and on nothing else the host vouches for; a
+        # finding standing on a result a sensor had already flagged says
+        # which, because repeating a sensor is not a discovery.
+        provenance = provenance + tuple(
+            f"the session's finding {row.get('finding_id')}"
+            + (
+                f" (answers {row.get('answers_observable_id')})"
+                if row.get("answers_observable_id")
+                else " (not asked for)"
+            )
+            + f", its words, on relations the host checked: "
+            f"{row.get('statement')}"
+            + (
+                "; host anomalies already under its evidence: "
+                + ", ".join(row.get("host_signals") or ())
+                if row.get("host_signals")
+                else ""
+            )
+            for row in delivery.findings
+        )
     post_hoc = tuple(
         str(row.get("observable_id") or "")
         for row in delivery.prediction_rows
@@ -373,12 +395,39 @@ def _achieved_word(
             + ", ".join(delivery.flagged_quantity_ids),
         )
     if observed:
+        # A finding is the session's observation, not a sensor's: the
+        # word names both, and says whose each is.
+        sensed = tuple(
+            item for item in observed if not item.startswith("finding:")
+        )
+        found = tuple(item for item in observed if item.startswith("finding:"))
         return (
             "achieved_with_observations",
             (
-                "the host completion gate certified the delivery; the "
-                "host also recorded observations nobody asked for: "
-                + ", ".join(observed),
+                "the host completion gate certified the delivery; "
+                + "; ".join(
+                    part
+                    for part in (
+                        (
+                            (
+                                "the host also recorded observations nobody "
+                                "asked for: " + ", ".join(sensed)
+                            )
+                            if sensed
+                            else ""
+                        ),
+                        (
+                            (
+                                "the session recorded findings nobody asked "
+                                "for, on relations the host checked: "
+                                + ", ".join(found)
+                            )
+                            if found
+                            else ""
+                        ),
+                    )
+                    if part
+                ),
             )
             + provenance,
         )
@@ -1313,7 +1362,30 @@ def _goal_delivered_ids(
         return {}
     delivered: dict[str, dict[str, Any]] = {}
     for entry in read_workspace_record(workspace):
-        if entry.get("kind") != "claim" or entry.get("goal_id") != goal_id:
+        if entry.get("goal_id") != goal_id:
+            continue
+        if entry.get("kind") == "finding":
+            # A declared question the session answered with a finding;
+            # the shared predicate delivers only a category by it.
+            key = str(entry.get("claim_id") or "")
+            previous = delivered.get(key)
+            if key and (
+                previous is None
+                or int(entry.get("cycle") or 0)
+                >= int(previous.get("cycle") or 0)
+            ):
+                delivered[key] = {
+                    "cycle": int(entry.get("cycle") or 0),
+                    "run": entry.get("run"),
+                    "claim_id": key,
+                    "finding_id": entry.get("finding_id"),
+                    "statement": entry.get("statement"),
+                    "finding_receipt_sha256": entry.get(
+                        "finding_receipt_sha256"
+                    ),
+                }
+            continue
+        if entry.get("kind") != "claim":
             continue
         for id_field in ("claim_id", "quantity_id"):
             key = str(entry.get(id_field) or "")
@@ -2042,6 +2114,11 @@ class _AnalysisDelivery:
     #: settlement quoted that sentence into its reasons and said
     #: achieved (OPEN-2 ino3-qwen, 2026-09-07).
     sufficiency: tuple[Mapping[str, Any], ...] = ()
+    #: The session's standing findings in this stream: its sentence, the
+    #: question it answers if any, the receipt the host minted over the
+    #: relations it checked, and the host anomalies already under its
+    #: evidence. A conclusion that reached no reader was prose.
+    findings: tuple[Mapping[str, Any], ...] = ()
 
     @property
     def retired_observable_ids(self) -> frozenset[str]:
@@ -2425,6 +2502,7 @@ def _analysis_delivery(
     last_plan_refusal = ""
     terminal_reason = ""
     anomaly_ids: tuple[str, ...] = ()
+    findings_by_id: dict[str, dict[str, Any]] = {}
     try:
         lines = events_path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -2448,6 +2526,31 @@ def _analysis_delivery(
                 for item in payload.get("menu_route_dispositions") or ()
                 if isinstance(item, Mapping)
             )
+            # The session's findings, each a receipt the host minted over
+            # relations it checked. The latest statement of an id is the
+            # standing one; a supersession retires the id it names.
+            for item in payload.get("findings") or ():
+                if not isinstance(item, Mapping):
+                    continue
+                finding_id = str(item.get("finding_id") or "")
+                digest_of = str(item.get("receipt_sha256") or "")
+                if not finding_id or not digest_of:
+                    continue
+                findings_by_id[finding_id] = {
+                    "finding_id": finding_id,
+                    "receipt_sha256": digest_of,
+                    "statement": str(item.get("statement") or ""),
+                    "answers_observable_id": str(
+                        item.get("answers_observable_id") or ""
+                    ),
+                    "host_signals": tuple(
+                        str(signal)
+                        for signal in item.get("host_signals") or ()
+                    ),
+                    "supersedes_finding_id": str(
+                        item.get("supersedes_finding_id") or ""
+                    ),
+                }
             for item in payload.get("unreachable_observables") or ():
                 observable_id = str(item.get("observable_id") or "")
                 if not observable_id:
@@ -2811,7 +2914,35 @@ def _analysis_delivery(
         if isinstance(row, Mapping)
         and isinstance(row.get("sufficiency"), Mapping)
     )
+    # A finding answers the declared question it names, and one the task
+    # did not ask for is an observation the word carries under its own
+    # prefix -- the session's, on relations the host checked. Its receipt
+    # is the settlement's evidence like any other the stream minted.
+    retired_findings = {
+        row["supersedes_finding_id"]
+        for row in findings_by_id.values()
+        if row["supersedes_finding_id"]
+    }
+    standing_findings = tuple(
+        row
+        for finding_id, row in findings_by_id.items()
+        if finding_id not in retired_findings
+    )
+    answered_ids: set[str] = set()
+    for row in standing_findings:
+        receipts.append(row["receipt_sha256"])
+        if row["answers_observable_id"]:
+            answered_ids.add(row["answers_observable_id"])
+            claim_rows[row["answers_observable_id"]] = {
+                "finding_receipt_sha256": row["receipt_sha256"],
+                "finding_id": row["finding_id"],
+            }
+        else:
+            anomaly_ids = tuple(anomaly_ids) + (
+                f"finding:{row['finding_id']}:{row['receipt_sha256'][:8]}",
+            )
     return _AnalysisDelivery(
+        findings=standing_findings,
         ending=ending,
         terminal_reason=terminal_reason,
         sufficiency=carried + tuple(sufficiency_rows),
@@ -2841,6 +2972,7 @@ def _analysis_delivery(
                     for _receipt, quantity_id in claim_pairs
                     if quantity_id and quantity_id not in stale
                 }
+                | answered_ids
             )
         ),
         stale_quantity_ids=stale,
@@ -2879,6 +3011,13 @@ def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
         if delivery.decision_uncertainties:
             evidence["decision_uncertainties"] = (
                 delivery.decision_uncertainties
+            )
+        if delivery.findings:
+            # Under every word, not only the one that names them: a
+            # conclusion the session bound to receipts is part of what
+            # the goal delivered whatever else the settlement says.
+            evidence["findings"] = tuple(
+                dict(row) for row in delivery.findings
             )
         return evidence
     if delivery.anomaly_output_ids and delivery.receipt_sha256s:

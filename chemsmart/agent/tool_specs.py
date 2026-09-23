@@ -1142,7 +1142,11 @@ def _legacy_tool_definitions(
                                     "Unit the answer will be reported "
                                     "in, from the typed unit vocabulary "
                                     "(e.g. 'kcal/mol', 'eV', "
-                                    "'angstrom', '1' for a count)."
+                                    "'angstrom', '1' for a count), or "
+                                    "'category' when the answer is a word "
+                                    "or a relation -- which state, which "
+                                    "minimum, which isomer -- delivered "
+                                    "by a finding that answers it."
                                 ),
                             },
                             "meaning": {

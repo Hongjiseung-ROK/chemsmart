@@ -21,7 +21,11 @@ from chemsmart.agent._contracts import (
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 
-from .test_the_goal_loop_recovers_or_returns import _driver_after_run
+from .test_the_goal_loop_recovers_or_returns import (
+    _driver_after_run,
+    _loop,
+    _planning_session,
+)
 
 pytestmark = pytest.mark.capability("tool:record_scientific_decision")
 
@@ -496,3 +500,219 @@ def test_a_finding_survives_a_host_rebuilt_over_its_stream(tmp_path):
     resumed = _host(events, tmp_path / "workspace")
     assert digest in resumed.analysis_findings
     assert resumed._resolve_receipt(digest) is not None
+
+
+def _declare(host, observables):
+    return host.dispatch(
+        turn_id="t1",
+        tool_name="declare_requested_observable",
+        arguments={"observables": observables},
+    )
+
+
+@pytest.mark.capability("tool:declare_requested_observable")
+def test_a_question_whose_answer_is_a_word_is_declared_as_a_category(
+    tmp_path,
+):
+    host = _host(tmp_path / "events.jsonl", tmp_path / "workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "reference-stability",
+                "unit": "category",
+                "meaning": "whether the reference is stable",
+            }
+        ],
+    )
+    assert (
+        host.requested_observable_declarations["reference-stability"]["unit"]
+        == "category"
+    )
+    with pytest.raises(ContractError, match="has no expected_low"):
+        _declare(
+            host,
+            [
+                {
+                    "observable_id": "which-isomer",
+                    "unit": "category",
+                    "meaning": "which isomer the file holds",
+                    "expected_low": 1,
+                    "expected_high": 1,
+                    "expectation_basis": "a number is not a word",
+                }
+            ],
+        )
+    # An id declared as a count cannot be rebound to a category.
+    _declare(
+        host,
+        [{"observable_id": "n-imag", "unit": "1", "meaning": "a count"}],
+    )
+    with pytest.raises(ContractError, match="already bound"):
+        _declare(
+            host,
+            [
+                {
+                    "observable_id": "n-imag",
+                    "unit": "category",
+                    "meaning": "which kind of stationary point",
+                }
+            ],
+        )
+
+
+def _session_rows(tmp_path, *, answer: bool, unrequested: bool):
+    """A session that answered from results already in hand, written by
+    the host's own tools, finalised the way a live session is."""
+
+    build = tmp_path / "session-build"
+    host = _host(build / "events.jsonl", tmp_path / "session-workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "reference-stability",
+                "unit": "category",
+                "meaning": "whether the re-optimised reference is stable",
+            }
+        ],
+    )
+    _verdict_claim(host)
+    findings = []
+    if answer:
+        findings.append(
+            {
+                "finding_id": "reference-stable",
+                "statement": "The re-optimised reference is stable.",
+                "answers_observable_id": "reference-stability",
+                "rests_on": [
+                    {
+                        "claim_id": "stability-verdict",
+                        "relation": "==",
+                        "value": "stable_under_considered_perturbations",
+                    }
+                ],
+            }
+        )
+    if unrequested:
+        _measured_distance(host)
+        findings.append(
+            {
+                "finding_id": "product-files-transposed",
+                "statement": _TRANSPOSED,
+                "rests_on": [
+                    {
+                        "claim_id": "d-ester-c-benzyl-n",
+                        "relation": "<",
+                        "value": 1.6,
+                    }
+                ],
+            }
+        )
+    _decide(host, findings)
+    host.completion_receipts_for_delivered_claims()
+    return tuple(
+        json.loads(line)
+        for line in (build / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    )
+
+
+def test_a_finding_that_answers_a_declared_question_delivers_it(tmp_path):
+    """r9 g2-stability and r8 goal-ts: a question whose answer was a
+    word settled unreachable_from_evidence. Declared as a category and
+    answered by a finding resting on the word the host read, it is
+    delivered, and the completion and the settlement agree."""
+
+    rows = _session_rows(tmp_path, answer=True, unrequested=False)
+    completion = next(
+        row for row in rows if row["kind"] == "analysis_completion_evaluated"
+    )["payload"]
+    assert completion["status"] == "passed"
+    assert not completion.get("limitation_output_ids")
+    assert completion["declared_observable_join_fields"] == {
+        "reference-stability": "finding"
+    }
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session("live-1", terminal="complete", wake_rows=rows)
+        ],
+        executes=[],
+    )
+    assert result.settlement == "achieved", result.reasons
+    text = " ".join(result.reasons)
+    assert "the session's finding reference-stable" in text
+    assert "(answers reference-stability)" in text
+
+
+def test_an_unanswered_question_is_a_limitation_naming_the_route(tmp_path):
+    rows = _session_rows(tmp_path, answer=False, unrequested=False)
+    completion = next(
+        row for row in rows if row["kind"] == "analysis_completion_evaluated"
+    )["payload"]
+    assert completion["limitation_output_ids"] == [
+        "declared_observable:reference-stability"
+    ]
+    (miss,) = completion["declared_observable_misses"]
+    assert "answers_observable_id" in miss
+
+
+def test_a_finding_nobody_asked_for_rides_the_word_as_the_sessions(
+    tmp_path,
+):
+    """The settlement word never hides what the run found, and it says
+    whose each observation is: a sensor's, or the session's own finding
+    on relations the host checked."""
+
+    rows = _session_rows(tmp_path, answer=True, unrequested=True)
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session("live-1", terminal="complete", wake_rows=rows)
+        ],
+        executes=[],
+    )
+    assert result.settlement == "achieved_with_observations", result.reasons
+    assert (
+        "the session recorded findings nobody asked for" in result.reasons[0]
+    )
+    assert "finding:product-files-transposed" in result.reasons[0]
+    assert "(not asked for)" in " ".join(result.reasons)
+    from chemsmart.agent.goal import GoalLedger
+
+    ledger = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    )
+    settled = ledger.entries()[-1]["payload"]
+    by_id = {row["finding_id"]: row for row in settled["evidence"]["findings"]}
+    assert by_id["product-files-transposed"]["statement"] == _TRANSPOSED
+    assert by_id["product-files-transposed"]["receipt_sha256"] in (
+        settled["evidence"]["receipt_sha256s"]
+    )
+
+
+def test_a_finding_answers_its_question_at_goal_grain(tmp_path):
+    """A later cycle's settlement reads the workspace record, not the
+    stream the finding was written in."""
+
+    from chemsmart.agent.driver import _goal_delivered_ids
+    from chemsmart.agent.workspace_record import record_run
+
+    rows = _session_rows(tmp_path, answer=True, unrequested=False)
+    stream = tmp_path / "stream.jsonl"
+    stream.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
+    workspace = tmp_path / "goal-ws"
+    workspace.mkdir()
+    record_run(workspace, goal_id="g1", cycle=2, run_events_path=stream)
+    delivered = _goal_delivered_ids(workspace, "g1")
+    row = delivered["reference-stability"]
+    assert row["cycle"] == 2
+    assert row["finding_id"] == "reference-stable"
+
+    from chemsmart.agent.delivery import observable_is_delivered
+
+    category = {"observable_id": "reference-stability", "unit": "category"}
+    count = {"observable_id": "reference-stability", "unit": "1"}
+    assert observable_is_delivered(category, row)
+    assert not observable_is_delivered(count, row)

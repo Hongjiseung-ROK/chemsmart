@@ -3663,8 +3663,33 @@ class CommandCompiledToolHostV1:
                 raise ContractError(
                     "a declared observable requires one sentence of meaning"
                 )
+            # A question whose answer is a word or a relation -- is the
+            # reference stable, which minimum does this branch reach,
+            # which isomer is in this file -- is declared as a category
+            # and delivered only by a finding that answers it. It has no
+            # magnitude, so it carries no band, sign or tolerance.
+            categorical = unit.lower() == "category"
+            if categorical:
+                unit = "category"
+                for field in (
+                    "expected_sign",
+                    "expected_low",
+                    "expected_high",
+                    "required_tolerance",
+                    "method_resolution",
+                ):
+                    if item.get(field) not in (None, ""):
+                        raise ContractError(
+                            f"observable {observable_id!r} is a category: "
+                            f"its answer is a word or a relation and has "
+                            f"no {field}"
+                        )
             try:
-                dimension = unit_dimension(unit)
+                dimension = (
+                    (0, 0, 0, 0, 0, 0)
+                    if categorical
+                    else (unit_dimension(unit))
+                )
             except QuantityExpressionError as exc:
                 raise RoutedContractError(
                     gate="declaration.unit_is_in_the_typed_vocabulary",
@@ -3698,8 +3723,10 @@ class CommandCompiledToolHostV1:
                 None,
             )
             if existing is not None:
-                if tuple(existing["dimension"]) != tuple(
-                    int(value) for value in dimension
+                if (
+                    tuple(existing["dimension"])
+                    != tuple(int(value) for value in dimension)
+                    or (str(existing.get("unit")) == "category") != categorical
                 ):
                     raise ContractError(
                         f"declared observable {observable_id!r} is already "
@@ -4251,6 +4278,10 @@ class CommandCompiledToolHostV1:
             if getattr(record, "task_spec_sha256", "") != task_spec_sha256:
                 continue
             for claim in getattr(record, "claims", ()):
+                if getattr(claim, "data_kind", "") in TEXT_DATA_KINDS:
+                    # A word is dimensionless and delivers no declared
+                    # number, whatever id it carries.
+                    continue
                 for field in ("claim_id", "quantity_id"):
                     key = str(getattr(claim, field, "") or "")
                     if key:
@@ -4270,11 +4301,36 @@ class CommandCompiledToolHostV1:
         retired = superseded_observable_ids(
             tuple(self.requested_observable_declarations.values())
         )
+        answered = {
+            finding.answers_observable_id
+            for finding in self.analysis_findings.values()
+            if finding.task_spec_sha256 == task_spec_sha256
+            and finding.answers_observable_id
+        }
         misses = []
         limitations = []
         for observable_id, record in sorted(
             self.requested_observable_declarations.items()
         ):
+            if str(record.get("unit") or "") == "category":
+                # A question whose answer is a word or a relation is
+                # answered by a finding, never by a claim's dimension.
+                if observable_id in answered:
+                    self._declared_observable_join_fields[observable_id] = (
+                        "finding"
+                    )
+                    continue
+                if observable_id in retired:
+                    continue
+                misses.append(
+                    f"declared question {observable_id!r} (category) has "
+                    "no finding answering it; a finding in "
+                    "record_scientific_decision with answers_observable_id "
+                    f"{observable_id!r}, resting on claims this task "
+                    "rendered, delivers it"
+                )
+                limitations.append(f"declared_observable:{observable_id}")
+                continue
             delivered = claims_by_id.get(observable_id)
             if delivered is not None and delivered == _padded(
                 record["dimension"]
