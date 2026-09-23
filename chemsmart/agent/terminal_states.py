@@ -867,6 +867,20 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
                     ),
                     "values": dict(record.get("values") or {}),
                     "receipt_sha256": str(payload.get("receipt_sha256") or ""),
+                    # Which results the sensor flagged. The receipt names
+                    # them and this projection -- the only road from an
+                    # executed run to the goal ledger and every later
+                    # host -- dropped them, so no reader downstream could
+                    # join a claim or a finding to the flagged result:
+                    # gdev1 (Slurm 2149848) delivered its energy and its
+                    # stability finding from the very run the
+                    # reference-instability sensor flagged, and neither
+                    # the settlement nor the finding said so.
+                    "flagged_artifact_sha256s": tuple(
+                        str(item)
+                        for item in record.get("flagged_artifact_sha256s")
+                        or ()
+                    ),
                 }
             )
             event_hashes_by_node.setdefault(node_id, []).append(

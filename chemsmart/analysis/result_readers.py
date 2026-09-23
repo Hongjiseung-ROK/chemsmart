@@ -6819,10 +6819,25 @@ def extract_logged_quantities(
             value = source_value
             unit = source_unit
             data_kind = "text_vector"
-        elif selector.selector in _TEXT_SELECTORS:
+        elif selector.selector in _TEXT_SELECTORS or isinstance(
+            source_value, str
+        ):
+            # A word the reader returned is a word, whichever list
+            # remembered to say so. PySCF's three stability words were
+            # declared dimensionless and never listed above, so every
+            # extraction of them died converting 'stable' to a float
+            # (r9 g2-stability, Slurm 2145043).
             value = source_value
             unit = source_unit
             data_kind = "text"
+        elif (
+            isinstance(source_value, (list, tuple))
+            and source_value
+            and all(isinstance(item, str) for item in source_value)
+        ):
+            value = source_value
+            unit = source_unit
+            data_kind = "text_vector"
         elif selector.selector in _INTEGER_SELECTORS:
             value = int(source_value)
             unit = "1"

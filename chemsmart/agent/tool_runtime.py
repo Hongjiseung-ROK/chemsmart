@@ -29,9 +29,14 @@ from chemsmart.agent._contracts import (
     require_sha256,
 )
 from chemsmart.agent.analysis_claims import (
+    TEXT_DATA_KINDS,
     AnalysisReportedQuantityV1,
+    FindingRelationError,
     analysis_claim_record_from_record,
+    analysis_finding_from_record,
     build_analysis_claim_record,
+    build_analysis_finding,
+    evaluate_finding_relation,
 )
 from chemsmart.agent.analysis_completion import (
     AnalysisCompletionPolicyV1,
@@ -2727,7 +2732,13 @@ class CommandCompiledToolHostV1:
             str, ScientificValidationReceiptV1
         ] = {}
         self.analysis_claim_records: dict[str, Any] = {}
+        #: The session's findings, keyed by the receipt the host minted
+        #: after checking the relations each rests on.
+        self.analysis_findings: dict[str, Any] = {}
         self._declared_observable_join_fields = {}
+        #: The words the host read that the last completion certified as
+        #: each declared category's answer.
+        self._declared_categorical_answers: dict[str, Any] = {}
         self._reply_observations: tuple[dict[str, Any], ...] = ()
         #: The current sufficiency assessment of each declared
         #: requirement, by observable id.
@@ -3022,6 +3033,14 @@ class CommandCompiledToolHostV1:
                     **values, record_sha256=receipt_sha256
                 )
                 self.scientific_decisions[receipt_sha256] = decision
+                for item in event.payload.get("findings") or ():
+                    if not isinstance(item, Mapping):
+                        continue
+                    finding = analysis_finding_from_record(
+                        item,
+                        receipt_sha256=str(item.get("receipt_sha256") or ""),
+                    )
+                    self.analysis_findings[finding.receipt_sha256] = finding
 
     def record_seeded_evidence(self, turn_id: str) -> None:
         """Persist host-prebound evidence before any model action."""
@@ -3649,8 +3668,33 @@ class CommandCompiledToolHostV1:
                 raise ContractError(
                     "a declared observable requires one sentence of meaning"
                 )
+            # A question whose answer is a word or a relation -- is the
+            # reference stable, which minimum does this branch reach,
+            # which isomer is in this file -- is declared as a category
+            # and delivered only by a finding that answers it. It has no
+            # magnitude, so it carries no band, sign or tolerance.
+            categorical = unit.lower() == "category"
+            if categorical:
+                unit = "category"
+                for field in (
+                    "expected_sign",
+                    "expected_low",
+                    "expected_high",
+                    "required_tolerance",
+                    "method_resolution",
+                ):
+                    if item.get(field) not in (None, ""):
+                        raise ContractError(
+                            f"observable {observable_id!r} is a category: "
+                            f"its answer is a word or a relation and has "
+                            f"no {field}"
+                        )
             try:
-                dimension = unit_dimension(unit)
+                dimension = (
+                    (0, 0, 0, 0, 0, 0)
+                    if categorical
+                    else (unit_dimension(unit))
+                )
             except QuantityExpressionError as exc:
                 raise RoutedContractError(
                     gate="declaration.unit_is_in_the_typed_vocabulary",
@@ -3684,8 +3728,10 @@ class CommandCompiledToolHostV1:
                 None,
             )
             if existing is not None:
-                if tuple(existing["dimension"]) != tuple(
-                    int(value) for value in dimension
+                if (
+                    tuple(existing["dimension"])
+                    != tuple(int(value) for value in dimension)
+                    or (str(existing.get("unit")) == "category") != categorical
                 ):
                     raise ContractError(
                         f"declared observable {observable_id!r} is already "
@@ -4237,6 +4283,10 @@ class CommandCompiledToolHostV1:
             if getattr(record, "task_spec_sha256", "") != task_spec_sha256:
                 continue
             for claim in getattr(record, "claims", ()):
+                if getattr(claim, "data_kind", "") in TEXT_DATA_KINDS:
+                    # A word is dimensionless and delivers no declared
+                    # number, whatever id it carries.
+                    continue
                 for field in ("claim_id", "quantity_id"):
                     key = str(getattr(claim, field, "") or "")
                     if key:
@@ -4256,11 +4306,54 @@ class CommandCompiledToolHostV1:
         retired = superseded_observable_ids(
             tuple(self.requested_observable_declarations.values())
         )
+        # The words the host read that answer each declared category, from
+        # the newest finding that answers it. A finding answers only
+        # through a word the host read (the finding verifier refuses any
+        # other), and those words -- never the finding's sentence -- are
+        # what this gate certifies as delivered.
+        answered: dict[str, tuple[Mapping[str, Any], ...]] = {}
+        for finding in self.analysis_findings.values():
+            if (
+                finding.task_spec_sha256 == task_spec_sha256
+                and finding.answers_observable_id
+                and finding.answer
+            ):
+                answered[finding.answers_observable_id] = tuple(
+                    {
+                        **dict(word),
+                        "finding_id": finding.finding_id,
+                        "finding_receipt_sha256": finding.receipt_sha256,
+                    }
+                    for word in finding.answer
+                )
         misses = []
         limitations = []
         for observable_id, record in sorted(
             self.requested_observable_declarations.items()
         ):
+            if str(record.get("unit") or "") == "category":
+                # A question whose answer is a word is answered by a word
+                # the host read, bound through a finding's relation, and
+                # never by a claim's dimension.
+                if observable_id in answered:
+                    self._declared_observable_join_fields[observable_id] = (
+                        "finding"
+                    )
+                    self._declared_categorical_answers[observable_id] = (
+                        answered[observable_id]
+                    )
+                    continue
+                if observable_id in retired:
+                    continue
+                misses.append(
+                    f"declared question {observable_id!r} (category) has "
+                    "no word the host read answering it; claim the word the "
+                    "program printed and record a finding with "
+                    f"answers_observable_id {observable_id!r} resting on "
+                    "'<that claim> == <the word>'"
+                )
+                limitations.append(f"declared_observable:{observable_id}")
+                continue
             delivered = claims_by_id.get(observable_id)
             if delivered is not None and delivered == _padded(
                 record["dimension"]
@@ -6499,6 +6592,24 @@ class CommandCompiledToolHostV1:
         dispositions = self._verify_menu_route_dispositions(
             values.get("menu_route_dispositions") or ()
         )
+        findings = self._verify_findings(
+            values.get("findings") or (),
+            task_spec_sha256=task_spec_sha256,
+            evidence_refs=evidence_refs,
+        )
+        if findings:
+            # The record's digest covers its findings, so the same prose
+            # with a corrected finding is a different decision and never
+            # an idempotency collision.
+            evidence_refs = tuple(
+                dict.fromkeys(
+                    evidence_refs
+                    + tuple(
+                        f"finding:{finding.receipt_sha256}"
+                        for finding in findings
+                    )
+                )
+            )
         record = build_scientific_decision_record(
             decision_id=values["decision_id"],
             task_spec_sha256=task_spec_sha256,
@@ -6518,6 +6629,12 @@ class CommandCompiledToolHostV1:
             extra["unreachable_observables"] = unreachable
         if dispositions:
             extra["menu_route_dispositions"] = dispositions
+        if findings:
+            for finding in findings:
+                self.analysis_findings[finding.receipt_sha256] = finding
+            extra["findings"] = tuple(
+                canonical_data(finding) for finding in findings
+            )
         self._emit(
             turn_id,
             EventKind.SCIENTIFIC_DECISION_RECORDED,
@@ -6527,6 +6644,20 @@ class CommandCompiledToolHostV1:
             record=record_body,
             **extra,
         )
+        if findings and not unreachable:
+            return {
+                **canonical_data(record),
+                **extra,
+                "finding_consequence": (
+                    "each finding stands in the completion, the "
+                    "settlement and the report as yours: the host "
+                    "checked its relations against the values it "
+                    "rendered and did not read its sentence. A finding "
+                    "that answers a declared question delivers it; one "
+                    "the task did not ask for is carried as an "
+                    "observation the word names"
+                ),
+            }
         if dispositions and not unreachable:
             return {**canonical_data(record), **extra}
         if unreachable:
@@ -6851,6 +6982,385 @@ class CommandCompiledToolHostV1:
             )
         return tuple(verified)
 
+    def _verify_findings(
+        self,
+        entries: Sequence[Mapping[str, Any]],
+        *,
+        task_spec_sha256: str,
+        evidence_refs: Sequence[str],
+    ) -> tuple[Any, ...]:
+        """Bind each of the session's findings to relations the host checks.
+
+        A conclusion had one typed home and it held numbers: a verdict
+        word, a relation between two structures, or something no task
+        asked about lived in prose, where the host could neither carry
+        it nor say what it stood on. r8 goal-ts wrote "descends to the
+        HNC side" into a refusal's statement; po3-r19's transposed
+        product files, the most useful thing that case produced, exist
+        only in a reply. A finding is the session's sentence plus the
+        relations it rests on, each over claims the host rendered: the
+        host evaluates every relation from its own values, refuses one
+        that does not hold with the values it read, and never reads the
+        sentence. A finding that restates a host anomaly says so.
+        """
+
+        if not entries:
+            return ()
+        claims: dict[str, tuple[Any, str]] = {}
+        for digest, record in self.analysis_claim_records.items():
+            if getattr(record, "task_spec_sha256", "") != task_spec_sha256:
+                continue
+            for claim in getattr(record, "claims", ()):
+                # Latest wins, as every other reader of a claim id.
+                claims[str(claim.claim_id)] = (claim, digest)
+        cited_anomalies = tuple(
+            str(reference)[len("anomaly:") :]
+            for reference in evidence_refs
+            if str(reference).startswith("anomaly:")
+        )
+        findings: list[Any] = []
+        seen: set[str] = set()
+        for entry in entries:
+            finding_id = str(entry.get("finding_id") or "").strip()
+            require_identifier(finding_id, "finding_id")
+            if finding_id in seen:
+                raise ContractError(
+                    f"finding {finding_id!r} is stated twice in one decision"
+                )
+            seen.add(finding_id)
+            statement = str(entry.get("statement") or "").strip()
+            if not statement:
+                raise ContractError(
+                    f"finding {finding_id!r} states no conclusion"
+                )
+            answers = str(entry.get("answers_observable_id") or "").strip()
+            if answers:
+                declaration = self.requested_observable_declarations.get(
+                    answers
+                )
+                if declaration is None:
+                    raise RoutedContractError(
+                        gate="finding.answers_a_declared_question",
+                        invariant=(
+                            "a finding answers only a question this goal "
+                            "declared."
+                        ),
+                        diagnosis=(
+                            f"{answers!r} is not among the declared "
+                            "observables "
+                            f"{sorted(self.requested_observable_declarations)}."
+                        ),
+                        route=(
+                            "declare the question first with "
+                            "declare_requested_observable in unit "
+                            "'category', or leave answers_observable_id "
+                            "empty for a finding the task did not ask for"
+                        ),
+                    )
+                if str(declaration.get("unit") or "") != "category":
+                    raise RoutedContractError(
+                        gate="finding.answers_a_categorical_question",
+                        invariant=(
+                            "a declared number is delivered by the claim "
+                            "of that number; a finding answers a question "
+                            "whose answer is a word or a relation."
+                        ),
+                        diagnosis=(
+                            f"{answers!r} is declared in "
+                            f"{declaration.get('unit')!r}."
+                        ),
+                        route=(
+                            "claim the number under the declared id; a "
+                            "question answered by a finding is declared in "
+                            "unit 'category'"
+                        ),
+                    )
+            relations: list[dict[str, Any]] = []
+            for item in entry.get("rests_on") or ():
+                claim_id = str(item.get("claim_id") or "").strip()
+                other_id = str(item.get("other_claim_id") or "").strip()
+                relation = str(item.get("relation") or "").strip()
+                for name in (claim_id, other_id):
+                    if name and name not in claims:
+                        raise RoutedContractError(
+                            gate="finding.rests_on_rendered_claims",
+                            invariant=(
+                                "a finding rests on values the host "
+                                "rendered, so every operand is a claim of "
+                                "this task."
+                            ),
+                            diagnosis=(
+                                f"no claim {name!r} is recorded on this "
+                                "task; claims: "
+                                f"{sorted(claims)[:24]}"
+                                + (" ..." if len(claims) > 24 else "")
+                                + "."
+                            ),
+                            route=(
+                                "claim the value first with "
+                                "record_analysis_claims -- a number, or a "
+                                "word the program printed -- and name that "
+                                "claim_id"
+                            ),
+                        )
+                left, left_record = claims[claim_id]
+                right, right_record = (
+                    claims[other_id] if other_id else (None, "")
+                )
+                try:
+                    row = evaluate_finding_relation(
+                        left,
+                        relation,
+                        left_record_sha256=left_record,
+                        right=right,
+                        right_record_sha256=right_record,
+                        literal=None if other_id else item.get("value"),
+                        literal_unit=str(item.get("unit") or ""),
+                    )
+                except FindingRelationError as exc:
+                    raise RoutedContractError(
+                        gate="finding.relation_is_evaluable",
+                        invariant=(
+                            "the host evaluates every relation a finding "
+                            "rests on from values it rendered."
+                        ),
+                        diagnosis=f"finding {finding_id!r}: {exc}.",
+                        route=(
+                            "compare two numbers of one dimension with "
+                            "<, <=, > or >=, or a word or a count with == "
+                            "or !=; a value you state is in the claim's "
+                            "display unit unless you give its unit"
+                        ),
+                    ) from None
+                if not row["holds"]:
+                    right_side = row["right"]
+                    other_text = (
+                        f"{right_side.get('claim_id')} = "
+                        f"{right_side.get('value_in_left_unit', right_side.get('value'))}"
+                        if "claim_id" in right_side
+                        else f"{right_side.get('value_in_left_unit', right_side.get('literal'))}"
+                    )
+                    raise RoutedContractError(
+                        gate="finding.rests_on_what_holds",
+                        invariant=(
+                            "a finding stands only on relations the host "
+                            "reads as true in the values it rendered."
+                        ),
+                        diagnosis=(
+                            f"finding {finding_id!r} rests on "
+                            f"{claim_id} {relation} {other_text}, and the "
+                            f"host reads {claim_id} = "
+                            f"{row['left']['value']!r} "
+                            f"{row['left']['unit']}".rstrip()
+                            + ", so the relation does not hold."
+                        ),
+                        route=(
+                            "state the relation the values support and "
+                            "restate the finding, or drop it; every number "
+                            "stays delivered either way"
+                        ),
+                    )
+                relations.append(row)
+            if not relations:
+                raise ContractError(
+                    f"finding {finding_id!r} rests on nothing the host can "
+                    "check: give rests_on at least one relation over a claim"
+                )
+            answer = (
+                self._categorical_answer(finding_id, answers, relations)
+                if answers
+                else ()
+            )
+            # What the evidence is, not what the session calls it: a
+            # finding every operand of which delivers a declaration
+            # restates or qualifies what was asked. The first
+            # development session typed its requested distance as a
+            # finding, and the word said it had observed something.
+            operands = [row["left"]] + [
+                row["right"] for row in relations if "claim_id" in row["right"]
+            ]
+            undeclared = [
+                operand
+                for operand in operands
+                if not self._declarations_for_claim(
+                    str(operand["claim_id"]), str(operand["quantity_id"])
+                )
+            ]
+            standing = (
+                "answers"
+                if answers
+                else ("unrequested" if undeclared else "on_the_request")
+            )
+            findings.append(
+                build_analysis_finding(
+                    task_spec_sha256=task_spec_sha256,
+                    finding_id=finding_id,
+                    statement=statement,
+                    relations=relations,
+                    standing=standing,
+                    answers_observable_id=answers,
+                    answer=answer,
+                    host_signals=self._host_signals_beneath(
+                        relations, cited_anomalies
+                    ),
+                    supersedes_finding_id=str(
+                        entry.get("supersedes_finding_id") or ""
+                    ).strip(),
+                )
+            )
+        return tuple(findings)
+
+    def _categorical_answer(
+        self,
+        finding_id: str,
+        observable_id: str,
+        relations: Sequence[Mapping[str, Any]],
+    ) -> tuple[dict[str, Any], ...]:
+        """The words the host read that answer a declared category.
+
+        A delivered categorical answer is a word the host read, bound to
+        the question through a relation that holds over the claim of that
+        word. The session's sentence is its interpretation and is shown
+        beside the word, never as the answer. A boundary probe of the
+        first version (the master's, on 0adf6c27) certified a stability
+        question answered by a finding resting only on a bond distance,
+        and a finding saying "UNSTABLE" over a relation that read
+        'stable': the completion's word was false both times.
+        """
+
+        answer: list[dict[str, Any]] = []
+        for row in relations:
+            left = row.get("left") or {}
+            if row.get("relation") != "==" or left.get("data_kind") != "text":
+                continue
+            source = str(left.get("source_receipt_sha256") or "")
+            quantity_id = str(left.get("quantity_id") or "")
+            receipt = self.quantity_extractions.get(source)
+            bindings = dict(getattr(receipt, "selector_bindings", ()) or ())
+            bindings = bindings or dict(
+                self.quantity_extraction_bindings.get(source) or {}
+            )
+            answer.append(
+                {
+                    "claim_id": str(left.get("claim_id") or ""),
+                    "word": left.get("value"),
+                    "selector": str(bindings.get(quantity_id) or ""),
+                    "source_receipt_sha256": source,
+                    "quantity_id": quantity_id,
+                }
+            )
+        if not answer:
+            read = "; ".join(
+                f"{(row.get('left') or {}).get('claim_id')} "
+                f"{row.get('relation')} "
+                f"({(row.get('left') or {}).get('data_kind')})"
+                for row in relations
+            )
+            raise RoutedContractError(
+                gate="finding.answers_through_a_word_the_host_read",
+                invariant=(
+                    "a declared category is answered by a word the host "
+                    "read, bound to it through an == relation that holds "
+                    "over the claim of that word; the finding's sentence is "
+                    "the session's interpretation, shown beside the word."
+                ),
+                diagnosis=(
+                    f"finding {finding_id!r} answers {observable_id!r} and "
+                    f"rests on {read}: none is an == over a word the "
+                    "program printed, so nothing the host read answers the "
+                    "question."
+                ),
+                route=(
+                    "claim the word the program printed with "
+                    "record_analysis_claims (its extraction's selector, "
+                    "e.g. scf_stability_external or irc_direction) and "
+                    "rest the answer on '<that claim> == <the word>'; keep "
+                    "the other relations as support, or record the finding "
+                    "without answers_observable_id -- a relation between "
+                    "numbers stands as a finding, and the number it rests "
+                    "on is delivered by its own claim"
+                ),
+            )
+        return tuple(answer)
+
+    def _host_signals_beneath(
+        self,
+        relations: Sequence[Mapping[str, Any]],
+        cited_anomalies: Sequence[str],
+    ) -> tuple[str, ...]:
+        """The anomalies the host already recorded under a finding's evidence.
+
+        What a sensor detected is the host's observation; an Agent that
+        repeats it has discovered nothing new. So each finding names the
+        anomalies standing on the results its claims were read from, and
+        the ones its decision cites, as ``signal:status:receipt8``.
+        """
+
+        artifacts: set[str] = set()
+        for row in relations:
+            for side in (row.get("left") or {}, row.get("right") or {}):
+                source = str(side.get("source_receipt_sha256") or "")
+                if source:
+                    artifacts |= self._artifacts_beneath(source)
+        records: list[Mapping[str, Any]] = [
+            dict(item) for item in self.prior_anomaly_observations
+        ]
+        records.extend(
+            canonical_data(receipt)
+            for receipt in self.anomaly_observations.values()
+        )
+        cited = set(cited_anomalies)
+        found: set[str] = set()
+        for record in records:
+            digest = str(record.get("receipt_sha256") or "")
+            flagged = {
+                str(item)
+                for item in record.get("flagged_artifact_sha256s") or ()
+            }
+            if digest in cited or (artifacts and flagged & artifacts):
+                found.add(
+                    f"{record.get('signal_id')}:{record.get('status')}:"
+                    f"{digest[:8]}"
+                )
+        return tuple(sorted(found))
+
+    def _artifacts_beneath(
+        self, receipt_sha256: str, seen: set[str] | None = None
+    ) -> set[str]:
+        """The result files a receipt's value was read from, through its
+        expression and validation sources."""
+
+        seen = set() if seen is None else seen
+        if not receipt_sha256 or receipt_sha256 in seen:
+            return set()
+        seen.add(receipt_sha256)
+        for registry in (
+            self.quantity_extractions,
+            self.thermochemistry_receipts,
+        ):
+            receipt = registry.get(receipt_sha256)
+            if receipt is not None:
+                artifact = str(getattr(receipt, "artifact_sha256", "") or "")
+                return {artifact} if artifact else set()
+        found: set[str] = set()
+        expression = self.quantity_expression_receipts.get(receipt_sha256)
+        if expression is not None:
+            for dependency in (
+                getattr(expression, "output_dependencies", ()) or ()
+            ):
+                for source in (
+                    getattr(dependency, "source_receipt_sha256s", ()) or ()
+                ):
+                    found |= self._artifacts_beneath(str(source), seen)
+            return found
+        validation = self.scientific_validation_receipts.get(receipt_sha256)
+        if validation is not None:
+            for source in (
+                getattr(validation, "source_receipt_sha256s", ()) or ()
+            ):
+                found |= self._artifacts_beneath(str(source), seen)
+        return found
+
     #: Every registry the host keys by a receipt digest it minted. A
     #: registry opts in here **by name**: reflection over ``__dict__``
     #: would make a private cache keyed by a digest into citable
@@ -6872,6 +7382,7 @@ class CommandCompiledToolHostV1:
     _RECEIPT_REGISTRY_NAMES = (
         "analysis_claim_records",
         "analysis_completion_receipts",
+        "analysis_findings",
         "anomaly_observations",
         "capabilities",
         "command_inspections",
@@ -11737,6 +12248,17 @@ class CommandCompiledToolHostV1:
                 "declared_observable_predictions": declared_predictions,
                 "declared_observable_join_fields": dict(
                     sorted(self._declared_observable_join_fields.items())
+                ),
+                # What the gate certified for each declared category: the
+                # words the host read, never the session's sentence.
+                **(
+                    {
+                        "declared_categorical_answers": dict(
+                            sorted(self._declared_categorical_answers.items())
+                        )
+                    }
+                    if self._declared_categorical_answers
+                    else {}
                 ),
                 "completion_kind": "scientific_toolchain",
                 "record": completion_record,
@@ -18269,6 +18791,76 @@ class CommandCompiledToolHostV1:
         row["uncertainty"] = restated
         return row
 
+    def _text_claim(
+        self,
+        item: Mapping[str, Any],
+        quantity: Any,
+        receipt_sha256: str,
+        source_kind: str,
+    ) -> AnalysisReportedQuantityV1:
+        """A claim of a word the program printed, copied as the host read it.
+
+        A word never delivers a declared number: every declaration is
+        judged by id and dimension, and a verdict word is dimensionless,
+        so a word claimed under a declared id would satisfy a declared
+        count or eigenvalue by coincidence of dimension. The route is a
+        finding that answers the question and rests on this word.
+        """
+
+        claim_id = str(item["claim_id"])
+        declared = self._declarations_for_claim(
+            claim_id, str(quantity.quantity_id)
+        )
+        if declared:
+            raise RoutedContractError(
+                gate="claim.a_word_delivers_no_declared_number",
+                invariant=(
+                    "a declared observable is delivered in its dimension, "
+                    "and a word the program printed has no magnitude to "
+                    "deliver."
+                ),
+                diagnosis=(
+                    f"{quantity.quantity_id!r} is the word "
+                    f"{quantity.value!r} and this claim carries the "
+                    "declared id "
+                    + ", ".join(
+                        repr(str(item.get("observable_id") or ""))
+                        for item in declared
+                    )
+                    + "."
+                ),
+                route=(
+                    "claim the word under an id of its own, then answer "
+                    "the question with a finding in "
+                    "record_scientific_decision that rests on it (for "
+                    "example, the claim == the word); a question whose "
+                    "answer is a word or a relation is declared in unit "
+                    "'category'"
+                ),
+            )
+        if (
+            item.get("uncertainty") is not None
+            or str(item.get("uncertainty_basis") or "").strip()
+            or item.get("uncertainty_components")
+        ):
+            raise ContractError(
+                f"{quantity.quantity_id!r} is a word; a word carries no "
+                "uncertainty"
+            )
+        return AnalysisReportedQuantityV1(
+            claim_id=claim_id,
+            source_kind=source_kind,
+            source_receipt_sha256=receipt_sha256,
+            quantity_id=quantity.quantity_id,
+            quantity_value_sha256=quantity.value_sha256,
+            display_value=canonical_data(quantity.value),
+            display_unit="",
+            canonical_value=canonical_data(quantity.value),
+            canonical_unit="",
+            dimension=tuple(quantity.dimension),
+            data_kind=quantity.data_kind,
+        )
+
     def _record_analysis_claims(self, turn_id: str, values: dict) -> Any:
         """Render reportable values from exact typed receipt outputs."""
 
@@ -18443,8 +19035,20 @@ class CommandCompiledToolHostV1:
                     f"{available}"
                 )
             quantity = matches[0]
-            if quantity.data_kind in {"text", "text_vector"}:
-                raise ContractError("analysis claims must be numerical")
+            if quantity.data_kind in TEXT_DATA_KINDS:
+                # A word the program printed -- a stability verdict, an
+                # IRC branch word -- is copied exactly as a number is:
+                # the host read it, the session only names it. It was
+                # refused here, so a verdict the reader served could
+                # ride a receipt and never a delivery: r9 g2-stability
+                # and r8 goal-ts settled unreachable_from_evidence over
+                # words the host itself had read.
+                claims.append(
+                    self._text_claim(
+                        item, quantity, receipt_sha256, source_kind
+                    )
+                )
+                continue
             display_unit = str(item["display_unit"])
             display_value = convert_normalized_value(
                 quantity.value, quantity.dimension, display_unit
