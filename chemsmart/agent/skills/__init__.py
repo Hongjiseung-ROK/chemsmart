@@ -125,9 +125,8 @@ def _load_document(path: Path, origin: str) -> SkillDocumentV1:
 def skills_enabled() -> bool:
     """Return whether domain-knowledge skills are surfaced to the agent.
 
-    Defaults to enabled. ``CHEMSMART_AGENT_SKILLS=0`` removes both the prompt
-    index and the ``consult_domain_skill`` tool for historical clients that
-    expect the smaller surface.
+    Defaults to enabled. ``CHEMSMART_AGENT_SKILLS=0`` removes the knowledge
+    entries from the catalogue and, with them, the prompt's index of them.
     """
 
     return os.environ.get("CHEMSMART_AGENT_SKILLS", "1").strip() not in (
@@ -195,12 +194,39 @@ def resolve_skills(
     return tuple(resolved)
 
 
+def advertised_skill_documents(
+    *, overlay_root: str | Path | None = None
+) -> tuple[SkillDocumentV1, ...]:
+    """The advisory documents a planning session is offered.
+
+    One function, because two organs ask it: the catalogue, which turns
+    each document into a reference entry the model can load, and the
+    prompt, which names those entries. Every skill all program packs
+    advertise is program-neutral, and that intersection is the whole set,
+    so no task text and no program name can change it.
+    """
+
+    if not skills_enabled():
+        return ()
+    # Imported here: the packs import this package's convention rules.
+    from chemsmart.agent.knowledge_packs import BUILTIN_PROGRAM_PACKS
+
+    advertised = [set(pack.skill_ids) for pack in BUILTIN_PROGRAM_PACKS]
+    if not advertised:
+        return ()
+    return resolve_skills(
+        tuple(sorted(set.intersection(*advertised))),
+        overlay_root=overlay_root,
+    )
+
+
 __all__ = [
     "BUILTIN_SKILL_ROOT",
     "CONVENTION_SCOPES",
     "DEFAULT_OVERLAY_ROOT",
     "DeterministicConventionRuleV1",
     "SkillDocumentV1",
+    "advertised_skill_documents",
     "available_skill_ids",
     "build_convention_rule",
     "resolve_skill",
