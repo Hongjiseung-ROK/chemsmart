@@ -67,13 +67,18 @@ its own empty workspace. Details and the agent's own words in §3.1.
    2.189 Å. Cycle 3 found it by re-measuring, cycle 4 reproduced the
    wrong numbers from the cross pairs to every digit to prove the
    diagnosis, and no energy or channel assignment changed.
-4. **A second self-caught error, in the uncertainty budget.** Cycle 5
-   delivered the vibrational-entropy term as **0.0** kcal/mol. Cycle 6
-   found the cause — its quasi-harmonic input never entered the
-   expression, so the quantity came back byte-identical to the harmonic
-   one — re-measured it at 0.3564 kcal/mol, and raised the stated total
-   from 1.1796 to **1.2323** kcal/mol. The final number is *less*
-   favourable than the one it replaced.
+4. **A second caught error, in the uncertainty budget -- the host's,
+   not the session's.** Cycle 5 delivered the vibrational-entropy term
+   as **0.0** kcal/mol. Cycle 6 found the symptom -- the quasi-harmonic
+   quantity came back byte-identical to the harmonic one -- re-measured
+   it at 0.3564 kcal/mol, and raised the stated total from 1.1796 to
+   **1.2323** kcal/mol. The final number is *less* favourable than the
+   one it replaced. *(Correction, 2026-09-24: this review first called
+   it a self-inflicted error. The mechanism was a host defect: the
+   planning schema offered only the harmonic kinds, so the session's
+   `quasi_harmonic_gibbs_free_energy` output was bound by the kind
+   `gibbs_free_energy`, which the host's derivation fills with the RRHO
+   value for every entropy method. Repaired in b40d583a.)*
 5. **`declared_observable_misses` at cycle 6.** The final completion
    receipt records that no cycle-6 claim carries the bare id
    `ddg-activation-regio-353k` — cycle 6 delivered it under level-named
@@ -736,8 +741,9 @@ own non-local (VV10) correlation, so adding D3BJ would double-count."
 Cycle 5's run: 4 engine calls, `validated`, 817.07 s (the DSD-BLYP single
 points cost 334–338 s each on a 30-atom system).
 
-Cycle 5 also introduced the entropy-term bug (§0.4) and delivered
-`u-entropy-model-kcal` = 0.
+Cycle 5 also delivered `u-entropy-model-kcal` = 0, through a host
+defect the session caught in cycle 6 (§0.4, mechanism corrected
+2026-09-24).
 
 ### 6.3 Cycle 6: the sign flips, and the refusal becomes arithmetic
 
