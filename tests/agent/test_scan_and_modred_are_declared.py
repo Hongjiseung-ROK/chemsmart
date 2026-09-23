@@ -58,7 +58,16 @@ def test_the_family_is_previewable_through_the_live_registry(program, jobtype):
 #: normally at ORCA's cycle limit unconverged, was read by its declared
 #: selectors and handed its structure to a saddle search; the owner ruled
 #: that run qualifying on 2026-09-23 and the release record says all of it.
-_QUALIFIED = {("orca", "scan"), ("orca", "modred")}
+#: Gaussian's scan and modred are admitted to approval for their first
+#: Agent runs (R10 Q7), after the Agent's previews of them were repaired
+#: (cb1acd9a, f412dac0); the release record of the run that earns each is
+#: what qualifies it, and the flag is withdrawn if the run does not.
+_QUALIFIED = {
+    ("orca", "scan"),
+    ("orca", "modred"),
+    ("gaussian", "scan"),
+    ("gaussian", "modred"),
+}
 
 
 @pytest.mark.parametrize("program", ("orca", "gaussian"))
