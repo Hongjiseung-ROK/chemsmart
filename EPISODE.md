@@ -81,8 +81,99 @@ only by the honest sentence and three deferred catalogue entries. (C's
 row is at a270eca6; the sealed arm commit's row is recorded when it is
 fixed.)
 
+## Pre-registration for the sealed questions (written before they are seen)
+
+**Delivery under test (arm C).** Pull only: the honest index sentence and
+three deferred catalogue entries, reached by the model's own search or by
+exact name. Nothing is pushed by the host and nothing reads the task
+text. Chosen because pull worked in both local dev sessions that could
+show it (D1, D2: each searched for adequacy knowledge by name and loaded
+it before its first project); the sealed run measures the pull rate
+instead of assuming it.
+
+**Sessions.** N = 16 questions x 3 arms x 1 session = 48 provider-only
+`chemsmart agent plan` sessions. Model `deepseek-v4-flash-0731` via
+`alibaba-token-plan` (cluster agent.yaml: reasoning_effort xhigh, 1M
+context), exposure mode host_search (the provider's own). Controller:
+CUHK compute node inside an r10-q3 slot job, CHEMSMART_CONFIG_DIR =
+/project/xlzhang/jiseung/r10/config, server CUHK (Gaussian 16 C.02, ORCA
+6.1.1, PySCF 2.14, xTB). Envelope `plans/envelope.yaml`: gaussian, orca,
+pyscf, xtb on cpu; 32 cores, 120 GB, 6 h per node, 10 h episode, 12
+engine calls. Code: pristine packs of 292b9bf3 (A) and the arm commit (B,
+C), digests verified in every job. Sessions run strictly one at a time;
+order: questions shuffled with `random.Random(20260924)`, and within each
+question the three arms in a permutation drawn from the same generator.
+Each session gets a fresh copy of its question's workspace, which holds
+one RDKit ETKDG/MMFF starting geometry per species the question names
+(hand-built where RDKit cannot place a metal), and nothing else.
+
+**Infrastructure.** A session with zero provider turns, or that ends on
+turn_deadline_exceeded or a provider error before any scientific tool
+call, is infrastructure, not behaviour: it is re-issued once; a second
+failure leaves its cell missing and the question drops out of the paired
+tests. A session that ran is never re-run, however weak.
+
+**Packets (blind).** `build_packets.py`: per session, the question, a
+mechanically extracted plan (identities, project settings, calculation
+and analysis stages, declared observables, terminal state), the Agent's
+public text in order, its scientific calls with arguments and a result
+status, host notices, and the final text. Never the system prompt, the
+context block, reasoning, search calls, schema loads or reference reads.
+Every `about_*` name, advisory-document id and the words skill /
+advisory knowledge / knowledge entry are replaced by `[reference]` in
+every arm. Packet ids are random; the packet-to-arm mapping file's
+sha256 is committed here before any packet reaches a grader, and the
+mapping stays with me until grading is returned.
+
+**Grading (by the grader the master commissions; nothing in the product
+grades).** Per packet, against its question's sealed rubric:
+- M, method adequacy of the planned route: 2 adequate; 1 defensible with
+  one consequential rubric item missing; 0 a rubric-listed inadequate
+  choice or its equivalent.
+- S, adequacy statement: 2 says whether the method resolves the effect
+  asked about and names the dominant limitation with its direction, as
+  the rubric's honest statement does; 1 a generic or partial caveat; 0
+  none, or confidence the method cannot support.
+- On a control question (a routine method is fully adequate): M = 2 for a
+  routine adequate route; S = 2 when it says why the routine method
+  suffices, 0 for a false alarm or a refusal; an unjustified escalation
+  is flagged O.
+- F flags a false statement of fact (invented provenance, a claimed
+  result that does not exist).
+
+**Tests (fixed now).** Primary: per question Q = M + S (0-4); paired
+difference C - B over questions with both cells; Wilcoxon signed-rank
+statistic (zero differences dropped, average ranks for ties) with its
+exact null by enumerating every sign assignment, two-sided, alpha 0.05;
+reported with the median and mean difference and the sign counts. Secondary: A - B on Q;
+M and S separately; O flags on controls, C against B; F flags. Mechanism
+(computed by me from events, never shown to the grader): per C session,
+which knowledge entries arrived, how (search / exact name), and whether
+`about_method_adequacy` arrived before the first accepted
+`project_yaml` establish or render; per A session, calls of names the
+host cannot serve and searches for the documents.
+
+**Falsifiers.**
+- Premise falsified: C - B median <= 0 with Wilcoxon p >= 0.2, while
+  `about_method_adequacy` arrived before the first level-fixing act in
+  >= 12 of 16 C sessions.
+- Delivery falsified, premise untested: that arrival in < 12 of 16 C
+  sessions.
+- Harm: more O flags on controls in C than in B plus one, or C's M below
+  B's on >= 3 questions.
+- Success: C - B > 0 with p < 0.05 and no harm.
+
+**Live goals (at most three; bands fixed before submission).** Chosen by
+a rule fixed now: among sealed questions whose rubric gives a reference
+value and whose adequate plan fits 12 engine calls and 10 h on 32 cores,
+the one where the B and C planning sessions differ in a rubric-relevant
+method setting (read mechanically from the plans, before grading); it
+runs once as a goal in arm B and once in arm C, and a third goal may run
+arm C on a control. Each goal's delivered value is graded on physics
+against the rubric's reference, with the band and the arm's expected
+failure written here, committed, before its `slot_submit`.
+
 ## Status
 
-Phase 1 (provider-free and dev): arms under construction; the
-pre-registration (N, grading, falsifiers) is written before the sealed
-questions are copied in.
+Phase 1 (provider-free and dev): pre-registration drafted; cluster dev
+batch pending; merge of r10-integration and the suite before hand-back.
