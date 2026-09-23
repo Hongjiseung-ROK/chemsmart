@@ -29,11 +29,11 @@
     {
       "kind": "program_jobtype",
       "id": "xtb:cpu:sp",
-      "status": "claimed",
-      "run": "",
+      "status": "recorded",
+      "run": "ax41-refine-100/production-close/design-round/workspace executions/tui-c5d36517a24c42ff95246e940256aafa",
       "commit": "",
-      "date": "",
-      "source": "AGENTS.md product boundary; multi-program qualification (xTB opt feeding ORCA/PySCF single points)"
+      "date": "2026-08-20",
+      "source": "A GFN2-xTB single point on water that the session planned, approved once in the terminal interface (the approval is consumed by the execution bundle's own record) and executed provider-free; the result was verified valid. A smoke-sized system: the record qualifies execution and reading of an xTB single point and says nothing about its chemistry. The run did not record the tree it ran on."
     },
     {
       "kind": "program_jobtype",
@@ -74,11 +74,11 @@
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:td",
-      "status": "claimed",
-      "run": "",
+      "status": "recorded",
+      "run": "ax41-refine-100/general-round/workspaces/c6-r1 goals/goal-c6-r1/runs/cycle-1",
       "commit": "",
-      "date": "",
-      "source": "AGENTS.md product boundary"
+      "date": "2026-08-29",
+      "source": "One live goal under the approval chain (owner-delegated): the session optimised formaldehyde and computed its vertical excitations with an ORCA td node (td-h2co) consuming the optimised geometry, executed provider-free; both results were verified valid, the workflow validated with its analysis chain, and the goal settled achieved. The run did not record the tree it ran on."
     },
     {
       "kind": "program_jobtype",
