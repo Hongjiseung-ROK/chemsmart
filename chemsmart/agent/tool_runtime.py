@@ -31,6 +31,7 @@ from chemsmart.agent._contracts import (
 from chemsmart.agent.analysis_claims import (
     AnalysisReportedQuantityV1,
     analysis_claim_record_from_record,
+    analysis_finding_from_record,
     build_analysis_claim_record,
 )
 from chemsmart.agent.analysis_completion import (
@@ -2725,6 +2726,9 @@ class CommandCompiledToolHostV1:
             str, ScientificValidationReceiptV1
         ] = {}
         self.analysis_claim_records: dict[str, Any] = {}
+        #: The session's findings, keyed by the receipt the host minted
+        #: after checking the relations each rests on.
+        self.analysis_findings: dict[str, Any] = {}
         self._declared_observable_join_fields = {}
         self._reply_observations: tuple[dict[str, Any], ...] = ()
         #: The current sufficiency assessment of each declared
@@ -3020,6 +3024,14 @@ class CommandCompiledToolHostV1:
                     **values, record_sha256=receipt_sha256
                 )
                 self.scientific_decisions[receipt_sha256] = decision
+                for item in event.payload.get("findings") or ():
+                    if not isinstance(item, Mapping):
+                        continue
+                    finding = analysis_finding_from_record(
+                        item,
+                        receipt_sha256=str(item.get("receipt_sha256") or ""),
+                    )
+                    self.analysis_findings[finding.receipt_sha256] = finding
 
     def record_seeded_evidence(self, turn_id: str) -> None:
         """Persist host-prebound evidence before any model action."""
@@ -6874,6 +6886,7 @@ class CommandCompiledToolHostV1:
     _RECEIPT_REGISTRY_NAMES = (
         "analysis_claim_records",
         "analysis_completion_receipts",
+        "analysis_findings",
         "anomaly_observations",
         "capabilities",
         "command_inspections",
