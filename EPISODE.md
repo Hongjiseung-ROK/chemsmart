@@ -105,6 +105,10 @@ every program block otherwise unchanged).
   refuses both keywords at l1), PySCF `d4` (no dftd4 in the compute env).
 - 2149278 (slot r10-q2-b, same prereg) cli/oracle1b: block R, 67 commands,
   all exit 0.
+- 2149487 (slot r10-q2-a, prereg f7fd12e1dca5) cli/oracle2: 57 commands,
+  all exit 0, code 4f6d24b5 (digest b4500a64 verified on the node).
+- 2149545 (slot r10-q2-a, prereg 57c05ea24893) goals/g1-hono: the HONO goal,
+  code e3fdaaca (digest c5235f6a verified on the node). Running.
 
 ## Oracle 1 results (read from the logs and artifacts, base tree)
 
@@ -246,3 +250,8 @@ One goal is one observation.
 - step 3: repairs written (literal -> one functional per program, receipts
   for every program, Gaussian energy by route method, ORCA td energy);
   oracle 2 pre-registered above.
+- step 4: oracle 2 read; bp86 translated/refused by the pre-registered
+  rule; frozen-core default left per program by the pre-registered rule;
+  levels for ORCA and Gaussian and the expression-level observation
+  committed; r10-integration merged (a24dd189, no conflicts); the HONO
+  goal issued. Waiting on job 2149545.
