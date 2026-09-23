@@ -2881,6 +2881,15 @@ def _settlement_evidence(delivery: _AnalysisDelivery) -> dict[str, Any]:
                 delivery.decision_uncertainties
             )
         return evidence
+    if delivery.anomaly_output_ids and delivery.receipt_sha256s:
+        # An observation brings its own receipts. The executor's stream
+        # never carries a decision, and a diverged pre-registration --
+        # the session's expectation, scored by the completion receipt
+        # in this stream -- raised the word that settles on receipts
+        # and handed it none: r9 g5 and r8 goal-irc2 delivered every
+        # declared observable and returned to the human with a
+        # contract error in place of the delivery.
+        return {"receipt_sha256s": delivery.receipt_sha256s}
     return {}
 
 
