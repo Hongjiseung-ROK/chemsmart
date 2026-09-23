@@ -172,6 +172,57 @@ imaginary mode) with C2v-like symmetry.
 - Behaviour (decides nothing): findings recorded in the reading, and
   whether any is contradicted by the evidence.
 
+### gdev1 result (CUHK Slurm 2150075, code ef1d349e, digest 470692cd; 30 min)
+
+Settled `achieved`, 2 cycles, 1 revision admitted, 2 engine calls. The
+cycle-1 session selected the optimisation alone as its first wave; the
+chain was partial, a recovery woke cycle 2, which bound the reached
+geometry and ran the Hessian; that run's chain delivered and the goal
+held `achieved` for the reading. Ledger order: run_recorded (cycle 2) ->
+reading_opened (state achieved, path run, run goals/gdev1/runs/cycle-2)
+-> reading_recorded -> goal_settled (achieved, the held word) ->
+qualified; nothing launched, admitted or recovered after the hold. Every
+mechanism condition pre-registered above holds.
+
+Physics against my bands: r(C=O) = 1.2103 A (band 1.200-1.225, in);
+harmonic C=O stretch 1837.2 cm-1 (band 1770-1860, in, near the top);
+24 real modes, no imaginary mode (the reading's own count).
+
+Cost, from the streams: cycle-1 session 20 requests, 2.41 M summed
+input tokens, 91 k output, 787 s; cycle-2 wake 18 requests, 1.63 M,
+54 k, 468 s; reading 12 requests, 0.66 M, 29 k (19 k reasoning), 242 s
+-- 14 % of the goal's provider input tokens and 16 % of its provider
+wall time.
+
+Behaviour: the reading opened both results, read the modes' atom
+participation, the geometries of both artifacts and the imaginary-mode
+count, and recorded four findings: one on the requested answer (both
+numbers inside the declared bands) and three standing unrequested that
+are confirmations of the delivery -- mode 18 is the C=O stretch (C+O
+share 0.777), the structure is a minimum, and "refutation attempt failed
+to refute" (the Hessian's geometry equals the optimised one to 3e-11 A).
+All three are true and none is a phenomenon. The rule said where a
+refutation that stands goes and not where one that does not stand goes;
+commit 0173e309 says a check that the delivery holds belongs in the
+decision's words. dev-d2-ctrl2 re-runs the local control on that rule
+before the sealed material.
+
+dev-d2-ctrl2 (code 0173e309, the refined rule; local): delivered 4.5094
+eV, settled `achieved`; the reading (8 requests, 0.39 M summed input
+tokens, 29 k output, 265 s) recorded the same two characterisations as
+dev-d2-ctrl -- the hole is Ni-centred (Mulliken 0.810 on Ni, 0.118 on
+each S) and CPCM stabilises the cation 1.54 eV more than the neutral --
+and no confirmation as a finding (it re-derived the IE and said so in
+the decision). Two independent readings of one control produced the same
+two true characterisations: the reading's output on a clean delivery is
+reproducible, and on this control it is two incidental findings, not
+zero.
+
+Development closes here. Mechanism and rule are frozen at 0173e309
+(nothing under chemsmart/ changes before every sealed session has
+settled); the sealed runs use the hand-back commit, which differs from
+0173e309 only in this file.
+
 ## Protocol for the sealed material (adopts Q1's frozen protocol; changes stated)
 
 Adopted verbatim from Q1 (`git show e165e650:EPISODE.md`, "Evaluation"
@@ -284,3 +335,12 @@ false-claim rate and cost.
   then moved out; Q1's own evidence there (`.chemsmart-agent`,
   `cation-sp.out`, `neutral-sp.out`) was never touched. Everything q6
   writes now lives under `scratchpad/q6/`.
+- 2026-09-24, later: gdev1 (Slurm 2150075) settled achieved with the
+  reading on the run path; rule refined (0173e309); dev-d2-ctrl2 run.
+  Merged r10-integration at 3947becd (clean; Q5's free-energy work). Full
+  suite from a pristine export of 3947becd: 23 failed, 4320 passed --
+  the failing set is identical to the one Q1 recorded at e165e650
+  (openbabel, CDX, local PySCF 2.13 environment). FROZEN for the sealed
+  material: mechanism, rule, arms (paired), N (4 live pairs, 11
+  archived items, one goal each), measures and protocol above. Status:
+  ready for sealed tasks.
