@@ -873,12 +873,13 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "leaf.pyscf.a_matching_name_is_not_a_matching_functional",
         "reference:about_pyscf",
         "T1",
-        "functional is the name the project asked for; b3lyp and b3lypg "
-        "are one libxc functional here and b3lyp5 another, and ORCA's "
-        "b3lyp is the VWN5 form, so a string that matches across programs "
-        "is necessary and never sufficient.",
+        "functional on a result is the literal whose form the program "
+        "applied, in one vocabulary for every program; the host writes "
+        "each program's spelling of a literal, so compare functionals by "
+        "that value, never by a project string.",
         "PySCF round 2026-09-12: b3lyp == b3lypg == libxc 402 measured; "
-        "an owner ruling on the applied literal was reversed on it",
+        "R10 q2 (CUHK Slurm 2149277/2149278): ORCA's b3lyp had been the "
+        "VWN5 form, 2.35 kcal/mol off Gaussian and PySCF in a vertical IP",
     ),
     _r(
         "leaf.pyscf.no_imaginary_mode_is_not_a_stationary_point",

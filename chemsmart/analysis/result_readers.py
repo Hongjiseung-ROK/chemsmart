@@ -1989,6 +1989,82 @@ def _route_functional(output: Any) -> str:
     return str(value)
 
 
+def _orca_functional(output: Any) -> str:
+    """The functional an ORCA run applied, in the ChemSmart vocabulary.
+
+    The route parser answers the literal the route's keyword means
+    (ORCA's ``B3LYP`` is ``b3lyp5``); the Hamiltonian block ORCA printed
+    says which local correlation it actually ran, and where the writer's
+    table names the label that form prints, the two must agree -- a run
+    whose printed ``LDAOpt`` is not its route's form is not reported as
+    either functional.
+    """
+
+    from chemsmart.jobs.orca.settings import orca_functional_lda_label
+
+    value = _route_functional(output)
+    expected = orca_functional_lda_label(value)
+    printed = getattr(output, "lda_correlation", None)
+    if expected and printed and printed.upper() != expected.upper():
+        raise MissingQuantityError(
+            f"the route names {value}, whose ORCA form prints LDAOpt "
+            f"{expected}, and this run printed {printed}: the functional "
+            "ORCA applied is not the one its route names"
+        )
+    return value
+
+
+def _gaussian_functional(output: Any) -> str:
+    """The functional a Gaussian run applied, in the ChemSmart vocabulary.
+
+    The route word says what was asked; ``SCF Done:  E(R<name>)`` says
+    what Gaussian ran.  They differ when Gaussian completed a route word
+    to another keyword -- ``pbe0`` ran as ``RPBE0DH`` (CUHK Slurm 2149277)
+    -- and then the applied name is the answer, so a result never reports
+    the functional its route asked for in place of the one it computed.
+    """
+
+    from chemsmart.io.gaussian import GAUSSIAN_ALL_FUNCTIONALS
+    from chemsmart.jobs.gaussian.settings import (
+        GAUSSIAN_FUNCTIONAL_NATIVE,
+        gaussian_functional_literal,
+    )
+
+    value = _route_functional(output)
+    label = None
+    for line in reversed(getattr(output, "contents", ()) or ()):
+        match = re.search(r"SCF Done:\s+E\(([^)]+)\)", str(line))
+        if match:
+            label = match.group(1).strip().casefold()
+            break
+    if label is None or ":" in value:
+        return value
+    if label in {"rhf", "uhf", "rohf"}:
+        raise MissingQuantityError(
+            "this result ran a Hartree-Fock reference and applied no "
+            "functional; the method identity is read by 'ab_initio'"
+        )
+    # Gaussian labels a pure combination with a hyphen (``RB-LYP``,
+    # ``RB-P86``) that its keyword does not carry, so names are compared
+    # without hyphens on both sides.
+    label = label.replace("-", "")
+    asked = re.sub(r"-d[234](?:bj|zero)?$", "", value.casefold())
+    native = GAUSSIAN_FUNCTIONAL_NATIVE.get(asked, asked).casefold()
+    native = native.replace("-", "")
+    if label in {f"{prefix}{native}" for prefix in ("r", "u", "ro")}:
+        return value
+    keywords = {
+        word.replace("-", ""): word for word in GAUSSIAN_ALL_FUNCTIONALS
+    }
+    for prefix in ("ro", "r", "u"):
+        applied = label[len(prefix) :]
+        if label.startswith(prefix) and applied in keywords:
+            return gaussian_functional_literal(keywords[applied])
+    return gaussian_functional_literal(
+        label[1:] if label[:1] in "ru" else label
+    )
+
+
 def _route_ab_initio(output: Any) -> str:
     value = getattr(output, "ab_initio", None)
     if not value:
@@ -2525,7 +2601,7 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             # so, and a run that did not ask has no Hirshfeld analysis at
             # all rather than a failed one.
             "hirshfeld_atomic_charges": _orca_hirshfeld_charges,
-            "functional": _route_functional,
+            "functional": _orca_functional,
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
             "converged": _optimization_converged,
@@ -2949,7 +3025,7 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                 _trajectory_connectivity_changed
             ),
             "irc_direction": _irc_direction,
-            "functional": _route_functional,
+            "functional": _gaussian_functional,
             "homo": _gaussian_frontier("homo_energy"),
             "lumo": _gaussian_frontier("lumo_energy"),
             "gap": _gaussian_frontier("fmo_gap"),
@@ -3761,14 +3837,17 @@ def _pyscf_optimization_converged(output: Any) -> int:
 
 
 def _pyscf_functional(output: Any) -> str:
-    """The functional the project asked for, as ``spec/method`` names it.
+    """The functional this run applied, in the ChemSmart vocabulary.
 
-    The literal libxc ran (``spec/xc``) is the same functional under a
-    different spelling wherever the alias table rewrote it -- ``b3lyp``
-    and ``b3lypg`` are one libxc code -- so the requested name is what a
-    program-neutral identity means, as for ORCA and Gaussian; the applied
-    materialisation rides the review as the functional-resolution receipt.
+    ``spec/method`` is the name the project asked for and ``spec/xc`` the
+    libxc name the writer resolved it to; where the name has a
+    program-neutral meaning the answer is that literal (``b3lypg`` and
+    ``b3lyp`` are one functional and answer ``b3lyp``, as ORCA's
+    ``B3LYP/G`` and Gaussian's ``B3LYP`` do), and otherwise the requested
+    name, as before.
     """
+
+    from chemsmart.jobs.settings import canonical_functional_literal
 
     if not output.spec.get("xc"):
         raise MissingQuantityError(
@@ -3778,7 +3857,7 @@ def _pyscf_functional(output: Any) -> str:
     value = output.method
     if not value:
         raise MissingQuantityError("pyscf result records no method name")
-    return str(value)
+    return canonical_functional_literal(value) or str(value)
 
 
 def _pyscf_surface_id(output: Any) -> str:

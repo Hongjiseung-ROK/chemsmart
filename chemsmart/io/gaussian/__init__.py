@@ -150,6 +150,11 @@ class GaussianRefs:
         "b2plyp",
         "b2plypd3",
         "mpw2plyp",
+        # G16 C.02 ran the route word ``pbe0`` as this keyword (``SCF
+        # Done:  E(RPBE0DH)``, CUHK Slurm 2149277): a word that prefixes
+        # one keyword is that keyword to Gaussian, so a keyword a word can
+        # complete to belongs here even when nobody asks for it by name.
+        "pbe0dh",
     ]
 
     # Solvation models available in Gaussian

@@ -556,7 +556,17 @@ class GaussianRoute:
                         stripped = part[len(prefix) :]
                         break
                 stripped_parts.append(stripped)
-            functional = ":".join(stripped_parts)
+            # The route word is Gaussian's and the answer is ChemSmart's:
+            # ``pbe1pbe`` is the literal ``pbe0``, so a written input reads
+            # back to what was requested and a Gaussian result names its
+            # functional the way ORCA's and PySCF's do.
+            from chemsmart.jobs.gaussian.settings import (
+                gaussian_functional_literal,
+            )
+
+            functional = ":".join(
+                gaussian_functional_literal(part) for part in stripped_parts
+            )
 
         # Merge empirical dispersion into functional shorthand
         # e.g., b3lyp + empiricaldispersion=gd3bj -> b3lyp-d3bj

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -156,19 +157,28 @@ class ProjectValidationReceiptV1:
 
 
 @dataclass(frozen=True)
-class PySCFFunctionalResolutionReceiptV1:
-    """Host-side XC alias resolution, distinct from target LibXC parsing."""
+class FunctionalResolutionReceiptV1:
+    """What one program is told for a project functional, per program.
+
+    Minted at project validation from the program's own settings module
+    (``describe_functional_resolution``), so the literal the project
+    named, the literal it means, the native spelling the writer produces
+    and the program-neutral identity are one host record for ORCA,
+    Gaussian and PySCF alike.  It is the host's translation, not the
+    program's execution-time account of what it ran; a result's
+    ``functional`` selector is that account.
+    """
 
     schema_version: str
+    program: str
     project_validation_receipt_sha256: str
     project_sha256: str
     jobtype: str
     setting_path: str
     requested_method_kind: str
     requested_literal: str | None
-    normalized_requested_literal: str
-    applied_xc: str | None
-    normalized_applied_xc: str
+    canonical_literal: str
+    applied_native: str | None
     status: str
     functional_family: str
     correlation_convention: str
@@ -177,26 +187,23 @@ class PySCFFunctionalResolutionReceiptV1:
     receipt_sha256: str
 
     def __post_init__(self) -> None:
-        if self.schema_version != "chemsmart.pyscf-functional-resolution.v1":
-            raise ContractError(
-                "unsupported PySCF functional resolution schema"
-            )
-        if self.requested_method_kind not in {"hf", "dft"}:
-            raise ContractError("invalid PySCF functional method kind")
+        if self.schema_version != "chemsmart.functional-resolution.v2":
+            raise ContractError("unsupported functional resolution schema")
+        if self.requested_method_kind not in {"ab_initio", "dft"}:
+            raise ContractError("invalid functional method kind")
         if self.status not in {
             "not_applicable",
-            "registered_alias",
-            "explicit_variant",
+            "canonical_literal",
             "literal_preserved",
         }:
-            raise ContractError("invalid PySCF functional resolution status")
+            raise ContractError("invalid functional resolution status")
         body = {
             key: value
             for key, value in self.__dict__.items()
             if key != "receipt_sha256"
         }
         if self.receipt_sha256 != canonical_sha256(body):
-            raise ContractError("PySCF functional resolution digest mismatch")
+            raise ContractError("functional resolution digest mismatch")
 
     @property
     def evidence_ref(self) -> str:
@@ -206,8 +213,36 @@ class PySCFFunctionalResolutionReceiptV1:
         return {
             **canonical_data(self),
             "evidence_ref": self.evidence_ref,
-            "evidence_scope": "host_xc_resolution_only",
+            "evidence_scope": "host_functional_translation_only",
         }
+
+
+#: The receipt was PySCF's alone until every program's settings could
+#: describe its own translation; the name stays for existing importers.
+PySCFFunctionalResolutionReceiptV1 = FunctionalResolutionReceiptV1
+
+#: A narrative naming a functional variant or its local correlation is a
+#: claim about what the host translated, so it cites the host's
+#: translation; any program's receipt answers it.
+_FUNCTIONAL_CONVENTION_CLAIM = re.compile(
+    r"(?i)(?<![a-z0-9])(?:vwn\s*[35]|b3lypg|b3lyp5|b3lyp/g)(?![a-z0-9])"
+)
+
+
+def functional_convention_claim_is_unbacked(
+    narrative: str, cited_functional_resolutions: Any
+) -> bool:
+    """Whether a decision names a functional convention without a receipt.
+
+    True when the narrative names a local-correlation form or a variant
+    literal and cites no functional-resolution evidence at all -- project
+    receipts from any program, or a result's.  The citation is the check:
+    the host already resolved which form each program runs, and a claim
+    about it is backed by pointing at that resolution.
+    """
+
+    named = bool(_FUNCTIONAL_CONVENTION_CLAIM.search(str(narrative or "")))
+    return named and not cited_functional_resolutions
 
 
 def project_document(
@@ -723,34 +758,50 @@ def validate_project_yaml(
     )
 
 
+def _functional_resolution_describer(program: str) -> Any:
+    """The program's own translation record, where its settings state one.
+
+    Read from the program's settings module rather than listed here, so a
+    program gains a receipt by describing its translation and by nothing
+    else.
+    """
+
+    try:
+        module = importlib.import_module(
+            f"chemsmart.jobs.{require_identifier(program, 'program')}.settings"
+        )
+    except ImportError:
+        return None
+    return getattr(module, "describe_functional_resolution", None)
+
+
 def project_scientific_materializations(
     receipt: ProjectValidationReceiptV1,
-) -> tuple[PySCFFunctionalResolutionReceiptV1, ...]:
+) -> tuple[FunctionalResolutionReceiptV1, ...]:
     """Derive preview-safe scientific resolution evidence from one loader receipt."""
 
-    if receipt.status != "valid" or receipt.program != "pyscf":
+    if receipt.status != "valid":
         return ()
-    from chemsmart.jobs.pyscf.settings import describe_functional_resolution
-
+    describe = _functional_resolution_describer(receipt.program)
+    if describe is None:
+        return ()
     values = dict(receipt.settings)
-    resolution = describe_functional_resolution(
+    resolution = describe(
         values.get("functional"), ab_initio=values.get("ab_initio")
     )
     if resolution["status"] == "missing":
         return ()
     body = {
         "schema_version": resolution["schema_version"],
+        "program": resolution["program"],
         "project_validation_receipt_sha256": receipt.receipt_sha256,
         "project_sha256": receipt.project_sha256,
         "jobtype": receipt.jobtype,
         "setting_path": f"{receipt.jobtype}.functional",
         "requested_method_kind": resolution["requested_method_kind"],
         "requested_literal": resolution["requested_literal"],
-        "normalized_requested_literal": resolution[
-            "normalized_requested_literal"
-        ],
-        "applied_xc": resolution["applied_xc"],
-        "normalized_applied_xc": resolution["normalized_applied_xc"],
+        "canonical_literal": resolution["canonical_literal"],
+        "applied_native": resolution["applied_native"],
         "status": resolution["status"],
         "functional_family": resolution["functional_family"],
         "correlation_convention": resolution["correlation_convention"],
@@ -758,7 +809,7 @@ def project_scientific_materializations(
         "rule_id": resolution["rule_id"],
     }
     return (
-        PySCFFunctionalResolutionReceiptV1(
+        FunctionalResolutionReceiptV1(
             **body, receipt_sha256=canonical_sha256(body)
         ),
     )
@@ -795,7 +846,9 @@ __all__ = [
     "ProjectRenderReceiptV1",
     "ProjectSectionV1",
     "ProjectValidationReceiptV1",
+    "FunctionalResolutionReceiptV1",
     "PySCFFunctionalResolutionReceiptV1",
+    "functional_convention_claim_is_unbacked",
     "project_document",
     "project_effective_section_settings",
     "project_section_application_observation",

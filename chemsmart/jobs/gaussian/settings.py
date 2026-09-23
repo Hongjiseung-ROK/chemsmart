@@ -24,7 +24,11 @@ from chemsmart.io.gaussian.route import (
     split_gaussian_dispersion_tokens,
     split_gaussian_functional_dispersion_shorthand,
 )
-from chemsmart.jobs.settings import MolecularJobSettings
+from chemsmart.jobs.settings import (
+    MolecularJobSettings,
+    canonical_functional_literal,
+    functional_resolution_record,
+)
 from chemsmart.utils.periodictable import PeriodicTable
 from chemsmart.utils.repattern import (
     gaussian_freq_keywords_pattern,
@@ -36,6 +40,105 @@ pt = PeriodicTable()
 
 
 logger = logging.getLogger(__name__)
+
+
+#: How Gaussian spells a ChemSmart functional literal
+#: (``chemsmart.jobs.settings.FUNCTIONAL_IDENTITIES``).  The writer spells
+#: from it and the route parser reads it back, so one table says both.
+#:
+#: Gaussian completes a route word that is not one of its keywords to a
+#: keyword it prefixes, silently: ``pbe0`` ran the PBE0-DH double hybrid
+#: (``SCF Done:  E(RPBE0DH)``, IExCor 1009, an E2 term printed) and the
+#: reader served its SCF part, -76.2397989 Eh on water where PBE0 is
+#: -76.27627 in ORCA and PySCF (CUHK Slurm 2149277).
+GAUSSIAN_FUNCTIONAL_NATIVE = {
+    "b3lyp": "B3LYP",
+    "pbe0": "PBE1PBE",
+    "pbe": "PBEPBE",
+}
+
+#: Literals Gaussian has no keyword for, with the route a refusal names.
+GAUSSIAN_FUNCTIONAL_REFUSED = {
+    "b3lyp5": (
+        "Gaussian 16 has no keyword for B3LYP with the VWN5 local "
+        "correlation (a b3lyp5 route stops at link 1, CUHK Slurm 2149277). "
+        "Request b3lyp for Gaussian's B3LYP, or run b3lyp5 in ORCA or PySCF."
+    ),
+}
+
+
+def gaussian_native_functional(functional):
+    """Return the Gaussian route word for a ChemSmart functional literal.
+
+    A literal with a program-neutral meaning is spelled from
+    ``GAUSSIAN_FUNCTIONAL_NATIVE`` or refused where Gaussian has no
+    spelling; any other word passes through, and is refused when it is
+    not a Gaussian keyword but prefixes exactly one, because Gaussian
+    would run that other keyword without saying so.
+    """
+
+    if functional is None:
+        return None
+    token = str(functional).strip()
+    if not token:
+        return functional
+    canonical = canonical_functional_literal(token)
+    if canonical in GAUSSIAN_FUNCTIONAL_REFUSED:
+        raise ValueError(GAUSSIAN_FUNCTIONAL_REFUSED[canonical])
+    if canonical in GAUSSIAN_FUNCTIONAL_NATIVE:
+        native = GAUSSIAN_FUNCTIONAL_NATIVE[canonical]
+        # A word that already is the Gaussian keyword keeps its case, so
+        # an input written before this table is written byte for byte.
+        return token if token.casefold() == native.casefold() else native
+    from chemsmart.io.gaussian import GAUSSIAN_ALL_FUNCTIONALS
+
+    keywords = set(GAUSSIAN_ALL_FUNCTIONALS)
+    word = token.lower()
+    if word not in keywords and " " not in word:
+        completions = sorted(
+            keyword for keyword in keywords if keyword.startswith(word)
+        )
+        if len(completions) == 1:
+            raise ValueError(
+                f"Gaussian would complete the route word {token!r} to its "
+                f"keyword {completions[0].upper()!r} and run that without "
+                "saying so (it ran 'pbe0' as the PBE0-DH double hybrid); "
+                "name the functional by its full Gaussian keyword or by a "
+                "literal ChemSmart translates."
+            )
+    return token
+
+
+def gaussian_functional_literal(route_word):
+    """Return the ChemSmart literal a Gaussian functional keyword applies.
+
+    The inverse of ``GAUSSIAN_FUNCTIONAL_NATIVE`` (``pbe1pbe`` is ``pbe0``);
+    a word the table does not name answers itself.
+    """
+
+    if route_word is None:
+        return None
+    word = str(route_word).strip()
+    for literal, native in GAUSSIAN_FUNCTIONAL_NATIVE.items():
+        if native.casefold() == word.casefold():
+            return literal
+    return word
+
+
+def describe_functional_resolution(functional=None, *, ab_initio=None):
+    """What Gaussian is told for a project functional, as a host record."""
+
+    try:
+        native = gaussian_native_functional(functional)
+    except ValueError:
+        native = None
+    return functional_resolution_record(
+        program="gaussian",
+        functional=functional,
+        ab_initio=ab_initio,
+        native=native,
+        source="chemsmart.jobs.gaussian.settings.gaussian_native_functional",
+    )
 
 
 _GAUSSIAN_NATIVE_DEF2_BASIS_TOKENS = {
@@ -828,7 +931,9 @@ class GaussianJobSettings(MolecularJobSettings):
                 raise ValueError(
                     "Error: Basis set is required for DFT methods."
                 )
-            functional = functional_without_shorthand
+            functional = gaussian_native_functional(
+                functional_without_shorthand
+            )
             native_basis = gaussian_native_basis_token(self.basis)
             route_string += f" {functional} {native_basis}"
             logger.debug(
