@@ -2735,6 +2735,7 @@ _GAUSSIAN_IRC_BRANCH_SELECTORS = (
     "multiplicity",
     "positions",
     "reached_positions",
+    "scf_energy",
     "spin_square",
     "spin_square_after_annihilation",
     "spin_square_deviation",
@@ -2878,10 +2879,84 @@ def _gaussian_scan_profile(output: Any) -> list[Mapping[str, Any]]:
     return list(profile)
 
 
+def _gaussian_energies(output: Any) -> list[float]:
+    """Totals on the surface the route asks for, one per geometry.
+
+    The parser names which printed line that is (``energy_source``); a
+    post-HF method whose total it does not read answers nothing rather
+    than the lower level Gaussian printed on the way to it.
+    """
+
+    values = [float(item) for item in output.energies]
+    if values:
+        return values
+    if getattr(output, "energy_source", None) == "unrecognized_post_hf":
+        raise MissingQuantityError(
+            "this Gaussian route's method prints a total this reader does "
+            "not read; the lower levels printed on the way to it are not "
+            "its energy and are not served as one"
+        )
+    raise MissingQuantityError("this Gaussian result printed no energy")
+
+
+def _gaussian_scf_energy(output: Any) -> float:
+    """The SCF reference total at the last geometry (``SCF Done``).
+
+    For an SCF route it is ``energy``; under a correlated method, a double
+    hybrid or a TD optimisation it is the reference beneath the surface
+    ``energy`` names, as ``scf_energy`` is on ORCA and PySCF.
+    """
+
+    values = list(getattr(output, "scf_energies", None) or ())
+    if not values:
+        raise MissingQuantityError("this Gaussian result printed no SCF Done")
+    return float(values[-1])
+
+
+#: Gaussian's word for the electronic-provenance axis over the selectors
+#: its reader implements: ``energy`` is the total of the surface the route
+#: computed on -- the correlated method, a double hybrid's total, the
+#: followed root of a TD optimisation -- resolved per artifact, and the
+#: density-derived properties beside it are the SCF reference's.
+_GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
+    ("absorption_wavelengths", "excited_root"),
+    ("dipole_moment", "reference"),
+    ("dipole_moment_magnitude", "reference"),
+    ("effective_multiplicity", "reference"),
+    ("energies", "computed_surface"),
+    ("energy", "computed_surface"),
+    ("excitation_energies", "excited_root"),
+    ("excited_state_indices", "excited_root"),
+    ("excited_state_labels", "excited_root"),
+    ("excited_state_manifold_roots", "excited_root"),
+    ("excited_state_multiplicities", "excited_root"),
+    ("excited_state_spin_square", "excited_root"),
+    ("gap", "reference"),
+    ("hirshfeld_atomic_charges", "reference"),
+    ("homo", "reference"),
+    ("lumo", "reference"),
+    ("mulliken_atomic_charges", "reference"),
+    ("mulliken_atomic_spin_populations", "reference"),
+    ("oscillator_strengths", "excited_root"),
+    ("scf_energy", "reference"),
+    ("singlet_excitation_energies", "excited_root"),
+    ("singlet_oscillator_strengths", "excited_root"),
+    ("spin_square", "reference"),
+    ("spin_square_after_annihilation", "reference"),
+    ("spin_square_deviation", "reference"),
+    ("spin_square_target", "reference"),
+    ("triplet_excitation_energies", "excited_root"),
+    ("triplet_oscillator_strengths", "excited_root"),
+)
+
+
 def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
     accessors = _text_output_accessors()
     accessors.update(
         {
+            "energy": lambda output: _gaussian_energies(output)[-1],
+            "energies": _gaussian_energies,
+            "scf_energy": _gaussian_scf_energy,
             "reached_positions": _gaussian_reached_positions,
             # The surface reaches the typed layer as two parallel vectors,
             # exactly as ORCA's does, so the existing operations compose
@@ -5668,6 +5743,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "multiplicity",
                     "positions",
                     "reached_positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5709,6 +5785,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     # roles are still different questions, and only this
                     # one is admissible as a structure to carry forward.
                     "reached_positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5752,6 +5829,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "scan_point_indices",
                     "scan_steps_planned",
                     "scan_steps_reached",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5782,6 +5860,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
                     "positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5821,6 +5900,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "multiplicity",
                     "oscillator_strengths",
                     "positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5851,6 +5931,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "multiplicity",
                     "positions",
                     "reached_positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5916,6 +5997,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("scan_coordinate_values", "scan_point"),
                     ("scan_energies", "scan_point"),
                     ("scan_point_indices", "scan_point"),
+                    ("scf_energy", "as_reached"),
                     ("symbols", "stateless"),
                     ("trajectory_end_connectivity", "trajectory_endpoint"),
                     ("trajectory_end_positions", "trajectory_endpoint"),
@@ -5930,6 +6012,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             )
         ),
         resolve_reference_diagnostics=_gaussian_reference_diagnostics,
+        selector_electronic_provenance=_electronic_provenance_table(
+            _gaussian_accessors(), _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED
+        ),
+        resolve_electronic_provenance=_resolve_computed_surface,
     ),
     "xtb": ResultReaderV1(
         program="xtb",
