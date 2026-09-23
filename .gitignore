@@ -165,3 +165,7 @@ api.env
 
 # Owner scratch: never tracked (CONDUCT.md section 6).
 experiments/
+
+# Claude Code subagent worktrees live inside the checkout; formatters and
+# `isort --gitignore` must never walk into another episode's files.
+.claude/worktrees/
