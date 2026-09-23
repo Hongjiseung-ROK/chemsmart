@@ -101,7 +101,9 @@ reaches them -- a different valid route is evidence, not failure):
 
 ## Jobs issued
 
-(none yet)
+- 2026-09-24: goal q4/g1 submitted as Slurm 2149497 (r10-q4-a), code
+  commit 74540fa6 (tree digest b434f280...), pre-registration digest
+  c89b82cda1be recorded by slot_submit.
 
 ## Status
 
