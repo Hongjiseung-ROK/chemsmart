@@ -114,6 +114,32 @@ def test_the_knowledge_the_prompt_names_is_in_the_catalogue_it_names():
     assert prompt.count(sentence.strip()) == 1
 
 
+@pytest.mark.parametrize("enabled", ("1", "0"))
+def test_a_skill_is_advertised_exactly_when_a_session_can_load_it(
+    monkeypatch, enabled
+):
+    """The ladder's rung is the catalogue's answer, not a constant.
+
+    It read "system prompt skill index" for every skill, so the ladder
+    reported all three advertised through the days no session could open
+    one, and with the knowledge switched off.
+    """
+
+    from chemsmart.agent.capability_registry import build_capability_registry
+
+    monkeypatch.setenv("CHEMSMART_AGENT_SKILLS", enabled)
+    served = set(build_exposure("host_search").catalogue.names())
+    skills = [
+        item
+        for item in build_capability_registry(tests_root=None, host_store=None)
+        if item.kind == "skill"
+    ]
+    assert skills
+    for item in skills:
+        loadable = f"about_{item.id.replace('-', '_')}" in served
+        assert (item.status == "advertised") is loadable, item.key
+
+
 def test_no_advisory_knowledge_means_no_sentence_about_it(monkeypatch):
     monkeypatch.setenv("CHEMSMART_AGENT_SKILLS", "0")
     from chemsmart.agent.catalogue import KNOWLEDGE_FAMILY
