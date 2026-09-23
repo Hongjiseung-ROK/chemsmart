@@ -573,21 +573,9 @@ def _goal_result_json(result) -> str:
 @agent.command("capabilities")
 @click.option(
     "--kind",
-    type=click.Choice(
-        [
-            "program_jobtype",
-            "tool",
-            "selector",
-            "operation",
-            "predicate",
-            "constant",
-            "skill",
-            "guide",
-            "rule",
-        ]
-    ),
+    type=str,
     default=None,
-    help="Show one kind only.",
+    help="Show one kind only (any kind the capability registry carries).",
 )
 @click.option(
     "--tests",
@@ -603,9 +591,19 @@ def capabilities(kind, tests_root, as_json):
     judge, or a claim without a run behind it, says so out loud."""
 
     from chemsmart.agent.capability_registry import (
+        CAPABILITY_KINDS,
         build_capability_registry,
         render_capability_matrix,
     )
+
+    # The registry owns the list of kinds; a hand-written copy here once
+    # offered a kind that no longer existed and refused five that did.
+    if kind is not None and kind not in CAPABILITY_KINDS:
+        raise click.BadParameter(
+            f"{kind!r} is not a capability kind; the kinds are: "
+            + ", ".join(CAPABILITY_KINDS),
+            param_hint="'--kind'",
+        )
 
     if tests_root is None:
         # An instrument must be shown able to report red: without a tests
