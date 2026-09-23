@@ -270,7 +270,11 @@ def _achieved_word(
             + (
                 f" (answers {row.get('answers_observable_id')})"
                 if row.get("answers_observable_id")
-                else " (not asked for)"
+                else (
+                    " (not asked for)"
+                    if row.get("standing") == "unrequested"
+                    else " (on the requested answer)"
+                )
             )
             + f", its words, on relations the host checked: "
             f"{row.get('statement')}"
@@ -2543,6 +2547,7 @@ def _analysis_delivery(
                     "answers_observable_id": str(
                         item.get("answers_observable_id") or ""
                     ),
+                    "standing": str(item.get("standing") or ""),
                     "host_signals": tuple(
                         str(signal)
                         for signal in item.get("host_signals") or ()
@@ -2937,7 +2942,9 @@ def _analysis_delivery(
                 "finding_receipt_sha256": row["receipt_sha256"],
                 "finding_id": row["finding_id"],
             }
-        else:
+        elif row["standing"] == "unrequested":
+            # Only evidence nobody declared makes an observation: a
+            # finding on the asked numbers restates the request.
             anomaly_ids = tuple(anomaly_ids) + (
                 f"finding:{row['finding_id']}:{row['receipt_sha256'][:8]}",
             )

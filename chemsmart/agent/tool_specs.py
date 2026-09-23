@@ -1839,10 +1839,13 @@ def _legacy_tool_definitions(
                         "it rendered, refuses one that does not hold with "
                         "the values it read, and never reads your sentence. "
                         "A finding that answers a question declared in unit "
-                        "'category' delivers it; one the task did not ask "
-                        "for is carried to the settlement as your "
-                        "observation, with any host anomaly already "
-                        "standing on its evidence named beside it."
+                        "'category' delivers it. A number the task asked "
+                        "for is delivered by its claim; a finding resting "
+                        "only on claims of declared observables is recorded "
+                        "as on the request. One resting on evidence no "
+                        "declaration asked for is carried to the settlement "
+                        "as your observation, with any host anomaly "
+                        "already standing on its evidence named beside it."
                     ),
                     "items": {
                         "type": "object",

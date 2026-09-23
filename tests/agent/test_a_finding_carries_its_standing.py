@@ -716,3 +716,67 @@ def test_a_finding_answers_its_question_at_goal_grain(tmp_path):
     count = {"observable_id": "reference-stability", "unit": "1"}
     assert observable_is_delivered(category, row)
     assert not observable_is_delivered(count, row)
+
+
+def test_a_finding_on_the_asked_number_says_nothing_was_seen_beyond_it(
+    tmp_path,
+):
+    """The first development session (dev-d1-phen, 2026-09-24) declared
+    the distance it was asked for, claimed it under that id, and then
+    typed "the distance is 3.219 angstrom" as a finding resting on that
+    claim alone; the word said the session had recorded an observation
+    nobody asked for. What a finding's evidence is decides its standing:
+    every operand delivers a declaration, so it is on the request and
+    the word stays achieved."""
+
+    build = tmp_path / "session-build"
+    host = _host(build / "events.jsonl", tmp_path / "session-workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "d-ester-c-benzyl-n",
+                "unit": "angstrom",
+                "meaning": "the distance the task asks for",
+            }
+        ],
+    )
+    distance = _measured_distance(host)
+    reply = _decide(
+        host,
+        [
+            {
+                "finding_id": "the-asked-distance",
+                "statement": f"The asked distance is {distance:.3f} A.",
+                "rests_on": [
+                    {
+                        "claim_id": "d-ester-c-benzyl-n",
+                        "relation": ">",
+                        "value": 1.3,
+                    },
+                    {
+                        "claim_id": "d-ester-c-benzyl-n",
+                        "relation": "<",
+                        "value": 1.4,
+                    },
+                ],
+            }
+        ],
+    )
+    (finding,) = reply["result"]["findings"]
+    assert finding["standing"] == "on_the_request"
+    host.completion_receipts_for_delivered_claims()
+    rows = tuple(
+        json.loads(line)
+        for line in (build / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    )
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session("live-1", terminal="complete", wake_rows=rows)
+        ],
+        executes=[],
+    )
+    assert result.settlement == "achieved", result.reasons
+    assert "(on the requested answer)" in " ".join(result.reasons)

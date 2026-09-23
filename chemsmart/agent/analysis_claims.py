@@ -466,6 +466,14 @@ class AnalysisFindingV1:
     values the host read. ``host_signals`` names the anomalies the host
     had already recorded on the results this finding's evidence stands
     on, so a finding that restates a sensor is visibly one.
+
+    ``standing`` is the host's, computed from what the evidence is:
+    ``answers`` a declared category; ``on_the_request`` when every claim
+    it rests on delivers a declaration -- the asked number restated or
+    qualified; ``unrequested`` when at least one claim it rests on is
+    evidence nobody declared. Only the last is an observation nobody
+    asked for (the first development session typed its requested
+    distance as a finding and the word said it had seen something).
     """
 
     schema_version: str
@@ -473,6 +481,7 @@ class AnalysisFindingV1:
     finding_id: str
     statement: str
     answers_observable_id: str
+    standing: str
     relations: tuple[Mapping[str, Any], ...]
     host_signals: tuple[str, ...]
     supersedes_finding_id: str
@@ -485,6 +494,15 @@ class AnalysisFindingV1:
         require_identifier(self.finding_id, "finding_id")
         if not str(self.statement).strip():
             raise ContractError("a finding states its conclusion")
+        if self.standing not in FINDING_STANDINGS:
+            raise ContractError(
+                f"finding standing is one of {list(FINDING_STANDINGS)}"
+            )
+        if bool(self.answers_observable_id) != (self.standing == "answers"):
+            raise ContractError(
+                "a finding answers a declared question exactly when its "
+                "standing says so"
+            )
         if self.answers_observable_id:
             require_identifier(
                 self.answers_observable_id, "answers_observable_id"
@@ -507,9 +525,9 @@ class AnalysisFindingV1:
         ):
             raise ContractError("analysis finding digest mismatch")
 
-    @property
-    def standing(self) -> str:
-        return "answers" if self.answers_observable_id else "unrequested"
+
+#: What a finding's evidence is, in the host's words.
+FINDING_STANDINGS = ("answers", "on_the_request", "unrequested")
 
 
 def analysis_finding_body(finding: AnalysisFindingV1) -> dict[str, Any]:
@@ -519,6 +537,7 @@ def analysis_finding_body(finding: AnalysisFindingV1) -> dict[str, Any]:
         "finding_id": finding.finding_id,
         "statement": finding.statement,
         "answers_observable_id": finding.answers_observable_id,
+        "standing": finding.standing,
         "relations": finding.relations,
         "host_signals": finding.host_signals,
         "supersedes_finding_id": finding.supersedes_finding_id,
@@ -531,6 +550,7 @@ def build_analysis_finding(
     finding_id: str,
     statement: str,
     relations: Sequence[Mapping[str, Any]],
+    standing: str,
     answers_observable_id: str = "",
     host_signals: Sequence[str] = (),
     supersedes_finding_id: str = "",
@@ -541,6 +561,7 @@ def build_analysis_finding(
         "finding_id": finding_id,
         "statement": str(statement).strip(),
         "answers_observable_id": str(answers_observable_id or ""),
+        "standing": standing,
         "relations": tuple(canonical_data(dict(item)) for item in relations),
         "host_signals": tuple(sorted(set(str(item) for item in host_signals))),
         "supersedes_finding_id": str(supersedes_finding_id or ""),
@@ -561,6 +582,7 @@ def analysis_finding_from_record(
             "finding_id",
             "statement",
             "answers_observable_id",
+            "standing",
             "supersedes_finding_id",
         )
     }
@@ -582,6 +604,7 @@ __all__ = [
     "AnalysisFindingV1",
     "AnalysisReportedQuantityV1",
     "FINDING_RELATIONS",
+    "FINDING_STANDINGS",
     "FindingRelationError",
     "TEXT_DATA_KINDS",
     "analysis_claim_record_body",

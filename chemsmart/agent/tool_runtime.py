@@ -6614,8 +6614,7 @@ class CommandCompiledToolHostV1:
             for finding in findings:
                 self.analysis_findings[finding.receipt_sha256] = finding
             extra["findings"] = tuple(
-                {**canonical_data(finding), "standing": finding.standing}
-                for finding in findings
+                canonical_data(finding) for finding in findings
             )
         self._emit(
             turn_id,
@@ -7148,12 +7147,33 @@ class CommandCompiledToolHostV1:
                     f"finding {finding_id!r} rests on nothing the host can "
                     "check: give rests_on at least one relation over a claim"
                 )
+            # What the evidence is, not what the session calls it: a
+            # finding every operand of which delivers a declaration
+            # restates or qualifies what was asked. The first
+            # development session typed its requested distance as a
+            # finding, and the word said it had observed something.
+            operands = [row["left"]] + [
+                row["right"] for row in relations if "claim_id" in row["right"]
+            ]
+            undeclared = [
+                operand
+                for operand in operands
+                if not self._declarations_for_claim(
+                    str(operand["claim_id"]), str(operand["quantity_id"])
+                )
+            ]
+            standing = (
+                "answers"
+                if answers
+                else ("unrequested" if undeclared else "on_the_request")
+            )
             findings.append(
                 build_analysis_finding(
                     task_spec_sha256=task_spec_sha256,
                     finding_id=finding_id,
                     statement=statement,
                     relations=relations,
+                    standing=standing,
                     answers_observable_id=answers,
                     host_signals=self._host_signals_beneath(
                         relations, cited_anomalies
