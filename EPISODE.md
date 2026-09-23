@@ -109,3 +109,11 @@ reaches them -- a different valid route is evidence, not failure):
 
 - 2026-09-24: replay done; R1, R3, R4, R5 committed with witnesses;
   tests/agent green (2758 passed). Live goal g1 pre-registered above.
+- 2026-09-24: r10-integration merged (85a81735, no conflict). Pristine
+  git-archive export of 85a81735: tests/agent 2760 passed / 19 skipped /
+  2 xfailed; full suite 23 failed (tests/test_structures.py 19,
+  test_pyscf_dispersion_conformance.py 2, test_PyscfSettings.py 1,
+  test_aggregation.py 1 -- none in a touched file), 4240 passed. ruff,
+  black, isort clean on every touched file.
+- Goal g1 (Slurm 2149497) running: code digest verified on the node,
+  cycle-1 planning session live. WAITING ON JOB 2149497.
