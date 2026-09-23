@@ -9,7 +9,7 @@ things were wrong with that credit on archived runs:
   36 of the 37 archived credits were given on None with nothing on the
   record saying so (every ORCA, Gaussian and xTB pair; PySCF results
   written before surfaces were recorded).
-- 16 of those credits went to producers whose consumer had moved the
+- 12 of those credits went to producers whose consumer had moved the
   structure -- an ORCA scan's refined well, an optimisation
   re-optimised -- so the modes described the consumer's own structure.
 

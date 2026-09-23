@@ -2595,7 +2595,7 @@ def _analysis_delivery(
                     node_surfaces[node_name] = surface
                 # A result characterises the structure it was handed only
                 # if it kept that structure: a re-optimisation prints the
-                # modes of the structure it reached. 16 archived credits
+                # modes of the structure it reached. 12 archived credits
                 # went to producers whose consumer had moved (an ORCA
                 # scan's refined well, an opt re-optimised).
                 if (
