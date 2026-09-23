@@ -2944,6 +2944,99 @@ def evaluate_quantity_expression(
     )
 
 
+#: What a level says about the Hamiltonian a number was computed with.
+#: Numerics -- grid, density fitting, convergence -- are not here: two
+#: programs at one functional differ by ~1e-4 Eh in totals at their default
+#: numerics and agree to ~2e-6 Eh at matched tight numerics (CUHK Slurm
+#: 2149277/2149278), which is the same Hamiltonian computed twice.
+LEVEL_IDENTITY_FIELDS = (
+    "method",
+    "basis",
+    "dispersion",
+    "solvation",
+    "frozen_core",
+)
+
+
+def _level_identity(level: Mapping[str, Any]) -> dict[str, Any]:
+    """The comparable identity of one producer's level record."""
+
+    def _word(value: Any) -> Any:
+        if value is None:
+            return None
+        return str(value).strip().lower() or None
+
+    method = (
+        level.get("functional")
+        or level.get("ab_initio")
+        or level.get("method")
+    )
+    basis = _word(level.get("basis"))
+    model = _word(level.get("solvent_model"))
+    return {
+        "method": _word(method),
+        # def2-SVP and Gaussian's def2svp are one basis.
+        "basis": basis.replace("-", "") if basis else None,
+        "dispersion": _word(level.get("dispersion")),
+        "solvation": (
+            f"{model}:{_word(level.get('solvent')) or ''}" if model else "gas"
+        ),
+        "frozen_core": level.get("frozen_core"),
+    }
+
+
+def expression_level_observations(
+    receipt: QuantityExpressionReceiptV1,
+    levels_by_receipt: Mapping[str, Mapping[str, Any] | None],
+) -> tuple[dict[str, Any], ...]:
+    """Say when an output combines numbers computed at different levels.
+
+    For each output of ``receipt``, the producer levels of the extraction
+    receipts it descends from are compared field by field over
+    ``LEVEL_IDENTITY_FIELDS``.  A field on which they differ is reported
+    with each receipt's value; a receipt whose producer states no level is
+    reported as unstated rather than assumed equal.  An observation, never
+    a refusal: a composite method mixes levels on purpose, and a high-level
+    single point on a low-level geometry is an ordinary protocol -- the
+    number stands and the reader is told what it is made of.
+    """
+
+    observations: list[dict[str, Any]] = []
+    for dependency in receipt.output_dependencies:
+        sources = tuple(dependency.source_receipt_sha256s)
+        if len(sources) < 2:
+            continue
+        stated = {
+            digest: _level_identity(levels_by_receipt[digest])
+            for digest in sources
+            if levels_by_receipt.get(digest)
+        }
+        unstated = tuple(digest for digest in sources if digest not in stated)
+        if len(stated) < 2:
+            continue
+        differing = {}
+        for field in LEVEL_IDENTITY_FIELDS:
+            values = {
+                digest: identity[field] for digest, identity in stated.items()
+            }
+            if len(set(values.values())) > 1:
+                differing[field] = {
+                    digest[:12]: value
+                    for digest, value in sorted(values.items())
+                }
+        if not differing:
+            continue
+        observations.append(
+            {
+                "kind": "operands_at_different_levels",
+                "output_id": dependency.output_id,
+                "differing_fields": differing,
+                "receipts_without_level": tuple(d[:12] for d in unstated),
+            }
+        )
+    return tuple(observations)
+
+
 def quantity_expression_receipt_from_record(
     record: Mapping[str, Any], *, receipt_sha256: str
 ) -> QuantityExpressionReceiptV1:
@@ -3001,6 +3094,8 @@ __all__ = [
     "canonical_unit_for_dimension",
     "convert_normalized_value",
     "evaluate_quantity_expression",
+    "expression_level_observations",
+    "LEVEL_IDENTITY_FIELDS",
     "normalize_numeric_value",
     "quantity_expression_semantic_signature",
     "quantity_expression_receipt_from_record",

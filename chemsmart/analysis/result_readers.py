@@ -1170,8 +1170,10 @@ class ResultReaderV1:
     #: record names it -- method, basis, solvent, the frozen-core count a
     #: correlated stage applied, the response an excited stage ran on and
     #: the root it followed -- for the inspection reply.  None renders no
-    #: level.  A level is shown and never compared: whether two programs
-    #: mean one thing by a keyword is a fact about the programs.
+    #: level.  A level states what the program applied in the vocabulary
+    #: every program's level uses (a functional is the literal its applied
+    #: form names), so an operation combining two results' numbers can be
+    #: told when their levels differ; it is compared, never refused.
     resolve_level: Callable[[Any], Mapping[str, Any]] | None = None
     #: The electronic surface one opened result is on, as a mapping over
     #: ``SURFACE_IDENTITY_FIELDS``.  Unlike the level, a surface is *for*
@@ -1853,6 +1855,112 @@ def _orca_solvation_context(output: Any) -> tuple[str, str | None]:
 
 def _orca_solvation_model(output: Any) -> str:
     return _orca_solvation_context(output)[0]
+
+
+def _normalized_dispersion(value: Any) -> str:
+    """One word for an empirical dispersion, whatever program spelled it."""
+
+    word = str(value or "").strip().lower()
+    if word.startswith("empiricaldispersion="):
+        word = word.split("=", 1)[1]
+    return {
+        "": "none",
+        "gd3bj": "d3bj",
+        "gd3": "d3zero",
+        "d3": "d3zero",
+        "gd2": "d2",
+    }.get(word, word)
+
+
+def _orca_level(output: Any) -> dict[str, Any]:
+    """The Hamiltonian an ORCA result computed with, from its own record.
+
+    The applied functional (the literal its printed form names), the
+    correlated method, the basis, the dispersion and the continuum; the
+    frozen core a correlated stage applied, in orbitals, from ORCA's own
+    ``NCore``/``chemical core (N el)`` line.  Numerics (grid, RI, COSX)
+    are not a level.
+    """
+
+    level: dict[str, Any] = {}
+    try:
+        level["functional"] = _orca_functional(output)
+    except Exception:  # noqa: BLE001 - a post-HF run applies no functional
+        pass
+    ab_initio = getattr(output, "ab_initio", None)
+    if ab_initio:
+        level["ab_initio"] = str(ab_initio).lower()
+    basis = getattr(output, "basis", None)
+    if basis:
+        level["basis"] = str(basis).lower()
+    if "functional" in level:
+        level["dispersion"] = _normalized_dispersion(
+            getattr(output, "dispersion", None)
+        )
+    try:
+        model, solvent = _orca_solvation_context(output)
+    except MissingQuantityError:
+        model, solvent = None, None
+    if model not in (None, "gas_phase"):
+        level["solvent_model"] = model
+        if solvent:
+            level["solvent"] = solvent
+    if ab_initio:
+        electrons = None
+        for line in getattr(output, "contents", ()):
+            match = re.search(
+                r"Freezing NCore=(\d+)|chemical core \((\d+) el\)", str(line)
+            )
+            if match:
+                electrons = int(match.group(1) or match.group(2))
+        if electrons is not None:
+            level["frozen_core"] = electrons // 2
+    return level
+
+
+def _gaussian_level(output: Any) -> dict[str, Any]:
+    """The Hamiltonian a Gaussian result computed with, from its own record.
+
+    The applied functional (the name ``SCF Done`` states), the correlated
+    method whose total ``energy`` is, the basis, the empirical dispersion,
+    the continuum, and the frozen orbitals Gaussian printed (``NFC=``) for
+    a correlated method.
+    """
+
+    level: dict[str, Any] = {}
+    try:
+        functional = _gaussian_functional(output)
+    except Exception:  # noqa: BLE001 - a post-HF run applies no functional
+        functional = None
+    if functional:
+        level["functional"] = re.sub(
+            r"-d[234](?:bj|zero)?$", "", str(functional).lower()
+        )
+    correlated = getattr(output, "correlated_method", None)
+    if correlated and correlated != "double_hybrid":
+        level["ab_initio"] = str(correlated)
+    basis = getattr(output, "basis", None)
+    if basis:
+        level["basis"] = str(basis).lower()
+    if "functional" in level:
+        level["dispersion"] = _normalized_dispersion(
+            getattr(output, "dispersion", None)
+        )
+    model = getattr(output, "solvent_model", None)
+    if model:
+        level["solvent_model"] = str(model).lower()
+        solvent = getattr(output, "solvent_id", None)
+        if solvent:
+            level["solvent"] = str(solvent).lower()
+    if correlated:
+        frozen = None
+        for line in getattr(output, "contents", ()):
+            match = re.search(r"\bNFC=\s*(\d+)", str(line))
+            if match:
+                frozen = int(match.group(1))
+        if frozen is not None:
+            level["frozen_core"] = frozen
+    return level
 
 
 def _orca_solvent(output: Any) -> str:
@@ -4433,8 +4541,13 @@ def _pyscf_level(output: Any) -> dict[str, Any]:
         level["ab_initio"] = ab_initio
     elif method not in (None, ""):
         # ``method`` is the functional the project asked for when no ab
-        # initio method was named; the name is the project's, not libxc's.
-        level["functional"] = method
+        # initio method was named; the level states the literal it means,
+        # as the ``functional`` selector does, so one functional is one
+        # value on every program's level.
+        from chemsmart.jobs.settings import canonical_functional_literal
+
+        level["functional"] = canonical_functional_literal(method) or method
+        level["dispersion"] = _normalized_dispersion(spec.get("dispersion"))
     if spec.get("basis") not in (None, ""):
         level["basis"] = spec["basis"]
     if getattr(output, "solvent_on", False):
@@ -5284,6 +5397,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             _orca_accessors(), _ORCA_ELECTRONIC_PROVENANCE_DECLARED
         ),
         resolve_electronic_provenance=_resolve_computed_surface,
+        resolve_level=_orca_level,
         resolve_surface=lambda output: surface_from_accessors(
             RESULT_READERS["orca"], output
         ),
@@ -6041,6 +6155,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             )
         ),
         resolve_reference_diagnostics=_gaussian_reference_diagnostics,
+        resolve_level=_gaussian_level,
         selector_electronic_provenance=_electronic_provenance_table(
             _gaussian_accessors(), _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED
         ),
