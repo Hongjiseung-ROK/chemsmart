@@ -718,6 +718,101 @@ def test_a_finding_answers_its_question_at_goal_grain(tmp_path):
     assert not observable_is_delivered(count, row)
 
 
+_O2_SINGLET = (
+    _ROOT
+    / "tests/data/PySCFTests/outputs/o2_singlet_sp_stability"
+    / "o2_singlet_sp_stability_gas_phase.h5"
+)
+
+
+@pytest.mark.capability("selector:pyscf:sp:scf_stability_internal")
+@pytest.mark.capability("selector:pyscf:sp:scf_stability_external")
+@pytest.mark.capability("tool:extract_result_quantities")
+def test_a_stability_verdict_pyscf_printed_answers_the_question(tmp_path):
+    """r9 g2-stability (Slurm 2145043) asked whether a reference is
+    stable, and the extraction itself died: PySCF's stability words were
+    declared dimensionless and never listed as words, so 'stable' was
+    converted to a float. Read from a real PySCF 2.14.0 run -- singlet O2
+    at RKS, internally stable, externally unstable toward UKS -- the words
+    are claimed as read and a finding resting on both answers the
+    question."""
+
+    host = _host(tmp_path / "events.jsonl", tmp_path / "workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "reference-stability",
+                "unit": "category",
+                "meaning": "is the closed-shell RKS reference stable",
+            }
+        ],
+    )
+    _register(host, _O2_SINGLET, "o2-singlet", "pyscf_hdf5")
+    receipt = _extract(
+        host,
+        "pyscf",
+        "o2-singlet",
+        [
+            ("internal", "scf_stability_internal"),
+            ("external", "scf_stability_external"),
+        ],
+    )
+    reply = _claim(
+        host,
+        [
+            {
+                "claim_id": "internal-verdict",
+                "receipt_sha256": receipt,
+                "quantity_id": "internal",
+                "display_unit": "1",
+            },
+            {
+                "claim_id": "external-verdict",
+                "receipt_sha256": receipt,
+                "quantity_id": "external",
+                "display_unit": "1",
+            },
+        ],
+    )
+    assert {
+        claim["claim_id"]: claim["display_value"]
+        for claim in reply["result"]["claims"]
+    } == {"internal-verdict": "stable", "external-verdict": "unstable"}
+    decided = _decide(
+        host,
+        [
+            {
+                "finding_id": "rks-reference-breaks-spin-symmetry",
+                "statement": (
+                    "The closed-shell RKS reference of singlet O2 is stable "
+                    "within restricted rotations and unstable toward UKS: a "
+                    "broken-symmetry solution lies below it."
+                ),
+                "answers_observable_id": "reference-stability",
+                "rests_on": [
+                    {
+                        "claim_id": "internal-verdict",
+                        "relation": "==",
+                        "value": "stable",
+                    },
+                    {
+                        "claim_id": "external-verdict",
+                        "relation": "==",
+                        "value": "unstable",
+                    },
+                ],
+            }
+        ],
+    )
+    (finding,) = decided["result"]["findings"]
+    assert finding["standing"] == "answers"
+    assert host._declared_observable_completion(task_spec_sha256=_TASK) == (
+        (),
+        (),
+    )
+
+
 def test_a_finding_on_the_asked_number_says_nothing_was_seen_beyond_it(
     tmp_path,
 ):
