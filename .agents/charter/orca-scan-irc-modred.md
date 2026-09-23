@@ -66,13 +66,29 @@ Hessian it prints, and no thermochemistry is derived from one. The
 structure it reaches may cross a producer edge inside one approval, as an
 optimisation's or a saddle search's may.
 
-Execution is still not claimed. A live goal did run one under the approval
-chain -- ORCA held BINOL's biaryl torsion to -1.4e-5 degrees for 103
-cycles and the whole approved node budget, relieving the strain a rigid
-turn to coplanarity had created -- and it neither converged nor left a
-receipt, because the host's own teardown crashed at the approved timeout.
-No node completed, so the execution flag stays false and is earned by a
-goal that finishes one.
+Execution is recorded from the run that exercised it, and the record says
+what that run was. The first live goal to run one (r9o-g4, CUHK Slurm
+2142894) held BINOL's biaryl torsion to -1.4e-5 degrees for 103 cycles
+and the whole approved node budget, relieving the strain a rigid turn to
+coplanarity had created, and left no receipt because the host's own
+teardown crashed at the approved timeout; that crash was repaired
+(``process_observation``: a group the kernel cannot address does not stop
+the teardown). The byte-identical re-issue on the repaired tree (r9o-g5,
+Slurm 2144929, 18 h) first chose a relaxed scan, which died on ORCA's own
+``ERROR (SHARK): Failed to read input file`` after 24672 s on step 1;
+the session then chose one ``modred`` node holding D(C12,C11,C10,C1) at
+0 degrees. That node terminated normally after 108 cycles -- ORCA's
+default cycle limit of 3N -- with the torsion held at 0.00 degrees and
+the geometry still descending, 32.0 kcal/mol above the minimum; the host
+verified and extracted it, and its structure crossed the producer edge
+into an ``OptTS Freq`` node that converged to a first-order saddle (one
+imaginary mode, -137.51 cm^-1, 7.8 kcal/mol above the minimum). The
+settle phase claimed in prose and the goal returned to the human. The
+owner ruled that run a qualifying success on 2026-09-23; the release
+record names the node, the cycle limit, the held value and the
+non-convergence, so a reader of ``chemsmart agent capabilities`` knows
+that ``modred`` executes and hands on, and that whether its relaxation
+converged is the result's own ``converged`` selector, never assumed.
 
 Two sentences were bought by live streams on a BINOL racemisation task.
 Asked to relax the molecule with its biaryl torsion brought to a coplanar

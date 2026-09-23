@@ -753,17 +753,24 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                 # provider-free, validated, and delivered claims
                 # (qualification/irc-agent-path, 2026-08-23; -1121.05 cm^-1,
                 # exactly one imaginary mode, wB97X-D3(BJ)/def2-TZVP).
-                # `neb` and `modred` stay preview-only: neither has had such
-                # a run.
+                # `neb` stays preview-only: it has had no such run. `modred`
+                # had one (below).
                 EngineJobCapability(engine="cpu", jobtype="irc"),
                 EngineJobCapability(
                     engine="cpu",
                     jobtype="modred",
-                    # Constrained optimisation is declared for planning and
-                    # preview first.  Execution is claimed only once a real
-                    # run on this target has qualified it, which is the same
-                    # order irc and neb are held to above.
-                    execution_supported=False,
+                    # Constrained optimisation was declared for planning and
+                    # preview first; execution is recorded from the run that
+                    # exercised it under the approval chain (R9 r9o-g5, CUHK
+                    # Slurm 2144929, 2026-09-23): one modred node held a
+                    # BINOL biaryl torsion at 0.00 degrees, terminated
+                    # normally at ORCA's cycle limit (3N = 108) without
+                    # converging, was verified and extracted, and handed its
+                    # structure across the producer edge to a saddle search
+                    # that converged. The owner ruled that run a qualifying
+                    # success; the record in release.json says exactly what
+                    # ran, including that it did not converge.
+                    execution_supported=True,
                 ),
                 EngineJobCapability(
                     engine="cpu",

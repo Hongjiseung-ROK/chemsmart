@@ -50,19 +50,23 @@ def test_v1_agent_programs_exclude_human_only_programs_and_gpu_execution():
     } == {"link", "modred", "scan", "td"}
     assert records["orca"].execution_engine_job_pairs == (
         ("cpu", "irc"),
+        ("cpu", "modred"),
         ("cpu", "opt"),
         ("cpu", "scan"),
         ("cpu", "sp"),
         ("cpu", "td"),
         ("cpu", "ts"),
     )
-    # `irc` was qualified by a real run on this target; `neb` and `modred`
-    # have had no such run, so the two must not move together.
+    # `irc` was qualified by a real run on this target, and `modred` by
+    # r9o-g5 (CUHK Slurm 2144929: one constrained relaxation executed,
+    # read and handed on under the approval chain, recorded by the
+    # owner's ruling of 2026-09-23); `neb` has had no such run, so it
+    # must not move with them.
     assert {
         pair[1]
         for pair in records["orca"].preview_engine_job_pairs
         if pair not in records["orca"].execution_engine_job_pairs
-    } == {"modred", "neb"}
+    } == {"neb"}
     # The response stage is executable on the CPU engine (contract v5)
     # and the saddle search on it too (v9); the GPU engine stays
     # preview-only and declares neither an excited state, a path nor a

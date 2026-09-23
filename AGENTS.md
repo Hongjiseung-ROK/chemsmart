@@ -59,9 +59,11 @@ The production Agent supports:
 - inspection and typed analysis of supported results; and
 - explicitly approved execution on release-qualified CPU paths: ORCA
   single-points, optimization/frequency, transition-state, excited-state,
-  relaxed coordinate scans, intrinsic reaction coordinates (one direction
-  per node), and serial DAG workflows; Gaussian ``opt`` and ``sp``,
-  recorded from two live goals; PySCF ``sp/opt/hess/td``, ``irc`` (one branch per node,
+  relaxed coordinate scans, constrained optimisations (recorded from one
+  live goal whose node reached ORCA's cycle limit unconverged with its
+  constraint held), intrinsic reaction coordinates (one direction per
+  node), and serial DAG workflows; Gaussian ``opt``, ``sp``, ``ts`` and
+  ``irc`` (one direction per node), recorded from live goals; PySCF ``sp/opt/hess/td``, ``irc`` (one branch per node,
   from a saddle of the surface it walks), optimisation on an excited
   root, and the ``mp2``, ``ccsd`` and ``ccsd(t)`` methods, each recorded
   from a sealed live goal on the configuration it ran; and xTB

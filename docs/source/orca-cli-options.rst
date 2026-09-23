@@ -7,9 +7,9 @@ list.
 
 The current Agent release can plan and safely preview ORCA ``sp``, ``opt``, ``ts``, ``irc``, ``td``, ``neb``, ``scan``,
 and ``modred`` workflows. Release-qualified CPU execution covers single-points, optimization/frequency,
-transition-state, excited-state, relaxed coordinate scans, intrinsic reaction coordinates, and serial
-producer-to-consumer DAGs. ``neb`` and constrained optimisation still require qualification on the selected target before being described as
-completed Agent execution paths.
+transition-state, excited-state, relaxed coordinate scans, constrained optimisations, intrinsic reaction
+coordinates, and serial producer-to-consumer DAGs. ``neb`` still requires qualification on the selected target
+before being described as a completed Agent execution path.
 
 A ``modred`` job is a constrained optimisation: it relaxes everything except the internal coordinates it holds, and
 it holds each of them at the value the supplied geometry already has -- a constraint names which coordinate, never

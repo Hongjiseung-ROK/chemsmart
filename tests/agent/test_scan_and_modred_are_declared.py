@@ -49,11 +49,16 @@ def test_the_family_is_previewable_through_the_live_registry(program, jobtype):
     assert capability.preview_supported is True
 
 
-#: The one pair a real run has qualified: an ORCA 6.1.1 relaxed scan executed
+#: The pairs a real run has qualified. An ORCA 6.1.1 relaxed scan executed
 #: on this host through the ChemSmart CLI, whose converged points match the
 #: .relaxscanact.dat sidecar ORCA wrote beside them, with the Agent's own
 #: compiled invocation reproducing that native input and previewing green.
-_QUALIFIED = {("orca", "scan")}
+#: An ORCA constrained optimisation executed under the approval chain in
+#: r9o-g5 (CUHK Slurm 2144929): the node held its torsion, terminated
+#: normally at ORCA's cycle limit unconverged, was read by its declared
+#: selectors and handed its structure to a saddle search; the owner ruled
+#: that run qualifying on 2026-09-23 and the release record says all of it.
+_QUALIFIED = {("orca", "scan"), ("orca", "modred")}
 
 
 @pytest.mark.parametrize("program", ("orca", "gaussian"))
