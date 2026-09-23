@@ -189,6 +189,7 @@ from chemsmart.agent.projects import (
     ProjectRenderReceiptV1,
     ProjectValidationReceiptV1,
     PySCFFunctionalResolutionReceiptV1,
+    functional_convention_claim_is_unbacked,
     project_document,
     project_scientific_materializations,
     project_section_application_observation,
@@ -6480,12 +6481,8 @@ class CommandCompiledToolHostV1:
                 *values["diagnostics"],
             )
         )
-        if (
-            re.search(
-                r"(?i)(?<![a-z0-9])(?:vwn\s*[35]|b3lypg|b3lyp5)(?![a-z0-9])",
-                convention_narrative,
-            )
-            and not functional_resolution_refs
+        if functional_convention_claim_is_unbacked(
+            convention_narrative, functional_resolution_refs
         ):
             raise ContractError(
                 "functional-convention claims require a host resolution receipt"

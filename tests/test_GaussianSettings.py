@@ -896,7 +896,7 @@ class TestGaussianPBCJob:
             filepath=gaussian_pbc_3d_outputfile
         )
         assert settings.jobtype == "sp"
-        assert settings.functional.lower() == "pbepbe"
+        assert settings.functional.lower() == "pbe"
         assert settings.basis.lower() == "6-31g(d,p)/auto"
         assert settings.additional_route_parameters.lower() == "scf=tight"
 

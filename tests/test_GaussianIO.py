@@ -189,7 +189,8 @@ class TestRouteString:
         assert r3a.freq is True
         assert r3a.numfreq is True
         assert r3a.solv is False
-        assert r3a.functional == "pbepbe"
+        # Gaussian's PBEPBE is the literal pbe in every program.
+        assert r3a.functional == "pbe"
         assert r3a.basis == "def2svp"
         assert r3a.additional_route_parameters == "nosymm guess=mix"
 
@@ -455,7 +456,7 @@ class TestGaussian16Input:
         assert g16_pbc_1d.additional_route_parameters == "scf=tight"
         assert g16_pbc_1d.jobtype == "sp"
         assert g16_pbc_1d.modred is None
-        assert g16_pbc_1d.functional == "pbepbe"
+        assert g16_pbc_1d.functional == "pbe"
         assert g16_pbc_1d.basis == "6-31g(d,p)/auto"
 
 

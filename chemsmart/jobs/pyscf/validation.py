@@ -42,7 +42,6 @@ from ase.data import atomic_masses as ASE_ATOMIC_MASSES
 from ase.data import atomic_numbers as ASE_ATOMIC_NUMBERS
 
 from chemsmart.jobs.pyscf.settings import (
-    FUNCTIONAL_DIVERGENCES,
     PYSCF_AB_INITIO_METHODS,
     PYSCF_ANALYTIC_HESSIAN_STAGES,
     PYSCF_COUPLED_CLUSTER_METHODS,
@@ -61,6 +60,7 @@ from chemsmart.jobs.pyscf.settings import (
     PYSCF_UNRESTRICTED_MANIFOLD,
     is_double_hybrid_functional,
     pyscf_correlated_method,
+    pyscf_native_functional,
     pyscf_stages,
 )
 
@@ -5908,10 +5908,9 @@ def _requested_spec(settings):
     elif ab_initio is not _MISSING and str(ab_initio).lower() == "hf":
         requested["xc"] = None
     elif functional is not _MISSING and functional is not None:
-        key = str(functional).strip().lower()
-        requested["xc"] = FUNCTIONAL_DIVERGENCES.get(key, (functional, None))[
-            0
-        ]
+        # The writer's own spelling, from the table it spells with, so a
+        # literal and its synonyms verify against the xc the driver ran.
+        requested["xc"] = pyscf_native_functional(functional)
 
     if ab_initio not in (_MISSING, None):
         requested["method"] = str(ab_initio).lower()
