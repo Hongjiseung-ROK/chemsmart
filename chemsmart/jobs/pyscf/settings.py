@@ -16,7 +16,11 @@ import logging
 import math
 from numbers import Integral, Real
 
-from chemsmart.jobs.settings import MolecularJobSettings
+from chemsmart.jobs.settings import (
+    MolecularJobSettings,
+    canonical_functional_literal,
+    functional_resolution_record,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -167,11 +171,31 @@ PYSCF_DOUBLE_HYBRID_MARKERS = (
     "double-hybrid",
 )
 
-#: Functionals whose *name* means different things in different programs or
-#: target configurations. Maps the ChemSmart literal to an unambiguous PySCF
-#: LibXC alias plus a public explanation. In PySCF 2.14, the bare ``B3LYP``
-#: alias may be redirected by ``__config__.B3LYP_WITH_VWN5``; ``B3LYPG`` is
-#: the explicit VWN3/Gaussian convention and is not changed by that switch.
+#: The PySCF spelling of a ChemSmart functional literal whose meaning
+#: (``chemsmart.jobs.settings.FUNCTIONAL_IDENTITIES``) needs one.  In PySCF
+#: 2.14 the bare ``B3LYP`` alias follows ``__config__.B3LYP_WITH_VWN5``;
+#: ``b3lypg`` is the VWN3 (Gaussian) form whatever that switch says, and it
+#: is the form the literal ``b3lyp`` names in every program.  The writer
+#: spells from this table and the provenance verifier reads the same one.
+PYSCF_FUNCTIONAL_NATIVE = {
+    "b3lyp": "b3lypg",
+    "b3lyp5": "b3lyp5",
+    "pbe0": "pbe0",
+    "pbe": "pbe",
+    "bp86": "bp86",
+}
+
+#: Literals PySCF has no libxc spelling for, with the route a refusal names.
+PYSCF_FUNCTIONAL_REFUSED = {
+    "bp86-pw92": (
+        "libxc's P86 is built on the Perdew-Zunger 81 local correlation (the "
+        "literal bp86); the Perdew-Wang 92 form is ORCA's BP86 and has no "
+        "libxc spelling here. Request bp86, or run bp86-pw92 in ORCA."
+    ),
+}
+
+#: Literals whose PySCF spelling is announced when it is applied, because
+#: the bare name means something else in another program or configuration.
 FUNCTIONAL_DIVERGENCES = {
     "b3lyp": (
         "b3lypg",
@@ -179,24 +203,6 @@ FUNCTIONAL_DIVERGENCES = {
         "target-level B3LYP_WITH_VWN5 configuration cannot change the "
         "calculation. Request b3lyp5 explicitly for the VWN5 variant.",
     ),
-}
-
-# Public, deterministic semantics for aliases whose scientific interpretation
-# can be stated without launching PySCF.  This registry intentionally stops at
-# the alias/convention boundary: exact LibXC primitive IDs, factors, and hybrid
-# coefficients remain target-environment observations produced by the child
-# driver at execution time.
-_REGISTERED_FUNCTIONAL_VARIANTS = {
-    "b3lypg": {
-        "functional_family": "b3lyp",
-        "correlation_convention": "vwn3_gaussian",
-        "rule_id": "pyscf.functional.b3lypg_vwn3_gaussian",
-    },
-    "b3lyp5": {
-        "functional_family": "b3lyp",
-        "correlation_convention": "vwn5",
-        "rule_id": "pyscf.functional.b3lyp5_vwn5",
-    },
 }
 
 
@@ -240,79 +246,36 @@ def pyscf_stages(jobtype, *, ab_initio=None, excited_state_root=None):
 
 
 def describe_functional_resolution(functional=None, *, ab_initio=None):
-    """Describe the host-side functional literal applied by ChemSmart.
+    """What PySCF is told for a project functional, as a host record.
 
-    The record is safe to expose during planning because it is derived by the
-    same resolver used by :attr:`PySCFJobSettings.xc`.  It does not pretend to
-    be the execution-time LibXC materialization: arbitrary literals and
-    composite expressions remain explicitly unclassified until the target
-    interpreter records ``libxc.parse_xc`` output in the result artifact.
+    Derived from the resolver :attr:`PySCFJobSettings.xc` calls, in the
+    record every program's settings module answers.  It is the host's
+    alias resolution, not the execution-time libxc materialisation, which
+    the result artifact records separately.
     """
 
-    method = str(ab_initio or "").strip().lower()
-    if method == "hf":
-        return {
-            "schema_version": "chemsmart.pyscf-functional-resolution.v1",
-            "status": "not_applicable",
-            "requested_method_kind": "hf",
-            "requested_literal": None,
-            "normalized_requested_literal": "",
-            "applied_xc": None,
-            "normalized_applied_xc": "",
-            "functional_family": "hartree_fock",
-            "correlation_convention": "not_applicable",
-            "source": "chemsmart.jobs.pyscf.settings.resolve_functional",
-            "rule_id": "pyscf.functional.not_applicable_hf",
-        }
-    if functional is None or not str(functional).strip():
-        return {
-            "schema_version": "chemsmart.pyscf-functional-resolution.v1",
-            "status": "missing",
-            "requested_method_kind": "dft",
-            "requested_literal": None,
-            "normalized_requested_literal": "",
-            "applied_xc": None,
-            "normalized_applied_xc": "",
-            "functional_family": "",
-            "correlation_convention": "unresolved",
-            "source": "chemsmart.jobs.pyscf.settings.resolve_functional",
-            "rule_id": "pyscf.functional.missing",
-        }
+    return functional_resolution_record(
+        program="pyscf",
+        functional=functional,
+        ab_initio=ab_initio,
+        native=pyscf_native_functional(functional),
+        source="chemsmart.jobs.pyscf.settings.resolve_functional",
+    )
 
-    requested = str(functional).strip()
-    key = requested.lower()
-    divergence = FUNCTIONAL_DIVERGENCES.get(key)
-    # Call the executable resolver rather than reproducing its behaviour in
-    # this evidence function.  Pass-through and composite strings therefore
-    # retain the exact bytes that the writer will place in ``config["xc"]``.
-    applied = str(resolve_functional(requested)).strip()
-    applied_key = applied.lower()
-    variant = _REGISTERED_FUNCTIONAL_VARIANTS.get(applied_key)
-    if variant is None:
-        return {
-            "schema_version": "chemsmart.pyscf-functional-resolution.v1",
-            "status": "literal_preserved",
-            "requested_method_kind": "dft",
-            "requested_literal": requested,
-            "normalized_requested_literal": key,
-            "applied_xc": applied,
-            "normalized_applied_xc": applied_key,
-            "functional_family": "unclassified_libxc_literal",
-            "correlation_convention": "not_declared",
-            "source": "chemsmart.jobs.pyscf.settings.resolve_functional",
-            "rule_id": "pyscf.functional.literal_preserved",
-        }
-    return {
-        "schema_version": "chemsmart.pyscf-functional-resolution.v1",
-        "status": "registered_alias" if divergence else "explicit_variant",
-        "requested_method_kind": "dft",
-        "requested_literal": requested,
-        "normalized_requested_literal": key,
-        "applied_xc": applied,
-        "normalized_applied_xc": applied_key,
-        **variant,
-        "source": "chemsmart.jobs.pyscf.settings.resolve_functional",
-    }
+
+def pyscf_native_functional(functional):
+    """Return the libxc name PySCF is given for a functional literal.
+
+    Pure: the warning belongs to :func:`resolve_functional`, which the
+    writer calls, and the provenance verifier compares through this.
+    """
+
+    if functional is None:
+        return None
+    canonical = canonical_functional_literal(functional)
+    if canonical in PYSCF_FUNCTIONAL_NATIVE:
+        return PYSCF_FUNCTIONAL_NATIVE[canonical]
+    return functional
 
 
 def resolve_functional(functional):
@@ -326,10 +289,9 @@ def resolve_functional(functional):
         return None
     key = str(functional).strip().lower()
     if key in FUNCTIONAL_DIVERGENCES:
-        resolved, note = FUNCTIONAL_DIVERGENCES[key]
+        _resolved, note = FUNCTIONAL_DIVERGENCES[key]
         logger.warning(f"Functional {functional!r}: {note}")
-        return resolved
-    return functional
+    return pyscf_native_functional(functional)
 
 
 def is_double_hybrid_functional(functional):
@@ -606,6 +568,12 @@ class PySCFJobSettings(MolecularJobSettings):
             raise ValueError(
                 "Specify either 'ab_initio: hf' or 'functional', not both."
             )
+
+        refused = PYSCF_FUNCTIONAL_REFUSED.get(
+            canonical_functional_literal(self.functional)
+        )
+        if self.ab_initio is None and refused is not None:
+            raise ValueError(refused)
 
         if is_double_hybrid_functional(self.functional):
             raise ValueError(

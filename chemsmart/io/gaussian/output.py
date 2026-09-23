@@ -37,6 +37,52 @@ from chemsmart.utils.utils import (
 p = PeriodicTable()
 logger = logging.getLogger(__name__)
 
+#: Route methods whose own per-geometry total Gaussian prints on a line of
+#: its own, most specific first: (name, route-word pattern, line pattern).
+#: The line patterns were read off G16 C.02 logs of water/cc-pVDZ (CUHK
+#: Slurm 2149277), each against the same log's archive entry.
+_GAUSSIAN_METHOD_TOTALS = (
+    ("ccsd(t)", r"^(?:ro|u|r)?ccsd\(t", r"^\s*CCSD\(T\)=\s*(\S+)"),
+    ("qcisd(t)", r"^(?:ro|u|r)?qcisd\(t", r"^\s*QCISD\(T\)=\s*(\S+)"),
+    (
+        "ccsd",
+        r"^(?:ro|u|r)?ccsd(?!\(t)",
+        r"Wavefunction amplitudes converged\.\s+E\(Corr\)=\s*(\S+)",
+    ),
+    (
+        "qcisd",
+        r"^(?:ro|u|r)?qcisd(?!\(t)",
+        r"Wavefunction amplitudes converged\.\s+E\(Corr\)=\s*(\S+)",
+    ),
+    ("mp4(sdq)", r"^(?:ro|u|r)?mp4\(sdq\)", r"UMP4\(SDQ\)=\s*(\S+)"),
+    ("mp4(dq)", r"^(?:ro|u|r)?mp4\(dq\)", r"UMP4\(DQ\)=\s*(\S+)"),
+    ("mp4", r"^(?:ro|u|r)?mp4(?:\(sdtq\))?$", r"UMP4\(SDTQ\)=\s*(\S+)"),
+    ("mp3", r"^(?:ro|u|r)?mp3$", r"EUMP3=\s*(\S+)"),
+)
+
+#: Post-HF route words whose total none of the lines above states: an
+#: energy read for one of them would be a lower level's, so none is read.
+_GAUSSIAN_UNREAD_POST_HF = re.compile(
+    r"^(?:ro|u|r)?(?:ccd|cisd|cid|bd|mp5|cbs-|g[1-4](?:mp2)?$|w1)"
+)
+
+
+def _gaussian_route_method(route_string):
+    """The route's method word, lower case, basis and spin prefix kept off."""
+
+    for token in str(route_string).lower().split():
+        word = token.split("/", 1)[0].strip()
+        if not word or word.startswith("#"):
+            continue
+        if re.match(r"^(?:ro|u|r)?mp2", word):
+            return word
+        if _GAUSSIAN_UNREAD_POST_HF.match(word):
+            return word
+        for _name, method, _line in _GAUSSIAN_METHOD_TOTALS:
+            if re.match(method, word):
+                return word
+    return ""
+
 
 class Gaussian16Output(GaussianFileMixin):
     """Comprehensive parser for Gaussian 16 output files.
@@ -1586,16 +1632,129 @@ class Gaussian16Output(GaussianFileMixin):
         return layer_energies
 
     @cached_property
+    def energy_source(self):
+        """Which printed total ``energies`` reads: the route method's own.
+
+        Gaussian prints every lower level on the way to the one a route
+        asks for -- a CCSD(T) run prints EUMP2, EUMP3 and the MP4 partial
+        sums before ``CCSD(T)=`` -- and a double hybrid's ``SCF Done`` is
+        its SCF part only.  Reading "any EUMP2 line, else SCF Done" served
+        the MP2 total for MP3, MP4, CCSD, CCSD(T) and QCISD(T) routes,
+        7-13 mEh off on water/cc-pVDZ, the SCF part of B2PLYP 65 mEh off,
+        and the ground state of a TD optimisation whose surface is the
+        root (CUHK Slurm 2149277).  A route method this table does not
+        know answers ``unrecognized_post_hf``, and ``energies`` is then
+        empty: no number rather than a lower level's.
+        """
+
+        if self.oniom_energies:
+            return "oniom"
+        method = _gaussian_route_method(self.route_string or "")
+        for name, pattern, _line in _GAUSSIAN_METHOD_TOTALS:
+            if re.match(pattern, method):
+                return name
+        if re.match(r"^(?:ro|u|r)?mp2", method):
+            return "mp2"
+        if _GAUSSIAN_UNREAD_POST_HF.match(method):
+            return "unrecognized_post_hf"
+        if self.double_hybrid_energies:
+            return "double_hybrid"
+        if self._route_has_excited_state_block and self.jobtype not in (
+            None,
+            "sp",
+            "td",
+        ):
+            return "td_root"
+        return "scf"
+
+    @property
+    def correlated_method(self):
+        """The correlated method whose surface ``energies`` is on, or None.
+
+        Named for the electronic-provenance resolver: the MP-n, CC, QCI and
+        double-hybrid totals are correlated surfaces while the dipole and
+        populations beside them are the SCF reference's.
+        """
+
+        source = self.energy_source
+        if source in {"scf", "oniom", "td_root", "unrecognized_post_hf"}:
+            return None
+        if source == "double_hybrid":
+            return "double_hybrid"
+        return source
+
+    @property
+    def excited_state_followed_root(self):
+        """The root a TD optimisation followed, or None for any other job.
+
+        ``td(root=N)`` names it; Gaussian's default root is 1.
+        """
+
+        if self.energy_source != "td_root":
+            return None
+        match = re.search(r"root\s*=\s*(\d+)", self.route_string or "")
+        return int(match.group(1)) if match else 1
+
+    @cached_property
+    def double_hybrid_energies(self):
+        """A double hybrid's totals, ``E(<name>) =`` beside its E2 term."""
+
+        pattern = re.compile(
+            r"E2\((?P<name>[^)]+)\)\s*=\s*\S+\s+E\((?P=name)\)\s*=\s*(\S+)"
+        )
+        values = []
+        for line in self.contents:
+            match = pattern.search(line)
+            if match:
+                values.append(float(match.group(2).replace("D", "E")))
+        return values
+
+    @cached_property
+    def excited_state_total_energies(self):
+        """``Total Energy, E(TD-HF/TD-DFT)`` -- the followed root's total."""
+
+        pattern = re.compile(
+            r"Total Energy, E\(TD-HF/TD-DFT\)\s*=\s*(-?\d+\.\d+)"
+        )
+        values = []
+        for line in self.contents:
+            match = pattern.search(line)
+            if match:
+                values.append(float(match.group(1)))
+        return values
+
+    @cached_property
     def energies(self):
         """
-        Return energies of the system.
+        Return the energies of the system on the surface the route asks for.
+
+        One value per geometry the run computed, of the quantity
+        ``energy_source`` names.
         """
-        if len(self.mp2_energies) == 0 and len(self.oniom_energies) == 0:
-            return self.scf_energies
-        elif len(self.mp2_energies) != 0:
-            return self.mp2_energies
-        elif len(self.oniom_energies) != 0:
+        source = self.energy_source
+        if source == "oniom":
             return self.oniom_energies
+        if source == "scf":
+            return self.scf_energies
+        if source == "mp2":
+            return self.mp2_energies
+        if source == "double_hybrid":
+            return self.double_hybrid_energies
+        if source == "td_root":
+            return self.excited_state_total_energies
+        if source == "unrecognized_post_hf":
+            return []
+        line_pattern = next(
+            line
+            for name, _method, line in _GAUSSIAN_METHOD_TOTALS
+            if name == source
+        )
+        values = []
+        for line in self.contents:
+            match = re.search(line_pattern, line)
+            if match:
+                values.append(float(match.group(1).replace("D", "E")))
+        return values
 
     @cached_property
     def zero_point_energy(self):

@@ -38,9 +38,9 @@ class TestPySCFJobSettings:
     @pytest.mark.parametrize(
         ("functional", "ab_initio", "applied_xc", "convention", "status"),
         [
-            ("b3lyp", None, "b3lypg", "vwn3_gaussian", "registered_alias"),
-            ("b3lyp5", None, "b3lyp5", "vwn5", "explicit_variant"),
-            ("PBE0", None, "PBE0", "not_declared", "literal_preserved"),
+            ("b3lyp", None, "b3lypg", "vwn3_gaussian", "canonical_literal"),
+            ("b3lyp5", None, "b3lyp5", "vwn5", "canonical_literal"),
+            ("PBE0", None, "pbe0", "pw92", "canonical_literal"),
             (
                 "0.5*HF+0.5*PBE",
                 None,
@@ -65,7 +65,7 @@ class TestPySCFJobSettings:
             settings.functional, ab_initio=settings.ab_initio
         )
 
-        assert resolution["applied_xc"] == settings.xc == applied_xc
+        assert resolution["applied_native"] == settings.xc == applied_xc
         assert resolution["correlation_convention"] == convention
         assert resolution["status"] == status
 
