@@ -213,6 +213,44 @@ constrained family, all Q7 fixes).
 
 ## Results read so far (host records, through ChemSmart's readers)
 
+G2 (Slurm 2150187, code 01c34759, digest fb681a6f on the node, 22:37,
+two cycles, no revision, settled `achieved`):
+- Cycle 1 ran opt+freq (9.1 s), scan (28.6 s) and modred (8.3 s) in one
+  wave; the approved analysis chain rendered four claims provider-free.
+  The host qualified gaussian:cpu:scan, gaussian:cpu:modred and
+  gaussian:cpu:opt in the goal ledger; records appended (b6b94b91).
+- Scan: the hub wrote `D 3 1 2 4 S 12 15.0` under `opt=modredundant`
+  (no freq); 13 points at 0.000 .. 180.000. Every total within 1.9e-7 Eh
+  of O2's Gaussian scan, relative profile within 1e-4 kcal/mol; cis
+  8.2988, trans 0.5343 kcal/mol above the opt minimum (-151.423093111 Eh,
+  = O3's to every digit; the 120-degree point is 0.00024 kcal/mol above
+  it). PASS.
+- Modred: `B 1 2 F` under `opt=modredundant freq`; converged 1, held
+  O-O 1.59999982 A, E -151.413821057 Eh (= O3's Gaussian run to every
+  digit), cost 5.8183 kcal/mol, torsion 141.538 degrees (O3: 141.54).
+  PASS on every G2 band.
+- Recorded, not scored: the session set the torsion to 0.0 (set_dihedral,
+  115.0 -> 0.0) and the O-O to 1.60 (set_bond_length) before planning,
+  unprompted; it never met scan.start_is_where_the_geometry_is. Refusals
+  it met and recovered from: 'deg' on `scan_coordinate_values` (declared
+  dimension 1), an expression unit, and a `gaussian_output` requirement.
+- Found by the run, left (outside what the milestone needs): a Gaussian
+  scan point cannot be carried forward. The first plan put an sp on the
+  scan's minimum through a geometry edge; the scan-minimum rule admits
+  ORCA scans only (execution.py `is_validated_scan_minimum_geometry_edge`),
+  so the node blocked approval and the session dropped it. In cycle 2
+  `bind_scan_point_geometry` failed with a raw `KeyError: 'geometry_file'`
+  (tool_runtime.py `_bind_scan_point_geometry` indexes a key Gaussian's
+  `scan_point_records` -- index only -- does not carry). The session
+  measured the lowest point's torsion on the opt minimum (120.64 degrees)
+  and stated why in its decision. `about_relaxed_scans` tells every
+  program's session both routes exist.
+- Found by the run, left: project validation told the session "this
+  gaussian/modred project already requests a frequency calculation.
+  Declare vibrational_frequencies on this same scientific node", and it
+  did, while the modred reader declares no vibrational family (54cb1354;
+  ORCA's never did). The guidance reads the freq flag, not the reader.
+
 G1 (Slurm 2150077, code 7111e2a6, digest 4d7248e7 on the node, 25:54,
 three cycles, one revision admitted, settled `achieved`):
 - Cycle 1 opt+freq (10.6 s) reached E = -191.544925639 Eh, 0 imaginary
@@ -313,3 +351,9 @@ O1 (Slurm 2150076, code 7111e2a6, digest 4d7248e7, all 22 TD runs exit 0):
   scan, modred committed before packing (test_every_executable_program_
   jobtype_has_a_qualification_record is red until the runs are recorded
   or the flags withdrawn).
+- step 2: O1/O2/V1/O3/O4 read; 85679b4d (scan start refused with its
+  edit), b27e0add (Gaussian constrained family), 8d07d2c7 (ORCA strength
+  paired with its state) from what the oracles showed.
+- step 3: G1 and G2 settled achieved; gaussian:cpu:td, scan and modred
+  recorded (ddb27003, b6b94b91); the ladder test is green again.
+  Milestone A claimed; nothing further started.
