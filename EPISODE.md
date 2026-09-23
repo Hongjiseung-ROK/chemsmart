@@ -37,7 +37,34 @@ delivery works without routing on the human's words?
   `experiments-public/` consulted `method-adequacy` through `open_guide`
   -- but those ran `qwen3.8-max`, not the model under study.
 
+## Commits so far (repair, then content)
+
+- f21ae5e7 knowledge entries in the catalogue, index read off it,
+  sentence registered (`stem.knowledge_is_reference_text`); witness red
+  on base, green after.
+- 391c9ff9 the ladder's advertised rung for skills is computed.
+- f963a434, 35b2292e, a270eca6 content corrections and additions.
+
+## Development observations (not evidence for the sealed question)
+
+- Local pilot, pull-only delivery (391c9ff9), dev question D1 (para-nitro
+  effect on the gas-phase deprotonation enthalpy of phenol): the session
+  searched "method adequacy ... error cancellation ... semiempirical
+  uncertainty" and loaded `about_method_adequacy` in its second turn,
+  before its first `project_yaml` -- pull worked once.
+- The same session shows why the sealed sessions cannot run on this Mac:
+  locally only xTB is environment-ready (PySCF 2.13 fails the 2.14 guard,
+  ORCA and Gaussian are absent), so the model planned GFN2-xTB and named
+  DFT as "the scientifically preferred but unmaterialized alternative".
+  Method choice would measure the laptop, not the knowledge. Planning
+  sessions therefore run on the cluster under the R10 CUHK profile
+  (Gaussian 16, ORCA 6.1.1, PySCF 2.14, xTB), inside slot jobs, one
+  session at a time.
+- Batch dev1 on the cluster (D1 in C and B, D2 in C) validates the
+  cluster runner; it is development, not the sealed test.
+
 ## Status
 
-Phase 1 (provider-free): premise verified; design and pre-registration
-in progress.
+Phase 1 (provider-free and dev): arms under construction; the
+pre-registration (N, grading, falsifiers) is written before the sealed
+questions are copied in.
