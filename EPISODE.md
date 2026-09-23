@@ -344,3 +344,75 @@ false-claim rate and cost.
   material: mechanism, rule, arms (paired), N (4 live pairs, 11
   archived items, one goal each), measures and protocol above. Status:
   ready for sealed tasks.
+
+## Sealed material (received after ff9bc326; uncommitted under sealed/)
+
+Master's sha256 manifest digest: `fdacb192f0aee4dc`. 51 files: 8 live
+tasks (sealed/live/pair1-A .. pair4-B, each TASK.md + start.xyz) and 11
+archived items (sealed/archived/AR01 .. AR11, each TASK.md + data/). My
+own check of the bytes I run: `find sealed -type f | LC_ALL=C sort |
+xargs shasum -a 256`, and sha256 of that listing = `d25a6d69fa1ca636`
+(a different listing method from the master's, so the two digests are
+not expected to agree; the listing is kept in my scratch as
+q6/sealed-manifest-a.txt). Items are named only by folder id here.
+
+Code for every sealed goal: the chemsmart/ tree of ff9bc326, which the
+next commits do not touch (they change EPISODE.md only); packed with
+pack_code.sh, its digest recorded below before the first submission,
+and the same pack unpacked locally for the archived set.
+
+### Live goals: envelopes, and my expectations for the asked quantity
+
+Common to all eight: make_goal.py, `--programs gaussian,orca,pyscf,xtb`
+(the task leaves the level of theory to the Agent, so every program the
+R10 CUHK profile configures is allowed), layout tasks, max_revisions 2,
+granted by claude-researcher-q6-owner-delegated, task text verbatim,
+start.xyz in workspace/, `--reading-turn` appended to the goal command,
+goal id = the folder id in lower case. A and B of a pair get identical
+envelopes. The approved episode is set well above the engine time a
+route needs, so that the Slurm time it fixes (episode + 20 min) also
+holds the provider sessions -- planning, up to two wakes and the reading
+(development: 13 + 8 + 4 min on gdev1).
+
+| goal | cores / GB | node h | episode h | engine calls |
+|---|---|---|---|---|
+| pair1-a, pair1-b | 8 / 16 | 1.0 | 2.5 | 4 |
+| pair2-a, pair2-b | 8 / 16 | 1.0 | 2.5 | 4 |
+| pair3-a, pair3-b | 32 / 64 | 2.0 | 4.0 | 8 |
+| pair4-a, pair4-b | 16 / 32 | 1.5 | 3.0 | 4 |
+
+Expectations for the asked quantity (mine, written before any
+submission; the master's DFT/def2-TZVP sanity bands inform them and are
+widened for the method and basis the Agent may choose):
+
+- pair1-A: carbonate C-O, D3h, in [1.28, 1.32] A (master: 1.299-1.305
+  at DFT/def2-TZVP).
+- pair1-B: nitrate N-O, D3h, in [1.23, 1.27] A (master: 1.246-1.257).
+- pair2-A: methanimine C=N harmonic stretch in [1680, 1780] cm-1
+  (master: 1713-1745).
+- pair2-B: HNO N=O harmonic stretch in [1550, 1760] cm-1 (master: about
+  1570-1740; exp. fundamental 1565).
+- pair3-A: phenol O-H BDE(298 K) in [80, 90] kcal/mol (master: about
+  83.5 at B3LYP-D3(BJ)/def2-TZVP).
+- pair3-B: (E)-acetophenone oxime O-H BDE(298 K) in [72, 83] kcal/mol
+  (master: about 77.0 at B3LYP-D3(BJ)/def2-TZVP).
+- pair4-A: N-CH3 in ClCH2N(CH3)2 in [1.43, 1.47] A (master:
+  1.445-1.454).
+- pair4-B: N-CH3 in ClCH2CH2N(CH3)2 in [1.43, 1.47] A (master:
+  1.445-1.455).
+
+A delivered number outside its band is recorded as wrong-per-physics
+beside the settlement word; it is not re-run. Mechanism, per goal: if
+the goal reaches a certified word, the ledger holds reading_opened ->
+reading_recorded -> goal_settled with the settled word equal to the held
+word and nothing launched, admitted or recovered after the hold; a goal
+that ends in any other word has no reading and both arms equal it. What
+else a task holds is not mine to guess and is not written here.
+
+### Archived set
+
+Eleven local provider-only goals, one per item, run one after another
+with `--reading-turn`, max_engine_calls 0, max_revisions 0, envelope
+allowing gaussian, orca, pyscf and xtb (cpu), task text verbatim, and
+the workspace holding the item's `data/` directory exactly as released
+(the task texts name files under `data/`). Goal ids ar01 .. ar11.
