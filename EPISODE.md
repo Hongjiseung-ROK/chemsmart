@@ -188,6 +188,56 @@ made `auto` only if `auto` freezes the same count as ORCA's and Gaussian's
 defaults on both; otherwise the counts are recorded per program and no
 default is claimed to be one Hamiltonian.
 
+## Oracle 2 results (job 2149487, prereg f7fd12e1dca5, code 4f6d24b5, digest b4500a64)
+
+57 commands, all exit 0, read through the repaired readers.
+V1 holds. ORCA `functional: b3lyp` (as written) now prints VWN-3 and its
+`functional` answers b3lyp; ORCA default totals sit 4.4e-5 to 2.15e-4 Eh
+from Gaussian's and PySCF's; water IP 286.2962 / 286.3055 / 286.3056 and
+CH3Cl -> CH3 + Cl 82.4200 / 82.3949 / 82.3954 kcal/mol (ORCA / Gaussian /
+PySCF): spreads 0.009 and 0.025 (were 2.35 and 0.38).
+V2 holds: ORCA b3lyp tight -76.358141128 = oracle-1 B3LYP/G tight.
+V3 partly misses its band: Gaussian `pbe0` now runs PBE1PBE, -76.2762499
+(ORCA -76.2762745, PySCF -76.2762643) and `pbe` runs PBEPBE, -76.2719830
+(ORCA -76.2720149, PySCF -76.2720009): Gaussian - PySCF 1.4e-5 / 1.8e-5
+(inside 2e-5), Gaussian - ORCA 2.5e-5 / 3.2e-5 (outside the 2e-5 band I
+wrote). All three answer `functional` pbe0 / pbe. Before: 0.0365 off and a
+failed run.
+T holds: ORCA td `energy` -76.35826851818 vs ORCA sp -76.35826851839
+(2e-10); PySCF td `energy` -76.35814183 (1.27e-4 away, default numerics).
+B decides: ORCA - Gaussian bp86 totals -0.96 to -2.67 mEh; IP(water)
+-0.737 kcal/mol, CH3Cl -> CH3 + Cl -1.060, HCN -> HNC +0.001; PySCF -
+Gaussian 0.0003, 0.0024, -0.0001 (totals 6e-5-2.3e-4 Eh). By the rule
+written above, `bp86` is two functionals for relative energies: ORCA now
+refuses `bp86` (no simple-input spelling of the PZ81 form) and spells its
+own form as the literal `bp86-pw92`, which Gaussian and PySCF refuse.
+Z2 decides: HBr frozen orbitals ORCA 9 (18 e), Gaussian 9, PySCF auto 9
+(totals within 3.8e-7); PySCF default 0, 0.0346 Eh (21.7 kcal/mol) lower.
+ZnH2: ORCA 5, PySCF auto 5 (3.6e-6), Gaussian NFC 9 (65 mEh away), PySCF
+default 0. By the rule written above, PySCF's default is NOT changed: no
+default is one Hamiltonian for Zn. Each program's result now states its
+frozen count in its level, and an expression is told when counts differ.
+
+## Goal g1-hono (pre-registered before issue)
+
+Same task text and start geometry as the R9 goal g2-hono (CUHK 2140679;
+TASK.md sha256 9fa0570b..., trans_hono.xyz 5eea4455...), same envelope
+numbers (orca, pyscf, xtb; 8 cores, 32 GB; node 3000 s; episode 5400 s;
+7 engine calls; 2 revisions), delegated approval
+`claude-researcher-q2-owner-delegated` (never a human decision), model
+deepseek-v4-flash-0731 via alibaba-token-plan.
+Before (host records of 2140679): ORCA TS route `! OptTS Freq b3lyp
+def2-svp`, LDAOpt VWN-5; PySCF IRC start max|g| 3.6047e-4 Eh/Bohr on both
+branches; barriers 14.51 / 14.08 kcal/mol from ORCA energies.
+Bands: if the session writes `functional: b3lyp` for ORCA and PySCF, the
+ORCA TS prints LDAOpt VWN-3 and PySCF's IRC start max|g| <= 1.0e-4
+Eh/Bohr (matched functional: ORCA's own TS criterion plus RIJCOSX and
+grid numerics; the matched HCN saddle gave 2.8e-5); barriers move by
+< 0.05 kcal/mol from 14.51 / 14.08. Failure: start max|g| > 3e-4 with
+b3lyp in both, or an ORCA TS result whose `functional` is not b3lyp. A
+different valid route is recorded as the session's choice, not scored.
+One goal is one observation.
+
 ## Status
 
 - step 1: oracle 1 pre-registered; code unchanged.
