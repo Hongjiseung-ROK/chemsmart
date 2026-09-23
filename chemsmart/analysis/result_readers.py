@@ -1170,8 +1170,10 @@ class ResultReaderV1:
     #: record names it -- method, basis, solvent, the frozen-core count a
     #: correlated stage applied, the response an excited stage ran on and
     #: the root it followed -- for the inspection reply.  None renders no
-    #: level.  A level is shown and never compared: whether two programs
-    #: mean one thing by a keyword is a fact about the programs.
+    #: level.  A level states what the program applied in the vocabulary
+    #: every program's level uses (a functional is the literal its applied
+    #: form names), so an operation combining two results' numbers can be
+    #: told when their levels differ; it is compared, never refused.
     resolve_level: Callable[[Any], Mapping[str, Any]] | None = None
     #: The electronic surface one opened result is on, as a mapping over
     #: ``SURFACE_IDENTITY_FIELDS``.  Unlike the level, a surface is *for*
@@ -1640,8 +1642,33 @@ def _orca_total_energy(output: Any) -> float:
         except (TypeError, ValueError):
             continue
     if values:
-        return values[-1]
+        return values[-1] - _orca_fixed_geometry_root_shift(output)
     return _last_energy(output)
+
+
+def _orca_fixed_geometry_root_shift(output: Any) -> float:
+    """What ORCA added to a spectrum's final energy, which ``energy`` removes.
+
+    A fixed-geometry %tddft run prints ``E(tot) = E(SCF) + DE(CIS)`` of its
+    ``IRoot`` (root 1 unless set) as ``FINAL SINGLE POINT ENERGY``, even
+    with ``Follow IRoot ... off``: on the archived water TDA that is
+    -76.080796713 Eh beside a reference of -76.358315131
+    (orca_differential/water_td_b3lypg.out).  ``energy`` on a spectrum is
+    the surface the job computed on, the reference, as PySCF's ``td``
+    answers it; so the printed excitation is taken back off.  A moving
+    job on a root -- an excited-state optimisation -- keeps ORCA's total,
+    because that root is the surface it walked.
+    """
+
+    if getattr(output, "jobtype", None) != "td":
+        return 0.0
+    shift = 0.0
+    pattern = re.compile(r"^\s*DE\(CIS\)\s*=\s*(-?\d+\.\d+)\s*Eh")
+    for line in getattr(output, "contents", ()):
+        match = pattern.match(str(line))
+        if match:
+            shift = float(match.group(1))
+    return shift
 
 
 def _orca_scf_energy(output: Any) -> float:
@@ -1830,6 +1857,112 @@ def _orca_solvation_model(output: Any) -> str:
     return _orca_solvation_context(output)[0]
 
 
+def _normalized_dispersion(value: Any) -> str:
+    """One word for an empirical dispersion, whatever program spelled it."""
+
+    word = str(value or "").strip().lower()
+    if word.startswith("empiricaldispersion="):
+        word = word.split("=", 1)[1]
+    return {
+        "": "none",
+        "gd3bj": "d3bj",
+        "gd3": "d3zero",
+        "d3": "d3zero",
+        "gd2": "d2",
+    }.get(word, word)
+
+
+def _orca_level(output: Any) -> dict[str, Any]:
+    """The Hamiltonian an ORCA result computed with, from its own record.
+
+    The applied functional (the literal its printed form names), the
+    correlated method, the basis, the dispersion and the continuum; the
+    frozen core a correlated stage applied, in orbitals, from ORCA's own
+    ``NCore``/``chemical core (N el)`` line.  Numerics (grid, RI, COSX)
+    are not a level.
+    """
+
+    level: dict[str, Any] = {}
+    try:
+        level["functional"] = _orca_functional(output)
+    except Exception:  # noqa: BLE001 - a post-HF run applies no functional
+        pass
+    ab_initio = getattr(output, "ab_initio", None)
+    if ab_initio:
+        level["ab_initio"] = str(ab_initio).lower()
+    basis = getattr(output, "basis", None)
+    if basis:
+        level["basis"] = str(basis).lower()
+    if "functional" in level:
+        level["dispersion"] = _normalized_dispersion(
+            getattr(output, "dispersion", None)
+        )
+    try:
+        model, solvent = _orca_solvation_context(output)
+    except MissingQuantityError:
+        model, solvent = None, None
+    if model not in (None, "gas_phase"):
+        level["solvent_model"] = model
+        if solvent:
+            level["solvent"] = solvent
+    if ab_initio:
+        electrons = None
+        for line in getattr(output, "contents", ()):
+            match = re.search(
+                r"Freezing NCore=(\d+)|chemical core \((\d+) el\)", str(line)
+            )
+            if match:
+                electrons = int(match.group(1) or match.group(2))
+        if electrons is not None:
+            level["frozen_core"] = electrons // 2
+    return level
+
+
+def _gaussian_level(output: Any) -> dict[str, Any]:
+    """The Hamiltonian a Gaussian result computed with, from its own record.
+
+    The applied functional (the name ``SCF Done`` states), the correlated
+    method whose total ``energy`` is, the basis, the empirical dispersion,
+    the continuum, and the frozen orbitals Gaussian printed (``NFC=``) for
+    a correlated method.
+    """
+
+    level: dict[str, Any] = {}
+    try:
+        functional = _gaussian_functional(output)
+    except Exception:  # noqa: BLE001 - a post-HF run applies no functional
+        functional = None
+    if functional:
+        level["functional"] = re.sub(
+            r"-d[234](?:bj|zero)?$", "", str(functional).lower()
+        )
+    correlated = getattr(output, "correlated_method", None)
+    if correlated and correlated != "double_hybrid":
+        level["ab_initio"] = str(correlated)
+    basis = getattr(output, "basis", None)
+    if basis:
+        level["basis"] = str(basis).lower()
+    if "functional" in level:
+        level["dispersion"] = _normalized_dispersion(
+            getattr(output, "dispersion", None)
+        )
+    model = getattr(output, "solvent_model", None)
+    if model:
+        level["solvent_model"] = str(model).lower()
+        solvent = getattr(output, "solvent_id", None)
+        if solvent:
+            level["solvent"] = str(solvent).lower()
+    if correlated:
+        frozen = None
+        for line in getattr(output, "contents", ()):
+            match = re.search(r"\bNFC=\s*(\d+)", str(line))
+            if match:
+                frozen = int(match.group(1))
+        if frozen is not None:
+            level["frozen_core"] = frozen
+    return level
+
+
 def _orca_solvent(output: Any) -> str:
     model, solvent = _orca_solvation_context(output)
     if model == "gas_phase":
@@ -1987,6 +2120,82 @@ def _route_functional(output: Any) -> str:
             "method identity is read by 'ab_initio'"
         )
     return str(value)
+
+
+def _orca_functional(output: Any) -> str:
+    """The functional an ORCA run applied, in the ChemSmart vocabulary.
+
+    The route parser answers the literal the route's keyword means
+    (ORCA's ``B3LYP`` is ``b3lyp5``); the Hamiltonian block ORCA printed
+    says which local correlation it actually ran, and where the writer's
+    table names the label that form prints, the two must agree -- a run
+    whose printed ``LDAOpt`` is not its route's form is not reported as
+    either functional.
+    """
+
+    from chemsmart.jobs.orca.settings import orca_functional_lda_label
+
+    value = _route_functional(output)
+    expected = orca_functional_lda_label(value)
+    printed = getattr(output, "lda_correlation", None)
+    if expected and printed and printed.upper() != expected.upper():
+        raise MissingQuantityError(
+            f"the route names {value}, whose ORCA form prints LDAOpt "
+            f"{expected}, and this run printed {printed}: the functional "
+            "ORCA applied is not the one its route names"
+        )
+    return value
+
+
+def _gaussian_functional(output: Any) -> str:
+    """The functional a Gaussian run applied, in the ChemSmart vocabulary.
+
+    The route word says what was asked; ``SCF Done:  E(R<name>)`` says
+    what Gaussian ran.  They differ when Gaussian completed a route word
+    to another keyword -- ``pbe0`` ran as ``RPBE0DH`` (CUHK Slurm 2149277)
+    -- and then the applied name is the answer, so a result never reports
+    the functional its route asked for in place of the one it computed.
+    """
+
+    from chemsmart.io.gaussian import GAUSSIAN_ALL_FUNCTIONALS
+    from chemsmart.jobs.gaussian.settings import (
+        GAUSSIAN_FUNCTIONAL_NATIVE,
+        gaussian_functional_literal,
+    )
+
+    value = _route_functional(output)
+    label = None
+    for line in reversed(getattr(output, "contents", ()) or ()):
+        match = re.search(r"SCF Done:\s+E\(([^)]+)\)", str(line))
+        if match:
+            label = match.group(1).strip().casefold()
+            break
+    if label is None or ":" in value:
+        return value
+    if label in {"rhf", "uhf", "rohf"}:
+        raise MissingQuantityError(
+            "this result ran a Hartree-Fock reference and applied no "
+            "functional; the method identity is read by 'ab_initio'"
+        )
+    # Gaussian labels a pure combination with a hyphen (``RB-LYP``,
+    # ``RB-P86``) that its keyword does not carry, so names are compared
+    # without hyphens on both sides.
+    label = label.replace("-", "")
+    asked = re.sub(r"-d[234](?:bj|zero)?$", "", value.casefold())
+    native = GAUSSIAN_FUNCTIONAL_NATIVE.get(asked, asked).casefold()
+    native = native.replace("-", "")
+    if label in {f"{prefix}{native}" for prefix in ("r", "u", "ro")}:
+        return value
+    keywords = {
+        word.replace("-", ""): word for word in GAUSSIAN_ALL_FUNCTIONALS
+    }
+    for prefix in ("ro", "r", "u"):
+        applied = label[len(prefix) :]
+        if label.startswith(prefix) and applied in keywords:
+            return gaussian_functional_literal(keywords[applied])
+    return gaussian_functional_literal(
+        label[1:] if label[:1] in "ru" else label
+    )
 
 
 def _route_ab_initio(output: Any) -> str:
@@ -2466,6 +2675,10 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
                 if item["multiplicity"] == 3
             ],
             "energy": _orca_total_energy,
+            "energies": lambda output: [
+                float(item) - _orca_fixed_geometry_root_shift(output)
+                for item in output.energies
+            ],
             "entropy_times_temperature": lambda output: float(
                 output.entropy_times_temperature
             ),
@@ -2525,7 +2738,7 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             # so, and a run that did not ask has no Hirshfeld analysis at
             # all rather than a failed one.
             "hirshfeld_atomic_charges": _orca_hirshfeld_charges,
-            "functional": _route_functional,
+            "functional": _orca_functional,
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
             "converged": _optimization_converged,
@@ -2659,6 +2872,7 @@ _GAUSSIAN_IRC_BRANCH_SELECTORS = (
     "multiplicity",
     "positions",
     "reached_positions",
+    "scf_energy",
     "spin_square",
     "spin_square_after_annihilation",
     "spin_square_deviation",
@@ -2802,10 +3016,84 @@ def _gaussian_scan_profile(output: Any) -> list[Mapping[str, Any]]:
     return list(profile)
 
 
+def _gaussian_energies(output: Any) -> list[float]:
+    """Totals on the surface the route asks for, one per geometry.
+
+    The parser names which printed line that is (``energy_source``); a
+    post-HF method whose total it does not read answers nothing rather
+    than the lower level Gaussian printed on the way to it.
+    """
+
+    values = [float(item) for item in output.energies]
+    if values:
+        return values
+    if getattr(output, "energy_source", None) == "unrecognized_post_hf":
+        raise MissingQuantityError(
+            "this Gaussian route's method prints a total this reader does "
+            "not read; the lower levels printed on the way to it are not "
+            "its energy and are not served as one"
+        )
+    raise MissingQuantityError("this Gaussian result printed no energy")
+
+
+def _gaussian_scf_energy(output: Any) -> float:
+    """The SCF reference total at the last geometry (``SCF Done``).
+
+    For an SCF route it is ``energy``; under a correlated method, a double
+    hybrid or a TD optimisation it is the reference beneath the surface
+    ``energy`` names, as ``scf_energy`` is on ORCA and PySCF.
+    """
+
+    values = list(getattr(output, "scf_energies", None) or ())
+    if not values:
+        raise MissingQuantityError("this Gaussian result printed no SCF Done")
+    return float(values[-1])
+
+
+#: Gaussian's word for the electronic-provenance axis over the selectors
+#: its reader implements: ``energy`` is the total of the surface the route
+#: computed on -- the correlated method, a double hybrid's total, the
+#: followed root of a TD optimisation -- resolved per artifact, and the
+#: density-derived properties beside it are the SCF reference's.
+_GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
+    ("absorption_wavelengths", "excited_root"),
+    ("dipole_moment", "reference"),
+    ("dipole_moment_magnitude", "reference"),
+    ("effective_multiplicity", "reference"),
+    ("energies", "computed_surface"),
+    ("energy", "computed_surface"),
+    ("excitation_energies", "excited_root"),
+    ("excited_state_indices", "excited_root"),
+    ("excited_state_labels", "excited_root"),
+    ("excited_state_manifold_roots", "excited_root"),
+    ("excited_state_multiplicities", "excited_root"),
+    ("excited_state_spin_square", "excited_root"),
+    ("gap", "reference"),
+    ("hirshfeld_atomic_charges", "reference"),
+    ("homo", "reference"),
+    ("lumo", "reference"),
+    ("mulliken_atomic_charges", "reference"),
+    ("mulliken_atomic_spin_populations", "reference"),
+    ("oscillator_strengths", "excited_root"),
+    ("scf_energy", "reference"),
+    ("singlet_excitation_energies", "excited_root"),
+    ("singlet_oscillator_strengths", "excited_root"),
+    ("spin_square", "reference"),
+    ("spin_square_after_annihilation", "reference"),
+    ("spin_square_deviation", "reference"),
+    ("spin_square_target", "reference"),
+    ("triplet_excitation_energies", "excited_root"),
+    ("triplet_oscillator_strengths", "excited_root"),
+)
+
+
 def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
     accessors = _text_output_accessors()
     accessors.update(
         {
+            "energy": lambda output: _gaussian_energies(output)[-1],
+            "energies": _gaussian_energies,
+            "scf_energy": _gaussian_scf_energy,
             "reached_positions": _gaussian_reached_positions,
             # The surface reaches the typed layer as two parallel vectors,
             # exactly as ORCA's does, so the existing operations compose
@@ -2949,7 +3237,7 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                 _trajectory_connectivity_changed
             ),
             "irc_direction": _irc_direction,
-            "functional": _route_functional,
+            "functional": _gaussian_functional,
             "homo": _gaussian_frontier("homo_energy"),
             "lumo": _gaussian_frontier("lumo_energy"),
             "gap": _gaussian_frontier("fmo_gap"),
@@ -3761,14 +4049,17 @@ def _pyscf_optimization_converged(output: Any) -> int:
 
 
 def _pyscf_functional(output: Any) -> str:
-    """The functional the project asked for, as ``spec/method`` names it.
+    """The functional this run applied, in the ChemSmart vocabulary.
 
-    The literal libxc ran (``spec/xc``) is the same functional under a
-    different spelling wherever the alias table rewrote it -- ``b3lyp``
-    and ``b3lypg`` are one libxc code -- so the requested name is what a
-    program-neutral identity means, as for ORCA and Gaussian; the applied
-    materialisation rides the review as the functional-resolution receipt.
+    ``spec/method`` is the name the project asked for and ``spec/xc`` the
+    libxc name the writer resolved it to; where the name has a
+    program-neutral meaning the answer is that literal (``b3lypg`` and
+    ``b3lyp`` are one functional and answer ``b3lyp``, as ORCA's
+    ``B3LYP/G`` and Gaussian's ``B3LYP`` do), and otherwise the requested
+    name, as before.
     """
+
+    from chemsmart.jobs.settings import canonical_functional_literal
 
     if not output.spec.get("xc"):
         raise MissingQuantityError(
@@ -3778,7 +4069,7 @@ def _pyscf_functional(output: Any) -> str:
     value = output.method
     if not value:
         raise MissingQuantityError("pyscf result records no method name")
-    return str(value)
+    return canonical_functional_literal(value) or str(value)
 
 
 def _pyscf_surface_id(output: Any) -> str:
@@ -4250,8 +4541,13 @@ def _pyscf_level(output: Any) -> dict[str, Any]:
         level["ab_initio"] = ab_initio
     elif method not in (None, ""):
         # ``method`` is the functional the project asked for when no ab
-        # initio method was named; the name is the project's, not libxc's.
-        level["functional"] = method
+        # initio method was named; the level states the literal it means,
+        # as the ``functional`` selector does, so one functional is one
+        # value on every program's level.
+        from chemsmart.jobs.settings import canonical_functional_literal
+
+        level["functional"] = canonical_functional_literal(method) or method
+        level["dispersion"] = _normalized_dispersion(spec.get("dispersion"))
     if spec.get("basis") not in (None, ""):
         level["basis"] = spec["basis"]
     if getattr(output, "solvent_on", False):
@@ -5101,6 +5397,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             _orca_accessors(), _ORCA_ELECTRONIC_PROVENANCE_DECLARED
         ),
         resolve_electronic_provenance=_resolve_computed_surface,
+        resolve_level=_orca_level,
         resolve_surface=lambda output: surface_from_accessors(
             RESULT_READERS["orca"], output
         ),
@@ -5589,6 +5886,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "multiplicity",
                     "positions",
                     "reached_positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5630,6 +5928,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     # roles are still different questions, and only this
                     # one is admissible as a structure to carry forward.
                     "reached_positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5673,6 +5972,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "scan_point_indices",
                     "scan_steps_planned",
                     "scan_steps_reached",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5703,6 +6003,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
                     "positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5742,6 +6043,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "multiplicity",
                     "oscillator_strengths",
                     "positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5772,6 +6074,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "multiplicity",
                     "positions",
                     "reached_positions",
+                    "scf_energy",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -5837,6 +6140,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("scan_coordinate_values", "scan_point"),
                     ("scan_energies", "scan_point"),
                     ("scan_point_indices", "scan_point"),
+                    ("scf_energy", "as_reached"),
                     ("symbols", "stateless"),
                     ("trajectory_end_connectivity", "trajectory_endpoint"),
                     ("trajectory_end_positions", "trajectory_endpoint"),
@@ -5851,6 +6155,11 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             )
         ),
         resolve_reference_diagnostics=_gaussian_reference_diagnostics,
+        resolve_level=_gaussian_level,
+        selector_electronic_provenance=_electronic_provenance_table(
+            _gaussian_accessors(), _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED
+        ),
+        resolve_electronic_provenance=_resolve_computed_surface,
     ),
     "xtb": ResultReaderV1(
         program="xtb",

@@ -68,9 +68,18 @@ class ORCARoute:
         Returns:
             str: DFT functional name or None if not found
         """
+        # A route keyword is ORCA's word and the answer is ChemSmart's:
+        # ORCA's ``B3LYP`` is the VWN5 form, which the literal ``b3lyp5``
+        # names, and ``B3LYP/G`` is what ``b3lyp`` names.  Answering the
+        # native word would re-write a parsed ORCA ``B3LYP`` input or
+        # output as ``B3LYP/G`` -- another functional -- whenever its
+        # settings became a new job's, and would let a Gaussian ``b3lyp``
+        # and an ORCA VWN5 run compare equal by name.
+        from chemsmart.jobs.orca.settings import orca_functional_literal
+
         for route_keyword in self.route_keywords:
             if route_keyword in ORCA_ALL_FUNCTIONALS:
-                return route_keyword
+                return orca_functional_literal(route_keyword)
         return None
 
     @property

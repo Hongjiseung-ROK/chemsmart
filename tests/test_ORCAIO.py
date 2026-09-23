@@ -91,7 +91,8 @@ class TestORCARoute:
             "noprintmos",
             "nopop",
         ]
-        assert r4.functional == "bp86"
+        # ORCA's BP86 is the PW92 form, which the literal bp86-pw92 names.
+        assert r4.functional == "bp86-pw92"
         assert r4.ab_initio is None
         assert r4.basis == "sto-3g"
         assert r4.extrapolation_basis is None
@@ -117,7 +118,8 @@ class TestORCARoute:
         s6 = "! B3LYP D3ZERO def2-TZVP "
         r6 = ORCARoute(route_string=s6)
         assert r6.route_keywords == ["b3lyp", "d3zero", "def2-tzvp"]
-        assert r6.functional == "b3lyp"
+        # ORCA's bare B3LYP is the VWN5 form, which the literal b3lyp5 names.
+        assert r6.functional == "b3lyp5"
         assert r6.dispersion == "d3zero"
         assert r6.ab_initio is None
         assert r6.basis == "def2-tzvp"
@@ -128,7 +130,7 @@ class TestORCARoute:
         s7 = "!QM/XTB BP86 def2-TZVP def2/J"
         r7 = ORCARoute(route_string=s7)
         assert r7.route_keywords == ["qm/xtb", "bp86", "def2-tzvp", "def2/j"]
-        assert r7.qm_functional == "bp86"
+        assert r7.qm_functional == "bp86-pw92"
         assert r7.qm_basis == "def2-tzvp"
         assert r7.auxiliary_basis == "def2/j"
         assert r7.qm2_method == "xtb"
@@ -146,7 +148,7 @@ class TestORCARoute:
             "numfreq",
             "cpcm(water)",
         ]
-        assert r8.qm_functional == "b3lyp"
+        assert r8.qm_functional == "b3lyp5"
         assert r8.qm_basis == "def2-tzvp"
         assert r8.auxiliary_basis == "def2/j"
         assert r8.qm2_method == "hf-3c"
@@ -216,7 +218,7 @@ class TestORCAInput:
 
     def test_read_solvent(self, orca_epr_solv):
         orca_inp = ORCAInput(filename=orca_epr_solv)
-        assert orca_inp.functional == "b3lyp"
+        assert orca_inp.functional == "b3lyp5"
         assert orca_inp.basis == "6-311++g(2d,2p)"
         assert orca_inp.aux_basis == "def2/jk"
         assert orca_inp.scf_tol == "extreme"
@@ -225,7 +227,7 @@ class TestORCAInput:
 
     def test_orca_faulty_solvent(self, orca_faulty_solv):
         orca_inp = ORCAInput(filename=orca_faulty_solv)
-        assert orca_inp.functional == "b3lyp"
+        assert orca_inp.functional == "b3lyp5"
         assert orca_inp.basis == "6-311++g(2d,2p)"
         assert orca_inp.aux_basis == "def2/jk"
         assert orca_inp.scf_tol == "extreme"

@@ -194,6 +194,7 @@ from chemsmart.agent.projects import (
     ProjectRenderReceiptV1,
     ProjectValidationReceiptV1,
     PySCFFunctionalResolutionReceiptV1,
+    functional_convention_claim_is_unbacked,
     project_document,
     project_scientific_materializations,
     project_section_application_observation,
@@ -285,6 +286,7 @@ from chemsmart.analysis.quantity_expressions import (
     QuantityExpressionRequestV1,
     canonical_unit_for_dimension,
     convert_normalized_value,
+    expression_level_observations,
     expression_node_from_plan,
     normalize_numeric_value,
     quantity_expression_receipt_from_record,
@@ -6552,12 +6554,8 @@ class CommandCompiledToolHostV1:
                 *values["diagnostics"],
             )
         )
-        if (
-            re.search(
-                r"(?i)(?<![a-z0-9])(?:vwn\s*[35]|b3lypg|b3lyp5)(?![a-z0-9])",
-                convention_narrative,
-            )
-            and not functional_resolution_refs
+        if functional_convention_claim_is_unbacked(
+            convention_narrative, functional_resolution_refs
         ):
             raise ContractError(
                 "functional-convention claims require a host resolution receipt"
@@ -17786,6 +17784,16 @@ class CommandCompiledToolHostV1:
         geometry_observations = self._geometry_operation_observations(
             values, nodes
         )
+        level_observations = expression_level_observations(
+            receipt,
+            {
+                digest: getattr(
+                    self.quantity_extractions.get(digest), "level", None
+                )
+                for dependency in receipt.output_dependencies
+                for digest in dependency.source_receipt_sha256s
+            },
+        )
         self._emit(
             turn_id,
             EventKind.QUANTITY_EXPRESSION_EVALUATED,
@@ -17799,9 +17807,16 @@ class CommandCompiledToolHostV1:
                 if geometry_observations
                 else {}
             ),
+            **(
+                {"level_observations": level_observations}
+                if level_observations
+                else {}
+            ),
         )
-        if geometry_observations:
-            self._reply_observations = geometry_observations
+        if geometry_observations or level_observations:
+            self._reply_observations = (
+                tuple(geometry_observations) + level_observations
+            )
         return receipt
 
     def _geometry_operation_observations(

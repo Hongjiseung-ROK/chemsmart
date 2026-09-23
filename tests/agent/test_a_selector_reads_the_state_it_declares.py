@@ -413,6 +413,7 @@ def test_the_inspection_reply_names_the_level_beside_each_selectors_axes(
     assert excited["jobtype"] == "opt"
     assert excited["level"] == {
         "functional": "b3lyp",
+        "dispersion": "none",
         "basis": "def2-svp",
         "response_method": "tda",
         "state_manifold": "singlet",

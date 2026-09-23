@@ -995,6 +995,20 @@ class ORCAOutput(ORCAFileMixin):
         return None
 
     @property
+    def lda_correlation(self):
+        """The local correlation ORCA says it applied (``LDAOpt``), or None.
+
+        ORCA prints it in the ground-state Hamiltonian block, e.g.
+        ``LDA part of GGA corr.  LDAOpt          .... VWN-5``.  It is what
+        tells ORCA's ``B3LYP`` (``VWN-5``) from ``B3LYP/G`` (``VWN-3``) in
+        the run itself rather than in the route that asked for it.
+        """
+        for line in self.contents:
+            if "LDAOpt" in line and "...." in line and "(TD-DFT)" not in line:
+                return line.split("....", 1)[1].strip() or None
+        return None
+
+    @property
     def charge(self):
         """
         Get the total charge of the system from the ORCA output file.

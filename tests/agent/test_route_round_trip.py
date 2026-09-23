@@ -21,6 +21,7 @@ import pytest
 
 from chemsmart.io.orca.route import ORCARoute
 from chemsmart.jobs.orca.settings import ORCAJobSettings
+from chemsmart.jobs.settings import canonical_functional_literal
 from chemsmart.settings.capabilities import PROGRAM_CAPABILITIES
 
 #: Declared parameters that reach the generated input through a block rather
@@ -81,7 +82,11 @@ def test_a_declared_route_parameter_reads_back_as_itself(name, value):
         f"ORCARoute cannot read it back, so the preview validator will report "
         "a correct project as invalid"
     )
-    assert str(recovered).lower() == str(value).lower()
+    expected = str(value).lower()
+    if name == "functional":
+        # A spelling reads back as the literal it means: b3lyp/g is b3lyp.
+        expected = canonical_functional_literal(value) or expected
+    assert str(recovered).lower() == expected
 
 
 def test_conventional_four_index_integrals_survive_the_round_trip():
