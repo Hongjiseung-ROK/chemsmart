@@ -108,7 +108,39 @@ every program block otherwise unchanged).
 - 2149487 (slot r10-q2-a, prereg f7fd12e1dca5) cli/oracle2: 57 commands,
   all exit 0, code 4f6d24b5 (digest b4500a64 verified on the node).
 - 2149545 (slot r10-q2-a, prereg 57c05ea24893) goals/g1-hono: the HONO goal,
-  code e3fdaaca (digest c5235f6a verified on the node). Running.
+  code e3fdaaca (digest c5235f6a verified on the node). 03:09-03:32 +08:00,
+  2 cycles, 1 revision, settled `achieved` (goal exit 0).
+
+## Goal g1-hono results (host records: ledger, streams, engine outputs)
+
+- The session wrote `functional: b3lyp` for all four ORCA projects and both
+  PySCF projects. ORCA TS, cis and trans nodes: route `! ... B3LYP/G
+  def2-svp`, `LDAOpt .... VWN-3` (R9: `b3lyp`, VWN-5). Band 1 met.
+- PySCF IRC start max|g| 1.132e-4 Eh/Bohr on both branches (R9 3.605e-4):
+  3.2x lower, 13% ABOVE the 1.0e-4 band I wrote, below the 3e-4 failure
+  line. Band 2 missed as written. ORCA's own OptTS signalled convergence by
+  its step rule with its internal MAX gradient 3.7e-4 (tolerance 3.0e-4, NO)
+  and a Cartesian MAX gradient of 1.73e-4 at its last evaluated point; the
+  R9 saddle had converged to 5.5e-5 on its own (VWN5) surface. The
+  residual on PySCF's surface is now bounded by ORCA's own convergence, not
+  by a functional mismatch -- but one run does not separate the two and I
+  wrote the band without allowing for ORCA's step-rule exit.
+- Claimed barriers 14.5238 (from cis) and 14.0890 (from trans) kcal/mol,
+  equal to ORCA's printed energies (TS -205.519598391, cis -205.542743544,
+  trans -205.542050611); R9 14.51 / 14.08: +0.014 / +0.009, band 3 met.
+- IRC: forward ends cis (O=N-O-H -0.01 deg), backward trans (-179.89), as
+  in R9. PySCF endpoints vs ORCA minima 2.0e-4 / 2.15e-4 Eh (default
+  numerics); cis-trans gap 0.442 (PySCF) vs 0.435 (ORCA) kcal/mol.
+- No `level_observations` were emitted: every combination was within ORCA,
+  one level.
+- Behaviour (deepseek-v4-flash-0731, one observation): cycle 1 read the
+  functional receipts and wrote them into its decision ("b3lyp applied as
+  B3LYP/G, vwn3_gaussian convention", citing the refs), and kept every
+  barrier energy in one program "for internal consistency". The woken cycle
+  2 session, which saw only the PySCF receipts, wrote that "ORCA B3LYP
+  differs in the VWN correlation parameterisation" and flagged a possible
+  residual gradient -- false for this run, with `applied_method: b3lyp` on
+  both ORCA results in its own context. It reached no decision or claim.
 
 ## Oracle 1 results (read from the logs and artifacts, base tree)
 
@@ -254,4 +286,6 @@ One goal is one observation.
   rule; frozen-core default left per program by the pre-registered rule;
   levels for ORCA and Gaussian and the expression-level observation
   committed; r10-integration merged (a24dd189, no conflicts); the HONO
-  goal issued. Waiting on job 2149545.
+  goal issued.
+- step 5: the goal read from host records (above); r10-integration merged
+  again; final checks and hand-back.
