@@ -493,6 +493,14 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     + ": the result words one planned Gaussian irc stage writes under, "
     "which is what lets every consumer derive them instead of "
     "spelling the pair out again",
+    # R10 Q1 claims: append entries below this line
+    # R10 Q1 claims: end
+    # R10 Q2 one name, one physics: append entries below this line
+    # R10 Q2 one name, one physics: end
+    # R10 Q3 knowledge: append entries below this line
+    # R10 Q3 knowledge: end
+    # R10 Q4 composition: append entries below this line
+    # R10 Q4 composition: end
 }
 
 

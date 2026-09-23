@@ -1440,6 +1440,14 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "clear it, and the host refuses that.",
         "observable-regression gate",
     ),
+    # R10 Q1 claims: append rules below this line
+    # R10 Q1 claims: end
+    # R10 Q2 one name, one physics: append rules below this line
+    # R10 Q2 one name, one physics: end
+    # R10 Q3 knowledge: append rules below this line
+    # R10 Q3 knowledge: end
+    # R10 Q4 composition: append rules below this line
+    # R10 Q4 composition: end
 )
 
 
