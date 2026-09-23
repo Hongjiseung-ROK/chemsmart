@@ -19,6 +19,26 @@ logger = logging.getLogger(__name__)
 
 GAUSSIAN_EMPIRICAL_DISPERSIONS = frozenset({"pfd", "gd2", "gd3", "gd3bj"})
 
+#: A response calculation's route keyword: ``TD``, ``TDA`` (Gaussian's
+#: Tamm-Dancoff keyword, which takes the same options) or ``CIS``.
+_GAUSSIAN_RESPONSE_KEYWORD = re.compile(
+    r"(?<![a-z0-9_])(td|tda|cis)(?![a-z0-9_])"
+)
+
+
+def route_requests_response(route_string):
+    """Whether a Gaussian route asks for a response (TD/TDA/CIS) calculation.
+
+    A route carrying one and no job keyword is a fixed-geometry response
+    calculation, which the route-word chain alone calls ``sp``.  One
+    function answers for a written input and for a completed log, so the
+    preview and the result reader cannot classify one route two ways.
+    """
+
+    return bool(
+        _GAUSSIAN_RESPONSE_KEYWORD.search(str(route_string or "").lower())
+    )
+
 
 def normalize_gaussian_dispersion(value):
     """Return the Gaussian-native empirical-dispersion value."""

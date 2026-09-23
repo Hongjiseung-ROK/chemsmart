@@ -332,8 +332,14 @@ _GAUSSIAN_PROJECT_PARAMETERS = tuple(
             "predictor",
             "recalc_step",
             "recorrect",
+            # The response and the manifold of a td stage, in the words
+            # ORCA's and PySCF's settings take, so one td section is one
+            # request in all three programs; ``states`` is Gaussian's own
+            # older word for the manifold and is still read.
+            "response_method",
             "root",
             "stable",
+            "state_manifold",
             "states",
             "stepsize",
         )
@@ -555,6 +561,26 @@ def gaussian_method_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     )
 
 
+def gaussian_response_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """What a Gaussian td stage may be asked for, from the writer's tables.
+
+    The words are ORCA's and PySCF's (``response_method``,
+    ``state_manifold``); the table that spells each in Gaussian's grammar
+    is the one read here, so the declaration cannot name a word the
+    writer does not translate.
+    """
+
+    from chemsmart.jobs.gaussian.settings import (
+        GAUSSIAN_TD_MANIFOLD_OPTIONS,
+        GAUSSIAN_TD_RESPONSE_KEYWORDS,
+    )
+
+    return (
+        ("response_method", tuple(sorted(GAUSSIAN_TD_RESPONSE_KEYWORDS))),
+        ("state_manifold", tuple(sorted(GAUSSIAN_TD_MANIFOLD_OPTIONS))),
+    )
+
+
 def gaussian_path_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     """What a Gaussian reaction path may be asked for, from the CLI itself.
 
@@ -721,6 +747,7 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                         ("states", ("50-50", "singlets", "triplets")),
                         *gaussian_method_domains(),
                         *gaussian_path_domains(),
+                        *gaussian_response_domains(),
                     )
                 )
             ),

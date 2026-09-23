@@ -2567,6 +2567,45 @@ class GaussianLinkJobSettings(GaussianJobSettings):
         return route_string
 
 
+#: The response a ``td`` stage asks for, in the words ORCA's and PySCF's
+#: settings already take (``response_method``), and the Gaussian keyword
+#: that runs it: full linear response is ``TD``, the Tamm-Dancoff
+#: approximation is Gaussian's ``TDA`` keyword, which takes the same
+#: options.  A project that names none keeps Gaussian's historical ``TD``.
+GAUSSIAN_TD_RESPONSE_KEYWORDS = {"tddft": "TD", "tda": "TDA"}
+
+#: The excitation manifold in the same shared words (``state_manifold``)
+#: and the option Gaussian spells it with.  ``singlet_triplet`` is ORCA's
+#: word for singlet roots with the spin-adapted triplets beside them,
+#: which is Gaussian's ``50-50``: there ``nstates`` counts each kind, as
+#: ORCA's ``NRoots`` does.  ``unrestricted`` is PySCF's word for the one
+#: manifold an open-shell reference has, where Gaussian takes no spin
+#: option at all (its spin options act on closed shells only).
+GAUSSIAN_TD_MANIFOLD_OPTIONS = {
+    "singlet": "singlets",
+    "triplet": "triplets",
+    "singlet_triplet": "50-50",
+    "unrestricted": None,
+}
+
+#: The spin-adapted manifolds: each needs a closed-shell reference.
+_GAUSSIAN_TD_CLOSED_SHELL_MANIFOLDS = ("singlet", "singlet_triplet", "triplet")
+
+
+def _normalized_td_word(value, name, domain):
+    """One vocabulary word, lower case, or a refusal naming the domain."""
+
+    if value is None:
+        return None
+    word = str(value).strip().lower()
+    if word not in domain:
+        raise ValueError(
+            f"Gaussian td {name} must be one of {sorted(domain)}, got "
+            f"{value!r}."
+        )
+    return word
+
+
 class GaussianTDDFTJobSettings(GaussianJobSettings):
     """
     Specialized settings for Gaussian TD-DFT excited state calculations.
@@ -2575,15 +2614,35 @@ class GaussianTDDFTJobSettings(GaussianJobSettings):
     density functional theory calculations for excited states, including
     state selection, solvation effects, and transition analysis.
 
+    The response and the manifold are asked for in the words ORCA's and
+    PySCF's settings take -- ``response_method`` (``tddft`` or ``tda``) and
+    ``state_manifold`` -- so one ``td`` section means one calculation in
+    all three programs; the writer spells them in Gaussian's own grammar.
+    Gaussian's historical ``states`` word is still read, and must agree
+    with ``state_manifold`` when both are given.
+
     Attributes:
-        states (str): Type of excited states ('singlets', 'triplets').
+        states (str): Gaussian's own spin option ('singlets', 'triplets',
+            '50-50'); None writes the manifold ``state_manifold`` names,
+            or singlets when neither is given.
         root (int): Specific excited state root to analyze.
         nstates (int): Number of excited states to calculate.
         eqsolv (str): Equilibrium solvation treatment.
+        response_method (str): 'tddft' (Gaussian ``TD``) or 'tda'
+            (Gaussian ``TDA``); None keeps ``TD``.
+        state_manifold (str): 'singlet', 'triplet', 'singlet_triplet' or
+            'unrestricted'.
     """
 
     def __init__(
-        self, states="singlets", root=1, nstates=3, eqsolv=None, **kwargs
+        self,
+        states=None,
+        root=1,
+        nstates=3,
+        eqsolv=None,
+        response_method=None,
+        state_manifold=None,
+        **kwargs,
     ):
         """
         Initialize TD-DFT specific Gaussian job settings.
@@ -2592,18 +2651,86 @@ class GaussianTDDFTJobSettings(GaussianJobSettings):
         the number of states, state types, and solvation effects.
 
         Args:
-            states (str): Type of excited states to calculate.
+            states (str, optional): Gaussian's spin option for the states.
             root (int): Specific excited state root for analysis.
             nstates (int): Number of excited states to compute.
             eqsolv (str, optional): Equilibrium solvation option
                 ('eqsolv' or 'noneqsolv').
+            response_method (str, optional): 'tddft' or 'tda'.
+            state_manifold (str, optional): 'singlet', 'triplet',
+                'singlet_triplet' or 'unrestricted'.
             **kwargs: Additional arguments for parent class.
+
+        Raises:
+            ValueError: If the response or the manifold is outside its
+                vocabulary, if ``states`` and ``state_manifold`` name two
+                different manifolds, or if the manifold cannot belong to
+                the reference's multiplicity.
         """
         super().__init__(**kwargs)
         self.states = states
         self.root = root
         self.nstates = nstates
         self.eqsolv = eqsolv
+        self.response_method = response_method
+        self.state_manifold = state_manifold
+        self.td_route_parts()
+
+    def td_route_parts(self):
+        """The Gaussian keyword and spin option this request is written as.
+
+        Returns ``(keyword, option)``: ``TD`` or ``TDA``, and ``singlets``,
+        ``triplets``, ``50-50`` or None (no spin option).  Read at the
+        moment the route is written, so a value the CLI set after the
+        settings were built is held to the same rules.
+        """
+
+        response = _normalized_td_word(
+            self.response_method,
+            "response_method",
+            GAUSSIAN_TD_RESPONSE_KEYWORDS,
+        )
+        manifold = _normalized_td_word(
+            self.state_manifold,
+            "state_manifold",
+            GAUSSIAN_TD_MANIFOLD_OPTIONS,
+        )
+        keyword = GAUSSIAN_TD_RESPONSE_KEYWORDS[response or "tddft"]
+        if manifold is None:
+            # Gaussian's own word, written as given, as it always was.
+            return keyword, (
+                "singlets" if self.states is None else str(self.states)
+            )
+        option = GAUSSIAN_TD_MANIFOLD_OPTIONS[manifold]
+        if self.states is not None and (
+            option is None or str(self.states).strip().lower() != option
+        ):
+            raise ValueError(
+                f"Gaussian td states={self.states!r} and state_manifold="
+                f"{self.state_manifold!r} name two different manifolds; "
+                "state_manifold is the word ORCA and PySCF share, so name "
+                "the manifold there and drop states."
+            )
+        multiplicity = self.multiplicity
+        if multiplicity is not None:
+            if (
+                manifold in _GAUSSIAN_TD_CLOSED_SHELL_MANIFOLDS
+                and int(multiplicity) != 1
+            ):
+                raise ValueError(
+                    f"state_manifold={manifold!r} is spin-adapted and needs a "
+                    f"closed-shell (singlet) reference; multiplicity "
+                    f"{multiplicity} has one manifold, state_manifold: "
+                    "unrestricted."
+                )
+            if manifold == "unrestricted" and int(multiplicity) == 1:
+                raise ValueError(
+                    "A closed-shell (singlet) reference asks for singlet, "
+                    "triplet or singlet_triplet excitations; "
+                    "state_manifold: unrestricted is the one manifold of an "
+                    "open-shell reference."
+                )
+        return keyword, option
 
     def _get_route_string_from_jobtype(self):
         """
@@ -2630,7 +2757,12 @@ class GaussianTDDFTJobSettings(GaussianJobSettings):
             ), f"Possible equilibrium solvation options are: {eqsolv_options}!"
             eqsolv = f",{self.eqsolv}"
 
-        route_string += f" TD({self.states},nstates={self.nstates},root={self.root}{eqsolv})"
+        keyword, option = self.td_route_parts()
+        manifold = f"{option}," if option else ""
+        route_string += (
+            f" {keyword}({manifold}nstates={self.nstates},"
+            f"root={self.root}{eqsolv})"
+        )
 
         return route_string
 

@@ -1961,6 +1961,17 @@ def _gaussian_level(output: Any) -> dict[str, Any]:
                 frozen = int(match.group(1))
         if frozen is not None:
             level["frozen_core"] = frozen
+    # The response an excited stage ran on, in the words PySCF's level
+    # uses: full TD-DFT and TDA are different calculations of the same
+    # roots, and the route is where Gaussian says which ran.
+    request = getattr(output, "excited_state_request", None)
+    if isinstance(request, Mapping):
+        for name in ("response_method", "state_manifold", "nstates"):
+            if request.get(name) is not None:
+                level[name] = request[name]
+        root = getattr(output, "excited_state_followed_root", None)
+        if root is not None:
+            level["excited_state_root"] = int(root)
     return level
 
 

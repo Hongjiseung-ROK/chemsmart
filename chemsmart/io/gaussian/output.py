@@ -205,10 +205,88 @@ class Gaussian16Output(GaussianFileMixin):
 
     @cached_property
     def _route_has_excited_state_block(self):
-        """Whether the route asks for a response (TD/CIS) calculation."""
+        """Whether the route asks for a response (TD/TDA/CIS) calculation.
+
+        ``TDA`` is Gaussian's Tamm-Dancoff keyword, which ChemSmart writes
+        for ``response_method: tda``; a route carrying it and no other job
+        keyword is a fixed-geometry response calculation like ``TD``.
+        """
+
+        from chemsmart.io.gaussian.route import route_requests_response
+
+        return route_requests_response(self.route_string)
+
+    @cached_property
+    def excited_state_request(self):
+        """The response the route asked for, in the shared vocabulary.
+
+        ``{"response_method", "state_manifold", "nstates"}`` read from the
+        route's ``TD(...)``/``TDA(...)`` leaf through the writer's own
+        tables, or None for a route with no such leaf.  ``TD`` is
+        ``tddft`` and ``TDA`` is ``tda``; the spin option is read back to
+        the manifold word it was written for, and a route with no spin
+        option reads ``singlet`` for a closed-shell reference (Gaussian's
+        default) and ``unrestricted`` for an open-shell one.  ``nstates``
+        is Gaussian's default of 3 when the leaf does not name it.
+        """
+
+        from chemsmart.jobs.gaussian.settings import (
+            GAUSSIAN_TD_MANIFOLD_OPTIONS,
+            GAUSSIAN_TD_RESPONSE_KEYWORDS,
+        )
 
         route = self.route_string or ""
-        return bool(re.search(r"(?<![a-z0-9_])(td|cis)(?![a-z0-9_])", route))
+        # ``td(...)``, ``td=(...)``, ``td=word`` or a bare ``td``; an
+        # option list is attached to the keyword, never after a space.
+        match = re.search(
+            r"(?<![a-z0-9_])(tda|td)(?![a-z0-9_])"
+            r"(?:\s*=?\s*\(([^)]*)\)|=([^\s(]+))?",
+            route,
+        )
+        if match is None:
+            return None
+        keyword = match.group(1)
+        body = match.group(2) or match.group(3) or ""
+        options = [item.strip() for item in body.split(",") if item.strip()]
+        response = next(
+            word
+            for word, native in GAUSSIAN_TD_RESPONSE_KEYWORDS.items()
+            if native.lower() == keyword
+        )
+        manifold_by_option = {
+            option: word
+            for word, option in GAUSSIAN_TD_MANIFOLD_OPTIONS.items()
+            if option is not None
+        }
+        manifold = None
+        nstates = 3
+        for option in options:
+            if option in manifold_by_option:
+                manifold = manifold_by_option[option]
+            elif option.startswith("nstates="):
+                try:
+                    nstates = int(option.split("=", 1)[1])
+                except ValueError:
+                    pass
+        if manifold is None:
+            multiplicity = getattr(self, "multiplicity", None)
+            manifold = (
+                "unrestricted"
+                if multiplicity is not None and int(multiplicity) != 1
+                else "singlet"
+            )
+        elif manifold != "unrestricted":
+            multiplicity = getattr(self, "multiplicity", None)
+            if multiplicity is not None and int(multiplicity) != 1:
+                # Gaussian's spin options act on closed shells only; an
+                # open-shell reference ran its one manifold whatever the
+                # route said.
+                manifold = "unrestricted"
+        return {
+            "response_method": response,
+            "state_manifold": manifold,
+            "nstates": nstates,
+        }
 
     @property
     def heavy_elements(self):
