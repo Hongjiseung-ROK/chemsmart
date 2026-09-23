@@ -1842,10 +1842,14 @@ def _legacy_tool_definitions(
                         "'category' delivers it. A number the task asked "
                         "for is delivered by its claim; a finding resting "
                         "only on claims of declared observables is recorded "
-                        "as on the request. One resting on evidence no "
-                        "declaration asked for is carried to the settlement "
-                        "as your observation, with any host anomaly "
-                        "already standing on its evidence named beside it."
+                        "as on the request; one resting on evidence no "
+                        "declaration asked for, as not asked for. Every "
+                        "finding is carried in the settlement's reasons and "
+                        "evidence as yours, with any host anomaly already "
+                        "standing on its evidence named beside it, and none "
+                        "changes the word the host settles on. Rest it on "
+                        "the claims that would read differently were it "
+                        "false."
                     ),
                     "items": {
                         "type": "object",

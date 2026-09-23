@@ -399,39 +399,12 @@ def _achieved_word(
             + ", ".join(delivery.flagged_quantity_ids),
         )
     if observed:
-        # A finding is the session's observation, not a sensor's: the
-        # word names both, and says whose each is.
-        sensed = tuple(
-            item for item in observed if not item.startswith("finding:")
-        )
-        found = tuple(item for item in observed if item.startswith("finding:"))
         return (
             "achieved_with_observations",
             (
-                "the host completion gate certified the delivery; "
-                + "; ".join(
-                    part
-                    for part in (
-                        (
-                            (
-                                "the host also recorded observations nobody "
-                                "asked for: " + ", ".join(sensed)
-                            )
-                            if sensed
-                            else ""
-                        ),
-                        (
-                            (
-                                "the session recorded findings nobody asked "
-                                "for, on relations the host checked: "
-                                + ", ".join(found)
-                            )
-                            if found
-                            else ""
-                        ),
-                    )
-                    if part
-                ),
+                "the host completion gate certified the delivery; the "
+                "host also recorded observations nobody asked for: "
+                + ", ".join(observed),
             )
             + provenance,
         )
@@ -2942,12 +2915,15 @@ def _analysis_delivery(
                 "finding_receipt_sha256": row["receipt_sha256"],
                 "finding_id": row["finding_id"],
             }
-        elif row["standing"] == "unrequested":
-            # Only evidence nobody declared makes an observation: a
-            # finding on the asked numbers restates the request.
-            anomaly_ids = tuple(anomaly_ids) + (
-                f"finding:{row['finding_id']}:{row['receipt_sha256'][:8]}",
-            )
+        # A finding never joins the observations the word names. The word
+        # is the host's: what its sensors detected and what the physics
+        # made of a prediction written before it. Four development
+        # sessions (2026-09-24) typed a process remark -- "the same pair
+        # reads 3.296 A in the other isomer, so the observable
+        # distinguishes them" -- as a finding nobody asked for, in both
+        # arms of a matched pair, and the word said the run had seen
+        # something. The session's findings ride the reasons and the
+        # evidence under every word instead, as its own.
     return _AnalysisDelivery(
         findings=standing_findings,
         ending=ending,

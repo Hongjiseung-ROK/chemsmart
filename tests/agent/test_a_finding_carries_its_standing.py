@@ -658,12 +658,16 @@ def test_an_unanswered_question_is_a_limitation_naming_the_route(tmp_path):
     assert "answers_observable_id" in miss
 
 
-def test_a_finding_nobody_asked_for_rides_the_word_as_the_sessions(
+def test_a_finding_nobody_asked_for_stands_as_the_sessions_not_the_hosts(
     tmp_path,
 ):
-    """The settlement word never hides what the run found, and it says
-    whose each observation is: a sensor's, or the session's own finding
-    on relations the host checked."""
+    """The word is the host's: what its sensors detected and what the
+    physics made of a prediction written before it. A finding nobody asked
+    for is carried in the reasons and the evidence as the session's, with
+    its standing, and never moves the word -- in four development sessions
+    (2026-09-24) a process remark typed as such a finding appeared in both
+    arms of a matched pair and made every run look as if it had seen
+    something."""
 
     rows = _session_rows(tmp_path, answer=True, unrequested=True)
     result = _loop(
@@ -673,12 +677,13 @@ def test_a_finding_nobody_asked_for_rides_the_word_as_the_sessions(
         ],
         executes=[],
     )
-    assert result.settlement == "achieved_with_observations", result.reasons
+    assert result.settlement == "achieved", result.reasons
+    text = " ".join(result.reasons)
     assert (
-        "the session recorded findings nobody asked for" in result.reasons[0]
+        "the session's finding product-files-transposed (not asked for)"
+        in (text)
     )
-    assert "finding:product-files-transposed" in result.reasons[0]
-    assert "(not asked for)" in " ".join(result.reasons)
+    assert _TRANSPOSED in text
     from chemsmart.agent.goal import GoalLedger
 
     ledger = GoalLedger(

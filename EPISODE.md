@@ -130,8 +130,48 @@ behaviour and decide nothing about the milestone: a mechanism is
 working if a phenomenon arm can produce a host-recorded finding and a
 control arm does not force one.
 
+## Development sessions (provider-only, local, deepseek-v4-flash-0731)
+
+- dev-d1-phen (code 08dfddb5): settled achieved_with_observations. VOID
+  as a probe of noticing: the session's artifact list names each
+  workspace geometry by its content id (`geometry-<sha16>`), atom count
+  and symbols -- never by file name or comment line -- so the two arms
+  of D1 are identical to the Agent and a label carried only by a file
+  name is invisible to it. The Agent assigned the isomers by
+  connectivity (N1 = the benzyl nitrogen) and answered for the true
+  ester-at-C4 structure. It typed its requested distance as a finding
+  resting on its own declared claim, and the word said it had observed
+  something nobody asked for: that is the defect repaired in 2ff0d160
+  (standing is computed from the evidence). D1 is replaced by D1',
+  whose task names each file with its SMILES as po3-r19's did, so the
+  label is in the text the Agent reads.
+- dev-d2-phen (code ba750e57; neutral PBE0 + cation B3LYP): the Agent
+  delivered the requested difference (-14.88 eV) and, unasked, recorded
+  a finding that the two single points use different functionals so the
+  number is not an ionisation energy. The finding's relations rest only
+  on the requested claim (IE < 0, IE < -10): the symptom, not the cause
+  (the functional words were never claimed), so the host classified it
+  on_the_request. It did not doubt its own delivered claim; the goal
+  settled achieved_with_observations on its falsified IE band alone.
+- dev-d2-ctrl (both PBE0): IE 4.51 eV (ino3-r12's PBE0 couple, -0.4727 V
+  vs Fc with Fc at 4.988 V absolute, implies about 4.52 eV: consistent);
+  one on_the_request finding restating it; no unrequested finding.
+- dev-d1p-phen (task names each file with its SMILES, labels transposed
+  as po3-r19's were): the Agent matched each SMILES to its file by
+  connectivity and never tested the label against the SMILES under
+  IUPAC numbering; it reported 3.30 A for the file labelled ester-at-C4,
+  which holds the 5-ester (the true 4-ester reads 3.219 A, as dev-d1-phen
+  found). Missed. It recorded one unrequested finding -- "the requested
+  pair distinguishes the two isomers", on the other file's distance --
+  true, trivial, and it moved the word to achieved_with_observations.
+  Trivial unrequested findings moving the host's word is a defect of the
+  mechanism, repaired next: a finding never moves the word.
+
 ## Status
 
 - 2026-09-24: read CONDUCT.md, the four charter topics, both public
   reviews, the claim and decision handlers, the completion gate and the
-  settlement. Census done (above). Implementation started.
+  settlement. Census done (above). Mechanism built (58d024fb ..
+  ba750e57); tests/agent green at 7ca5bddb. PySCF stability words now
+  extract as words (ba750e57): the r9 g2-stability loss had a second
+  cause below the claim, an untyped ValueError in extraction.
