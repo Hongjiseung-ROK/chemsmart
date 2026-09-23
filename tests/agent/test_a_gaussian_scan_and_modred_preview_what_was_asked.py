@@ -66,3 +66,79 @@ def test_a_written_gaussian_input_reads_back_as_the_job_it_asks_for(
     path = tmp_path / "written.com"
     path.write_text(written, encoding="utf-8")
     assert Gaussian16Input(filename=str(path)).jobtype == jobtype
+
+
+#: The project shapes live sessions write for these stages.
+_PROJECTS = {
+    "level_only": {"gas": dict(_LEVEL)},
+    "freq_true": {"gas": {**_LEVEL, "freq": True}},
+    "freq_false": {"gas": {**_LEVEL, "freq": False}},
+}
+
+
+def _route(written: str) -> str:
+    return next(line for line in written.splitlines() if line.startswith("#"))
+
+
+def _findings(receipt) -> list:
+    return [
+        (item.field, item.expected, item.observed) for item in receipt.findings
+    ]
+
+
+@pytest.mark.capability("program_jobtype:gaussian:cpu:scan")
+@pytest.mark.parametrize("shape", sorted(_PROJECTS))
+def test_a_relaxed_scan_previews_green_from_an_ordinary_project(
+    tmp_path, shape
+):
+    """A scan runs no frequency step, and its settings say so.
+
+    The loader hands a scan the phase section's (or the shared default's)
+    ``freq: true`` and the route getter silently dropped it, so the
+    declaration the preview compares against the written input said a
+    Hessian would run: every preview from a project that left ``freq``
+    at its default was red on ``freq``.
+    """
+
+    receipt, written = fake_preview(
+        tmp_path,
+        "gaussian",
+        _PROJECTS[shape],
+        _H2O2_XYZ,
+        (0, 1),
+        "scan",
+        _JOB_ARGUMENTS["scan"],
+    )
+    assert receipt.status == "valid", _findings(receipt)
+    assert "freq" not in _route(written).lower().split()
+
+
+@pytest.mark.capability("program_jobtype:gaussian:cpu:modred")
+@pytest.mark.parametrize("shape", sorted(_PROJECTS))
+def test_a_constrained_optimisation_computes_the_hessian_its_project_asks_for(
+    tmp_path, shape
+):
+    """The route runs a frequency step exactly when the project asks.
+
+    The route getter set ``freq = True`` on every constrained
+    optimisation, so a project that declared ``freq: false`` -- the
+    reviewed setting -- ran a Hessian anyway, and its preview was red on
+    ``freq``.  The loader's default (a Hessian) is unchanged.
+    """
+
+    from chemsmart.settings.gaussian import YamlGaussianProjectSettings
+
+    receipt, written = fake_preview(
+        tmp_path,
+        "gaussian",
+        _PROJECTS[shape],
+        _H2O2_XYZ,
+        (0, 1),
+        "modred",
+        _JOB_ARGUMENTS["modred"],
+    )
+    assert receipt.status == "valid", _findings(receipt)
+    applied = YamlGaussianProjectSettings.from_yaml(
+        str(tmp_path / "gaussian-modred.yaml")
+    ).modred_settings()
+    assert ("freq" in _route(written).lower().split()) is bool(applied.freq)
