@@ -107,6 +107,8 @@ every program block otherwise unchanged).
   all exit 0.
 - 2149487 (slot r10-q2-a, prereg f7fd12e1dca5) cli/oracle2: 57 commands,
   all exit 0, code 4f6d24b5 (digest b4500a64 verified on the node).
+- 2149622 (slot r10-q2-a, prereg 7858069c3435) cli/checkd: two ORCA runs,
+  both exit 0 (check D below).
 - 2149545 (slot r10-q2-a, prereg 57c05ea24893) goals/g1-hono: the HONO goal,
   code e3fdaaca (digest c5235f6a verified on the node). 03:09-03:32 +08:00,
   2 cycles, 1 revision, settled `achieved` (goal exit 0).
@@ -286,6 +288,13 @@ B3LYP + D3BJ printed in oracle 1 (and PySCF d3bj, -0.018897869850), within
 B3LYP/G with D3BJ, or prints another number, then every ORCA project
 saying `b3lyp` with `d3bj` changed more than its local correlation, and the
 report says so; nothing is repaired in this episode.
+
+Result (job 2149622, prereg 7858069c3435, code e3fdaaca verified): holds.
+`! B3LYP/G ... d3bj` printed LDAOpt VWN-3 and `Dispersion correction
+-0.018897870`, the same as `! B3LYP ... d3bj` (VWN-5); the B3LYP/G+D3BJ
+total -232.103449789 is 1.3e-6 Eh from Gaussian's B3LYP GD3BJ and 8.6e-7
+from PySCF's b3lyp d3bj (oracle 1); the B3LYP+D3BJ total reproduces oracle
+1's ORCA value exactly.
 
 ## Status
 
