@@ -1,6 +1,6 @@
 ---
 name: method-adequacy
-version: 0.1.1
+version: 0.2.0
 description: Whether a method, basis set, dispersion treatment, solvation model or conformer sample can resolve the effect a question asks about - effect size against the method's own error, which errors cancel in a comparison, the traps of charged and open-shell species, and how to state the uncertainty and its dominant source.
 ---
 
@@ -28,6 +28,13 @@ am trying to see, and what is this method's own error on that kind of
 quantity". A method whose typical error is comparable to the effect cannot
 resolve it, however cleanly the job runs.
 
+- A method's error belongs to a method *and a class of quantity*. Reaction and
+  atomisation energies, barrier heights, non-covalent interactions,
+  conformational energies, spin-state gaps, excitation energies and
+  geometries are benchmarked separately, and one method can be good at one
+  class and poor at another; good geometries say nothing about good barriers.
+  Name the class the question belongs to and judge the method by its
+  benchmarked error on that class.
 - If the expected effect is smaller than the method's characteristic error for
   that property, the sign may still be wrong after perfect convergence. Say so
   rather than reporting the digits.
@@ -35,6 +42,7 @@ resolve it, however cleanly the job runs.
   many substituent effects and most stereochemical preferences.
 - A tighter convergence threshold does not reduce method error. Neither does a
   larger grid. They reduce *numerical noise*, which is a different quantity.
+- Report no more digits than the method resolves.
 
 ## 2. Error cancellation is the property that decides basis-set adequacy
 
@@ -55,6 +63,15 @@ number of electron pairs, the charge, the bonding, or the spin state.
 | Anything changing total charge | weak | see the diffuse-function rule below |
 | Complex versus separated fragments | weak, plus superposition | see counterpoise below |
 
+**Compose the quantity so that errors cancel.** Where the question allows it,
+take a difference whose two sides are as alike as possible: a balanced
+reaction that conserves bond types (isodesmic or homodesmotic), or a value
+relative to a reference species whose measured value is known, instead of an
+absolute value. A relative acidity, potential or affinity against a
+well-characterised reference inherits far less of the method's and the
+solvation model's error than the absolute one; the reference's own measured
+uncertainty then enters the result and is stated with it.
+
 **The failure mode to watch for**: recovering a fraction of a known
 experimental effect and treating the shortfall as unremarkable. If a computed
 difference is a quarter of the measured one, the method is not describing the
@@ -70,43 +87,91 @@ anion is described worse than the neutral, so any quantity involving both —
 deprotonation, electron affinity, anion stability — is biased in a *known
 direction* and by an amount that does not cancel. State it whenever a charged
 species appears on one side of a comparison. Balanced differences of two
-similar deprotonations cancel much of this; absolute values do not.
+similar deprotonations cancel much of this; absolute values do not. The same
+diffuse tail matters for polarisabilities, Rydberg-like excited states and
+weakly bound complexes at a small basis.
 
 **Dispersion.** Most common density functionals do not describe London
 dispersion from their own functional form. Whenever the question involves
 molecules or fragments touching without bonding — association, packing,
 folding, branching, stacking, host–guest — an uncorrected functional omits the
 dominant attractive term. A dispersion correction is not a refinement there; it
-is the physics. Report which correction and damping were actually applied,
-taken from the result rather than from intent.
+is the physics. A few functionals carry a non-local correlation term or were
+fitted to medium-range correlation; say which applies. Report which correction
+and damping were actually applied, taken from the result rather than from
+intent.
 
 **Basis-set superposition.** When two fragments approach, each borrows the
 other's basis functions, so the complex is described better than the separated
-pieces and the interaction looks too strong. The effect shrinks as the basis
-grows and is largest exactly where interaction energies are small. Counterpoise
-correction estimates it; saying which convention was used matters, because
-corrected and uncorrected values are both reported in the literature.
+pieces and the interaction looks too strong. The error shrinks as the basis
+grows, and relative to the interaction it matters most where interaction
+energies are small. Counterpoise correction estimates it; saying which
+convention was used matters, because corrected and uncorrected values are both
+reported in the literature. The same borrowing between distant parts of one
+large flexible molecule biases its conformational energies at a small basis.
 
-**Solvation model choice.** An implicit continuum reproduces bulk polarisation
-and nothing else. It does not describe a specific hydrogen bond, a coordinating
-solvent molecule, or a tight ion pair. If the chemistry depends on a particular
-solvent–solute contact, a continuum alone will miss it regardless of how the
-cavity is parameterised. Note also that a solvent-phase single point on a
-gas-phase geometry is a different quantity from a solvent-phase optimisation,
-and the difference is not always small.
+**Solvation model choice.** An implicit continuum represents the solvent's bulk
+dielectric response and, in some models, fitted non-electrostatic terms; it
+contains no solvent molecules. It does not describe a specific hydrogen bond, a
+coordinating solvent molecule, or a tight ion pair: where the chemistry depends
+on such a contact, a continuum alone misses it however the cavity is
+parameterised, and those solvent molecules belong in the calculation explicitly,
+inside the continuum. Continuum errors are larger for ions than for neutrals and
+largest for small ions with concentrated charge, so a quantity that changes a
+solute's charge in solution — a pKa, a redox potential, an ion pairing —
+carries that error unless a relative scheme (section 2) cancels it. A
+solvent-phase single point on a gas-phase geometry is a different quantity from
+a solvent-phase optimisation, and the difference is not always small.
+
+**Delocalisation error and exact exchange.** Density functionals with little or
+no exact exchange over-delocalise electrons. They tend to underestimate
+reaction barriers, over-stabilise charge-transfer complexes and species with a
+stretched or symmetric odd-electron bond, and bias transition-metal spin-state
+gaps toward the low-spin state, while a large exact-exchange fraction biases
+those gaps toward high spin. Because spin-state gaps move strongly with the
+exchange fraction, an ordering from one functional is a hypothesis to test with
+functionals of different exchange, or against a correlated method, before it is
+reported as a result.
+
+**Semi-empirical and tight-binding methods.** They are parameterised for
+structures, conformer searching and screening. Their reaction, conformational
+and interaction energies carry errors well above those of a dispersion-corrected
+hybrid functional, so they rank and pre-optimise, and a final energy difference
+is taken at a higher level; a composite of the two says which level produced
+which term (section 6).
+
+**Heavy elements.** Beyond the fourth period, scalar-relativistic effects shape
+bonding and orbital energies. An effective core potential, as assigned to those
+elements by basis families built with one, or a scalar-relativistic Hamiltonian
+accounts for them; a nonrelativistic all-electron basis does not. Spin–orbit
+coupling lies outside both and matters for heavy-element spin states and some
+bond energies.
+
+**Excited states.** Linear-response time-dependent DFT with a global hybrid
+underestimates charge-transfer and Rydberg excitation energies; a
+range-separated functional, and diffuse functions for the Rydberg case, address
+them. States of double-excitation character are absent from linear response
+entirely, and a state whose character changes along a coordinate can change
+its root index.
 
 **Multireference character.** Single-reference methods assume one dominant
-electron configuration. Stretched bonds, diradicals, some transition metals,
-and many bond-breaking transition states violate that. Diagnostics exist and
-are worth reading; a method used outside its assumption can produce a smooth,
-converged, entirely wrong surface.
+electron configuration. Stretched bonds, diradicals, many transition-metal
+complexes and many bond-breaking transition states violate that. Diagnostics
+exist and are worth reading — the T1 and D1 diagnostics and the largest
+amplitudes of a coupled-cluster calculation, natural-orbital occupation numbers
+far from two and zero, an SCF stability analysis that finds a lower
+broken-symmetry solution. A method used outside its assumption can produce a
+smooth, converged, entirely wrong surface.
 
 **Spin contamination.** For an open-shell unrestricted calculation, a computed
 spin expectation value far from its exact value means the wavefunction is not
 the state that was requested. Energies from a contaminated wavefunction
-describe a mixture, not the named state. A closed-shell restricted calculation
-is an eigenfunction by construction, so this diagnostic does not apply and its
-absence is not a defect.
+describe a mixture, not the named state. A deliberately broken-symmetry
+solution for an open-shell singlet or an antiferromagnetically coupled pair is
+contaminated by construction: its energy describes a mixture of spin states and
+is corrected by approximate spin projection, not read as the singlet's. A
+closed-shell restricted calculation is an eigenfunction by construction, so this
+diagnostic does not apply and its absence is not a defect.
 
 ## 4. A conformer ensemble is a sample, not a structure
 
@@ -175,12 +240,16 @@ wide margin. Distinguish:
 - **model** — rigid-rotor harmonic-oscillator treatment, implicit solvation,
   a truncated conformer set, a neglected environment;
 - **reference** — what the experimental comparison actually measured, under
-  which conditions, and whether it is the same quantity at all.
+  which conditions, and whether it is the same quantity at all: a temperature
+  or 0 K, an enthalpy or a free energy, gas or solution, a band maximum or a
+  band origin, a dissociation energy from the zero-point level or from the
+  minimum. Convert the computed value into the measured quantity before
+  comparing, and carry the measurement's own uncertainty.
 
-The model term usually dominates and is usually the one omitted. Where no
-defensible numerical uncertainty is available, say which term dominates and in
-which direction it biases the result, rather than reporting a bare value or
-inventing an interval.
+The model term often dominates — in solution, and for flexible molecules — and
+it is the one most often omitted. Where no defensible numerical uncertainty is
+available, say which term dominates and in which direction it biases the
+result, rather than reporting a bare value or inventing an interval.
 
 ## 8. Reporting adequacy honestly
 
