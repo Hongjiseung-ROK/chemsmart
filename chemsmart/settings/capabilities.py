@@ -496,7 +496,6 @@ def orca_method_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
         ORCA_ALL_SOLVENT_MODELS,
         ORCA_ALL_SOLVENTS,
     )
-
     from chemsmart.jobs.orca.settings import orca_functional_literal
 
     return (
