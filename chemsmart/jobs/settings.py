@@ -64,6 +64,30 @@ FUNCTIONAL_IDENTITIES = {
         "correlation_convention": "pw92",
         "definition": "the PBE GGA: Gaussian's PBEPBE, ORCA's PBE",
     },
+    # ORCA's BP86 puts P86 on the Perdew-Wang 92 local correlation (it
+    # prints ``LDAOpt .... PW91-LDA``); Gaussian's BP86 and libxc's B88+P86
+    # put it on Perdew-Zunger 81. At tight numerics ORCA sits 0.96-2.67 mEh
+    # below Gaussian on seven species, 0.74 kcal/mol apart in the vertical
+    # IP of water and 1.06 in the C-Cl homolysis of CH3Cl, while Gaussian
+    # and PySCF agree in those to 0.003 kcal/mol (their totals differ by
+    # 6e-5-2.3e-4 Eh inside P86) -- CUHK Slurm 2149487.
+    "bp86": {
+        "functional_family": "bp86",
+        "correlation_convention": "pz81",
+        "definition": (
+            "Becke 88 exchange with Perdew 86 correlation on the "
+            "Perdew-Zunger 81 local correlation: Gaussian's BP86, libxc "
+            "B88+P86"
+        ),
+    },
+    "bp86-pw92": {
+        "functional_family": "bp86",
+        "correlation_convention": "pw92",
+        "definition": (
+            "Becke 88 exchange with Perdew 86 correlation on the Perdew-Wang "
+            "92 local correlation: ORCA's BP86"
+        ),
+    },
 }
 
 #: Other spellings of a literal in ``FUNCTIONAL_IDENTITIES``.
