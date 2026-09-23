@@ -7386,6 +7386,35 @@ def structure_edge_by_target(
     }
 
 
+def structure_producer_stage(
+    plan: ScientificWorkflowPlanV2,
+    node_id: str,
+) -> str:
+    """The stage whose structure ``node_id`` was handed inside the approval.
+
+    A structure edge hands the consumer its producer's validated result,
+    atom order and electronic state preserved -- the approval froze that
+    this node takes that structure -- so what the structure is is what
+    its producer searched for, and a node that only measures curvature
+    is judged by that promise (``expected_imaginary_mode_count``). The
+    handoff writes a fresh XYZ, and an XYZ promises nothing, so the
+    promise has to come from the approved plan rather than the file:
+    read from the file alone, a Hessian handed a converged saddle inside
+    one approval is judged as a minimum's and a confirmed first-order
+    saddle is typed ``failed_wrong_stationary_point``. "" when the node
+    was handed no structure edge.
+    """
+
+    edge = structure_edge_by_target(plan).get(node_id)
+    if edge is None:
+        return ""
+    producer = next(
+        (node for node in plan.nodes if node.node_id == edge.source_node_id),
+        None,
+    )
+    return "" if producer is None else str(producer.stage)
+
+
 @dataclass(frozen=True)
 class FrozenWorkflowApprovalV1:
     """Exact host-owned approval boundary for a scientific workflow.
@@ -9914,6 +9943,7 @@ __all__ = [
     "handoff_final_orca_ts_hessian",
     "producer_edge_selection_rule",
     "structure_edge_by_target",
+    "structure_producer_stage",
     "admitted_producer_edge_rules",
     "is_validated_orca_ts_hessian_edge",
     "is_validated_optimized_geometry_edge",

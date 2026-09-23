@@ -150,6 +150,7 @@ from chemsmart.agent.execution import (
     promote_project_candidate,
     result_file_structure_edges,
     structure_edge_by_target,
+    structure_producer_stage,
     transform_trusted_molecular_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
@@ -13254,6 +13255,9 @@ class CommandCompiledToolHostV1:
             capability_environment_receipt=capability_environment,
             pyscf_engine_observation=pyscf_engine,
             process_observation=process_observation,
+            expected_input_producer_stage=structure_producer_stage(
+                scientific_plan, node_id
+            ),
         )
         staged_auxiliary_findings = _staged_auxiliary_input_findings(
             node_workspace=node_workspace,
@@ -15685,6 +15689,7 @@ class CommandCompiledToolHostV1:
         ) = None,
         pyscf_engine_observation: _PySCFEngineObservation | None = None,
         process_observation: ProcessObservationV1 | None = None,
+        expected_input_producer_stage: str = "",
     ) -> _ExecutionValidationEvaluation:
         findings: list[str] = []
         sensor_inputs: dict[str, Any] = {}
@@ -16501,9 +16506,14 @@ class CommandCompiledToolHostV1:
         observed_order = _observed_imaginary_mode_count(observation, program)
         # A node that only measures curvature inherits the promise of the
         # search that produced the structure it was handed: the promise was
-        # never about the Hessian. Read from the bound input artifact, so
-        # it is the result the host admitted rather than a plan's word.
-        input_jobtype = _input_result_jobtype(expected_input_artifact)
+        # never about the Hessian. Read from the bound input artifact when
+        # that artifact is a result, and from the approved producer when
+        # the structure crossed an approval's own edge: the handoff writes
+        # a fresh XYZ, which promises nothing, so the file alone judged a
+        # Hessian handed a converged saddle as a minimum's.
+        input_jobtype = str(
+            expected_input_producer_stage or ""
+        ) or _input_result_jobtype(expected_input_artifact)
         order_finding = stationary_point_order_finding(
             jobtype, observed_order, input_jobtype
         )
