@@ -231,7 +231,27 @@ validation." Verifier repaired afterwards in 5383d679; G2 probes it.
 * 2149909 (r10-q5-a) O1 stage B (xTB and PySCF Hessians), prereg 1f8e0d51a36a.
 * 2149940 (r10-q5-a) goal G1' (g1), code f073c8a3 in code-g1, prereg a401bb5dbee7.
 
+* 2149975 (r10-q5-a) goal G2 (g2), code 05fea2a0 in code-g2, prereg b16314a50bf1.
+
+## G2 settled (ledger, CUHK 2149975): achieved, 2 cycles, 1 revision
+
+Cycle 1: the three Gaussian B3LYP-D3(BJ)/def2-TZVP opt+freq nodes
+validated (workflow_state validated; no method_mismatch -- the verifier
+repair holds on the live path) and the ledger qualified gaussian:cpu:opt on
+each. Cycle 2 rendered the claims: dS = -197.71 J/(mol K) (anchor -198.11:
+inside the success band), dH = -87.79 kJ/mol (anchor -91.88), dG = -28.85
+kJ/mol (anchor -32.81), Kp = 1.13e5 (anchor 5.6e5), and a dG computed two
+ways agreeing to 1e-14 Eh. NH3's receipt again: sigma 3 counted by the host,
+"the program itself stated 1" -- discriminating. Every pre-registered G2
+expectation met. The Agent's recorded uncertainty names the 1 bar
+convention's -0.2 J/(mol K) shift of dS against 1 atm (correct: 2 R ln
+1.01325).
+
 ## Status
 
-C1 (b40d583a), C2 (aa9fbd3c), C3 (9ef9d476) committed; O1 stage B running;
-G1' about to be issued on a packed tree of the committed code.
+Done. Milestone A claimed: one free-energy quantity across ORCA, Gaussian,
+xTB and PySCF (host-counted symmetry numbers, one treatment vocabulary,
+convention observations, printed-convention statements, linear rotors from
+every program), qualified by O1 and by G1'/G2 against NIST/CODATA.
+Branch merged with r10-integration (ff3c6223); pristine full suite there:
+the 23 environmental failures only, none in tests/agent.
