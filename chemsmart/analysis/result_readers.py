@@ -1640,8 +1640,33 @@ def _orca_total_energy(output: Any) -> float:
         except (TypeError, ValueError):
             continue
     if values:
-        return values[-1]
+        return values[-1] - _orca_fixed_geometry_root_shift(output)
     return _last_energy(output)
+
+
+def _orca_fixed_geometry_root_shift(output: Any) -> float:
+    """What ORCA added to a spectrum's final energy, which ``energy`` removes.
+
+    A fixed-geometry %tddft run prints ``E(tot) = E(SCF) + DE(CIS)`` of its
+    ``IRoot`` (root 1 unless set) as ``FINAL SINGLE POINT ENERGY``, even
+    with ``Follow IRoot ... off``: on the archived water TDA that is
+    -76.080796713 Eh beside a reference of -76.358315131
+    (orca_differential/water_td_b3lypg.out).  ``energy`` on a spectrum is
+    the surface the job computed on, the reference, as PySCF's ``td``
+    answers it; so the printed excitation is taken back off.  A moving
+    job on a root -- an excited-state optimisation -- keeps ORCA's total,
+    because that root is the surface it walked.
+    """
+
+    if getattr(output, "jobtype", None) != "td":
+        return 0.0
+    shift = 0.0
+    pattern = re.compile(r"^\s*DE\(CIS\)\s*=\s*(-?\d+\.\d+)\s*Eh")
+    for line in getattr(output, "contents", ()):
+        match = pattern.match(str(line))
+        if match:
+            shift = float(match.group(1))
+    return shift
 
 
 def _orca_scf_energy(output: Any) -> float:
@@ -2542,6 +2567,10 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
                 if item["multiplicity"] == 3
             ],
             "energy": _orca_total_energy,
+            "energies": lambda output: [
+                float(item) - _orca_fixed_geometry_root_shift(output)
+                for item in output.energies
+            ],
             "entropy_times_temperature": lambda output: float(
                 output.entropy_times_temperature
             ),

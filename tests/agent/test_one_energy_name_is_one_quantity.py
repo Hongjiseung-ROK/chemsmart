@@ -81,6 +81,32 @@ def test_energy_is_the_total_the_route_method_printed(name):
     assert word == provenance
 
 
+@pytest.mark.capability("selector:orca:td:energy")
+def test_an_orca_spectrum_answers_its_reference_energy():
+    """ORCA's final energy on a spectrum is root 1's total; ``energy`` is not.
+
+    The same water, functional and numerics as an ORCA single point (CUHK
+    Slurm 2149487): the spectrum's ``energy`` is that single point's to the
+    printed precision, and its provenance word says ``reference``.
+    """
+
+    root = pathlib.Path(__file__).resolve().parents[1] / "data" / "ORCATests"
+    reader = reader_for("orca")
+    spectrum = reader.open_output(
+        root / "spectrum_energy" / "water_td_tda3.out"
+    )
+    single = reader.open_output(root / "spectrum_energy" / "water_sp.out")
+
+    energy = reader.read(spectrum, "energy")[0]
+
+    assert energy == pytest.approx(reader.read(single, "energy")[0], abs=1e-8)
+    assert reader.read(spectrum, "energies")[0][-1] == pytest.approx(energy)
+    assert (
+        reader.electronic_provenance_for_output(spectrum, "energy")
+        == "reference"
+    )
+
+
 def test_a_completed_route_word_reports_the_functional_gaussian_ran():
     """``pbe0`` ran as PBE0-DH; the result says so, and its total is PBE0-DH's."""
 
