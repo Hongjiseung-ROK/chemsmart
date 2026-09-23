@@ -173,7 +173,28 @@ arm C on a control. Each goal's delivered value is graded on physics
 against the rubric's reference, with the band and the arm's expected
 failure written here, committed, before its `slot_submit`.
 
+## Oracle
+
+Planning sessions: the sealed rubric of each question, applied blind by
+the independent grader the master commissions (`GRADER.md` instructions,
+kept with the tools). Live goals: the rubric's reference value and the
+physics of the delivered number (geometry, arithmetic, constants
+registry), never a product verdict alone. Mechanism measures are mine and
+come only from typed events and transcripts.
+
+Tools (durable copies on the cluster, /project/xlzhang/jiseung/r10/q3/tools):
+run_plans.py (session runner), build_packets.py (blind packets),
+mechanism.py, signed_rank.py, make_sealed_plan.py, pack_commit.py
+(packs a commit exactly as pack_code.sh packs a checkout; digest checked
+equal on a270eca6).
+
+## Jobs issued
+
+| job | slot | what | pre-registration | outcome |
+|---|---|---|---|---|
+| 2149579 | r10-q3-a | batch-dev1: D1 in C, B, A; D3 in C (dev, provider-only) | e7f1723f7b06 | running |
+
 ## Status
 
 Phase 1 (provider-free and dev): pre-registration drafted; cluster dev
-batch pending; merge of r10-integration and the suite before hand-back.
+batch running; merge of r10-integration and the suite before hand-back.
