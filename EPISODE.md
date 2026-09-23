@@ -82,7 +82,9 @@ C. Live Agent goals G1 (td), G2 (scan), G3 (modred): execution flags
    (the R8 human-CLI scan from a -60 degree start ran -60..120). ORCA's
    absolute range honours `start`. Same request, different surface
    unless the geometry sits at `start`. V1 below asks whether Gaussian
-   honours a value written on the S row.
+   honours a value written on the S row. [Later: it does not -- V1 read
+   the row as `B` and dropped the scan -- so 85679b4d measures the
+   geometry and refuses a start it does not have, naming the edit.]
 
 ## Pre-registration
 
@@ -211,6 +213,45 @@ constrained family, all Q7 fixes).
 
 ## Results read so far (host records, through ChemSmart's readers)
 
+G1 (Slurm 2150077, code 7111e2a6, digest 4d7248e7 on the node, 25:54,
+three cycles, one revision admitted, settled `achieved`):
+- Cycle 1 opt+freq (10.6 s) reached E = -191.544925639 Eh, 0 imaginary
+  modes -- O1's acro_opt to every digit. Cycle 2: `td-lr` and `td-tda`
+  on the reached structure; the executed projects use only the shared
+  words (`response_method: tddft|tda`, `state_manifold: singlet`), and
+  the hub wrote `TD(singlets,nstates=6,root=1)` / `TDA(...)`. All twelve
+  roots and strengths equal O1's Gaussian runs to the printed digit
+  (max |dE| 0.0 eV, max |df| 0.0). SUCCESS on every G1 band.
+- Host qualified gaussian:cpu:td (td-lr, td-tda) and gaussian:cpu:opt
+  in the goal ledger; release record appended (ddb27003).
+- Seen in the stream (not scored): the cycle-1 planning session first
+  wrote `gas: {pbe0, def2-svp}` + `td: {nstates, response_method,
+  state_manifold, states}`; both td projects were refused at validation
+  (550db183's refusal); after an id-reuse refusal it wrote the level into
+  `td:` and validated. On the base tree the same project validated and
+  would have died in the writer at preview.
+
+O3 (Slurm 2150078): free minima G -151.423093111 / O -151.423096824 Eh,
+HOOH 120.64 / 120.76 degrees; O-O held at 1.6000 A in both (1.59999982 /
+1.60000008); cost 5.8183 (G) / 5.8186 (O) kcal/mol; stretched torsion
+141.54 / 141.35 degrees. M2 PASS.
+
+O4 (Slurm 2150078):
+- Explanation HOLDS: with nstates=10 Gaussian lists 11.2336 eV f 0.4698
+  and ORCA 11.2367 f 0.4699 as root 6 (the bright root PySCF found at
+  11.2333, f 0.4696), with 11.2538 / 11.2565 f 0.010 as root 7; PySCF's
+  10 roots agree with Gaussian's within 4e-4 eV throughout. At nstates=6
+  Gaussian's and ORCA's Davidson solvers missed a root PySCF did not:
+  one Hamiltonian, not a translation defect. The O1 falsifier fired on
+  an artefact of the requested root count, and the explanation was tested
+  before any Agent TD result was judged.
+- Grid explanation only PARTLY holds: ORCA at defgrid3 moves formaldehyde
+  root 4 from 9.7680 to 9.7648 eV against Gaussian's 9.7621 -- 0.0027 eV,
+  outside the pre-registered 0.002. ORCA's TD kernel printed a
+  Lebedev-194 angular grid even at defgrid3; the residual is unexplained
+  and is recorded as such (numerics not demonstrated at matched tight
+  settings).
+
 O2 + V1 (Slurm 2150076):
 - S1 PASS: both scans report 13 points at 0, 15, ..., 180.
 - S2 PASS: relative profiles agree within 0.0014 kcal/mol at every
@@ -260,6 +301,8 @@ O1 (Slurm 2150076, code 7111e2a6, digest 4d7248e7, all 22 TD runs exit 0):
 |---|---|---|---|---|
 | 2150076 | r10-q7-a | cli/oracle1: O1 + O2 + V1 (26 CLI runs, one raw g16) | 7111e2a6 | 934ac3012b56 |
 | 2150077 | r10-q7-b | goals/g1-td: Gaussian TD-DFT + TDA on acrolein | 7111e2a6 | 934ac3012b56 |
+| 2150078 | r10-q7-a | cli/oracle3: O3 + O4 (8 CLI runs) | 7111e2a6 | c93b714f29ff |
+| 2150187 | r10-q7-a | goals/g2-scan-modred: Gaussian scan + modred on H2O2 | 01c34759 | aa3d50212db4 |
 
 ## Status
 
