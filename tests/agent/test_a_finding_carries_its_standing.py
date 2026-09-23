@@ -880,3 +880,81 @@ def test_a_finding_on_the_asked_number_says_nothing_was_seen_beyond_it(
     )
     assert result.settlement == "achieved", result.reasons
     assert "(on the requested answer)" in " ".join(result.reasons)
+
+
+@pytest.mark.capability("signal:scf.reference_unstable")
+def test_the_ledger_keeps_the_results_a_sensor_flagged(tmp_path):
+    """gdev1 (CUHK Slurm 2149848, 2026-09-24): the executor's stream
+    recorded scf.reference_unstable on the PySCF result with the result's
+    digest, the run outcome dropped the digest on its way to the goal
+    ledger, and every later reader -- the settlement's 'delivered from the
+    flagged result', a finding's host_signals -- lost the join. The
+    session's stability finding stood on that very result and said
+    host_signals []."""
+
+    from chemsmart.agent._contracts import canonical_data
+    from chemsmart.agent.execution import build_anomaly_observation
+    from chemsmart.agent.goal import GoalLedger
+    from chemsmart.agent.terminal_states import (
+        derive_run_outcome,
+        read_run_events,
+    )
+
+    from .test_the_goal_loop_recovers_or_returns import (
+        _engine_stream,
+        _review_payload,
+    )
+
+    flagged = "f" * 64
+
+    def run_with_sensor(run_directory):
+        _engine_stream(tmp_path, run_directory, failed=False)
+        events = run_directory / "events.jsonl"
+        node = derive_run_outcome(read_run_events(events)).nodes[0]
+        observation = build_anomaly_observation(
+            node_id=node.node_id,
+            program="pyscf",
+            jobtype="sp",
+            signal_id="scf.reference_unstable",
+            values={"scf_stability_external": "unstable"},
+            source_receipt_sha256="e" * 64,
+            flagged_artifact_sha256s=(flagged,),
+        )
+        session_id = json.loads(events.read_text().splitlines()[0])[
+            "session_id"
+        ]
+        # The event exactly as the host emits it for a minted anomaly.
+        RuntimeEventStore(events, session_id=session_id).append(
+            turn_id="exec-anomaly",
+            kind="anomaly_observed",
+            payload={
+                "receipt_sha256": observation.receipt_sha256,
+                "status": observation.status,
+                "node_id": node.node_id,
+                "signal_id": observation.signal_id,
+                "record": canonical_data(observation),
+            },
+        )
+        (anomaly,) = (
+            derive_run_outcome(read_run_events(events)).nodes[0].anomalies
+        )
+        assert tuple(anomaly["flagged_artifact_sha256s"]) == (flagged,)
+        from types import SimpleNamespace
+
+        return SimpleNamespace(status="completed", analysis_status="")
+
+    _loop(
+        tmp_path,
+        sessions=[_planning_session("live-1", review=_review_payload())],
+        executes=[run_with_sensor],
+    )
+    ledger = GoalLedger(
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    )
+    (entry,) = (
+        entry
+        for entry in ledger.entries()
+        if entry["kind"] == "anomalies_observed"
+    )
+    (anomaly,) = entry["payload"]["anomalies"]
+    assert list(anomaly["flagged_artifact_sha256s"]) == [flagged]
