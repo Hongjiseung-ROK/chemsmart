@@ -158,10 +158,44 @@ its artifact <label>_gas_phase.h5) -- re-issued as O1 stage B.
   -0.002; Truhlar - RRHO 0.000 (no mode below 100 cm-1); RT ln sigma 0.41 /
   0.65 / 0.82 / 1.47 kcal/mol for sigma 2 / 3 / 4 / 12.
 
+## O1 stage B (CUHK Slurm 2149909, code b971ee96): xTB and PySCF Hessians
+
+20 of 20 exit 0. Read locally on the committed tree:
+* PySCF's own sigma (from PySCF's point group) was wrong three times: NH3 1
+  (host 3), C6H6 4 (host 12; PySCF reports its Abelian D2h), N2O4 2 (host 4).
+* PySCF CO2 and H2 and xTB H2: the host derived NaN (negative axial moment
+  from floating-point noise) -- fixed in e1133b82, CO2 S = 213.82 and H2
+  130.66 J/(mol K) at 1 atm (CODATA 1 bar: 213.785, 130.680).
+* Host RRHO G - E across ORCA / Gaussian / PySCF at one level: within 0.013
+  kcal/mol except N2O4 PySCF (-0.050; its 94 cm-1 torsion against 101): band
+  0.10 met for all ten.
+* xTB printed G - E = host Grimme(50 cm-1, alpha 4) + 0.0036..0.0047
+  kcal/mol for nine closed shells; NO2 (doublet) +0.4152 = RT ln 2 + 0.0045:
+  xTB's printed free energy omits the electronic spin-degeneracy entropy.
+
+## G1' cycle 1 (CUHK Slurm 2149940, code f073c8a3) -- read from host records
+
+The Agent planned three Gaussian opt+freq nodes (B3LYP, def2TZVP,
+empiricaldispersion=gd3bj), host RRHO thermochemistry at 0.986923 atm, and
+one expression. All three Gaussian runs terminated normally and the host
+typed them failed_native: `gaussian.result.method_mismatch`, because the
+route reader merges the dispersion into the functional ("b3lyp-d3bj") and
+the result verifier compares that with the requested functional ("b3lyp")
+-- a host defect outside Q5, left for after the session (never repair a
+live session). The analysis chain still ran on the three results:
+S(H2) 130.39, S(N2) 191.457, S(NH3) 192.46 J/(mol K); dS = -197.707
+J/(mol K) (anchor -198.11 +/- 0.10: inside the success band); dH = -87.79
+kJ/mol (anchor -91.88), dG = -28.85 kJ/mol (anchor -32.81), Kp = 1.13e5
+(anchor 5.6e5). NH3's receipt: "rotational symmetry number 3, counted by the
+host ...; the program itself stated 1" -- Gaussian printed Cs again, so the
+base tree would have delivered dS = -179.4 (the failure band). Settlement
+pending (cycle 2 woken).
+
 ## Jobs issued
 
 * 2149853 (r10-q5-a) O1 stage A, CLI, code b971ee96, prereg 1f8e0d51a36a.
 * 2149909 (r10-q5-a) O1 stage B (xTB and PySCF Hessians), prereg 1f8e0d51a36a.
+* 2149940 (r10-q5-a) goal G1' (g1), code f073c8a3 in code-g1, prereg a401bb5dbee7.
 
 ## Status
 
