@@ -667,6 +667,15 @@
       "commit": "e687b9cf (code tree digest ded5d770c660fd4f9047e08a6ae76e9d1ec7c87e5aa16489449b0ace2e580903, 426 files)",
       "date": "2026-09-24",
       "source": "Singlet O2 as a closed shell, RKS B3LYP/def2-SVP at 1.2075 A, one PySCF 2.14.0 single point with stability analysis (12.4 s, 8 cores). The run's own sensor recorded scf.reference_unstable. The woken session read the three stability selectors in one extract_result_quantities receipt on the validated result: internal 'stable', external 'unstable', rotation space 'RHF/RKS -> UHF/UKS' -- equal to the archived run at the same level and geometry (tests/data/PySCFTests/outputs/o2_singlet_sp_stability), energy -150.141807 Eh within 1e-7 Eh of it. Read on the same receipt as the two verdicts."
+    },
+    {
+      "kind": "program_jobtype",
+      "id": "gaussian:cpu:td",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q7 goals/g1-td/runs/cycle-2 nodes td-lr and td-tda (Slurm 2150077)",
+      "commit": "7111e2a6 (code tree digest 4d7248e71e6f23d9c6381fbc277412172d02a1c3bacd51d9055fc6fb927f7fa4, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "Gaussian 16 C.02 on the CUHK Central Cluster through the R10 CUHK profile's GAUSSIAN block. One goal (granted_by claude-researcher-q7-owner-delegated, a delegated approval, not a human decision), task fixed before issue: acrolein from a rough planar s-trans geometry, PBE0/def2-SVP, relax to the S0 minimum and compute the six lowest singlet vertical excitations there by full linear-response TD-DFT and by the Tamm-Dancoff approximation. Cycle 1 ran the opt+freq (10.6 s; E = -191.544925639 Eh, lowest mode 176.7 cm^-1, no imaginary mode); after one admitted revision cycle 2 ran two td nodes on the structure the optimisation reached, each project written in the program-neutral words (response_method tddft | tda, state_manifold singlet, nstates 6) that the hub spelled TD(singlets,nstates=6,root=1) and TDA(singlets,nstates=6,root=1); 5.8 s and 5.3 s, both validated, settled achieved under the host completion gate. Every root and strength equals the same calculation through the human CLI (Slurm 2150076, oracle O1) to the printed digit: n->pi* (A'') 3.6243 eV, f 0.0001 (TDA 3.6508); pi->pi* (A') 6.5343 eV, f 0.3812 (TDA 6.9733, f 0.4961). The same YAML in PySCF gives every root within 3e-4 eV and in ORCA (NoRI) within 0.003 eV. Not qualified by this run: the triplet, singlet_triplet and unrestricted manifolds and solvated TD in Gaussian (oracle and fixture level only), and excited-root optimisation."
     }
   ]
 }
