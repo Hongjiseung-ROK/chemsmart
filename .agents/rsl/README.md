@@ -18,7 +18,12 @@ and kept, untouched, as evidence.
    narrated there; it is computed (`chemsmart agent capabilities`).
 2. **Lessons** -- `lessons/<id>.md`, one small file each, read when the
    surface it scopes is in play. The body *is* the lesson; the
-   frontmatter is metadata.
+   frontmatter is metadata. Claude Code delivers a lesson by itself: the
+   tracked link `.claude/rules/rsl` makes the store a rules folder, and a
+   session that reads a file the lesson's `paths` match receives its body
+   (observed 2026-09-24 in the main checkout and inside a worktree
+   subagent; without the tracked link a worktree received nothing).
+   Other agents search with `rsl.py find`.
 3. **Procedures** -- skills, loaded when invoked (the CUHK campaign recipe
    lives in the site skill, not here).
 4. **Enforcement** -- wherever a rule can be checked: tests, hooks,
