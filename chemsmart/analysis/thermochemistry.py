@@ -463,8 +463,16 @@ class Thermochemistry:
         if self.molecule.is_monoatomic:
             return None
         rotational_constants = []
+        # The axial moment of a linear molecule is zero, and diagonalising
+        # the inertia tensor returns it as floating-point noise of either
+        # sign. A negative one became a huge negative rotational constant,
+        # the rotor was taken for nonlinear, and the rotational entropy was
+        # the square root of a negative number: every PySCF CO2 and H2 of
+        # oracle O1 (CUHK 2149909) and xTB's H2 derived a NaN Gibbs
+        # energy. A moment that is noise beside the largest is zero.
+        largest = max((abs(float(moment)) for moment in self.I), default=0.0)
         for moment in self.I:
-            if moment == 0.0:
+            if moment <= 1e-10 * largest:
                 rotational_constants.append(np.inf)
             else:
                 rotational_constants.append(
