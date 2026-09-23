@@ -1,5 +1,9 @@
 # Charter topic: orca-scan-irc-modred
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 ORCA ``scan`` is qualified for approved execution: a relaxed torsional profile
 ran through the ordinary plan, preview, single human approval, and provider-free
 execution path, and its surface is read into typed quantities by the same

@@ -2,14 +2,15 @@
 # earned (evidence a skeptic could reconstruct), partial, open, refuted.
 # The story changes when the evidence disagrees; this file is how we notice.
 version: 1
-updated: 2026-09-21
+updated: 2026-09-24
 
 claims:
   - id: C1_hub
     claim: One canonical YAML-and-CLI layer lets a provider-neutral model operate several programs with zero model-authored native input.
     evidence: [experiments-public/ino3-r12, experiments-public/po3-r19, "SUCCESSOR.md: CUHK acetamide r10 (xTB -> PySCF handoff)", "AGENTS.md: seven-node xTB/ORCA/PySCF approval"]
     evidence_added_2026_09_20: ["one sealed goal on CUHK (job 2140679): ORCA optimised both HONO conformers and located the saddle, PySCF walked both IRC branches from ORCA's saddle in the next cycle, identity and state preserved, the two programs' energies never mixed; ORCA's own IRC on the matched saddle reaches PySCF's minima within 0.0008 A (CLI job 2140568)"]
-    strongest_counterexample: Gaussian is never executed by the Agent; ORCA on CUHK runs only through a campaign-private server profile, not the deployed one; equal level strings across programs named two functionals (0.24 Eh offset) and the host only displayed it -- an ORCA B3LYP (VWN5) saddle starts a PySCF b3lyp (VWN3) IRC at 3.6e-4 Eh/Bohr, just inside the 4.5e-4 criterion.
+    evidence_added_2026_09_24: ["Gaussian now executes under the approval chain: opt and sp from R8 goals (CUHK Slurm 2142407, 2142428), ts and irc from R9 goals (Slurm 2142871, 2142917), each a recorded release row; the earlier counterexample 'Gaussian is never executed by the Agent' is retired"]
+    strongest_counterexample: ORCA on CUHK runs only through a campaign-private server profile, not the deployed one; equal level strings across programs named two functionals (0.24 Eh offset) and the host only displayed it -- an ORCA B3LYP (VWN5) saddle starts a PySCF b3lyp (VWN3) IRC at 3.6e-4 Eh/Bohr, just inside the 4.5e-4 criterion.
     missing_experiment: A bypass-attempt count across every archived stream (attempts to author native input, paths, shell), with the refusing gate named.
     status: partial
     figure: program x jobtype coverage cells, qualified vs claimed, from `chemsmart agent capabilities --json`

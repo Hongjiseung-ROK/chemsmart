@@ -1,5 +1,9 @@
 # Charter topic: solvation-and-populations
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 A completed solvated ORCA result can say what its solvation cost. The
 electrostatic term, the SMD cavity-dispersion term and the cavity surface
 area are declared for ``opt``, ``sp`` and ``ts`` beside the solvation

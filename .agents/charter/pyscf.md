@@ -1,5 +1,9 @@
 # Charter topic: pyscf
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 Every program answers the shared selector vocabulary through one
 extraction plane. A structured PySCF result is a registered reader beside
 the log-parsing programs, with job-type declarations for ``sp``, ``opt``

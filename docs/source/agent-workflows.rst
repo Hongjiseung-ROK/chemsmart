@@ -13,21 +13,17 @@ layer runs on Linux and macOS. The human CLI remains supported on Windows.
  Supported scope
 *****************
 
-The current release provides broad planning, project-YAML generation, live CLI compilation, and safe preview for these
-Agent job families:
+The release provides planning, project-YAML generation, live CLI compilation, and safe preview for Agent job families
+of Gaussian, ORCA, PySCF (CPU, and GPU4PySCF with the ``gpu`` engine), and xTB. Real Agent execution is narrower: it is
+open only for job types that a recorded live run has qualified. Both sets are computed from the installed release rather
+than listed here:
 
--  Gaussian CPU: ``irc``, ``link``, ``modred``, ``opt``, ``scan``, ``sp``, ``td``, and ``ts``.
--  ORCA CPU: ``irc``, ``modred``, ``neb``, ``opt``, ``scan``, ``sp``, ``td``, and ``ts``.
--  PySCF CPU: ``hess``, ``opt``, ``sp``, and preview-only ``td``.
--  GPU4PySCF: PySCF ``hess``, ``opt``, and ``sp`` with the ``gpu`` engine.
--  xTB CPU: ``hess``, ``opt``, and ``sp``.
+.. code-block:: bash
 
-Release-qualified real Agent execution is narrower:
+   chemsmart agent capabilities --kind program_jobtype
 
--  PySCF CPU ``sp``, ``opt``, and ``hess``;
--  xTB CPU ``sp``, ``opt``, and ``hess``; and
--  ORCA CPU single-points, optimization/frequency, transition-state, excited-state, relaxed coordinate scans, and serial
-   producer-to-consumer DAGs.
+A job type shown as ``qualified`` has a qualification record naming the run behind it
+(``chemsmart/agent/qualification/release.json``); any other job type is a planning, preview, and analysis path.
 
 A PySCF result is one structure: the driver re-converges the SCF on the final geometry before any property is read, so
 ``positions`` and every property belong to where the run ended, ``supplied_positions`` to where it began, and an
@@ -133,10 +129,6 @@ saddle, last the point reached), ``trajectory_frame_count``, the positions and c
 ``bind_reached_geometry`` carries it into a later calculation with the sidecar's digest sealed on the receipt. Plan one
 direction per ``irc`` node: a ``direction both`` run leaves two branch endpoints and the geometry selectors refuse it.
 Which minima a saddle connects remains an observation the scientist makes from the branches, not a host-rendered claim.
-ORCA ``neb`` and ``modred`` remain planning and preview
-paths until the selected target is qualified. Gaussian Agent execution is not claimed in this release; Gaussian support
-covers project YAML, generated native input, safe preview, and typed analysis of user-supplied completed outputs.
-GPU4PySCF remains a configuration and preview path until a compatible GPU target is qualified.
 
 These boundaries do not alter the wider human ``chemsmart run`` and ``chemsmart sub`` CLI. They also do not imply that
 an executable is available on the current machine. Every approved CPU run still needs an observed program environment

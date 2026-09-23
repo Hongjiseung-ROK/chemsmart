@@ -1,5 +1,9 @@
 # Charter topic: delivery-precision-uncertainty
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 A declared observable is delivered when a claim carries its id **and**
 its dimension, and one predicate says so for every reader: the
 completion gate that certifies a run and the settlement that reads the
