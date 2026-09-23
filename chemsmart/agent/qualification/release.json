@@ -38,11 +38,11 @@
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:sp",
-      "status": "claimed",
-      "run": "",
-      "commit": "",
-      "date": "",
-      "source": "AGENTS.md product boundary"
+      "status": "recorded",
+      "run": "experiments-public/po3-r19/workspace goals/goal-po3-r19/runs/cycle-5",
+      "commit": "e08c34fe",
+      "date": "2026-09-12",
+      "source": "Four ORCA single points the session planned and ran provider-free under one owner-delegated approval in cycle 5 of goal-po3-r19 (harness e08c34fe, named by the campaign seal): B3LYP-D3(BJ)/def2-TZVP and DSD-BLYP-D3(BJ)/def2-TZVP on each of two converged saddles, 817 s of engine wall. The cycle validated, and the four energies carried the level-to-level comparison on which the goal settled unreachable_from_evidence for the precision the task demanded. The run and its evidence are published in experiments-public/po3-r19."
     },
     {
       "kind": "program_jobtype",
@@ -65,11 +65,11 @@
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:scan",
-      "status": "claimed",
-      "run": "",
-      "commit": "",
-      "date": "",
-      "source": "AGENTS.md product boundary; relaxed torsional profile"
+      "status": "recorded",
+      "run": "experiments-public/po3-r19/workspace goals/goal-po3-r19/runs/cycle-1",
+      "commit": "e08c34fe",
+      "date": "2026-09-11",
+      "source": "Two seven-point relaxed scans (scan-esterc4-path, scan-esterc5-path) the session planned from one composed complex and ran provider-free under one owner-delegated approval in cycle 1 of goal-po3-r19 (14 213 s and 12 308 s of engine wall; the cycle validated). The host read both surfaces into typed quantities and raised scan.extremum_at_grid_boundary on each: the ridge lay beyond the scanned range, and the session abandoned the scans as its route to the saddles. The record qualifies execution and reading of an ORCA relaxed scan, not a scan that bracketed its ridge; the relaxed torsional profile the charter names left no machine record."
     },
     {
       "kind": "program_jobtype",
