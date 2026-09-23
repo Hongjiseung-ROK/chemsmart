@@ -46,6 +46,7 @@ from chemsmart.agent.scientific_toolchain import ScientificToolchainPlanV1
 from chemsmart.agent.terminal_states import (
     GEOMETRY_SEARCH_JOBTYPES,
     STATIONARY_POINT_PROMISES,
+    SURFACE_SAMPLING_JOBTYPES,
 )
 from chemsmart.agent.workflows import (
     PREVIEW_RESOURCE_SHA256,
@@ -6934,6 +6935,19 @@ PATH_ENDPOINT_PRODUCER_STAGES = frozenset({"irc"})
 #: let the rest respond" was a relaxed scan. Admitted per program the same
 #: way a path endpoint is: by what that program's reader declares.
 CONSTRAINED_GEOMETRY_PRODUCER_STAGES = frozenset({"modred"})
+
+#: Stages whose result sits at a structure other than the one they were
+#: handed: they search, sample, walk or relax. What such a result prints
+#: -- its modes included -- belongs to the structure it reached, so its
+#: spectrum characterises that structure and never the one its producer
+#: handed it; only a result that keeps the structure it was handed (a
+#: frequency job, a Hessian, a single point with frequencies) can.
+STRUCTURE_MOVING_STAGES = (
+    GEOMETRY_SEARCH_JOBTYPES
+    | SURFACE_SAMPLING_JOBTYPES
+    | PATH_ENDPOINT_PRODUCER_STAGES
+    | CONSTRAINED_GEOMETRY_PRODUCER_STAGES
+)
 
 #: Stages the optimized-geometry rule itself covers. A scan's consumer may
 #: wait too, but a scan is never an "optimized geometry": its edge
