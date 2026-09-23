@@ -24,6 +24,7 @@ from chemsmart.analysis.quantity_expressions import (
     OPERATION_DESCRIPTIONS,
 )
 from chemsmart.analysis.result_quantities import (
+    QUASI_HARMONIC_COUNTERPARTS,
     derivable_thermochemistry_quantities,
     supported_selectors,
 )
@@ -3118,6 +3119,17 @@ _THERMOCHEMISTRY_KINDS = tuple(
     sorted(derivable_thermochemistry_quantities("rrho"))
 )
 
+#: What a quasi-harmonic treatment adds beside a harmonic kind, read from
+#: the writer's own table. Listing only the harmonic kinds taught two live
+#: sessions to declare gibbs_free_energy on a Grimme node, which binds the
+#: RRHO value.
+_QUASI_HARMONIC_KINDS_TEXT = "; ".join(
+    f"{counterpart} beside {harmonic}"
+    for harmonic, (counterpart, _needs) in sorted(
+        QUASI_HARMONIC_COUNTERPARTS.items()
+    )
+)
+
 
 def _public_identifier(
     joins: str | None = None, *, spelling_rule: bool = False
@@ -3687,6 +3699,14 @@ def _analysis_intent_node_schema_full(
                             + " -- so a Gibbs correction is "
                             "thermal_gibbs_correction and a free energy is "
                             "gibbs_free_energy, never a bare 'energy'. "
+                            "Those names are harmonic (RRHO) under every "
+                            "treatment. A Grimme or Truhlar entropy_method "
+                            "or an enthalpy cutoff adds a quasi-harmonic "
+                            "kind beside its harmonic one -- "
+                            + _QUASI_HARMONIC_KINDS_TEXT
+                            + " -- and a node that requests a "
+                            "quasi-harmonic treatment declares the "
+                            "quasi-harmonic kind it wants. "
                             "Extraction and expression outputs name their "
                             "own kinds."
                         ),
