@@ -1688,11 +1688,18 @@ def _thermo_quantity(
 
 def _thermochemistry_assumptions(
     request: ThermochemistryRequestV1,
+    engine_statements: Sequence[str] = (),
 ) -> tuple[str, ...]:
     # PySCF receipts used to keep a shorter "legacy" assumption list at
     # default settings that never named the standard state; every program's
     # receipt now says the same things, and a PySCF receipt additionally
     # says which mass table produced its frequencies (below).
+    #
+    # The symmetry number used to be announced here as "derived by the
+    # shared ChemSmart engine" while the engine read each program's own
+    # printed value -- 1 from ORCA 6.0.1 for D-infinity-h CO2, 2 from
+    # Gaussian and xTB for the same molecule. The engine now counts it and
+    # says which number it used, and what the program had said, itself.
     assumptions = [
         "rigid-rotor harmonic-oscillator thermochemistry for harmonic quantities",
         "ground-state electronic degeneracy equals spin multiplicity",
@@ -1701,7 +1708,7 @@ def _thermochemistry_assumptions(
             if request.use_weighted_mass
             else "most-abundant isotopic masses"
         ),
-        "rotational symmetry derived by the shared ChemSmart engine",
+        *engine_statements,
         (
             "frequency scale factor 1.0; no frequency scaling"
             if request.frequency_scale_factor == 1.0
@@ -2099,7 +2106,9 @@ def derive_result_thermochemistry(
         raise QuantityExtractionError(
             "result artifact changed during thermochemistry derivation"
         )
-    assumptions = _thermochemistry_assumptions(request)
+    assumptions = _thermochemistry_assumptions(
+        request, engine.convention_statements
+    )
     body = {
         "schema_version": "chemsmart.thermochemistry-receipt.v1",
         "artifact_id": request.artifact_id,

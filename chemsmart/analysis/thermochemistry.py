@@ -40,6 +40,190 @@ logger = logging.getLogger(__name__)
 #: program that produced the Hessian.
 NEAR_ZERO_FREQUENCY_TOLERANCE_CM = 20.0
 
+#: How far, in Angstrom, an atom may sit from the image of an equivalent
+#: atom under a proper rotation and still count as mapped onto it, when the
+#: host counts the rotational symmetry number.  An optimiser that ran
+#: without symmetry leaves a symmetric minimum symmetric only to its own
+#: convergence, about 1e-3 A; a genuine lower-symmetry structure moves atoms
+#: by tenths of an Angstrom.
+ROTATIONAL_SYMMETRY_TOLERANCE_ANGSTROM = 0.05
+
+
+def _kabsch_rotation(source, target):
+    """The proper rotation that best maps ``source`` rows onto ``target``."""
+
+    covariance = source.T @ target
+    u, _s, vt = np.linalg.svd(covariance)
+    sign = np.sign(np.linalg.det(vt.T @ u.T)) or 1.0
+    correction = np.diag([1.0, 1.0, sign])
+    return vt.T @ correction @ u.T
+
+
+def rotational_symmetry_number_from_geometry(
+    symbols,
+    positions,
+    masses,
+    *,
+    linear=False,
+    tolerance_angstrom=ROTATIONAL_SYMMETRY_TOLERANCE_ANGSTROM,
+):
+    """Count the proper rotations that map a structure onto itself.
+
+    The rotational symmetry number is the order of the molecule's
+    rotational subgroup -- 2 for water and for CO2, 3 for ammonia, 12 for
+    methane and benzene -- and it divides the rotational partition
+    function, so a wrong one moves every Gibbs energy by RT ln(sigma).
+    Every program answers it differently: ORCA 6.0.1 printed 1 for CO2
+    (D-infinity-h) and C1 for a C2v phenolate its own optimiser had
+    converged, while Gaussian and xTB printed 2 for the same CO2.  Counting
+    the rotations here makes it one number per structure, whichever
+    program computed the frequencies.
+
+    Each candidate rotation is fixed by where it sends two reference atoms
+    (the rarest element-and-radius classes, so the candidates are few),
+    refined by a least-squares fit over every atom it matched, and kept
+    when every atom lands within ``tolerance_angstrom`` of an equivalent
+    one.  A linear structure is 2 when inversion maps it onto itself and 1
+    otherwise.  Returns ``(sigma, rotations_found)``; the identity counts.
+    """
+
+    symbols = [str(symbol) for symbol in symbols]
+    positions = np.asarray(positions, dtype=float)
+    masses = np.asarray(masses, dtype=float)
+    if len(symbols) < 2:
+        return 1, 1
+    tolerance = float(tolerance_angstrom)
+    relative = positions - (positions * masses[:, None]).sum(axis=0) / (
+        masses.sum()
+    )
+    elements = np.array(symbols)
+
+    def _maps_onto_itself(image):
+        for element in set(symbols):
+            chosen = elements == element
+            moved = image[chosen]
+            fixed = relative[chosen]
+            distances = np.linalg.norm(
+                moved[:, None, :] - fixed[None, :, :], axis=2
+            )
+            nearest = distances.argmin(axis=1)
+            if len(set(nearest.tolist())) != len(nearest):
+                return False
+            if float(distances.min(axis=1).max()) > tolerance:
+                return False
+        return True
+
+    if linear:
+        return (2, 2) if _maps_onto_itself(-relative) else (1, 1)
+
+    radii = np.linalg.norm(relative, axis=1)
+    off_centre = [index for index in range(len(symbols)) if radii[index] > 0.1]
+
+    def _class(index):
+        return [
+            other
+            for other in off_centre
+            if symbols[other] == symbols[index]
+            and abs(radii[other] - radii[index]) < 2.0 * tolerance
+        ]
+
+    anchor = min(
+        off_centre, key=lambda index: (len(_class(index)), -radii[index])
+    )
+    axis = relative[anchor] / radii[anchor]
+
+    def _perpendicular(index):
+        return float(np.linalg.norm(np.cross(axis, relative[index])))
+
+    partners = [
+        index
+        for index in off_centre
+        if index != anchor and _perpendicular(index) > 0.1
+    ]
+    if not partners:
+        return (2, 2) if _maps_onto_itself(-relative) else (1, 1)
+    partner = min(
+        partners,
+        key=lambda index: (len(_class(index)), -_perpendicular(index)),
+    )
+
+    def _frame(first, second):
+        e1 = first / np.linalg.norm(first)
+        e2 = second - float(second @ e1) * e1
+        e2 = e2 / np.linalg.norm(e2)
+        return np.column_stack([e1, e2, np.cross(e1, e2)])
+
+    reference = _frame(relative[anchor], relative[partner])
+    separation = float(np.linalg.norm(relative[anchor] - relative[partner]))
+    found = 0
+    for image_anchor in _class(anchor):
+        for image_partner in _class(partner):
+            if image_partner == image_anchor:
+                continue
+            distance = float(
+                np.linalg.norm(
+                    relative[image_anchor] - relative[image_partner]
+                )
+            )
+            if abs(distance - separation) > 4.0 * tolerance:
+                continue
+            if _perpendicular_to(relative, image_anchor, image_partner) < 0.05:
+                continue
+            guess = (
+                _frame(relative[image_anchor], relative[image_partner])
+                @ reference.T
+            )
+            moved = relative @ guess.T
+            # Correspond every atom under the first guess, then refit on
+            # all of them: two reference atoms fix the rotation only as
+            # well as their own coordinates are symmetric.
+            order = []
+            for index, row in enumerate(moved):
+                same = [
+                    other
+                    for other in range(len(symbols))
+                    if symbols[other] == symbols[index]
+                ]
+                order.append(
+                    min(
+                        same,
+                        key=lambda other: float(
+                            np.linalg.norm(row - relative[other])
+                        ),
+                    )
+                )
+            if len(set(order)) != len(order):
+                continue
+            fitted = _kabsch_rotation(relative, relative[order])
+            if _maps_onto_itself(relative @ fitted.T):
+                found += 1
+    return max(found, 1), max(found, 1)
+
+
+def _quasi_linear_padding(frequencies, num_atoms):
+    """The mode a quasi-linear rotor is missing, or None.
+
+    A program that treats a nearly linear structure as nonlinear prints
+    3N-6 modes; a linear rotor has 3N-5, the missing one the degenerate
+    partner of the lowest bend.  One function, because the formulas and
+    the receipt's statement both ask it.
+    """
+
+    expected = 3 * int(num_atoms) - 5
+    if frequencies and len(frequencies) == expected - 1:
+        return min(f for f in frequencies if f > 0)
+    return None
+
+
+def _perpendicular_to(relative, first, second):
+    """|a x b| / |a| for two rows: how far ``second`` sits off ``first``'s axis."""
+
+    a = relative[first]
+    norm = float(np.linalg.norm(a))
+    if norm == 0.0:
+        return 0.0
+    return float(np.linalg.norm(np.cross(a / norm, relative[second])))
+
 
 class Thermochemistry:
     """Class for thermochemistry analysis using SI units.
@@ -362,8 +546,13 @@ class Thermochemistry:
         )
 
     @property
-    def rotational_symmetry_number(self):
-        """Obtain the rotational symmetry number."""
+    def program_rotational_symmetry_number(self):
+        """The rotational symmetry number the program itself stated.
+
+        ORCA, Gaussian and xTB print one from their own symmetry detection;
+        PySCF's is derived from the point group PySCF detected.  Kept as
+        evidence beside the host's count, never used by the formulas.
+        """
         if self.program == "orca":
             section = self.file_object._last_complete_thermochemistry_section
             if (
@@ -371,7 +560,81 @@ class Thermochemistry:
                 and section.rotational_symmetry_number is not None
             ):
                 return section.rotational_symmetry_number
-        return self.file_object.rotational_symmetry_number
+        return getattr(self.file_object, "rotational_symmetry_number", None)
+
+    @cached_property
+    def rotational_symmetry_number(self):
+        """The rotational symmetry number, counted by the host.
+
+        Counted from the geometry the frequencies belong to, so one
+        structure has one number whichever program computed its Hessian;
+        see :func:`rotational_symmetry_number_from_geometry`.
+        """
+        if self.molecule.is_monoatomic:
+            return 1
+        sigma, _rotations = rotational_symmetry_number_from_geometry(
+            self.molecule.chemical_symbols,
+            self.molecule.positions,
+            self.molecule.most_abundant_masses,
+            linear=self.is_linear_rotor,
+        )
+        return sigma
+
+    @property
+    def convention_statements(self):
+        """What this derivation decided that a program may decide otherwise.
+
+        Stated beside the numbers a receipt carries, because each one moves
+        a Gibbs energy by an amount a reader cannot recover from the
+        number: the symmetry number by RT ln(sigma), the rotor treatment of
+        a quasi-linear molecule by kcal/mol.
+        """
+
+        statements = []
+        if self.molecule.is_monoatomic:
+            return ("monoatomic: no rotational or vibrational partition",)
+        sigma = self.rotational_symmetry_number
+        text = (
+            f"rotational symmetry number {sigma}, counted by the host from "
+            "the geometry the frequencies belong to (proper rotations "
+            "mapping it onto itself within "
+            f"{ROTATIONAL_SYMMETRY_TOLERANCE_ANGSTROM:g} A)"
+        )
+        try:
+            printed = self.program_rotational_symmetry_number
+        except Exception:  # noqa: BLE001 - evidence only, never a formula
+            printed = None
+        if printed is not None and int(printed) != int(sigma):
+            text += f"; the program itself stated {int(printed)}"
+        statements.append(text)
+        if self.is_linear_rotor:
+            padded = self.quasi_linear_padded_mode_cm1
+            if padded is not None:
+                statements.append(
+                    "quasi-linear structure treated as a linear rotor: two "
+                    "rotational degrees of freedom, and the lowest bending "
+                    f"mode ({padded:.1f} cm^-1) supplied twice for the "
+                    "missing degenerate partner"
+                )
+            else:
+                statements.append("linear rotor: two rotational degrees")
+        return tuple(statements)
+
+    @property
+    def quasi_linear_padded_mode_cm1(self):
+        """The bending mode duplicated for a quasi-linear rotor, or None."""
+
+        if self.vibrational_frequencies is None:
+            return None
+        if not (self.rotational_mode == "physical" and self.is_linear_rotor):
+            return None
+        return _quasi_linear_padding(
+            [
+                float(frequency) * float(self.frequency_scale_factor)
+                for frequency in self.vibrational_frequencies
+            ],
+            self.molecule.num_atoms,
+        )
 
     @property
     def vibrational_frequencies(self):
@@ -470,9 +733,10 @@ class Thermochemistry:
         # Quasi-linear correction: Gaussian gives 3N-6 frequencies for
         # non-linear molecules; pad to 3N-5 for linear treatment.
         if self.rotational_mode == "physical" and self.is_linear_rotor:
-            expected = 3 * self.molecule.num_atoms - 5
-            if frequencies and len(frequencies) == expected - 1:
-                lowest = min(f for f in frequencies if f > 0)
+            lowest = _quasi_linear_padding(
+                frequencies, self.molecule.num_atoms
+            )
+            if lowest is not None:
                 frequencies.append(lowest)
                 logger.info(
                     f"Quasi-linear molecule: padded one degenerate bending "
