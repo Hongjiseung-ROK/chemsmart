@@ -95,11 +95,75 @@ dG = +43.5 +/- 0.8 kJ/mol.
 * dG and dH are reported against the anchor and decomposed into electronic and
   thermal parts; not scored (the B3LYP electronic error is not a convention).
 
+**G1 withdrawn before issue (2026-09-24, after O1 stage A, before any goal).**
+O1 showed ORCA 6.1.1 prints sigma = 2 for CO2 and H2 (the sigma = 1 for CO2
+is an ORCA 6.0.1 artefact), so G1 cannot tell the host's sigma from ORCA's:
+it would pass on the base tree too. It is replaced by G1', chosen from the
+same O1 evidence: Gaussian 16 printed "Full point group CS", sigma = 1, for
+an NH3 built C3v to 1e-4 A (G_nh3.log), while ORCA printed C3v / 3.
+
+## Live goal G1' (pre-registered before issue; replaces G1)
+
+N2(g) + 3 H2(g) -> 2 NH3(g) at 298.15 K and 1 bar, computed with Gaussian 16
+(B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies per species); the
+answer is dG, dH, dS of reaction and Kp. The molecule count changes by -2
+(1 bar -> 1 mol/L moves dG by 2 x 1.894 kcal/mol) and every species has a
+symmetry number above 1 (N2 2, H2 2, NH3 3). Workspace geometries: n2.xyz,
+h2.xyz, nh3.xyz (the same C3v NH3 as O1). TASK.md (verbatim, fixed now):
+
+> At 298.15 K and a standard pressure of 1 bar, what are the standard
+> reaction Gibbs energy, enthalpy and entropy of ammonia synthesis in the
+> gas phase, N2(g) + 3 H2(g) -> 2 NH3(g), and the equilibrium constant Kp
+> they imply? Compute them with Gaussian 16 at B3LYP-D3(BJ)/def2-TZVP, with
+> an optimisation and frequencies for each species. The workspace holds
+> starting geometries for dinitrogen (n2.xyz), dihydrogen (h2.xyz) and
+> ammonia (nh3.xyz); all three are closed-shell neutral singlets. Report each
+> quantity with its unit, the standard state and the thermochemical
+> treatment it rests on, and say which parts of the result you would trust.
+
+Anchor, read in session from the NIST WebBook (2026-09-24, CODATA, Cox,
+Wagman et al. 1984): S(NH3, g, 1 bar) = 192.77 +/- 0.05; S(N2) = 191.609 +/-
+0.004; S(H2) = 130.680 +/- 0.003 J/(mol K); dfH(NH3, g) = -45.94 +/- 0.35
+kJ/mol. Hence dS = -198.11 +/- 0.10 J/(mol K), dH = -91.88 +/- 0.70 kJ/mol,
+dG = -32.81 +/- 0.70 kJ/mol, Kp = 5.6e5 bar^-2.
+
+* Success: delivered dS within +/- 6 J/(mol K) of -198.1 at a gas-phase
+  (1 bar or 1 atm) standard state, with sigma 3 / 2 / 2 on the receipts.
+* Failure (the host's sigma did not reach the Agent path): dS within +/- 6 of
+  -179.8 (= -198.1 + 2 R ln 3), with Gaussian's sigma = 1 used for NH3.
+* Not discriminating (reported, not scored as success): the Agent's Gaussian
+  NH3 prints sigma = 3 itself (base and fix then agree).
+* Falsified premise: outside every band above.
+* dG, dH and Kp are reported against the anchor, decomposed into electronic
+  and thermal parts; not scored.
+* Granted by `claude-researcher-q5-owner-delegated` (a delegated approval,
+  not a human decision). Provider: alibaba-token-plan / deepseek-v4-flash-0731.
+
+## O1 stage A (CUHK Slurm 2149853, code b971ee96, ORCA 6.1.1 + Gaussian 16)
+
+40 of 60 commands exit 0 (every ORCA and Gaussian opt+freq, every xTB and
+PySCF opt); the 20 second-stage Hessians failed before any engine on my own
+input paths (xTB writes its reached frame under .chemsmart-runs/; PySCF names
+its artifact <label>_gas_phase.h5) -- re-issued as O1 stage B.
+* (a) sigma: ORCA 6.1.1 printed the right sigma for all ten; Gaussian printed
+  Cs / sigma = 1 for NH3 (host 3); every other Gaussian sigma right.
+* (b) printed G vs host under the program's conventions (ORCA: Grimme 100
+  cm-1 alpha 4; Gaussian: RRHO; the program's own sigma): 19 of 20 within the
+  2e-6 Eh band; ORCA benzene -2.26e-6 Eh (0.0014 kcal/mol) outside it. Band
+  missed once; reported, not re-tuned.
+* (c) host RRHO G - E, ORCA vs Gaussian, same level: |d| <= 0.013 kcal/mol
+  for all ten (band 0.10), with one sigma per molecule.
+* (d) 1 atm -> 1 mol/L: +1.8943 kcal/mol for all ten (band met); Grimme -
+  RRHO: 0.000 except N2O4 +0.082 (101 cm-1 torsion) and C6H6 / phenolate
+  -0.002; Truhlar - RRHO 0.000 (no mode below 100 cm-1); RT ln sigma 0.41 /
+  0.65 / 0.82 / 1.47 kcal/mol for sigma 2 / 3 / 4 / 12.
+
 ## Jobs issued
 
-(none yet)
+* 2149853 (r10-q5-a) O1 stage A, CLI, code b971ee96, prereg 1f8e0d51a36a.
+* 2149909 (r10-q5-a) O1 stage B (xTB and PySCF Hessians), prereg 1f8e0d51a36a.
 
 ## Status
 
-Census done; oracle O1 being prepared; code work (vocabulary, sigma,
-convention observation) in progress.
+C1 (b40d583a), C2 (aa9fbd3c), C3 (9ef9d476) committed; O1 stage B running;
+G1' about to be issued on a packed tree of the committed code.
