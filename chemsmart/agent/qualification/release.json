@@ -48,7 +48,7 @@
       "kind": "program_jobtype",
       "id": "orca:cpu:ts",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-ts/workspace goals/goal-ts/runs/cycle-1 (Slurm 2142426)",
+      "run": "CUHK Charles r8/orca/goals/goal-ts/workspace goals/goal-ts/runs/cycle-1 (Slurm 2142426)",
       "commit": "0e380213",
       "date": "2026-09-21",
       "source": "One live goal under the approval chain: from a hand-built bridging-hydrogen guess the session planned an ORCA OptTS with a frequency step at B3LYP/def2-SVP, selected the wave and executed it provider-free in 37.6 s of engine wall. The search converged to a first-order saddle of the HCN -> HNC 1,2-hydrogen shift, one imaginary mode at 1121.71 cm^-1, C-N 1.188 / C-H 1.197 / N-H 1.398 A -- the same saddle as the independent direct-CLI run (Slurm 2142375) to the last printed digit of its total energy, -93.224285928359 Eh. The session's own declared expectation band for the imaginary mode (1500-2500 cm^-1) was displayed as diverged and not scored."
@@ -57,7 +57,7 @@
       "kind": "program_jobtype",
       "id": "orca:cpu:irc",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-ts/workspace goals/goal-ts/runs/cycle-2 (Slurm 2142426)",
+      "run": "CUHK Charles r8/orca/goals/goal-ts/workspace goals/goal-ts/runs/cycle-2 (Slurm 2142426)",
       "commit": "0e380213",
       "date": "2026-09-21",
       "source": "The same goal's second cycle: an admitted revision cited cycle 1's evidence and walked one forward branch from that converged saddle, 669.3 s of engine wall under the same approval chain. The branch descended 33.62 kcal/mol over 21 path points and stopped at ORCA's iteration limit (irc_converged = 0), which the session carried into its uncertainty account; from the endpoint connectivity it read N-H formed and C-H broken, the HNC side, agreeing with the independent direct-CLI branches (Slurm 2142379) and with the optimised endpoint minima (Slurm 2142403). The goal settled unreachable_from_evidence because this release's claim machinery renders numerical claims only and the walk direction is a text label."
@@ -195,7 +195,7 @@
       "kind": "selector",
       "id": "xtb:hess:ir_intensities",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/xtb-ir-acetamide-pyscf-stability-r10 goals/xtb-ir-acetamide-pyscf-stability-r10/runs/cycle-3 + cycle-5 analysis",
+      "run": "CUHK Charles xtb-ir-acetamide-pyscf-stability-r10 goals/xtb-ir-acetamide-pyscf-stability-r10/runs/cycle-3 + cycle-5 analysis",
       "commit": "c21454b1",
       "date": "2026-09-18"
     },
@@ -303,7 +303,7 @@
       "kind": "selector",
       "id": "xtb:sp:solvation_model",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
@@ -312,7 +312,7 @@
       "kind": "selector",
       "id": "xtb:sp:solvent",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
@@ -321,7 +321,7 @@
       "kind": "selector",
       "id": "xtb:sp:solvation_free_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
@@ -330,7 +330,7 @@
       "kind": "selector",
       "id": "xtb:sp:solvation_electrostatic_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
@@ -339,7 +339,7 @@
       "kind": "selector",
       "id": "xtb:sp:xtb_solvation_sasa_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
@@ -348,7 +348,7 @@
       "kind": "selector",
       "id": "xtb:sp:xtb_solvation_hydrogen_bond_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
@@ -357,7 +357,7 @@
       "kind": "selector",
       "id": "xtb:sp:xtb_solvation_shift_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "Five sp results exercised every cell. w_alpb and m_alpb (alpb/water) and w_gbsa (gbsa/water) resolved the model, the solvent and all five terms, with Gsolv equal to the sum of its parts to 5e-18 Eh; w_gas and m_gas resolved solvation_model as gas_phase and reported the other six typed-absent with their reason. ALPB(water) gives -11.389 kcal/mol on water, dominated by Ghb (-9.343) rather than Gelec (-3.883), and +0.158 kcal/mol on methane; GBSA on the same water gives -7.044, which is why the model travels with the number. A live Agent session was handed the six results and inspect_run offered all seven selectors on each solvated one and solvation_model alone on each gas-phase one."
@@ -366,7 +366,7 @@
       "kind": "selector",
       "id": "xtb:hess:solvation_model",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
@@ -375,7 +375,7 @@
       "kind": "selector",
       "id": "xtb:hess:solvent",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
@@ -384,7 +384,7 @@
       "kind": "selector",
       "id": "xtb:hess:solvation_free_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
@@ -393,7 +393,7 @@
       "kind": "selector",
       "id": "xtb:hess:solvation_electrostatic_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
@@ -402,7 +402,7 @@
       "kind": "selector",
       "id": "xtb:hess:xtb_solvation_sasa_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
@@ -411,7 +411,7 @@
       "kind": "selector",
       "id": "xtb:hess:xtb_solvation_hydrogen_bond_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
@@ -420,7 +420,7 @@
       "kind": "selector",
       "id": "xtb:hess:xtb_solvation_shift_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/solv (Slurm 2142381 engines, 2142385 read-back, 2142390 Agent analysis goal r8x-xtb-solvation-read): GFN2-xTB water and methane, gas phase and ALPB(water), plus GBSA(water) on water and an ALPB(water) Hessian on water, every result read through extract_result_quantities",
       "commit": "88a6051d",
       "date": "2026-09-21",
       "source": "One ALPB(water) GFN2-xTB Hessian on water (w_hess) resolved the model, the solvent and all five terms beside its thermochemistry, Gsolv -11.389 kcal/mol closing on its parts to 3.5e-18 Eh, and the same result was offered to the Agent session with all seven selectors. The gas-phase absence path is exercised on hess by the archived water_ohess."
@@ -429,7 +429,7 @@
       "kind": "selector",
       "id": "xtb:hess:vibrational_frequencies",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
       "commit": "f7e39390",
       "date": "2026-09-21",
       "source": "The chain is what exercises these: planar NH3 optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian gives one imaginary mode at -971.31 cm-1, and the structures reached by stepping 0.30 A along it in each direction give six real modes -- 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, the C3v degenerate pairs where C3v puts them -- and energies equal to every printed digit, as two mirror images must be. The inversion barrier the opt and hess energies carry is +6.110 kcal/mol. Read on a real saddle and a real minimum, so the imaginary and the all-real case are both covered."
@@ -438,7 +438,7 @@
       "kind": "selector",
       "id": "xtb:hess:energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
       "commit": "f7e39390",
       "date": "2026-09-21",
       "source": "The chain is what exercises these: planar NH3 optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian gives one imaginary mode at -971.31 cm-1, and the structures reached by stepping 0.30 A along it in each direction give six real modes -- 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, the C3v degenerate pairs where C3v puts them -- and energies equal to every printed digit, as two mirror images must be. The inversion barrier the opt and hess energies carry is +6.110 kcal/mol. Read on a real saddle and a real minimum, so the imaginary and the all-real case are both covered."
@@ -447,7 +447,7 @@
       "kind": "selector",
       "id": "xtb:hess:gibbs_free_energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
       "commit": "f7e39390",
       "date": "2026-09-21",
       "source": "The chain is what exercises these: planar NH3 optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian gives one imaginary mode at -971.31 cm-1, and the structures reached by stepping 0.30 A along it in each direction give six real modes -- 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, the C3v degenerate pairs where C3v puts them -- and energies equal to every printed digit, as two mirror images must be. The inversion barrier the opt and hess energies carry is +6.110 kcal/mol. Read on a real saddle and a real minimum, so the imaginary and the all-real case are both covered."
@@ -456,7 +456,7 @@
       "kind": "selector",
       "id": "xtb:opt:energy",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
+      "run": "CUHK Charles r8/xtb/leg2 (Slurm 2142401 engines, 2142402 read-back, 2142404 Agent goal r8x-xtb-saddle-escape): the GFN2-xTB ammonia inversion chain -- planar D3h optimisation, its Hessian, a mode displacement in both directions, the two relaxations and the Hessian at what they reached -- every result read through extract_result_quantities",
       "commit": "f7e39390",
       "date": "2026-09-21",
       "source": "The chain is what exercises these: planar NH3 optimises to a stationary point (gradient norm 3.58e-07 Eh/a0) whose Hessian gives one imaginary mode at -971.31 cm-1, and the structures reached by stepping 0.30 A along it in each direction give six real modes -- 1160.78, 1593.31, 1593.31, 3425.0, 3476.94, 3476.99 cm-1, the C3v degenerate pairs where C3v puts them -- and energies equal to every printed digit, as two mirror images must be. The inversion barrier the opt and hess energies carry is +6.110 kcal/mol. Read on a real saddle and a real minimum, so the imaginary and the all-real case are both covered."
@@ -465,7 +465,7 @@
       "kind": "selector",
       "id": "orca:irc:trajectory_connectivity_changed",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
+      "run": "CUHK Charles r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
       "commit": "cf9224ab",
       "date": "2026-09-21",
       "source": "One extract_result_quantities call on a completed forward branch resolved the whole family in one receipt: direction forward, irc_converged 0, 21 path points, both ends' positions and connectivity, the connectivity change, and the path energies. The receipt names the endpoint sidecar hcn_hnc_ircf_IRC_F.xyz and its digest as native evidence; an expression over the path energies gave the branch's 33.4048 kcal/mol descent with no model-authored constant, and bind_reached_geometry then carried the endpoint structure into a new starting geometry."
@@ -474,7 +474,7 @@
       "kind": "selector",
       "id": "orca:irc:trajectory_end_connectivity",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
+      "run": "CUHK Charles r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
       "commit": "cf9224ab",
       "date": "2026-09-21",
       "source": "One extract_result_quantities call on a completed forward branch resolved the whole family in one receipt: direction forward, irc_converged 0, 21 path points, both ends' positions and connectivity, the connectivity change, and the path energies. The receipt names the endpoint sidecar hcn_hnc_ircf_IRC_F.xyz and its digest as native evidence; an expression over the path energies gave the branch's 33.4048 kcal/mol descent with no model-authored constant, and bind_reached_geometry then carried the endpoint structure into a new starting geometry."
@@ -483,7 +483,7 @@
       "kind": "selector",
       "id": "orca:irc:trajectory_end_positions",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
+      "run": "CUHK Charles r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
       "commit": "cf9224ab",
       "date": "2026-09-21",
       "source": "One extract_result_quantities call on a completed forward branch resolved the whole family in one receipt: direction forward, irc_converged 0, 21 path points, both ends' positions and connectivity, the connectivity change, and the path energies. The receipt names the endpoint sidecar hcn_hnc_ircf_IRC_F.xyz and its digest as native evidence; an expression over the path energies gave the branch's 33.4048 kcal/mol descent with no model-authored constant, and bind_reached_geometry then carried the endpoint structure into a new starting geometry."
@@ -492,7 +492,7 @@
       "kind": "selector",
       "id": "orca:irc:trajectory_energies",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
+      "run": "CUHK Charles r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
       "commit": "cf9224ab",
       "date": "2026-09-21",
       "source": "One extract_result_quantities call on a completed forward branch resolved the whole family in one receipt: direction forward, irc_converged 0, 21 path points, both ends' positions and connectivity, the connectivity change, and the path energies. The receipt names the endpoint sidecar hcn_hnc_ircf_IRC_F.xyz and its digest as native evidence; an expression over the path energies gave the branch's 33.4048 kcal/mol descent with no model-authored constant, and bind_reached_geometry then carried the endpoint structure into a new starting geometry."
@@ -501,7 +501,7 @@
       "kind": "selector",
       "id": "orca:irc:trajectory_frame_count",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
+      "run": "CUHK Charles r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
       "commit": "cf9224ab",
       "date": "2026-09-21",
       "source": "One extract_result_quantities call on a completed forward branch resolved the whole family in one receipt: direction forward, irc_converged 0, 21 path points, both ends' positions and connectivity, the connectivity change, and the path energies. The receipt names the endpoint sidecar hcn_hnc_ircf_IRC_F.xyz and its digest as native evidence; an expression over the path energies gave the branch's 33.4048 kcal/mol descent with no model-authored constant, and bind_reached_geometry then carried the endpoint structure into a new starting geometry."
@@ -510,7 +510,7 @@
       "kind": "selector",
       "id": "orca:irc:trajectory_start_connectivity",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
+      "run": "CUHK Charles r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
       "commit": "cf9224ab",
       "date": "2026-09-21",
       "source": "One extract_result_quantities call on a completed forward branch resolved the whole family in one receipt: direction forward, irc_converged 0, 21 path points, both ends' positions and connectivity, the connectivity change, and the path energies. The receipt names the endpoint sidecar hcn_hnc_ircf_IRC_F.xyz and its digest as native evidence; an expression over the path energies gave the branch's 33.4048 kcal/mol descent with no model-authored constant, and bind_reached_geometry then carried the endpoint structure into a new starting geometry."
@@ -519,7 +519,7 @@
       "kind": "selector",
       "id": "orca:irc:trajectory_start_positions",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
+      "run": "CUHK Charles r8/orca/goals/goal-irc/workspace goals/goal-irc/runs/cycle-1 (Slurm 2142399)",
       "commit": "cf9224ab",
       "date": "2026-09-21",
       "source": "One extract_result_quantities call on a completed forward branch resolved the whole family in one receipt: direction forward, irc_converged 0, 21 path points, both ends' positions and connectivity, the connectivity change, and the path energies. The receipt names the endpoint sidecar hcn_hnc_ircf_IRC_F.xyz and its digest as native evidence; an expression over the path energies gave the branch's 33.4048 kcal/mol descent with no model-authored constant, and bind_reached_geometry then carried the endpoint structure into a new starting geometry."
@@ -546,7 +546,7 @@
       "kind": "selector",
       "id": "pyscf:td:excitation_energies",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/pyscf/goals/g1-dans (Slurm 2142833, COMPLETED 0:0, 03:17:23) workspace goals/g1-dans/runs/cycle-2; code tree = chemsmart/ subtree 5478099e of 304de2af, verified content-identical on the node",
+      "run": "CUHK Charles r9/pyscf/goals/g1-dans (Slurm 2142833, COMPLETED 0:0, 03:17:23) workspace goals/g1-dans/runs/cycle-2; code tree = chemsmart/ subtree 5478099e of 304de2af, verified content-identical on the node",
       "commit": "304de2af",
       "date": "2026-09-22",
       "source": "trans-4-(dimethylamino)-4'-nitrostilbene, 20 heavy atoms / 36 atoms, at one CAM-B3LYP/def2-SVP geometry a PySCF opt reached (cycle 1, 2538.3 s), carried into three TDDFT nodes through the optimised-geometry edge: every td node's supplied geometry equals that reached structure to 4.9e-11 A and its own results/positions to 8.9e-16 A, so the three spectra differ only by the continuum. Six singlet roots each; the bright root is root 1 everywhere. Gas 3.51179 eV / 353.05 nm / f 1.24279; C-PCM n-hexane 3.31881 / 373.58 / 1.35775; C-PCM acetonitrile 3.20362 / 387.01 / 1.31496. The host's own arithmetic gave the n-hexane-to-acetonitrile shift as -0.11519 eV and +13.43 nm, red as a push-pull charge-transfer band must be, and the analysis chain executed provider-free with all three nodes validated. The session chose CAM-B3LYP itself and recorded rejecting B3LYP and PBE0 for placing the CT state too low. What the two cells do NOT cover: the permittivities. The cycle-1 plan requested solvent_dielectric and excitation_response_dielectric on both solvated nodes and on neither the gas node; the session replanned in cycle 2 and bound only these two spectral selectors, so no live extraction has bound either permittivity and both stay tested. They did reach the session on the level record inside every extraction receipt's digest (n-hexane solvent_dielectric 1.8819, acetonitrile 35.688, excitation_response_dielectric 1.78 on both, excitation_response_solvation non_equilibrium, and none of the three on the gas node)."
@@ -555,7 +555,7 @@
       "kind": "selector",
       "id": "pyscf:td:oscillator_strengths",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/pyscf/goals/g1-dans (Slurm 2142833, COMPLETED 0:0, 03:17:23) workspace goals/g1-dans/runs/cycle-2; code tree = chemsmart/ subtree 5478099e of 304de2af, verified content-identical on the node",
+      "run": "CUHK Charles r9/pyscf/goals/g1-dans (Slurm 2142833, COMPLETED 0:0, 03:17:23) workspace goals/g1-dans/runs/cycle-2; code tree = chemsmart/ subtree 5478099e of 304de2af, verified content-identical on the node",
       "commit": "304de2af",
       "date": "2026-09-22",
       "source": "trans-4-(dimethylamino)-4'-nitrostilbene, 20 heavy atoms / 36 atoms, at one CAM-B3LYP/def2-SVP geometry a PySCF opt reached (cycle 1, 2538.3 s), carried into three TDDFT nodes through the optimised-geometry edge: every td node's supplied geometry equals that reached structure to 4.9e-11 A and its own results/positions to 8.9e-16 A, so the three spectra differ only by the continuum. Six singlet roots each; the bright root is root 1 everywhere. Gas 3.51179 eV / 353.05 nm / f 1.24279; C-PCM n-hexane 3.31881 / 373.58 / 1.35775; C-PCM acetonitrile 3.20362 / 387.01 / 1.31496. The host's own arithmetic gave the n-hexane-to-acetonitrile shift as -0.11519 eV and +13.43 nm, red as a push-pull charge-transfer band must be, and the analysis chain executed provider-free with all three nodes validated. The session chose CAM-B3LYP itself and recorded rejecting B3LYP and PBE0 for placing the CT state too low. What the two cells do NOT cover: the permittivities. The cycle-1 plan requested solvent_dielectric and excitation_response_dielectric on both solvated nodes and on neither the gas node; the session replanned in cycle 2 and bound only these two spectral selectors, so no live extraction has bound either permittivity and both stay tested. They did reach the session on the level record inside every extraction receipt's digest (n-hexane solvent_dielectric 1.8819, acetonitrile 35.688, excitation_response_dielectric 1.78 on both, excitation_response_solvation non_equilibrium, and none of the three on the gas node)."
@@ -564,7 +564,7 @@
       "kind": "setting",
       "id": "xtb:grad",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880, Agent goal g3), cycles 2 and 3",
+      "run": "CUHK Charles r9/xtb/goals/g3 (Slurm 2142880, Agent goal g3), cycles 2 and 3",
       "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
       "date": "2026-09-22",
       "source": "Both Hessian nodes carried grad in their own settings and their argv ended '--gfn 2 --hess --chrg 0 --uhf 0 --grad'; xTB 6.7.1 wrote the gradient vector and the reader read it. The host record carries max_abs_gradient_eh_per_bohr 9.425503e-05 at the GFN2 minimum and 0.024746598481 at the GFN-FF geometry, and stationary_point.gradient_above_optimizer_criterion fired on the second. On the frozen base both were absent: the xTB reader declared no gradient and the run sensor read another parser's attribute names. An apparatus check (Slurm 2142839) first confirmed the human CLI path: receipt ready true, validated, no findings, settings.grad true."
@@ -573,7 +573,7 @@
       "kind": "setting",
       "id": "xtb:gfn_version",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), cycles 1-3",
+      "run": "CUHK Charles r9/xtb/goals/g3 (Slurm 2142880), cycles 1-3",
       "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
       "date": "2026-09-22",
       "source": "Two Hamiltonians were requested and reached the engine as written: '--gfnff' and '--gfn 2' in the program call of their own outputs. They are different surfaces, not a relabelling: the GFN-FF minimum sits 0.0283212 Eh (17.77 kcal/mol) above the GFN2 minimum on the GFN2 surface, and a GFN2 Hessian there carries max|g| 0.024747 Eh/Bohr against 9.4255e-05 at the GFN2 minimum. GFN-FF also exposed a reader limit recorded as a defect: its output prints no 'net charge'/'unpaired electrons' block, so both GFN-FF nodes failed xtb.result.settings_mismatch with charge and multiplicity observed as None."
@@ -582,7 +582,7 @@
       "kind": "setting",
       "id": "xtb:optimization_level",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), cycles 1-2",
+      "run": "CUHK Charles r9/xtb/goals/g3 (Slurm 2142880), cycles 1-2",
       "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
       "date": "2026-09-22",
       "source": "The session chose 'normal' rather than ChemSmart's 'vtight' default, and the choice survived to the engine: the argv reads '--opt normal' and the output's own SETUP block reports 'optimization level normal'. The GFN2 optimisation converged after 88 iterations to |g|norm 2.75908e-04 and the GFN-FF one after 72 to 9.37685e-04, which a later cycle re-tightened to 1.52528e-04."
@@ -591,7 +591,7 @@
       "kind": "setting",
       "id": "xtb:jobtype",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), cycles 1-3",
+      "run": "CUHK Charles r9/xtb/goals/g3 (Slurm 2142880), cycles 1-3",
       "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
       "date": "2026-09-22",
       "source": "Five nodes over three waves: three 'opt' and two 'hess', each rendering the job kind it declared ('--opt <level>' and '--hess') and each audited against it by the result validator. The two GFN2 nodes returned ready true and validated; the cross-Hamiltonian Hessian returned ready true and was then failed by the host's own stationary-point rule (result.stationary_point_order), which is the job kind's promise being enforced rather than a job kind that did not run."
@@ -600,7 +600,7 @@
       "kind": "selector",
       "id": "xtb:hess:vibrational_mode_atom_participation",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min on the GFN2-minimum Hessian",
+      "run": "CUHK Charles r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min on the GFN2-minimum Hessian",
       "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
       "date": "2026-09-22",
       "source": "This is what carried the carbonyl assignment on a 41-atom molecule with three C=O groups, where a frequency alone decides nothing. Read in one receipt with the frequencies and IR intensities: the beta-lactam stretch is mode 99 at 1866.33 cm-1 with C10+O1 participation 0.969, the side-chain amide is mode 97 at 1752.42 cm-1 with C14+O2 participation 0.980, and the carboxyl C=O at mode 98 sits between them, which is why the session refused to reuse those indices on the other route's Hessian."
@@ -609,7 +609,7 @@
       "kind": "selector",
       "id": "xtb:hess:positions",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
+      "run": "CUHK Charles r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
       "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
       "date": "2026-09-22",
       "source": "Read in one receipt with symbols and connectivity from the GFN2-minimum Hessian result, as the structure the spectrum and the gradient both belong to; the same coordinates the host digests into the stationary-point characterisation."
@@ -618,7 +618,7 @@
       "kind": "selector",
       "id": "xtb:hess:symbols",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
+      "run": "CUHK Charles r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
       "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
       "date": "2026-09-22",
       "source": "Read beside positions and connectivity on the GFN2-minimum Hessian. C16H17N3O4S in source atom order, which is what makes the per-atom participation rows above nameable as C10+O1 and C14+O2."
@@ -627,7 +627,7 @@
       "kind": "selector",
       "id": "xtb:hess:connectivity",
       "status": "recorded",
-      "run": "CUHK Charles /project/xlzhang/jiseung/r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
+      "run": "CUHK Charles r9/xtb/goals/g3 (Slurm 2142880), extraction node ext_gf2min",
       "commit": "64a7b183 (code tree digest 456776824b19addb67d4350baffca32c6b9f08f834164b2f3a189e0e65b80683, 426 files)",
       "date": "2026-09-22",
       "source": "Geometry-perceived adjacency on the relaxed structure, read to establish that the GFN2 relaxation of a database conformer preserved the beta-lactam ring before any band was assigned to it."

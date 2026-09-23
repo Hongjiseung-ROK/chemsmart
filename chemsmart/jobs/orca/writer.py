@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 def _names_one_file(source, destination):
     """Whether two paths name the same file on disk.
 
-    String equality is not file identity.  ``/project/xlzhang`` is a
-    symlink to ``/lustre/project/xlzhang`` on the CUHK Central Cluster, so
+    String equality is not file identity.  ``/project/<group>`` is a
+    symlink to ``/lustre/project/<group>`` on the CUHK Central Cluster, so
     the absolute path of a Hessian named on the command line and the
     absolute path of the job's own folder differ while naming one file;
     ``shutil.copy2`` then raised ``SameFileError`` and the IRC never

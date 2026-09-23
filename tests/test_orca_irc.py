@@ -147,7 +147,7 @@ def test_the_irc_hessian_stages_when_its_folder_is_reached_by_a_symlink(
     """Staging a file that is already in place must be a no-op.
 
     The guard compared absolute path strings, and a string is not a file:
-    ``/project/xlzhang`` is a symlink to ``/lustre/project/xlzhang`` on
+    ``/project/<group>`` is a symlink to ``/lustre/project/<group>`` on
     the CUHK Central Cluster, so the Hessian named on the command line
     and the job's own folder spelled one file two ways.  ``shutil.copy2``
     raised ``SameFileError`` and three IRC branches never reached ORCA
