@@ -184,15 +184,16 @@ a terminal transcript.
  Execution boundary
 ********************
 
-Release-qualified Agent execution includes PySCF CPU ``sp``, ``opt``, and ``hess``; xTB CPU ``sp``, ``opt``, and
-``hess``; and ORCA CPU single-point, optimization/frequency, transition-state, excited-state, relaxed coordinate scans,
-intrinsic reaction coordinates, and serial DAG workflows. ORCA ``neb`` and constrained optimisation (``modred``) remain
-planning and preview paths until the selected target is qualified.
+Which program job types the Agent can plan and preview, and which of them a recorded live run has qualified for
+approved execution, is reported by the installed release itself:
 
-Gaussian ``sp``, ``opt``, ``ts``, ``irc``, ``td``, ``link``, ``scan``, and ``modred`` are supported for project YAML,
-native-input generation, safe preview, and analysis of user-supplied completed outputs; this release does not claim
-Gaussian Agent execution. GPU4PySCF ``sp``, ``opt``, and ``hess`` are configuration and preview paths until a compatible
-GPU target is qualified. PySCF CPU ``td`` is preview-only.
+.. code-block:: bash
+
+   chemsmart agent capabilities --kind program_jobtype
+
+A job type the ladder does not show as ``qualified`` remains a planning, preview, and analysis path: project YAML,
+native-input generation, safe preview, and typed analysis of user-supplied completed outputs. The qualification records
+(``chemsmart/agent/qualification/release.json``) name the run behind each qualified job type.
 
 ********************************
  What the interface does not do
