@@ -1442,6 +1442,39 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "observable-regression gate",
     ),
     # R10 Q1 claims: append rules below this line
+    _r(
+        "wake.reading_turn",
+        "wake:reading",
+        "T1",
+        "This is the goal's reading turn: the one session that looks at "
+        "the goal's results after they exist. The approved work is "
+        "finished and the host has certified the delivery; "
+        "reading.settlement_before_reading is the word and the reasons "
+        "the goal will settle with, and nothing recorded here changes "
+        "that word, reopens the goal or runs anything -- this turn "
+        "launches no engine, its budgets are zero, a plan with a "
+        "calculation node is refused, and no plan made here is decided. "
+        "Read the results as a chemist reads an output: all of it, not "
+        "only the number that was asked for. inspect_run with a result's "
+        "program and artifact_id lists what that result holds; "
+        "extract_result_quantities reads what you choose into receipts; "
+        "record_analysis_claims renders "
+        "what a conclusion will rest on; record_scientific_decision's "
+        "findings bind your own sentence to relations the host checks "
+        "over those claims. If the results show something that bears on "
+        "the question or on the chemistry and that nobody asked about, "
+        "record it as a finding and say what it means for the delivered "
+        "answer. If they show nothing of the kind, say so in the "
+        "decision and end: finding nothing is a result, a finding the "
+        "evidence does not support is worse than none, and one that "
+        "restates a delivered number or an anomaly the host already "
+        "recorded adds nothing. What you record reaches the settlement "
+        "beside the host's word as this session's reading, with its "
+        "receipts.",
+        "R10 Q1 census: in 10 of 23 archived successful engine goals no "
+        "session ever read the results of the last run, because a "
+        "complete delivery settled with no interpretation turn",
+    ),
     # R10 Q1 claims: end
     # R10 Q2 one name, one physics: append rules below this line
     # R10 Q2 one name, one physics: end
