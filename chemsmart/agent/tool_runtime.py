@@ -283,8 +283,10 @@ from chemsmart.analysis.quantity_expressions import (
     convert_normalized_value,
     expression_level_observations,
     expression_node_from_plan,
+    expression_thermochemical_convention_observations,
     normalize_numeric_value,
     quantity_expression_receipt_from_record,
+    thermochemical_convention,
     unit_dimension,
 )
 from chemsmart.analysis.result_quantities import (
@@ -17382,6 +17384,26 @@ class CommandCompiledToolHostV1:
                 for dependency in receipt.output_dependencies
                 for digest in dependency.source_receipt_sha256s
             },
+        )
+        # The level says which Hamiltonian a number came from; a free
+        # energy also carries a treatment, a temperature and a standard
+        # state, which only the receipt it was read from can say.
+        level_observations += (
+            expression_thermochemical_convention_observations(
+                request,
+                {
+                    str(item["input_id"]): thermochemical_convention(
+                        self.thermochemistry_receipts.get(
+                            str(item["receipt_sha256"])
+                        )
+                        or self.quantity_extractions.get(
+                            str(item["receipt_sha256"])
+                        ),
+                        str(item["quantity_id"]),
+                    )
+                    for item in values["inputs"]
+                },
+            )
         )
         self._emit(
             turn_id,

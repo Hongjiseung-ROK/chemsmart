@@ -3037,6 +3037,199 @@ def expression_level_observations(
     return tuple(observations)
 
 
+#: What a free energy, an enthalpy or an entropy means beyond its unit.
+#: Two Gibbs energies in hartree subtract without complaint whether one is
+#: harmonic and the other Grimme's, one at 1 atm and the other at 1 mol/L,
+#: or one printed by a program and the other derived by the host; each of
+#: those moves a reaction free energy by up to kcal/mol.
+THERMOCHEMICAL_CONVENTION_FIELDS = (
+    "source",
+    "treatment",
+    "temperature_k",
+    "standard_state",
+    "frequency_scale_factor",
+    "masses",
+)
+
+#: Receipt quantities whose value depends on the translational standard
+#: state: those carrying an entropy.
+_STANDARD_STATE_QUANTITIES = frozenset(
+    {
+        "entropy",
+        "entropy_times_temperature",
+        "gibbs_free_energy",
+        "thermal_gibbs_correction",
+        "quasi_harmonic_entropy",
+        "quasi_harmonic_entropy_times_temperature",
+        "quasi_harmonic_gibbs_free_energy",
+        "quasi_harmonic_thermal_gibbs_correction",
+    }
+)
+#: Receipt quantities no thermochemical convention changes.
+_CONVENTION_FREE_QUANTITIES = frozenset(
+    {"electronic_energy", "temperature", "pressure", "near_zero_mode_count"}
+)
+#: Selectors under which a program's own printed thermochemistry is read.
+_PRINTED_THERMOCHEMISTRY_SELECTORS = frozenset(
+    {"gibbs_free_energy", "entropy_times_temperature"}
+)
+
+
+def thermochemical_convention(
+    receipt: Any, quantity_id: str
+) -> dict[str, Any] | None:
+    """The convention one receipt's quantity was computed under, or None.
+
+    A host thermochemistry receipt states its conditions and treatment in
+    typed fields; which of them a quantity carries depends on the quantity
+    -- a Grimme receipt's ``gibbs_free_energy`` is harmonic and its
+    ``quasi_harmonic_gibbs_free_energy`` is Grimme's, a zero-point energy
+    has no temperature and an enthalpy no standard state.  A program's
+    printed thermochemistry read through an extraction receipt is that
+    program's own convention and is named as such.  Anything else --
+    electronic energies, geometries, derived expressions -- is None.
+    """
+
+    quantity_id = str(quantity_id)
+    if getattr(receipt, "engine_id", None) is not None:
+        if quantity_id in _CONVENTION_FREE_QUANTITIES:
+            return None
+        method = str(getattr(receipt, "entropy_method", "rrho") or "rrho")
+        entropy_cutoff = getattr(receipt, "entropy_cutoff_cm1", None)
+        enthalpy_cutoff = getattr(receipt, "enthalpy_cutoff_cm1", None)
+        alpha = getattr(receipt, "alpha", 4)
+        if method == "grimme":
+            entropy_treatment = (
+                f"grimme entropy ({entropy_cutoff:g} cm-1, alpha {alpha})"
+            )
+        elif method == "truhlar":
+            entropy_treatment = f"truhlar entropy ({entropy_cutoff:g} cm-1)"
+        else:
+            entropy_treatment = "harmonic entropy"
+        enthalpy_treatment = (
+            f"head-gordon enthalpy ({enthalpy_cutoff:g} cm-1, alpha {alpha})"
+            if enthalpy_cutoff is not None
+            else "harmonic enthalpy"
+        )
+        if quantity_id in {
+            "quasi_harmonic_entropy",
+            "quasi_harmonic_entropy_times_temperature",
+        }:
+            treatment = entropy_treatment
+        elif quantity_id == "quasi_harmonic_enthalpy":
+            treatment = enthalpy_treatment
+        elif quantity_id.startswith("quasi_harmonic_"):
+            treatment = f"{entropy_treatment}; {enthalpy_treatment}"
+        else:
+            treatment = "harmonic (RRHO)"
+        concentration = getattr(receipt, "concentration_mol_l", None)
+        standard_state = None
+        if quantity_id in _STANDARD_STATE_QUANTITIES:
+            standard_state = (
+                f"{concentration:g} mol/L"
+                if concentration is not None
+                else f"ideal gas at {getattr(receipt, 'pressure_atm', 1.0):g} atm"
+            )
+        return {
+            "source": "host derivation",
+            "treatment": treatment,
+            "temperature_k": (
+                None
+                if quantity_id == "zero_point_energy"
+                else getattr(receipt, "temperature_k", None)
+            ),
+            "standard_state": standard_state,
+            "frequency_scale_factor": getattr(
+                receipt, "frequency_scale_factor", 1.0
+            ),
+            "masses": (
+                "natural-abundance weighted"
+                if getattr(receipt, "use_weighted_mass", False)
+                else "most abundant"
+            ),
+        }
+    bindings = dict(getattr(receipt, "selector_bindings", ()) or ())
+    selector = bindings.get(quantity_id)
+    if selector in _PRINTED_THERMOCHEMISTRY_SELECTORS:
+        program = str(getattr(receipt, "program", "") or "program")
+        return {
+            "source": f"printed by {program}",
+            "treatment": f"{program}'s own",
+            "temperature_k": None,
+            "standard_state": None,
+            "frequency_scale_factor": None,
+            "masses": None,
+        }
+    return None
+
+
+def expression_thermochemical_convention_observations(
+    request: QuantityExpressionRequestV1,
+    conventions_by_input: Mapping[str, Mapping[str, Any] | None],
+) -> tuple[dict[str, Any], ...]:
+    """Say when an output combines thermochemistry under different conventions.
+
+    Each output is followed back through the expression DAG to the inputs
+    it reads, and the conventions of those that are thermochemical are
+    compared field by field over ``THERMOCHEMICAL_CONVENTION_FIELDS``; a
+    field one side does not carry (a zero-point energy's temperature) is
+    not a difference.  An observation, never a refusal: the spread between
+    a harmonic and a quasi-harmonic Gibbs energy is a measurement worth
+    making, and a composite free energy is built from parts on purpose.
+    """
+
+    reads: dict[str, frozenset[str]] = {
+        quantity.quantity_id: frozenset({quantity.quantity_id})
+        for quantity in request.inputs
+    }
+    for node in request.nodes:
+        if node.operation in {"literal", "constant"}:
+            reads[node.node_id] = frozenset()
+        elif node.operation == "ref":
+            reads[node.node_id] = reads.get(
+                node.reference or node.input_ids[0], frozenset()
+            )
+        else:
+            reads[node.node_id] = frozenset().union(
+                *(reads.get(name, frozenset()) for name in node.input_ids)
+            )
+    observations: list[dict[str, Any]] = []
+    for output_id in request.output_node_ids:
+        stated = {
+            input_id: conventions_by_input[input_id]
+            for input_id in sorted(reads.get(output_id, frozenset()))
+            if conventions_by_input.get(input_id)
+        }
+        if len(stated) < 2:
+            continue
+        differing = {}
+        for field in THERMOCHEMICAL_CONVENTION_FIELDS:
+            values = {
+                input_id: convention.get(field)
+                for input_id, convention in stated.items()
+                if convention.get(field) is not None
+            }
+            if len(set(values.values())) > 1:
+                differing[field] = values
+        if not differing:
+            continue
+        observations.append(
+            {
+                "kind": "operands_at_different_thermochemical_conventions",
+                "output_id": output_id,
+                "differing_fields": differing,
+                "meaning": (
+                    "this output combines thermochemical quantities "
+                    "computed under different conventions ("
+                    + ", ".join(sorted(differing))
+                    + "); the number stands as computed -- say whether "
+                    "the difference is the measurement or a mismatch"
+                ),
+            }
+        )
+    return tuple(observations)
+
+
 def quantity_expression_receipt_from_record(
     record: Mapping[str, Any], *, receipt_sha256: str
 ) -> QuantityExpressionReceiptV1:
@@ -3095,7 +3288,10 @@ __all__ = [
     "convert_normalized_value",
     "evaluate_quantity_expression",
     "expression_level_observations",
+    "expression_thermochemical_convention_observations",
     "LEVEL_IDENTITY_FIELDS",
+    "THERMOCHEMICAL_CONVENTION_FIELDS",
+    "thermochemical_convention",
     "normalize_numeric_value",
     "quantity_expression_semantic_signature",
     "quantity_expression_receipt_from_record",
