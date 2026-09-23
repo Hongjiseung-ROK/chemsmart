@@ -234,6 +234,26 @@ E = -150.141807 Eh, internal 'stable', external 'unstable'
   session reads the results (the executor cannot deliver a category, so
   the goal must wake one; if it does not, that is the defect).
 
+## gdev1 result (CUHK Slurm 2149848, code e687b9cf, digest ded5d770)
+
+Settled `achieved_with_observations`, 2 cycles, 1 engine call (PySCF sp,
+12.4 s, 8 cores). E = -150.14180681 Eh (reference -150.141807: inside
+the band). Verdicts read by the woken session in one extraction
+receipt: internal 'stable', external 'unstable', rotation space
+'RHF/RKS -> UHF/UKS' (equal to the reference). The executor could not
+deliver the declared category, the goal woke a session over the result
+(recovery_opened, analysis_status partial), the session first tried to
+claim the word under the declared id, met
+claim.a_word_delivers_no_declared_number, claimed it under its own id,
+and answered `rks-stability-verdict` with a finding on external ==
+'unstable'; the internal verdict is stated in the sentence only. The
+host's own sensor scf.reference_unstable fired on the run; the finding
+recorded host_signals [] -- the run outcome had dropped the flagged
+result's digest on the way to the ledger (repaired in 9d74f399). Every
+pre-registered success condition holds: milestone A's live path is
+exercised. Three stability selectors are recorded in release.json
+(920345ea).
+
 ## Status
 
 - 2026-09-24: read CONDUCT.md, the four charter topics, both public
@@ -242,3 +262,16 @@ E = -150.141807 Eh, internal 'stable', external 'unstable'
   ba750e57); tests/agent green at 7ca5bddb. PySCF stability words now
   extract as words (ba750e57): the r9 g2-stability loss had a second
   cause below the claim, an untyped ValueError in extraction.
+- 2026-09-24, later: six development sessions and one live development
+  goal (gdev1). Two repairs the live goal showed: a run outcome keeps
+  its sensor's flagged results (9d74f399), and a finding is the goal's,
+  carried by the workspace record to the settlement a later run ends in
+  (8228a286; also carries a planning session's claims, the ino3-r12
+  section 0.4 omission). Merged r10-integration (0fd69b89, clean).
+  tests/agent green (2804 passed); full-suite failing set identical to
+  r10-integration's (23 failed + 3 errors, environmental).
+- FROZEN for the sealed material: mechanism at code commit 8228a286;
+  what counts as a discovery and a false claim, the measures, the
+  protocol, and what the verifier receives are the sections above.
+  Nothing in the finding or claim surface changes before the sealed
+  sessions have settled. Status: ready for sealed tasks.
