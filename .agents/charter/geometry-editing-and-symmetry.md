@@ -1,5 +1,9 @@
 # Charter topic: geometry-editing-and-symmetry
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 ``edit_molecular_geometry`` sets one internal coordinate of an
 identity-bound geometry — bond length, angle, or torsion, the same
 three coordinates a scan drives — as a host-owned rigid motion. The

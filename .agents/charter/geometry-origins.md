@@ -1,5 +1,9 @@
 # Charter topic: geometry-origins
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 ``compose_molecular_arrangement`` places two identity-bound geometry
 artifacts into one arrangement at an explicit atomic contact. The host owns
 the placement mathematics and the composed bytes with full parent lineage;

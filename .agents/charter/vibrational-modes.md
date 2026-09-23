@@ -1,5 +1,9 @@
 # Charter topic: vibrational-modes
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 A vibrational frequency states how fast a mode moves and never which
 atoms move in it, so a session facing a small imaginary mode could not
 separate one methyl rotor from another by magnitude alone.

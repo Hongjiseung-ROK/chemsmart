@@ -1,5 +1,9 @@
 # Charter topic: producer-edges
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 The third producer selection rule (``validated_producer_orca_hessian``)
 declares a validated frequency-bearing ORCA producer as a legal source for
 an ORCA transition-state search's ``--inhess-filename`` starting Hessian,
