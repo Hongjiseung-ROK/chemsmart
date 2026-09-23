@@ -49,7 +49,7 @@
       "id": "orca:cpu:ts",
       "status": "recorded",
       "run": "CUHK Charles r8/orca/goals/goal-ts/workspace goals/goal-ts/runs/cycle-1 (Slurm 2142426)",
-      "commit": "0e380213",
+      "commit": "34f20e2c",
       "date": "2026-09-21",
       "source": "One live goal under the approval chain: from a hand-built bridging-hydrogen guess the session planned an ORCA OptTS with a frequency step at B3LYP/def2-SVP, selected the wave and executed it provider-free in 37.6 s of engine wall. The search converged to a first-order saddle of the HCN -> HNC 1,2-hydrogen shift, one imaginary mode at 1121.71 cm^-1, C-N 1.188 / C-H 1.197 / N-H 1.398 A -- the same saddle as the independent direct-CLI run (Slurm 2142375) to the last printed digit of its total energy, -93.224285928359 Eh. The session's own declared expectation band for the imaginary mode (1500-2500 cm^-1) was displayed as diverged and not scored."
     },
@@ -58,7 +58,7 @@
       "id": "orca:cpu:irc",
       "status": "recorded",
       "run": "CUHK Charles r8/orca/goals/goal-ts/workspace goals/goal-ts/runs/cycle-2 (Slurm 2142426)",
-      "commit": "0e380213",
+      "commit": "34f20e2c",
       "date": "2026-09-21",
       "source": "The same goal's second cycle: an admitted revision cited cycle 1's evidence and walked one forward branch from that converged saddle, 669.3 s of engine wall under the same approval chain. The branch descended 33.62 kcal/mol over 21 path points and stopped at ORCA's iteration limit (irc_converged = 0), which the session carried into its uncertainty account; from the endpoint connectivity it read N-H formed and C-H broken, the HNC side, agreeing with the independent direct-CLI branches (Slurm 2142379) and with the optimised endpoint minima (Slurm 2142403). The goal settled unreachable_from_evidence because this release's claim machinery renders numerical claims only and the walk direction is a text label."
     },
