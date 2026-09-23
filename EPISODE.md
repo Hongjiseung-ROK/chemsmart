@@ -60,8 +60,33 @@ delivery works without routing on the human's words?
   sessions therefore run on the cluster under the R10 CUHK profile
   (Gaussian 16, ORCA 6.1.1, PySCF 2.14, xTB), inside slot jobs, one
   session at a time.
-- Batch dev1 on the cluster (D1 in C and B, D2 in C) validates the
-  cluster runner; it is development, not the sealed test.
+- Batch dev1 on the cluster (Slurm 2149579; D1 in C, B and A, D3 in C;
+  code a270eca6 and 292b9bf3, digests verified in the job) -- development,
+  not the sealed test:
+  - dev1-D1-C (550 s, 15 provider turns): searched "about_method_adequacy
+    method basis dispersion solvation adequacy effect size" and loaded it
+    before its first project; planned ORCA B3LYP-D3BJ/def2-TZVPD opt+freq
+    with omegaB97X-D4/def2-TZVPD single points as a measured
+    functional-spread estimator, and wrote that def2-TZVPD is deliberate
+    because a basis without diffuse functions biases the anions in a known
+    direction.
+  - dev1-D1-B (333 s): no knowledge; ORCA B3LYP/def2-TZVPD opt+freq, no
+    dispersion, no second level; its text already says diffuse functions
+    are essential on the anionic oxygen and that errors cancel between the
+    two acids. The model's priors cover this common case.
+  - dev1-D1-A (432 s): no knowledge reached, no call of an advisory
+    document's name; searched once for "optimal method for gas phase
+    acidity anions diffuse basis"; Gaussian omegaB97X-D/6-31+G(d,p).
+  - dev1-D3-C, control (327 s): loaded about_method_adequacy before its
+    project; B3LYP-D3BJ/def2-TZVP opt+freq, one engine call, no escalation.
+    Its text attributes "0.005 A" to about_method_adequacy, which contains
+    no number: an attribution that over-reaches the source (noted for the
+    F flag).
+  - All three knowledge-arm sessions on either host loaded
+    about_method_adequacy by the model's own search before the first
+    level-fixing act (4 of 4 with the local pilots): pull is the delivery
+    under test. Cluster sessions take 5.5-9 min and 1.5-2.0 M input
+    tokens each.
 
 ## Arms (what the model reads, measured, not asserted)
 
@@ -71,15 +96,18 @@ sha256 prefixes):
 | arm | code | CHEMSMART_AGENT_SKILLS | catalogue | tools | system prompt |
 |---|---|---|---|---|---|
 | A false sentence, no access | 292b9bf3 | 1 | b233c12f (62) | 1295775e | 1fd85c2d (13,632 B) |
-| B no sentence, no access | 292b9bf3 or the arm commit | 0 | b233c12f (62) | 1295775e | fda60dcd (10,969 B) |
-| C honest sentence, real access | the arm commit | 1 | 584c866e (65) | 1295775e | 58f9f2e3 (12,826 B) |
+| B no sentence, no access | 292b9bf3 or 64fc0ca1 | 0 | b233c12f (62) | 1295775e | fda60dcd (10,969 B) |
+| C honest sentence, real access | 64fc0ca1 | 1 | f730d227 (65) | 1295775e | 58f9f2e3 (12,826 B) |
 
-B is byte-identical whichever commit serves it (same catalogue, tools and
-prompt), so A-B is a contrast inside the base commit and B-C one inside
-the arm commit; A differs from B only by the false sentence, C from B
-only by the honest sentence and three deferred catalogue entries. (C's
-row is at a270eca6; the sealed arm commit's row is recorded when it is
-fixed.)
+**Arm commit for the sealed run: 64fc0ca1** (code tree digest
+cdfd90c9..., packed as `code-64fc0ca1` on the cluster; base packed as
+`code-292b9bf3`, digest d3652db7...). B is byte-identical whichever
+commit serves it (same catalogue, tools and prompt), so A-B is a contrast
+inside the base commit and B-C one inside the arm commit; A differs from
+B only by the false sentence, C from B only by the honest sentence and
+three deferred catalogue entries. 64fc0ca1 carries the r10-integration
+merge, whose only code-tree change is one release.json record, read by
+the capability ladder and by no session.
 
 ## Pre-registration for the sealed questions (written before they are seen)
 
@@ -99,8 +127,11 @@ CUHK compute node inside an r10-q3 slot job, CHEMSMART_CONFIG_DIR =
 /project/xlzhang/jiseung/r10/config, server CUHK (Gaussian 16 C.02, ORCA
 6.1.1, PySCF 2.14, xTB). Envelope `plans/envelope.yaml`: gaussian, orca,
 pyscf, xtb on cpu; 32 cores, 120 GB, 6 h per node, 10 h episode, 12
-engine calls. Code: pristine packs of 292b9bf3 (A) and the arm commit (B,
-C), digests verified in every job. Sessions run strictly one at a time;
+engine calls. Code: pristine packs of 292b9bf3 (A) and 64fc0ca1 (B, C),
+digests verified in every job. One slot job (4 cores, 16 GB, 11 h) runs
+all 48; if it is killed, a continuation job skips every label that has a
+meta.json. Expected cost from dev: 5.5-9 min and about 1.8 M input tokens
+per session. Sessions run strictly one at a time;
 order: questions shuffled with `random.Random(20260924)`, and within each
 question the three arms in a permutation drawn from the same generator.
 Each session gets a fresh copy of its question's workspace, which holds
@@ -195,9 +226,12 @@ equal on a270eca6).
 
 | job | slot | what | pre-registration | outcome |
 |---|---|---|---|---|
-| 2149579 | r10-q3-a | batch-dev1: D1 in C, B, A; D3 in C (dev, provider-only) | e7f1723f7b06 | running |
+| 2149579 | r10-q3-a | batch-dev1: D1 in C, B, A; D3 in C (dev, provider-only) | e7f1723f7b06 | COMPLETED; 4 sessions, exit 0, waiting_for_approval each |
 
 ## Status
 
-Phase 1 (provider-free and dev): pre-registration drafted; cluster dev
-batch running; merge of r10-integration and the suite before hand-back.
+Phase 1 complete: arms fixed (A = 292b9bf3, B and C = 64fc0ca1), delivery
+fixed (pull), N and grading fixed above. Ready for the sealed questions.
+On resume: build workspaces from the question texts only (rubrics unread
+until packets exist), run one sequential batch job, build packets, commit
+the mapping digest, hand packets and GRADER.md to the master.
