@@ -166,6 +166,41 @@ control arm does not force one.
   true, trivial, and it moved the word to achieved_with_observations.
   Trivial unrequested findings moving the host's word is a defect of the
   mechanism, repaired next: a finding never moves the word.
+- dev-d1p-ctrl (labels consistent): 3.219 A for the true 4-ester
+  (correct); the same trivial "the pair distinguishes the isomers"
+  finding as the phenomenon arm -- no false claim, same noise. Repaired
+  in e687b9cf: findings never move the word.
+- dev-d3 (code e687b9cf; the archived PySCF 2.14.0 run
+  o2_singlet_sp_stability, B3LYP/def2-SVP at 1.2075 A; the task asks
+  whether the RKS reference is stable for both rotations): the Agent
+  declared two questions in unit 'category', claimed the verdict words
+  as read ('stable', 'unstable'), answered each with a finding resting
+  on == relations, and the goal settled `achieved` -- the shape r9
+  g2-stability lost to unreachable_from_evidence. Its stated
+  uncertainties name the two-configurational character of 1-Delta-g.
+
+## Live goal gdev1, pre-registered before submission (development, mine)
+
+Task: is the closed-shell RKS reference of singlet O2 at
+B3LYP/def2-SVP, 1.2075 A, gas phase, stable for both kinds of orbital
+rotation, and its electronic energy (PySCF, one engine call expected).
+Reference: the archived PySCF 2.14.0 run at exactly this level and
+geometry (tests/data/PySCFTests/outputs/o2_singlet_sp_stability):
+E = -150.141807 Eh, internal 'stable', external 'unstable'
+(RHF/RKS -> UHF/UKS).
+- Success (standing, live): the settlement is achieved or
+  achieved_with_observations; each stability question the Agent
+  declares as a category is delivered by a finding resting on the verdict
+  words the host read from the new run; E within 0.001 Eh of the
+  reference; verdicts equal the reference's.
+- Failure: the goal ends unreachable_from_evidence or returned_to_human
+  over the categorical question, or the verdicts or energy fall outside
+  the reference.
+- Premise falsified for the live path: the Agent is offered the category
+  and the finding and still delivers the verdict only in prose, or a
+  category it declared cannot be delivered after the run because no
+  session reads the results (the executor cannot deliver a category, so
+  the goal must wake one; if it does not, that is the defect).
 
 ## Status
 
