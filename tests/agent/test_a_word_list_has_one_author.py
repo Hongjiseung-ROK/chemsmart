@@ -244,18 +244,6 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     ): _A4,
     (
         "chemsmart/agent/tool_runtime.py",
-        "CommandCompiledToolHostV1/_bounded_deferred_target_ids",
-        None,
-        ("gaussian", "orca", "pyscf", "xtb"),
-    ): _READER_PROGRAMS,
-    (
-        "chemsmart/agent/tool_runtime.py",
-        "CommandCompiledToolHostV1/_execute_approved_program_node",
-        None,
-        ("gaussian", "orca", "pyscf", "xtb"),
-    ): _READER_PROGRAMS,
-    (
-        "chemsmart/agent/tool_runtime.py",
         "CommandCompiledToolHostV1/_evaluate_execution_outputs",
         None,
         ("gaussian", "orca", "xtb"),

@@ -81,8 +81,8 @@ from chemsmart.agent.delivery import (
     judge_sufficiency,
 )
 from chemsmart.agent.execution import (
-    DEFERRABLE_GEOMETRY_PRODUCER_STAGES,
     HESSIAN_CONSUMER_ROLES,
+    STRUCTURE_HANDOFF_PROGRAMS,
     STRUCTURE_SELECTION_RULES,
     AnomalyObservationV1,
     ApprovedNodeBindingV1,
@@ -144,11 +144,12 @@ from chemsmart.agent.execution import (
     handoff_validated_orca_producer_hessian,
     hessian_role_for_rule,
     invocation_identity_sha256,
-    is_validated_optimized_geometry_edge,
     node_branch_directory,
+    producer_edge_selection_rule,
     project_real_execution_argv,
     promote_project_candidate,
     result_file_structure_edges,
+    structure_edge_by_target,
     transform_trusted_molecular_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
@@ -336,11 +337,14 @@ def _undeferrable_producer_finding(
 ) -> dict[str, str]:
     """Explain a wait that no amount of model effort can end.
 
-    A consumer waiting on an ``opt`` or ``ts`` geometry is deferrable: that
-    producer ends at one stationary structure, so the stage can sit inside the
-    same approval and take it when it exists. A consumer waiting on a relaxed
-    scan cannot, because a scan ends at a surface and which point to carry
-    forward is a scientific judgement the surface has to inform.
+    Whether a consumer may wait inside the same approval is the one
+    owner's answer (``producer_edge_selection_rule``): an optimisation or
+    a saddle search hands on the structure it ends at, and an ORCA relaxed
+    scan hands on its minimum-energy sampled point under the rule that
+    names that settlement. A producer no registered rule covers -- a
+    surface with no named point to carry, a path whose endpoint the
+    reader cannot bind to one result -- leaves a choice the computed
+    result has to inform.
 
     Told only to "materialize the declared workflow inputs", a session tries to
     do the impossible and its node blocks approval for ever with no reason
@@ -9465,15 +9469,32 @@ class CommandCompiledToolHostV1:
                         ),
                         "",
                     )
+                    # The review's own answer for this edge: a list of
+                    # stage words once called an ORCA IRC deferrable here
+                    # while the review refused its edge.
+                    edge = next(
+                        (
+                            candidate
+                            for candidate in scientific_v2.edges
+                            if candidate.edge_kind == "data"
+                            and candidate.source_node_id
+                            == item.producer_node_id
+                            and candidate.target_node_id == node_id
+                            and candidate.artifact_class == item.artifact_class
+                        ),
+                        None,
+                    )
                     waiting_producers.append(
                         {
                             "binding_id": item.binding_id,
                             "producer_node_id": item.producer_node_id,
                             "producer_output_id": item.producer_output_id,
                             "producer_stage": producer_stage,
-                            "deferrable_within_one_approval": (
-                                producer_stage
-                                in DEFERRABLE_GEOMETRY_PRODUCER_STAGES
+                            "deferrable_within_one_approval": bool(
+                                edge is not None
+                                and producer_edge_selection_rule(
+                                    scientific_v2, edge
+                                )
                             ),
                         }
                     )
@@ -10312,36 +10333,27 @@ class CommandCompiledToolHostV1:
         if envelope is None:
             return set()
         nodes = {node.node_id: node for node in getattr(plan, "nodes", ())}
-        data_edges = tuple(
-            edge
-            for edge in getattr(plan, "edges", ())
-            if edge.edge_kind == "data"
-        )
-        # Only the geometry edges are counted: admission keys each
-        # producer edge by its consumer role, so an ORCA IRC or TS node
-        # carrying a Hessian edge beside its geometry edge is one
-        # candidate, not two. This predicate counted every data edge and
-        # called po3's two IRC nodes blocking while the review resolved
-        # and ran them (REACH-1, 2026-09-06) -- the frontier disagreeing
-        # with the review in the other direction from ino3's. Whether
-        # the auxiliary edge has a legal shape is the resolver's word,
-        # which the frontier now asks before it calls a node deferred.
-        geometry_counts: dict[str, int] = {}
-        for edge in data_edges:
-            if edge.artifact_class == "geometry_xyz":
-                geometry_counts[edge.target_node_id] = (
-                    geometry_counts.get(edge.target_node_id, 0) + 1
-                )
+        # The structure edge each consumer waits on is the one owner's
+        # answer, the same one the review freezes. Only geometry edges
+        # count: admission keys each producer edge by its consumer role,
+        # so an ORCA IRC or TS node carrying a Hessian edge beside its
+        # geometry edge is one candidate, not two (REACH-1 po3,
+        # 2026-09-06). This predicate once asked a narrower question of
+        # its own -- is the producer an optimisation -- and so called the
+        # consumer of every ORCA relaxed scan blocking while the review
+        # admitted and ran it under ``validated_scan_minimum_geometry``:
+        # 24 archived sessions ended "not approvable" on an edge that then
+        # executed. Whether the auxiliary edge has a legal shape is the
+        # resolver's word, which the frontier asks before it calls a node
+        # deferred.
         deferred = set()
-        for edge in data_edges:
+        for target_id, edge in structure_edge_by_target(plan).items():
             producer = nodes.get(edge.source_node_id)
-            target = nodes.get(edge.target_node_id)
+            target = nodes.get(target_id)
             if (
                 producer is None
                 or target is None
-                or geometry_counts.get(edge.target_node_id) != 1
-                or not is_validated_optimized_geometry_edge(plan, edge)
-                or producer.program not in {"gaussian", "orca", "pyscf", "xtb"}
+                or producer.program not in STRUCTURE_HANDOFF_PROGRAMS
                 or target.support_state
                 not in {"resolvable", "unresolved_future"}
                 or not envelope.allows(target.program, target.engine)
@@ -13437,12 +13449,10 @@ class CommandCompiledToolHostV1:
         self.execution_receipts[node_id] = receipt
         produced_handoffs = []
         pending_data_edges = []
-        if receipt.validated and context.proposal.program in {
-            "gaussian",
-            "orca",
-            "pyscf",
-            "xtb",
-        }:
+        if (
+            receipt.validated
+            and context.proposal.program in STRUCTURE_HANDOFF_PROGRAMS
+        ):
             outgoing_edges = tuple(
                 sorted(
                     (
