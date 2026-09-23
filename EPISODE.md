@@ -191,6 +191,27 @@ host ...; the program itself stated 1" -- Gaussian printed Cs again, so the
 base tree would have delivered dS = -179.4 (the failure band). Settlement
 pending (cycle 2 woken).
 
+## G1' cycle 2 and the probe G2 (pre-registered before G1' settled)
+
+Cycle 2 (read from the ledger): the Agent rejected standing by its cycle-1
+claims because the host had recorded every result invalid, re-spelled the
+projects (dispersion gd3bj, basis def2tzvp) and ran the three nodes again:
+failed_native on the same method_mismatch; 2 of 8 engine calls left. The
+Agent is fighting a host verifier defect, not the chemistry.
+
+G2 -- the repair's first probe and a clean end-to-end delivery: the same
+TASK.md, geometries, envelope and bands as G1', on the committed tree that
+carries the verifier fix (method compared without a dispersion suffix).
+Pre-registered expectations beyond the G1' bands:
+* the three Gaussian nodes validate (no gaussian.result.method_mismatch);
+* the goal settles achieved or achieved_with_observations with dS inside
+  +/- 6 J/(mol K) of -198.1 and sigma(NH3) = 3 on its receipt;
+* if Gaussian again prints Cs for NH3, the receipt says "the program itself
+  stated 1"; if it prints C3v, G2 does not discriminate the sigma fix and I
+  say so.
+G2 is a new observation on a repaired tree, not a re-roll of G1': G1' is
+reported as it settles.
+
 ## Jobs issued
 
 * 2149853 (r10-q5-a) O1 stage A, CLI, code b971ee96, prereg 1f8e0d51a36a.
