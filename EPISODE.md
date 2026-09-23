@@ -158,8 +158,41 @@ ORCA `b3lyp` (VWN5) 2.33e-4 vs 1.86e-4 at ORCA `B3LYP/G`'s and Gaussian's:
 gradient hides the variant; the archived HCN saddle (4.4e-4 vs 2.8e-5) is
 where it showed.
 
+## Oracle 2 (pre-registered before submission; repaired tree)
+
+Same CLI shape, private config, 8 cores. Blocks and bands:
+
+V1. `functional: b3lyp` as the Agent writes it, default numerics, on water,
+water cation, CH3Cl, CH3, Cl: ORCA now prints `LDAOpt .... VWN-3`; every
+ORCA total within 3.5e-4 Eh of Gaussian's and PySCF's (oracle 1 default
+spread; before: 0.032-0.098 Eh); the vertical IP and the C-Cl homolysis
+agree across the three programs within 0.03 kcal/mol (before: 2.35 and
+0.38). Failure: any ORCA total > 3.5e-4 away, or a relative energy > 0.05.
+V2. ORCA `b3lyp` tight equals PySCF `b3lyp` tight within 2.2e-6 (water,
+cation, CH3Cl, CH3, Cl).
+V3. Gaussian `pbe0` now runs PBE1PBE and `pbe` PBEPBE: water totals within
+2e-5 Eh of ORCA and PySCF (before: pbe0 0.0365 off, pbe a failed run); the
+reader's `functional` answers `pbe0` and `pbe`.
+T. ORCA `td` (TDA, three singlets, as written) `energy` equals the ORCA
+water `sp` total at the same settings within 1e-6 (before: E(SCF) + DE of
+root 1), and PySCF `td` `energy` agrees with it within 3.5e-4.
+B (decision data, not a repair yet). bp86 tight in three programs on seven
+species. Decision rule written now: if ORCA minus Gaussian differs in any
+of IP(water), CH3Cl -> CH3 + Cl, HCN -> HNC by >= 0.1 kcal/mol, `bp86` is
+two functionals for relative energies and gets a translation or a refusal;
+if every difference is < 0.1 kcal/mol while totals differ > 1e-4 Eh, the
+literal is recorded as program-specific for totals only.
+Z2 (decision data). MP2/def2-SVP HBr and ZnH2: ORCA default, Gaussian
+default, PySCF default, PySCF `auto`. Rule: PySCF's unset frozen core is
+made `auto` only if `auto` freezes the same count as ORCA's and Gaussian's
+defaults on both; otherwise the counts are recorded per program and no
+default is claimed to be one Hamiltonian.
+
 ## Status
 
 - step 1: oracle 1 pre-registered; code unchanged.
 - step 2: oracle 1 read; premise stands for charge- and pairing-changing
   energies; wrong-number defects confirmed (Gaussian energy, pbe0).
+- step 3: repairs written (literal -> one functional per program, receipts
+  for every program, Gaussian energy by route method, ORCA td energy);
+  oracle 2 pre-registered above.
