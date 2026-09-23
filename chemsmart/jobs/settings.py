@@ -8,6 +8,87 @@ from chemsmart.utils.utils import update_dict_with_existing_keys
 logger = logging.getLogger(__name__)
 
 
+#: What a ChemSmart functional literal means, whichever program runs it.
+#:
+#: A project literal named here is one functional in every program that
+#: accepts it.  Each program's settings class spells it in that program's
+#: own vocabulary (or refuses it where the program has no spelling), and
+#: each result reader reads the applied form back from the program's own
+#: record; this table is the meaning both sides answer to, so no program
+#: table restates it.  A literal absent from the table passes through to
+#: each program unchanged, which is safe only where the programs agree on
+#: the name.
+#:
+#: Measured, not recalled (CUHK Slurm 2149277/2149278, water and seven
+#: other species at tight matched numerics): Gaussian ``B3LYP``, ORCA
+#: ``B3LYP/G`` (which prints ``LDAOpt .... VWN-3``) and PySCF ``b3lypg``
+#: (libxc 402) agree to 2.2e-6 Eh; ORCA's bare ``B3LYP`` (``VWN-5``) and
+#: PySCF ``b3lyp5`` agree to 8.6e-7 Eh and lie 0.032-0.154 Eh above the
+#: first form, 2.34 kcal/mol apart in the vertical IP of water and 0.38
+#: in the C-Cl homolysis of CH3Cl.  Before this table ``b3lyp`` meant the
+#: first form in Gaussian and PySCF and the second in ORCA.
+FUNCTIONAL_IDENTITIES = {
+    "b3lyp": {
+        "functional_family": "b3lyp",
+        "correlation_convention": "vwn3_gaussian",
+        "definition": (
+            "B3LYP of Stephens et al. (1994) with the VWN RPA local "
+            "correlation: Gaussian's B3LYP (VWN functional III), ORCA's "
+            "B3LYP/G, libxc HYB_GGA_XC_B3LYP"
+        ),
+    },
+    "b3lyp5": {
+        "functional_family": "b3lyp",
+        "correlation_convention": "vwn5",
+        "definition": (
+            "B3LYP with the VWN functional V local correlation: ORCA's and "
+            "TURBOMOLE's bare B3LYP, libxc HYB_GGA_XC_B3LYP5"
+        ),
+    },
+}
+
+#: Other spellings of a literal in ``FUNCTIONAL_IDENTITIES``.
+FUNCTIONAL_LITERAL_SYNONYMS = {
+    "b3lypg": "b3lyp",
+    "b3lyp/g": "b3lyp",
+    "b3lyp-g": "b3lyp",
+    "b3lyp-vwn5": "b3lyp5",
+}
+
+
+def canonical_functional_literal(value):
+    """Return the ChemSmart literal a functional spelling means.
+
+    A spelling in ``FUNCTIONAL_IDENTITIES`` or its synonym table answers
+    the literal it names; anything else answers ``None``, which means the
+    literal carries no cross-program definition here and passes through.
+    """
+
+    if value is None:
+        return None
+    key = str(value).strip().lower()
+    key = FUNCTIONAL_LITERAL_SYNONYMS.get(key, key)
+    return key if key in FUNCTIONAL_IDENTITIES else None
+
+
+def functional_identity(value):
+    """Return the program-neutral identity of a functional spelling.
+
+    ``{"literal", "functional_family", "correlation_convention"}`` for a
+    literal the table defines, ``None`` otherwise.
+    """
+
+    literal = canonical_functional_literal(value)
+    if literal is None:
+        return None
+    record = FUNCTIONAL_IDENTITIES[literal]
+    return {
+        "literal": literal,
+        "functional_family": record["functional_family"],
+        "correlation_convention": record["correlation_convention"],
+    }
+
+
 # Public top-level vocabulary owned by the loader below.  These are section
 # names, not the Click job inventory: the two sets intentionally differ.
 MOLECULAR_GAS_PHASE_JOB_SECTIONS = (
