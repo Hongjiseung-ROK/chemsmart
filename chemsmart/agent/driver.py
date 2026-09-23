@@ -194,6 +194,55 @@ def _anomaly_evidence(
     return merged
 
 
+def _finding_reasons(
+    findings: Sequence[Mapping[str, Any]],
+) -> tuple[str, ...]:
+    """One settlement reason per standing finding, in the session's words.
+
+    The session's conclusions in its own words, each on relations the
+    host checked and on nothing else the host vouches for; a finding
+    standing on a result a sensor had already flagged says which,
+    because repeating a sensor is not a discovery. A declared category's
+    answer is the word the host read, stated first; the sentence beside
+    it is the session's interpretation.
+    """
+
+    return tuple(
+        (
+            f"{row.get('answers_observable_id')} = "
+            + ", ".join(
+                f"{word.get('word')!r} (read by the host: "
+                f"{word.get('selector') or 'selector unrecorded'} on "
+                f"{str(word.get('source_receipt_sha256') or '')[:8]})"
+                for word in row.get("answer") or ()
+            )
+            + f"; the session's finding {row.get('finding_id')}, "
+            "its interpretation: "
+            if row.get("answers_observable_id") and row.get("answer")
+            else f"the session's finding {row.get('finding_id')}"
+            + (
+                f" (names {row.get('answers_observable_id')} and rests "
+                "on no word the host read, so it answers nothing)"
+                if row.get("answers_observable_id")
+                else (
+                    " (not asked for)"
+                    if row.get("standing") == "unrequested"
+                    else " (on the requested answer)"
+                )
+            )
+            + ", its words, on relations the host checked: "
+        )
+        + str(row.get("statement"))
+        + (
+            "; host anomalies already under its evidence: "
+            + ", ".join(row.get("host_signals") or ())
+            if row.get("host_signals")
+            else ""
+        )
+        for row in findings
+    )
+
+
 def _achieved_word(
     delivery: "_AnalysisDelivery",
     ledger_anomalies: Sequence[Mapping[str, Any]] = (),
@@ -261,46 +310,7 @@ def _achieved_word(
             + ", ".join(delivery.delivered_in_earlier_cycles),
         )
     if delivery.findings:
-        # The session's conclusions in its own words, each on relations
-        # the host checked and on nothing else the host vouches for; a
-        # finding standing on a result a sensor had already flagged says
-        # which, because repeating a sensor is not a discovery. A
-        # declared category's answer is the word the host read, stated
-        # first; the sentence beside it is the session's interpretation.
-        provenance = provenance + tuple(
-            (
-                f"{row.get('answers_observable_id')} = "
-                + ", ".join(
-                    f"{word.get('word')!r} (read by the host: "
-                    f"{word.get('selector') or 'selector unrecorded'} on "
-                    f"{str(word.get('source_receipt_sha256') or '')[:8]})"
-                    for word in row.get("answer") or ()
-                )
-                + f"; the session's finding {row.get('finding_id')}, "
-                "its interpretation: "
-                if row.get("answers_observable_id") and row.get("answer")
-                else f"the session's finding {row.get('finding_id')}"
-                + (
-                    f" (names {row.get('answers_observable_id')} and rests "
-                    "on no word the host read, so it answers nothing)"
-                    if row.get("answers_observable_id")
-                    else (
-                        " (not asked for)"
-                        if row.get("standing") == "unrequested"
-                        else " (on the requested answer)"
-                    )
-                )
-                + ", its words, on relations the host checked: "
-            )
-            + str(row.get("statement"))
-            + (
-                "; host anomalies already under its evidence: "
-                + ", ".join(row.get("host_signals") or ())
-                if row.get("host_signals")
-                else ""
-            )
-            for row in delivery.findings
-        )
+        provenance = provenance + _finding_reasons(delivery.findings)
     post_hoc = tuple(
         str(row.get("observable_id") or "")
         for row in delivery.prediction_rows
