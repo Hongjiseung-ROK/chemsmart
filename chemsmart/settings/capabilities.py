@@ -497,10 +497,21 @@ def orca_method_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
         ORCA_ALL_SOLVENTS,
     )
 
+    from chemsmart.jobs.orca.settings import orca_functional_literal
+
     return (
         ("aux_basis", _normalized_domain(ORCA_ALL_AUXILIARY_BASIS_SETS)),
         ("basis", _normalized_domain(ORCA_ALL_BASIS_SETS)),
-        ("functional", _normalized_domain(ORCA_ALL_FUNCTIONALS)),
+        # The literals ORCA's keywords apply (its B3LYP is b3lyp5, B3LYP/G
+        # is b3lyp, BP86 is bp86-pw92), read through the writer's own table,
+        # so the domain never offers a word the writer would spell as
+        # another functional.
+        (
+            "functional",
+            _normalized_domain(
+                orca_functional_literal(word) for word in ORCA_ALL_FUNCTIONALS
+            ),
+        ),
         ("solvent_id", _normalized_domain(ORCA_ALL_SOLVENTS)),
         ("solvent_model", _normalized_domain(ORCA_ALL_SOLVENT_MODELS)),
     )
@@ -528,9 +539,19 @@ def gaussian_method_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
         "d3bj",
         "d3zero",
     }
+    from chemsmart.jobs.gaussian.settings import gaussian_functional_literal
+
     return (
         ("dispersion", _normalized_domain(dispersion)),
-        ("functional", _normalized_domain(GAUSSIAN_ALL_FUNCTIONALS)),
+        # The literals Gaussian's keywords apply (PBE1PBE is pbe0), read
+        # through the writer's own table.
+        (
+            "functional",
+            _normalized_domain(
+                gaussian_functional_literal(word)
+                for word in GAUSSIAN_ALL_FUNCTIONALS
+            ),
+        ),
         ("solvent_model", _normalized_domain(GAUSSIAN_SOLVATION_MODELS)),
     )
 

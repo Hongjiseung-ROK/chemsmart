@@ -1092,6 +1092,7 @@ def test_the_level_names_the_convention_and_the_root():
     reader = reader_for("pyscf")
     assert reader.level_for_output(_open("water_sp")) == {
         "functional": "b3lyp",
+        "dispersion": "none",
         "basis": "def2-svp",
     }
     assert reader.level_for_output(_open("water_mp2_sp")) == {
@@ -1110,6 +1111,7 @@ def test_the_level_names_the_convention_and_the_root():
     # spectra at one functional and one basis in "toluene".
     assert reader.level_for_output(_open("water_td_cpcm_toluene")) == {
         "functional": "b3lyp",
+        "dispersion": "none",
         "basis": "def2-svp",
         "solvent_model": "cpcm",
         "solvent": "toluene",
@@ -1122,6 +1124,7 @@ def test_the_level_names_the_convention_and_the_root():
     }
     assert reader.level_for_output(_open("formaldehyde_s1_opt")) == {
         "functional": "b3lyp",
+        "dispersion": "none",
         "basis": "def2-svp",
         "response_method": "tda",
         "state_manifold": "singlet",

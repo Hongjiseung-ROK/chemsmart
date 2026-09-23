@@ -91,7 +91,8 @@ class TestORCARoute:
             "noprintmos",
             "nopop",
         ]
-        assert r4.functional == "bp86"
+        # ORCA's BP86 is the PW92 form, which the literal bp86-pw92 names.
+        assert r4.functional == "bp86-pw92"
         assert r4.ab_initio is None
         assert r4.basis == "sto-3g"
         assert r4.extrapolation_basis is None
@@ -129,7 +130,7 @@ class TestORCARoute:
         s7 = "!QM/XTB BP86 def2-TZVP def2/J"
         r7 = ORCARoute(route_string=s7)
         assert r7.route_keywords == ["qm/xtb", "bp86", "def2-tzvp", "def2/j"]
-        assert r7.qm_functional == "bp86"
+        assert r7.qm_functional == "bp86-pw92"
         assert r7.qm_basis == "def2-tzvp"
         assert r7.auxiliary_basis == "def2/j"
         assert r7.qm2_method == "xtb"

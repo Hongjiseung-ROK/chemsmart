@@ -12,7 +12,8 @@ from chemsmart.jobs.orca.writer import ORCAInputWriter
 
 def test_orca_tda_input_and_spectrum_round_trip(tmp_path):
     settings = ORCAJobSettings(
-        functional="BP86",
+        # ORCA's own BP86 (the PW92 form) is written for this literal.
+        functional="bp86-pw92",
         basis="def2-SVP",
         aux_basis="def2/J",
         scf_tol="TightSCF",
