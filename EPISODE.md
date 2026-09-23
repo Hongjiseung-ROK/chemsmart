@@ -156,6 +156,63 @@ n->pi* and the brightest pi->pi* and how much TDA moves each."
   settings.
 - Settlement read from the ledger, never from the report.
 
+### O3 -- H2O2 with its O-O bond held at 1.60 A (job oracle3, before G2)
+
+B3LYP/def2-SVP. Free minimum from the G2 start (`h2o2.xyz`, torsion 115.0)
+and a constrained optimisation of B(1,2) from a copy with O-O exactly
+1.600 A, in Gaussian and ORCA (NoRI).
+- M2: both hold O-O at 1.6000 +- 0.0005 A in the reached structure; the
+  cost E(OO=1.60) - E(min) agrees Gaussian vs ORCA within 0.05 kcal/mol
+  and lies in 3-9 kcal/mol (harmonic estimate ~6.8 with k ~ 4.5 mdyn/A,
+  anharmonicity lowers it); the free minima's torsions agree within 0.5
+  degrees.
+
+### O4 -- formaldehyde's sixth full-TD-DFT root, and ORCA's grid (job oracle3)
+
+O1 result that motivates it (read through ChemSmart's readers, below):
+formaldehyde's sixth TD-DFT root is 11.2538 eV (f 0.0102) in Gaussian and
+11.2560 (f 0.0100) in ORCA but 11.2333 (f 0.4696, converged) in PySCF,
+0.0205 eV apart -- the O1 falsifier's threshold -- while roots 1-5 agree
+Gaussian vs PySCF to 6e-4 eV; and ORCA's root 4 sits 0.0059 eV above both
+(E1's 0.005 band missed).
+- Explanation under test: PySCF's sixth root is the bright pi->pi* that
+  full TD-DFT pulls ~0.4 eV below its TDA position, and Gaussian's and
+  ORCA's Davidson guesses at nstates=6 did not capture it; the three
+  programs solve one Hamiltonian. Holds if with nstates=10 Gaussian and
+  ORCA list a root at 11.233 +- 0.005 eV with f >= 0.4 and PySCF lists the
+  11.254 root (f ~ 0.010), and the 10-root spectra agree pairwise within
+  0.005 eV. Falsified if Gaussian and ORCA still show no such root.
+- ORCA's root 4 is grid numerics if ORCA at defgrid3 (NoRI) moves it to
+  within 0.002 eV of Gaussian's 9.7621; falsified otherwise.
+
+## Results read so far (host records, through ChemSmart's readers)
+
+O1 (Slurm 2150076, code 7111e2a6, digest 4d7248e7, all 22 TD runs exit 0):
+- Acrolein, full TD-DFT, the same YAML in three programs: Gaussian
+  [3.6243, 6.5343, 7.0517, 7.5042, 8.1764, 8.5038] eV, PySCF within
+  3e-4 eV of it root by root, ORCA-NoRI within 0.0028; f of the bright
+  pi->pi* 0.3812/0.3812/0.3813. E1 PASS.
+- Acrolein TDA: max pairwise 0.0030 eV; f 0.4961/0.4961/0.4963. E2 PASS.
+- E3 PASS: TDA >= TD-DFT for every root in every program; n->pi* (A'')
+  +0.0265 eV, bright pi->pi* (A') +0.439 eV.
+- E4 PASS (ORCA RIJCOSX vs NoRI <= 0.002 eV). E5 PASS: Gaussian 50-50
+  gives 3 singlets identical to its singlet run and triplets
+  [2.9781, 3.1960, 5.6484] vs PySCF [2.9780, 3.1952, 5.6477] and ORCA
+  [2.9760, 3.1960, 5.6470]. E6 PASS: SCF G -191.54492564, P -191.54496779,
+  O-NoRI -191.54499556 Eh.
+- Formaldehyde: E1 MISSED as recorded under O4 (root 6 PySCF vs G/O
+  0.0205 eV; ORCA root 4 0.0059 eV); TDA agrees to 5e-4 eV (G vs P) and
+  0.005 (O); E3, E5, E6 pass.
+- Found by reading back, not asked: in ORCA's singlet_triplet runs
+  `excitation_energies` lists singlets then triplets while
+  `oscillator_strengths` lists states in energy order, so the two vectors
+  are not parallel: acrolein's f = 0.3810 is paired with the T2 energy
+  3.196 eV and the bright S2 (6.536 eV) with f = 0. Gaussian's two
+  vectors are parallel (energy order). ORCA reader, outside this radius.
+- PySCF serves `excitation_energies` in Eh (declared) and
+  `singlet_excitation_energies` in eV; Gaussian and ORCA serve eV. The
+  unit travels with the value, so arithmetic stays canonical.
+
 ## Jobs issued
 
 | Slurm | slot | what | code | pre-registration |
