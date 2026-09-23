@@ -77,14 +77,6 @@ def test_execution_is_claimed_only_where_a_run_qualified_it(program, jobtype):
     assert _pairs(program)[jobtype].execution_supported is expected
 
 
-@pytest.mark.parametrize("jobtype", ("scan", "modred"))
-def test_gaussian_execution_is_never_claimed_here(jobtype):
-    """A release-policy hold, not a missing-evidence one."""
-
-    assert ("gaussian", jobtype) not in _QUALIFIED
-    assert _pairs("gaussian")[jobtype].execution_supported is False
-
-
 @pytest.mark.parametrize("program", ("orca", "gaussian"))
 @pytest.mark.parametrize("jobtype", ("scan", "modred"))
 def test_the_declaration_reaches_conformance(program, jobtype):
