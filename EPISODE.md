@@ -63,6 +63,24 @@ delivery works without routing on the human's words?
 - Batch dev1 on the cluster (D1 in C and B, D2 in C) validates the
   cluster runner; it is development, not the sealed test.
 
+## Arms (what the model reads, measured, not asserted)
+
+Initial request digests from `arm_digest.py` (host_search, empty context;
+sha256 prefixes):
+
+| arm | code | CHEMSMART_AGENT_SKILLS | catalogue | tools | system prompt |
+|---|---|---|---|---|---|
+| A false sentence, no access | 292b9bf3 | 1 | b233c12f (62) | 1295775e | 1fd85c2d (13,632 B) |
+| B no sentence, no access | 292b9bf3 or the arm commit | 0 | b233c12f (62) | 1295775e | fda60dcd (10,969 B) |
+| C honest sentence, real access | the arm commit | 1 | 584c866e (65) | 1295775e | 58f9f2e3 (12,826 B) |
+
+B is byte-identical whichever commit serves it (same catalogue, tools and
+prompt), so A-B is a contrast inside the base commit and B-C one inside
+the arm commit; A differs from B only by the false sentence, C from B
+only by the honest sentence and three deferred catalogue entries. (C's
+row is at a270eca6; the sealed arm commit's row is recorded when it is
+fixed.)
+
 ## Status
 
 Phase 1 (provider-free and dev): arms under construction; the
