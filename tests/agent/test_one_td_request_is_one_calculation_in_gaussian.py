@@ -164,3 +164,26 @@ def test_a_gaussian_response_result_states_the_response_it_ran():
     assert level["response_method"] == "tddft"
     assert level["state_manifold"] == "unrestricted"
     assert level["nstates"] == 50
+
+
+@pytest.mark.capability("tool:validate_project_yaml")
+def test_a_td_stage_that_names_no_method_is_refused_when_validated(tmp_path):
+    """The project shape live sessions write for every other stage.
+
+    A level named once in ``gas:`` beside ``td: {nstates: ...}``: the td
+    section is read on its own, so the route has no method.  Validation
+    called that ``valid`` and the writer died inside the preview with a
+    traceback; the refusal now comes when the project is validated.
+    """
+
+    _project, receipt = validate(
+        tmp_path,
+        "gaussian",
+        {
+            "gas": {"functional": "b3lyp", "basis": "def2-svp"},
+            "td": {"nstates": 4},
+        },
+        "td",
+    )
+    assert receipt.status == "invalid"
+    assert "td:" in receipt.diagnostic

@@ -382,6 +382,44 @@ class GaussianJobSettings(MolecularJobSettings):
             self.freq = False
             self.numfreq = False
 
+    def validate(self):
+        """Refuse settings the writer cannot route, while they can be fixed.
+
+        The project tool calls this when a project is validated for a
+        stage; building the route here with the writer's own code turns a
+        failure that surfaced only inside a preview -- ``ValueError: Error:
+        No computational method provided.`` from the writer, with a
+        traceback, after validation had called the project ``valid`` --
+        into a refusal at the moment the project is written.
+
+        A td stage is the case a project written like every other one
+        reaches: its ``td:`` section is read on its own (the loader seeds
+        it from the shared defaults, not from ``gas:`` or ``solv:``), so a
+        level named once in ``gas:`` beside ``td: {nstates: ...}`` gives a
+        route with no method.  The refusal says where the level must go.
+        """
+
+        try:
+            self.route_string
+        except (ValueError, AssertionError) as exc:
+            names_no_method = (
+                self.functional is None
+                and self.ab_initio is None
+                and self.semiempirical is None
+            )
+            if self.jobtype == "td" and names_no_method:
+                raise ValueError(
+                    "This td stage names no method. A td: section is read "
+                    "on its own -- it inherits no functional, basis or "
+                    "other level of theory from gas: or solv: -- so name "
+                    "the functional (or ab_initio) and the basis in td: "
+                    "itself."
+                ) from exc
+            raise ValueError(
+                f"The Gaussian route for this {self.jobtype} stage cannot "
+                f"be written: {exc}"
+            ) from exc
+
     @property
     def genecp(self):
         """
