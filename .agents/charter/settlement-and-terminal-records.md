@@ -1,5 +1,9 @@
 # Charter topic: settlement-and-terminal-records
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 A goal settles into one typed state. It is achieved when the host
 completion gate certified the delivery and the host recorded nothing it
 could not explain; achieved with observations when the certified

@@ -1,5 +1,9 @@
 # Charter topic: architecture
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 The driver is a step machine -- plan, decide, execute, outcome, settle --
 and every phase boundary is a ledger entry, so a process may stop after
 any step and a later process may resume from the ledger. That is what

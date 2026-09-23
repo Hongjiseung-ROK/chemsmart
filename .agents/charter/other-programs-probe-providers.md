@@ -1,5 +1,9 @@
 # Charter topic: other-programs-probe-providers
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
 results. Gaussian ``opt``, ``sp``, ``ts`` and ``irc`` are release-qualified for

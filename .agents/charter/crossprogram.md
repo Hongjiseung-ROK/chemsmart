@@ -1,5 +1,9 @@
 # Charter topic: crossprogram
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 This surface is qualified through one completed multi-program execution:
 a single displayed approval covering seven nodes — one xTB optimisation
 feeding three ORCA and three PySCF single points on that geometry at

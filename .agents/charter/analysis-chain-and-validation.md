@@ -1,5 +1,9 @@
 # Charter topic: analysis-chain-and-validation
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 A typed analysis chain planned with a workflow is carried verbatim in the
 review packet and the approval bundle, and the single human approval covers
 it: after every approved calculation node validates, the provider-free

@@ -1,3 +1,6 @@
+# R10 (2026-09-24): evidence, not instruction. The curated doctrine is .agents/rsl/;
+# this graph keeps its lessons, results and negative results (each with its falsifier)
+# as searchable evidence (`python .agents/rsl/rsl.py find <word>`).
 # Instruction / evidence graph -- the AUTHORED JOIN only.
 # Derived at check time, never copied here: the 69 rules and their text
 # (chemsmart.agent.rules), the code gates, the capability ladder, word and

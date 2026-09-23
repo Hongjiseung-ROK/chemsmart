@@ -1,5 +1,9 @@
 # Charter topic: dispatch-excursion-results-review
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 Where the approved partition runs is host policy under the same decision:
 in the deciding process, or, with ``--dispatch scheduler``, submitted to
 the server profile's scheduler through the ordinary submitters. The

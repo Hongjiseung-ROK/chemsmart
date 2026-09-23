@@ -1,5 +1,9 @@
 # Charter topic: batch-database
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 A batch is N enumerated records under the one displayed decision, not
 an autonomy feature, and no task-specific batch code exists. A
 workspace chemsmart ``.db`` database is an inspectable artifact whose

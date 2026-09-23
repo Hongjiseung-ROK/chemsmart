@@ -1,5 +1,9 @@
 # Charter topic: constants-and-pka
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 A host-owned literature-constants registry holds the values a scientist
 takes from the record rather than computes — an aqueous proton free
 energy, a standard-state correction, a reference acid's measured pKa —

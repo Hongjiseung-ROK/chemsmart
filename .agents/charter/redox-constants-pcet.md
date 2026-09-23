@@ -1,5 +1,9 @@
 # Charter topic: redox-constants-pcet
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 Electric charge is a dimension, so an electrode potential is one too.
 Potential is derived as energy per charge rather than asserted, which
 makes ΔG = −nFE dimensionally checkable and leaves the Faraday constant

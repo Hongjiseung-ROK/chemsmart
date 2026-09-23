@@ -7,10 +7,10 @@ complete list.
 
 .. note::
 
-   The human ``run`` and ``sub`` commands can use an operator-provided licensed Gaussian installation. The current Agent
-   boundary is narrower: ``sp``, ``opt``, ``ts``, ``irc``, ``td``, and ``link`` support project YAML, generated native
-   input, safe preview, and typed parsing of user-supplied completed outputs, but this release does not claim Gaussian
-   Agent execution.
+   The human ``run`` and ``sub`` commands can use an operator-provided licensed Gaussian installation. The Agent
+   executes a Gaussian job type only where a recorded live run has qualified it; ``chemsmart agent capabilities --kind
+   program_jobtype`` reports which. Every other Gaussian job type supports project YAML, generated native input, safe
+   preview, and typed parsing of user-supplied completed outputs.
 
 *************************
  Basic Command Structure

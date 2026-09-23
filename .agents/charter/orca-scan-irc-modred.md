@@ -1,5 +1,9 @@
 # Charter topic: orca-scan-irc-modred
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 ORCA ``scan`` is qualified for approved execution: a relaxed torsional profile
 ran through the ordinary plan, preview, single human approval, and provider-free
 execution path, and its surface is read into typed quantities by the same
@@ -9,7 +13,7 @@ this calculation rather than reusable method rationale.
 
 ORCA ``irc`` is qualified for approved Agent execution: a TS-to-IRC
 workflow — one converged transition-state search feeding two
-intrinsic-reaction-coordinate runs, each consuming the transition state's
+intrinsic-reaction-coordinate runs, each binding the transition state's
 own geometry and analytic Hessian as role-distinct producer bindings —
 was planned, previewed, approved in one displayed decision, executed
 provider-free, validated, and delivered host-rendered claims on a
@@ -17,7 +21,12 @@ qualification target; that approval was made by an owner-delegated
 reviewer and the record names it as such. Admission keys each producer
 data edge by its consumer role, so distinct roles on one node coexist
 while one role never admits two edges, and execution readiness demands
-every binding before launch.
+every binding before launch. Correction (2026-09-24): the Hessian binding
+never reached ORCA. The executed IRC input (r8 goal-ts cycle 2) carries
+no ``InitHess``, and ORCA printed "Initial displacement Hessian type ....
+Compute numerically"; the same holds for every executed ORCA ts-to-irc
+Hessian binding the R10 composition replay found. The geometry binding
+is real; the Hessian was admitted, displayed and frozen, not consumed.
 
 An IRC log's only printed structure is the starting point, so every
 selector read from the log body describes the saddle rather than the path:
@@ -80,8 +89,10 @@ the session then chose one ``modred`` node holding D(C12,C11,C10,C1) at
 0 degrees. That node terminated normally after 108 cycles -- ORCA's
 default cycle limit of 3N -- with the torsion held at 0.00 degrees and
 the geometry still descending, 32.0 kcal/mol above the minimum; the host
-verified and extracted it, and its structure crossed the producer edge
-into an ``OptTS Freq`` node that converged to a first-order saddle (one
+verified and extracted it. Inside that cycle the waiting ``OptTS Freq``
+consumer was refused ("orca result is not a converged OPT or TS"); an
+admitted revision carried the reached structure into it in the next cycle
+through ``bind_reached_geometry``, where it converged to a first-order saddle (one
 imaginary mode, -137.51 cm^-1, 7.8 kcal/mol above the minimum). The
 settle phase claimed in prose and the goal returned to the human. The
 owner ruled that run a qualifying success on 2026-09-23; the release

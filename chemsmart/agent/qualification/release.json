@@ -29,27 +29,27 @@
     {
       "kind": "program_jobtype",
       "id": "xtb:cpu:sp",
-      "status": "claimed",
-      "run": "",
+      "status": "recorded",
+      "run": "ax41-refine-100/production-close/design-round/workspace executions/tui-c5d36517a24c42ff95246e940256aafa",
       "commit": "",
-      "date": "",
-      "source": "AGENTS.md product boundary; multi-program qualification (xTB opt feeding ORCA/PySCF single points)"
+      "date": "2026-08-20",
+      "source": "A GFN2-xTB single point on water that the session planned, approved once in the terminal interface (the approval is consumed by the execution bundle's own record) and executed provider-free; the result was verified valid. A smoke-sized system: the record qualifies execution and reading of an xTB single point and says nothing about its chemistry. The run did not record the tree it ran on."
     },
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:sp",
-      "status": "claimed",
-      "run": "",
-      "commit": "",
-      "date": "",
-      "source": "AGENTS.md product boundary"
+      "status": "recorded",
+      "run": "experiments-public/po3-r19/workspace goals/goal-po3-r19/runs/cycle-5",
+      "commit": "e08c34fe",
+      "date": "2026-09-12",
+      "source": "Four ORCA single points the session planned and ran provider-free under one owner-delegated approval in cycle 5 of goal-po3-r19 (harness e08c34fe, named by the campaign seal): B3LYP-D3(BJ)/def2-TZVP and DSD-BLYP-D3(BJ)/def2-TZVP on each of two converged saddles, 817 s of engine wall. The cycle validated, and the four energies carried the level-to-level comparison on which the goal settled unreachable_from_evidence for the precision the task demanded. The run and its evidence are published in experiments-public/po3-r19."
     },
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:ts",
       "status": "recorded",
       "run": "CUHK Charles r8/orca/goals/goal-ts/workspace goals/goal-ts/runs/cycle-1 (Slurm 2142426)",
-      "commit": "0e380213",
+      "commit": "34f20e2c",
       "date": "2026-09-21",
       "source": "One live goal under the approval chain: from a hand-built bridging-hydrogen guess the session planned an ORCA OptTS with a frequency step at B3LYP/def2-SVP, selected the wave and executed it provider-free in 37.6 s of engine wall. The search converged to a first-order saddle of the HCN -> HNC 1,2-hydrogen shift, one imaginary mode at 1121.71 cm^-1, C-N 1.188 / C-H 1.197 / N-H 1.398 A -- the same saddle as the independent direct-CLI run (Slurm 2142375) to the last printed digit of its total energy, -93.224285928359 Eh. The session's own declared expectation band for the imaginary mode (1500-2500 cm^-1) was displayed as diverged and not scored."
     },
@@ -58,27 +58,27 @@
       "id": "orca:cpu:irc",
       "status": "recorded",
       "run": "CUHK Charles r8/orca/goals/goal-ts/workspace goals/goal-ts/runs/cycle-2 (Slurm 2142426)",
-      "commit": "0e380213",
+      "commit": "34f20e2c",
       "date": "2026-09-21",
       "source": "The same goal's second cycle: an admitted revision cited cycle 1's evidence and walked one forward branch from that converged saddle, 669.3 s of engine wall under the same approval chain. The branch descended 33.62 kcal/mol over 21 path points and stopped at ORCA's iteration limit (irc_converged = 0), which the session carried into its uncertainty account; from the endpoint connectivity it read N-H formed and C-H broken, the HNC side, agreeing with the independent direct-CLI branches (Slurm 2142379) and with the optimised endpoint minima (Slurm 2142403). The goal settled unreachable_from_evidence because this release's claim machinery renders numerical claims only and the walk direction is a text label."
     },
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:scan",
-      "status": "claimed",
-      "run": "",
-      "commit": "",
-      "date": "",
-      "source": "AGENTS.md product boundary; relaxed torsional profile"
+      "status": "recorded",
+      "run": "experiments-public/po3-r19/workspace goals/goal-po3-r19/runs/cycle-1",
+      "commit": "e08c34fe",
+      "date": "2026-09-11",
+      "source": "Two seven-point relaxed scans (scan-esterc4-path, scan-esterc5-path) the session planned from one composed complex and ran provider-free under one owner-delegated approval in cycle 1 of goal-po3-r19 (14 213 s and 12 308 s of engine wall; the cycle validated). The host read both surfaces into typed quantities and raised scan.extremum_at_grid_boundary on each: the ridge lay beyond the scanned range, and the session abandoned the scans as its route to the saddles. The record qualifies execution and reading of an ORCA relaxed scan, not a scan that bracketed its ridge; the relaxed torsional profile the charter names left no machine record."
     },
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:td",
-      "status": "claimed",
-      "run": "",
+      "status": "recorded",
+      "run": "ax41-refine-100/general-round/workspaces/c6-r1 goals/goal-c6-r1/runs/cycle-1",
       "commit": "",
-      "date": "",
-      "source": "AGENTS.md product boundary"
+      "date": "2026-08-29",
+      "source": "One live goal under the approval chain (owner-delegated): the session optimised formaldehyde and computed its vertical excitations with an ORCA td node (td-h2co) consuming the optimised geometry, executed provider-free; both results were verified valid, the workflow validated with its analysis chain, and the goal settled achieved. The run did not record the tree it ran on."
     },
     {
       "kind": "program_jobtype",
@@ -639,7 +639,7 @@
       "run": "CUHK Charles r9/orca/goals/g5 (Slurm 2144929, COMPLETED 0:0, 18:01:43) goals/g5/runs/cycle-2 node calc-coplanar-modred; its reached structure consumed by cycle-3 node calc-ts",
       "commit": "4d70e6c0 plus the then-uncommitted modred execution flag (committed here); the code tree digest the job recorded is in goals/g5/slurm-2144929.out on the cluster (prefix 9e1f919a, verified identical on both sides by the ORCA track before submission)",
       "date": "2026-09-23",
-      "source": "(R)-BINOL, 22 heavy atoms, B3LYP-D3(BJ)/def2-SVP, 64 MPI ranks. The session chose one constrained relaxation holding the biaryl torsion D(C12,C11,C10,C1) at 0 degrees after its first choice, a 10-point relaxed scan, died on step 1 in ORCA's SHARK input-read path (24672 s; the session's recorded reasons reject re-running the scan, loosening the criterion and seeding from the partial point). The modred node terminated normally after 108 cycles, ORCA's default MaxIter of 3N, with the torsion held at 0.00 degrees and the geometry still descending: NOT converged, E = -919.866121 Eh, 32.0 kcal/mol above the minimum (19578 s, peak RSS 11.6 GB). The host verified the result, the extraction chain read it, and its structure crossed the producer edge into an OptTS Freq node that converged to a first-order saddle (one imaginary mode, -137.51 cm^-1, E = -919.904757 Eh, 16453 s, peak RSS 56.9 GB). The goal settled returned_to_human because the settle phase claimed in prose without receipts. Recorded as a qualifying run by the owner's ruling of 2026-09-23: the capability exercised is that a constrained optimisation executes under the approval chain, is read by its declared selectors and hands its structure on; whether the relaxation converged is the result's own converged selector."
+      "source": "(R)-BINOL, 22 heavy atoms, B3LYP-D3(BJ)/def2-SVP, 64 MPI ranks. The session chose one constrained relaxation holding the biaryl torsion D(C12,C11,C10,C1) at 0 degrees after its first choice, a 10-point relaxed scan, died on step 1 in ORCA's SHARK input-read path (24672 s; the session's recorded reasons reject re-running the scan, loosening the criterion and seeding from the partial point). The modred node terminated normally after 108 cycles, ORCA's default MaxIter of 3N, with the torsion held at 0.00 degrees and the geometry still descending: NOT converged, E = -919.866121 Eh, 32.0 kcal/mol above the minimum (19578 s, peak RSS 11.6 GB). The host verified the result and the extraction chain read it. Inside cycle 2 the waiting consumer's launch was refused (workflow_node_launch_refused: \"orca result is not a converged OPT or TS\"); an admitted revision carried the reached structure through bind_reached_geometry into cycle 3's OptTS Freq node, which converged to a first-order saddle (one imaginary mode, -137.51 cm^-1, E = -919.904757 Eh, 16453 s, peak RSS 56.9 GB). The goal settled returned_to_human because the settle phase claimed in prose without receipts. Recorded as a qualifying run by the owner's ruling of 2026-09-23: the capability exercised is that a constrained optimisation executes under the approval chain, is read by its declared selectors and hands its structure on; whether the relaxation converged is the result's own converged selector."
     }
   ]
 }

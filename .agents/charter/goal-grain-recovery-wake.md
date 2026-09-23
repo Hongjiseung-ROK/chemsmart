@@ -1,5 +1,9 @@
 # Charter topic: goal-grain-recovery-wake
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 There is no permanent calculation grant, session-wide "always allow", command
 prefix allow-list, or model-created approval. The unit of human decision is
 the goal: one displayed decision covering the requested observables, every

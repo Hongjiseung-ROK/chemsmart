@@ -1,5 +1,9 @@
 # Charter topic: validity-rules
 
+> Evidence, not instruction: what this surface was qualified by and what it found, under the
+> conditions stated. The live tree and ``chemsmart agent capabilities`` outrank it; doctrine is
+> ``AGENTS.md``, ``CONDUCT.md`` and ``.agents/rsl/``.
+
 Every executed result is judged on one program-neutral rule beside its
 program's own validator: the approved jobtype promises a count of
 imaginary modes -- one for a transition-state search, none for a minimum
