@@ -29,6 +29,7 @@ from chemsmart.analysis.result_quantities import (
     DIMENSIONLESS,
     canonical_thermochemistry_quantity,
     derivable_thermochemistry_quantities,
+    quasi_harmonic_counterparts_for_treatment,
 )
 
 ANALYSIS_INTENT_KINDS = (
@@ -689,7 +690,7 @@ class AnalysisNodeIntentV1:
             # the extraction plane answers an unknown selector.
             if self.support_state == "planned":
                 available = derivable_thermochemistry_quantities(
-                    self.entropy_method
+                    self.entropy_method, self.enthalpy_cutoff_cm1
                 )
                 for output in self.outputs:
                     if (
@@ -704,6 +705,44 @@ class AnalysisNodeIntentV1:
                         f"quantity_kind {output.quantity_kind!r}, which "
                         f"thermochemistry does not derive; it derives "
                         f"{list(available)}"
+                    )
+                # The treatment a review displays must be the treatment of
+                # a number the node delivers. A quasi-harmonic request
+                # changes only the quasi_harmonic_* quantities; the
+                # harmonic names keep their RRHO meaning, and the executor
+                # binds an output by its kind. Two live campaigns planned
+                # Grimme nodes declaring only gibbs_free_energy and were
+                # delivered the RRHO value under a review that said
+                # Grimme (po3-r19 cycle 5: an entropy-model uncertainty of
+                # 0.0 kcal/mol where its own receipts give 0.3564).
+                counterparts = quasi_harmonic_counterparts_for_treatment(
+                    self.entropy_method, self.enthalpy_cutoff_cm1
+                )
+                declared = {
+                    canonical_thermochemistry_quantity(output.quantity_kind)
+                    for output in self.outputs
+                }
+                shadowed = sorted(declared & set(counterparts))
+                if shadowed and not declared & set(counterparts.values()):
+                    treatment = []
+                    if str(self.entropy_method).strip().lower() != "rrho":
+                        treatment.append(
+                            f"entropy_method {self.entropy_method!r}"
+                        )
+                    if self.enthalpy_cutoff_cm1 is not None:
+                        treatment.append("a Head-Gordon enthalpy cutoff")
+                    raise ScientificToolchainContractError(
+                        f"thermochemistry node {self.node_id!r} requests "
+                        + " and ".join(treatment)
+                        + " but declares only harmonic outputs "
+                        f"{shadowed}, which that treatment does not change: "
+                        "a harmonic name keeps its RRHO meaning under every "
+                        "treatment. The quasi-harmonic values are "
+                        + str([counterparts[name] for name in shadowed])
+                        + "; declare those (a node may declare both names "
+                        "to compare them), or request entropy_method "
+                        "'rrho' and no enthalpy cutoff for the harmonic "
+                        "values alone"
                     )
         elif any(
             isinstance(item, RegisteredResultInputIntentV1)

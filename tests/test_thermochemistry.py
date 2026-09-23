@@ -3362,7 +3362,22 @@ class TestBoltzmannWeightedAverage:
         o udc3_mCF3_monomer_c4 -2189.631995 0.288817 -2189.241650
         -2189.344328 0.283751 0.267251 -2189.525401 -2189.611579
            ********************************************************************
+
+        GoodVibes takes Gaussian's printed rotational symmetry number, 1:
+        Gaussian set the framework group C1 from the starting geometry and
+        kept it through the optimisation. Both converged conformers carry an
+        exact C2 axis (the best C2 image of c1 lies within 4.5e-5 A of the
+        structure), so their symmetry number is 2 and the host counts 2.
+        Every entropy term below differs from GoodVibes by exactly
+        R ln 2, T*S and G by RT ln 2 = 0.001313 Eh at 598.15 K, and the
+        Boltzmann weights, which see the same shift on both, do not move.
         """
+        assert thermochem_conformer1.program_rotational_symmetry_number == 1
+        assert thermochem_conformer1.rotational_symmetry_number == 2
+        assert thermochem_conformer2.rotational_symmetry_number == 2
+        rt_ln_sigma = (
+            8.314462618 * 598.15 * np.log(2.0) * joule_per_mol_to_hartree
+        )
         assert np.isclose(
             thermochem_conformer1.electronic_energy * joule_per_mol_to_hartree,
             -2189.631874,
@@ -3398,40 +3413,40 @@ class TestBoltzmannWeightedAverage:
         assert np.isclose(
             thermochem_conformer1.entropy_times_temperature
             * joule_per_mol_to_hartree,
-            0.285181,
+            0.285181 - rt_ln_sigma,
         )
         assert np.isclose(
             thermochem_conformer2.entropy_times_temperature
             * joule_per_mol_to_hartree,
-            0.283751,
+            0.283751 - rt_ln_sigma,
         )
         assert np.isclose(
             thermochem_conformer1.qrrho_entropy_times_temperature
             * joule_per_mol_to_hartree,
-            0.267978,
+            0.267978 - rt_ln_sigma,
         )
         assert np.isclose(
             thermochem_conformer2.qrrho_entropy_times_temperature
             * joule_per_mol_to_hartree,
-            0.267251,
+            0.267251 - rt_ln_sigma,
         )
         assert np.isclose(
             thermochem_conformer1.gibbs_free_energy * joule_per_mol_to_hartree,
-            -2189.526775,
+            -2189.526775 + rt_ln_sigma,
         )
         assert np.isclose(
             thermochem_conformer2.gibbs_free_energy * joule_per_mol_to_hartree,
-            -2189.525401,
+            -2189.525401 + rt_ln_sigma,
         )
         assert np.isclose(
             thermochem_conformer1.qrrho_gibbs_free_energy
             * joule_per_mol_to_hartree,
-            -2189.612264,
+            -2189.612264 + rt_ln_sigma,
         )
         assert np.isclose(
             thermochem_conformer2.qrrho_gibbs_free_energy
             * joule_per_mol_to_hartree,
-            -2189.611579,
+            -2189.611579 + rt_ln_sigma,
         )
 
         boltzmannthermochem_gibbs = BoltzmannAverageThermochemistry(
@@ -3645,7 +3660,13 @@ class TestBoltzmannWeightedAverage:
         o udc3_mCF3_monomer_c4 -2189.631995 0.288817
         -2189.312528 0.093674 0.085518 -2189.406202 -2189.398046
            ********************************************************************
+
+        The same symmetry number 1 against the host's 2: RT ln 2 at
+        298.15 K.
         """
+        rt_ln_sigma_298 = (
+            8.314462618 * 298.15 * np.log(2.0) * joule_per_mol_to_hartree
+        )
         assert np.isclose(
             thermochem2_conformer1.electronic_energy
             * joule_per_mol_to_hartree,
@@ -3677,42 +3698,42 @@ class TestBoltzmannWeightedAverage:
         assert np.isclose(
             thermochem2_conformer1.entropy_times_temperature
             * joule_per_mol_to_hartree,
-            0.094364,
+            0.094364 - rt_ln_sigma_298,
         )
         assert np.isclose(
             thermochem2_conformer2.entropy_times_temperature
             * joule_per_mol_to_hartree,
-            0.093674,
+            0.093674 - rt_ln_sigma_298,
         )
         assert np.isclose(
             thermochem2_conformer1.qrrho_entropy_times_temperature
             * joule_per_mol_to_hartree,
-            0.085837,
+            0.085837 - rt_ln_sigma_298,
         )
         assert np.isclose(
             thermochem2_conformer2.qrrho_entropy_times_temperature
             * joule_per_mol_to_hartree,
-            0.085518,
+            0.085518 - rt_ln_sigma_298,
         )
         assert np.isclose(
             thermochem2_conformer1.gibbs_free_energy
             * joule_per_mol_to_hartree,
-            -2189.406868,
+            -2189.406868 + rt_ln_sigma_298,
         )
         assert np.isclose(
             thermochem2_conformer2.gibbs_free_energy
             * joule_per_mol_to_hartree,
-            -2189.406202,
+            -2189.406202 + rt_ln_sigma_298,
         )
         assert np.isclose(
             thermochem2_conformer1.qrrho_gibbs_free_energy_qs
             * joule_per_mol_to_hartree,
-            -2189.398342,
+            -2189.398342 + rt_ln_sigma_298,
         )
         assert np.isclose(
             thermochem2_conformer2.qrrho_gibbs_free_energy_qs
             * joule_per_mol_to_hartree,
-            -2189.398046,
+            -2189.398046 + rt_ln_sigma_298,
         )
 
         boltzmannthermochem_gibbs2 = BoltzmannAverageThermochemistry(

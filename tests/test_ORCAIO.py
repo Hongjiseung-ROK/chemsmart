@@ -3283,15 +3283,22 @@ class TestORCApKaOutput:
     PHENOL_HB_E = -307.111134
     PHENOL_HB_QH_G = -307.031069
     PHENOL_B_E = -306.533586
-    PHENOL_B_QH_G = -306.467527
+    # combined.dat was written with the symmetry number ORCA printed for
+    # the phenolate, 1 ("Only C1 symmetry has been detected"); its own
+    # converged geometry is C2v to 1.6e-3 A, so the host counts 2 and the
+    # phenolate's Gibbs energy rises by RT ln 2 at 298.15 K. Phenol (Cs)
+    # and the L2 pair (C1) are unchanged, and the exchange cycle's dG
+    # falls by the same RT ln 2.
+    RT_LN_2_298 = 8.314462618 * 298.15 * np.log(2.0) / 2625499.6394799546
+    PHENOL_B_QH_G = -306.467527 + RT_LN_2_298
 
     L2_HA_SP_E = -1101.625867
     L2_A_SP_E = -1101.157126
     PHENOL_HB_SP_E = -307.121330
     PHENOL_B_SP_E = -306.628244
 
-    EXPECTED_DG_AU = -0.02392099999997299
-    EXPECTED_DG_KCAL = -15.010654129046468
+    EXPECTED_DG_AU = -0.02392099999997299 - RT_LN_2_298
+    EXPECTED_DG_KCAL = EXPECTED_DG_AU * 627.5094740631
 
     @staticmethod
     def _p(*parts):
