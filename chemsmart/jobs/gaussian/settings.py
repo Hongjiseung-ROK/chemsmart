@@ -55,6 +55,7 @@ GAUSSIAN_FUNCTIONAL_NATIVE = {
     "b3lyp": "B3LYP",
     "pbe0": "PBE1PBE",
     "pbe": "PBEPBE",
+    "bp86": "BP86",
 }
 
 #: Literals Gaussian has no keyword for, with the route a refusal names.
@@ -63,6 +64,12 @@ GAUSSIAN_FUNCTIONAL_REFUSED = {
         "Gaussian 16 has no keyword for B3LYP with the VWN5 local "
         "correlation (a b3lyp5 route stops at link 1, CUHK Slurm 2149277). "
         "Request b3lyp for Gaussian's B3LYP, or run b3lyp5 in ORCA or PySCF."
+    ),
+    "bp86-pw92": (
+        "Gaussian's BP86 puts Perdew 86 on the Perdew-Zunger 81 local "
+        "correlation (the literal bp86); the Perdew-Wang 92 form is ORCA's "
+        "BP86 and Gaussian has no keyword for it. Request bp86 here, or run "
+        "bp86-pw92 in ORCA."
     ),
 }
 

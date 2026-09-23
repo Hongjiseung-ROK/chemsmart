@@ -182,6 +182,16 @@ PYSCF_FUNCTIONAL_NATIVE = {
     "b3lyp5": "b3lyp5",
     "pbe0": "pbe0",
     "pbe": "pbe",
+    "bp86": "bp86",
+}
+
+#: Literals PySCF has no libxc spelling for, with the route a refusal names.
+PYSCF_FUNCTIONAL_REFUSED = {
+    "bp86-pw92": (
+        "libxc's P86 is built on the Perdew-Zunger 81 local correlation (the "
+        "literal bp86); the Perdew-Wang 92 form is ORCA's BP86 and has no "
+        "libxc spelling here. Request bp86, or run bp86-pw92 in ORCA."
+    ),
 }
 
 #: Literals whose PySCF spelling is announced when it is applied, because
@@ -558,6 +568,12 @@ class PySCFJobSettings(MolecularJobSettings):
             raise ValueError(
                 "Specify either 'ab_initio: hf' or 'functional', not both."
             )
+
+        refused = PYSCF_FUNCTIONAL_REFUSED.get(
+            canonical_functional_literal(self.functional)
+        )
+        if self.ab_initio is None and refused is not None:
+            raise ValueError(refused)
 
         if is_double_hybrid_functional(self.functional):
             raise ValueError(

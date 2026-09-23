@@ -35,7 +35,16 @@ WRITTEN = (
     ("b3lyp5", "B3LYP", None, "b3lyp5"),
     ("pbe0", "pbe0", "PBE1PBE", "pbe0"),
     ("pbe", "pbe", "PBEPBE", "pbe"),
+    # ORCA's BP86 is the PW92 form, 1.06 kcal/mol off Gaussian's and
+    # PySCF's in a C-Cl homolysis (CUHK Slurm 2149487): no program writes
+    # the other's form under one literal, so each refuses what it cannot
+    # spell.
+    ("bp86", None, "BP86", "bp86"),
+    ("bp86-pw92", "BP86", None, None),
 )
+
+#: What each refusal names as the route.
+ROUTES = {"orca": "Gaussian or", "gaussian": "in ORCA", "pyscf": "in ORCA"}
 
 WATER = (
     "3\nwater\nO 0.0 0.0 0.1173\nH 0.0 0.7572 -0.4692\nH 0.0 -0.7572 -0.4692\n"
@@ -73,6 +82,10 @@ def test_orca_writes_the_form_the_literal_names_and_reads_it_back(
         label="orca_sp",
         jobrunner=orca_jobrunner_no_scratch,
     )
+    if orca_word is None:
+        with pytest.raises(ValueError, match=ROUTES["orca"]):
+            ORCAInputWriter(job=job).write(target_directory=str(tmp_path))
+        return
     ORCAInputWriter(job=job).write(target_directory=str(tmp_path))
 
     written = ORCAInput(filename=str(tmp_path / "orca_sp.inp"))
@@ -101,7 +114,7 @@ def test_gaussian_writes_the_form_the_literal_names_or_refuses_it(
         jobrunner=gaussian_jobrunner_no_scratch,
     )
     if g16_word is None:
-        with pytest.raises(ValueError, match="ORCA or PySCF"):
+        with pytest.raises(ValueError, match="ORCA"):
             GaussianInputWriter(job=job).write(target_directory=str(tmp_path))
         return
     GaussianInputWriter(job=job).write(target_directory=str(tmp_path))
@@ -125,6 +138,10 @@ def test_pyscf_resolves_the_form_the_literal_names(
         )
     )
 
+    if xc is None:
+        with pytest.raises(ValueError, match=ROUTES["pyscf"]):
+            project.sp_settings().validate()
+        return
     assert project.sp_settings().xc == xc
 
 

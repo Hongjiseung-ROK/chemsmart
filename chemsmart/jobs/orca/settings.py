@@ -264,6 +264,23 @@ ORCA_FUNCTIONAL_ALIASES = {
 ORCA_FUNCTIONAL_NATIVE = {
     "b3lyp": ("B3LYP/G", "VWN-3"),
     "b3lyp5": ("B3LYP", "VWN-5"),
+    "bp86-pw92": ("BP86", "PW91-LDA"),
+}
+
+#: Literals ORCA has no simple-input spelling for, with the route the
+#: refusal names.  ORCA's own BP86 is the PW92 form: at tight numerics it
+#: lies 0.74 kcal/mol from Gaussian's and PySCF's BP86 in the vertical IP
+#: of water and 1.06 in the C-Cl homolysis of CH3Cl (CUHK Slurm 2149487),
+#: so writing it for ``bp86`` would be the other functional.
+ORCA_FUNCTIONAL_REFUSED = {
+    "bp86": (
+        "ORCA's BP86 keyword applies Perdew-Wang 92 local correlation "
+        "(it prints LDAOpt PW91-LDA), where bp86 means Perdew 86 on the "
+        "Perdew-Zunger 81 local correlation Gaussian and PySCF run: 0.74 "
+        "kcal/mol apart in the vertical IP of water and 1.06 in the C-Cl "
+        "homolysis of CH3Cl (CUHK Slurm 2149487). Run bp86 in Gaussian or "
+        "PySCF, or ask ORCA for its own form as bp86-pw92."
+    ),
 }
 
 ORCA_TD_RESPONSE_METHODS = ("tda", "tddft")
@@ -354,6 +371,8 @@ def _normalize_orca_functional(value):
     if not literal:
         return None
     canonical = canonical_functional_literal(literal)
+    if canonical in ORCA_FUNCTIONAL_REFUSED:
+        raise ValueError(ORCA_FUNCTIONAL_REFUSED[canonical])
     if canonical in ORCA_FUNCTIONAL_NATIVE:
         native = ORCA_FUNCTIONAL_NATIVE[canonical][0]
         if native.casefold() != literal.casefold():
@@ -403,11 +422,15 @@ def describe_functional_resolution(functional=None, *, ab_initio=None):
     states the functional ORCA will run in the program-neutral vocabulary.
     """
 
+    try:
+        native = _normalize_orca_functional(functional)
+    except ValueError:
+        native = None
     return functional_resolution_record(
         program="orca",
         functional=functional,
         ab_initio=ab_initio,
-        native=_normalize_orca_functional(functional),
+        native=native,
         source="chemsmart.jobs.orca.settings._normalize_orca_functional",
     )
 
