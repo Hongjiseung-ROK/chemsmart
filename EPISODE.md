@@ -99,8 +99,67 @@ every program block otherwise unchanged).
 
 ## Jobs issued
 
-(none yet)
+- 2149277 (slot r10-q2-a, prereg a56f5029aa91) cli/oracle1a: blocks F, C, X,
+  Z, H. 54 commands, code digest 01aa9588... (commit 8f2c3443, code == base).
+  Three commands exited 1: Gaussian `pbe`, Gaussian `b3lyp5` (Gaussian
+  refuses both keywords at l1), PySCF `d4` (no dftd4 in the compute env).
+- 2149278 (slot r10-q2-b, same prereg) cli/oracle1b: block R, 67 commands,
+  all exit 0.
+
+## Oracle 1 results (read from the logs and artifacts, base tree)
+
+P1 holds. Tight matched numerics: ORCA `B3LYP/G`, Gaussian `B3LYP`, PySCF
+`b3lyp` totals agree within 2.2e-6 on all eight species (benzene worst);
+ORCA `B3LYP` and PySCF `b3lyp5` within 8.6e-7. At the programs' default
+numerics (ORCA RIJCOSX + DEFGRID2) the matched spread is <= 3.5e-4.
+
+P2 holds. VWN5 minus VWN-RPA total offset, identical in ORCA and PySCF to
+1e-6: CH3 0.0323, H2O+ 0.0334, H2O 0.0371, HNC 0.0517, HCN 0.0517, Cl
+0.0653, CH3Cl 0.0982, benzene 0.1543 Eh (about 3.7 mEh per electron).
+
+P3: the premise is NOT falsified. VWN5 minus VWN-RPA in relative energies
+(tight, same program): water vertical IP -2.34 kcal/mol (0.102 eV); CH3Cl
+-> CH3 + Cl -0.376; HCN -> HNC -0.011. Default-numerics spread of the same
+relative energies across the three programs at one functional: <= 0.025
+kcal/mol. The as-written ORCA `b3lyp` IP (283.95) differs from Gaussian's
+and PySCF's (286.31) by 2.35 kcal/mol: the "about 0.1 eV" the crossprogram
+charter recorded is this offset.
+
+Screen (water, tight): one literal, one functional for blyp, cam-b3lyp
+(ORCA prints VWN-5 and matches Gaussian and PySCF to 6e-7), m062x (7e-6),
+tpssh (3e-6), pbe0 ORCA vs PySCF (1.0e-5), pbe ORCA vs PySCF (1.4e-5).
+Two functionals: `b3lyp` (ORCA VWN5 vs the others VWN-RPA, 0.037) and
+`bp86` (ORCA PW92 local correlation, `LDAOpt PW91-LDA`, 1.49e-3 below
+Gaussian; Gaussian vs PySCF 8.0e-5). Gaussian `pbe0` is not PBE0: Gaussian
+prefix-matched it to the PBE0-DH double hybrid (`SCF Done: E(RPBE0DH)`,
+IExCor 1009, E2 printed), and the reader returned its SCF part,
+-76.2397989, 0.0365 above PBE0 (-76.27627 in ORCA and PySCF).
+
+P4 holds on every case. Gaussian `energy` on water/cc-pVDZ returned
+EUMP2 -76.2284380 for MP3 (log -76.2354356), MP4SDTQ (-76.2406725), CCSD
+(-76.2380047), CCSD(T) (-76.2410412), QCISD(T) (-76.2411041); the SCF part
+-76.2884647 for B2PLYP (E(B2PLYP) -76.3530984); the ground state
+-114.4864268 for the TD-B3LYP optimisation whose surface is root 1
+(-114.3622683). HF and MP2 correct. ORCA CCSD(T) (FC default) agrees with
+Gaussian's to 1.2e-7 and PySCF `frozen_core: auto` to 1e-7; PySCF's default
+(all electrons) lies 2.1e-3 below.
+
+P5 holds for D3(BJ): ORCA -0.01889787, PySCF -0.018897869850; Gaussian
+prints no separate term and its total matches PySCF's to 2.2e-6 as without
+dispersion, so no program adds a three-body term.
+
+P6 holds. CH3Cl MP2/def2-SVP correlation: Gaussian (NFC 6) -0.2831213930,
+ORCA -0.283121318, PySCF auto (6) -0.2831213750; PySCF default (0 frozen)
+-0.2951009534, 0.0120 Eh (7.5 kcal/mol) away.
+
+P7 FALSIFIED. PySCF b3lyp max|g| at the formaldehyde minimum reached by
+ORCA `b3lyp` (VWN5) 2.33e-4 vs 1.86e-4 at ORCA `B3LYP/G`'s and Gaussian's:
+1.25x, not 3x. At default optimiser convergence a minimum's residual
+gradient hides the variant; the archived HCN saddle (4.4e-4 vs 2.8e-5) is
+where it showed.
 
 ## Status
 
 - step 1: oracle 1 pre-registered; code unchanged.
+- step 2: oracle 1 read; premise stands for charge- and pairing-changing
+  energies; wrong-number defects confirmed (Gaussian energy, pbe0).
