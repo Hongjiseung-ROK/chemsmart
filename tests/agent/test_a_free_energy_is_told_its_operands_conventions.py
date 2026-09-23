@@ -167,3 +167,33 @@ def test_one_convention_combines_without_a_word(tmp_path):
         (gas, "electronic_energy"),
     )
     assert "thermochemical_conventions" not in json.dumps(event)
+
+
+def test_a_printed_free_energy_says_whose_it_is(tmp_path):
+    # Read alone, a program's printed free energy is still the program's
+    # quantity: the extraction says which convention it carries.
+    host, event_path = _host(tmp_path)
+    host._extract_result_quantities(
+        "turn-1",
+        {
+            "program": "gaussian",
+            "artifact_id": "gaussian-co2",
+            "selectors": [
+                {"quantity_id": "g", "selector": "gibbs_free_energy"}
+            ],
+        },
+    )
+    events = [
+        json.loads(line)
+        for line in event_path.read_text().splitlines()
+        if line.strip()
+    ]
+    extracted = [
+        event
+        for event in events
+        if event.get("kind") == "result_quantities_extracted"
+    ][-1]
+    text = json.dumps(extracted)
+    assert "printed_thermochemistry" in text
+    assert "harmonic (RRHO)" in text
+    assert "Gaussian's own rotational symmetry number" in text

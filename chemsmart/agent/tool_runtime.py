@@ -301,6 +301,7 @@ from chemsmart.analysis.result_quantities import (
     thermochemistry_receipt_from_record,
 )
 from chemsmart.analysis.result_readers import (
+    PRINTED_THERMOCHEMISTRY_CONVENTIONS,
     atom_resolved_selector_metadata,
     reader_for,
     registered_reader_programs,
@@ -17173,6 +17174,34 @@ class CommandCompiledToolHostV1:
                 native_evidence=receipt.native_evidence,
             )
         )
+        # A program's printed free energy is that program's quantity, not
+        # the host's: say which one it is where it is read, so the session
+        # never has to know a program's thermochemistry conventions.
+        printed = tuple(
+            {
+                "kind": "printed_thermochemistry",
+                "quantity_id": quantity_id,
+                "selector": selector,
+                "program": receipt.program,
+                "meaning": (
+                    PRINTED_THERMOCHEMISTRY_CONVENTIONS.get(
+                        receipt.program, f"{receipt.program}'s own"
+                    )
+                    + ". derive_thermochemistry derives the host's from "
+                    "the same frequencies under the conventions its "
+                    "receipt states"
+                ),
+            }
+            for quantity_id, selector in sorted(
+                self.quantity_extraction_bindings[
+                    receipt.receipt_sha256
+                ].items()
+            )
+            if selector in {"gibbs_free_energy", "entropy_times_temperature"}
+            and any(
+                item.quantity_id == quantity_id for item in receipt.quantities
+            )
+        )
         self._emit(
             turn_id,
             EventKind.RESULT_QUANTITIES_EXTRACTED,
@@ -17186,7 +17215,10 @@ class CommandCompiledToolHostV1:
                 receipt.receipt_sha256
             ],
             record=record,
+            **({"observations": printed} if printed else {}),
         )
+        if printed:
+            self._reply_observations = printed
         return receipt
 
     def _derive_thermochemistry(self, turn_id: str, values: dict) -> Any:

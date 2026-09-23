@@ -3151,10 +3151,16 @@ def thermochemical_convention(
     bindings = dict(getattr(receipt, "selector_bindings", ()) or ())
     selector = bindings.get(quantity_id)
     if selector in _PRINTED_THERMOCHEMISTRY_SELECTORS:
+        from chemsmart.analysis.result_readers import (
+            PRINTED_THERMOCHEMISTRY_CONVENTIONS,
+        )
+
         program = str(getattr(receipt, "program", "") or "program")
         return {
             "source": f"printed by {program}",
-            "treatment": f"{program}'s own",
+            "treatment": PRINTED_THERMOCHEMISTRY_CONVENTIONS.get(
+                program, f"{program}'s own"
+            ),
             "temperature_k": None,
             "standard_state": None,
             "frequency_scale_factor": None,
