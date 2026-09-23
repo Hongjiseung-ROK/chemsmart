@@ -187,3 +187,29 @@ def test_a_td_stage_that_names_no_method_is_refused_when_validated(tmp_path):
     )
     assert receipt.status == "invalid"
     assert "td:" in receipt.diagnostic
+
+
+@pytest.mark.capability("selector:gaussian:td:excitation_energies")
+def test_a_tamm_dancoff_result_reads_as_the_response_it_ran():
+    """A real TDA log (CUHK Slurm 2150076, acrolein, PBE0/def2-SVP).
+
+    ``TDA(...)`` carries no job keyword either, and the route-word chain
+    read such a log as a single point, which declares no excitation at
+    all; the level now says the response was Tamm-Dancoff.
+    """
+
+    from chemsmart.analysis.result_readers import RESULT_READERS
+
+    reader = RESULT_READERS["gaussian"]
+    output = reader.open_output(
+        _DATA / "tddft" / "acrolein_pbe0_def2svp_tda_singlet6.log"
+    )
+    assert output.jobtype == "td"
+    level = dict(reader.resolve_level(output))
+    assert (
+        level["response_method"],
+        level["state_manifold"],
+        level["nstates"],
+    ) == ("tda", "singlet", 6)
+    energies, unit = reader.read(output, "excitation_energies")
+    assert unit == "eV" and len(energies) == 6
