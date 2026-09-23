@@ -188,3 +188,24 @@ def test_gaussian_refuses_a_word_it_would_complete_to_another_keyword():
     with pytest.raises(ValueError, match="PBE0DH"):
         gaussian_native_functional("pbe0d")
     assert gaussian_native_functional("pbe0") == "PBE1PBE"
+
+
+def test_a_named_local_correlation_is_backed_and_a_literal_is_vocabulary():
+    """Naming VWN5 claims what the host translated; naming b3lyp5 does not.
+
+    The decision gate asks a narrative that names a local-correlation form
+    to cite a functional-resolution receipt, which every program now mints;
+    a literal is ChemSmart vocabulary with one meaning and needs none.
+    """
+
+    from chemsmart.agent.projects import (
+        functional_convention_claim_is_unbacked,
+    )
+
+    assert functional_convention_claim_is_unbacked("ORCA's B3LYP is VWN5", ())
+    assert not functional_convention_claim_is_unbacked(
+        "ORCA's B3LYP is VWN5", ("functional_resolution:" + "a" * 64,)
+    )
+    assert not functional_convention_claim_is_unbacked(
+        "b3lyp5 and bp86-pw92 in ORCA, b3lyp elsewhere", ()
+    )

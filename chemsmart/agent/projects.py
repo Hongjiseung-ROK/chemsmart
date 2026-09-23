@@ -221,11 +221,13 @@ class FunctionalResolutionReceiptV1:
 #: describe its own translation; the name stays for existing importers.
 PySCFFunctionalResolutionReceiptV1 = FunctionalResolutionReceiptV1
 
-#: A narrative naming a functional variant or its local correlation is a
-#: claim about what the host translated, so it cites the host's
-#: translation; any program's receipt answers it.
+#: A narrative naming a local-correlation form is a claim about what the
+#: host translated a literal into, so it cites the host's translation; any
+#: program's receipt answers it.  The literals themselves (b3lyp, b3lyp5,
+#: bp86-pw92) are ChemSmart vocabulary with one meaning each, and naming
+#: one is not such a claim.
 _FUNCTIONAL_CONVENTION_CLAIM = re.compile(
-    r"(?i)(?<![a-z0-9])(?:vwn\s*[35]|b3lypg|b3lyp5|b3lyp/g)(?![a-z0-9])"
+    r"(?i)(?<![a-z0-9-])(?:vwn[\s_-]*(?:3|5|iii|v|rpa)|pz81|pw92)(?![a-z0-9])"
 )
 
 
