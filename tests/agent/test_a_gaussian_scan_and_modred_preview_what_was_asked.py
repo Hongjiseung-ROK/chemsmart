@@ -142,3 +142,46 @@ def test_a_constrained_optimisation_computes_the_hessian_its_project_asks_for(
         str(tmp_path / "gaussian-modred.yaml")
     ).modred_settings()
     assert ("freq" in _route(written).lower().split()) is bool(applied.freq)
+
+
+#: Quantities that belong to a stationary point: a harmonic spectrum and
+#: what is derived from one.
+_STATIONARY_POINT_QUANTITIES = frozenset(
+    {
+        "entropy_times_temperature",
+        "gibbs_free_energy",
+        "ir_intensities",
+        "vibrational_frequencies",
+        "vibrational_mode_atom_participation",
+        "vibrational_mode_degeneracy_group",
+        "vpt2_fundamental_frequencies",
+        "vpt2_harmonic_frequencies",
+        "vpt2_zero_point_rovibrational_energy",
+    }
+)
+
+
+@pytest.mark.capability("selector:gaussian:modred:*")
+@pytest.mark.capability("selector:orca:modred:*")
+@pytest.mark.parametrize("jobtype", ("modred", "scan"))
+def test_no_reader_serves_a_spectrum_where_nothing_is_stationary(jobtype):
+    """One job type, one answer, in every program that runs it.
+
+    A constrained optimum is stationary only orthogonal to what it held
+    and a scan point is a constrained optimum, so the whole Hessian a
+    program may print there is not the Hessian of a stationary point.
+    ORCA's modred declared no such quantity by decision; Gaussian's
+    declared the spectrum and its IR intensities, so the same request
+    answered a frequency in one program and refused it in the other.
+    """
+
+    from chemsmart.analysis.result_readers import RESULT_READERS
+
+    served = {
+        program: sorted(
+            set(reader.selectors_for_jobtype(jobtype) or ())
+            & _STATIONARY_POINT_QUANTITIES
+        )
+        for program, reader in RESULT_READERS.items()
+    }
+    assert not any(served.values()), served

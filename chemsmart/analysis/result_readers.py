@@ -5913,6 +5913,16 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 # "Sum of electronic and thermal Free Energies" beside a
                 # -1380 cm-1 mode it silently left out, and this
                 # declaration served that number as gibbs_free_energy.
+                #
+                # Nor the vibrational family, for the same reason and as
+                # ORCA's modred has none: Gaussian's frequency step after a
+                # constrained optimisation diagonalises the whole Hessian at
+                # a point that is not stationary along what was held and
+                # projects nothing out, so those numbers are not the
+                # harmonic frequencies of any stationary point -- and a
+                # served ``vibrational_frequencies`` is what the host's own
+                # thermochemistry and order checks read. The Hessian still
+                # runs when the project asks for it.
                 "modred",
                 (
                     "ab_initio",
@@ -5928,7 +5938,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "gap",
                     "hirshfeld_atomic_charges",
                     "homo",
-                    "ir_intensities",
                     "lumo",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
@@ -5941,7 +5950,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
-                    "vibrational_frequencies",
                     "wavefunction_stability_history",
                     "wavefunction_stability_verdict",
                 ),
