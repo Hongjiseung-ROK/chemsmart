@@ -13,7 +13,7 @@ falsifier: "retire when tests/conftest.py fences HOME and Path.home for every te
 home: prose
 supersedes: []
 earned: 2026-09-21
-last_verified: "2026-09-24 @ 986bdb56"
+last_verified: "2026-09-24 @ f84db238"
 ---
 A test of a command that writes configuration fences both the HOME variable and Path.home to a temporary directory before its first run.
 A witness for "the command honours its override" is red exactly when the command ignores the override, and in that state it writes wherever the real home points; setting CHEMSMART_CONFIG_DIR alone is not a fence.

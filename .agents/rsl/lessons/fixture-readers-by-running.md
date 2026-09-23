@@ -11,7 +11,7 @@ falsifier: "wrong if every reader under tests/ names its fixture by literal path
 home: prose
 supersedes: []
 earned: 2026-09-23
-last_verified: "2026-09-24 @ 986bdb56"
+last_verified: "2026-09-24 @ f84db238"
 ---
 A fixture's readers are found by running the tests without it, never by searching for its name.
 Tests here select fixtures by directory listing, glob and content digest, so "no test mentions this file" proves nothing.
