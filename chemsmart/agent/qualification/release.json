@@ -7,24 +7,27 @@
       "id": "xtb:cpu:opt",
       "status": "recorded",
       "run": "ax41-refine-100/general-round/workspaces/w1b goals/goal-w1b/runs/cycle-1",
-      "commit": "7fa80f17",
-      "date": "2026-09-02"
+      "commit": "6fd0b686",
+      "date": "2026-09-02",
+      "source": "The run's workspace records head 7fa80f17 of the ax41 host's feat/agent-close branch, a pre-landing SHA that is not in this repository. 6fd0b686 is its landed twin: the same four W1 repairs (queue-wait key, g98.out sidecar, xTB count from the log, recovery reason), committed at 06:37Z, seven minutes before this run (06:44Z). Matched by content and time; tree identity was not verified."
     },
     {
       "kind": "program_jobtype",
       "id": "xtb:cpu:hess",
       "status": "recorded",
       "run": "ax41-refine-100/general-round/workspaces/w1b goals/goal-w1b/runs/cycle-1",
-      "commit": "7fa80f17",
-      "date": "2026-09-02"
+      "commit": "6fd0b686",
+      "date": "2026-09-02",
+      "source": "The run's workspace records head 7fa80f17 of the ax41 host's feat/agent-close branch, a pre-landing SHA that is not in this repository. 6fd0b686 is its landed twin: the same four W1 repairs (queue-wait key, g98.out sidecar, xTB count from the log, recovery reason), committed at 06:37Z, seven minutes before this run (06:44Z). Matched by content and time; tree identity was not verified."
     },
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:opt",
       "status": "recorded",
       "run": "ax41-refine-100/general-round/workspaces/r2b goals/goal-r2b/runs/cycle-2",
-      "commit": "7fa80f17",
-      "date": "2026-09-02"
+      "commit": "6fd0b686",
+      "date": "2026-09-02",
+      "source": "The run's workspace records head 7fa80f17 of the ax41 host's feat/agent-close branch, a pre-landing SHA that is not in this repository. 6fd0b686 is its landed twin: the same four W1 repairs (queue-wait key, g98.out sidecar, xTB count from the log, recovery reason), committed at 06:37Z, seven minutes before this run (06:44Z). Matched by content and time; tree identity was not verified."
     },
     {
       "kind": "program_jobtype",
