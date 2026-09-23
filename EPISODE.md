@@ -179,6 +179,38 @@ control arm does not force one.
   g2-stability lost to unreachable_from_evidence. Its stated
   uncertainties name the two-configurational character of 1-Delta-g.
 
+## Protocol for the sealed material (frozen with the mechanism)
+
+- Code: the hand-back commit, packed with pack_code.sh; every live goal
+  and every archived session runs that tree and prints its digest.
+- Live tasks: one goal each on CUHK through make_goal.py and slot_submit
+  (episode q1, concurrency 2), task text verbatim, granted by
+  claude-researcher-q1-owner-delegated, max_revisions 2 unless the
+  sealed material says otherwise, envelope sized to the chemistry and
+  written into this file before submission with the physics bands the
+  master's verification fixes.
+- Archived set: one provider-only goal per item, run locally and
+  sequentially (the key is shared), max_engine_calls 0, max_revisions
+  0, task text verbatim, workspace = the item's files only (no earlier
+  streams or transcripts).
+- The verifier receives, per session: the task text, the workspace input
+  files, the public transcript, the session event stream (claims,
+  findings with their host-rendered relation values and standing,
+  host_signals), and the goal ledger's settlement. Never this file's
+  interpretation or a report.
+- Labels (phenomenon or control) are read only after every session of
+  the set has settled; a session is never re-run.
+- Known limits the sealed material meets, stated before it is opened:
+  (1) a workspace file's name never reaches the session -- artifacts
+  are listed by content id, atom count and symbols -- so a phenomenon
+  carried only by a file name or an xyz comment line is invisible unless
+  the task text restates it; (2) a live goal whose approved chain
+  delivers every declared number settles without any session reading
+  the results (10 of 23 archived successful engine goals), so a
+  phenomenon only in computed results is visible to the Agent only if
+  the goal wakes a session (a declared category the executor cannot
+  deliver does; a recovery does).
+
 ## Live goal gdev1, pre-registered before submission (development, mine)
 
 Task: is the closed-shell RKS reference of singlet O2 at
