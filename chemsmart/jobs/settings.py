@@ -45,6 +45,25 @@ FUNCTIONAL_IDENTITIES = {
             "TURBOMOLE's bare B3LYP, libxc HYB_GGA_XC_B3LYP5"
         ),
     },
+    # Gaussian's spelling differs, and Gaussian completes a route word
+    # that prefixes one of its keywords: ``pbe0`` ran PBE0-DH, a double
+    # hybrid, 0.0365 Eh above PBE0 on water (CUHK Slurm 2149277). ORCA
+    # PBE0 and PySCF pbe0 agree to 1.0e-5 Eh there, PBE to 1.4e-5 Eh --
+    # the precision of the PW92 constants, well inside the numerics of a
+    # relative energy.
+    "pbe0": {
+        "functional_family": "pbe0",
+        "correlation_convention": "pw92",
+        "definition": (
+            "PBE0 (25% exact exchange on PBE): Gaussian's PBE1PBE, ORCA's "
+            "PBE0, libxc HYB_GGA_XC_PBEH"
+        ),
+    },
+    "pbe": {
+        "functional_family": "pbe",
+        "correlation_convention": "pw92",
+        "definition": "the PBE GGA: Gaussian's PBEPBE, ORCA's PBE",
+    },
 }
 
 #: Other spellings of a literal in ``FUNCTIONAL_IDENTITIES``.
@@ -53,6 +72,8 @@ FUNCTIONAL_LITERAL_SYNONYMS = {
     "b3lyp/g": "b3lyp",
     "b3lyp-g": "b3lyp",
     "b3lyp-vwn5": "b3lyp5",
+    "pbe1pbe": "pbe0",
+    "pbepbe": "pbe",
 }
 
 
@@ -86,6 +107,76 @@ def functional_identity(value):
         "literal": literal,
         "functional_family": record["functional_family"],
         "correlation_convention": record["correlation_convention"],
+    }
+
+
+def functional_resolution_record(
+    *, program, functional, ab_initio, native, source
+):
+    """What one program is told for a project functional, as a host record.
+
+    Every program's settings module answers its receipt through this one
+    shape: the literal the project named, the literal it means, the native
+    spelling the program's own writer produces (``native``, passed in so
+    the record states the writer's output rather than a copy of its table)
+    and the program-neutral identity.  ``literal_preserved`` says the name
+    has no cross-program definition here, which is not a claim that the
+    programs agree on it.
+    """
+
+    base = {
+        "schema_version": "chemsmart.functional-resolution.v2",
+        "program": str(program),
+        "source": str(source),
+    }
+    if ab_initio is not None and str(ab_initio).strip():
+        return {
+            **base,
+            "status": "not_applicable",
+            "requested_method_kind": "ab_initio",
+            "requested_literal": None,
+            "canonical_literal": "",
+            "applied_native": None,
+            "functional_family": "wavefunction",
+            "correlation_convention": "not_applicable",
+            "rule_id": f"{program}.functional.not_applicable_ab_initio",
+        }
+    if functional is None or not str(functional).strip():
+        return {
+            **base,
+            "status": "missing",
+            "requested_method_kind": "dft",
+            "requested_literal": None,
+            "canonical_literal": "",
+            "applied_native": None,
+            "functional_family": "",
+            "correlation_convention": "unresolved",
+            "rule_id": f"{program}.functional.missing",
+        }
+    requested = str(functional).strip()
+    identity = functional_identity(requested)
+    if identity is None:
+        return {
+            **base,
+            "status": "literal_preserved",
+            "requested_method_kind": "dft",
+            "requested_literal": requested,
+            "canonical_literal": requested.lower(),
+            "applied_native": None if native is None else str(native),
+            "functional_family": "no_cross_program_definition",
+            "correlation_convention": "not_declared",
+            "rule_id": f"{program}.functional.literal_preserved",
+        }
+    return {
+        **base,
+        "status": "canonical_literal",
+        "requested_method_kind": "dft",
+        "requested_literal": requested,
+        "canonical_literal": identity["literal"],
+        "applied_native": None if native is None else str(native),
+        "functional_family": identity["functional_family"],
+        "correlation_convention": identity["correlation_convention"],
+        "rule_id": f"{program}.functional.{identity['literal']}",
     }
 
 
