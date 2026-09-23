@@ -274,6 +274,19 @@ b3lyp in both, or an ORCA TS result whose `functional` is not b3lyp. A
 different valid route is recorded as the session's choice, not scored.
 One goal is one observation.
 
+## Check D (pre-registered before submission): does `b3lyp` + `d3bj` in ORCA
+keep its dispersion after the translation?
+
+Two ORCA single points on the oracle-1 benzene, tight numerics, code
+e3fdaaca (the goal's): `functional: b3lyp` (now written B3LYP/G) and
+`functional: b3lyp5` (written B3LYP), both `dispersion: d3bj`.
+Expected: both print the dispersion correction -0.01889787 Eh that ORCA
+B3LYP + D3BJ printed in oracle 1 (and PySCF d3bj, -0.018897869850), within
+1e-8 -- one set of Grimme parameters for both forms. If ORCA refuses
+B3LYP/G with D3BJ, or prints another number, then every ORCA project
+saying `b3lyp` with `d3bj` changed more than its local correlation, and the
+report says so; nothing is repaired in this episode.
+
 ## Status
 
 - step 1: oracle 1 pre-registered; code unchanged.
