@@ -185,7 +185,48 @@ Gaussian vs PySCF to 6e-4 eV; and ORCA's root 4 sits 0.0059 eV above both
 - ORCA's root 4 is grid numerics if ORCA at defgrid3 (NoRI) moves it to
   within 0.002 eV of Gaussian's 9.7621; falsified otherwise.
 
+### G2 -- a Gaussian relaxed scan and a constrained optimisation through the Agent (qualification of gaussian:cpu:scan and gaussian:cpu:modred)
+
+Task (fixed before issue, `goals/g2-scan-modred/TASK.md`): H2O2 from a
+geometry at its 115.0 degree torsion; "Using Gaussian at B3LYP/def2-SVP:
+(1) map the relaxed H-O-O-H torsion profile from 0 to 180 in 15-degree
+steps, report the lowest point and the cis and trans barriers relative
+to the fully relaxed minimum; (2) relax it with the O-O bond held at
+1.60 A, report the cost relative to the minimum and the torsion there."
+Code: the pack after b27e0add (scan start held to the geometry,
+constrained family, all Q7 fixes).
+- Success: at least one Gaussian `scan` node and one `modred` node
+  executed under the approval chain, validated and parsed; the scan's
+  relative profile within 0.05 kcal/mol of O2's Gaussian scan at every
+  common point (cis 8.30, trans 0.53 kcal/mol above the 120-degree grid
+  point); the held O-O 1.6000 +- 0.0005 A in the reached structure and
+  its cost within 0.05 kcal/mol of O3's Gaussian value; the torsion of
+  the stretched structure within 1 degree of O3's.
+- Failure: no scan or modred node executes; a scan surface that is not
+  the requested range (the defect 85679b4d refuses) reaches a claim; a
+  refusal with no route leaves the task unanswerable.
+- Recorded, not scored: whether the session edits the torsion to 0
+  before the scan unprompted, or meets scan.start_is_where_the_geometry_is
+  and follows its route.
+
 ## Results read so far (host records, through ChemSmart's readers)
+
+O2 + V1 (Slurm 2150076):
+- S1 PASS: both scans report 13 points at 0, 15, ..., 180.
+- S2 PASS: relative profiles agree within 0.0014 kcal/mol at every
+  point; totals within 7e-6 Eh (Gaussian B3LYP vs ORCA B3LYP/G, NoRI).
+- S3 PASS: lowest grid point 120 degrees; cis 8.2986 (G) / 8.2991 (O),
+  trans 0.5340 / 0.5334 kcal/mol above it.
+- M1 PASS: both modreds hold 90.00 degrees (90.0001 ORCA); totals
+  -151.421889474 (G) and -151.421893002 (O), 3.5e-6 Eh apart; each
+  equals its own scan's 90-degree point to 1.2e-7 (G) and 1.2e-6 Eh (O).
+- V1: Gaussian read `D 3 1 2 4 0.0 S 2 15.0` as `D 3 1 2 4 0.0000 B`,
+  set the torsion to 0.0 and ran a plain optimisation -- the scan
+  silently dropped. A value on the scan row is not a start; the hub
+  cannot translate `start` into Gaussian's input, so it measures the
+  geometry and refuses instead (85679b4d).
+- Found by reading back: ORCA names the held dihedral 4-2-1-3 where
+  Gaussian names 3-1-2-4 -- one torsion, either end first.
 
 O1 (Slurm 2150076, code 7111e2a6, digest 4d7248e7, all 22 TD runs exit 0):
 - Acrolein, full TD-DFT, the same YAML in three programs: Gaussian
