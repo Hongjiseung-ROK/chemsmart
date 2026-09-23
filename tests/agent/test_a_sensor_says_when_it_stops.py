@@ -111,13 +111,12 @@ def test_the_same_structure_sensor_reports_a_comparison_it_could_not_make(
     )
     below = _heavy(symbols) < SENSOR_HEAVY_ATOM_FLOOR
     if below:
-        assert len(observations) == 1, name
-        (observation,) = observations
-        assert (
-            observation["signal_id"]
-            == "geometry.same_structure_comparison_not_made"
-        )
-        assert observation["heavy_atom_count"] == _heavy(symbols)
+        # Every block this sensor returns is minted into an anomaly
+        # receipt, and an anomaly changes the settlement word; a sensor
+        # that did not look has observed nothing about the molecule.
+        # That it stopped is written on the validation receipt instead
+        # (tests/agent/test_a_sensor_floor_is_not_an_anomaly.py).
+        assert observations == (), name
     else:
         # Above the floor with no receipts to compare against, the
         # sensor is silent because it looked and found no sibling.

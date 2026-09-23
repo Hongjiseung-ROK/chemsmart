@@ -1236,29 +1236,19 @@ def _same_structure_observations(
         return ()
     heavy = [index for index, symbol in enumerate(symbols) if symbol != "H"]
     if len(heavy) < SENSOR_HEAVY_ATOM_FLOOR:
-        # Not silence: the block says the comparison was not made and
-        # why, so a reader can tell "no sibling matched" from "no
-        # comparison was possible".
-        return (
-            # ``signal_id`` and not some other word for the same thing:
-            # every observation this function returns is read by one
-            # consumer, which builds an anomaly observation from it and
-            # asks for that key by name. Naming the floor block
-            # differently from its own sibling below left the two halves
-            # disagreeing while the suite stayed green, because the test
-            # asserted the producer's spelling instead of driving the
-            # consumer -- and the first goal to validate a node with
-            # fewer than three heavy atoms died of a KeyError after its
-            # engine had already run, so a finished calculation was
-            # typed interrupted_mid_engine and the next node never
-            # launched. Water has one heavy atom.
-            {
-                "signal_id": "geometry.same_structure_comparison_not_made",
-                "heavy_atom_rmsd_floor_applied": True,
-                "heavy_atom_count": len(heavy),
-                "node_id": str(node_id),
-            },
-        )
+        # Below the floor no comparison is made, and that is a fact about
+        # the sensor, not an observation about the molecule. Every record
+        # this function returns is minted into an anomaly receipt, and an
+        # anomaly receipt changes the goal's settlement word: the floor
+        # record used to be returned here, under a signal no registry
+        # declared, and 8 archived goals settled
+        # ``achieved_with_observations`` on it alone (49 receipts,
+        # water, formaldehyde, HCN, HOOH). That the comparison was not
+        # made is written on the validation receipt instead
+        # (``same_structure_comparison`` in its observations), where a
+        # reader can still tell "no sibling matched" from "no comparison
+        # was possible".
+        return ()
     # The nodes this one is one structure with by construction: the
     # producer whose geometry it consumed, every sibling that consumed
     # the same producer's geometry, and every consumer of its own.
@@ -16498,6 +16488,23 @@ class CommandCompiledToolHostV1:
                     program_block.setdefault(key, value)
         for key, value in neutral_inputs.items():
             sensor_inputs.setdefault(key, value)
+        # The same-structure sensor compares this result with its siblings
+        # by a Kabsch heavy-atom RMSD, which means nothing below the
+        # declared floor. That it will not compare is recorded here, on the
+        # receipt, rather than minted as an anomaly the settlement word
+        # would carry. A calculation keeps its atoms, so the structure it
+        # was handed says how many there are.
+        handed_symbols, _positions = _pyscf_input_geometry(
+            expected_input_artifact
+        )
+        heavy_atom_count = sum(1 for item in handed_symbols if item != "H")
+        if handed_symbols and heavy_atom_count < SENSOR_HEAVY_ATOM_FLOOR:
+            observation["same_structure_comparison"] = {
+                "made": False,
+                "heavy_atom_count": heavy_atom_count,
+                "heavy_atom_floor": SENSOR_HEAVY_ATOM_FLOOR,
+                "policy_id": "sensor_heavy_atom_floor",
+            }
         # One program-neutral verdict on the order of the stationary point,
         # from the frequencies the program itself printed and the jobtype
         # the human approved. ORCA's transition-state check above stays;
