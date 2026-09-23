@@ -113,6 +113,86 @@ def _host(tmp_path: Path, program: str):
     return host
 
 
+@pytest.mark.parametrize(
+    "relative_output",
+    (
+        "tests/data/ORCATests/outputs/phenylalanine_fixed_dihedral.out",
+        "tests/data/ORCATests/outputs/ethanol_fixed_bond.out",
+    ),
+)
+def test_an_admitted_constrained_optimisation_hands_on_what_it_reached(
+    tmp_path, relative_output
+):
+    """What the owner admits at approval, the handoff keeps after the run."""
+
+    from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
+    from chemsmart.agent.execution import (
+        build_producer_edge_rule,
+        handoff_optimized_native_geometry,
+        producer_edge_selection_rule,
+    )
+    from chemsmart.io.orca.output import ORCAOutput
+
+    plan = _plan("modred")
+    assert producer_edge_selection_rule(plan, plan.edges[0]) == (
+        "validated_optimized_geometry"
+    )
+    output_path = Path(__file__).resolve().parents[2] / relative_output
+    output = ORCAOutput(str(output_path))
+    assert output.jobtype == "modred"
+    symbols = tuple(output.molecule.chemical_symbols)
+    handed = tmp_path / "start.xyz"
+    handed.write_text(
+        "\n".join(
+            [str(len(symbols)), "the structure the modred was handed"]
+            + [
+                f"{symbol} {x + 0.01} {y} {z}"
+                for symbol, (x, y, z) in zip(
+                    symbols, output.molecule.positions
+                )
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def _artifact(path: Path, artifact_id: str, kind: str):
+        return TrustedArtifactRefV1(
+            artifact_id=artifact_id,
+            kind=kind,
+            sha256=file_sha256(path),
+            size_bytes=path.stat().st_size,
+            path=str(path),
+            cli_value=str(path),
+        )
+
+    result = _artifact(output_path, "result.modred", "orca_output")
+    geometry, handoff = handoff_optimized_native_geometry(
+        program="orca",
+        producer_receipt=SimpleNamespace(
+            validated=True,
+            node_id="producer",
+            receipt_sha256="a" * 64,
+            output_artifacts=(result,),
+        ),
+        result_artifact=result,
+        input_artifact=_artifact(handed, "geometry.start", "geometry_xyz"),
+        producer_edge=build_producer_edge_rule(
+            producer_node_id="producer",
+            consumer_node_id="consumer",
+            artifact_kind="geometry_xyz",
+            selection_rule="validated_optimized_geometry",
+        ),
+        approved_workspace=tmp_path,
+        geometry_artifact_id="geometry.producer-to-consumer",
+        expected_charge=int(output.charge),
+        expected_multiplicity=int(output.multiplicity),
+    )
+    assert handoff.symbols == symbols
+    comment = Path(geometry.path).read_text().splitlines()[1]
+    assert "orca MODRED (relaxation converged)" in comment
+
+
 def test_a_scan_minimum_consumer_waits_where_the_review_admits_it(tmp_path):
     """The one route out of a torsional saddle is not told to delete itself."""
 
