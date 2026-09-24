@@ -925,8 +925,10 @@ def refusal_read_against_results(
             basis
             + f"; the host read {selector!r} from the registered results -- "
             + "; ".join(served)
-            + " -- so the evidence holds what the refusal names and the "
-            "refusal is not verified"
+            + " -- so the evidence holds a reading of the selector the "
+            "refusal names and the refusal is not verified (a result at "
+            "another level or of another structure is the session's to "
+            "name)"
         )
     if not selector_declared and unread:
         printed = tuple(
