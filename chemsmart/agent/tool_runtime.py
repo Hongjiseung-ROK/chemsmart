@@ -160,6 +160,12 @@ from chemsmart.agent.execution import (
     write_host_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
+from chemsmart.agent.goal import (
+    FailedCriterionV1,
+    cited_receipts,
+    failed_criteria,
+    results_read,
+)
 from chemsmart.agent.identity import (
     ApprovedMolecularIdentityV1,
     refuse_impossible_electronic_state,
@@ -6826,9 +6832,13 @@ class CommandCompiledToolHostV1:
         """
 
         root = getattr(self, "run_evidence_root", None)
-        if not root:
+        if not root or not receipt_sha256:
             return False
-        needle = f'"receipt_sha256": "{receipt_sha256}"'
+        # The digest is searched as itself and the record is read as the
+        # store wrote it. The needle used to spell the JSON with a space
+        # after the colon, which the event store never writes, so every
+        # citation of a recorded run's receipt was refused -- including
+        # the failed validation receipt the wake tells a session to cite.
         for stream in sorted(
             Path(root).glob(".chemsmart-agent/goals/*/runs/*/events.jsonl")
         ):
@@ -6836,16 +6846,21 @@ class CommandCompiledToolHostV1:
                 text = stream.read_text(encoding="utf-8")
             except OSError:
                 continue
-            if needle not in text:
+            if receipt_sha256 not in text:
                 continue
             for line in text.splitlines():
-                if needle not in line:
+                if receipt_sha256 not in line:
                     continue
                 try:
                     event = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                if event.get("kind") in self._RUN_RECEIPT_KINDS:
+                payload = event.get("payload") or {}
+                if (
+                    event.get("kind") in self._RUN_RECEIPT_KINDS
+                    and str(payload.get("receipt_sha256") or "")
+                    == receipt_sha256
+                ):
                     return True
         return False
 
@@ -12650,9 +12665,10 @@ class CommandCompiledToolHostV1:
         if doubted_quantity_ids:
             # A session that doubts a receipt and claims from it has said
             # both things in typed form; the completion word carries that
-            # truth instead of certifying past it.
+            # truth instead of certifying past it -- beside, never in place
+            # of, the criteria its claims stand under.
             status = "partial"
-            findings = tuple(
+            findings = findings + tuple(
                 f"analysis.claim_under_recorded_doubt.{quantity_id}"
                 for quantity_id in doubted_quantity_ids
             )
@@ -12665,10 +12681,118 @@ class CommandCompiledToolHostV1:
             limitation_output_ids=limitation_output_ids,
         )
 
+    def _failed_criteria(self) -> tuple[FailedCriterionV1, ...]:
+        """Every failed acceptance-criterion verdict this host holds, and
+        whether a decision it recorded answered it.
+
+        The one function every organ calls (``goal.failed_criteria``):
+        the session's completion, the executor's completion of an
+        approved chain, and the settlement, which reads the same records
+        back from the stream. They used to answer three ways -- the
+        executor never looked, the session never read a decision, the
+        settlement read one receipt at a time -- and a goal whose session
+        cited the failed receipt and stood by its answer went back to the
+        human saying a gate had not passed (L1, R10 Q16, CUHK 2152989).
+        """
+
+        # getattr, as the other registry readers here: a host restored for
+        # preflight is built without running __init__.
+        validations = []
+        for digest, receipt in getattr(
+            self, "scientific_validation_receipts", {}
+        ).items():
+            record = canonical_data(receipt)
+            record["receipt_sha256"] = digest
+            validations.append(record)
+        if not validations:
+            return ()
+        cited: set[str] = set()
+        for decision in getattr(self, "scientific_decisions", {}).values():
+            cited |= cited_receipts(getattr(decision, "evidence_refs", ()))
+        result_artifacts, expression_sources = self._result_lineage_maps()
+        return failed_criteria(
+            validations,
+            cited=cited,
+            result_artifacts=result_artifacts,
+            expression_sources=expression_sources,
+        )
+
+    def _result_lineage_maps(
+        self,
+    ) -> tuple[dict[str, str], dict[tuple[str, str], tuple[str, ...]]]:
+        """Which result each extraction read, and what each expression
+        output was computed from -- the two maps ``results_read`` follows,
+        built from this host's receipts exactly as the settlement builds
+        them from the stream those receipts are written to."""
+
+        return (
+            {
+                str(digest): str(receipt.artifact_sha256)
+                for registry in (
+                    getattr(self, "quantity_extractions", {}),
+                    # A derivation reads its result as an extraction does.
+                    getattr(self, "thermochemistry_receipts", {}),
+                )
+                for digest, receipt in registry.items()
+                if getattr(receipt, "artifact_sha256", "")
+            },
+            {
+                (str(digest), str(dependency.output_id)): tuple(
+                    str(item) for item in dependency.source_receipt_sha256s
+                )
+                for digest, receipt in getattr(
+                    self, "quantity_expression_receipts", {}
+                ).items()
+                for dependency in getattr(receipt, "output_dependencies", ())
+            },
+        )
+
+    def _delivered_claims_on_an_unanswered_criterion(
+        self, records: Sequence[Any]
+    ) -> tuple[str, ...]:
+        """Claims a delivery made without a plan rests on an unread verdict.
+
+        A delivery certified from registered results has no approved plan
+        to trace, so the join is the receipts' own: a claim that renders
+        the verdict, or reads a result the verdict's rule read. The
+        certificate used to be minted ``passed`` over such a claim while
+        its own stream held the failed criterion nobody had cited.
+        """
+
+        unanswered = [
+            verdict
+            for verdict in self._failed_criteria()
+            if not verdict.answered
+        ]
+        if not unanswered:
+            return ()
+        result_artifacts, expression_sources = self._result_lineage_maps()
+        named: set[str] = set()
+        for record in records:
+            for claim in getattr(record, "claims", ()):
+                source = str(claim.source_receipt_sha256)
+                read = results_read(
+                    source,
+                    str(claim.quantity_id),
+                    result_artifacts=result_artifacts,
+                    expression_sources=expression_sources,
+                )
+                if any(
+                    source in verdict.receipt_sha256s
+                    or read.intersection(verdict.results)
+                    for verdict in unanswered
+                ):
+                    named.add(
+                        str(getattr(claim, "claim_id", "") or "")
+                        or str(claim.quantity_id)
+                    )
+        return tuple(sorted(named))
+
     def _claims_on_a_failed_criterion(
         self, plan: Any, *, task_spec_sha256: str
     ) -> tuple[str, ...]:
-        """Claims that descend from a result whose own criterion failed.
+        """Claims that descend from a result whose own criterion failed,
+        where no recorded decision has answered that verdict.
 
         A plan may carry scientific_validation nodes -- an imaginary-mode
         count, a spin-manifold check, a scan ridge above the barrier it
@@ -12681,12 +12805,24 @@ class CommandCompiledToolHostV1:
 
         Never a refusal and never a silent drop. A failed criterion is a
         stated finding, the number stays delivered, and the reader is
-        told which criterion it stands under.
+        told which criterion it stands under. A verdict a recorded
+        decision cites is answered: the session has read the finding
+        and stands by its delivery, which the settlement has always
+        counted as the scientist's call, so the completion no longer
+        names claims under it -- the verdict rides the completion's
+        observations instead (``_record_toolchain_completion``) and the
+        settlement word carries it.
         """
 
         nodes = {node.node_id: node for node in plan.analysis_nodes}
         if not nodes:
             return ()
+        unanswered_receipts = {
+            receipt
+            for verdict in self._failed_criteria()
+            if not verdict.answered
+            for receipt in verdict.receipt_sha256s
+        }
 
         def producers(node_id: str, seen: frozenset[str] = frozenset()) -> set:
             node = nodes.get(node_id)
@@ -12708,8 +12844,10 @@ class CommandCompiledToolHostV1:
 
         failed_producers: set[str] = set()
         failed_by_node: dict[str, str] = {}
-        for receipt in self.scientific_validation_receipts.values():
+        for digest, receipt in self.scientific_validation_receipts.items():
             if getattr(receipt, "all_rules_passed", True):
+                continue
+            if digest not in unanswered_receipts:
                 continue
             node_id = str(getattr(receipt, "node_id", "") or "")
             if node_id not in nodes:
@@ -12928,8 +13066,19 @@ class CommandCompiledToolHostV1:
             for row in declared_predictions
             if row.get("agreement") == "diverged" and row.get("observable_id")
         )
+        # The plan's own acceptance criteria that failed ride the same
+        # list under their own prefix, with whether a recorded decision
+        # has answered them: a completion certified over an answered one
+        # still says the delivery carries it. Unlike a declaration, a
+        # criterion carries no mark of whether the session stated it
+        # before or after it held the number (L-S2 did both).
+        failed = tuple(
+            verdict.observation_id for verdict in self._failed_criteria()
+        )
         anomaly_output_ids = tuple(
-            sorted(set(self._anomaly_output_ids()) | set(falsified))
+            sorted(
+                set(self._anomaly_output_ids()) | set(falsified) | set(failed)
+            )
         )
         body = {
             "schema_version": "chemsmart.analysis-completion-receipt.v1",
@@ -13034,6 +13183,27 @@ class CommandCompiledToolHostV1:
         task_spec_sha256 = self._resolve_task_spec_reference(
             {}, "task_spec_sha256"
         )
+        # The executor walked the chain the human approved and holds no
+        # decision, so a criterion of that chain which failed is a finding
+        # nobody has read yet: the claims standing on it are named, exactly
+        # as the session's completion names them. This walk used to certify
+        # ``passed`` over the same shape the session called partial (L1's
+        # first cycle, R10 Q16, CUHK 2152989: both stability criteria
+        # failed, the run's completion passed).
+        failed_criterion_ids = self._claims_on_a_failed_criterion(
+            plan, task_spec_sha256=task_spec_sha256
+        )
+        if failed_criterion_ids:
+            return self._record_toolchain_completion(
+                plan.plan_sha256,
+                task_spec_sha256=task_spec_sha256,
+                source_receipt_sha256s=receipts,
+                status="partial",
+                findings=tuple(
+                    f"analysis.claim_on_failed_criterion.{output_id}"
+                    for output_id in failed_criterion_ids
+                ),
+            )
         return self._record_toolchain_completion(
             plan.plan_sha256,
             task_spec_sha256=task_spec_sha256,
@@ -13159,6 +13329,18 @@ class CommandCompiledToolHostV1:
                 ),
             }
         )
+        standing = self._delivered_claims_on_an_unanswered_criterion(records)
+        if standing:
+            return self._record_toolchain_completion(
+                policy_sha256,
+                task_spec_sha256=task_spec_sha256,
+                source_receipt_sha256s=sources,
+                status="partial",
+                findings=tuple(
+                    f"analysis.claim_on_failed_criterion.{name}"
+                    for name in standing
+                ),
+            )
         return self._record_toolchain_completion(
             policy_sha256,
             task_spec_sha256=task_spec_sha256,

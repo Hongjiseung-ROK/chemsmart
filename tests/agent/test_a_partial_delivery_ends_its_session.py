@@ -104,8 +104,12 @@ def _turn(ordinal, content, tool_calls=()):
     }
 
 
-def _o2r_turns(artifact_id):
-    """The acts o2r's woken session made, in the order it made them."""
+def _o2r_turns(artifact_id, *, cite_verdict=True):
+    """The acts o2r's woken session made, in the order it made them.
+
+    o2r's decision cited the failed validation receipt it had just been
+    handed (``cite_verdict``); a session that did not is the other arm.
+    """
 
     extraction = {
         "workflow_id": _WORKFLOW,
@@ -284,7 +288,7 @@ def _o2r_turns(artifact_id):
             "evidence_refs": [],
             "postprocessing_receipt_sha256s": [
                 extraction_receipt,
-                validation,
+                *((validation,) if cite_verdict else ()),
                 claim_record,
             ],
         }
@@ -341,7 +345,10 @@ def test_a_partial_completion_ends_the_session_planned_on_its_draft(
     tmp_path,
 ):
     host, artifact_id = _host(tmp_path)
-    turns = iter(_o2r_turns(artifact_id))
+    # A decision that cites the failed verdict answers it and the
+    # completion is then certified (R10 Q19); the partial delivery this
+    # pins is the one whose criterion nobody answered.
+    turns = iter(_o2r_turns(artifact_id, cite_verdict=False))
     config = Qwen38MaxConfigV1()
     session = Qwen38MaxToolSession(
         transport=lambda payload: next(turns)(payload),
