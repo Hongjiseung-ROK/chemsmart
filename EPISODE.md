@@ -360,6 +360,12 @@ within 0.0011. Served as hirshfeld_atomic_spin_populations (1f1ca4ab).
 - Qualification: release.json records for the four PySCF selectors
   (e37bbeb2), earned by o2r and dans. Gaussian and ORCA selectors served
   this episode are tested on archived and new CLI bytes, not qualified.
-- Gates on a pristine export of e37bbeb2: tests/agent 3048 passed, 0 failed;
-  touched files ruff/black/isort clean; full suite: see the hand-back.
+- Gates on a pristine export of e37bbeb2 (every later commit touches only
+  this file): tests/agent 3048 passed, 0 failed; full suite 23 failed, 4602
+  passed, 25 skipped, 3 xfailed -- the failing set equal to the round
+  baseline (test_structures x19, pyscf dispersion x2, PyscfSettings x1,
+  aggregation x1); the 15 touched Python files ruff/black/isort clean
+  (exit statuses read, not piped). Export deleted after its gate.
+- Census scripts and replay outputs: CUHK
+  /project/xlzhang/jiseung/r10/q13/census/q13-census-and-replays.tar.
 - Milestone claimed: A.
