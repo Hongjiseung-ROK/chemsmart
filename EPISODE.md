@@ -477,6 +477,47 @@ sealed goal has settled.
   conclusion is graded, it has no reading, and the settlement words per
   arm are reported.
 
+## Re-pin (2026-09-25, on the master's word, before any sealed session)
+
+Reason, in one sentence: r10-integration moved to a7bc02e0, whose Q16 H1
+repairs the "planned termination requires the latest workflow draft" loss
+that took 3 of my 20 development goals' readings, so the arms are rebuilt
+on it and nothing else in the pre-registration changes.
+
+| arm | commit | pack digest (verified on CUHK) | switch |
+|---|---|---|---|
+| S | 55729bc4 = merge of a7bc02e0 into this branch (chemsmart/ = a7bc02e0 + the lever, 121 lines of tool_runtime.py) | 0144da205957dd4a... (r10/q17/code-55729bc4) | 0 |
+| P | 55729bc4 | 0144da205957dd4a... | 1 |
+| U | 84223707 on `q17-arm-unserved` = merge of 55729bc4 into the side branch (chemsmart/ = 55729bc4 + the unserve block, 84 lines of result_readers.py) | 6b48ed8a785f570b... (r10/q17/code-84223707) | 0 |
+
+Checks on the re-pinned trees: tests/agent on 55729bc4 3098 passed, 0
+failed; on 84223707 5 failed, 3081 passed -- the four hidden-selector
+failures recorded before plus one new test from Q16's merge
+(test_a_partial_delivery_ends_its_session replays o2r's extraction of
+`scf_stability_external_lowest_eigenvalue`, which U hides). Surface digests
+are unchanged by the re-pin: S and P catalogue ed4699bd..., tools
+e4d128ee..., prompt e6d02186... in both switch states; U catalogue
+2e8875c4..., tools 8082518f..., prompt e6d02186...; U's reader serves none
+of the hidden names.
+
+Harness changes made with the re-pin, each on the master's word or forced
+by the release, none changing an arm, a measure or a test:
+- run_sessions.py (sha256 9ebfce01...): the master's stop rule -- after any
+  goal in which an attempt was classed quota_exhausted, rate_limited or
+  credential_invalid, or a session had zero provider turns, it writes
+  <run set>/STOP and neither slot starts another goal (a running goal
+  finishes); it records each goal's provider tokens and prints the running
+  total; it copies a task's `workspace/` folder as the goal workspace (the
+  release's layout). The pre-registered re-issue-once still applies to a
+  turn-deadline death or a runner timeout. Stated now, from hc1's records:
+  2 of 9 hc1 goals (both U) carried transient rate_limited attempts the
+  transport retried inside a live session, so under this rule the sealed
+  run may stop early; it stops, and I hand back.
+- fetch_runset.sh (a1ffa8d0...) and stage_sealed.sh (1d694f87...): sealed
+  content is staged and fetched only under the worktree's git-ignored
+  sealed/ folder, never the session scratchpad.
+- Job scripts: SHA_S = 55729bc4, SHA_U = 84223707, 12 h per slot.
+
 ## Jobs issued
 
 | job | slot | what | pre-registration | outcome |
