@@ -1038,22 +1038,34 @@ def _resolve_computed_surface(reader, output, selector, word):
 #: one, Gaussian names none -- so the space rides the answer and is
 #: never assumed from the question.  ``considered_perturbations`` is
 #: Gaussian's own hedge, kept as its own word rather than folded into
-#: either of the other two.
+#: either of the other two.  ``real_to_complex`` is the question PySCF
+#: solves inside its external analysis and does not return: a record
+#: that heard PySCF's answer to it carries it as a third question.
 REFERENCE_STABILITY_QUESTIONS = (
     "internal",
     "external",
+    "real_to_complex",
     "considered_perturbations",
 )
 
 
-def _stability_answer(question, *, rotation_space=None, reason=None):
-    """One question's answer, in the shape every reader writes."""
+def _stability_answer(
+    question, *, rotation_space=None, reason=None, lowest_eigenvalue=None
+):
+    """One question's answer, in the shape every reader writes.
+
+    ``lowest_eigenvalue`` is the number the verdict was drawn from, in the
+    program's own normalisation and unit, where the program printed one:
+    an anomaly is recorded with the numbers that tripped it.
+    """
 
     answer = {"question": str(question)}
     if rotation_space:
         answer["rotation_space"] = str(rotation_space)
     if reason:
         answer["reason"] = str(reason)
+    if lowest_eigenvalue is not None:
+        answer["lowest_eigenvalue"] = float(lowest_eigenvalue)
     return answer
 
 
@@ -1093,7 +1105,7 @@ def _pyscf_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
     on its own.
     """
 
-    record = getattr(output, "scf_stability", None)
+    record = _pyscf_stability_record(output)
     if not isinstance(record, Mapping):
         return None
     analyses = record.get("analyses")
@@ -1115,9 +1127,18 @@ def _pyscf_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
         if answered is None:
             continue
         target = stable if bool(answered) else unstable
+        eigenvalues = entry.get("lowest_eigenvalues") or ()
         target.append(
             _stability_answer(
-                question, rotation_space=entry.get("rotation_space")
+                question,
+                rotation_space=entry.get("rotation_space"),
+                lowest_eigenvalue=(
+                    eigenvalues[0]
+                    if eigenvalues
+                    and record.get("eigenvalue_unit")
+                    == _pyscf_stability_eigenvalue_unit()
+                    else None
+                ),
             )
         )
     not_determined = [
@@ -4730,6 +4751,21 @@ def _pyscf_response_dielectric(output: Any) -> float:
     return float(value)
 
 
+def _pyscf_stability_eigenvalue_unit() -> str:
+    """The unit the driver records stability eigenvalues in (its table)."""
+
+    from chemsmart.jobs.pyscf.settings import PYSCF_STABILITY_EIGENVALUE_UNIT
+
+    return PYSCF_STABILITY_EIGENVALUE_UNIT
+
+
+def _pyscf_stability_record(output: Any) -> Mapping[str, Any] | None:
+    """The stability record this result carries, or None."""
+
+    record = getattr(output, "scf_stability", None)
+    return record if isinstance(record, Mapping) else None
+
+
 def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
     """One question's entry from the recorded analysis, or why there is none.
 
@@ -4738,10 +4774,12 @@ def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
     could not answer this question for this reference (an ROHF reference
     has no external answer at all), or it returned no answer. None of
     them is stability, which is why absence is spelled out rather than
-    defaulted.
+    defaulted.  A fifth belongs to real -> complex alone: a record written
+    before the driver listened to PySCF's analysis names it not
+    determined, with the reason, and that reason is what is said.
     """
 
-    record = getattr(output, "scf_stability", None)
+    record = _pyscf_stability_record(output)
     if not isinstance(record, Mapping):
         if getattr(output, "scf_stability_requested", None) is False:
             raise MissingQuantityError(
@@ -4756,6 +4794,13 @@ def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
         )
     entry = (record.get("analyses") or {}).get(question)
     if not isinstance(entry, Mapping):
+        undetermined = (record.get("not_determined") or {}).get(question)
+        if isinstance(undetermined, Mapping):
+            raise MissingQuantityError(
+                f"this stability record names the {question!r} question "
+                f"({undetermined.get('rotation_space') or question}) not "
+                f"determined: {undetermined.get('reason') or 'no reason'}"
+            )
         raise MissingQuantityError(
             f"this stability analysis carries no {question!r} question"
         )
@@ -4811,6 +4856,47 @@ def _pyscf_stability_rotation_space(output: Any) -> str:
             "this external stability answer names no rotation space"
         )
     return str(space)
+
+
+def _pyscf_stability_lowest_eigenvalue(
+    question: str,
+) -> Callable[[Any], float]:
+    """The lowest eigenvalue PySCF found for one rotation question, in Eh.
+
+    The number the verdict is drawn from: PySCF calls the reference
+    unstable when it lies below its threshold (-1e-5 Eh), so a value just
+    above zero is a reference close to an instability and a value just
+    below the threshold one barely across it -- what a bare word hides.
+    It is a root of PySCF's orbital Hessian in PySCF's own normalisation,
+    comparable across PySCF results and against that threshold, and not
+    against another program's stability matrix, which is why the name is
+    PySCF's own family and not Gaussian's.  The record states the unit
+    it wrote; one that differs from the driver's table is a divergence,
+    not an absence.
+    """
+
+    def accessor(output: Any) -> float:
+        from chemsmart.analysis import result_quantities as rq
+
+        entry = _pyscf_stability_entry(output, question)
+        values = entry.get("lowest_eigenvalues")
+        if not values:
+            raise MissingQuantityError(
+                f"this {question!r} stability answer records no "
+                "eigenvalues: it was written before the driver kept the "
+                "numbers PySCF's analysis logged"
+            )
+        record = _pyscf_stability_record(output) or {}
+        written = record.get("eigenvalue_unit")
+        if written != _pyscf_stability_eigenvalue_unit():
+            raise rq.QuantityExtractionError(
+                f"this stability record states its eigenvalues in "
+                f"{written!r}; the driver's table writes "
+                f"{_pyscf_stability_eigenvalue_unit()!r}"
+            )
+        return float(values[0])
+
+    return accessor
 
 
 def _pyscf_absence_reason(
@@ -5202,6 +5288,22 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
         "scf_stability_external_rotation_space": (
             _pyscf_stability_rotation_space
         ),
+        # The question PySCF solves inside its external analysis and does
+        # not return, and the number behind each verdict. Recorded since
+        # the driver listened to the analysis; before, the record said
+        # real -> complex was not determined while the log beside it said.
+        "scf_stability_real_to_complex": _pyscf_stability_verdict(
+            "real_to_complex"
+        ),
+        "scf_stability_internal_lowest_eigenvalue": (
+            _pyscf_stability_lowest_eigenvalue("internal")
+        ),
+        "scf_stability_external_lowest_eigenvalue": (
+            _pyscf_stability_lowest_eigenvalue("external")
+        ),
+        "scf_stability_real_to_complex_lowest_eigenvalue": (
+            _pyscf_stability_lowest_eigenvalue("real_to_complex")
+        ),
         "solvation_electrostatic_energy": _pyscf_decomposition_scalar(
             "solvation_electrostatic_energy"
         ),
@@ -5320,8 +5422,12 @@ _PYSCF_SCF_SELECTORS = (
     "positions",
     "scf_energy",
     "scf_stability_external",
+    "scf_stability_external_lowest_eigenvalue",
     "scf_stability_external_rotation_space",
     "scf_stability_internal",
+    "scf_stability_internal_lowest_eigenvalue",
+    "scf_stability_real_to_complex",
+    "scf_stability_real_to_complex_lowest_eigenvalue",
     "solvation_electrostatic_energy",
     "solvation_model",
     "solvation_nonelectrostatic_energy",
@@ -5483,8 +5589,15 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             # belongs to the structure that SCF ran on, as every other
             # mean-field property here does.
             ("scf_stability_external", "as_reached"),
+            ("scf_stability_external_lowest_eigenvalue", "as_reached"),
             ("scf_stability_external_rotation_space", "as_reached"),
             ("scf_stability_internal", "as_reached"),
+            ("scf_stability_internal_lowest_eigenvalue", "as_reached"),
+            ("scf_stability_real_to_complex", "as_reached"),
+            (
+                "scf_stability_real_to_complex_lowest_eigenvalue",
+                "as_reached",
+            ),
             ("singlet_excitation_energies", "as_reached"),
             ("singlet_oscillator_strengths", "as_reached"),
             ("solvation_electrostatic_energy", "as_reached"),
@@ -5560,8 +5673,12 @@ _PYSCF_ELECTRONIC_PROVENANCE = tuple(
             # carries a total that is not the reference's beside a
             # verdict that is.
             ("scf_stability_external", "reference"),
+            ("scf_stability_external_lowest_eigenvalue", "reference"),
             ("scf_stability_external_rotation_space", "reference"),
             ("scf_stability_internal", "reference"),
+            ("scf_stability_internal_lowest_eigenvalue", "reference"),
+            ("scf_stability_real_to_complex", "reference"),
+            ("scf_stability_real_to_complex_lowest_eigenvalue", "reference"),
             ("surface_id", "stateless"),
             ("trajectory_energies", "reference"),
             ("trajectory_start_frequencies", "reference"),
@@ -6749,6 +6866,17 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("scf_stability_internal", "", "DIMENSIONLESS"),
             ("scf_stability_external", "", "DIMENSIONLESS"),
             ("scf_stability_external_rotation_space", "", "DIMENSIONLESS"),
+            ("scf_stability_real_to_complex", "", "DIMENSIONLESS"),
+            # Roots of PySCF's orbital Hessian, in hartree and in PySCF's
+            # own normalisation: comparable within PySCF, not across
+            # programs, so the names stay this family's.
+            ("scf_stability_internal_lowest_eigenvalue", "Eh", "ENERGY"),
+            ("scf_stability_external_lowest_eigenvalue", "Eh", "ENERGY"),
+            (
+                "scf_stability_real_to_complex_lowest_eigenvalue",
+                "Eh",
+                "ENERGY",
+            ),
             *_EXCITED_CHARACTER_DECLARATIONS,
         ),
         jobtype_selectors=(

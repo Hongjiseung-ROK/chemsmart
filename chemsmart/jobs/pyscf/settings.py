@@ -155,6 +155,13 @@ PYSCF_STABILITY_PRINTED_KINDS = {
 #: an eigenvalue between it and zero is PySCF's "stable".
 PYSCF_STABILITY_THRESHOLD = -1e-5
 
+#: The unit of the eigenvalues a stability record carries: roots of
+#: PySCF's orbital Hessian with respect to dimensionless rotation
+#: parameters, in hartree.  The normalisation is PySCF's own, so the
+#: numbers compare within PySCF and against its threshold, not against
+#: another program's stability matrix.
+PYSCF_STABILITY_EIGENVALUE_UNIT = "Eh"
+
 #: Excitation manifolds.  A closed-shell reference asks for singlet or
 #: triplet excitations, or both (``singlet_triplet``: the driver solves the
 #: singlet and the triplet response on the one converged reference, as

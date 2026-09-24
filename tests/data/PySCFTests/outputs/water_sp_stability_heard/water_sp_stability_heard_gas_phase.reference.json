@@ -1,0 +1,34 @@
+{
+ "artifact": "water_sp_stability_heard_gas_phase.h5",
+ "command": "reference.py water_sp_stability_heard_gas_phase.h5",
+ "frontier_orbitals": {
+  "alpha_homo_ev": -7.9366270360812035,
+  "alpha_lumo_ev": 1.2190384700210504,
+  "beta_homo_ev": -7.9366270360812035,
+  "beta_lumo_ev": 1.2190384700210504,
+  "gap_ev": 9.155665506102254,
+  "homo_ev": -7.9366270360812035,
+  "lumo_ev": 1.2190384700210504
+ },
+ "jobtype": "sp",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  1.008,
+  1.008
+ ],
+ "point_group_detect_symm": "C2v",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -76.35831622283689,
+ "scf_stability": {
+  "log_status_lines": [
+   "<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the internal stability analysis",
+   "<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the real -> complex stability analysis",
+   "<class 'pyscf.dft.rks.RKS'> wavefunction is stable in the RHF/RKS -> UHF/UKS stability analysis"
+  ],
+  "reference_class": "RKS",
+  "stable_external": true,
+  "stable_internal": true
+ },
+ "symm_geom_tol_bohr": 1e-05
+}

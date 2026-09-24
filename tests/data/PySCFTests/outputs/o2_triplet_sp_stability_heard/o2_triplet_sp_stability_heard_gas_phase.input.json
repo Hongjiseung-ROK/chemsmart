@@ -1,0 +1,25 @@
+{
+  "compute_interpreter": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "config_sha256": "5e55fb0677333668e9f535f7a225d559f1ca50fc1c09f94d1ba1480509a232db",
+  "engine": "cpu",
+  "environment_receipt_sha256": "56a78d29f402b25848dcf5f8fb2ea6565f1b523f5deae74e7bb9c31d57ed000e",
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "input_geometry_sha256": "e9b6eed7a06437bb26055971aec9a11fb22156bf86d0ec3efef1ff39942d6b82",
+  "label": "o2_triplet_sp_stability_heard_gas_phase",
+  "materializations": {},
+  "project_yaml_sha256": "040ad522bfbe6105dc7e08edbe7e0e6df9e7780b922660cead003a304ceeee32",
+  "quarantined_targets": [],
+  "receipt_sha256": "fc982d20872e31a5bc4881b3abdc987da2329aed441fa787e7606bf7891d0658",
+  "requested_settings_sha256": "e0e10324526bbf00766f18be01452b0a8b2cabc4316c2855a41016d59cce9825",
+  "run_id": "a0ca52eb-4668-4c31-95bc-827bc5d7e908",
+  "run_nonce": "9d057762be07a464fc3e012a717c55a3ce3bb2dbe73f281473560d967a783641",
+  "schema_version": "chemsmart.pyscf-input.v1",
+  "script_path": "o2_triplet_sp_stability_heard_gas_phase.py",
+  "script_sha256": "193577bed93eaa826e9862f9558802a9732e9544ea60785e9ea2bcd8ba5c6abb",
+  "stages": [
+    "scf"
+  ],
+  "state": "previewed"
+}
