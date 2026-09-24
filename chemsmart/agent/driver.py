@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -282,6 +282,15 @@ def _answered_criterion_reasons(
         )
         for verdict, standing in answered
     )
+
+
+def _unanswered_verdicts_named(delivery: "_AnalysisDelivery") -> str:
+    """Each unanswered verdict as the host read it: rule, number, receipt."""
+
+    return "; ".join(
+        f"{verdict.statement()} (receipt {verdict.receipt_sha256s[-1][:8]})"
+        for verdict in delivery.unanswered_criteria
+    ) or ", ".join(delivery.unanswered_verdicts)
 
 
 def _inherited_verdict_reason(delivery: "_AnalysisDelivery") -> str:
@@ -842,7 +851,7 @@ def _delivery_settlement(
         settled = "returned_to_human"
         reasons = (
             "a validation verdict failed and no recorded decision cites "
-            "it: " + ", ".join(delivery.unanswered_verdicts),
+            "it: " + _unanswered_verdicts_named(delivery),
         )
     elif certified and delivery.inherited_unanswered:
         # The delivery stands on results the goal's own criterion rejected
@@ -884,7 +893,7 @@ def _delivery_settlement(
         if delivery.unanswered_verdicts:
             reasons = reasons + (
                 "a validation verdict failed and no recorded decision "
-                "cites it: " + ", ".join(delivery.unanswered_verdicts),
+                "cites it: " + _unanswered_verdicts_named(delivery),
             )
         if delivery.inherited_unanswered:
             reasons = reasons + (_inherited_verdict_reason(delivery),)
@@ -1421,21 +1430,49 @@ def _goal_envelope_record(shown: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _deliverables_record(delivery: _AnalysisDelivery) -> dict[str, Any]:
+def _failed_criterion_record(
+    verdict: FailedCriterionV1, minted_by: str = ""
+) -> dict[str, Any]:
+    """One failed criterion as a woken session is told it.
+
+    The rule, the number it read against what it was held to, and the
+    receipts that state the verdict, with the stream that minted them:
+    a decision answers a verdict only by citing one, and three of three
+    live sessions woken with the rule's name alone re-planned and
+    re-evaluated their criteria to mint one to cite (o2r, L1, L-S2; the
+    host had named the same receipt in its settlement all along).
+    """
+
+    return {
+        "verdict": verdict.label,
+        "statement": verdict.statement(),
+        "receipt_sha256s": tuple(verdict.receipt_sha256s),
+        **({"minted_by": minted_by} if minted_by else {}),
+    }
+
+
+def _deliverables_record(
+    delivery: _AnalysisDelivery, previous_run: str = ""
+) -> dict[str, Any]:
     """What the previous run's own stream says stands delivered.
 
     Names quantities and stated limitations, never values: the goal's
     demand is in the task, and this record lets a wake session see what
     it has already delivered, what the chain declared it could not, and
     what its own decisions doubt -- so the next action can follow the
-    gap rather than the tool list.
+    gap rather than the tool list. A failed criterion is the exception:
+    it is named with the number it read and the receipts that state it,
+    because answering it means citing one of them.
     """
 
     return {
         "delivered_quantity_ids": delivery.delivered_quantity_ids,
         "limitation_output_ids": delivery.limitation_output_ids,
         "doubted_quantity_ids": delivery.doubted_quantity_ids,
-        "unanswered_failed_verdicts": delivery.unanswered_verdicts,
+        "unanswered_failed_verdicts": tuple(
+            _failed_criterion_record(verdict, previous_run)
+            for verdict in delivery.unanswered_criteria
+        ),
         "stale_quantity_ids": delivery.stale_quantity_ids,
         "unclaimed_output_ids": delivery.unclaimed_output_ids,
         "undelivered_declared_observable_ids": (
@@ -2149,6 +2186,13 @@ def _wake_context(
                     "uncertified",
                     "refusals_reread",
                     "undelivered_declared_observable_ids",
+                    # What opened each earlier recovery. Without these a
+                    # recovery row read {"cycle": 1} in the woken cycle's
+                    # own trajectory (L-S2, R10 Q19), and a later cycle
+                    # could not see which criterion or ending it was.
+                    "verdicts",
+                    "terminal_states",
+                    "analysis_status",
                 }
             },
         }
@@ -2190,7 +2234,8 @@ def _wake_context(
                 goal_delivered_ids=_goal_delivered_ids(
                     workspace, goal.goal_id
                 ),
-            )
+            ),
+            previous_run,
         )
     failure_report = dict(failure_report or {})
     approaches_tried = _recorded_approaches(ledger)
@@ -2481,16 +2526,24 @@ class _AnalysisDelivery:
     #: right. It is the join a reader needs, because the settlement word
     #: named the anomaly and never said the number came from it.
     flagged_quantity_ids: tuple[str, ...] = ()
-    #: Host-rendered verdicts that failed and that no recorded decision
-    #: has cited. A failed verdict is the host saying the delivered
-    #: structure is not what the task required -- a minimum that is a
-    #: saddle, a transition state with the wrong imaginary-mode count.
-    #: It never made a goal partial and it never opened a cycle, so a
-    #: run could deliver every required output, display "failed" in its
-    #: own report, and settle achieved with budget in hand. A decision
-    #: that cites the validation receipt has answered it; one that does
-    #: not has left it open.
+    #: Verdicts that failed and that no recorded decision has cited, by
+    #: ``node/rule``. A failed verdict is one of the plan's own acceptance
+    #: criteria that did not hold on a result the host read -- a minimum
+    #: that is a saddle, a reference that is unstable, a spread outside
+    #: the tolerance the session stated. It never made a goal partial and
+    #: it never opened a cycle, so a run could deliver every required
+    #: output, display "failed" in its own report, and settle achieved
+    #: with budget in hand. A decision that cites the validation receipt
+    #: has answered it; one that does not has left it open.
     unanswered_verdicts: tuple[str, ...] = ()
+    #: The same verdicts as the host read them -- the rule, the number it
+    #: judged, what it was held against -- each carrying only the
+    #: receipts of *this* stream that state it. The labels above are how
+    #: the host counts; these are what a woken session is told, because
+    #: a decision answers a verdict only by citing a receipt, and a wake
+    #: that named the rule alone left every woken session re-minting one
+    #: (R10 Q22: o2r, L1 and L-S2, 3 of 3).
+    unanswered_criteria: tuple[FailedCriterionV1, ...] = ()
     #: The plan's own acceptance criteria that failed and that a recorded
     #: decision answered, each with the delivered quantities standing on
     #: the results it judged. The session read the finding and stands by
@@ -3439,12 +3492,20 @@ def _analysis_delivery(
     here_receipts = {
         str(item.get("receipt_sha256") or "") for item in here.validations
     }
-    unanswered = tuple(
-        verdict.label
+    unanswered_criteria = tuple(
+        replace(
+            verdict,
+            receipt_sha256s=tuple(
+                receipt
+                for receipt in verdict.receipt_sha256s
+                if receipt in here_receipts
+            ),
+        )
         for verdict in verdicts
         if not verdict.answered
         and here_receipts.intersection(verdict.receipt_sha256s)
     )
+    unanswered = tuple(verdict.label for verdict in unanswered_criteria)
     # The rule read these receipts and rejected what it found in them;
     # everything else computed from the same receipts describes the same
     # rejected structure -- unless a recorded decision answered the
@@ -3657,6 +3718,7 @@ def _analysis_delivery(
         stopped_by=tuple(stopped_by),
         anomaly_output_ids=anomaly_ids,
         unanswered_verdicts=unanswered,
+        unanswered_criteria=unanswered_criteria,
         answered_criteria=tuple(answered_criteria),
         inherited_unanswered=tuple(inherited_unanswered),
         completion_status=completion_status,
@@ -6529,7 +6591,7 @@ class GoalDriver:
                 reason = (
                     f"cycle {self.cycles}: a validation verdict failed and "
                     "no budget remains to answer it: "
-                    + ", ".join(run_delivery.unanswered_verdicts)
+                    + _unanswered_verdicts_named(run_delivery)
                 )
                 open_items = run_delivery.unanswered_verdicts
             elif unrefreshed:
@@ -6703,12 +6765,22 @@ class GoalDriver:
                 "analysis_status": str(
                     getattr(self.execute_result, "analysis_status", "") or ""
                 ),
-                "verdicts": [],
+                # What the run left open, read here exactly as the branch
+                # above reads it. Since the executor reads criteria (R10
+                # Q19) a claim standing on a failed criterion makes the
+                # chain partial, so every such run arrives here -- and
+                # this row wrote "verdicts": [] over L-S2's failed
+                # external-stability criterion (CUHK Slurm 2153514).
+                "verdicts": list(run_delivery.unanswered_verdicts),
                 "stale_quantity_ids": list(unrefreshed),
                 "unclaimed_output_ids": list(
                     run_delivery.unclaimed_output_ids
                 ),
+                "undelivered_declared_observable_ids": list(open_declared),
+                "unresolved_requirement_ids": list(open_requirements),
                 "engine_calls_remaining": budgets.engine_calls_remaining,
+                **({"uncertified": chainless_prefix} if uncertified else {}),
+                **({"refusals_reread": dict(reread)} if reread else {}),
             },
         )
         self.phase = "plan"
