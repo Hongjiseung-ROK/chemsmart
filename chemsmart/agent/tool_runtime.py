@@ -13066,11 +13066,12 @@ class CommandCompiledToolHostV1:
             for row in declared_predictions
             if row.get("agreement") == "diverged" and row.get("observable_id")
         )
-        # The plan's own acceptance criteria that failed are the other
-        # pre-registration the physics can leave, and they ride the same
+        # The plan's own acceptance criteria that failed ride the same
         # list under their own prefix, with whether a recorded decision
         # has answered them: a completion certified over an answered one
-        # still says the delivery carries it.
+        # still says the delivery carries it. Unlike a declaration, a
+        # criterion carries no mark of whether the session stated it
+        # before or after it held the number (L-S2 did both).
         failed = tuple(
             verdict.observation_id for verdict in self._failed_criteria()
         )

@@ -545,11 +545,14 @@ def results_read(
 class FailedCriterionV1:
     """One rule of a plan's own acceptance criterion that did not hold.
 
-    A ``scientific_validation`` node is the session's pre-registered
-    expectation about a result -- this structure is a minimum, this
-    reference is stable, this spread is inside the tolerance -- and a
-    failed rule is the physics leaving it. That is a finding, never a
-    defect. Whether the goal can deliver it depends on one fact the
+    A ``scientific_validation`` node is a criterion the session states
+    about a result -- this structure is a minimum, this reference is
+    stable, this spread is inside the tolerance -- either as an
+    expectation before the engine runs or, after it has read the number,
+    as the test whose failure is the answer (both seen live: L-S2, R10
+    Q19). A failed rule is a finding, never a defect, and nothing here
+    reads which of the two it was. Whether the goal can deliver it
+    depends on one fact the
     records hold: whether a recorded decision cites a receipt carrying
     this verdict. Answered, the verdict stands in the delivery beside
     the reading; unanswered, nothing the verdict rejected is delivered.

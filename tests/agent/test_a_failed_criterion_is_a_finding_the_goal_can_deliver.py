@@ -1,9 +1,10 @@
 """A failed acceptance criterion is a finding the goal can deliver, once read.
 
-A plan's ``scientific_validation`` node is the session's pre-registered
-expectation about its own result. When the physics fails it, the goal has
-produced a finding. Three host organs used to answer what that finding
-makes of the delivery, each differently:
+A plan's ``scientific_validation`` node is a criterion the session states
+about its own result -- an expectation, or the test whose failure is the
+answer. When the result fails it, the goal has produced a finding. Three
+host organs used to answer what that finding makes of the delivery, each
+differently:
 
 - the executor's walk of an approved chain certified it ``passed`` and never
   looked at the criterion;
@@ -248,6 +249,13 @@ def test_a_criterion_the_session_answered_is_delivered_with_its_finding(
         _RULE in reason and "-0.0926" in reason and "cites" in reason
         for reason in result.reasons
     )
+    # The result was on disk before the session planned the criterion, and
+    # nothing the settlement reads says when a criterion was stated: the
+    # word says it did not hold, never that it was registered before the
+    # physics (L-S2 stated one after reading its number).
+    lead = next(r for r in result.reasons if "completion gate certified" in r)
+    assert f"did not hold: failed_criterion:{_RULE}:answered" in lead
+    assert "before the physics" not in " ".join(result.reasons)
 
 
 @pytest.mark.capability("rule:wake.failed_validation_receipt_answers_verdict")

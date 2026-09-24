@@ -312,11 +312,14 @@ def _achieved_word(
     """
 
     # A failed acceptance criterion the session answered is a finding the
-    # delivery carries, and the word says so: the charter's own words for
-    # achieved_with_observations include "a pre-registered expectation
-    # the physics left". The settlement names each from the records as
-    # they stand now; a completion's listing, minted before a decision
-    # that answered it, describes that earlier moment.
+    # delivery carries, and the word says so. The charter's words for
+    # achieved_with_observations name "a pre-registered expectation the
+    # physics left"; an answered criterion rides beside it whether the
+    # session stated it before the engine ran or after it had read the
+    # number -- the records read here do not say which. The settlement
+    # names each from the records as they stand now; a completion's
+    # listing, minted before a decision that answered it, describes that
+    # earlier moment.
     observed = tuple(
         sorted(
             {
@@ -517,26 +520,31 @@ def _achieved_word(
         else "no completion gate certified this delivery"
     )
     if observed:
-        # What the host detected unasked and what the session expected
-        # before the physics are both what the run found, and they are
-        # not one kind of thing: a criterion of the session's own plan
-        # is not an observation "nobody asked for".
-        expected = tuple(
+        # What the host detected unasked and what the session itself stated
+        # about its results are not one kind of thing: a criterion of the
+        # session's own plan is not an observation "nobody asked for". Nor
+        # is it always an expectation stated before the physics: L-S2 (R10
+        # Q19, CUHK Slurm 2153514) planned its real->complex rule after it
+        # had extracted -0.0288 Eh, and read its failed external rule as
+        # the answer it had meant to test for. When a criterion was stated
+        # is not read here, so the sentence says what was read: it did not
+        # hold.
+        stated = tuple(
             item
             for item in observed
             if item.startswith(("falsified_expectation:", "failed_criterion:"))
         )
-        unasked = tuple(item for item in observed if item not in expected)
+        unasked = tuple(item for item in observed if item not in stated)
         lead = certified
         if unasked:
             lead += (
                 "; the host also recorded observations nobody asked for: "
                 + ", ".join(unasked)
             )
-        if expected:
+        if stated:
             lead += (
-                "; expectations registered before the physics that it did "
-                "not bear out: " + ", ".join(expected)
+                "; criteria and predictions the session itself stated that "
+                "did not hold: " + ", ".join(stated)
             )
         return ("achieved_with_observations", (lead,) + provenance)
     return ("achieved", (certified,) + provenance)
