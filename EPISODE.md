@@ -133,9 +133,103 @@ wrong. The class Q10 closed was never closed in production: its six
 instances were empty chains, and the guard keys on a word they never
 produce. g2-hooh is the seventh instance, not a regression.
 
+### Other signed words (census, base ec41a57c)
+
+- Base replay of all 287 settled goals (walk mode): 7 achieved words
+  signed with "no completion gate certified" -- exactly the empty-chain
+  class. 34 archived achieved words (ax41 general and standing rounds:
+  15 unclaimed outputs, 10 pre-E4 undelivered declarations, 9 unanswered
+  verdicts) already replay to recovery_opened: historical, repaired
+  before R10. Transitions into achieved words are known repairs (Q16 H2:
+  q9 g1, q3 g2; Q19: lad-a0-r2, lad-a1-r1; r8 goal-irc2, r9 g5).
+- unreachable_from_evidence: 17 words; 3 hold a refused id also claimed
+  -- ino3-r17 and po3-r19 refuse a precision and deliver the value (the
+  settlement rule's one legitimate ending); r8/orca goal-ts stands on a
+  verification the r8 tree wrote into the stream (Q10's C4, historical).
+- Completion receipts: 95 `passed` receipts carry limitation ids. The
+  charter has the receipt state them and the settlement word differ; every
+  settlement path reads the limitation list (`undelivered_declared_ids`).
+  Defensible, not false. 23 sessions ended `complete` over such a receipt:
+  the driver documents the terminal word as the session's posture and the
+  receipt as the certification; defensible.
+- Executor node words: 5 in-session walks settled their first node of a
+  kind failed, "the executor and the tool contract have drifted apart";
+  the preceding event is `capability_loaded` on the executor's own turn
+  (the session host's discovery gate answered "issue the call again").
+  False; repaired (d4309cb5).
+- Recovery rows: 4 carried "analysis_status": "completed" after an empty
+  chain into the next wake (g2-h2co-foreign-saddle c2, q9 g1 c2, r9/xtb
+  g3 c2, ax41 po3-r18 c2). False; repaired at the executor (ccd7db8d).
+- Qualification: 25 ledger `qualified` rows under the seven false
+  achieved words (g1-hono 5, g2-hooh 6, r9 g1 2, g3 3, infra-smoke 3,
+  merged-smoke 3, e2-acetone 3). release.json cites r9 g1/g3 and
+  e2-acetone, already annotated by the master; none cites g1-hono or
+  g2-hooh. The Mac's host store (~/.chemsmart/agent/qualification.jsonl,
+  read by `chemsmart agent capabilities`) holds 733 rows, 648 of them a
+  test's goal `g` (orca:cpu:sp gets 651 host references) and others from
+  unfenced replays of the false-achieved goals (gaussian:cpu:ts from r9
+  g1/g3, orca:cpu:ts from g1-hono): the store's path is bound at import,
+  so no HOME fence redirects it.
+
+## Repairs (one commit each; witness red before, green after)
+
+- 6d05103d shared: four goal-loop test stand-ins made faithful (a run
+  that reports "completed" carries the receipt the walk mints, or the goal
+  is woken for what it still owes); green on base and after.
+- 3400bb39 driver: certification is read from the run's own receipts
+  (chainless = no completion receipt and no analysis node run);
+  `_delivery_certified` is the one answer every settlement path calls.
+  Replay: 7 archived words move achieved -> recovery_opened, 279 identical.
+- ccd7db8d executor: a walk in which no node ran reports "".
+- d4309cb5 executor: `_call` answers the host's "schema_loaded" by
+  issuing the call again; a node failure quotes the host's reply.
+- a3823766 tool_runtime: expression events record their input bindings.
+
+## Live goal g2r -- PRE-REGISTRATION (written before submission)
+
+Question: on the repaired tree, does the g2-hooh route end on the word
+its records support, and would the base tree sign achieved over the same
+records?
+
+- Task, geometry and envelope byte-identical to R10 Q21's g2-hooh:
+  TASK.md sha256 622f1f43d9cc607c..., h2o2.xyz d59a387b922e2634...; ORCA
+  cpu, 8 cores, 16 GB, node 1800 s, episode 7200 s, reserve 1800 s, 12
+  engine calls, 2 revisions, local dispatch. granted_by
+  claude-researcher-q24-owner-delegated (a delegated approval, never a
+  human decision). Code: a3823766 (packed from the commit that carries
+  this pre-registration). Agent: deepseek-v4-flash-0731 via
+  alibaba-token-plan; one run, one observation of that model.
+- S1 (host, the word follows the records): over the finished goal's
+  records `signed_word_violations` returns [] -- no achieved word over a
+  newest completion that is partial or absent while observables were
+  declared, and no `qualified` row under a word its records deny.
+- S2 (host, the g2-hooh point, if exercised): a cycle whose approved
+  toolchain holds no analysis node reports "" and does not settle
+  achieved; with budget left it opens a recovery whose row names the
+  completion the delivery stands on, and the woken session is told so;
+  without budget it returns to the human with that sentence.
+- S3 (host): no in-session walk node settles failed "drifted apart".
+- F: an achieved word at an empty-chain step; signed_word_violations
+  non-empty; a "drifted apart" node reason.
+- Neutral: no cycle approves a toolchain with no analysis node (S2 not
+  exercised live; reported as the route the Agent took).
+- Replay after the goal: its settle steps replayed provider-free on base
+  ec41a57c (the executor's word from base's own walk) and on the run
+  commit; where S2 is exercised the base is expected to sign achieved.
+- Physics bands (R10 Q21's, fixed before either hooh goal; not tuned):
+  equilibrium H-O-O-H in [108, 125] deg; dE(trans, 180) in [0.2, 2.5];
+  dE(cis, 0) in [5.5, 11]; dE(90 held - eq) in [0.1, 2.0] kcal/mol; where
+  delivered on stationary structures dG(trans) in [-0.5, 2.5] and dG(cis)
+  in [5.0, 11] kcal/mol. Reference, same level: g1-hooh 120.66 deg, dE
+  0.561 / 8.290 / 0.760, dG(TS) -0.079 / 7.953 kcal/mol.
+- Not counted: zero provider turns or turn_deadline_exceeded
+  (infrastructure). A weak run is reported, never re-rolled.
+
 ## Status
 
 - step 0: brief read; base verified; CONDUCT, RSL, charter topics, Q10,
   Q16, Q19, Q21, Q22 merges and records read; CUHK gate open.
 - step 1 (census of achieved words, empty-chain class, producing-commit
   and base replays): done.
+- step 2 (repairs R1, R2, R4, expression bindings): committed.
+- step 3: live goal g2r pre-registered (above); next: pack, submit.
