@@ -42,8 +42,10 @@ from .test_a_failed_criterion_is_a_finding_the_goal_can_deliver import (
     _stream_rows,
 )
 from .test_a_partial_delivery_ends_its_session import _call, _o2r_turns, _turn
+from .test_a_silent_cycle_gets_one_more_wake import _declared
 from .test_runtime_v2_launch_fence import _reserve
 from .test_the_goal_loop_recovers_or_returns import (
+    _loop,
     _planning_session,
     _review_payload,
 )
@@ -385,3 +387,57 @@ def test_a_review_refused_for_a_missing_preview_names_the_node(
     assert named in message
     # The node that holds its preview is not named as missing one.
     assert "ene-optfreq" not in message
+
+
+@pytest.mark.capability("rule:wake.refusal_is_a_deliverable")
+def test_a_rewake_after_a_refused_review_offers_the_plan_it_refused(
+    tmp_path,
+):
+    """The re-wake's report states three admissible endings -- deliver,
+    refuse, or an executable plan for review -- and its route offered only
+    the first two, with "no engine call" as the cost. R10 Q15 g1's first
+    cycle ended on a refused review with its grant untouched; the route that
+    answers that diagnosis is the plan, repaired and previewed."""
+
+    contexts = []
+
+    def capture(inner):
+        def step(workspace, kwargs):
+            contexts.append(kwargs.get("goal_context") or {})
+            return inner(workspace, kwargs)
+
+        return step
+
+    refused = {
+        "kind": "execution_review_refused",
+        "payload": {
+            "workflow_id": "bergman-wf1",
+            "reason": (
+                "every initial workflow node requires a green preview "
+                "before bounded execution"
+            ),
+        },
+    }
+    _loop(
+        tmp_path,
+        sessions=[
+            capture(
+                _planning_session(
+                    "live-1",
+                    terminal="planned",
+                    wake_rows=_declared("dh-act") + [refused],
+                )
+            ),
+            capture(_planning_session("live-2", terminal="planned")),
+        ],
+        executes=[],
+        max_revisions=3,
+    )
+    report = contexts[1]["failure_report"]
+    assert "execution review refused" in report["diagnosis"]
+    # Every ending the report's own invariant admits is a route it names.
+    assert "executable plan" in report["invariant"]
+    assert "executable plan" in report["route"]
+    assert "compile_command" in report["route"]
+    # And the cost is true of that route: a plan spends engine calls.
+    assert "an executable plan spends engine calls" in report["cost"]

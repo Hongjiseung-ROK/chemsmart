@@ -5198,6 +5198,12 @@ class GoalDriver:
                 "an executable plan for review."
             ),
             "diagnosis": diagnosis,
+            # Every ending the invariant admits, each with what it costs.
+            # The route named only the first two and the cost said "no
+            # engine call", while R10 Q15 g1 had been woken by a review the
+            # host refused over one unpreviewed node, with its whole grant
+            # in hand: the ending that answers such a diagnosis is the plan
+            # itself, repaired.
             "route": (
                 "claim each undelivered id from receipts in hand -- "
                 "extract_result_quantities, derive_thermochemistry, "
@@ -5206,11 +5212,18 @@ class GoalDriver:
                 "plan_scientific_workflow with no calculation_nodes, which "
                 "the host executes when planned; or record_scientific_"
                 "decision naming each id that cannot be delivered, with its "
-                "required producer and the receipts that show it"
+                "required producer and the receipts that show it; or, where "
+                "the calculation that produces them has not run, end with "
+                "an executable plan for review: repair what the diagnosis "
+                "names and give every initial node a green preview with "
+                "compile_command, and the host builds the review under the "
+                "goal's standing decision"
             ),
             "cost": (
-                "no engine call; this re-wake is charged one revision and "
-                "is the last for this goal"
+                "claiming, an analysis-only plan and a refusal cost no "
+                "engine call; an executable plan spends engine calls from "
+                "what remains. This re-wake is charged one revision and is "
+                "the only re-wake this goal is granted"
             ),
         }
         self.ledger.append(
@@ -5300,8 +5313,8 @@ class GoalDriver:
             "route": sufficiency_menu(states),
             "cost": (
                 "two of the three routes cost no engine call; this "
-                "re-wake is charged one revision and is the last for this "
-                "goal"
+                "re-wake is charged one revision and is the only re-wake "
+                "this goal is granted"
             ),
         }
         self.ledger.append(
