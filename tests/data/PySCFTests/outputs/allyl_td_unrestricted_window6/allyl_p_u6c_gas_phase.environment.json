@@ -1,0 +1,132 @@
+{
+  "aux_basis_available": {},
+  "aux_basis_max_l": {},
+  "basis_available": {
+    "def2-svp": true
+  },
+  "basis_ecp_required_elements": [],
+  "basis_max_l": {
+    "def2-svp": 2
+  },
+  "cuda_available": 0,
+  "cuda_visible_devices": "",
+  "cupy_cutensor_pair": [
+    null,
+    null
+  ],
+  "cupy_distribution": null,
+  "cutensor_compatible": false,
+  "cutensor_distribution": null,
+  "dependencies": {
+    "cupy": {
+      "available": false,
+      "error_type": "ModuleNotFoundError"
+    },
+    "gpu4pyscf": {
+      "available": false,
+      "error_type": "ModuleNotFoundError"
+    },
+    "h5py": {
+      "available": true,
+      "version": "3.16.0"
+    },
+    "numpy": {
+      "available": true,
+      "version": "1.26.4"
+    },
+    "pyscf": {
+      "available": true,
+      "version": "2.14.0"
+    },
+    "pyscf_dispersion": {
+      "available": true
+    }
+  },
+  "device_count": 0,
+  "execution_ready": true,
+  "functional_available": {
+    "pbe0": true
+  },
+  "functional_metadata": {
+    "pbe0": {
+      "double_hybrid": false,
+      "laplacian_meta_gga": false,
+      "nlc": false
+    }
+  },
+  "gpu4pyscf_distribution": null,
+  "gpu_probe_error_type": "ModuleNotFoundError",
+  "input_artifact_kind": null,
+  "input_artifact_path": null,
+  "input_artifact_sha256": null,
+  "interpreter": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "interpreter_observed": "/lustre/project/xlzhang/jiseung/miniforge3/envs/chemsmart-agent-pyscf/bin/python3.10",
+  "interpreter_sha256": "8d950b7dbac1f94d46913acee7b686c77a3466d1f639b71a88f451b40e2b47ea",
+  "libxc_version": "7.0.0",
+  "observed_at": "2026-09-24T01:10:08.144755+00:00",
+  "omp_num_threads": "64",
+  "packages": {
+    "geometric": "1.1.1",
+    "h5py": "3.16.0",
+    "numpy": "1.26.4",
+    "pyscf": "2.14.0",
+    "pyscf-dispersion": "1.5.0"
+  },
+  "preflight_findings": [],
+  "probe_returncode": 0,
+  "pyscf_version": "2.14.0",
+  "python_version": "3.10.21",
+  "receipt_sha256": "5d0e78b364c65b05eb101f49d731aacd3875be03ca42fc32fb2c3607556d78c1",
+  "request": {
+    "aux_basis": null,
+    "basis": "def2-svp",
+    "dispersion": null,
+    "engine": "cpu",
+    "functional": "pbe0",
+    "nstates": 6,
+    "opt_solver": "geometric",
+    "response_method": "tddft",
+    "solvent_id": null,
+    "stages": [
+      "scf",
+      "td"
+    ],
+    "state_manifold": "unrestricted",
+    "symbols": [
+      "C",
+      "H"
+    ]
+  },
+  "request_sha256": "f13916b79a1269a7bb817bd99e5476caf1a538fea2eb7a52bce525bc5f78fc8f",
+  "required_stages": [
+    "scf",
+    "td"
+  ],
+  "run_id": "88bd6475-df56-4e85-b0cd-716d29245218",
+  "run_nonce": "d8fe773185c511eb5bd809e46af86c68a63cab52be8936b1ba7069e65494c6ec",
+  "schema_version": "chemsmart.pyscf-environment.v1",
+  "solvent_ids": [
+    ""
+  ],
+  "solver_callables": {
+    "ase": {
+      "call_probe": "import_failed",
+      "callable": false,
+      "dependency_present": false,
+      "probe_exception_type": "ModuleNotFoundError"
+    },
+    "berny": {
+      "call_probe": "import_failed",
+      "callable": false,
+      "dependency_present": false,
+      "probe_exception_type": "ModuleNotFoundError"
+    },
+    "geometric": {
+      "call_probe": "entrypoint_reached",
+      "callable": true,
+      "dependency_present": true,
+      "probe_exception_type": "NotImplementedError"
+    }
+  },
+  "status": "available"
+}

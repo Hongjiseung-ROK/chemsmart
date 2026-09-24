@@ -6,13 +6,16 @@
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
-results. Gaussian ``opt``, ``sp``, ``ts`` and ``irc`` are release-qualified for
-Agent execution on CPU, each recorded from live goals on the
+results. Which of them execute under approval is computed
+(``chemsmart agent capabilities --kind program_jobtype``, ``release.json``).
+As recorded: ``opt``, ``sp``, ``ts`` and ``irc`` from live goals on the
 configuration they ran -- goals whose task text was fixed before their
 first issue, but which no seal record binds, so they are not called
-sealed; ``scan``, ``modred``, ``td`` and ``link`` have real engine runs
-on that target through the human CLI and no approved Agent execution,
-which is a different fact and stays unclaimed.
+sealed; ``td`` (singlet TD-DFT and TDA), ``scan`` (one driven coordinate
+whose start the geometry already has) and ``modred`` (a held bond) from
+the R10 Q7 goals (CUHK Slurm 2150077 and 2150187, merge ``cd66bb33``);
+``link`` has real engine runs through the human CLI only, which is a
+different fact and stays unclaimed.
 
 What a completed Gaussian result answers is decided by the job the log says
 produced it, and its route line alone cannot say: ``opt=modredundant`` is

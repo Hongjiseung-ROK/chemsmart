@@ -27,6 +27,7 @@ from chemsmart.jobs.pyscf.settings import (
     PYSCF_FD_STEP_ANGSTROM,
     PYSCF_HESSIAN_DERIVATIVES,
     PYSCF_IRC_DIRECTIONS,
+    PYSCF_STATE_MANIFOLDS,
 )
 from chemsmart.utils.cli import MyGroup
 from chemsmart.utils.io import clean_label
@@ -148,13 +149,12 @@ def click_pyscf_settings_options(f):
     )
     @click.option(
         "--state-manifold",
-        type=click.Choice(
-            ["singlet", "triplet", "unrestricted"], case_sensitive=False
-        ),
+        type=click.Choice(PYSCF_STATE_MANIFOLDS, case_sensitive=False),
         default=None,
-        help="Excitation manifold: singlet or triplet on a closed-shell "
-        "reference; 'unrestricted' is the one spin-conserving manifold of "
-        "an open-shell (UKS) reference. Defaults to project YAML.",
+        help="Excitation manifold: singlet, triplet or both "
+        "(singlet_triplet) on a closed-shell reference; 'unrestricted' is "
+        "the one spin-conserving manifold of an open-shell (UKS) "
+        "reference. Defaults to project YAML.",
     )
     @click.option(
         "--excited-root",

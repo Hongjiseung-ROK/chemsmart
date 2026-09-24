@@ -388,11 +388,19 @@ def _undeferrable_producer_finding(
     }
 
 
-def _node_coordinates(node) -> dict[str, str]:
-    """Render a planning node's internal coordinates into program options."""
+def _node_coordinates(node, input_artifact=None) -> dict[str, str]:
+    """Render a planning node's internal coordinates into program options.
+
+    With the geometry the node will run on, a program that scans from that
+    geometry's own value is held to the start the node states.
+    """
 
     return native_coordinate_options(
-        node.program, getattr(node, "internal_coordinates", None)
+        node.program,
+        getattr(node, "internal_coordinates", None),
+        geometry_path=(
+            input_artifact.path if input_artifact is not None else None
+        ),
     )
 
 
@@ -1190,6 +1198,29 @@ def _basin_sensor_inputs(
 SENSOR_HEAVY_ATOM_FLOOR = 3
 
 
+def _surface_energy(program: str, output: Any) -> float | None:
+    """The energy a result's reader serves, in hartree, or None.
+
+    ``final_energy`` is each program's own last printed total, and on a
+    spectrum they are two quantities: ORCA prints E(SCF) + DE(CIS) of its
+    IRoot as ``FINAL SINGLE POINT ENERGY`` while PySCF's td total is the
+    reference, so the acrolein spectra of one request at one level read
+    83.4 kcal/mol apart (R10 q8 G1, CUHK 2150295) where their references
+    agree to 0.02.  The ``energy`` selector is the surface the job computed
+    on in every reader, so two results are compared through it.
+    """
+
+    try:
+        from chemsmart.analysis.result_readers import reader_for
+
+        value, unit = reader_for(str(program)).read(output, "energy")
+    except Exception:  # noqa: BLE001 - a reader that cannot say
+        return None
+    if str(unit) not in {"Eh", "hartree"}:
+        return None
+    return float(value)
+
+
 def _same_structure_observations(
     receipts: Mapping[str, Any],
     node_id: str,
@@ -1197,6 +1228,7 @@ def _same_structure_observations(
     input_sha256: str = "",
     output_sha256s: Sequence[str] = (),
     handoffs: Mapping[str, Any] | None = None,
+    program: str = "",
 ) -> tuple[dict[str, Any], ...]:
     """Whether this result is the same structure as one already validated.
 
@@ -1327,8 +1359,14 @@ def _same_structure_observations(
                 "other_node_id": other_id,
                 "heavy_atom_rmsd_angstrom": float(f"{float(rmsd):.4f}"),
             }
+            mine = _surface_energy(program, output) if program else energy
+            theirs = (
+                _surface_energy(str(getattr(receipt, "program", "")), other)
+                if program
+                else other.final_energy
+            )
             try:
-                gap = (float(energy) - float(other.final_energy)) * 627.5095
+                gap = (float(mine) - float(theirs)) * 627.5095
                 record["energy_difference_kcal_mol"] = float(f"{gap:.4f}")
             except (TypeError, ValueError):
                 pass
@@ -9484,12 +9522,52 @@ class CommandCompiledToolHostV1:
         nodes = {node.node_id: node for node in plan.analysis_nodes}
         matched: dict[str, tuple[str, ...]] = {}
         calculation_ids = set(plan.calculation_node_ids)
+        #: Per extraction node, every typed extraction of its registered
+        #: result and the selectors that receipt carries -- whether or not
+        #: it carries all the node planned.
+        extraction_receipt_selectors: dict[str, dict[str, frozenset]] = {}
 
         def _calculation_dependency_satisfied(dependency: str) -> bool:
             receipt = self.execution_receipts.get(dependency)
             return receipt is not None and bool(
                 getattr(receipt, "validated", False)
             )
+
+        def _named_extraction_selectors(
+            consumer: AnalysisNodeIntentV1, dependency: str
+        ) -> frozenset | None:
+            """The selectors ``consumer`` reads from extraction ``dependency``.
+
+            ``None`` when the dependency is not an extraction, or the
+            consumer names none of its outputs, or an output maps to no
+            single selector (the executor's own mapping, _extraction_
+            quantity_id): the node-level match then stands.
+            """
+
+            producer = nodes.get(dependency)
+            if (
+                producer is None
+                or producer.analysis_kind != "result_extraction"
+            ):
+                return None
+            quantity_ids = {
+                selector.quantity_id: selector.selector
+                for selector in producer.selectors
+            }
+            named: set[str] = set()
+            for item in consumer.inputs:
+                if (
+                    not isinstance(item, AnalysisInputIntentV1)
+                    or item.producer_node_id != dependency
+                ):
+                    continue
+                if item.producer_output_id in quantity_ids:
+                    named.add(quantity_ids[item.producer_output_id])
+                elif len(quantity_ids) == 1:
+                    named.update(quantity_ids.values())
+                else:
+                    return None
+            return frozenset(named) or None
 
         def _dependency_receipts(
             node: AnalysisNodeIntentV1,
@@ -9508,8 +9586,28 @@ class CommandCompiledToolHostV1:
                         receipts[dependency] = {"calculation-validated"}
                     else:
                         receipts[dependency] = set()
-                else:
+                    continue
+                named = _named_extraction_selectors(node, dependency)
+                if named is None:
                     receipts[dependency] = set(matched.get(dependency, ()))
+                    continue
+                # An extraction that delivered some of what it was asked
+                # for feeds the consumers that named only what it
+                # delivered, as the executor's walk has since 121a127a.
+                # This relation stayed node-level: one refused selector
+                # left every consumer of a sibling quantity unmatched, so
+                # a validation over delivered values was refused as "not
+                # typed evidence from its planned producer" (R10 q8 G3,
+                # CUHK 2150299: a 7 eV window-coverage check over two
+                # programs' excitation energies, refused because ORCA's
+                # full-TD-DFT <S^2> beside them has no single value).
+                receipts[dependency] = {
+                    digest
+                    for digest, observed in extraction_receipt_selectors.get(
+                        dependency, {}
+                    ).items()
+                    if named <= observed
+                }
             return receipts
 
         def _producer_result_artifact_ids(
@@ -9600,6 +9698,19 @@ class CommandCompiledToolHostV1:
                 selectors = frozenset(
                     selector.selector for selector in node.selectors
                 )
+                # What each extraction of this node's result delivered: the
+                # selectors it was asked for less the ones the reader
+                # refused (a ``partial`` receipt states them in ``absent``).
+                extraction_receipt_selectors[node_id] = {
+                    receipt.receipt_sha256: frozenset(
+                        self.quantity_extraction_selectors.get(
+                            receipt.receipt_sha256, ()
+                        )
+                    ).difference(str(item[1]) for item in receipt.absent)
+                    for receipt in self.quantity_extractions.values()
+                    if receipt.status in {"extracted", "partial"}
+                    and receipt.artifact_id in extraction_artifact_ids
+                }
                 exact_candidates = tuple(
                     receipt.receipt_sha256
                     for receipt in self.quantity_extractions.values()
@@ -10244,7 +10355,7 @@ class CommandCompiledToolHostV1:
             input_artifact=input_artifact,
             scientific_identity=identity,
             job_artifact_options=dict(job_artifact_options),
-            job_option_values=_node_coordinates(node),
+            job_option_values=_node_coordinates(node, input_artifact),
             live_schema=self.live_schema,
             server=(
                 self.execution_server
@@ -11205,7 +11316,9 @@ class CommandCompiledToolHostV1:
             input_artifact=input_artifact,
             scientific_identity=identity,
             job_option_values=native_coordinate_options(
-                values["program"], coordinates
+                values["program"],
+                coordinates,
+                geometry_path=input_artifact.path,
             ),
             live_schema=self.live_schema,
             server=(
@@ -13824,6 +13937,9 @@ class CommandCompiledToolHostV1:
                 self.result_validation_receipts,
                 node_id,
                 self._opened_result_output(result_validation_receipt),
+                program=str(
+                    getattr(result_validation_receipt, "program", "") or ""
+                ),
                 handoffs=self.handoffs,
                 input_sha256=str(
                     getattr(
@@ -17946,14 +18062,33 @@ class CommandCompiledToolHostV1:
         geometry_observations = self._geometry_operation_observations(
             values, nodes
         )
+        consumed = {
+            digest
+            for dependency in receipt.output_dependencies
+            for digest in dependency.source_receipt_sha256s
+        }
         level_observations = expression_level_observations(
             receipt,
             {
                 digest: getattr(
                     self.quantity_extractions.get(digest), "level", None
                 )
-                for dependency in receipt.output_dependencies
-                for digest in dependency.source_receipt_sha256s
+                for digest in consumed
+            },
+            # Which quantity of which receipt each output consumed, and
+            # whose density each is: a response approximation is compared
+            # between excited-root operands only.
+            request=request,
+            provenance_by_receipt={
+                digest: dict(
+                    getattr(
+                        self.quantity_extractions.get(digest),
+                        "electronic_provenance",
+                        (),
+                    )
+                    or ()
+                )
+                for digest in consumed
             },
         )
         # The level says which Hamiltonian a number came from; a free

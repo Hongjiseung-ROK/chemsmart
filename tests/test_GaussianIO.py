@@ -360,7 +360,10 @@ class TestGaussian16Input:
         assert g16_scan.molecule.empirical_formula == "C3H7NO3"
         assert g16_scan.additional_opt_options_in_route is None
         assert g16_scan.additional_route_parameters is None
-        assert g16_scan.jobtype == "modred"
+        # Its rows drive a coordinate (`S 10 0.05`): a relaxed scan, which
+        # the route's `opt=modred` alone cannot tell from a constrained
+        # optimisation.
+        assert g16_scan.jobtype == "scan"
         assert g16_scan.modred == {
             "coords": [[2, 12], [9, 2]],
             "num_steps": 10,

@@ -213,6 +213,17 @@ TD-DFT Options
       -  string
       -  Equilibrium or non-equilibrium PCM solvation
 
+   -  -  ``--response-method``
+      -  string
+      -  ``tddft`` (full linear response, written as ``TD``) or ``tda`` (Tamm-Dancoff, written as ``TDA``), the
+         words ORCA's and PySCF's ``td`` take (default: the project value)
+
+   -  -  ``--state-manifold``
+      -  string
+      -  ``singlet``, ``triplet`` or ``singlet_triplet`` (``nstates`` of each) on a closed-shell reference;
+         ``unrestricted`` on an open-shell reference (default: the project value). A manifold the reference does
+         not have is refused, and ``-s`` may not name a different manifold
+
 Basic Usage
 ===========
 

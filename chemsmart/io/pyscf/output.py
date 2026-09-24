@@ -698,6 +698,20 @@ class PySCFOutput(FileMixin):
         return [bool(int(value)) for value in np.asarray(values).reshape(-1)]
 
     @cached_property
+    def excited_state_dominant_excitations(self):
+        """Per root ``(occupied_offset, virtual_offset, weight, channel)``.
+
+        None on an artifact written before the driver recorded it.
+        """
+        values = self.results.get("excited_state_dominant_excitations")
+        if values is None:
+            return None
+        return [
+            tuple(float(item) for item in row)
+            for row in np.asarray(values, dtype=float).reshape(-1, 4)
+        ]
+
+    @cached_property
     def excited_state_multiplicities(self):
         """Per-root multiplicity of a restricted manifold; None otherwise.
 
@@ -730,12 +744,14 @@ class PySCFOutput(FileMixin):
     def excited_state_records(self):
         """One record per root, the shape the log readers produce.
 
-        ``state_index`` and ``manifold_root`` are the same 1-based ordinal
-        (an artifact carries one manifold), ``energy_eV`` is converted from
-        the stored hartree, ``multiplicity`` is the manifold's (None for
-        an unrestricted reference) and ``spin_square`` is None because
-        PySCF prints no per-root <S^2>.  ``converged`` is the driver's
-        per-root flag.
+        ``state_index`` is the 1-based rank in ascending excitation energy
+        and ``manifold_root`` the rank within the root's own manifold --
+        the same ordinal when the artifact carries one manifold, S_k and
+        T_k when it carries the singlet and the triplet block.
+        ``energy_eV`` is converted from the stored hartree,
+        ``multiplicity`` is the root's manifold's (None for an unrestricted
+        reference) and ``spin_square`` is None because PySCF prints no
+        per-root <S^2>.  ``converged`` is the driver's per-root flag.
         """
         excitations = self.excitation_energies
         if not excitations:
@@ -743,18 +759,23 @@ class PySCFOutput(FileMixin):
         strengths = self.oscillator_strengths or []
         converged = self.excited_state_converged or []
         multiplicities = self.excited_state_multiplicities
+        dominants = self.excited_state_dominant_excitations or []
+        manifold_counts = {}
         records = []
         for index, energy in enumerate(excitations):
+            multiplicity = (
+                multiplicities[index]
+                if multiplicities is not None and index < len(multiplicities)
+                else None
+            )
+            manifold_counts[multiplicity] = (
+                manifold_counts.get(multiplicity, 0) + 1
+            )
             records.append(
                 {
                     "state_index": index + 1,
-                    "manifold_root": index + 1,
-                    "multiplicity": (
-                        multiplicities[index]
-                        if multiplicities is not None
-                        and index < len(multiplicities)
-                        else None
-                    ),
+                    "manifold_root": manifold_counts[multiplicity],
+                    "multiplicity": multiplicity,
                     "energy_eV": float(energy) * units.Hartree,
                     "oscillator_strength": (
                         float(strengths[index])
@@ -766,6 +787,9 @@ class PySCFOutput(FileMixin):
                         bool(converged[index])
                         if index < len(converged)
                         else None
+                    ),
+                    "dominant_excitation": (
+                        dominants[index] if index < len(dominants) else None
                     ),
                 }
             )

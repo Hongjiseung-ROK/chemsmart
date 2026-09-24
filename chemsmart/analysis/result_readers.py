@@ -476,13 +476,154 @@ def _required_record_values(
     return [record[key] for record in records]
 
 
-def _orca_excitation_energies(output: Any) -> list[float]:
+def _excited_spin_squares(records, response_method, manifold):
+    """Each root's <S^2>, where the quantity has one meaning.
+
+    A spin-adapted root's <S^2> is exact (0 or 2) and a Tamm-Dancoff root
+    of an open-shell reference is a CIS-like wavefunction whose <S^2> every
+    program computes alike -- Gaussian and ORCA agree to the printed digit
+    on the allyl radical (0.756/0.756 for D1, CUHK Slurm 2150194).  A full
+    TD-DFT root of an open-shell reference is not a wavefunction, and the
+    two programs print two different approximations for it (0.713 in
+    Gaussian, 0.801 in ORCA for the same D1): under one name that would be
+    two quantities, so none is served there.
+    """
+
+    if response_method == "tddft" and manifold == "unrestricted":
+        raise MissingQuantityError(
+            "a full TD-DFT root of an open-shell reference has no unique "
+            "<S^2>: Gaussian and ORCA print two different approximations "
+            "for the same root (allyl D1: 0.713 vs 0.801); a Tamm-Dancoff "
+            "run (response_method: tda) gives the CIS-like <S^2> both "
+            "programs agree on"
+        )
+    return [
+        float(item)
+        for item in _required_record_values(
+            records, "spin_square", "a printed excited-state <S^2>"
+        )
+    ]
+
+
+def _frontier_orbital(base: str, offset: float) -> str:
+    step = int(round(offset))
+    return base if step == 0 else f"{base}{step:+d}"
+
+
+def _dominant_excitation_values(records, what: str) -> list[Any]:
+    """Each root's largest single excitation, in one program-neutral form.
+
+    Every reader records ``(occupied_offset, virtual_offset, weight,
+    channel)`` from its own program's print: the occupied orbital counted
+    from the HOMO and the virtual from the LUMO of its own spin, and the
+    spin channel of an unrestricted root.  ``labels`` spells it
+    ``HOMO-1 -> LUMO`` (``beta HOMO -> LUMO`` on an open shell) and
+    ``weights`` gives the program's own weight of that excitation (2c^2 of
+    a spin-adapted coefficient, c^2 of an unrestricted one, ORCA's printed
+    weight).  A root's character is what it is made of, so it is how a
+    root is recognised in another program's list, where its position may
+    differ.
+    """
+
+    values = []
+    for record in records:
+        dominant = record.get("dominant_excitation")
+        if dominant is None:
+            raise MissingQuantityError(
+                "result does not print the excitations of every root"
+            )
+        occupied, virtual, weight, channel = dominant
+        if what == "weights":
+            values.append(float(weight))
+            continue
+        spin = {1: "alpha ", -1: "beta "}.get(int(round(channel)), "")
+        values.append(
+            f"{spin}{_frontier_orbital('HOMO', occupied)} -> "
+            f"{_frontier_orbital('LUMO', virtual)}"
+        )
+    return values
+
+
+def _orca_served_records(output: Any) -> list[dict[str, Any]]:
+    """The roots of the manifold the request named, ranked by energy.
+
+    ORCA has no triplet-only solve, so a ``triplet`` request is written as
+    ``Triplets true`` and its output also holds the singlet block nobody
+    asked for.  The aggregate selectors serve the requested manifold -- as
+    Gaussian's and PySCF's triplet runs do, ranked 1..n -- and the
+    singlets stay readable by name (``singlet_*``).
+    """
+
     records = list(output.excited_state_records or ())
+    if getattr(output, "state_manifold", None) == "triplet":
+        triplets = [item for item in records if item["multiplicity"] == 3]
+        records = [
+            {**item, "state_index": rank}
+            for rank, item in enumerate(triplets, start=1)
+        ]
+    return records
+
+
+def _orca_excitation_energies(output: Any) -> list[float]:
+    records = _orca_served_records(output)
     if records:
         return [float(item["energy_eV"]) for item in records]
     # ORCA 6 spectrum-only fragments remain useful for the legacy aggregate
     # selector, but they cannot support multiplicity-specific selectors.
     return [float(item) for item in output.excitation_energies_eV]
+
+
+def _orca_absorption_rows(output: Any, records, key: str) -> list[float]:
+    """The absorption-table value of each record, in the records' order.
+
+    Each root is paired with the row whose ``N-MA`` label is ORCA's own
+    label for it (the ``STATE`` number within its block and the printed
+    multiplicity), never by position: ORCA prints the ``STATE`` blocks
+    singlets first and the absorption table in energy order, and pairing
+    by position served acrolein's bright S2 (6.536 eV) beside f = 0 and
+    its T2 (3.196 eV) beside f = 0.381 (CUHK Slurm 2150076).
+    """
+
+    rows = list(output.electronic_absorption_transition_records or ())
+    by_label = {
+        (row["manifold_root"], row["multiplicity"]): row for row in rows
+    }
+    values = []
+    for record in records:
+        label = (record["orca_state"], record["orca_multiplicity"])
+        row = by_label.get(label)
+        if row is None:
+            raise MissingQuantityError(
+                "ORCA printed no electric-dipole absorption row for its "
+                f"state {label[0]}-{label[1]}A"
+            )
+        values.append(float(row[key]))
+    return values
+
+
+def _orca_absorption_per_state(output: Any, key: str) -> list[float]:
+    """One absorption-table value per state, in ``excitation_energies`` order."""
+
+    records = _orca_served_records(output)
+    if not records:
+        # A spectrum-only fragment: the table is the only record, in the
+        # order the energies fall back to as well.
+        rows = list(output.electronic_absorption_transition_records or ())
+        return [float(row[key]) for row in rows]
+    return _orca_absorption_rows(output, records, key)
+
+
+def _orca_manifold_values(output: Any, multiplicity: int, key: str):
+    """One spin block's values in manifold-root order (S_k or T_k)."""
+
+    records = [
+        item
+        for item in (output.excited_state_records or ())
+        if item["multiplicity"] == multiplicity
+    ]
+    if key == "energy_eV":
+        return [float(item["energy_eV"]) for item in records]
+    return _orca_absorption_rows(output, records, key)
 
 
 def _last_spin_square(output: Any, key: str | None = None) -> float:
@@ -1916,6 +2057,20 @@ def _orca_level(output: Any) -> dict[str, Any]:
                 electrons = int(match.group(1) or match.group(2))
         if electrons is not None:
             level["frozen_core"] = electrons // 2
+    # The response an excited stage ran on, in the words Gaussian's and
+    # PySCF's levels use: ORCA's own header says which approximation it
+    # applied and how many roots of each block it determined, and the
+    # manifold is the word the request named (ORCA spells ``triplet`` and
+    # ``singlet_triplet`` alike).  TDA and full TD-DFT are two calculations
+    # of the same roots, and ORCA's level had said neither.
+    applied = getattr(output, "excited_state_applied", None)
+    if isinstance(applied, Mapping) and applied.get("response_method"):
+        level["response_method"] = applied["response_method"]
+        manifold = getattr(output, "state_manifold", None)
+        if manifold:
+            level["state_manifold"] = manifold
+        if applied.get("nstates") is not None:
+            level["nstates"] = int(applied["nstates"])
     return level
 
 
@@ -1961,6 +2116,17 @@ def _gaussian_level(output: Any) -> dict[str, Any]:
                 frozen = int(match.group(1))
         if frozen is not None:
             level["frozen_core"] = frozen
+    # The response an excited stage ran on, in the words PySCF's level
+    # uses: full TD-DFT and TDA are different calculations of the same
+    # roots, and the route is where Gaussian says which ran.
+    request = getattr(output, "excited_state_request", None)
+    if isinstance(request, Mapping):
+        for name in ("response_method", "state_manifold", "nstates"):
+            if request.get(name) is not None:
+                level[name] = request[name]
+        root = getattr(output, "excited_state_followed_root", None)
+        if root is not None:
+            level["excited_state_root"] = int(root)
     return level
 
 
@@ -2462,6 +2628,58 @@ def _orca_constraint_records(output: Any) -> tuple[Any, ...]:
 #: and the geometry disagree" from optimiser noise and from chemistry.
 _ORCA_CONSTRAINT_TOLERANCE = {"bond": 1e-3, "angle": 1e-2, "dihedral": 1e-2}
 
+#: What a held internal coordinate is measured in, for every reader that
+#: answers a constrained optimisation, so ORCA's and Gaussian's answers
+#: are one declaration rather than two copies of it.
+_CONSTRAINED_COORDINATE_DECLARATIONS = (
+    ("constrained_angle_atoms", "1", "DIMENSIONLESS"),
+    ("constrained_bond_angles", "degree", "ANGLE"),
+    ("constrained_bond_atoms", "1", "DIMENSIONLESS"),
+    ("constrained_bond_lengths", "Angstrom", "LENGTH"),
+    ("constrained_coordinate_count", "1", "DIMENSIONLESS"),
+    ("constrained_dihedral_angles", "degree", "ANGLE"),
+    ("constrained_dihedral_atoms", "1", "DIMENSIONLESS"),
+)
+#: What each excited root is made of, served by all three td readers: the
+#: root's largest single excitation in frontier-orbital words (``HOMO-1 ->
+#: LUMO``, ``beta HOMO -> LUMO``) and the program's own weight of it.
+_EXCITED_CHARACTER_DECLARATIONS = (
+    ("excited_state_dominant_excitations", "", "DIMENSIONLESS"),
+    ("excited_state_dominant_weights", "1", "DIMENSIONLESS"),
+)
+_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS = (
+    (
+        "constrained_bond_atoms",
+        (
+            ("semantic_quantity", "constrained_internal_coordinate"),
+            ("atom_order", "zero-based molecular atom order"),
+            ("data_shape", "rows of [atom_i, atom_j]"),
+        ),
+    ),
+    (
+        "constrained_angle_atoms",
+        (
+            ("semantic_quantity", "constrained_internal_coordinate"),
+            ("atom_order", "zero-based molecular atom order"),
+            (
+                "data_shape",
+                "rows of [atom_i, atom_j, atom_k], vertex in the middle",
+            ),
+        ),
+    ),
+    (
+        "constrained_dihedral_atoms",
+        (
+            ("semantic_quantity", "constrained_internal_coordinate"),
+            ("atom_order", "zero-based molecular atom order"),
+            (
+                "data_shape",
+                "rows of [atom_i, atom_j, atom_k, atom_l], about the j-k bond",
+            ),
+        ),
+    ),
+)
+
 
 def _orca_held_coordinates(output: Any, kind: str) -> list[dict[str, Any]]:
     """The held coordinates of one kind, measured in the reached structure.
@@ -2628,53 +2846,60 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             # step 2 of 12 and no tool could state either number.
             "scan_steps_reached": _scan_steps_reached,
             "scan_steps_planned": _scan_steps_planned,
-            "absorption_wavelengths": lambda output: [
-                float(item) for item in output.absorption_wavelengths
-            ],
+            "absorption_wavelengths": lambda output: (
+                _orca_absorption_per_state(output, "wavelength_nm")
+            ),
             "excitation_energies": _orca_excitation_energies,
-            "oscillator_strengths": lambda output: [
-                float(item) for item in output.oscillator_strengths
-            ],
+            "oscillator_strengths": lambda output: (
+                _orca_absorption_per_state(output, "oscillator_strength")
+            ),
             "excited_state_indices": lambda output: [
                 int(item["state_index"])
-                for item in output.excited_state_records
+                for item in _orca_served_records(output)
             ],
             "excited_state_manifold_roots": lambda output: [
                 int(item["manifold_root"])
-                for item in output.excited_state_records
+                for item in _orca_served_records(output)
             ],
             "excited_state_multiplicities": lambda output: [
                 int(item)
                 for item in _required_record_values(
-                    output.excited_state_records,
+                    _orca_served_records(output),
                     "multiplicity",
-                    "a spin multiplicity",
+                    "a spin multiplicity (an unrestricted manifold has none)",
                 )
             ],
-            "excited_state_spin_square": lambda output: [
-                float(item["spin_square"])
-                for item in output.excited_state_records
-            ],
-            "singlet_excitation_energies": lambda output: [
-                float(item["energy_eV"])
-                for item in output.excited_state_records
-                if item["multiplicity"] == 1
-            ],
-            "triplet_excitation_energies": lambda output: [
-                float(item["energy_eV"])
-                for item in output.excited_state_records
-                if item["multiplicity"] == 3
-            ],
-            "singlet_oscillator_strengths": lambda output: [
-                float(item["oscillator_strength"])
-                for item in output.electronic_absorption_transition_records
-                if item["multiplicity"] == 1
-            ],
-            "triplet_oscillator_strengths": lambda output: [
-                float(item["oscillator_strength"])
-                for item in output.electronic_absorption_transition_records
-                if item["multiplicity"] == 3
-            ],
+            "excited_state_spin_square": lambda output: (
+                _excited_spin_squares(
+                    _orca_served_records(output),
+                    (output.excited_state_applied or {}).get(
+                        "response_method"
+                    ),
+                    output.state_manifold,
+                )
+            ),
+            "excited_state_dominant_excitations": lambda output: (
+                _dominant_excitation_values(
+                    _orca_served_records(output), "labels"
+                )
+            ),
+            "excited_state_dominant_weights": lambda output: (
+                _dominant_excitation_values(
+                    _orca_served_records(output), "weights"
+                )
+            ),
+            "singlet_excitation_energies": lambda output: (
+                _orca_manifold_values(output, 1, "energy_eV")
+            ),
+            "triplet_excitation_energies": lambda output: (
+                _orca_manifold_values(output, 3, "energy_eV")
+            ),
+            "singlet_oscillator_strengths": lambda output: (
+                _orca_manifold_values(output, 1, "oscillator_strength")
+            ),
+            "triplet_oscillator_strengths": lambda output: (
+                _orca_manifold_values(output, 3, "oscillator_strength")
+            ),
             "energy": _orca_total_energy,
             "energies": lambda output: [
                 float(item) - _orca_fixed_geometry_root_shift(output)
@@ -2947,6 +3172,79 @@ def _gaussian_reached_positions(output: Any) -> list[list[float]]:
     return [[float(value) for value in row] for row in frames[-1].positions]
 
 
+def _gaussian_held_count(output: Any) -> float:
+    held = list(getattr(output, "held_internal_coordinates", None) or ())
+    if not held:
+        raise MissingQuantityError(
+            "this gaussian result held no internal coordinate; this family "
+            "answers the bonds, angles and dihedrals a ModRedundant section "
+            "froze, and a Cartesian atom freeze is not one of them"
+        )
+    return float(len(held))
+
+
+def _gaussian_held_coordinates(output: Any, kind: str) -> list[dict[str, Any]]:
+    """The coordinates of one kind a Gaussian run held, where it ended.
+
+    What ORCA's reader answers for a constrained optimisation, from
+    Gaussian's own record: the rows its echoed ModRedundant section froze,
+    each measured in the structure the run returned.  Gaussian states no
+    held value unless the row carried one -- it freezes a coordinate where
+    the input geometry has it -- so the value it was held at is the first
+    printed structure's, or the row's own.  The two must agree within the
+    tolerance ORCA's reader uses; disagreement is reported with both
+    numbers, because a constraint that did not hold is a finding, not a
+    parse error.  Atoms are delivered zero-based like every other atom
+    index this plane serves.
+    """
+
+    all_held = list(getattr(output, "held_internal_coordinates", None) or ())
+    rows = [row for row in all_held if row["kind"] == kind]
+    if not rows:
+        kinds = sorted({str(row["kind"]) for row in all_held})
+        raise MissingQuantityError(
+            f"this gaussian result held no {kind}"
+            + (f"; it held {', '.join(kinds)}" if kinds else "")
+        )
+    frames = list(getattr(output, "all_structures", ()) or ())
+    if not frames:
+        raise MissingQuantityError(
+            "this gaussian result prints no reached structure to measure a "
+            "held coordinate in"
+        )
+    method = {
+        "bond": "get_distance",
+        "angle": "get_angle",
+        "dihedral": "get_dihedral",
+    }[kind]
+    held = []
+    for row in rows:
+        reached = float(getattr(frames[-1], method)(*row["atoms"]))
+        declared = (
+            float(row["value"])
+            if row["value"] is not None
+            else float(getattr(frames[0], method)(*row["atoms"]))
+        )
+        offset = reached - declared
+        if kind == "dihedral":
+            offset = ((offset + 180.0) % 360.0) - 180.0
+        if abs(offset) > _ORCA_CONSTRAINT_TOLERANCE[kind]:
+            raise MissingQuantityError(
+                f"gaussian held {row['label']} at {declared} but the "
+                f"structure it returned has {reached}; the constraint this "
+                "result was run under is not the one its geometry carries, "
+                "and the geometry itself is readable as reached_positions"
+            )
+        held.append(
+            {
+                "atoms": tuple(int(index) - 1 for index in row["atoms"]),
+                "label": row["label"],
+                "value": reached,
+            }
+        )
+    return held
+
+
 def _gaussian_population(
     attribute: str, *, quantity: str
 ) -> Callable[[Any], list[float]]:
@@ -3064,6 +3362,8 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("energies", "computed_surface"),
     ("energy", "computed_surface"),
     ("excitation_energies", "excited_root"),
+    ("excited_state_dominant_excitations", "excited_root"),
+    ("excited_state_dominant_weights", "excited_root"),
     ("excited_state_indices", "excited_root"),
     ("excited_state_labels", "excited_root"),
     ("excited_state_manifold_roots", "excited_root"),
@@ -3096,6 +3396,35 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
             "energies": _gaussian_energies,
             "scf_energy": _gaussian_scf_energy,
             "reached_positions": _gaussian_reached_positions,
+            # Whether the optimiser said it converged, and what a
+            # constrained optimisation held -- the answers ORCA's modred
+            # gives, from Gaussian's own record.
+            "converged": _optimization_converged,
+            "constrained_coordinate_count": _gaussian_held_count,
+            "constrained_bond_atoms": lambda output: [
+                [float(index) for index in held["atoms"]]
+                for held in _gaussian_held_coordinates(output, "bond")
+            ],
+            "constrained_bond_lengths": lambda output: [
+                held["value"]
+                for held in _gaussian_held_coordinates(output, "bond")
+            ],
+            "constrained_angle_atoms": lambda output: [
+                [float(index) for index in held["atoms"]]
+                for held in _gaussian_held_coordinates(output, "angle")
+            ],
+            "constrained_bond_angles": lambda output: [
+                held["value"]
+                for held in _gaussian_held_coordinates(output, "angle")
+            ],
+            "constrained_dihedral_atoms": lambda output: [
+                [float(index) for index in held["atoms"]]
+                for held in _gaussian_held_coordinates(output, "dihedral")
+            ],
+            "constrained_dihedral_angles": lambda output: [
+                held["value"]
+                for held in _gaussian_held_coordinates(output, "dihedral")
+            ],
             # The surface reaches the typed layer as two parallel vectors,
             # exactly as ORCA's does, so the existing operations compose
             # against it: the height of a torsional barrier is the spread
@@ -3161,14 +3490,25 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                 str(item["state_label"])
                 for item in output.excited_state_records
             ],
-            "excited_state_spin_square": lambda output: [
-                float(item)
-                for item in _required_record_values(
+            "excited_state_spin_square": lambda output: (
+                _excited_spin_squares(
                     output.excited_state_records,
-                    "spin_square",
-                    "a printed excited-state <S^2>",
+                    (output.excited_state_request or {}).get(
+                        "response_method"
+                    ),
+                    (output.excited_state_request or {}).get("state_manifold"),
                 )
-            ],
+            ),
+            "excited_state_dominant_excitations": lambda output: (
+                _dominant_excitation_values(
+                    output.excited_state_records, "labels"
+                )
+            ),
+            "excited_state_dominant_weights": lambda output: (
+                _dominant_excitation_values(
+                    output.excited_state_records, "weights"
+                )
+            ),
             "singlet_excitation_energies": lambda output: [
                 float(item["energy_eV"])
                 for item in output.excited_state_records
@@ -4824,6 +5164,16 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
             )
         ],
         "transition_dipole_moments": _pyscf_transition_dipoles,
+        "excited_state_dominant_excitations": lambda output: (
+            _dominant_excitation_values(
+                _pyscf_excited_records(output), "labels"
+            )
+        ),
+        "excited_state_dominant_weights": lambda output: (
+            _dominant_excitation_values(
+                _pyscf_excited_records(output), "weights"
+            )
+        ),
         "excited_state_converged": _pyscf_excited_converged,
         "excited_state_followed_root": _pyscf_followed_root,
         # The correlated stage: the program's own components at the final
@@ -4994,6 +5344,8 @@ _PYSCF_SCF_SELECTORS = (
 _PYSCF_TD_SELECTORS = (
     "excitation_energies",
     "excited_state_converged",
+    "excited_state_dominant_excitations",
+    "excited_state_dominant_weights",
     "excited_state_indices",
     "excited_state_manifold_roots",
     "excited_state_multiplicities",
@@ -5111,6 +5463,8 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             ("energy", "as_reached"),
             ("excitation_energies", "as_reached"),
             ("excited_state_converged", "as_reached"),
+            ("excited_state_dominant_excitations", "as_reached"),
+            ("excited_state_dominant_weights", "as_reached"),
             ("excited_state_indices", "as_reached"),
             ("excited_state_manifold_roots", "as_reached"),
             ("excited_state_multiplicities", "as_reached"),
@@ -5187,6 +5541,8 @@ _PYSCF_ELECTRONIC_PROVENANCE = tuple(
             ("energy", "computed_surface"),
             ("excitation_energies", "excited_root"),
             ("excited_state_converged", "excited_root"),
+            ("excited_state_dominant_excitations", "excited_root"),
+            ("excited_state_dominant_weights", "excited_root"),
             ("excited_state_followed_root", "excited_root"),
             ("excited_state_indices", "excited_root"),
             ("excited_state_manifold_roots", "excited_root"),
@@ -5244,6 +5600,8 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("energy", "computed_surface"),
     ("entropy_times_temperature", "computed_surface"),
     ("excitation_energies", "excited_root"),
+    ("excited_state_dominant_excitations", "excited_root"),
+    ("excited_state_dominant_weights", "excited_root"),
     ("excited_state_indices", "excited_root"),
     ("excited_state_labels", "excited_root"),
     ("excited_state_manifold_roots", "excited_root"),
@@ -5299,13 +5657,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         #: introduced selector says what it is measured in, and "" reads
         #: as nobody having said.
         selector_declarations=(
-            ("constrained_angle_atoms", "1", "DIMENSIONLESS"),
-            ("constrained_bond_angles", "degree", "ANGLE"),
-            ("constrained_bond_atoms", "1", "DIMENSIONLESS"),
-            ("constrained_bond_lengths", "Angstrom", "LENGTH"),
-            ("constrained_coordinate_count", "1", "DIMENSIONLESS"),
-            ("constrained_dihedral_angles", "degree", "ANGLE"),
-            ("constrained_dihedral_atoms", "1", "DIMENSIONLESS"),
+            _CONSTRAINED_COORDINATE_DECLARATIONS
+            + _EXCITED_CHARACTER_DECLARATIONS
         ),
         #: An atom index this plane delivers indexes the vectors this
         #: plane delivers -- symbols, positions, every population -- so it
@@ -5315,40 +5668,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         #: the two are converted at the accessor. What the Agent *writes*
         #: -- the constrained coordinate on a modred node -- is one-based,
         #: which is the round trip this record exists to keep honest.
-        atom_resolved_declarations=(
-            (
-                "constrained_bond_atoms",
-                (
-                    ("semantic_quantity", "constrained_internal_coordinate"),
-                    ("atom_order", "zero-based molecular atom order"),
-                    ("data_shape", "rows of [atom_i, atom_j]"),
-                ),
-            ),
-            (
-                "constrained_angle_atoms",
-                (
-                    ("semantic_quantity", "constrained_internal_coordinate"),
-                    ("atom_order", "zero-based molecular atom order"),
-                    (
-                        "data_shape",
-                        "rows of [atom_i, atom_j, atom_k], vertex in the "
-                        "middle",
-                    ),
-                ),
-            ),
-            (
-                "constrained_dihedral_atoms",
-                (
-                    ("semantic_quantity", "constrained_internal_coordinate"),
-                    ("atom_order", "zero-based molecular atom order"),
-                    (
-                        "data_shape",
-                        "rows of [atom_i, atom_j, atom_k, atom_l], about "
-                        "the j-k bond",
-                    ),
-                ),
-            ),
-        ),
+        atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
         # Coverage is ``parser_supported_when_emitted``: it states what a job
         # of this type can be asked for, while method and settings still
         # decide whether the engine prints it.  The spin family and the
@@ -5770,6 +6090,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "excitation_energies",
+                    # What each root is made of: its largest single
+                    # excitation and that excitation's weight.
+                    "excited_state_dominant_excitations",
+                    "excited_state_dominant_weights",
                     "excited_state_indices",
                     "excited_state_manifold_roots",
                     "excited_state_multiplicities",
@@ -5788,6 +6112,11 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
+                    # ORCA solves the spin-adapted triplets beside the
+                    # singlets; they were read and never declared, so a
+                    # triplet request could not be answered by name.
+                    "triplet_excitation_energies",
+                    "triplet_oscillator_strengths",
                 ),
             ),
             (
@@ -5859,6 +6188,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         parser_id="chemsmart.io.gaussian.output.Gaussian16Output",
         open_output=_gaussian_output,
         accessors=_gaussian_accessors(),
+        # A held coordinate keeps its unit and its atoms as ORCA's do: one
+        # declaration for both programs' constrained optimisations.
+        selector_declarations=(
+            _CONSTRAINED_COORDINATE_DECLARATIONS
+            + _EXCITED_CHARACTER_DECLARATIONS
+        ),
+        atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
         # Coverage is ``parser_supported_when_emitted``, as for ORCA: it
         # states what a job of this type can be asked for, while route and
         # settings still decide what Gaussian prints.  The spin family, the
@@ -5902,12 +6238,32 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 # "Sum of electronic and thermal Free Energies" beside a
                 # -1380 cm-1 mode it silently left out, and this
                 # declaration served that number as gibbs_free_energy.
+                #
+                # Nor the vibrational family, for the same reason and as
+                # ORCA's modred has none: Gaussian's frequency step after a
+                # constrained optimisation diagonalises the whole Hessian at
+                # a point that is not stationary along what was held and
+                # projects nothing out, so those numbers are not the
+                # harmonic frequencies of any stationary point -- and a
+                # served ``vibrational_frequencies`` is what the host's own
+                # thermochemistry and order checks read. The Hessian still
+                # runs when the project asks for it.
                 "modred",
                 (
                     "ab_initio",
                     "basis",
                     "charge",
                     "connectivity",
+                    # What it held and whether it finished relaxing the
+                    # rest, as ORCA's constrained optimisation answers.
+                    "constrained_angle_atoms",
+                    "constrained_bond_angles",
+                    "constrained_bond_atoms",
+                    "constrained_bond_lengths",
+                    "constrained_coordinate_count",
+                    "constrained_dihedral_angles",
+                    "constrained_dihedral_atoms",
+                    "converged",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
@@ -5917,7 +6273,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "gap",
                     "hirshfeld_atomic_charges",
                     "homo",
-                    "ir_intensities",
                     "lumo",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
@@ -5930,7 +6285,6 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
-                    "vibrational_frequencies",
                     "wavefunction_stability_history",
                     "wavefunction_stability_verdict",
                 ),
@@ -5942,6 +6296,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "basis",
                     "charge",
                     "connectivity",
+                    "converged",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
@@ -6071,8 +6426,20 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "excitation_energies",
+                    # What each root is made of: its largest single
+                    # excitation and that excitation's weight.
+                    "excited_state_dominant_excitations",
+                    "excited_state_dominant_weights",
                     "excited_state_indices",
                     "excited_state_labels",
+                    # Which manifold each state belongs to and its rank
+                    # there, and each spin block by name: the words ORCA's
+                    # and PySCF's td already answered.  The accessors read
+                    # Gaussian's own spin labels; undeclared, a 50-50 run
+                    # could be read only by list position, where Gaussian
+                    # interleaves singlets and triplets by energy.
+                    "excited_state_manifold_roots",
+                    "excited_state_multiplicities",
                     "excited_state_spin_square",
                     "functional",
                     "hirshfeld_atomic_charges",
@@ -6082,11 +6449,15 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "oscillator_strengths",
                     "positions",
                     "scf_energy",
+                    "singlet_excitation_energies",
+                    "singlet_oscillator_strengths",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
+                    "triplet_excitation_energies",
+                    "triplet_oscillator_strengths",
                     "wavefunction_stability_history",
                     "wavefunction_stability_verdict",
                 ),
@@ -6098,6 +6469,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "basis",
                     "charge",
                     "connectivity",
+                    "converged",
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
@@ -6161,6 +6533,11 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 [
                     ("charge", "as_reached"),
                     ("connectivity", "as_reached"),
+                    # A held coordinate is measured in the structure the
+                    # run returned, as ORCA's reader delivers it.
+                    ("constrained_bond_angles", "as_reached"),
+                    ("constrained_bond_lengths", "as_reached"),
+                    ("constrained_dihedral_angles", "as_reached"),
                     ("dipole_moment", "as_reached"),
                     ("dipole_moment_magnitude", "as_reached"),
                     ("energy", "as_reached"),
@@ -6372,6 +6749,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("scf_stability_internal", "", "DIMENSIONLESS"),
             ("scf_stability_external", "", "DIMENSIONLESS"),
             ("scf_stability_external_rotation_space", "", "DIMENSIONLESS"),
+            *_EXCITED_CHARACTER_DECLARATIONS,
         ),
         jobtype_selectors=(
             (
@@ -6588,7 +6966,11 @@ _TEXT_SELECTORS = frozenset(
     }
 )
 _TEXT_VECTOR_SELECTORS = frozenset(
-    {"excited_state_labels", "wavefunction_stability_history"}
+    {
+        "excited_state_dominant_excitations",
+        "excited_state_labels",
+        "wavefunction_stability_history",
+    }
 )
 _INTEGER_SELECTORS = frozenset(
     {

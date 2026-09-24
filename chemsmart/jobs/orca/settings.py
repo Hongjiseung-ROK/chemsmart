@@ -23,6 +23,7 @@ from chemsmart.jobs.settings import (
     canonical_functional_literal,
     functional_identity,
     functional_resolution_record,
+    td_manifold_reference_refusal,
 )
 from chemsmart.utils.utils import (
     deduplicate_string_keywords,
@@ -284,7 +285,29 @@ ORCA_FUNCTIONAL_REFUSED = {
 }
 
 ORCA_TD_RESPONSE_METHODS = ("tda", "tddft")
-ORCA_TD_STATE_MANIFOLDS = ("singlet", "singlet_triplet")
+#: The manifold words every program's td stage takes.  ORCA computes each:
+#: ``singlet`` alone, the spin-adapted triplets beside the singlets
+#: (``Triplets true``), and an open-shell reference's one spin-conserving
+#: manifold, which ORCA runs on the unrestricted reference with no spin
+#: option at all.  ``triplet`` has no triplet-only solve in ORCA (6.1.1
+#: manual, section 5.6: ``Triplets true`` determines the triplets "in
+#: addition to the singlets"), so it is written as ``Triplets true`` and
+#: the triplet roots are the ones served: for a closed-shell reference the
+#: two spin blocks are solved separately, so they are the roots a
+#: triplet-only solve would return.
+ORCA_TD_STATE_MANIFOLDS = (
+    "singlet",
+    "singlet_triplet",
+    "triplet",
+    "unrestricted",
+)
+#: The manifolds ORCA solves with ``Triplets true``.
+ORCA_TD_TRIPLET_SOLVES = ("singlet_triplet", "triplet")
+#: The comment line the writer puts before ``%tddft`` naming the manifold
+#: the project asked for.  ``Triplets true`` is ORCA's spelling of two
+#: requests, so the input (and ORCA's echo of it in every output) carries
+#: which one was meant; the reader of the block reads it back.
+ORCA_TD_MANIFOLD_MARKER = "# chemsmart td state_manifold:"
 
 
 def _is_orca_dlpno_coupled_cluster(value):
@@ -754,13 +777,11 @@ class ORCAJobSettings(MolecularJobSettings):
                 )
             if self.nstates <= 0:
                 raise ValueError("ORCA td nstates must be a positive integer")
-            if self.state_manifold in ORCA_TD_STATE_MANIFOLDS and (
-                self.multiplicity is not None and int(self.multiplicity) != 1
-            ):
-                raise ValueError(
-                    "ORCA singlet TD roots require a singlet reference "
-                    "multiplicity"
-                )
+            refusal = td_manifold_reference_refusal(
+                self.state_manifold, self.multiplicity
+            )
+            if refusal:
+                raise ValueError(refusal)
             if self.freq or self.numfreq:
                 raise ValueError(
                     "ChemSmart ORCA td is a fixed-geometry vertical response "

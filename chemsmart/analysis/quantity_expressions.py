@@ -2955,7 +2955,56 @@ LEVEL_IDENTITY_FIELDS = (
     "dispersion",
     "solvation",
     "frozen_core",
+    "response_method",
 )
+#: Level fields that describe how an excited root was computed, and so
+#: are compared only between operands that are excited-root values: a
+#: ground-state energy read from a TDA run and one read from a full TD-DFT
+#: run are one SCF, while two excitations from those runs are two
+#: approximations of one root (TDA lies above full TD-DFT, by 0.44 eV for
+#: acrolein's bright pi->pi*, CUHK Slurm 2150076).  The manifold is not
+#: here: a singlet and a triplet root of one reference subtract into a
+#: gap by design, and which states were combined is an identity, not a
+#: level.
+EXCITED_ROOT_LEVEL_FIELDS = ("response_method",)
+
+
+def expression_output_sources(
+    request: QuantityExpressionRequestV1,
+) -> dict[str, frozenset[tuple[str, str]]]:
+    """The ``(extraction receipt, quantity id)`` pairs each output descends from.
+
+    The same walk as the receipt-level dependencies, one grain finer: an
+    extraction receipt can carry a reference value and an excited-root
+    value side by side, and a level field that describes only one of them
+    must be asked of the quantity actually consumed.
+    """
+
+    sources: dict[str, frozenset[tuple[str, str]]] = {}
+    for quantity in request.inputs:
+        receipts = _RECEIPT_REF.findall(quantity.evidence_ref)
+        quantities = _QUANTITY_REF.findall(quantity.evidence_ref)
+        sources[quantity.quantity_id] = frozenset(
+            (receipt, name)
+            for receipt in receipts[-1:]
+            for name in quantities[-1:]
+        )
+    for node in request.nodes:
+        if node.operation in {"literal", "constant"}:
+            sources[node.node_id] = frozenset()
+        elif node.operation == "ref":
+            sources[node.node_id] = sources.get(
+                node.reference or node.input_ids[0], frozenset()
+            )
+        else:
+            sources[node.node_id] = frozenset().union(
+                *(sources.get(item, frozenset()) for item in node.input_ids),
+                frozenset(),
+            )
+    return {
+        output_id: sources.get(output_id, frozenset())
+        for output_id in request.output_node_ids
+    }
 
 
 def _level_identity(level: Mapping[str, Any]) -> dict[str, Any]:
@@ -2982,12 +3031,16 @@ def _level_identity(level: Mapping[str, Any]) -> dict[str, Any]:
             f"{model}:{_word(level.get('solvent')) or ''}" if model else "gas"
         ),
         "frozen_core": level.get("frozen_core"),
+        "response_method": _word(level.get("response_method")),
     }
 
 
 def expression_level_observations(
     receipt: QuantityExpressionReceiptV1,
     levels_by_receipt: Mapping[str, Mapping[str, Any] | None],
+    *,
+    request: QuantityExpressionRequestV1 | None = None,
+    provenance_by_receipt: Mapping[str, Mapping[str, str]] | None = None,
 ) -> tuple[dict[str, Any], ...]:
     """Say when an output combines numbers computed at different levels.
 
@@ -2999,8 +3052,18 @@ def expression_level_observations(
     a refusal: a composite method mixes levels on purpose, and a high-level
     single point on a low-level geometry is an ordinary protocol -- the
     number stands and the reader is told what it is made of.
+
+    ``EXCITED_ROOT_LEVEL_FIELDS`` are compared only between the receipts
+    whose consumed quantities are excited-root values, which needs the
+    ``request`` (which quantity of which receipt feeds each output) and
+    each receipt's electronic provenance per quantity; without them the
+    response is not compared, rather than compared on the wrong numbers.
     """
 
+    output_sources = (
+        expression_output_sources(request) if request is not None else {}
+    )
+    provenance_by_receipt = provenance_by_receipt or {}
     observations: list[dict[str, Any]] = []
     for dependency in receipt.output_dependencies:
         sources = tuple(dependency.source_receipt_sha256s)
@@ -3014,10 +3077,30 @@ def expression_level_observations(
         unstated = tuple(digest for digest in sources if digest not in stated)
         if len(stated) < 2:
             continue
+        excited = {
+            digest
+            for digest, quantity_id in output_sources.get(
+                dependency.output_id, frozenset()
+            )
+            if (provenance_by_receipt.get(digest) or {}).get(quantity_id)
+            == "excited_root"
+        }
         differing = {}
         for field in LEVEL_IDENTITY_FIELDS:
+            compared = (
+                {
+                    digest: stated[digest]
+                    for digest in excited
+                    if digest in stated
+                }
+                if field in EXCITED_ROOT_LEVEL_FIELDS
+                else stated
+            )
+            if len(compared) < 2:
+                continue
             values = {
-                digest: identity[field] for digest, identity in stated.items()
+                digest: identity[field]
+                for digest, identity in compared.items()
             }
             if len(set(values.values())) > 1:
                 differing[field] = {
@@ -3294,7 +3377,9 @@ __all__ = [
     "convert_normalized_value",
     "evaluate_quantity_expression",
     "expression_level_observations",
+    "expression_output_sources",
     "expression_thermochemical_convention_observations",
+    "EXCITED_ROOT_LEVEL_FIELDS",
     "LEVEL_IDENTITY_FIELDS",
     "THERMOCHEMICAL_CONVENTION_FIELDS",
     "thermochemical_convention",
