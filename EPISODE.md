@@ -73,6 +73,18 @@ had earlier members (H1 x3).
   `external_no_spin_instability` failed, so its claims stand on a result the
   host reads as rejected).
 
+- H2, per cycle (scratch q16/tools/replay_cycle_settle.py over the ten
+  archived recoveries whose unclaimed ids include an output a delivered
+  claim cites as its uncertainty; logs replay/cyc-base.log,
+  cyc-repaired.log). Base 2c1050c7 reproduces all ten recovery rows and
+  their unclaimed ids exactly. Repaired: five would not have opened --
+  r10/q13 dans c1 achieved, r10/q3 g1 c2 achieved, r8 smoke c2
+  achieved_with_observations, wave-heartbeat butane-wave-3 c3
+  achieved_with_observations, ax41 g2-phosphine c1 achieved; five still
+  recover on what remains (g2-hono, g4-formaldehyde-h2, sm2-hcn-hnc,
+  g3c-allyl name only their genuinely unclaimed ids; xtb-ir-r10 c4
+  recovers on its verdicts with none unclaimed).
+
 ## Repairs (committed, each with a witness red on 2c1050c7 and green here)
 
 - ad15e81a H1 loop: a partial completion ends the session `planned` on its
@@ -86,6 +98,14 @@ had earlier members (H1 x3).
   naming its three genuinely unclaimed ids.
 - 7bf1a744 H3 live_session: a hidden file is never admitted as a molecule
   (test_a_hidden_file_is_not_a_molecule).
+- 5c275158 (regression of ad15e81a, caught by the full tests/agent run of
+  the merged tree, 2 failed / 3062 passed): the bare draft call raised out
+  of the partial branch where no draft stands and skipped the review
+  block. The fallback is now caught in place in the sibling endings'
+  shape. The real host never reaches it (a not-green completion is minted
+  only over the latest draft; the delivered-claims certificate is minted
+  passed), so the live goals below, packed at 71de94b9, stand on the same
+  behaviour.
 
 ## Pre-registration (written before any live goal; nothing seen yet)
 
@@ -143,3 +163,8 @@ re-rolled.
 
 - step 1 (census) and step 2 (repairs H1, H6, H2, H3) done; H5 (SDF) and
   H4 (Q15's) left and reported. Step 3: live goals L1, L2.
+- Live goals submitted on code commit 71de94b9 (pre-registration digest
+  6eb75d76cca0): L1 CUHK Slurm 2152989 (slot r10-q16-a,
+  /project/xlzhang/jiseung/r10/q16/goals/l1-o2r), L2 CUHK Slurm 2152990
+  (slot r10-q16-b, goals/l2-q9g1). L1 cycle 1 ran one PySCF node and
+  opened a recovery on its own stability verdicts; L2 cycle 1 executing.
