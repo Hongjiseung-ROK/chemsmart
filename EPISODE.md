@@ -285,3 +285,9 @@ different tree, not a controlled A/B.
 - 2026-09-24: episode opened; gate open; census done (F1 falsified as stated).
 - 2026-09-25: O0 and O0b read; implementing the typed request (Gaussian and
   ORCA writers and parse-back written; PySCF follows its instability).
+- 2026-09-25: typed request, host reading and sensor committed (c54dd56e ..
+  33906d52); O1 read, T1-T5 held; r10-integration merged (95c85ed0, no
+  conflict); tests/agent 3125 passed on the merge; full suite from a
+  pristine export of fdeadcaf: 23 failed, 4679 passed (the 23 are the
+  environmental set: InChI/CDX/identifier, dispersion probe, CBS contract,
+  PySCF four-stage YAML); live goals G1 and G2 running.
