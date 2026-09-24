@@ -771,12 +771,46 @@ class ToolLoopRunner:
                                 terminal_state = "complete"
                                 terminal_reason = "host readiness gates passed"
                             else:
-                                terminal_state = "planned"
-                                terminal_reason = (
-                                    "the analysis completion is partial; "
-                                    "the delivery stands with the "
-                                    "limitations it names"
-                                )
+                                # `planned` is bound to the plan the
+                                # session made: terminate admits it only
+                                # over the stream's latest workflow draft,
+                                # as the two other planned endings below
+                                # already bind it. This one carried the
+                                # partial completion receipt instead, so
+                                # the repair above traded "a required
+                                # completion gate is red" for "planned
+                                # termination requires the latest workflow
+                                # draft" and kept the loss: o2r (R10 Q13,
+                                # CUHK 2152079) read and claimed its whole
+                                # answer, its planned criterion failed
+                                # because the reference is unstable, and
+                                # the goal returned on the error. The host
+                                # mints a not-green completion only over an
+                                # analysis toolchain whose draft is the
+                                # latest, so a draft exists; the completion
+                                # receipt stays in the stream, where the
+                                # settlement reads it. Where none stands
+                                # the ending is the siblings' -- blocked --
+                                # and is caught here, so the review below
+                                # is still built: raising out of this
+                                # branch skipped it.
+                                try:
+                                    completion_required = (
+                                        self.host.latest_workflow_draft_receipt(),
+                                    )
+                                    terminal_state = "planned"
+                                    terminal_reason = (
+                                        "the analysis completion is "
+                                        "partial; the delivery stands "
+                                        "with the limitations it names"
+                                    )
+                                except ContractError:
+                                    terminal_state = "blocked"
+                                    terminal_reason = (
+                                        "the analysis completion is not "
+                                        "green and no workflow draft "
+                                        "stands for it"
+                                    )
                             # Under a bounded review the host builds the
                             # review now, while the stream is open, so a
                             # refusal is an event the goal settles on and

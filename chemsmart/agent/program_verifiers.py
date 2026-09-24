@@ -1099,6 +1099,23 @@ def _settings_match(parsed, expected, *, native_input=None):
             # its program-native ``freq`` job label.  These are two views of
             # one calculation, not a stage mismatch.
             continue
+        if (
+            is_orca
+            and field in {"freq", "numfreq"}
+            and bool(expected.get("freq"))
+            and not bool(expected.get("numfreq"))
+            and bool(getattr(parsed, "numfreq", False))
+        ):
+            # The writer asks ORCA for NumFreq where ORCA has no analytic
+            # Hessian for the method, and the reason is asked of the one
+            # function the writer asks: two spellings of the frequencies a
+            # project requested, not a dropped setting.
+            from chemsmart.jobs.orca.settings import (
+                orca_numerical_hessian_reason,
+            )
+
+            if orca_numerical_hessian_reason(expected):
+                continue
         if is_gaussian and field == "dispersion":
             from chemsmart.io.gaussian.route import (
                 normalize_gaussian_dispersion,

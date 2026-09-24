@@ -17,6 +17,7 @@ from chemsmart.jobs.orca.settings import (
     ORCANEBJobSettings,
     ORCAQMMMJobSettings,
     ORCATSJobSettings,
+    orca_correlated_pairs,
 )
 from chemsmart.jobs.writer import InputWriter
 from chemsmart.utils.io import remove_keyword
@@ -292,6 +293,51 @@ class ORCAInputWriter(InputWriter):
 
         f.write(route_string + "\n")
 
+    def _correlated_pairs(self):
+        """The electron pairs ORCA's MDCI would share for this job, or None.
+
+        None, and so the granted cores, for a writer that holds no job or
+        no settings to ask (a writer built only to render resources).
+        """
+
+        job = getattr(self, "job", None)
+        settings = getattr(self, "settings", None)
+        molecule = getattr(job, "molecule", None)
+        if molecule is None or settings is None:
+            return None
+        charge = settings.charge
+        multiplicity = settings.multiplicity
+        if charge is None:
+            charge = getattr(molecule, "charge", None)
+        if multiplicity is None:
+            multiplicity = getattr(molecule, "multiplicity", None)
+        return orca_correlated_pairs(
+            settings,
+            list(molecule.chemical_symbols),
+            charge,
+            multiplicity,
+        )
+
+    def _processes(self):
+        """The MPI processes this input asks ORCA for.
+
+        The granted cores, unless the correlated method runs in ORCA's MDCI
+        module and the state has fewer electron pairs than that: MDCI then
+        aborts after the SCF, whatever the chemistry (a water monomer at 32
+        processes, "exceeds number of pairs (10)", R10 Q3 g2, CUHK Slurm
+        2152066). The same calculation on fewer processes is what ORCA
+        runs; a state with no pair at all is refused before any input is
+        written, because no process count runs it.
+        """
+
+        granted = int(self.jobrunner.num_cores)
+        pairs = self._correlated_pairs()
+        if pairs is None:
+            return granted
+        if pairs.refused_at_any_count:
+            raise ValueError(pairs.refusal())
+        return pairs.processes(granted)
+
     def _write_processors(self, f):
         """
         Write processor specification for parallel execution.
@@ -300,8 +346,18 @@ class ORCAInputWriter(InputWriter):
             f: File object to write to
         """
         logger.debug("Writing processors.")
+        processes = self._processes()
         f.write("# Number of processors\n")
-        f.write(f"%pal nprocs {self.jobrunner.num_cores} end\n")
+        if processes < int(self.jobrunner.num_cores):
+            pairs = self._correlated_pairs()
+            logger.warning(pairs.translation(self.jobrunner.num_cores))
+            f.write(
+                f"# {processes} of {self.jobrunner.num_cores} granted: "
+                f"MDCI {'keeps at least' if pairs.local else 'shares'} "
+                f"{pairs.max_processes} electron pair"
+                f"{'' if pairs.max_processes == 1 else 's'}\n"
+            )
+        f.write(f"%pal nprocs {processes} end\n")
 
     def _write_memory(self, f):
         """
@@ -312,7 +368,9 @@ class ORCAInputWriter(InputWriter):
         """
         logger.debug("Writing memory specification")
         f.write("# Memory per core\n")
-        mpc = (self.jobrunner.mem_gb * 1000) / self.jobrunner.num_cores * 0.75
+        # Per process actually launched, so fewer MDCI processes than
+        # granted cores still use at most 0.75 of the granted memory.
+        mpc = (self.jobrunner.mem_gb * 1000) / self._processes() * 0.75
         # Safety Factor: Applies a 75% factor to the memory per core to
         # reduce the risk of out-of-memory errors, as recommended for ORCA.
         mpc = int(mpc)

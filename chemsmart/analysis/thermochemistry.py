@@ -600,7 +600,13 @@ class Thermochemistry:
 
         statements = []
         if self.molecule.is_monoatomic:
-            return ("monoatomic: no rotational or vibrational partition",)
+            return (
+                "monoatomic: no rotational or vibrational partition",
+                "monoatomic electronic partition function: the spin "
+                "multiplicity 2S+1 alone; the orbital degeneracy and "
+                "spin-orbit levels of an open-shell atomic term (2P, 3P) "
+                "are not included",
+            )
         sigma = self.rotational_symmetry_number
         text = (
             f"rotational symmetry number {sigma}, counted by the host from "
@@ -646,7 +652,19 @@ class Thermochemistry:
 
     @property
     def vibrational_frequencies(self):
-        """Obtain the vibrational frequencies of the molecule."""
+        """Obtain the vibrational frequencies of the molecule.
+
+        ``None`` means the result carries no Hessian, which leaves a
+        molecule without thermochemistry.  An atom has no vibrational (or
+        rotational) degree of freedom, so it has none to be missing: its
+        partition function is translational and electronic, from its
+        energy, mass and multiplicity alone, and a single point is all it
+        needs.  A live goal asked for an H atom's free energy from an ORCA
+        single point and was refused as an unconverged optimisation (R10
+        Q9 G1, CUHK Slurm 2150438).
+        """
+        if self.molecule.is_monoatomic:
+            return []
         if self.program == "orca":
             section = self.file_object._last_complete_thermochemistry_section
             if section is None:

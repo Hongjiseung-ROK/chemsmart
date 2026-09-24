@@ -1407,6 +1407,22 @@ def _private_run_directory(workspace: Path, session_id: str) -> Path:
     return target
 
 
+def _is_hidden_below(candidate: Path, workspace: Path) -> bool:
+    """Whether a path below the workspace is hidden: a dotfile, or inside
+    a dot-directory. What a human places as a molecule is never hidden;
+    what an operating system or a tool leaves there often is. macOS tar
+    writes a ``._<name>.xyz`` AppleDouble sidecar beside every file it
+    copies, and the master's smoke goal (R10, CUHK Slurm 2150189) admitted
+    ``._formaldehyde.xyz`` as a geometry and settled returned_to_human
+    before any session: "workspace XYZ has a malformed atom count"."""
+
+    try:
+        parts = candidate.relative_to(workspace).parts
+    except ValueError:
+        return False
+    return any(part.startswith(".") for part in parts)
+
+
 def _scan_xyz_artifacts(
     workspace: Path, excluded_roots: tuple[Path, ...] = ()
 ) -> tuple[_XyzObservation, ...]:
@@ -1424,6 +1440,8 @@ def _scan_xyz_artifacts(
     )
     for candidate in sorted(workspace.rglob("*.xyz")):
         if any(root in candidate.parents for root in barred):
+            continue
+        if _is_hidden_below(candidate, workspace):
             continue
         if candidate.is_symlink() or not candidate.is_file():
             continue
@@ -1486,6 +1504,8 @@ def _scan_database_artifacts(
     )
     for candidate in sorted(workspace.rglob("*.db")):
         if any(root in candidate.parents for root in barred):
+            continue
+        if _is_hidden_below(candidate, workspace):
             continue
         if candidate.is_symlink() or not candidate.is_file():
             continue
