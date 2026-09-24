@@ -138,6 +138,87 @@ reading census D's own pyscf_probe.jsonl.
 Predictions: D1, D2 PASS. D3 PASS (179 Gaussian, 96 ORCA). D4 PASS. D5 PASS
 (before the banner). D6 OPEN until D-run2. D7 PASS for the two pairs read.
 
+## The chemistry (chosen before any chemistry run)
+
+The thermal 6pi-electrocyclic ring closure of (Z)-1,3,5-hexatriene (C6H8) to
+1,3-cyclohexadiene, gas phase. Closed shell throughout (a disrotatory, aromatic
+transition state; checked below with the hub's typed stability evidence before
+any goal). Hard for reasons that are not the reference's electronic structure:
+- the reactant's ground state is the planar tZt conformer, and the ring can
+  close only from the helical cZc conformer, so a barrier taken from the
+  reactive conformer is not the observed one: the kinetics measure the
+  disappearance of the equilibrium conformer mixture;
+- the reference is a gas-phase Arrhenius activation energy at 390-434 K, so
+  the comparable quantity is an enthalpy of activation at that temperature;
+- the TS must be located and connected, and a correlated energy is needed to
+  claim more than a functional's luck.
+
+Reference, read in the session from Guner, Khuong, Leach, Lee, Bartberger,
+Houk, J. Phys. Chem. A 2003, 107, 11445 (author-hosted PDF; Table 1 read from
+the rendered page, Table 9 and the text read as text): reaction 2,
+"measured only once, and an experimental activation energy of 29.9 +- 0.5
+kcal/mol was reported for the gas phase at 390-434 K" (Lewis and Steiner, J.
+Chem. Soc. 1964, 3080; primary text not read, paywalled); Table 1: dH++ = 29.1
+kcal/mol at 412 K (Ea - RT), log A 11.9, dS++ -7.0 cal/mol/K; reaction
+enthalpy -14.5 (measured, Benson and O'Neal 1970) and -16.1 (from heats of
+formation); Table 9 recommended dH++(0 K) 30.2 +- 0.5, dH_rxn(0 K) -15.3 +- 1.
+
+Why crossing programs is justified by capability (not staged): in this hub
+typed wavefunction-stability answers are PySCF's; the CCSD T1 diagnostic and
+DLPNO-CCSD(T) are ORCA's; canonical CCSD(T) runs in ORCA and PySCF; Gaussian
+and ORCA both locate saddles and walk IRCs; xTB is the cheap conformer
+screen. A single-program route (ORCA alone can do every stage except typed
+stability) is legitimate and is not B.
+
+## Oracle O1 -- PRE-REGISTRATION (written before submission)
+
+A CLI job (no Agent) on this commit's code (`chemsmart/` = base), 32 cores:
+B3LYP-D3(BJ)/def2-TZVP (ORCA writes B3LYP/G + D3BJ, parameterised per census
+D) opt+freq of tZt, tZc, cZc and 1,3-cyclohexadiene (CHD), OptTS+freq from my
+guess, IRC both ways reading the saddle's Hessian; PySCF RKS stability
+(B3LYP-D3(BJ)/def2-TZVP) at tZt, cZc, TS, CHD; canonical CCSD(T)/cc-pVTZ
+(frozen core) at tZt, cZc, TS, CHD in ORCA, and at tZt and TS in PySCF.
+Guesses built by me (RDKit/MMFF: tZt minimum; cZc and tZc with held
+torsions; saddle guess and CHD guess from cZc with C1...C6 held at 2.25 and
+1.53 A; `chem/build.py`); the Agent never sees them.
+
+Predictions (never tuned after a result):
+- O-A saddle: exactly one imaginary mode, |nu| in [300, 900] cm-1; forming
+  C1...C6 in [2.05, 2.45] A.
+- O-B IRC: the two branches move C1...C6 oppositely (one toward the ring,
+  below 1.8 A; one toward the open chain, above 2.8 A).
+- O-C stability (the check before committing to the system): RKS -> UKS
+  stable at tZt, cZc, TS and CHD (lowest eigenvalue > 0). FALSIFIED (the
+  system is abandoned for B) if the TS is RKS -> UKS unstable.
+- O-D conformers: tZt is the lowest; cZc lies 2-7 kcal/mol above it (dE).
+- O-E B3LYP-D3(BJ) dE++ (tZt -> TS) in [28, 35] kcal/mol.
+- O-F CCSD(T)/cc-pVTZ // B3LYP: dE++ (tZt -> TS) in [28, 34]; dE_rxn
+  (tZt -> CHD) in [-22, -12] kcal/mol.
+- O-G ORCA T1 below 0.015 at all four structures.
+- O-H ORCA and PySCF CCSD(T) totals agree within 1e-5 Eh at tZt and TS.
+- O-I (the oracle's answer, with my own RRHO at 412 and 298.15 K from the DFT
+  frequencies): dH++(412 K, from tZt) in [27.1, 31.1] kcal/mol and dH_rxn(298
+  K) in [-18.0, -12.5]. If it misses, the bands below stay as written and the
+  miss is reported.
+
+## Physics bands for the live goal(s) (never tuned after a result)
+
+- B1 saddle: one imaginary mode, |nu| in [300, 900] cm-1; C1...C6 in [2.05,
+  2.45] A.
+- B2 connectivity: one side is (Z)-hexatriene (C1...C6 above 2.8 A), the
+  other 1,3-cyclohexadiene (C1-C6 in [1.49, 1.58] A).
+- B3 activation enthalpy at 412 K relative to the equilibrium reactant: PASS
+  in [27.1, 31.1] kcal/mol (29.1 +- 0.5 experiment, +- 1.5 for a
+  CCSD(T)/TZ-class level and thermal model). A value referenced to the cZc
+  conformer instead of the ground state is recorded as that error whatever
+  its number (it is the question's trap). A DFT-only value in the band is
+  "in band, method-limited".
+- B4 reaction enthalpy at 298.15 K: PASS in [-18.0, -12.5] kcal/mol.
+- B5 lineage: for every delivered number the host records name the geometry
+  node, the level each program applied (functional as written, dispersion,
+  basis, RI, frozen core), the state (0, 1), and the producer of every
+  handed-on structure and Hessian.
+
 ## Plan
 
 1. Census D (above). Then the repair in radius: each settings class refuses at
