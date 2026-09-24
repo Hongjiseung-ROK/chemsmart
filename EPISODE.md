@@ -306,6 +306,36 @@ no findings; read through the readers of 28b8b48c/c2873226):
   therefore false at the windows an Agent requests: identity by index is
   unsafe even after one order, because a window can lack a state.
 
+G1 (Slurm 2150295, code fcb115eb, digest cc7c2ef3 recomputed on the node,
+settled `achieved_with_observations` at cycle 2, 4 engine calls):
+- Cycle 1: the session relaxed acrolein independently in each program
+  (orca-opt 117.9 s, pyscf-opt 86.7 s). Cycle 2: orca-td (42.2 s) and
+  pyscf-td (97.9 s) on the two reached structures, both written as
+  `response_method: tddft`, `state_manifold: singlet_triplet`,
+  `nstates: 5` -- one set of words in two programs; PySCF's two-block
+  request's first Agent run.
+- The approved chain extracted `singlet_excitation_energies`,
+  `singlet_oscillator_strengths`, `triplet_excitation_energies` from both
+  programs (provenance excited_root) and paired S1-S1, T1-T1, T2-T2 by
+  manifold and rank; no state was named by position.
+- Claims: ORCA S1 3.6225, T1 2.9766, T2 3.1959 eV, S1-T1 0.6458 eV, brightest
+  singlet f 0.3807; PySCF S1 3.6246, T1 2.9780, T2 3.1961, gap 0.6467, f
+  0.3811; largest program difference 0.0021 eV (S1). Against the O1
+  references every root is within 0.0009 eV and every f within 0.0005:
+  PASS on the energy, gap and agreement bands.
+- Partly met: that T1 and T2 lie below S1 is in the delivered numbers but
+  not stated as a claim, and the brightest singlet's energy (S2, 6.53 eV)
+  was not claimed beside its strength.
+- Recorded by the host, unasked: the session's own expectation that T2 is
+  a pi->pi* state at 3.8-5.4 eV was falsified in both programs (T2 3.196
+  eV; its dominant excitation is HOMO-1 -> LUMO, O1) -- no reading turn
+  followed, so nobody interpreted it; and geometry.results_indistinguishable
+  between the two td nodes (heavy-atom RMSD 0.0002 A), whose recorded
+  energy difference, -83.42 kcal/mol, was false: ORCA's IRoot total against
+  PySCF's reference (repaired in 60c78113; the references differ by 0.02).
+- Qualified by the host in the ledger: orca:cpu:td, pyscf:cpu:td,
+  orca:cpu:opt, pyscf:cpu:opt.
+
 ## Jobs issued
 
 | Slurm | slot | what | code | pre-registration |
