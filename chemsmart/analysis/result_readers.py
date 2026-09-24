@@ -1989,6 +1989,20 @@ def _orca_level(output: Any) -> dict[str, Any]:
                 electrons = int(match.group(1) or match.group(2))
         if electrons is not None:
             level["frozen_core"] = electrons // 2
+    # The response an excited stage ran on, in the words Gaussian's and
+    # PySCF's levels use: ORCA's own header says which approximation it
+    # applied and how many roots of each block it determined, and the
+    # manifold is the word the request named (ORCA spells ``triplet`` and
+    # ``singlet_triplet`` alike).  TDA and full TD-DFT are two calculations
+    # of the same roots, and ORCA's level had said neither.
+    applied = getattr(output, "excited_state_applied", None)
+    if isinstance(applied, Mapping) and applied.get("response_method"):
+        level["response_method"] = applied["response_method"]
+        manifold = getattr(output, "state_manifold", None)
+        if manifold:
+            level["state_manifold"] = manifold
+        if applied.get("nstates") is not None:
+            level["nstates"] = int(applied["nstates"])
     return level
 
 

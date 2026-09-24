@@ -3399,6 +3399,42 @@ class ORCAOutput(ORCAFileMixin):
         return records
 
     @cached_property
+    def excited_state_applied(self):
+        """The response ORCA says it ran, from its own TD-DFT header.
+
+        ``{"response_method", "triplets", "nstates", "reference"}`` read
+        from the last ``Tamm-Dancoff approximation ... operative|deactivated``,
+        ``Generation of triplets ... on|off``, ``Number of roots to be
+        determined`` and ``Reference state`` lines -- what ORCA applied,
+        which the input echo only asks for -- or None for an output with no
+        response stage.
+        """
+
+        applied = {}
+        for line in self.contents:
+            if "...." not in line and "..." not in line:
+                continue
+            head, _, tail = line.partition("...")
+            key = head.strip()
+            value = tail.strip(" .")
+            if key == "Tamm-Dancoff approximation":
+                applied["response_method"] = (
+                    "tda"
+                    if value.casefold().startswith("operative")
+                    else "tddft"
+                )
+            elif key == "Generation of triplets":
+                applied["triplets"] = value.casefold().startswith("on")
+            elif key == "Number of roots to be determined":
+                try:
+                    applied["nstates"] = int(value.split()[0])
+                except (IndexError, ValueError):
+                    pass
+            elif key == "Reference state" and "response_method" in applied:
+                applied["reference"] = value.split()[0] if value else None
+        return applied or None
+
+    @cached_property
     def spin_square_history(self):
         """Return every explicitly printed SCF expectation value of ``S^2``."""
 

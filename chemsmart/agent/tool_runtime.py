@@ -17956,14 +17956,33 @@ class CommandCompiledToolHostV1:
         geometry_observations = self._geometry_operation_observations(
             values, nodes
         )
+        consumed = {
+            digest
+            for dependency in receipt.output_dependencies
+            for digest in dependency.source_receipt_sha256s
+        }
         level_observations = expression_level_observations(
             receipt,
             {
                 digest: getattr(
                     self.quantity_extractions.get(digest), "level", None
                 )
-                for dependency in receipt.output_dependencies
-                for digest in dependency.source_receipt_sha256s
+                for digest in consumed
+            },
+            # Which quantity of which receipt each output consumed, and
+            # whose density each is: a response approximation is compared
+            # between excited-root operands only.
+            request=request,
+            provenance_by_receipt={
+                digest: dict(
+                    getattr(
+                        self.quantity_extractions.get(digest),
+                        "electronic_provenance",
+                        (),
+                    )
+                    or ()
+                )
+                for digest in consumed
             },
         )
         # The level says which Hamiltonian a number came from; a free
