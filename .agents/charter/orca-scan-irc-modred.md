@@ -26,7 +26,12 @@ never reached ORCA. The executed IRC input (r8 goal-ts cycle 2) carries
 no ``InitHess``, and ORCA printed "Initial displacement Hessian type ....
 Compute numerically"; the same holds for every executed ORCA ts-to-irc
 Hessian binding the R10 composition replay found. The geometry binding
-is real; the Hessian was admitted, displayed and frozen, not consumed.
+is real; the Hessian was admitted, displayed and frozen, not consumed. Since R10
+Q11 (merge d894bddf) it is consumed: the reviewed command carries the
+producer's Hessian, the writer reads it (``inithess read``), and ORCA printed
+"Initial displacement Hessian type .... Read" (CUHK Slurm 2151911). With
+``Calc_Hess True`` beside ``InHess Read``, ORCA 6.1.1 reads the given Hessian
+(CUHK 2151801).
 
 An IRC log's only printed structure is the starting point, so every
 selector read from the log body describes the saddle rather than the path:
