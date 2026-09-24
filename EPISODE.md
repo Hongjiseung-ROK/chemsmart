@@ -291,6 +291,11 @@ arm a null lever puts P below S on about half the untied tasks.
 
 - Serving: S - U on the phenomenon tasks whose deciding quantity U hides
   (S's mean of three against U's one), exact Wilcoxon, descriptive.
+- Where the lever acts: the primary's per-task differences split by
+  whether the deciding selector is in U's hidden list (recently served) or
+  not (long served), descriptive. Development already showed this model
+  asking for <S^2> and the convergence flag unprompted (dB-S-1), so a
+  long-served deciding quantity may leave little for P to add.
 - Reading: a combined Y per goal = max(conclusion, reading) on phenomenon
   tasks and min(...) on controls (a false alarm in either counts); S+R vs
   S and P+R vs P over tasks, exact Wilcoxon; the reading's cost.
