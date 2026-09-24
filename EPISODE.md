@@ -159,10 +159,64 @@ root) -- never by list position:
   translating one request into two calculations; no Agent goal is judged
   against O1 until it is explained.
 
+## Results read so far (host records, through ChemSmart's readers)
+
+O1 (Slurm 2150194, code 4a01097a, tree digest 15fd46c4 recomputed on the
+node, 9:34, all 25 commands exit 0, every PySCF receipt `validated` with
+no findings; read through the readers of 28b8b48c/c2873226):
+- Allyl radical UPBE0/def2-SVP opt+freq: E -117.025473919 Eh, lowest mode
+  423.7 cm-1 (C2v minimum).
+- B1 PASS. ORCA `triplet` (new, `Triplets true`, triplet block served):
+  equal to ORCA's own singlet_triplet triplets to 0.000000 eV
+  (formaldehyde and acrolein); within 0.0028 / 0.0018 eV of Gaussian's
+  `triplets` and 0.0032 / 0.0016 of PySCF's `triplet`.
+- B2 PASS. PySCF `singlet_triplet` (new, two blocks): its triplet block
+  equals PySCF's own `triplet` run to 6e-8 / 5e-8 eV; singlets within
+  5e-4 / 3e-4 eV of Gaussian's 50-50; every state within 0.0043 / 0.0024
+  of ORCA's.
+- B3 PASS. In all five closed-shell cases (formaldehyde and acrolein st3
+  and trip3, acrolein st6) the three programs name the same state at
+  every index (multiplicity and manifold root equal) -- the order and the
+  names are one now; |dE| G-P <= 0.0009, G-O <= 0.0042 eV; |df| <= 0.0007.
+- B4 FAILED at the top of the windows, and on <S^2>:
+  - allyl TD-DFT nstates 6: G and O agree (0.0016 eV) but PySCF's root 6
+    is 7.0798 eV where G/O have 6.9007/6.9000 (<S^2> 2.67): PySCF's
+    Davidson missed that root; at nstates 10 all three agree to 0.0016 eV
+    over ten roots and PySCF's 6.9000 is there.
+  - allyl TDA nstates 6: ORCA's window lacks the bright 2B2 root at
+    6.704 eV (f 0.56; G 6.7037, P 6.7035) and returns 7.083 and 7.092 as
+    roots 5 and 6; PySCF lacks G's root 6 (7.084, <S^2> 2.67) and returns
+    7.092. Only Gaussian's six roots are the six lowest (every root of
+    every window is in the union). An ORCA TDA spectrum of allyl at six
+    roots has no strong band below 7.1 eV, and nothing says so.
+  - <S^2> of an unrestricted full-TD-DFT root: Gaussian 0.713 vs ORCA
+    0.801 for D1 (0.714 vs 0.799 for the bright D3; 2.667 vs 2.724); under
+    TDA the two agree to the printed digit (0.756/0.756, 0.811/0.811 ...).
+    `excited_state_spin_square` names two quantities for full TD-DFT.
+  - Where both windows hold the same root, G-P <= 0.0007 eV and G-O <=
+    0.0016 eV; TDA >= TD-DFT root by root in every program (the shift is
+    0.14 eV for D1).
+- B5 (fact-finding): acrolein st3 -> st6 windows agree per manifold in all
+  three programs (<= 1e-5 eV); allyl u6 -> u10: Gaussian and ORCA agree,
+  PySCF does not (root 6, above).
+- B6: T1 < S1 with f(T) = 0 for both closed shells; acrolein T2 (3.196) <
+  S1 (3.624): PASS. Allyl's lowest excitation 4.0018 eV (G) -- the
+  pre-registered 2.5-4.0 eV band MISSED by 0.002 eV; bright root 6.311 eV
+  f 0.388 inside 4.0-6.5.
+- The pre-registered falsifier FIRED (paired states > 0.02 eV apart:
+  allyl root 6 at TD-DFT, roots 5-6 at TDA). Explanation, from the same
+  job: Davidson windows incomplete at the top, in PySCF (TD-DFT) and ORCA
+  (TDA) this time where Q7's O4 caught Gaussian and ORCA -- not a
+  translation defect: every missing root is present in another program's
+  window, and the ten-root windows agree. Premise (b) of the brief is
+  therefore false at the windows an Agent requests: identity by index is
+  unsafe even after one order, because a window can lack a state.
+
 ## Jobs issued
 
 | Slurm | slot | what | code | pre-registration |
 |---|---|---|---|---|
+| 2150194 | r10-q8-a | cli/oracle1: O1 (25 CLI runs) | 4a01097a | e562a1d51451 |
 
 ## Status
 
