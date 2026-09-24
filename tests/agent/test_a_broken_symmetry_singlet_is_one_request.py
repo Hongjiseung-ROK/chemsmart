@@ -159,3 +159,77 @@ def test_a_state_the_request_does_not_define_is_refused_by_name(
     assert "broken_symmetry asks for the open-shell singlet" in str(
         result.exception
     )
+
+
+# ----------------------------------------------------------------------
+# the reference that ran is read from the program's own record
+# ----------------------------------------------------------------------
+
+DATA = Path(__file__).resolve().parents[1] / "data"
+
+
+@pytest.mark.capability("tool:inspect_run")
+@pytest.mark.parametrize(
+    "program,relative,reference",
+    [
+        # Gaussian's SCF Done label: E(RB3LYP), E(UB3LYP).
+        (
+            "gaussian",
+            "GaussianTests/basis_forms/water_b3lyp_631gd_5d.log",
+            "rks",
+        ),
+        (
+            "gaussian",
+            "GaussianTests/stability/g_o2_triplet_stable_gas_phase.log",
+            "uks",
+        ),
+        # ORCA's HFTyp line beside its Hamiltonian line.
+        ("orca", "ORCATests/spectrum_energy/water_sp.out", "rks"),
+        ("orca", "ORCATests/basis_forms/h_mp2_def2svp.out", "uhf"),
+        (
+            "orca",
+            "ORCATests/outputs/orca_methyl_hirshfeld_gas_phase.out",
+            "uks",
+        ),
+    ],
+)
+def test_a_level_states_the_reference_its_program_ran(
+    program, relative, reference
+):
+    """The Gaussian reader read ``SCF Done: E(UB3LYP)`` and kept only the
+    functional, so no result could say which determinant it ran; ORCA's
+    printed HFTyp was read by no reader at all."""
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(program)
+    level = reader.level_for_output(reader.open_output(DATA / relative))
+    assert level["reference"] == reference
+    assert "broken_symmetry" not in level
+
+
+@pytest.mark.capability("tool:inspect_run")
+def test_an_open_shell_singlet_reads_as_broken_a_closed_shell_as_restricted():
+    """An archived Gaussian link job reached the open-shell singlet of O2
+    (stable=opt, then guess=read; <S**2> 1.0034): the host reads it as a
+    UKS singlet whose spin symmetry broke; a closed-shell RB3LYP result
+    has a reference and no spin-symmetry word at all."""
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for("gaussian")
+    singlet = reader.spin_symmetry_for_output(
+        reader.open_output(
+            DATA
+            / "GaussianTests/outputs/link/oxygen_openshell_singlet_opt_link.log"
+        )
+    )
+    assert singlet["reference"] == "uks"
+    assert singlet["spin_symmetry"] == "broken"
+    assert singlet["spin_square"] == pytest.approx(1.0034)
+    closed = reader.spin_symmetry_for_output(
+        reader.open_output(
+            DATA / "GaussianTests/basis_forms/water_b3lyp_631gd_5d.log"
+        )
+    )
+    assert closed == {"reference": "rks", "broken_symmetry_requested": False}
