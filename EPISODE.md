@@ -475,3 +475,15 @@ the workspace holding the item's `data/` directory exactly as released
   digest is 177af513c796 (this file at that time); the expectations it
   runs under are the ones committed in 6f902802 and recorded with the
   original submission (f9f9465411aa).
+- Same scheduling move for pair2-b: job 2150185 cancelled while PENDING
+  (Start None; workspace held only start.xyz) and resubmitted as
+  2150297 into the free slot a (pre-registration digest 62e5d8072e42).
+- Live words so far: pair3-a achieved_with_observations (2150178),
+  pair4-b achieved (2150181), pair1-a achieved (2150182), pair3-b
+  exhausted (2150179: three cycles, both revisions spent; its cycle-1
+  H-atom single point and its cycle-2 and cycle-3 radical DLPNO single
+  points ended failed_native; every session had provider turns, so no
+  infrastructure failure; no reading, both arms equal), pair2-a
+  achieved (2150184), pair4-a achieved (2150195). pair3-b's node
+  directories kept about 10 GB of ORCA PNO scratch (*.tmp.*); its
+  records tar excludes them.
