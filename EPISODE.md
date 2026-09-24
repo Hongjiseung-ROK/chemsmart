@@ -268,6 +268,14 @@ different tree, not a controlled A/B.
 - G1: CUHK Slurm 2153505 (r10-q18-a), goal g1, code 33906d52 (tree digest
   535fbe0e00a4...), prereg digest b91d7adc57e9.
 - G2: CUHK Slurm 2153506 (r10-q18-b), goal g2, same code and digest.
+- Both CANCELLED by me 52 s after start, before any engine call (bootstrap
+  and task files only; moved aside as goals/g1-cancelled-2153505 and
+  goals/g2-cancelled-2153506): r10-integration had gained Q16's goal-loss
+  repairs -- 12b2bbbe, "a quantity a delivered claim carries as its
+  uncertainty ... holds no goal open", and G1 asks for an uncertainty on
+  every number -- and Q15's stale input-check repair. A goal lost to a
+  repaired host defect would say nothing about this capability. Rerun on the
+  merged tree, same TASK, start, envelope and bands.
 
 ## Status
 
