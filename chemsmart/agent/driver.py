@@ -2830,6 +2830,9 @@ def _analysis_delivery(
     receipts: list[str] = []
     doubt_refs: set[str] = set()
     claim_pairs: list[tuple[str, str]] = []
+    # "<receipt>:<quantity_id>" of every quantity a claim carries as its
+    # uncertainty: rendered on that claim, where every reader of it sees it.
+    uncertainty_references: set[str] = set()
     claim_rows: dict[str, dict[str, Any]] = {}
     rejected_bindings: list[tuple[str, str]] = []
     expression_outputs: list[tuple[str, str, tuple[str, ...]]] = []
@@ -2982,6 +2985,9 @@ def _analysis_delivery(
                 claim_pairs.append(
                     (receipt_digest, str(claim.get("quantity_id") or ""))
                 )
+                reference = str(claim.get("uncertainty_reference") or "")
+                if reference:
+                    uncertainty_references.add(reference)
                 # What a stream claim carries, under both the names it
                 # answers to: a claim of this cycle used to be counted
                 # delivered on its id alone while the settlement checked
@@ -3279,10 +3285,16 @@ def _analysis_delivery(
     claimed_ids = {
         quantity_id for _receipt, quantity_id in claim_pairs if quantity_id
     }
+    # An output a delivered claim carries as its uncertainty was rendered:
+    # it is on the claim. Counting it "computed and never rendered" held
+    # two goals whose completions had passed -- r10/q3 g2 (the D0 spread,
+    # 0.50 kJ/mol and 41.8 cm-1, on both headline claims) and r10/q9 g1
+    # (the BDE's 6.0 kJ/mol) -- and opened a recovery, a revision spent on
+    # nothing, in eight more.
     exported_output_ids = {
         output_id
-        for _digest, output_id, _sources in expression_outputs
-        if output_id
+        for digest, output_id, _sources in expression_outputs
+        if output_id and f"{digest}:{output_id}" not in uncertainty_references
     }
     if stopped_by:
         ending = "; ".join(stopped_by)
