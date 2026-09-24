@@ -1145,7 +1145,10 @@ def _pyscf_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
         _stability_answer(
             str(entry.get("question") or name),
             rotation_space=entry.get("rotation_space"),
-            reason=entry.get("reason"),
+            reason=(
+                str(entry.get("reason") or "")
+                + _printed_pointer(output, str(name))
+            ),
         )
         for name, entry in sorted((record.get("not_determined") or {}).items())
         if isinstance(entry, Mapping)
@@ -4766,6 +4769,68 @@ def _pyscf_stability_record(output: Any) -> Mapping[str, Any] | None:
     return record if isinstance(record, Mapping) else None
 
 
+def _pyscf_printed_stability(output: Any, question: str) -> tuple[str, ...]:
+    """Where this run's own PySCF log prints its answer to one question.
+
+    A pointer, never a reading: the typed answer is the record's, and a
+    record written before the driver listened to the analysis does not
+    hold real -> complex or any eigenvalue although PySCF logged both.
+    Saying "not determined" there without saying where PySCF said it would
+    be a statement of absence the output contradicts.  The log is this
+    run's only when the driver configuration it echoes carries this
+    artifact's run nonce; the echoed driver script is skipped, and a
+    Davidson's eigenvalue line is paired with the verdict PySCF notes
+    after it, in PySCF's own words (``PYSCF_STABILITY_PRINTED_KINDS``).
+    """
+
+    from chemsmart.jobs.pyscf.settings import PYSCF_STABILITY_PRINTED_KINDS
+
+    kinds = {
+        kind
+        for kind, name in PYSCF_STABILITY_PRINTED_KINDS.items()
+        if name == question
+    }
+    nonce = str((getattr(output, "spec", None) or {}).get("run_nonce") or "")
+    log = Path(str(getattr(output, "logfile", "") or ""))
+    if not kinds or not nonce or not log.is_file() or log.is_symlink():
+        return ()
+    try:
+        if log.stat().st_size > 64 * 1024 * 1024:
+            return ()
+        lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return ()
+    if not any(f'"run_nonce": "{nonce}"' in line for line in lines[:200]):
+        return ()
+    found: list[str] = []
+    in_script = pending = False
+    for number, line in enumerate(lines, 1):
+        text = line.strip()
+        if "#INFO: **** input file is" in text:
+            in_script = True
+            continue
+        if in_script:
+            in_script = "input file end" not in text
+            continue
+        head, sep, _rest = text.partition(": lowest eigs of H = ")
+        if sep:
+            pending = head.rsplit("_", 1)[-1] in kinds
+            if pending:
+                found.append(f"{log.name}:{number}: {text[:120]}")
+            continue
+        if pending and text.startswith("<class ") and "wavefunction" in text:
+            found.append(f"{log.name}:{number}: {text[:120]}")
+            pending = False
+    return tuple(found[-2:])
+
+
+def _printed_pointer(output: Any, question: str) -> str:
+    printed = _pyscf_printed_stability(output, question)
+    if not printed:
+        return ""
+    return "; this run's own PySCF log prints it: " + " | ".join(printed)
+
+
 def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
     """One question's entry from the recorded analysis, or why there is none.
 
@@ -4800,6 +4865,7 @@ def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
                 f"this stability record names the {question!r} question "
                 f"({undetermined.get('rotation_space') or question}) not "
                 f"determined: {undetermined.get('reason') or 'no reason'}"
+                + _printed_pointer(output, question)
             )
         raise MissingQuantityError(
             f"this stability analysis carries no {question!r} question"
@@ -4885,6 +4951,7 @@ def _pyscf_stability_lowest_eigenvalue(
                 f"this {question!r} stability answer records no "
                 "eigenvalues: it was written before the driver kept the "
                 "numbers PySCF's analysis logged"
+                + _printed_pointer(output, question)
             )
         record = _pyscf_stability_record(output) or {}
         written = record.get("eigenvalue_unit")

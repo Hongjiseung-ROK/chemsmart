@@ -314,6 +314,14 @@ def test_a_record_that_never_heard_the_answer_says_so_by_name():
     with pytest.raises(MissingQuantityError) as absent:
         reader.read(output, REAL_TO_COMPLEX)
     assert "not determined" in str(absent.value)
+    # ...and where the run's own log says it: a pointer, never a value.
+    assert (
+        "o2_singlet_sp_stability_gas_phase.out:"
+        in str(absent.value).split("this run's own PySCF log prints it:")[1]
+    )
+    assert "wavefunction has an real -> complex instability" in str(
+        absent.value
+    )
     for question, selector in EIGENVALUES.items():
         with pytest.raises(MissingQuantityError) as absent:
             reader.read(output, selector)
@@ -322,6 +330,30 @@ def test_a_record_that_never_heard_the_answer_says_so_by_name():
             if question == "real_to_complex"
             else "written before"
         ) in str(absent.value)
+
+
+@pytest.mark.capability("selector:pyscf:sp:scf_stability_real_to_complex")
+def test_another_runs_log_is_never_pointed_at(tmp_path):
+    """The pointer names this run's log or nothing: a log beside the
+    artifact whose echoed configuration carries another run's nonce is
+    another run's words about another reference."""
+
+    import shutil
+
+    source = FIXTURES / "o2_singlet_sp_stability"
+    moved = tmp_path / "o2_singlet_sp_stability"
+    shutil.copytree(source, moved)
+    other = FIXTURES / "o2_triplet_sp_stability"
+    shutil.copy(
+        other / "o2_triplet_sp_stability_gas_phase.out",
+        moved / "o2_singlet_sp_stability_gas_phase.out",
+    )
+    reader = reader_for("pyscf")
+    output = reader.open_output(moved / ANSWERED["o2_singlet_sp_stability"][0])
+    with pytest.raises(MissingQuantityError) as absent:
+        reader.read(output, REAL_TO_COMPLEX)
+    assert "not determined" in str(absent.value)
+    assert "log prints it" not in str(absent.value)
 
 
 @pytest.mark.capability(
