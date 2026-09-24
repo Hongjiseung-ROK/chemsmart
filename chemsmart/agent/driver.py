@@ -2257,6 +2257,16 @@ def _wake_context(
                 goal_delivered_ids=_goal_delivered_ids(
                     workspace, goal.goal_id
                 ),
+                # Whether a verdict is answered is a question about the
+                # goal, and the settlement asks it of every stream the goal
+                # holds. Read from the previous stream alone, G-h2's cycle-3
+                # wake named val-real-stab/real-stable unanswered with the
+                # receipt cycle 2 had minted by judging it again, while
+                # cycle 2's decision had cited the run's receipt of the
+                # same verdict and the settlement called it answered; the
+                # woken session judged it twice more and cited that (R10
+                # Q22, CUHK 2153627). Two organs, one function.
+                goal_streams=_goal_streams(ledger, workspace, goal.goal_id),
             ),
             previous_run,
         )
@@ -5169,6 +5179,14 @@ class GoalDriver:
                 self.workspace, self.goal_id
             ),
             declared_observables=_first_declarations(self.ledger),
+            # And across the goal's streams, as the settlement reads it: a
+            # number standing on a verdict another stream's decision
+            # answered is delivered there and was stale here, so this
+            # reader re-woke a goal for an observable the settlement
+            # calls delivered (R10 Q22).
+            goal_streams=_goal_streams(
+                self.ledger, self.workspace, self.goal_id
+            ),
         )
         if delivery.blocked_output_ids:
             return False

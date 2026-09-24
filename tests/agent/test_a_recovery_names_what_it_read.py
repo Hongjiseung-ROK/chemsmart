@@ -300,6 +300,373 @@ def test_a_wake_names_the_failed_criterion_it_read_and_the_receipts_to_cite(
     )
 
 
+def _tool_receipts(payload):
+    """The receipt of every tool reply so far, in order."""
+
+    found = []
+    for message in payload.get("messages") or ():
+        if message.get("role") != "tool":
+            continue
+        result = json.loads(message.get("content") or "{}").get("result")
+        if isinstance(result, dict) and result.get("receipt_sha256"):
+            found.append(result["receipt_sha256"])
+    return found
+
+
+def _woken_session_citing_the_run_and_judging_again(tmp_path, wakes):
+    """G-h2's cycle 2 (R10 Q22, CUHK 2153627): the woken session cited the
+    receipt its wake named, and also evaluated the same criterion again over
+    the same result -- a second receipt stating the same verdict, which
+    nothing cites -- and claimed nothing under the declared id, so the host
+    woke it once more."""
+
+    def step(workspace, kwargs):
+        wake = kwargs["goal_context"]
+        wakes.append(wake)
+        named = [
+            receipt
+            for entry in wake["deliverables"]["unanswered_failed_verdicts"]
+            if isinstance(entry, dict)
+            for receipt in entry.get("receipt_sha256s") or ()
+        ]
+
+        def turns(artifact_id):
+            # The same rule under the same node and rule ids, over the same
+            # result, read through an extraction of its own (G-h2's cycle 2
+            # extracted under new quantity ids): a receipt of its own that
+            # states the run's verdict.
+            workflow = "o2-rks-judged-again"
+            output = {
+                "output_id": "eig-again",
+                "quantity_kind": "eigenvalue",
+                "unit": "hartree",
+            }
+            plans = (
+                _call(
+                    1,
+                    "plan_result_extraction",
+                    {
+                        "workflow_id": workflow,
+                        "stages": [
+                            {
+                                "node_id": "extract-again",
+                                "artifact_id": artifact_id,
+                                "dependencies": [],
+                                "inputs": [],
+                                "selectors": [
+                                    {
+                                        "quantity_id": "eig-again",
+                                        "selector": (
+                                            "scf_stability_external_"
+                                            "lowest_eigenvalue"
+                                        ),
+                                    }
+                                ],
+                                "outputs": [output],
+                                "support_state": "planned",
+                                "blocked_reason": "",
+                            }
+                        ],
+                    },
+                ),
+                _call(
+                    2,
+                    "plan_scientific_validation",
+                    {
+                        "workflow_id": workflow,
+                        "stages": [
+                            {
+                                "node_id": "val-rks-stability",
+                                "dependencies": [],
+                                "inputs": [
+                                    {
+                                        "input_id": "eig-in",
+                                        "source_kind": "analysis_output",
+                                        "producer_node_id": "extract-again",
+                                        "producer_output_id": "eig-again",
+                                    }
+                                ],
+                                "outputs": [
+                                    {
+                                        "output_id": "verdict-again",
+                                        "quantity_kind": "verdict",
+                                        "unit": "1",
+                                    }
+                                ],
+                                "validation_rules": [
+                                    {
+                                        "rule_id": (
+                                            "external_no_spin_instability"
+                                        ),
+                                        "predicate": "minimum_greater_equal",
+                                        "input_ids": ["eig-in"],
+                                        "threshold": 0,
+                                        "unit": "hartree",
+                                    }
+                                ],
+                                "support_state": "planned",
+                                "blocked_reason": "",
+                            }
+                        ],
+                    },
+                ),
+                _call(
+                    3,
+                    "plan_claim_rendering",
+                    {
+                        "workflow_id": workflow,
+                        "stages": [
+                            {
+                                "node_id": "claim-again",
+                                "dependencies": [],
+                                "inputs": [
+                                    {
+                                        "input_id": "eig-again",
+                                        "source_kind": "analysis_output",
+                                        "producer_node_id": "extract-again",
+                                        "producer_output_id": "eig-again",
+                                    }
+                                ],
+                                "outputs": [output],
+                                "support_state": "planned",
+                                "blocked_reason": "",
+                            }
+                        ],
+                    },
+                ),
+                _call(
+                    4,
+                    "plan_scientific_workflow",
+                    {
+                        "plan_id": "o2-judged-again-plan",
+                        "workflow_id": workflow,
+                        "required_output_ids": ["eig-again", "verdict-again"],
+                    },
+                ),
+            )
+
+            def judged(payload):
+                extraction = _tool_receipts(payload)[-1]
+                return _turn(
+                    3,
+                    "Judging it again and claiming the eigenvalue.",
+                    (
+                        _call(
+                            6,
+                            "evaluate_scientific_validation",
+                            {
+                                "workflow_id": workflow,
+                                "node_id": "val-rks-stability",
+                                "inputs": [
+                                    {
+                                        "input_id": "eig-in",
+                                        "receipt_sha256": extraction,
+                                        "quantity_id": "eig-again",
+                                    }
+                                ],
+                            },
+                        ),
+                        _call(
+                            7,
+                            "record_analysis_claims",
+                            {
+                                "claims": [
+                                    {
+                                        "claim_id": "eig-again",
+                                        "receipt_sha256": extraction,
+                                        "quantity_id": "eig-again",
+                                        "display_unit": "hartree",
+                                    }
+                                ]
+                            },
+                        ),
+                    ),
+                )
+
+            def decided(payload):
+                extraction, _again, claims = _tool_receipts(payload)[-3:]
+                return _turn(
+                    4,
+                    "Recording the decision on the run's verdict.",
+                    (
+                        _call(
+                            8,
+                            "record_scientific_decision",
+                            {
+                                "decision_id": "o2-rks-read-again",
+                                "assumptions": ["the restricted reference"],
+                                "method_rationale": "the task fixed it",
+                                "alternatives": ["a broken-symmetry UKS"],
+                                "uncertainties": ["SCF convergence"],
+                                "diagnostics": ["the external eigenvalue"],
+                                "stage_order": ["extract", "validate"],
+                                "evidence_refs": [],
+                                "postprocessing_receipt_sha256s": [
+                                    extraction,
+                                    claims,
+                                    *named,
+                                ],
+                            },
+                        ),
+                    ),
+                )
+
+            return [
+                lambda payload: _turn(1, "Planning the reading.", plans),
+                lambda payload: _turn(
+                    2,
+                    "Reading the eigenvalue.",
+                    (
+                        _call(
+                            5,
+                            "extract_result_quantities",
+                            {
+                                "program": "pyscf",
+                                "artifact_id": artifact_id,
+                                "selectors": [
+                                    {
+                                        "quantity_id": "eig-again",
+                                        "selector": (
+                                            "scf_stability_external_"
+                                            "lowest_eigenvalue"
+                                        ),
+                                    }
+                                ],
+                            },
+                        ),
+                    ),
+                ),
+                judged,
+                decided,
+                lambda payload: _turn(5, "The reference is unstable."),
+            ]
+
+        run_id = "live-20260925T020000000000Z-q22-judged-again"
+        ended = _run_turns(
+            workspace / ".chemsmart-agent" / "runs" / run_id / "events.jsonl",
+            turns,
+            session_id="protocol-session",
+            scratch=tmp_path,
+            workspace=workspace,
+        )
+        return SimpleNamespace(
+            terminal_state=ended.terminal_state,
+            run_id=run_id,
+            task_spec_sha256=kwargs.get("task_spec_sha256") or "",
+            selected_execution_wave=(),
+        )
+
+    return step
+
+
+def _goal_judged_again(tmp_path, declared):
+    """Cycle 1 declares ``declared`` and runs the failing criterion; cycle 2
+    cites the run's receipt and judges the criterion again; a third session
+    stands ready for a re-wake."""
+
+    from chemsmart.agent.driver import run_goal_loop
+
+    from .test_a_failed_criterion_is_a_finding_the_goal_can_deliver import (
+        _bundle_file,
+        _envelope_file,
+    )
+
+    workspace = tmp_path / "ws"
+    workspace.mkdir(parents=True, exist_ok=True)
+    wakes: list = []
+    sessions = iter(
+        [
+            _planning_session(
+                "live-20260925T000000000000Z-q22-plan",
+                review=_review_payload(),
+                wake_rows=_declared(declared),
+            ),
+            _woken_session_citing_the_run_and_judging_again(tmp_path, wakes),
+            _planning_session(
+                "live-20260925T030000000000Z-q22-rewoken", terminal="planned"
+            ),
+        ]
+    )
+    rewoken: list = []
+
+    def plan_session(**kwargs):
+        if len(wakes) == 1 and "failure_report" in kwargs["goal_context"]:
+            rewoken.append(kwargs["goal_context"])
+        return next(sessions)(workspace, kwargs)
+
+    result = run_goal_loop(
+        task="Is the restricted reference of singlet O2 stable?",
+        workspace=workspace,
+        execution_envelope_file=_envelope_file(tmp_path),
+        goal_id=_GOAL,
+        granted_by="claude-researcher-q22-owner-delegated",
+        max_revisions=3,
+        plan_session=plan_session,
+        resolve_review=lambda **_kwargs: ("d" * 64, _bundle_file(tmp_path)),
+        execute_bundle=lambda **kwargs: _run_whose_criterion_fails(tmp_path)(
+            kwargs["run_directory"]
+        ),
+    )
+    return result, wakes, rewoken
+
+
+def test_a_number_on_an_answered_verdict_is_delivered_for_the_rewake_too(
+    tmp_path,
+):
+    """The re-wake decides whether a declared id is delivered from the
+    previous stream alone, so a number standing on a verdict the goal had
+    answered in another stream was stale there, the id undelivered, and a
+    wake was spent on an observable the settlement calls delivered."""
+
+    result, _wakes, rewoken = _goal_judged_again(tmp_path, "eig-again")
+    assert rewoken == []
+    assert result.cycles == 2
+
+
+def test_a_rewake_does_not_name_a_verdict_the_goal_has_answered(tmp_path):
+    """The wake read the previous stream alone; the settlement reads the
+    goal. G-h2's cycle 3 was told val-real-stab/real-stable was unanswered,
+    with the receipt its own cycle 2 had minted by judging again, while the
+    goal's decision had cited the run's receipt of the same verdict: the
+    settlement called it answered, the woken session was told to judge it
+    once more, and it did, twice, and cited that."""
+
+    workspace = tmp_path / "ws"
+    result, wakes, rewoken = _goal_judged_again(tmp_path, "o2-singlet-gap")
+    judged_again = [
+        row["payload"]
+        for row in _stream_rows(
+            workspace
+            / ".chemsmart-agent"
+            / "runs"
+            / "live-20260925T020000000000Z-q22-judged-again"
+            / "events.jsonl"
+        )
+        if row["kind"] == "scientific_validation_evaluated"
+        and not row["payload"]["all_rules_passed"]
+    ]
+    assert judged_again, "cycle 2 must judge the criterion again"
+    # A receipt of its own: nothing cycle 2 cited states it.
+    named_at_cycle_2 = {
+        receipt
+        for entry in wakes[0]["deliverables"]["unanswered_failed_verdicts"]
+        for receipt in entry["receipt_sha256s"]
+    }
+    assert named_at_cycle_2
+    assert {row["receipt_sha256"] for row in judged_again}.isdisjoint(
+        named_at_cycle_2
+    )
+    (rewake,) = rewoken
+    # The goal's decision cited the run's receipt of this verdict, so the
+    # goal has answered it -- and the wake says what the settlement says:
+    # no verdict to answer, and no number standing on one.
+    assert rewake["deliverables"]["unanswered_failed_verdicts"] == ()
+    assert "eig-again" not in rewake["deliverables"]["stale_quantity_ids"]
+    assert not any(
+        f"failed_criterion:{_RULE}:unanswered" in r for r in result.reasons
+    )
+
+
 def _node(node_id, stage):
     return ScientificWorkflowNodeV2(
         node_id=node_id,
