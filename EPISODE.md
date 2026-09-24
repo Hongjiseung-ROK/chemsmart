@@ -110,6 +110,84 @@ before the run, from the archived 2.14.0 logs of the same inputs:
 - falsified if a record says real->complex not determined while its own log
   prints the verdict, or a recorded eigenvalue disagrees with its log.
 
+### stab1 read (CUHK 2151881, COMPLETED)
+
+Eight runs through the CLI on code 0a77574f (tree digest 67373b31 verified
+on the node). All eight records carry what the log printed: 0 disagreements
+between each record's lowest_eigenvalues and its own log's printed arrays;
+real->complex present in 7 (absent only in the ROHF H atom, where no external
+analysis runs), not_determined empty in all 8. Every value inside its
+pre-registered band (singlet RKS: internal 1.97e-6, real->complex -0.03830,
+RKS->UKS -0.09262; RHF: -0.04903 / -0.13108; triplet UKS: real->complex
++0.2123, UKS->GKS -0.02928; water: +0.2650 / +0.2377; unconverged: internal
+-4.0e-4 at scf_converged false). Receipts validated (7) and failed
+(the scf_maxiter 2 run, as archived). Premise confirmed: the writer can hold
+what PySCF's analysis said.
+
+## Replay before the live goals (provider-free)
+
+The two archived control results (gdev1 rks-stab-sp; r9 g2-stability
+pyscf-sp-stab), read through the reader of the base export (4db49c22) and of
+this tree (c799cc9d); script scratchpad q13/replay/replay_reader.py:
+- base: real->complex "not determined" with PySCF's excuse only; no
+  eigenvalue selector exists.
+- this tree: the same absence, now followed by "this run's own PySCF log
+  prints it: o2_sp_gas_phase.out:2347: rhf_real2complex: lowest eigs of H =
+  [-0.03829977 ...] | :2348: ... has an real -> complex instability", and for
+  r9 g2 the lines Q10 cited (out:2595-2600), in the extraction absence and in
+  the sensor's not_determined reason. Archived records are pointed at, never
+  re-read for a value.
+
+## Pre-registration of the live goals (written before either is submitted)
+
+Both goals re-run an archived control's exact TASK.md, workspace geometry
+(sha256-identical) and envelope shape on code c799cc9d, so the difference is
+the tree. Agent: deepseek-v4-flash-0731 via alibaba-token-plan; approval
+granted by claude-researcher-q13-owner-delegated (delegated, never a human
+decision). One run each: two observations, not rates.
+
+### o2r -- gdev1's task (singlet O2 as a closed shell, B3LYP/def2-SVP, 1.2075 A)
+
+Control: gdev1 (Slurm 2149848, code e687b9cf): achieved_with_observations;
+its finding and recorded uncertainty say real->complex was "not determined
+by PySCF" and "a complex-rotation analysis would be needed for the remainder".
+Envelope identical to gdev1's (pyscf cpu; 8 cores, 16 GB; node 1800 s;
+episode 5400 s; 4 engine calls; 2 revisions).
+- Physics bands: E(RKS) -150.14190 .. -150.14170 Eh; internal stable with
+  |lowest| < 1e-5 Eh; real->complex unstable, lowest -0.040 .. -0.036 Eh;
+  RKS->UKS unstable, lowest -0.095 .. -0.090 Eh.
+- PASS (capability, host records): the run's own records -- extraction
+  receipt or the scf.reference_unstable anomaly -- carry real->complex as
+  determined (unstable) with its number in band, and no host-written word
+  calls it not determined.
+- PASS (what the Agent concludes; reported for this model): the session's
+  finding/recorded decision states the real->complex answer as determined.
+  FAIL: it again states real->complex undetermined, or needing a further
+  analysis, while the evidence it holds determines it.
+- Reported, not scored: whether it extracts the eigenvalues; whether it
+  interprets real->complex (e.g. the real (pi*)^2 determinant is not the
+  proper a1-Delta_g component) or only lists it.
+- Not counted: zero provider turns; turn_deadline_exceeded (infrastructure).
+
+### dans -- r9 g2-stability's task (DANS, CAM-B3LYP/def2-SVP, 36 atoms)
+
+Control: r9 g2-stability (Slurm 2145043): settled unreachable_from_evidence
+after the session declared the lowest internal and external eigenvalues as
+observables and could extract only the words. Envelope scaled down from r9's
+64 cores to 16 cores / 48 GB (the brief's low HPC demand); node 7200 s,
+episode 4 h, 3 engine calls, 2 revisions.
+- Physics bands (from r9's own log): E -878.08489 .. -878.08486 Eh; internal
+  lowest 0.53 .. 0.58; real->complex lowest 0.108 .. 0.119 (stable); RKS->UKS
+  lowest 0.040 .. 0.044 (stable).
+- PASS (capability): if the session declares numeric stability observables,
+  they are delivered from extraction receipts of the new selectors and the
+  goal does not settle unreachable_from_evidence on them; real->complex is
+  reported answered (stable).
+- Neutral (reported): the session declares no numeric observable -- then
+  the result is what it concludes from the words, compared to r9's.
+- FAIL: a numeric stability observable is refused or settled unreachable
+  while the new selectors resolve it on the run's own result.
+
 ## Status
 
 - Census: done (above).
