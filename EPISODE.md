@@ -361,6 +361,75 @@ that do not reproduce.
   (digest verified on the node).
 - 2152096 (slot a, prereg 9d5d7b3df135) goals/g2-nh3, same code.
 
+## g1-hi results (Slurm 2152052; read from the ledger, receipts and raw outputs)
+
+Settled `unreachable_from_evidence` after two cycles (one analysis-only
+revision admitted). Against the pre-registration:
+- PySCF iodine nodes HOLD: sp-hi-pyscf, sp-i-atom-pyscf, sp-h-atom-pyscf
+  `validated`, no findings; the HI receipt states 26 electrons and
+  `ecp_core_electrons` 28 -- a run the base tree refused at run time. The
+  session left the frozen core unset; PySCF's |De| 76.13738 kcal/mol is
+  O2'-B's all-electron value (76.13738). Its expression was E(HI) - E(H)
+  - E(I) (-76.137), against its own declared positive sign; not delivered.
+- ORCA De FAILED (none delivered). sp-hi-orca and sp-i-atom-orca
+  terminated normally (CCSD(T) -297.732443762 and -297.111694464 Eh;
+  O2' -297.732443738, -297.111694592) and were refused by
+  `orca.result.output_count`: ORCA leaves `<base>_atom53.out` for
+  iodine's atomic guess, and the host counted it as a second log
+  (repaired 642492b3). sp-h-atom-orca failed natively: MDCI "Number of
+  processes (8) ... exceeds number of pairs (0)" (not repaired: the ORCA
+  launch is outside this radius). With H at its exact one-electron energy
+  the refused outputs give De 75.8907 kcal/mol (O2'-B 75.89057).
+- Settlement FAILED the success clause. The recovery record called all
+  three ORCA nodes `failed_native`; the session read them as one MDCI
+  failure ("HI has 1 pair"; ORCA correlates 9 pairs in HI) and declared
+  the ORCA side unreachable, which the host verified against the
+  session's own blocked node, not against the two normal terminations.
+- No observation named the basis, form or core potential: holds only
+  vacuously -- no cross-program expression executed. The planned
+  comparison (ORCA BDE - PySCF BDE) was two expressions deep, and on
+  d31f1170 the observation read one hop (repaired 95d9cb4b).
+- Recorded, not scored: the session named the frozen-core difference
+  ("ORCA chemical core freezes 4 electrons" -- 4 orbitals, 8 electrons)
+  and never the core potential.
+
+## g2-nh3 results (Slurm 2152096)
+
+Settled `achieved` in one cycle; the Gaussian and PySCF opt nodes all
+`validated`.
+- HOLDS: both routes `# opt freq b3lyp 6-31g(d) 5d 7f`; both logs
+  `Standard basis: 6-31G(d) (5D, 7F)`, 20 (NH3) and 22 (NH4+) functions
+  (21 and 23 Cartesian); levels `basis_functions: spherical`.
+- HOLDS: proton affinity Gaussian 217.09687, PySCF 217.09681 kcal/mol,
+  difference 5.8e-5 kcal/mol (band 0.05); reproduces from the logs'
+  energies (-56.5466884874, -56.8926543675 Eh).
+- MISSED: the value band 205-215. 217.10; I assumed the electronic value
+  sits about 9 kcal/mol above experiment's 204, and 6-31G(d) without
+  diffuse functions overbinds the proton by more. Not tuned.
+- No `basis_functions` observation: holds, on d31f1170 vacuously (the
+  difference was two expressions deep). The session spelled PySCF's basis
+  `6-31g*` and Gaussian's `6-31g(d)`: read two hops, that is a false
+  `basis` observation, removed by 3975334a.
+
+## Both goals replayed on the final tree (provider-free, host handlers)
+
+g2-nh3: levels `6-31g(d)` / `6-31g*`, all spherical, no core potential;
+no observation on either proton affinity, on their difference, or on a
+one-hop NH3 difference. g1-hi with the refused ORCA outputs: ORCA
+`frozen_core` 4 (`chemical_core`, `orca_default`), PySCF 0
+(`all_electrons`, `pyscf_default`), core electrons {I: 28} in both; HI
+ORCA - PySCF and (ORCA De) - (PySCF De) each carry one observation,
+`frozen_core`; each program's De carries none.
+
+## Repairs after the goals
+
+- 642492b3 (shared) ORCA's atomic-guess log is a sidecar.
+- 3975334a 6-31G* and 6-31G(d) are one basis to the level.
+- 95d9cb4b (shared) an operation over expressions is told the levels of
+  the results they came from.
+- 16acf946 (shared) release records: setting:pyscf:basis (g1-hi, g2-nh3
+  PySCF nodes) and setting:gaussian:basis (g2-nh3 Gaussian nodes).
+
 ## Status
 
 - step 1: tree read; O1 pre-registered above; code unchanged.
@@ -374,3 +443,7 @@ that do not reproduce.
 - step 4: O2' read (all iodine PySCF runs validated); ECP fixtures and
   witnesses (9e4d39ab); goals g1-hi and g2-nh3 issued; r10-integration
   merged (c8edd0fc, no conflicts).
+- step 5: goals read (above); three repairs and two release records;
+  both goals replayed on the final tree. No further job issued: the next
+  decisive observation is a live cross-program correlated comparison on
+  the repaired tree (frozen core unset in one program) -- handed on.
