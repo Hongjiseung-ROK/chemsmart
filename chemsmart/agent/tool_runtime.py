@@ -36,6 +36,7 @@ from chemsmart.agent.analysis_claims import (
     analysis_finding_from_record,
     build_analysis_claim_record,
     build_analysis_finding,
+    claim_operand,
     evaluate_finding_relation,
 )
 from chemsmart.agent.analysis_completion import (
@@ -2709,6 +2710,20 @@ _PLAN_SHAPED_TOOLS = frozenset(
     }
 )
 
+#: How a declared category is answered, said once for every refusal and
+#: miss that needs it: the same act that delivers a number, with a word.
+_CATEGORY_ROUTE = (
+    "extract the word the program printed (its extraction selector, e.g. "
+    "scf_stability_external or irc_direction) and claim it with "
+    "record_analysis_claims under the question's own id, as a number is "
+    "claimed under its id; an integer the host read there (e.g. "
+    "irc_converged) answers the same way. A finding with "
+    "answers_observable_id resting on '<that claim> == <the word>' may "
+    "state your interpretation beside it. A question whose answer is a "
+    "relation between numbers is delivered by its numbers and stated as a "
+    "finding"
+)
+
 
 class CapabilityNotInCatalogueError(ContractError):
     """A name the catalogue does not hold.
@@ -4178,10 +4193,10 @@ class CommandCompiledToolHostV1:
                 raise ContractError(
                     "a declared observable requires one sentence of meaning"
                 )
-            # A question whose answer is a word or a relation -- is the
-            # reference stable, which minimum does this branch reach,
-            # which isomer is in this file -- is declared as a category
-            # and delivered only by a finding that answers it. It has no
+            # A question whose answer is a word -- is the reference
+            # stable, which way did this branch go -- is declared as a
+            # category and delivered by the word the host read, claimed
+            # under its id or through a finding that answers it. It has no
             # magnitude, so it carries no band, sign or tolerance.
             categorical = unit.lower() == "category"
             if categorical:
@@ -4816,12 +4831,38 @@ class CommandCompiledToolHostV1:
         retired = superseded_observable_ids(
             tuple(self.requested_observable_declarations.values())
         )
-        # The words the host read that answer each declared category, from
-        # the newest finding that answers it. A finding answers only
-        # through a word the host read (the finding verifier refuses any
-        # other), and those words -- never the finding's sentence -- are
-        # what this gate certifies as delivered.
+        # The words the host read that answer each declared category: a
+        # word (or an integer the host read) claimed under the category's
+        # id answers it, as a number claimed under its id delivers a
+        # declared number; a finding that answers it, newer and resting on
+        # such a claim, carries its words instead. Both answer through one
+        # rule (``_categorical_answer_row``), and those words -- never the
+        # finding's sentence -- are what this gate certifies as delivered.
         answered: dict[str, tuple[Mapping[str, Any], ...]] = {}
+        answered_by_claim: dict[str, str] = {}
+        for record_sha256, record in self.analysis_claim_records.items():
+            if getattr(record, "task_spec_sha256", "") != task_spec_sha256:
+                continue
+            for claim in getattr(record, "claims", ()):
+                for field in ("claim_id", "quantity_id"):
+                    key = str(getattr(claim, field, "") or "")
+                    declaration = self.requested_observable_declarations.get(
+                        key
+                    )
+                    if (
+                        declaration is None
+                        or str(declaration.get("unit") or "") != "category"
+                    ):
+                        continue
+                    word, _reason = self._categorical_answer_row(
+                        claim_operand(claim, claim_record_sha256=record_sha256)
+                    )
+                    if word is None:
+                        continue
+                    answered[key] = (
+                        {**word, "claim_record_sha256": record_sha256},
+                    )
+                    answered_by_claim[key] = field
         for finding in self.analysis_findings.values():
             if (
                 finding.task_spec_sha256 == task_spec_sha256
@@ -4836,6 +4877,7 @@ class CommandCompiledToolHostV1:
                     }
                     for word in finding.answer
                 )
+                answered_by_claim.pop(finding.answers_observable_id, None)
         misses = []
         limitations = []
         for observable_id, record in sorted(
@@ -4843,11 +4885,10 @@ class CommandCompiledToolHostV1:
         ):
             if str(record.get("unit") or "") == "category":
                 # A question whose answer is a word is answered by a word
-                # the host read, bound through a finding's relation, and
-                # never by a claim's dimension.
+                # the host read, and never by a claim's dimension.
                 if observable_id in answered:
                     self._declared_observable_join_fields[observable_id] = (
-                        "finding"
+                        answered_by_claim.get(observable_id, "finding")
                     )
                     self._declared_categorical_answers[observable_id] = (
                         answered[observable_id]
@@ -4857,11 +4898,8 @@ class CommandCompiledToolHostV1:
                     continue
                 misses.append(
                     f"declared question {observable_id!r} (category) has "
-                    "no word or integer the host read answering it; claim "
-                    "the word the program printed or a count the host "
-                    "rendered, and record a finding with "
-                    f"answers_observable_id {observable_id!r} resting on "
-                    "'<that claim> == <the value>'"
+                    "no word or integer the host read answering it: "
+                    + _CATEGORY_ROUTE
                 )
                 limitations.append(f"declared_observable:{observable_id}")
                 continue
@@ -7794,83 +7832,141 @@ class CommandCompiledToolHostV1:
         and a finding saying "UNSTABLE" over a relation that read
         'stable': the completion's word was false both times.
 
-        A count or a verdict the host rendered as an integer answers too:
-        the master's smoke goal (R10, 2026-09-24) rested a yes/no question
-        on minimum-verdict == 1, the relation held, and the refusal said
-        nothing the host read answered it. An integer is compared exactly,
-        as a word is; a real number is not, so a distance still answers
-        nothing.
+        A count or a flag the host read from the program's output as an
+        integer answers too: the master's smoke goal (R10, 2026-09-24)
+        rested a yes/no question on an integer, the relation held, and the
+        refusal said nothing the host read answered it. An integer is
+        compared exactly, as a word is; a real number is not, so a distance
+        still answers nothing. Which claims answer is one rule,
+        ``_categorical_answer_row``, shared with the claim that carries a
+        category's id: two organs answering one question call one function.
         """
 
         answer: list[dict[str, Any]] = []
+        unread: list[str] = []
         for row in relations:
             left = row.get("left") or {}
-            if row.get("relation") != "==" or left.get("data_kind") not in (
-                "text",
-                "integer",
-            ):
+            if row.get("relation") != "==":
+                unread.append(
+                    f"{left.get('claim_id')} {row.get('relation')} (not ==)"
+                )
                 continue
-            source = str(left.get("source_receipt_sha256") or "")
-            quantity_id = str(left.get("quantity_id") or "")
-            receipt = self.quantity_extractions.get(source)
-            bindings = dict(getattr(receipt, "selector_bindings", ()) or ())
-            bindings = bindings or dict(
-                self.quantity_extraction_bindings.get(source) or {}
-            )
-            value = left.get("value")
-            answer.append(
-                {
-                    "claim_id": str(left.get("claim_id") or ""),
-                    "word": (
-                        value
-                        if left.get("data_kind") == "text"
-                        else str(int(value))
-                    ),
-                    "selector": str(bindings.get(quantity_id) or ""),
-                    "source_receipt_sha256": source,
-                    "quantity_id": quantity_id,
-                    **(
-                        {"data_kind": "integer"}
-                        if left.get("data_kind") == "integer"
-                        else {}
-                    ),
-                }
-            )
+            word, reason = self._categorical_answer_row(left)
+            if word is None:
+                unread.append(f"{left.get('claim_id')} == ({reason})")
+                continue
+            answer.append(word)
         if not answer:
-            read = "; ".join(
-                f"{(row.get('left') or {}).get('claim_id')} "
-                f"{row.get('relation')} "
-                f"({(row.get('left') or {}).get('data_kind')})"
-                for row in relations
-            )
             raise RoutedContractError(
                 gate="finding.answers_through_a_word_the_host_read",
                 invariant=(
                     "a declared category is answered by a word or an "
-                    "integer the host read, bound to it through an == "
-                    "relation that holds over its claim; the finding's "
-                    "sentence is the session's interpretation, shown beside "
-                    "it."
+                    "integer the host read from the program's output, bound "
+                    "to it through an == relation that holds over its "
+                    "claim; the finding's sentence is the session's "
+                    "interpretation, shown beside it."
                 ),
                 diagnosis=(
                     f"finding {finding_id!r} answers {observable_id!r} and "
-                    f"rests on {read}: none is an == over a word or an "
-                    "integer claim, and a real number equals a value only to "
-                    "a precision nobody stated."
+                    "rests on " + "; ".join(unread) + "."
                 ),
-                route=(
-                    "claim the word the program printed (its extraction's "
-                    "selector, e.g. scf_stability_external or irc_direction) "
-                    "or a count the host rendered, with "
-                    "record_analysis_claims, and rest the answer on '<that "
-                    "claim> == <the value>'; keep the other relations as "
-                    "support, or record the finding without "
-                    "answers_observable_id -- a relation between numbers "
-                    "stands as a finding, and the number it rests on is "
-                    "delivered by its own claim"
-                ),
+                route=_CATEGORY_ROUTE,
             )
         return tuple(answer)
+
+    def _categorical_answer_row(
+        self, operand: Mapping[str, Any]
+    ) -> tuple[dict[str, Any] | None, str]:
+        """The answer a claim gives a declared category, or why it gives none.
+
+        A category's answer is what the program said, as the host read it:
+        a word an extraction read (a stability verdict, an IRC branch word),
+        or an integer it read there (a convergence flag, a count). The
+        verdict of a validation rule the session wrote is not one: it says
+        whether that rule held, the answer would not carry which way the
+        rule reads, and the host would certify "'1', selector unrecorded"
+        where the question asked for a word (R10 Q22's G-h2 claimed three
+        such verdicts under its three category ids in three cycles; FRONTIER
+        #23). A real number equals a value only to a precision nobody
+        stated. ``operand`` is a claim as ``claim_operand`` renders it.
+        """
+
+        data_kind = str(operand.get("data_kind") or "scalar")
+        source_kind = str(operand.get("source_kind") or "")
+        value = operand.get("value")
+        if data_kind == "text_vector":
+            return None, "a list of words; a category is answered by one"
+        if data_kind not in ("text", "integer"):
+            return None, (
+                "a real number, which equals a value only to a precision "
+                "nobody stated"
+            )
+        if source_kind != "quantity_extraction":
+            return None, (
+                "the verdict of a validation rule the session wrote, which "
+                "says whether that rule held, not what the program read"
+                if source_kind == "scientific_validation"
+                else f"a {source_kind or 'derived'} value, not a word or an "
+                "integer the host read from the program's output"
+            )
+        source = str(operand.get("source_receipt_sha256") or "")
+        quantity_id = str(operand.get("quantity_id") or "")
+        receipt = self.quantity_extractions.get(source)
+        bindings = dict(getattr(receipt, "selector_bindings", ()) or ())
+        bindings = bindings or dict(
+            self.quantity_extraction_bindings.get(source) or {}
+        )
+        return (
+            {
+                "claim_id": str(operand.get("claim_id") or ""),
+                "word": value if data_kind == "text" else str(int(value)),
+                "selector": str(bindings.get(quantity_id) or ""),
+                "source_receipt_sha256": source,
+                "quantity_id": quantity_id,
+                **({"data_kind": "integer"} if data_kind == "integer" else {}),
+            },
+            "",
+        )
+
+    def _categorical_answers_in(
+        self, record: Any
+    ) -> tuple[dict[str, Any], ...]:
+        """What each claim of one record answers, said in the claim's reply.
+
+        The session learns in the turn it claims which declared question
+        its word answered and which selector read it -- the pairing a
+        reader of the settlement checks, and the one R10 Q22's gh2c
+        answered with the spin-polarising word under a question it had
+        named for complex rotations.
+        """
+
+        rows: list[dict[str, Any]] = []
+        for claim in getattr(record, "claims", ()):
+            for field in ("claim_id", "quantity_id"):
+                key = str(getattr(claim, field, "") or "")
+                declaration = self.requested_observable_declarations.get(key)
+                if (
+                    declaration is None
+                    or str(declaration.get("unit") or "") != "category"
+                ):
+                    continue
+                word, _reason = self._categorical_answer_row(
+                    claim_operand(
+                        claim, claim_record_sha256=record.receipt_sha256
+                    )
+                )
+                if word is None:
+                    continue
+                rows.append(
+                    {
+                        "answers_declared_category": key,
+                        "meaning": str(declaration.get("meaning") or ""),
+                        "word": word["word"],
+                        "selector": word["selector"],
+                        "claim_id": word["claim_id"],
+                    }
+                )
+        return tuple(rows)
 
     def _host_signals_beneath(
         self,
@@ -20055,41 +20151,82 @@ class CommandCompiledToolHostV1:
 
         A word never delivers a declared number: every declaration is
         judged by id and dimension, and a verdict word is dimensionless,
-        so a word claimed under a declared id would satisfy a declared
-        count or eigenvalue by coincidence of dimension. The route is a
-        finding that answers the question and rests on this word.
+        so a word claimed under a declared number's id would satisfy a
+        declared count or eigenvalue by coincidence of dimension.
+
+        A word claimed under a declared *category's* id is that question's
+        answer, delivered as a number is under its id. This refused it
+        with the number's diagnosis: in the archive the refusal fired 16
+        times and all 16 were words claimed under a declared category, in
+        8 of the 9 goals that declared one -- 7 of them the claim node of
+        an approved chain, which failed whole and took the requested
+        energy with it (R10 Q23 census; ls2, CUHK 2153514).
         """
 
         claim_id = str(item["claim_id"])
         declared = self._declarations_for_claim(
             claim_id, str(quantity.quantity_id)
         )
-        if declared:
+        numbers = tuple(
+            declaration
+            for declaration in declared
+            if str(declaration.get("unit") or "") != "category"
+        )
+        if numbers:
             raise RoutedContractError(
                 gate="claim.a_word_delivers_no_declared_number",
                 invariant=(
-                    "a declared observable is delivered in its dimension, "
-                    "and a word the program printed has no magnitude to "
-                    "deliver."
+                    "a declared number is delivered in its dimension, and a "
+                    "word the program printed has no magnitude to deliver."
                 ),
                 diagnosis=(
                     f"{quantity.quantity_id!r} is the word "
-                    f"{quantity.value!r} and this claim carries the "
-                    "declared id "
+                    f"{quantity.value!r} and this claim carries the id of "
+                    "the declared number "
                     + ", ".join(
-                        repr(str(item.get("observable_id") or ""))
-                        for item in declared
+                        repr(
+                            f"{declaration.get('observable_id')} "
+                            f"({declaration.get('unit')})"
+                        )
+                        for declaration in numbers
                     )
                     + "."
                 ),
                 route=(
-                    "claim the word under an id of its own, then answer "
-                    "the question with a finding in "
-                    "record_scientific_decision that rests on it (for "
-                    "example, the claim == the word); a question whose "
-                    "answer is a word or a relation is declared in unit "
-                    "'category'"
+                    "claim the word under an id of its own, and the number "
+                    "under the declared id; a question whose answer is a "
+                    "word is declared in unit 'category' and answered by "
+                    "claiming the word under that id"
                 ),
+            )
+        reason = (
+            self._categorical_answer_row(
+                {
+                    "data_kind": quantity.data_kind,
+                    "source_kind": source_kind,
+                    "value": quantity.value,
+                }
+            )[1]
+            if declared
+            else ""
+        )
+        if reason:
+            raise RoutedContractError(
+                gate="claim.a_category_is_answered_by_a_word_the_host_read",
+                invariant=(
+                    "a declared category is answered by one word or integer "
+                    "the host read from the program's output."
+                ),
+                diagnosis=(
+                    f"{quantity.quantity_id!r} is {reason} and this claim "
+                    "carries the declared category "
+                    + ", ".join(
+                        repr(str(declaration.get("observable_id") or ""))
+                        for declaration in declared
+                    )
+                    + "."
+                ),
+                route=_CATEGORY_ROUTE,
             )
         if (
             item.get("uncertainty") is not None
@@ -20302,6 +20439,51 @@ class CommandCompiledToolHostV1:
                     )
                 )
                 continue
+            categories = tuple(
+                declaration
+                for declaration in self._declarations_for_claim(
+                    str(item["claim_id"]), str(quantity.quantity_id)
+                )
+                if str(declaration.get("unit") or "") == "category"
+            )
+            if categories:
+                # A number under a declared category's id was accepted here
+                # and called undelivered only at completion, so G-h2 claimed
+                # three validation verdicts under its three category ids in
+                # three cycles and never learned why (R10 Q22, CUHK 2153627).
+                reason = self._categorical_answer_row(
+                    {
+                        "data_kind": quantity.data_kind,
+                        "source_kind": source_kind,
+                        "value": quantity.value,
+                    }
+                )[1]
+                if reason:
+                    raise RoutedContractError(
+                        gate=(
+                            "claim.a_category_is_answered_by_a_word_the_"
+                            "host_read"
+                        ),
+                        invariant=(
+                            "a declared category is answered by one word or "
+                            "integer the host read from the program's output."
+                        ),
+                        diagnosis=(
+                            f"{quantity.quantity_id!r} is {reason}, and this "
+                            "claim carries the declared category "
+                            + ", ".join(
+                                repr(str(declaration.get("observable_id")))
+                                for declaration in categories
+                            )
+                            + "."
+                        ),
+                        route=_CATEGORY_ROUTE,
+                    )
+                # An integer the host read answers in its own unit: the
+                # word 'category' is no unit to convert to, and Q11 g2's
+                # claim of its IRC flag under 'category' was refused as an
+                # unsupported unit (CUHK 2151911).
+                item = {**item, "display_unit": str(quantity.unit or "1")}
             display_unit = str(item["display_unit"])
             display_value = convert_normalized_value(
                 quantity.value, quantity.dimension, display_unit
@@ -20615,7 +20797,7 @@ class CommandCompiledToolHostV1:
         # actually taught.
         self._reply_observations = tuple(
             row for row in sufficiency_rows if row is not None
-        )
+        ) + self._categorical_answers_in(record)
         # The current assessment of each requirement, latest wins, so
         # the refusal verifier can check that a precision a session
         # says it cannot establish is one this goal actually has open.
