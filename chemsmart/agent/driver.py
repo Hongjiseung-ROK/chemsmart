@@ -46,11 +46,15 @@ from chemsmart.agent.delivery import (
 from chemsmart.agent.execution import STRUCTURE_MOVING_STAGES, anomaly_standing
 from chemsmart.agent.goal import (
     GOAL_SCHEMA_VERSION,
+    FailedCriterionV1,
     GoalLedger,
     GoalRecordV1,
     admit_revision,
+    cited_receipts,
     conditions_from_review,
+    failed_criteria,
     goal_scope_is_unbound,
+    results_read,
 )
 from chemsmart.agent.rules import rules_by_id
 from chemsmart.agent.terminal_states import (
@@ -256,6 +260,45 @@ def _finding_reasons(
     )
 
 
+def _answered_criterion_reasons(
+    answered: Sequence[tuple[FailedCriterionV1, tuple[str, ...]]],
+) -> tuple[str, ...]:
+    """One reason per failed criterion a recorded decision answered.
+
+    The verdict with the number that failed it, the receipt the decision
+    cites, and the delivered numbers standing on it: the delivery carries
+    the failed expectation and the session's reading of it, and the word
+    says which finding it rests on.
+    """
+
+    return tuple(
+        "the plan's own acceptance criterion did not hold and the recorded "
+        f"decision cites it ({verdict.answered_by[-1][:8]}): "
+        f"{verdict.statement()}"
+        + (
+            "; delivered standing on it: " + ", ".join(standing)
+            if standing
+            else ""
+        )
+        for verdict, standing in answered
+    )
+
+
+def _inherited_verdict_reason(delivery: "_AnalysisDelivery") -> str:
+    """Why numbers standing on another cycle's unanswered verdict wait."""
+
+    return (
+        "these delivered quantities stand on results the goal's own "
+        "acceptance criterion rejected in another cycle, and no recorded "
+        "decision cites that verdict: "
+        + "; ".join(
+            f"{', '.join(standing)} on {verdict.statement()} (receipt "
+            f"{verdict.receipt_sha256s[-1][:8]})"
+            for verdict, standing in delivery.inherited_unanswered
+        )
+    )
+
+
 def _achieved_word(
     delivery: "_AnalysisDelivery",
     ledger_anomalies: Sequence[Mapping[str, Any]] = (),
@@ -268,10 +311,27 @@ def _achieved_word(
     not hide what the run found (owner ruling, 2026-09-03).
     """
 
+    # A failed acceptance criterion the session answered is a finding the
+    # delivery carries, and the word says so. The charter's words for
+    # achieved_with_observations name "a pre-registered expectation the
+    # physics left"; an answered criterion rides beside it whether the
+    # session stated it before the engine ran or after it had read the
+    # number -- the records read here do not say which. The settlement
+    # names each from the records as they stand now; a completion's
+    # listing, minted before a decision that answered it, describes that
+    # earlier moment.
     observed = tuple(
         sorted(
-            set(delivery.anomaly_output_ids)
+            {
+                item
+                for item in delivery.anomaly_output_ids
+                if not str(item).startswith("failed_criterion:")
+            }
             | set(_anomaly_output_ids_from_records(ledger_anomalies))
+            | {
+                verdict.observation_id
+                for verdict, _standing in delivery.answered_criteria
+            }
         )
     )
     # Where a delivered number came from is true of either word, so it is
@@ -332,6 +392,10 @@ def _achieved_word(
         provenance = provenance + (
             "delivered in an earlier cycle: "
             + ", ".join(delivery.delivered_in_earlier_cycles),
+        )
+    if delivery.answered_criteria:
+        provenance = provenance + _answered_criterion_reasons(
+            delivery.answered_criteria
         )
     if delivery.findings:
         provenance = provenance + _finding_reasons(delivery.findings)
@@ -456,14 +520,33 @@ def _achieved_word(
         else "no completion gate certified this delivery"
     )
     if observed:
-        return (
-            "achieved_with_observations",
-            (
-                certified + "; the host also recorded observations nobody "
-                "asked for: " + ", ".join(observed),
-            )
-            + provenance,
+        # What the host detected unasked and what the session itself stated
+        # about its results are not one kind of thing: a criterion of the
+        # session's own plan is not an observation "nobody asked for". Nor
+        # is it always an expectation stated before the physics: L-S2 (R10
+        # Q19, CUHK Slurm 2153514) planned its real->complex rule after it
+        # had extracted -0.0288 Eh, and read its failed external rule as
+        # the answer it had meant to test for. When a criterion was stated
+        # is not read here, so the sentence says what was read: it did not
+        # hold.
+        stated = tuple(
+            item
+            for item in observed
+            if item.startswith(("falsified_expectation:", "failed_criterion:"))
         )
+        unasked = tuple(item for item in observed if item not in stated)
+        lead = certified
+        if unasked:
+            lead += (
+                "; the host also recorded observations nobody asked for: "
+                + ", ".join(unasked)
+            )
+        if stated:
+            lead += (
+                "; criteria and predictions the session itself stated that "
+                "did not hold: " + ", ".join(stated)
+            )
+        return ("achieved_with_observations", (lead,) + provenance)
     return ("achieved", (certified,) + provenance)
 
 
@@ -606,6 +689,7 @@ def _delivery_settlement(
         goal_delivered_ids=_goal_delivered_ids(workspace, goal_id),
         declared_observables=_first_declarations(ledger),
         goal_findings=_goal_findings(workspace, goal_id),
+        goal_streams=_goal_streams(ledger, workspace, goal_id),
     )
     evidence = _settlement_evidence(delivery)
     # What the goal declared and has not delivered under its id in any
@@ -760,6 +844,13 @@ def _delivery_settlement(
             "a validation verdict failed and no recorded decision cites "
             "it: " + ", ".join(delivery.unanswered_verdicts),
         )
+    elif certified and delivery.inherited_unanswered:
+        # The delivery stands on results the goal's own criterion rejected
+        # in another cycle, and no recorded decision answered that
+        # verdict: certifying it would say achieved over a finding nobody
+        # read.
+        settled = "returned_to_human"
+        reasons = (_inherited_verdict_reason(delivery),)
     elif certified and delivery.claims:
         goal_anomalies = _goal_anomalies(ledger)
         settled, reasons = _achieved_word(delivery, goal_anomalies)
@@ -778,6 +869,25 @@ def _delivery_settlement(
         # has not settled (two live goals, 2026-09-02).
         settled = "returned_to_human"
         reasons = delivery.stopped_by
+    elif (delivery.claims or delivery.decisions) and (
+        delivery.unanswered_verdicts or delivery.inherited_unanswered
+    ):
+        # The gate did not certify because the plan's own criterion failed
+        # and nobody answered it. Say which finding the goal is waiting
+        # on: "the gate did not pass" named nothing a human could act on
+        # (L1, R10 Q16).
+        settled = "returned_to_human"
+        reasons = (
+            f"the session ended {terminal!r} ({delivery.ending}); the "
+            "completion is not certified",
+        )
+        if delivery.unanswered_verdicts:
+            reasons = reasons + (
+                "a validation verdict failed and no recorded decision "
+                "cites it: " + ", ".join(delivery.unanswered_verdicts),
+            )
+        if delivery.inherited_unanswered:
+            reasons = reasons + (_inherited_verdict_reason(delivery),)
     elif delivery.claims or delivery.decisions:
         # Something was recorded, but the host never certified
         # completion -- a human reads it, whatever the session's
@@ -2381,6 +2491,20 @@ class _AnalysisDelivery:
     #: that cites the validation receipt has answered it; one that does
     #: not has left it open.
     unanswered_verdicts: tuple[str, ...] = ()
+    #: The plan's own acceptance criteria that failed and that a recorded
+    #: decision answered, each with the delivered quantities standing on
+    #: the results it judged. The session read the finding and stands by
+    #: its numbers; the delivery carries both, and the word says so.
+    answered_criteria: tuple[
+        tuple[FailedCriterionV1, tuple[str, ...]], ...
+    ] = ()
+    #: Failed criteria another stream of the goal typed and no recorded
+    #: decision answered, each with the quantities this stream delivers
+    #: from the results it rejected. Nothing standing on them is
+    #: certified.
+    inherited_unanswered: tuple[
+        tuple[FailedCriterionV1, tuple[str, ...]], ...
+    ] = ()
     #: Delivered quantities whose own receipt lineage traces back to a
     #: result a failed verdict rejected. A recovery cycle that replaces
     #: the structure does not replace the numbers computed from the old
@@ -2690,29 +2814,22 @@ def _stale_quantity_ids(
         str(item) for item in inherited_rejected_artifacts if item
     }
 
-    def _resolve(receipt: str, quantity_id: str, depth: int = 0) -> None:
-        """Name the results a rejected binding ultimately rests on."""
-
-        if depth > 8:
-            return
-        artifact = artifact_by_receipt.get(receipt)
-        if artifact:
-            rejected_artifacts.add(artifact)
-            return
-        for source in sources_by_output.get((receipt, quantity_id), ()):
-            if not source:
-                continue
-            producer = artifact_by_receipt.get(source)
-            if producer:
-                rejected_artifacts.add(producer)
-                continue
-            for other, output_id in sources_by_output:
-                if other == source:
-                    _resolve(other, output_id, depth + 1)
-
     for receipt, quantity_id in rejected_bindings:
         if receipt:
-            _resolve(receipt, quantity_id)
+            # The results a rejected binding ultimately rests on, read by
+            # the same resolver that gives a failed criterion its
+            # identity; a source the records cannot resolve rejects
+            # nothing.
+            rejected_artifacts.update(
+                result
+                for result in results_read(
+                    receipt,
+                    quantity_id,
+                    result_artifacts=artifact_by_receipt,
+                    expression_sources=sources_by_output,
+                )
+                if not result.startswith("receipt:")
+            )
 
     # Every read of a rejected result, not only the one the rule saw.
     tainted_receipts = {
@@ -2772,6 +2889,135 @@ def _printed_no_modes(record: Mapping[str, Any]) -> bool:
     return False
 
 
+@dataclass(frozen=True)
+class _VerdictRecords:
+    """What a stream holds that judges a failed acceptance criterion.
+
+    The validation receipts, the digests recorded decisions cite, and the
+    two maps that resolve a rule's inputs to the results it read. The
+    settlement and the tool host build these from one representation --
+    the receipt, carried whole in the stream's event -- and hand them to
+    one function (``goal.failed_criteria``).
+    """
+
+    validations: tuple[Mapping[str, Any], ...] = ()
+    cited: frozenset[str] = frozenset()
+    result_artifacts: Mapping[str, str] = field(default_factory=dict)
+    expression_sources: Mapping[tuple[str, str], tuple[str, ...]] = field(
+        default_factory=dict
+    )
+
+
+def _stream_lines(path: Path) -> list[str]:
+    try:
+        return Path(path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+
+
+def _verdict_records(lines: Sequence[str]) -> _VerdictRecords:
+    validations: list[Mapping[str, Any]] = []
+    cited: set[str] = set()
+    result_artifacts: dict[str, str] = {}
+    expression_sources: dict[tuple[str, str], tuple[str, ...]] = {}
+    for line in lines:
+        text = line.strip()
+        if not text:
+            continue
+        try:
+            event = json.loads(text)
+        except json.JSONDecodeError:
+            continue
+        kind = str(event.get("kind") or "")
+        payload = event.get("payload") or {}
+        digest = str(payload.get("receipt_sha256") or "")
+        record = payload.get("record") or {}
+        if kind == "scientific_validation_evaluated":
+            validations.append(payload)
+        elif kind == "scientific_decision_recorded":
+            # A decision that cites the validation receipt has looked at
+            # the failed verdict and stood by its delivery. That is the
+            # scientist's call to make, and citing the receipt is how it
+            # is made without the host grading prose.
+            cited |= cited_receipts(record.get("evidence_refs") or ())
+        elif (
+            kind in {"result_quantities_extracted", "thermochemistry_derived"}
+            and digest
+        ):
+            # A thermochemistry derivation reads its result as surely as
+            # an extraction does: a zero-point energy of a rejected saddle
+            # stands on the verdict that rejected it.
+            artifact = str(
+                payload.get("artifact_sha256")
+                or record.get("artifact_sha256")
+                or ""
+            )
+            if artifact:
+                result_artifacts[digest] = artifact
+        elif kind == "quantity_expression_evaluated" and digest:
+            for dependency in record.get("output_dependencies") or ():
+                expression_sources[
+                    (digest, str(dependency.get("output_id") or ""))
+                ] = tuple(
+                    str(item)
+                    for item in dependency.get("source_receipt_sha256s") or ()
+                )
+    return _VerdictRecords(
+        validations=tuple(validations),
+        cited=frozenset(cited),
+        result_artifacts=result_artifacts,
+        expression_sources=expression_sources,
+    )
+
+
+def _merge_verdict_records(*parts: _VerdictRecords) -> _VerdictRecords:
+    """The goal's records, in stream order, each receipt once."""
+
+    validations: list[Mapping[str, Any]] = []
+    seen: set[str] = set()
+    cited: set[str] = set()
+    result_artifacts: dict[str, str] = {}
+    expression_sources: dict[tuple[str, str], tuple[str, ...]] = {}
+    for part in parts:
+        for item in part.validations:
+            digest = str(item.get("receipt_sha256") or "")
+            if digest and digest in seen:
+                continue
+            seen.add(digest)
+            validations.append(item)
+        cited |= part.cited
+        result_artifacts.update(part.result_artifacts)
+        expression_sources.update(part.expression_sources)
+    return _VerdictRecords(
+        validations=tuple(validations),
+        cited=frozenset(cited),
+        result_artifacts=result_artifacts,
+        expression_sources=expression_sources,
+    )
+
+
+def _goal_streams(
+    ledger: GoalLedger, workspace: Path | None, goal_id: str
+) -> tuple[Path, ...]:
+    """Every stream the goal's own spine names: planning sessions and runs."""
+
+    if workspace is None:
+        return ()
+    agent = Path(workspace) / ".chemsmart-agent"
+    streams: list[Path] = []
+    for entry in ledger.entries():
+        payload = entry.get("payload") or {}
+        if entry["kind"] == "session_stream_recorded":
+            run_id = str(payload.get("run_id") or "")
+            if run_id:
+                streams.append(agent / "runs" / run_id / "events.jsonl")
+        elif entry["kind"] == "run_recorded":
+            run = str(payload.get("run") or "")
+            if run:
+                streams.append(agent / Path(*run.split("/")) / "events.jsonl")
+    return tuple(dict.fromkeys(path for path in streams if path.is_file()))
+
+
 def _analysis_delivery(
     events_path: Path,
     *,
@@ -2783,8 +3029,16 @@ def _analysis_delivery(
     failed_artifact_sha256s: Sequence[str] = (),
     inherited_unreachable: Mapping[str, str] = {},
     goal_findings: Sequence[Mapping[str, Any]] = (),
+    goal_streams: Sequence[Path] = (),
 ) -> _AnalysisDelivery:
     """Read the delivery facts a settlement stands on.
+
+    ``goal_streams`` are the goal's other streams -- its earlier cycles'
+    planning sessions and runs. A settlement reads the plan's own failed
+    acceptance criteria across all of them: a verdict one cycle's run was
+    typed with is answered by the decision a later session records, and a
+    number this stream delivers from a result an earlier verdict rejected
+    stands on that verdict whichever stream typed it.
 
     Every field is a typed record the host itself wrote: the
     completion receipt with its stated limitations, the claim and
@@ -2800,8 +3054,6 @@ def _analysis_delivery(
 
     declared_misses: tuple[str, ...] = ()
     limitations: tuple[str, ...] = ()
-    failed_verdicts: list[tuple[str, str, str]] = []
-    decision_refs: set[str] = set()
     claims = 0
     decisions = 0
     decision_uncertainties: list[str] = []
@@ -2974,11 +3226,6 @@ def _analysis_delivery(
                 text_ref = str(reference)
                 if text_ref.startswith("doubt:"):
                     doubt_refs.add(text_ref[len("doubt:") :])
-                # A decision that cites the validation receipt has looked
-                # at the failed verdict and stood by its delivery. That is
-                # the scientist's call to make, and citing the receipt is
-                # how it is made without the host grading prose.
-                decision_refs.add(text_ref.split(":")[-1])
         elif kind == "analysis_claims_recorded":
             claims += 1
             if digest:
@@ -3139,33 +3386,6 @@ def _analysis_delivery(
         elif kind == "scientific_validation_evaluated":
             if digest:
                 receipts.append(digest)
-            if not bool(payload.get("all_rules_passed", True)):
-                node_id = str(payload.get("node_id") or "")
-                record = payload.get("record") or {}
-                bindings = {
-                    str(binding.get("input_id") or ""): (
-                        str(binding.get("source_receipt_sha256") or ""),
-                        str(binding.get("quantity_id") or ""),
-                    )
-                    for binding in record.get("input_bindings") or ()
-                }
-                for rule in record.get("rule_results") or ():
-                    if not bool(rule.get("passed", True)):
-                        failed_verdicts.append(
-                            (
-                                node_id,
-                                str(rule.get("rule_id") or ""),
-                                digest,
-                            )
-                        )
-                        # The rule read these receipts and rejected what
-                        # it found in them; everything else computed from
-                        # the same receipts describes the same rejected
-                        # structure.
-                        for input_id in rule.get("input_ids") or ():
-                            binding = bindings.get(str(input_id))
-                            if binding and binding[0]:
-                                rejected_bindings.append(binding)
         elif kind in {
             "result_quantities_extracted",
             "quantity_expression_evaluated",
@@ -3201,10 +3421,42 @@ def _analysis_delivery(
                             ),
                         )
                     )
+    # The plan's own acceptance criteria, judged by the one function the
+    # session's completion and the executor's completion also call. A
+    # verdict is answered when a recorded decision cites a receipt that
+    # states it -- in this stream or in any other stream of the goal, since
+    # a woken session answers the verdict its previous run was typed with.
+    here = _verdict_records(lines)
+    goal = _merge_verdict_records(
+        here, *(_verdict_records(_stream_lines(path)) for path in goal_streams)
+    )
+    verdicts = failed_criteria(
+        goal.validations,
+        cited=goal.cited,
+        result_artifacts=goal.result_artifacts,
+        expression_sources=goal.expression_sources,
+    )
+    here_receipts = {
+        str(item.get("receipt_sha256") or "") for item in here.validations
+    }
     unanswered = tuple(
-        f"{node_id}/{rule_id}"
-        for node_id, rule_id, digest in failed_verdicts
-        if digest not in decision_refs
+        verdict.label
+        for verdict in verdicts
+        if not verdict.answered
+        and here_receipts.intersection(verdict.receipt_sha256s)
+    )
+    # The rule read these receipts and rejected what it found in them;
+    # everything else computed from the same receipts describes the same
+    # rejected structure -- unless a recorded decision answered the
+    # verdict, in which case the session has read the finding and stands
+    # by what it computed, and the numbers are its delivery, carrying it.
+    rejected_bindings.extend(
+        binding
+        for verdict in verdicts
+        if not verdict.answered
+        and here_receipts.intersection(verdict.receipt_sha256s)
+        for binding in verdict.bindings
+        if binding[0]
     )
     # Quantities standing on a node that did not meet the promise it was
     # launched under, split by whether the session had the host check what
@@ -3275,7 +3527,9 @@ def _analysis_delivery(
         claim_pairs=claim_pairs,
         rejected_bindings=rejected_bindings,
         expression_outputs=expression_outputs,
-        artifact_by_receipt=artifact_by_receipt,
+        # The verdict join reads every receipt that read a result,
+        # thermochemistry derivations included.
+        artifact_by_receipt=here.result_artifacts,
         inherited_rejected_artifacts=inherited_rejected_artifacts,
     )
     # The same walk, seeded with the artifacts of every node an anomaly
@@ -3288,6 +3542,34 @@ def _analysis_delivery(
         artifact_by_receipt=artifact_by_receipt,
         inherited_rejected_artifacts=flagged_artifact_sha256s,
     )
+    # The same walk once per failed criterion, over the whole goal's
+    # records: which numbers this stream delivers stand on the results
+    # that criterion judged. An answered verdict rides the word with the
+    # numbers it carries. An unanswered one typed in another stream holds
+    # every number of this stream standing on it: the planning path read
+    # only its own stream, so a woken session could deliver from results
+    # an earlier run's criterion had rejected, rewrite the criterion
+    # without the rules that failed, and settle achieved (h1b, ax41
+    # general round, 2026-09-02) -- while the run path, which carries
+    # rejections across cycles, would have held the same numbers stale.
+    goal_expressions = tuple(
+        (receipt, output_id, tuple(sources))
+        for (receipt, output_id), sources in goal.expression_sources.items()
+    )
+    answered_criteria: list[tuple[FailedCriterionV1, tuple[str, ...]]] = []
+    inherited_unanswered: list[tuple[FailedCriterionV1, tuple[str, ...]]] = []
+    for verdict in verdicts:
+        standing, _judged = _stale_quantity_ids(
+            claim_pairs=claim_pairs,
+            rejected_bindings=verdict.bindings,
+            expression_outputs=goal_expressions,
+            artifact_by_receipt=goal.result_artifacts,
+        )
+        typed_here = bool(here_receipts.intersection(verdict.receipt_sha256s))
+        if verdict.answered and (standing or typed_here):
+            answered_criteria.append((verdict, standing))
+        elif not verdict.answered and standing and not typed_here:
+            inherited_unanswered.append((verdict, standing))
     # An expression's exported outputs, as opposed to the intermediate
     # node_values it computed on the way: the receipt contract pins
     # output_dependencies' ids to outputs' quantity_ids, in order, so the
@@ -3375,6 +3657,8 @@ def _analysis_delivery(
         stopped_by=tuple(stopped_by),
         anomaly_output_ids=anomaly_ids,
         unanswered_verdicts=unanswered,
+        answered_criteria=tuple(answered_criteria),
+        inherited_unanswered=tuple(inherited_unanswered),
         completion_status=completion_status,
         limitation_output_ids=limitations,
         claims=claims,

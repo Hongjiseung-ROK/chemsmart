@@ -626,7 +626,12 @@ def test_an_uncertified_delivery_returns_naming_the_gate(tmp_path):
 
 
 def test_a_failed_rule_requires_a_scientist_to_answer_it(tmp_path):
-    """A failed validation is evidence, not a refusal or clean delivery."""
+    """A failed validation is evidence, not a refusal or clean delivery.
+
+    Answered, it is delivered as the finding it is: plain ``achieved`` --
+    "the host saw nothing it could not explain" -- was the clean-delivery
+    word this docstring rules out, and it named nothing (R10 Q19).
+    """
 
     unanswered = _loop(
         tmp_path,
@@ -658,7 +663,11 @@ def test_a_failed_rule_requires_a_scientist_to_answer_it(tmp_path):
         ],
         executes=[],
     )
-    assert answered.settlement == "achieved"
+    assert answered.settlement == "achieved_with_observations"
+    assert any(
+        "/same" in reason and "decision cites it" in reason
+        for reason in answered.reasons
+    )
 
 
 def test_a_goal_is_not_a_resumable_queue(tmp_path):

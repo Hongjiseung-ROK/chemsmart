@@ -10,7 +10,9 @@ could not explain; achieved with observations when the certified
 delivery carries anomaly receipts — surprises the host detected on the
 run's own nodes, whether or not they were asked for, each with the
 numbers that tripped it, and beside them a pre-registered expectation
-the physics left, which is a result and never a defect — so the one
+the physics left, which is a result and never a defect, and a failed
+acceptance criterion of the plan that a recorded decision answered,
+whenever the session stated it — so the one
 word a human reads first never hides what the run found. An anomaly
 receipt is immutable; replication before belief is a second receipt
 that supersedes it: an excursion node cites the anomaly it
@@ -22,7 +24,10 @@ the certified completion names required outputs the plan itself declared
 blocked and the recorded scientific decision carries the receipts — a
 typed refusal is a deliverable, not a failure; exhausted when the
 granted budgets are spent; and returned to the human otherwise, with the
-reason naming what is missing. A completion receipt states the required
+reason naming what is missing. A number standing on a result that a
+failed criterion rejected, in any cycle of the goal, with no decision
+answering that verdict, is not certified, and the reason names the
+verdict (R10 Q19). A completion receipt states the required
 outputs it delivered without, so a full delivery and a delivery with
 stated limitations never share one word. A session ends on the word its
 own certificate supports: ``complete`` is admitted only over green
