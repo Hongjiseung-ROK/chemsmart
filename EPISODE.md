@@ -348,12 +348,89 @@ allocation's cores** (424776df corrects the docstring).
 - the empty probe directory of the sp-h-ccsd check (expected on 55e4424a,
   per O2; repaired by 9774ed01, not in G1's tree).
 
-Settlement not read: the SSH gate closed (hpc --check: GATE CLOSED at 12:31
-KST = 11:31 HKT) while the job was running (elapsed 42 min at 11:21 HKT; its
-limit is 2:20). The waiter's "no longer in the queue" line is an artefact of
-the closed gate (an empty squeue answer), not a job state.
+Settlement was not read then: the SSH gate closed (hpc --check: GATE CLOSED
+at 12:31 KST = 11:31 HKT). CORRECTED (mine): I wrote that the waiter's "no
+longer in the queue" line was an artefact of the closed gate. It was true:
+sacct shows 2150438 COMPLETED at 11:27:55 HKT, before the gate closed.
+
+## G1 read (Slurm 2150438, COMPLETED 10:39:21-11:27:55 HKT, 48:34, exit 0:0; tree 55e4424a, digest ad888d1d verified in-job)
+
+Host records: `slurm-2150438.out`, `workspace/.chemsmart-agent/goals/g1/ledger.jsonl`,
+three run streams under `workspace/.chemsmart-agent/runs/`, the cycle analysis
+reports under `goals/g1/runs/cycle-{1,3}/analysis/`, the five branches, and the
+granted scratch `/scratch/s1/xlzhang/jiseung/r10/q9/g1/`.
+
+Settlement: `returned_to_human`, 3 cycles, 2 revisions admitted (the grant's
+2), 5 of 12 engine calls; reason "cycle 3: these quantities were computed and
+never rendered as a claim, and no budget remains to deliver them: bde-uncert".
+
+| cycle | node | method (the session's) | label | engine | check |
+|---|---|---|---|---|---|
+| 1 | opt-ch3oh | wB97X-D3BJ/def2-TZVPPD RIJCOSX, tight opt + freq | start_opt_opt | validated, 155.5 s | passed 0.351 s |
+| 1 | opt-ch3o | same, UHF, symmetry-broken start | geometry-ch3o-distorted_opt_opt | validated, 315.8 s | passed 0.128 s |
+| 1 | sp-h | wB97X-D3BJ/def2-TZVPPD UHF on H | geometry-h-atom_sp_sp_gas_phase | validated, 9.9 s | passed 0.121 s |
+| 2 | sp-h-ccsd | CCSD(T)/def2-QZVPPD AutoAux UHF on H | geometry-h-atom_sp_sp_gas_phase | failed_native (MDCI: 8 processes > 0 pairs), 6.9 s | passed 0.430 s |
+| 3 | sp-h-hf | UHF/def2-QZVPPD on H | geometry-h-atom_sp_sp_gas_phase | validated, 11.9 s | passed 0.127 s |
+
+Against the pre-registration:
+1. **Met.** 5 of 5 ORCA checks ran inside the allocation, all `passed`, wall
+   0.12-0.43 s; the ledger's `input_checks_probed` rows read not_run 0 in every
+   cycle. None `not_run` for any reason.
+2. **Met, with the probe leftover I had already found.** No ORCA output in any
+   branch contains `GBW file was renamed to GES file`; no branch holds a `.ges`
+   or a `.tmp` file; every engine file in a branch carries that branch's own
+   label. The scratch root holds exactly one `<label>-<hex>` directory,
+   `geometry-h-atom_sp_sp_gas_phase-dcaea49d` (sp-h-ccsd's, the only failed
+   launch), and none for the four completed launches -- plus the one empty
+   `chemsmart-input-check-s1d5dfb2` of sp-h-ccsd's check (the 55e4424a defect
+   O2 reproduced and 9774ed01 repairs; the other four checks left nothing).
+3. **Tested live and met.** sp-h-ccsd failed (cycle 2) and sp-h-hf ran next
+   (cycle 3) on the same geometry file and job type -- the same label,
+   `geometry-h-atom_sp_sp_gas_phase`, the pair3-b pattern. sp-h-hf's branch
+   holds 7 engine files (`.bibtex .densities .densitiesinfo .gbw .inp .out
+   .property.txt`) and none of the failed run's leftovers (`.bas0-5`,
+   `.hostnames`, `.err`); no file in it is byte-identical to any file of
+   sp-h-ccsd or sp-h (sha256 over all three branches); its output has no
+   AutoStart line; sp-h-ccsd's failed directory was left untouched. Its UHF
+   energy, -0.499983297688 Eh, equals sp-h-ccsd's own UHF reference
+   (-0.499983298, printed to 9 digits). On d2c192af it would have run in
+   sp-h-ccsd's directory (O1-C shows that path on the same kind of pair).
+4. **Not exercised.** The session wrote no resource token (no `maxcore`
+   anywhere in the three transcripts).
+
+Physics (recorded, not scored): the delivered claim of cycle 3 is
+bde-oh-298 = 435.29 kJ/mol = 104.04 kcal/mol (inside my 100-110 kcal/mol
+band; the session's own band 425-450 kJ/mol, "agreed"); cycle 1's claim was
+422.05 kJ/mol = 100.87 kcal/mol. H-atom energies -0.50502910756 Eh
+(wB97X-D3BJ; equal to O1's clean value to every printed digit) and
+-0.499983297688 Eh (UHF/def2-QZVPPD): both inside [-0.51, -0.49] Eh.
+
+Agent side (deepseek-v4-flash-0731, one goal; recorded as its behaviour, not
+what G1 tests): opt+freq for CH3OH and a symmetry-broken CH3O; its cycle-1 BDE
+(422.05 kJ/mol) fell below its own declared band; it attributed the gap to the
+functional's self-interaction error in the H atom and replaced E(H): first
+CCSD(T)/def2-QZVPPD (ORCA refuses coupled cluster on a zero-pair system in
+parallel), then UHF/def2-QZVPPD ("exact for one electron"), moving the BDE by
++13.25 kJ/mol. That mixes a DFT molecular energy difference with a near-exact
+atomic energy -- a method choice for the human to judge, not a host fact. The
+settlement word comes from an uncertainty expression (`expr-bde-uncertainty`,
+a model-authored literal 6.0) computed and never claimed, with no revision
+left; the driver's settle path is Q6's radius.
+
+G2 decision: **not issued.** Its committed condition was "only if G1 shows no
+failed-then-same-label pair ... AND O1-C passes"; G1 showed one (sp-h-ccsd ->
+sp-h-hf), so the condition does not hold.
+
+## Evidence map (which tree each observation ran on)
+
+| evidence | kind | tree |
+|---|---|---|
+| O1, Slurm 2150437 | oracle, provider-free, real ORCA | base d2c192af vs repaired 55e4424a |
+| G1, Slurm 2150438 | live Agent goal | 55e4424a (e68c1bc3, d2b3e6ca, 0cb2bf09, 364bf2fd) |
+| O2, Slurm 2150471 | oracle, provider-free, real ORCA | before 55e4424a vs after 279b11cb (contains 9774ed01) |
+| f65dab8b, ba1dd2e7 | witness with a stand-in engine only; off the Agent path | -- |
+| 424776df | docstring only | -- |
 
 ## Status
 
-O1, O2 read. **Waiting on job 2150438 (G1) and on the gate** to read its
-settlement and branches; G2 is decided from that reading.
+Closed. Every job read from host records; G2 not issued by its own condition.
