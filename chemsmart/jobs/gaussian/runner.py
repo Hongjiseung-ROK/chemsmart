@@ -14,7 +14,6 @@ import logging
 import os
 import shlex
 import subprocess
-from contextlib import suppress
 from datetime import datetime
 from functools import lru_cache
 from glob import glob
@@ -213,11 +212,9 @@ class GaussianJobRunner(JobRunner):
         Args:
             job: Job object to configure scratch paths for.
         """
-        scratch_job_dir = os.path.join(self.scratch_dir, job.label)
-        if not os.path.exists(scratch_job_dir):
-            with suppress(FileExistsError):
-                os.makedirs(scratch_job_dir)
-                logger.debug(f"Created scratch directory: {scratch_job_dir}")
+        # Never ``<scratch>/<label>``: an earlier failed run's .chk would
+        # be delivered as this one's (JobRunner._fresh_scratch_directory).
+        scratch_job_dir = self._fresh_scratch_directory(job)
         self.running_directory = scratch_job_dir
         logger.debug(f"Running directory: {self.running_directory}")
 
@@ -447,10 +444,7 @@ class FakeGaussianJobRunner(GaussianJobRunner):
         Args:
             job: Job object to configure fake scratch paths for.
         """
-        scratch_job_dir = os.path.join(self.scratch_dir, job.label)
-        if not os.path.exists(scratch_job_dir):
-            with suppress(FileExistsError):
-                os.makedirs(scratch_job_dir)
+        scratch_job_dir = self._fresh_scratch_directory(job)
         self.running_directory = scratch_job_dir
         logger.debug(f"Running directory: {self.running_directory}")
 

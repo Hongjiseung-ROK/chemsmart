@@ -143,10 +143,7 @@ class NCIPLOTJobRunner(JobRunner):
         Args:
             job: NCIPLOTJob instance to configure
         """
-        scratch_job_dir = os.path.join(self.scratch_dir, job.label)
-        if not os.path.exists(scratch_job_dir):
-            with suppress(FileExistsError):
-                os.makedirs(scratch_job_dir)
+        scratch_job_dir = self._fresh_scratch_directory(job)
         self.running_directory = scratch_job_dir
         logger.debug(f"Running directory: {self.running_directory}")
 

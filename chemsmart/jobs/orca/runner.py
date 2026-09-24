@@ -12,7 +12,6 @@ import os
 import re
 import shlex
 import subprocess
-from contextlib import suppress
 from functools import lru_cache
 from glob import glob
 from shutil import copy
@@ -175,10 +174,9 @@ class ORCAJobRunner(JobRunner):
         Args:
             job: The job object to configure for scratch execution
         """
-        scratch_job_dir = os.path.join(self.scratch_dir, job.label)
-        if not os.path.exists(scratch_job_dir):
-            with suppress(FileExistsError):
-                os.makedirs(scratch_job_dir)
+        # Never ``<scratch>/<label>``: ORCA's AutoStart reads any .gbw of
+        # its basename it finds there (see JobRunner._fresh_scratch_directory).
+        scratch_job_dir = self._fresh_scratch_directory(job)
         self.running_directory = scratch_job_dir
         logger.debug(f"Running directory: {self.running_directory}")
 
@@ -510,10 +508,7 @@ class FakeORCAJobRunner(ORCAJobRunner):
 
     def _set_up_variables_in_scratch(self, job):
         """Set fake ORCA file paths for scratch execution."""
-        scratch_job_dir = os.path.join(self.scratch_dir, job.label)
-        if not os.path.exists(scratch_job_dir):
-            with suppress(FileExistsError):
-                os.makedirs(scratch_job_dir)
+        scratch_job_dir = self._fresh_scratch_directory(job)
         self.running_directory = scratch_job_dir
         logger.debug(f"Running directory: {self.running_directory}")
 
