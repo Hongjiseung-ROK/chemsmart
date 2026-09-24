@@ -50,6 +50,58 @@ Three things are mixed in that question and are kept apart:
   mine to design and test as a further arm, or I report that none moved
   this model.
 
+## Premise check on the base tree (provider-free)
+
+- `inspect_run` with a program and an artifact returns selector *names*
+  (available, requestable), each selector's structural state and
+  electronic provenance, atom metadata and the level. It returns no
+  value. `ResultReaderV1.available_selectors` reads every accessor to
+  learn what resolves and discards what it read.
+- A workspace result (the form every sealed task takes: finished outputs
+  plus a question) carries no run sensor: the anomalies an executed run
+  raises (`scf.reference_unstable`, `spin.s2_deviation_ge_0.2`,
+  `stationary_point.*`) are computed only for runs the goal executed. A
+  session learns a diagnostic's value only by extracting it.
+
+## The lever under test (P), and how it is switched
+
+Commit 29adc265: with `CHEMSMART_AGENT_INSPECTION_VALUES` on (off by
+default), `inspect_run(program, artifact_id)` also returns `values`:
+every requestable selector's value and unit as `extract_result_quantities`
+returns it, read through the same function, floats to ten significant
+digits, a vector past 64 numbers by its ends and a matrix past 64 cells by
+its shape (each cut labelled). It mints no receipt. Off, the reply is the
+base tree's. Nothing else differs: the tool surface, the catalogue and the
+system prompt are byte-identical in both switch states (to be verified by
+digest before freezing).
+
+## Development (local, my own tasks from archived real outputs; never sealed)
+
+Workspace = the task's finished outputs only; `chemsmart agent goal
+--reading-turn`, envelope gaussian/orca/pyscf/xtb cpu with
+`max_engine_calls: 0`, `--max-revisions 0`, granted by
+claude-researcher-q17-owner-delegated. Model deepseek-v4-flash-0731.
+
+- dA (O2 at 1.2075 A, PySCF B3LYP/def2-SVP closed-shell singlet and UKS
+  triplet single points; "what vertical singlet-triplet gap, does it
+  reproduce 0.98 eV, how much weight can it carry"). The singlet's own
+  record: internal stable (+2e-6 Eh), external RKS->UKS unstable
+  (-0.0926 Eh), real->complex unstable (-0.0383 Eh).
+  - dA-S-1 (base behaviour, switch off; 29adc265's parent tree): planning
+    0.67 M input tokens, 324 s; reading 0.29 M, 197 s. It inspected both
+    results, extracted `scf_stability_internal` ("stable") for both and
+    wrote "Both SCF solutions are stable" (transcript msg 19) -- false of
+    the singlet's record. Delivered 1.71 eV, attributed the 0.73 eV excess
+    to static correlation from general knowledge. The reading extracted
+    14 selectors per result, none of them stability, and added "the gap
+    carries no spin-contamination error". Settled achieved.
+  - dA-P-1 (switch on, 29adc265): the dominant uncertainty became "the
+    singlet is an unstable restricted closed-shell determinant ...
+    Evidence: scf_stability_external = unstable with lowest eigenvalue
+    -0.0926 Eh", and the finding names "the unstable restricted
+    closed-shell representation". One run each: an observation, not a
+    rate.
+
 ## Status
 
 - 2026-09-24: brief read; base verified; read CONDUCT.md, the RSL README
