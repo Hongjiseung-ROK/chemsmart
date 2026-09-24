@@ -70,13 +70,19 @@ its own records hold none.
 | cited; other conditions decide (s4 undelivered id; lad-a1-r2 no completion) | 2 | returned | same |
 | nobody; transport / no workflow (r2-s7-r1, h1) | 2 | returned | same |
 
-Base reproduction on the run commit: L1 (71de94b9) and o2r (09450c74)
-cycle-2 transcripts reproduce recovery_opened and goal_settled byte for
-byte (also on a7bc02e0 for L1). acetamide r8 reproduces on a7bc02e0.
-ax41 goals ran on goal_loop.py (8ad09cab, 533b686a, fec78baa, ff7f325b) or
-on commits absent from this repository (8dd57bc6, 102413ce, 2cca498e); their
-archived words are not reproduced on their own commits (stated, not
-claimed). Harness: scratchpad/q19/tools/replay_final.py (settle step),
+Base reproduction on the run commit, for every word the repair changes:
+L1 (71de94b9) and o2r (09450c74) cycle-2 transcripts reproduce
+recovery_opened and goal_settled byte for byte (L1 also on a7bc02e0);
+lad-a1-r1 on fb1bd970 (ladder arm 1) and lad-a0-r2 on 5e9ba2a6 (arm 0)
+reproduce goal_settled byte for byte (1099 B, 1031 B) through the commit's
+own run_goal_loop; h1b's run commit 8dd57bc6 is absent from this repository
+and its goal_settled (1371 B) reproduces byte for byte on bcb4d7c7, the last
+repository commit before it (a proxy, stated as such). acetamide r8
+reproduces on a7bc02e0. The unchanged goal_loop-era words (r1-*, r2-s7-*,
+s4, s7, s12, h1) are not reproduced on their own commits; nothing about
+them is claimed beyond "today's organs and the unified ones agree".
+Harness: scratchpad/q19/tools/replay_final.py (settle step on today's
+driver), replay_old_planning.py (goal_loop era), replay_proxy_planning.py,
 replay_goal.py (Q16's, transcript).
 
 ## Defects found
