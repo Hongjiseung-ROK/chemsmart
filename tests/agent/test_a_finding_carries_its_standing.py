@@ -768,6 +768,84 @@ def test_a_category_delivers_the_word_the_host_read_not_the_sentence(
     assert answer < sentence
 
 
+_OPT_LOG = _ROOT / "tests/data/GaussianTests/outputs/collidine_opt.log"
+
+
+@pytest.mark.capability("selector:gaussian:opt:converged")
+def test_a_category_is_answered_by_a_count_the_host_read(tmp_path):
+    """The master's smoke goal (R10, 2026-09-24): a yes/no question was
+    declared as a category and the session's finding rested on
+    minimum-verdict == 1, an integer the host had rendered; the relation
+    held and the question stayed unanswered, refused with "nothing the
+    host read answers the question". A count or verdict the host read is
+    read as surely as a word the program printed, and an == over it is
+    the answer; the sentence stays the session's interpretation."""
+
+    build = tmp_path / "count-build"
+    host = _host(build / "events.jsonl", tmp_path / "count-workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "optimisation-converged",
+                "unit": "category",
+                "meaning": "whether the optimisation met its criteria",
+            }
+        ],
+    )
+    _register(host, _OPT_LOG, "collidine-opt", "gaussian_output")
+    receipt = _extract(
+        host, "gaussian", "collidine-opt", [("conv", "converged")]
+    )
+    claimed = _claim(
+        host,
+        [
+            {
+                "claim_id": "opt-converged",
+                "receipt_sha256": receipt,
+                "quantity_id": "conv",
+                "display_unit": "1",
+            }
+        ],
+    )
+    assert claimed["status"] == "ok", claimed
+    reply = _decide(
+        host,
+        [
+            {
+                "finding_id": "converged-yes",
+                "statement": "Yes: the optimisation converged.",
+                "answers_observable_id": "optimisation-converged",
+                "rests_on": [
+                    {
+                        "claim_id": "opt-converged",
+                        "relation": "==",
+                        "value": 1,
+                    }
+                ],
+            }
+        ],
+    )
+    assert reply["status"] == "ok", reply
+    (finding,) = reply["result"]["findings"]
+    assert finding["standing"] == "answers"
+    (word,) = finding["answer"]
+    assert word["word"] == "1"
+    assert word["selector"] == "converged"
+    host.completion_receipts_for_delivered_claims()
+    rows = tuple(
+        json.loads(line)
+        for line in (build / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    )
+    completion = next(
+        row for row in rows if row["kind"] == "analysis_completion_evaluated"
+    )["payload"]
+    assert "declared_observable:optimisation-converged" not in (
+        completion.get("limitation_output_ids") or []
+    )
+
+
 def test_an_unanswered_question_is_a_limitation_naming_the_route(tmp_path):
     rows = _session_rows(tmp_path, answer=False, unrequested=False)
     completion = next(
@@ -1002,6 +1080,72 @@ def test_a_finding_on_the_asked_number_says_nothing_was_seen_beyond_it(
     )
     assert result.settlement == "achieved", result.reasons
     assert "(on the requested answer)" in " ".join(result.reasons)
+
+
+@pytest.mark.parametrize("undeclared_first", [True, False])
+def test_a_finding_standing_reads_every_operand_it_rests_on(
+    tmp_path, undeclared_first
+):
+    """r10/q7 g2-scan-modred (CUHK, 2026-09-23) recorded its finding
+    minimum-torsion-agreement on_the_request and the settlement said "(on
+    the requested answer)", while two of its relations rest on
+    lowest-coord, a claim no declaration names. The standing was read off
+    the last relation's left operand alone. One undeclared operand makes
+    a finding unrequested, whatever order its relations come in."""
+
+    host = _host(tmp_path / "events.jsonl", tmp_path / "workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "torsion-lowest-scan-point",
+                "unit": "degree",
+                "meaning": "torsion at the scan's lowest point",
+            }
+        ],
+    )
+    asked = _literal(host, "relaxed-torsion", 120.64, "degree")
+    unasked = _literal(host, "grid-torsion", 119.99994, "degree")
+    claimed = _claim(
+        host,
+        [
+            {
+                "claim_id": "torsion-lowest-scan-point",
+                "receipt_sha256": asked,
+                "quantity_id": "n1",
+                "display_unit": "degree",
+            },
+            {
+                "claim_id": "lowest-coord",
+                "receipt_sha256": unasked,
+                "quantity_id": "n1",
+                "display_unit": "degree",
+            },
+        ],
+    )
+    assert claimed["status"] == "ok", claimed
+    rests_on = [
+        {"claim_id": "lowest-coord", "relation": ">", "value": 119.0},
+        {
+            "claim_id": "torsion-lowest-scan-point",
+            "relation": "<",
+            "value": 121.0,
+        },
+    ]
+    if not undeclared_first:
+        rests_on.reverse()
+    reply = _decide(
+        host,
+        [
+            {
+                "finding_id": "minimum-torsion-agreement",
+                "statement": "the grid minimum and the relaxed minimum agree",
+                "rests_on": rests_on,
+            }
+        ],
+    )
+    (finding,) = reply["result"]["findings"]
+    assert finding["standing"] == "unrequested"
 
 
 @pytest.mark.capability("signal:scf.reference_unstable")

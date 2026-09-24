@@ -237,6 +237,50 @@ def test_a_certified_delivery_from_registered_results_is_read_too(tmp_path):
     )
 
 
+def test_the_reading_line_says_what_the_reading_did(tmp_path):
+    """Two sealed goals of R10 Q6: a reading that recorded only a decision
+    ended 'blocked' -- the planning session's word for stopping before a
+    workflow, which is how a reading ends -- and the settlement said "the
+    reading turn (..., ended blocked) read the delivered results and
+    recorded no finding", of a session that read nothing. The line says
+    what the reading read and recorded, and quotes a session's ending
+    only when it failed."""
+
+    build = tmp_path / "reading-build"
+    host = _host(build / "events.jsonl", tmp_path / "reading-workspace")
+    reply = _decide(host, [])
+    assert reply["status"] == "ok", reply
+    rows = tuple(
+        json.loads(line)
+        for line in (build / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    )
+    result = run_goal_loop(
+        **_goal(
+            tmp_path,
+            sessions=[
+                _planning_session("live-1", review=_review_payload()),
+                _reading_session(
+                    "live-reading", rows=rows, terminal="blocked"
+                ),
+            ],
+            executes=[_execute(tmp_path, failed=False, status="completed")],
+            reading_turn=True,
+        )
+    )
+    assert result.settlement == "achieved"
+    settled = _ledger(tmp_path).entries()[-1]["payload"]
+    (line,) = [
+        reason
+        for reason in settled["reasons"]
+        if reason.startswith("the reading turn")
+    ]
+    assert "blocked" not in line
+    assert "read the delivered results" not in line
+    assert "made no typed read" in line
+    assert "1 decision" in line
+
+
 @pytest.mark.parametrize(
     "reading",
     [
