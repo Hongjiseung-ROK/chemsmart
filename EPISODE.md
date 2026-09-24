@@ -355,10 +355,11 @@ when the lever moves a task's success rate from 0.2-0.3 to 0.7-0.8,
 0.53-0.81 at two replicates and 0.19-0.38 at one (Q6's C failed at one
 replicate: McNemar p = 0.5); with 8 phenomenon tasks it falls to 0.34-0.62
 at three replicates, which is why the primary is the stratified
-permutation test (0.71-0.84 at 8 tasks). A moderate lever (0.2 -> 0.5) is
-detectable only with the permutation test and even then less than half the
-time (0.30-0.43 at 8 tasks): a null here says the lever is not large, not
-that it is absent.
+permutation test (0.71-0.84 at 8 tasks; 0.89-0.98 at 12, where the
+Wilcoxon gives 0.79-0.96). A moderate lever (0.2 -> 0.5) is detectable less
+than half the time at 8 tasks (0.30-0.43) and about half at 12
+(0.43-0.63): a null here says the lever is not large, not that it is
+absent.
 
 ## Jobs issued
 
