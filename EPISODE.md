@@ -117,3 +117,22 @@ reaches them -- a different valid route is evidence, not failure):
   black, isort clean on every touched file.
 - Goal g1 (Slurm 2149497) running: code digest verified on the node,
   cycle-1 planning session live. WAITING ON JOB 2149497.
+- 2026-09-24 13:09 HKT: g1 COMPLETED (10:17:57), settled
+  unreachable_from_evidence after 2 cycles (read from the ledger and
+  both session streams). Cycle 1 planned 7 nodes in one approval (ORCA
+  scan, GS opt, TS; PySCF IRC fwd/bwd from the ORCA TS; ORCA opt of each
+  PySCF endpoint); the wave ran only the three ORCA nodes, serially:
+  GS opt 1,285 s, TS 15,852 s, scan timed out at the 5 h node limit
+  (18,011 s). Cycle 2 (analysis only) delivered dE 32.88 and dG(298)
+  34.12 kcal/mol, GS dihedral -70.5 deg, TS dihedral -27.6 deg, one
+  imaginary mode 57.27 cm-1, and refused both IRC endpoint observables
+  as unreachable in the remaining ~4,452 s (host-verified).
+  Against the bands: B1 FAIL (32.9/34.1 outside [19, 29]); B2 order
+  PASS, geometry FAIL (-27.6 deg: a syn-side saddle, not the anti 180);
+  B3 PASS (|-70.5| in [70, 110]); B4 NOT RUN. The Agent seeded the TS
+  from an edited planar-syn structure on the stated assumption that
+  "the planar-syn ridge (dihedral 0) is the expected saddle locus" and
+  attributed the excess over experiment (~23) to method error; the
+  oracle's anti pathway (>5 kcal/mol lower) was never searched. No host
+  falsifier fired; none of R1/R4/R5's paths was on this route. No
+  milestone.
