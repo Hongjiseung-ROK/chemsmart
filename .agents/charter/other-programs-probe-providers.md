@@ -190,6 +190,25 @@ read one node's observations by calling a mapping's method on a tuple --
 so the first goal to reach a launch after it died with an
 ``AttributeError`` inside the check and settled nothing.
 
+The probe sees only what ORCA checks before its ``INPUT FILE`` banner.
+Two refusals come later, after the SCF, where a spent engine call cannot
+be avoided by probing:
+- MDCI never runs more MPI processes than there are correlated electron
+  pairs. R10 Q14 (4ed32f97) computes this from the request.
+  ``orca_correlated_pairs`` counts n(n+1)/2 closed-shell or N(N-1)/2 UHF
+  pairs over the electrons outside the reader's chemical core. The writer
+  sets ``%pal`` to the smaller of the granted cores and that count, and
+  says so in the compile reply and the review. A state with no pair (the
+  H atom, which ORCA refuses at every process count, one included) is
+  refused at compile with its route: the reference energy in the same
+  basis, or a program whose correlated code accepts one electron. ORCA
+  oracle O1 (CUHK Slurm 2152636, 28 runs) fixed each count, and the
+  repaired writer reproduced every aborted energy to the printed digit
+  (O2, 2152810).
+- An unparameterised dispersion combination (wB97X with a separate D3BJ
+  word) aborts after the SCF as well. It stays open: mapping it needs a
+  matched-numerics check first.
+
 Runtime orchestration is provider-neutral. This release contains registered
 adapters for Alibaba Token Plan, DeepSeek, and OpenAI; an Anthropic profile
 is accepted as configuration and refuses execution until its adapter is
