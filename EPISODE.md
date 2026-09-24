@@ -138,6 +138,46 @@ residue (not the host's; imported by conftest before any fixture):
 matplotlib's config dir and ASE's config file -- no write under the real
 home from either in any measured run on this Mac (the font cache exists).
 
+## After the repair
+
+| run | tree | HOME | failed / passed | real ~/.chemsmart | audit: writes under real home | children given real HOME |
+|---|---|---|---|---|---|---|
+| E2 | 851cff1d | real | 26 / 4744 | unchanged | 0 | 1 of 189 (`uname -p`, at collection, outside any test) |
+| E3 | cda2d28b (merged, final code) | real | 23 / 4758 -- the E0 set exactly; 0 in tests/agent | unchanged (10,643 entries) | 0 | 1 of 189 (the same `uname -p`); 187 fenced, 1 given its own HOME |
+
+- E3 is the hand-back measurement: pristine export, the developer's HOME,
+  no foreign pytest during the run (sampled every 3 s with cwd); the
+  store row landed in pytest-735/homes0/home-t1sogu5n/.chemsmart/agent/;
+  86,771 write-mode opens and 649,292 path events inspected. Runtime 252 s
+  with the audit plugin (E0 207 s): about 15 s is the per-test template
+  copy (3.1 ms per test, measured), the rest the audit of the fence's own
+  file events.
+- The real store now holds 742 rows: the 740 found at the start, line 741
+  appended by E0 (this episode's before-measurement), line 742 by a
+  foreign run during E1. None since.
+
+- E2's store row landed in a fenced home
+  (pytest-729/homes0/home-3j96oymp/.chemsmart/agent/qualification.jsonl,
+  from the same test): the fence moves it, and the audit says where.
+- F3 fired for three tests: test_every_programs_command_line_takes_the_
+  manifold_word[gaussian|orca|pyscf] -- FileNotFoundError for
+  .chemsmart/server/local.yaml inside an EARLIER test's home. Alone, the
+  first case passed and the next two failed; outside pytest in one fresh
+  home the command succeeded. Cause: Server.from_scheduler_type was
+  @classmethod @lru_cache -- the first call's Server (and so the first
+  home the process looked in) answered every later call. Same class as the
+  import-time bindings, one step later (first use); invisible on the base
+  because every test shared the developer's home, and invisible under one
+  shared fenced home (E1t). The per-test home removed at teardown made it
+  fail loudly. Repaired at 25108012 (the profile is read at each call; the
+  scheduler probe, which names no path, stays cached); the other
+  lru_caches in the package hold no user path.
+- Merged r10-integration (Q24) at 2ecb4eda without conflict (no file
+  overlaps). Q24's test_a_signed_word_stands_on_its_records.py wraps the
+  store writer and says "The store's path is bound when the module is
+  imported, so a fenced HOME does not move it" -- no longer true; the
+  wrapper still works (path= is honoured); left for its author.
+
 ## Witness
 
 tests/test_a_user_path_is_resolved_where_it_is_used.py: red on a pristine
@@ -153,5 +193,12 @@ HOME fenced from outside), green on 851cff1d.
 - step 2: commits df2c48f4 (fence, shared), 0b356517 (store), 365d452f
   (user settings, shared), 6e679fd1 (PySCF interpreter, shared), 851cff1d
   (witness).
-- step 3: E2 (full suite on 851cff1d, real HOME) running; then merge
-  r10-integration (Q24 landed; no file overlaps) and E3 on the merge.
+- step 3: E2 measured (real home unchanged; F3 fired for three tests);
+  merged r10-integration at 2ecb4eda (no conflict); the server memo
+  repaired (25108012) and the fence comment says why homes are removed
+  (cda2d28b).
+- step 4: E3 on a pristine export of cda2d28b: the real ~/.chemsmart
+  unchanged, 0 writes under the real home, failing set = the round's 23,
+  tests/agent green. ruff, black --check, isort --check clean on the six
+  touched files. Milestone A claimed (hermetic suite, by measurement).
+  DONE -- handed back.
