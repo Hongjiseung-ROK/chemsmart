@@ -362,5 +362,7 @@ behavioural statement needs a transcript and a control.
 - step 3: code packs on CUHK -- r10/q23/repaired (f20bec0c, tree digest
   ed67866f...) and r10/q23/base (42f2fd90, tree digest e5821303...);
   reference jobs ref1 (2153689) and ref2 (2153690) read.
-- step 4: live goals pre-registered above; submitting in the stated
-  order.
+- step 4: live goals pre-registered above (digest f41b694bf2bf at
+  submission) and submitted in the stated order: slot a (base) bs1
+  2153692, bt1 2153694, bs2 2153696, bt2 2153698; slot b (repaired) rs1
+  2153693, rt1 2153695, rs2 2153697, rt2 2153699.
