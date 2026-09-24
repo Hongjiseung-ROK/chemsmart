@@ -2594,6 +2594,116 @@ def promotion_field_observations(
     return tuple(observations)
 
 
+def inspection_values_enabled() -> bool:
+    """Whether reading a finished result shows what each selector holds.
+
+    Off unless ``CHEMSMART_AGENT_INSPECTION_VALUES`` is ``1``, ``true``,
+    ``yes`` or ``on``: a research setting of R10 episode Q17, whose sealed
+    test decides it. Off, ``inspect_run`` on a result names the selectors
+    it resolves and nothing more, as it always has.
+    """
+
+    return os.environ.get(
+        "CHEMSMART_AGENT_INSPECTION_VALUES", "0"
+    ).strip().lower() in ("1", "true", "yes", "on")
+
+
+#: Past this many numbers a value is shown by its shape and its ends,
+#: not in full: a per-atom vector of a mid-sized molecule and a
+#: frequency list fit; a coordinate or connectivity matrix of the same
+#: molecule does not, and it is geometry, which extraction reads whole.
+_INSPECTION_VALUE_CELLS = 64
+
+
+def _inspection_value(value: Any) -> Any:
+    """One extracted value as the inspection reply shows it.
+
+    The value is the extraction receipt's own, never re-derived: this only
+    decides how much of a long vector or a matrix is printed, and says so
+    where it cuts, so a shortened value is never mistaken for the whole,
+    and prints a float to ten significant digits, past what any program
+    prints, so a unit conversion's last-digit noise costs no tokens.
+    """
+
+    if isinstance(value, float):
+        return float(f"{value:.10g}")
+    if isinstance(value, (list, tuple)):
+        value = [
+            (
+                [_inspection_value(cell) for cell in item]
+                if isinstance(item, (list, tuple))
+                else _inspection_value(item)
+            )
+            for item in value
+        ]
+        items = list(value)
+        if items and all(isinstance(item, (list, tuple)) for item in items):
+            cells = sum(len(item) for item in items)
+            if cells <= _INSPECTION_VALUE_CELLS:
+                return [list(item) for item in items]
+            return {
+                "shown": "shape only; extract it to read it",
+                "rows": len(items),
+                "cells": cells,
+            }
+        if len(items) <= _INSPECTION_VALUE_CELLS:
+            return items
+        numeric = [
+            item
+            for item in items
+            if isinstance(item, (int, float)) and not isinstance(item, bool)
+        ]
+        shortened: dict[str, Any] = {
+            "shown": "first 16 and last 4 of a longer vector",
+            "length": len(items),
+            "first": items[:16],
+            "last": items[-4:],
+        }
+        if len(numeric) == len(items):
+            shortened["min"] = min(numeric)
+            shortened["max"] = max(numeric)
+        return shortened
+    return value
+
+
+def _inspection_values(
+    artifact: TrustedArtifactRefV1, program: str, selectors: tuple[str, ...]
+) -> dict[str, Any]:
+    """What every requestable selector holds, read by extraction itself.
+
+    The inspection probe already reads each selector to learn whether it
+    resolves, and used to discard the value: a session saw the name of a
+    printed stability eigenvalue or <S^2> and never the number unless it
+    thought to ask. This reads them through the one function extraction
+    uses, so a value shown here is the value a receipt would carry, in
+    its unit; it mints no receipt, and a conclusion still rests on an
+    extraction the session makes.
+    """
+
+    if not selectors:
+        return {}
+    try:
+        receipt = extract_trusted_result_quantities(
+            artifact=artifact,
+            program=program,
+            selectors=tuple(
+                QuantitySelectorV1(quantity_id=selector, selector=selector)
+                for selector in selectors
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001 - a refusal is what is shown
+        return {"not_read": f"{type(exc).__name__}: {exc}"}
+    shown: dict[str, Any] = {}
+    for quantity in receipt.quantities:
+        shown[quantity.quantity_id] = {
+            "value": _inspection_value(canonical_data(quantity.value)),
+            "unit": quantity.unit,
+        }
+    for quantity_id, _selector, reason in receipt.absent:
+        shown[quantity_id] = {"absent": reason}
+    return shown
+
+
 #: The typed acts whose own body may surface a reference. Not prose: a
 #: plan names job types, operations and programs the host validates.
 _PLAN_SHAPED_TOOLS = frozenset(
@@ -18362,11 +18472,22 @@ class CommandCompiledToolHostV1:
             for selector in available
             if declared is None or selector in declared
         )
+        shown = (
+            {
+                # What each requestable selector holds on this result, as
+                # extraction returns it. An observation, not a claim: a
+                # conclusion still rests on an extraction receipt.
+                "values": _inspection_values(artifact, program, requestable)
+            }
+            if inspection_values_enabled()
+            else {}
+        )
         return {
             "artifact_id": artifact.artifact_id,
             "program": program,
             "parser_id": reader.parser_id,
             "jobtype": jobtype,
+            **shown,
             "available_selectors": available,
             # A selector this artifact resolves is still refused unless the
             # job type declares it, because a declaration is a claim about
