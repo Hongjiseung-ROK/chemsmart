@@ -253,3 +253,44 @@ def test_a_core_potential_on_a_light_element_is_named_with_its_basis(
     assert level["basis"] == "cep-31g"
     assert level["ecp_core_electrons"] == {"H": 0, "O": 2}
     assert level["basis_functions"] == "cartesian_f"
+
+
+PYSCF = Path("tests/data/PySCFTests/outputs")
+
+
+@pytest.mark.capability("selector:pyscf:sp:energy")
+@pytest.mark.parametrize(
+    "case, label, differing",
+    (
+        ("hi_mp2_def2svp_ecp_auto", "R_hi_pyscf_mp2auto", set()),
+        (
+            "hi_mp2_def2svp_ecp_all_electron",
+            "R_hi_pyscf_mp2default",
+            {"frozen_core"},
+        ),
+    ),
+)
+def test_pyscf_under_def2s_potential_meets_orca_on_everything_but_the_core(
+    tmp_path, case, label, differing
+):
+    """PySCF runs iodine with the potential def2 defines, as ORCA does.
+
+    The two programs' MP2/def2-SVP HI agree to 2e-9 Eh when PySCF freezes
+    its chemical core (CUHK Slurm 2152029 against 2151773); with the frozen
+    core unset PySCF correlates every explicit electron, and the one thing
+    the expression is told differs is the frozen core.
+    """
+
+    receipts, observations = _combine(
+        tmp_path,
+        {
+            "pyscf": ("pyscf", PYSCF / case / f"{label}_gas_phase.h5"),
+            "orca": ("orca", ORCA / "hi_mp2_def2svp.out"),
+        },
+        _difference("pyscf", "orca"),
+    )
+
+    level = receipts["pyscf"].level
+    assert level["ecp_core_electrons"] == {"H": 0, "I": 28}
+    assert level["basis_functions"] == "spherical"
+    assert _differing(observations) == differing
