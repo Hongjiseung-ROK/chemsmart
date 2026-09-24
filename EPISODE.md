@@ -253,6 +253,18 @@ replayed planning path writes no ledger row, so the repaired tree's "0 of
   commit ed187305, tree digest 2e4edf47999757a8 (426 files, 0
   AppleDouble); workspace holds h2o2.xyz only (ls checked).
 
+## Suite
+
+- tests/agent/test_a_signed_word_stands_on_its_records.py (9 tests):
+  on ec41a57c the six witnesses are red (certification at the run path
+  after an empty and an all-blocked chain, the executor's word for both
+  shapes, a node failed after the host's schema_loaded reply, an
+  expression that cannot be replayed from its event) and the three
+  controls green; on HEAD all nine green.
+- tests/agent on a pristine export of fdf62230: 3186 passed, 0 failed
+  (HOME fenced with the program configuration copied in, so no test
+  writes the developer's qualification store).
+
 ## Status
 
 - step 0: brief read; base verified; CONDUCT, RSL, charter topics, Q10,
