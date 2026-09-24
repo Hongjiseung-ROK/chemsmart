@@ -88,6 +88,28 @@ be needed for the remainder." The same run's log prints
 real -> complex instability". The host's false absence became the Agent's
 stated uncertainty.
 
+## Jobs issued
+
+### stab1 -- CLI reference (slot a), code 0a77574f (tree digest 67373b31)
+
+The eight stability fixtures of the 2026-09-19 rounds regenerated through the
+ordinary CLI by the driver that listens (same projects, inputs, states), plus
+reference.py (PySCF's own recomputation) beside each. Expectation, written
+before the run, from the archived 2.14.0 logs of the same inputs:
+- every record carries analyses.real_to_complex (except ROHF H atom, where no
+  external analysis runs) and not_determined is empty where it is answered;
+- each recorded lowest eigenvalue equals the number its own log prints, to
+  the printed precision (8 significant digits);
+- O2 singlet RKS: internal stable (|lowest| < 1e-5), real->complex unstable
+  (-0.040 .. -0.036 Eh), RKS->UKS unstable (-0.095 .. -0.090 Eh);
+  O2 singlet RHF: real->complex unstable (-0.052 .. -0.046), RHF->UHF
+  unstable (-0.135 .. -0.127); O2 triplet UKS: real->complex stable
+  (0.20 .. 0.22), UKS->GKS unstable (-0.031 .. -0.027); water RKS: all
+  stable (real->complex 0.25 .. 0.28, external 0.22 .. 0.25); scf_maxiter 2:
+  internal unstable at scf_converged false; hess: as the singlet sp.
+- falsified if a record says real->complex not determined while its own log
+  prints the verdict, or a recorded eigenvalue disagrees with its log.
+
 ## Status
 
 - Census: done (above).
