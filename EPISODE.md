@@ -189,8 +189,23 @@ Outcomes, read from host records:
   saddle searches and says G at 90 deg is undefined) -> the refusal is not
   exercised live; reported as a fair route.
 
+## After the goal was submitted (code the goal does not run)
+
+- Merged r10-integration (Q18) at 203de223; one conflict (the PySCF fixture
+  README: both sections kept).
+- The full suite on a git-archive export of 203de223 showed 26 failures: the
+  23 environmental ones plus three of mine -- the ladder's unwired budget (my
+  gate raised in chemsmart/analysis read as unwired: 5d726e1d makes the ladder
+  read the whole package, which also wires xtb.result.requested_settings) and
+  R10 Q12's two one-level bond energies, which pin that such arithmetic emits
+  no level observation (ca590e5a moves the kind statements to their own
+  kind_observations field). The goal runs d32eeeef, where the kind statements
+  still ride level_observations; its reading must look in both fields.
+- Aggregations: 25 archived Boltzmann operations (ax41; none on CUHK) and 60
+  coordinate-at-extremum operations, none combining treatments or kinds.
+
 ## Status
 
 - Step 1 (census) done; repairs 1-3 committed; o2fix read.
 - g1-hooh submitted as CUHK Slurm 2153623 (slot r10-q21-a, pre-registration 32c87e6d5eab) on code d32eeeef (digest a4073db6...).
-- Next: merge r10-integration, run the hand-back gates, read g1-hooh from host records.
+- Next: read g1-hooh from host records; full suite on the final commit.
