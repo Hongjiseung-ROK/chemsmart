@@ -222,7 +222,7 @@ Bands (never tuned after a result):
 - 2026-09-24: C2 (5ea8199b), writer (4a9654cc), compiler (f2525546)
   and host wiring (3d3daa36) committed with witnesses red on the base;
   tests/agent green on 5ea8199b (2975 passed).
-- 2026-09-24: C3 refused handoff (edd8f0a9-series, see git log), C4
+- 2026-09-24: C3 refused handoff (ed1217ea), C4
   Gaussian scan point (c6b20491) and the two shared text commits
   (cde2c806 wave tool and rules, 1f11e221 relaxed-scan guide).
 - 2026-09-24: r10-integration merged (Q10's episode; no conflict).
