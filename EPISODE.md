@@ -180,6 +180,10 @@ Read through the host's own extraction tool from the result files:
 - step 1 (census, provider-free): done (above).
 - step 2 (repairs): done, seven commits (b568eab3 repairs c642982a's
   regression on a host built without __init__).
+- hand-back gates on the merge of r10-integration (a14bdbe0, Q15 included,
+  clean): pristine git-archive export -- tests/agent 3103 passed, 0 failed;
+  full suite 23 failed == the round baseline list, 4657 passed; ruff,
+  black --check, isort --check clean on the seven touched files.
 - step 3: reference job 2153508 done (above). Live goal L-S2 submitted:
   CUHK Slurm 2153514 (slot r10-q19-a), code fd093662 (chemsmart tree ==
   b568eab3, digest b50dd4cb), pre-registration digest d0cfc0730bb9,
