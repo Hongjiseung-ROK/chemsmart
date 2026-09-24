@@ -233,3 +233,49 @@ def test_an_open_shell_singlet_reads_as_broken_a_closed_shell_as_restricted():
         )
     )
     assert closed == {"reference": "rks", "broken_symmetry_requested": False}
+
+
+@pytest.mark.parametrize("program", ["gaussian", "orca", "pyscf"])
+def test_the_compile_reply_names_the_mechanism_each_program_runs(program):
+    from chemsmart.agent.tool_runtime import compile_time_observations
+
+    observations = compile_time_observations(
+        program=program,
+        jobtype="sp",
+        settings={**REQUEST},
+        atom_count=10,
+        multiplicity=1,
+    )
+    (sentence,) = [
+        item for item in observations if item.startswith("broken_symmetry:")
+    ]
+    mechanism = {
+        "gaussian": "guess=mix",
+        "orca": "GuessMix 45",
+        "pyscf": "RHF/RKS -> UHF/UKS instability",
+    }[program]
+    assert mechanism in sentence
+    assert "spin.broken_symmetry_request_unbroken" in sentence
+
+
+def test_a_restricted_gaussian_mixing_guess_is_named_as_restricted():
+    """Q15 g1's route: ``guess=mix`` on a restricted singlet route, which
+    the compile reply now says runs restricted."""
+
+    from chemsmart.agent.tool_runtime import compile_time_observations
+
+    observations = compile_time_observations(
+        program="gaussian",
+        jobtype="opt",
+        settings={
+            "functional": "b3lyp",
+            "basis": "def2-tzvp",
+            "additional_route_parameters": "guess=mix",
+        },
+        atom_count=10,
+        multiplicity=1,
+    )
+    assert any(
+        item.startswith("guess=mix on this singlet route runs restricted")
+        for item in observations
+    ), observations

@@ -30,6 +30,7 @@ pytestmark = pytest.mark.capability(
     "rule:leaf.pyscf.a_converged_reference_can_be_a_saddle",
     "rule:leaf.pyscf.an_irc_is_one_branch_from_a_saddle_of_its_own_surface",
     "rule:project.stage_keys_and_phases",
+    "rule:reference.crossprogram.a_broken_symmetry_singlet_is_one_request",
 )
 
 

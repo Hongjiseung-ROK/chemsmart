@@ -2525,6 +2525,23 @@ def compile_time_observations(
         reason = orca_numerical_hessian_reason(resolved)
         if reason:
             observations.append(reason)
+    # The broken-symmetry request, and a singlet mixing guess made without
+    # it: the translation each program's own settings module states, so
+    # the reply and the review name the mechanism the input carries.
+    import importlib
+
+    try:
+        describe = getattr(
+            importlib.import_module(f"chemsmart.jobs.{program}.settings"),
+            "describe_broken_symmetry",
+            None,
+        )
+    except ImportError:
+        describe = None
+    if callable(describe):
+        sentence = describe(dict(resolved), multiplicity=multiplicity)
+        if sentence:
+            observations.append(sentence)
     # Every job type that promises a stationary point: the two that
     # search for one and the two that evaluate a Hessian on one. The
     # union this replaced added the geometry-cap set to a hand-written

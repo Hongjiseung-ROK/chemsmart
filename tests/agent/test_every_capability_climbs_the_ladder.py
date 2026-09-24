@@ -94,7 +94,17 @@ def test_every_kind_is_represented(registry):
 #: and ``flat_irc`` are the ``nstates`` and ``density_fit`` classes
 #: again -- a bound and a boolean, neither of which a tuple of strings
 #: can say. The number resumes falling from 92.
-ADVERTISED_UNWIRED_BUDGET = 92
+#:
+#: 2026-09-25 (the broken-symmetry singlet, R10 Q18): 92 -> 95.
+#: ``broken_symmetry`` joined the Gaussian, ORCA and PySCF vocabularies as
+#: one strict boolean with one meaning, the ``scf_stability`` class: a
+#: session that needed a singlet diradical had written FlipSpin on ORCA's
+#: simple-input line three ways and guess=mix on restricted Gaussian
+#: routes (R10 Q15 g1) because no typed request existed. Declaring
+#: ``("true", "false")`` would hand the settings a string their shared
+#: validator refuses, so the three sit here until the declaration can say
+#: a boolean. The number resumes falling from 95.
+ADVERTISED_UNWIRED_BUDGET = 95
 
 
 def test_everything_advertised_is_wired(registry):
