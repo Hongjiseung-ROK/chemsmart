@@ -2480,18 +2480,41 @@ def compile_time_observations(
     settings: Mapping[str, Any] | Sequence[tuple[str, Any]],
     atom_count: int,
     geometry: Any = None,
+    charge: int | None = None,
+    multiplicity: int | None = None,
+    granted_cores: int | None = None,
 ) -> tuple[str, ...]:
     """Facts the host can state about a compiled node before it runs.
 
     Observations, never refusals: each names a default the program will
     apply and the project field that changes it, computed from the plan
-    alone; with the input geometry in hand, its symmetry estimate too.
+    alone; with the input geometry in hand, its symmetry estimate too;
+    and a translation the program's writer makes, from the function the
+    writer asks, so the reply and the review say what the input does.
     """
 
     resolved = (
         dict(settings) if not isinstance(settings, Mapping) else settings
     )
     observations: list[str] = []
+    if (
+        program == "orca"
+        and geometry is not None
+        and granted_cores
+        and charge is not None
+        and multiplicity is not None
+    ):
+        from chemsmart.jobs.orca.settings import orca_correlated_pairs
+
+        pairs = orca_correlated_pairs(
+            resolved,
+            tuple(geometry.chemical_symbols),
+            charge,
+            multiplicity,
+        )
+        sentence = pairs.translation(int(granted_cores)) if pairs else ""
+        if sentence:
+            observations.append(sentence)
     # Every job type that promises a stationary point: the two that
     # search for one and the two that evaluate a Hessian on one. The
     # union this replaced added the geometry-cap set to a hand-written
@@ -10785,6 +10808,36 @@ class CommandCompiledToolHostV1:
                 "next_action": "validate the project for this program stage",
             }
         validation = validations[0]
+        if node.program == "orca":
+            # The program's certain refusal, asked of the function its
+            # writer asks: ORCA's MDCI aborts a state with no electron pair
+            # at every process count (R10 Q14 O1, CUHK 2152636), after the
+            # SCF, so neither the preview nor ORCA's input check sees it
+            # and the approved call is spent (R10 Q9 G1, Q12 g1-hi).
+            from chemsmart.jobs.orca.settings import orca_correlated_pairs
+
+            geometry = _geometry_for_observation(input_artifact)
+            pairs = (
+                orca_correlated_pairs(
+                    validation.settings,
+                    tuple(geometry.chemical_symbols),
+                    identity.charge,
+                    identity.multiplicity,
+                )
+                if geometry is not None
+                else None
+            )
+            if pairs is not None and pairs.refused_at_any_count:
+                diagnosis, _, route = pairs.refusal().partition(" Routes: ")
+                raise RoutedContractError(
+                    gate="compile.program_accepts_the_state",
+                    invariant=(
+                        "An approved engine call is never spent on a "
+                        "calculation its program is certain to refuse."
+                    ),
+                    diagnosis=diagnosis,
+                    route=route,
+                )
         execution_target = (
             self.execution_resources.execution_target
             if self.surface.profile == "command_compiled_approved_execution"
@@ -10915,6 +10968,13 @@ class CommandCompiledToolHostV1:
                     or 0
                 ),
                 geometry=_geometry_for_observation(input_artifact),
+                charge=identity.charge,
+                multiplicity=identity.multiplicity,
+                granted_cores=(
+                    self.execution_resources.cores
+                    if self.execution_resources is not None
+                    else None
+                ),
             )
             # The program's own word on the bytes just written, in the
             # reply the model reads. It reached only the review page --
@@ -15943,6 +16003,9 @@ class CommandCompiledToolHostV1:
                     settings=validation.settings,
                     atom_count=review_atom_count,
                     geometry=_geometry_for_observation(context.input_artifact),
+                    charge=target_charge,
+                    multiplicity=target_multiplicity,
+                    granted_cores=getattr(resources, "cores", None),
                 )
             probe = getattr(self, "_input_check_by_node", {}).get(
                 planned_node.node_id
