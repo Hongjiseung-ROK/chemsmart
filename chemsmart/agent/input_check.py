@@ -159,6 +159,7 @@ def probe_orca_input_check(
     env: Mapping[str, str] | None = None,
     cap_seconds: float = 20.0,
     poll_seconds: float = 0.1,
+    work_root: Path | None = None,
 ) -> InputCheckProbeReceiptV1:
     """Run ORCA on one materialised input until its check concludes.
 
@@ -167,6 +168,11 @@ def probe_orca_input_check(
     appears or the cap is reached, and leaves nothing behind but the
     receipt. The words are ORCA's: an abort is summarised by the same
     native-failure reader a real run's death would be.
+
+    ``work_root`` is where that throwaway directory is made: the engine
+    scratch the host was granted, when there is one, because the probe
+    is an engine launch and a compute node's own temporary directory is
+    not scratch anyone approved. Without one, the system's.
     """
 
     input_path = Path(input_path)
@@ -175,7 +181,14 @@ def probe_orca_input_check(
         raise ContractError("an input-check probe needs a positive cap")
     input_sha256 = file_sha256(input_path)
     executable_sha256 = file_sha256(executable)
-    work = Path(tempfile.mkdtemp(prefix="chemsmart-input-check-"))
+    if work_root is not None:
+        Path(work_root).mkdir(parents=True, exist_ok=True)
+    work = Path(
+        tempfile.mkdtemp(
+            prefix="chemsmart-input-check-",
+            dir=None if work_root is None else str(work_root),
+        )
+    )
     started = time.monotonic()
     status = "not_run"
     reason = ""

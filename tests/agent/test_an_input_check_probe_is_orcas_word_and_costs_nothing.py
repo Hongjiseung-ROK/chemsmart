@@ -163,21 +163,77 @@ def test_the_host_probes_the_retained_input_and_records_its_word(
 
 
 @pytest.mark.capability("rule:compile.the_probe_is_the_programs_check")
-def test_inside_an_allocation_the_probe_is_not_run(tmp_path, monkeypatch):
-    monkeypatch.setenv("SLURM_JOB_ID", "12345")
+@pytest.mark.parametrize("marker", ["SLURM_JOB_ID", "PBS_JOBID"])
+def test_inside_an_allocation_the_program_still_checks_its_input(
+    tmp_path, monkeypatch, marker
+):
+    """Production goals plan from inside the allocation they run in.
+
+    This test used to pin the opposite -- ``not_run`` whenever a
+    scheduler's job variable was set -- and that is how all 24 ORCA
+    checks of R10 Q6's eight live goals came back ``not_run`` while one
+    of them launched, and was charged for, an input ORCA refuses before
+    its INPUT FILE banner (pair3-b, CUHK Slurm 2150179). The check runs,
+    and it runs in the scratch the envelope grants: an allocation's own
+    ``/tmp`` is nobody's approved scratch.
+    """
+
+    from chemsmart.agent.execution_envelope import (
+        load_bounded_execution_envelope,
+    )
+
+    monkeypatch.setenv(marker, "12345")
+    scratch = tmp_path / "granted-scratch"
+    envelope_file = tmp_path / "envelope.yaml"
+    envelope_file.write_text(
+        json.dumps(
+            {
+                "schema_version": "chemsmart.bounded-execution-envelope.v1",
+                "mode": "bounded-local",
+                "allowed_program_engines": {"orca": ["cpu"]},
+                "resources": {
+                    "execution_target": "run",
+                    "cores": 2,
+                    "memory_gb": 4,
+                    "gpu_count": 0,
+                    "scratch_policy": "server",
+                    "node_timeout_seconds": 600,
+                },
+                "episode_wall_time_seconds": 3600,
+                "postprocess_reserve_seconds": 300,
+                "max_engine_calls": 2,
+                "scratch_root": str(scratch),
+            }
+        )
+    )
     retention = tmp_path / "previews"
     preview = _previewed(tmp_path, retention)
-    orca = _fake_orca(tmp_path, "echo '   INPUT FILE'\n")
+    seen = tmp_path / "where-the-probe-ran"
+    orca = _fake_orca(
+        tmp_path, f"pwd > {seen}\n" f"cat <<'EOF'\n{_ABORT_TAIL}EOF\nexit 1\n"
+    )
     host = _host(
         tmp_path,
         preview_retention_root=retention,
         input_check_executable=orca,
+        input_check_cap_seconds=10.0,
+        bounded_execution_envelope=load_bounded_execution_envelope(
+            envelope_file
+        ),
     )
     receipt = host._probe_input_check(
         "t1", node_id="opt", program="orca", safe_preview=preview
     )
-    assert receipt.status == "not_run"
-    assert "scheduler allocation" in receipt.reason
+    assert receipt.status == "aborted", receipt.reason
+    assert any("RIJK" in line for line in receipt.engine_lines)
+    # The observation the executor's launch refusal reads.
+    assert host._probe_observations_for("opt")[0].startswith(
+        "input-check probe: aborted"
+    )
+    ran_in = Path(seen.read_text().strip()).resolve()
+    assert ran_in.parent == scratch.resolve()
+    # And it left nothing behind there.
+    assert list(scratch.iterdir()) == []
 
 
 @pytest.mark.capability("rule:compile.the_probe_is_the_programs_check")
