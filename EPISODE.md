@@ -174,6 +174,13 @@ on dA cites the singlet's instability, on dB the doublet's <S^2> or the
 unconverged optimisations, and whether any arm raises an alarm over dE's
 T1 of 0.006.
 
+## Jobs issued
+
+| job | slot | what | pre-registration | outcome |
+|---|---|---|---|---|
+| 2152986 | r10-q17-a | hc1 slot a (dA S/U, dB P, dE S/U) | a3eda4485329 | submitted |
+| 2152987 | r10-q17-b | hc1 slot b (dA P, dB S/U, dE P) | a3eda4485329 | submitted |
+
 ## Status
 
 - 2026-09-24: brief read; base verified; read CONDUCT.md, the RSL README
