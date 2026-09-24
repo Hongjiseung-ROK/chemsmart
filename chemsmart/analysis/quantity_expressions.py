@@ -2952,11 +2952,24 @@ def evaluate_quantity_expression(
 LEVEL_IDENTITY_FIELDS = (
     "method",
     "basis",
+    "basis_functions",
+    "ecp_core_electrons",
     "dispersion",
     "solvation",
     "frozen_core",
     "response_method",
 )
+#: Level fields compared only between operands whose level states them: a
+#: record minted before a reader stated the field, or a program with no
+#: basis at all, says nothing about it, which is not a difference.
+STATED_ONLY_LEVEL_FIELDS = ("basis_functions",)
+#: Level fields that are facts about the molecule as well as the level,
+#: and so are compared by what they mean rather than by equality: the
+#: electrons each element's core potential replaced agree when every
+#: element two operands share is treated alike (HI and H are one level
+#: with 28 and 0 in total), and a frozen core agrees when the operands'
+#: counts share one rule (HI freezes 4 orbitals, H none, under one rule).
+MOLECULE_DEPENDENT_LEVEL_FIELDS = ("ecp_core_electrons", "frozen_core")
 #: Level fields that describe how an excited root was computed, and so
 #: are compared only between operands that are excited-root values: a
 #: ground-state energy read from a TDA run and one read from a full TD-DFT
@@ -3022,17 +3035,65 @@ def _level_identity(level: Mapping[str, Any]) -> dict[str, Any]:
     )
     basis = _word(level.get("basis"))
     model = _word(level.get("solvent_model"))
+    cores = level.get("ecp_core_electrons")
+    conventions = level.get("frozen_core_conventions")
     return {
         "method": _word(method),
         # def2-SVP and Gaussian's def2svp are one basis.
         "basis": basis.replace("-", "") if basis else None,
+        "basis_functions": _word(level.get("basis_functions")),
+        "ecp_core_electrons": (
+            {str(key): int(value) for key, value in cores.items()}
+            if isinstance(cores, Mapping)
+            else None
+        ),
         "dispersion": _word(level.get("dispersion")),
         "solvation": (
             f"{model}:{_word(level.get('solvent')) or ''}" if model else "gas"
         ),
-        "frozen_core": level.get("frozen_core"),
+        "frozen_core": (
+            (level.get("frozen_core"), tuple(conventions))
+            if conventions is not None
+            else level.get("frozen_core")
+        ),
         "response_method": _word(level.get("response_method")),
     }
+
+
+def _ecp_cores_differ(values: Mapping[str, Any]) -> bool:
+    """Whether two operands treat one shared element with different cores."""
+
+    per_element: dict[str, set[int]] = {}
+    for mapping in values.values():
+        if not isinstance(mapping, Mapping):
+            continue
+        for element, count in mapping.items():
+            per_element.setdefault(element, set()).add(int(count))
+    return any(len(counts) > 1 for counts in per_element.values())
+
+
+def _frozen_cores_differ(values: Mapping[str, Any]) -> bool:
+    """Whether operands' frozen cores follow no one rule.
+
+    A value is ``(count, conventions)`` when its reader classified the
+    count, and a bare count from a record minted before it did; bare
+    counts compare as counts, among themselves.  A molecule with no core
+    is consistent with every rule.
+    """
+
+    from chemsmart.analysis.result_readers import FROZEN_CORE_NO_CORE
+
+    classified = [
+        set(value[1])
+        for value in values.values()
+        if isinstance(value, tuple) and FROZEN_CORE_NO_CORE not in value[1]
+    ]
+    bare = {value for value in values.values() if not isinstance(value, tuple)}
+    if len(bare) > 1:
+        return True
+    if classified and not set.intersection(*classified):
+        return True
+    return False
 
 
 def expression_level_observations(
@@ -3096,15 +3157,30 @@ def expression_level_observations(
                 if field in EXCITED_ROOT_LEVEL_FIELDS
                 else stated
             )
+            if field in STATED_ONLY_LEVEL_FIELDS:
+                compared = {
+                    digest: identity
+                    for digest, identity in compared.items()
+                    if identity[field] is not None
+                }
             if len(compared) < 2:
                 continue
             values = {
                 digest: identity[field]
                 for digest, identity in compared.items()
             }
-            if len(set(values.values())) > 1:
+            if field in MOLECULE_DEPENDENT_LEVEL_FIELDS:
+                differs = {
+                    "ecp_core_electrons": _ecp_cores_differ,
+                    "frozen_core": _frozen_cores_differ,
+                }[field](values)
+            else:
+                differs = len(set(values.values())) > 1
+            if differs:
                 differing[field] = {
-                    digest[:12]: value
+                    digest[:12]: (
+                        list(value) if isinstance(value, tuple) else value
+                    )
                     for digest, value in sorted(values.items())
                 }
         if not differing:
