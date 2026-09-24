@@ -293,6 +293,52 @@ def _unanswered_verdicts_named(delivery: "_AnalysisDelivery") -> str:
     ) or ", ".join(delivery.unanswered_verdicts)
 
 
+def _undelivered_declared_named(
+    delivery: "_AnalysisDelivery", observable_ids: Sequence[str]
+) -> str:
+    """Which undelivered declared observables a claim carries, and which none.
+
+    "No claim carrying their id in any cycle" was written over ids a claim
+    carried: G-h2's three category questions were claimed under their own
+    ids as the verdict numbers 1 and 0 in two cycles (R10 Q22, CUHK
+    2153627), and ax41's ino3-cont and ino3-r13a carried sixteen declared
+    ids as quantity ids in another unit -- 4 of the 11 such statements the
+    archives let one check. A claim of this stream or a row of the goal's
+    record under the id carries it; what it lacks is on the completion
+    receipt's own miss text, which the callers carry beside this.
+    """
+
+    carried = tuple(
+        observable_id
+        for observable_id in observable_ids
+        if observable_id in delivery.claim_rows
+        or observable_id in delivery.goal_delivered
+    )
+    uncarried = tuple(
+        observable_id
+        for observable_id in observable_ids
+        if observable_id not in carried
+    )
+    return "; ".join(
+        part
+        for part in (
+            (
+                "no claim in any cycle carries these declared observables: "
+                + ", ".join(uncarried)
+                if uncarried
+                else ""
+            ),
+            (
+                "a claim carries each of these declared observables without "
+                "answering its declaration: " + ", ".join(carried)
+                if carried
+                else ""
+            ),
+        )
+        if part
+    )
+
+
 def _inherited_verdict_reason(delivery: "_AnalysisDelivery") -> str:
     """Why numbers standing on another cycle's unanswered verdict wait."""
 
@@ -828,14 +874,15 @@ def _delivery_settlement(
         )
     elif certified and delivery.undelivered_declared_ids:
         # The chain's kernels ran clean, and the headline the goal
-        # declared was never claimed by its id in any cycle. That is not
+        # declared was never delivered by its id in any cycle. That is not
         # a delivery a scientist would sign, whatever the completion word
         # says.
         settled = "returned_to_human"
         reasons = (
-            "the completion certified the chain, but these declared "
-            "observables have no claim carrying their id in any cycle: "
-            + ", ".join(delivery.undelivered_declared_ids),
+            "the completion certified the chain, but "
+            + _undelivered_declared_named(
+                delivery, delivery.undelivered_declared_ids
+            ),
         ) + delivery.open_declared_misses
         if delivery.delivered_in_earlier_cycles:
             reasons = reasons + (
@@ -2653,6 +2700,10 @@ class _AnalysisDelivery:
     #: answers to, so a current-cycle claim is judged in the dimension
     #: its declaration asked for exactly as a record row is.
     claim_rows: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    #: Each claim of this stream as the pair of names it holds (claim_id,
+    #: quantity_id), so a reader can tell the second name of a claim that
+    #: carries a declared id from a claim under another name.
+    claim_names: tuple[tuple[str, str], ...] = ()
     #: The runtime's own terminal reason, kept typed rather than read
     #: back out of the rendered ending sentence: a cycle the provider's
     #: transport ended is a different fact from a cycle the science
@@ -3189,6 +3240,7 @@ def _analysis_delivery(
     # uncertainty: rendered on that claim, where every reader of it sees it.
     uncertainty_references: set[str] = set()
     claim_rows: dict[str, dict[str, Any]] = {}
+    claim_names: list[tuple[str, str]] = []
     rejected_bindings: list[tuple[str, str]] = []
     expression_outputs: list[tuple[str, str, tuple[str, ...]]] = []
     artifact_by_receipt: dict[str, str] = {}
@@ -3369,6 +3421,9 @@ def _analysis_delivery(
                 claim_id = str(claim.get("claim_id") or "")
                 if claim_id and claim_id != claim.get("quantity_id"):
                     claim_pairs.append((receipt_digest, claim_id))
+                claim_names.append(
+                    (claim_id, str(claim.get("quantity_id") or ""))
+                )
         elif kind == "workflow_node_launch_refused":
             stopped_by.append(
                 f"node {payload.get('node_id')} never launched: "
@@ -3785,6 +3840,7 @@ def _analysis_delivery(
             )
         ),
         claim_rows=dict(claim_rows),
+        claim_names=tuple(dict.fromkeys(claim_names)),
         delivered_quantity_ids=tuple(
             sorted(
                 {
@@ -5224,24 +5280,51 @@ class GoalDriver:
             budgets.wall_seconds_remaining <= 0
         ):
             return False
+        # A claim that carries a declared id is not a claim "under another
+        # name", and neither is the second name it holds. G-h2's re-wake
+        # listed verdict-bs, verdict-complex and verdict-real as claims
+        # under other names: they were the quantity ids of the three claims
+        # that carried its three declared category questions (R10 Q22).
+        carrying = {
+            name
+            for pair in delivery.claim_names
+            if set(pair).intersection(declared)
+            for name in pair
+        }
         rendered = tuple(
             item
             for item in delivery.delivered_quantity_ids
-            if item not in declared
+            if item not in declared and item not in carrying
         )
         if not undelivered:
             self._open_requirement_rewake(terminal, delivery, unresolved)
             return True
+        # What the completion receipt says each one lacks, when it says
+        # it: the host held the sentence that answers the diagnosis ("a
+        # category is answered by a word the host read, bound by a
+        # finding") and the report withheld it.
+        misses = tuple(
+            text
+            for text in delivery.declared_observable_misses
+            if any(f"'{item}'" in text for item in undelivered)
+        )
         diagnosis = (
-            f"the previous cycle ended {terminal!r} ({delivery.ending}) "
-            "with these declared observables still undelivered by their "
-            "id in any cycle: "
-            + ", ".join(undelivered)
+            f"the previous cycle ended {terminal!r} ({delivery.ending}); "
+            + _undelivered_declared_named(delivery, undelivered)
             + (
-                "; it rendered claims under other names instead: "
+                "; its completion receipt says: " + " | ".join(misses)
+                if misses
+                else ""
+            )
+            + (
+                "; it rendered claims under other names: "
                 + ", ".join(rendered)
                 if rendered
-                else "; it rendered no claim"
+                else (
+                    ""
+                    if delivery.claims_rendered
+                    else "; it rendered no claim"
+                )
             )
             + (
                 "; no completion was certified"
@@ -5268,7 +5351,10 @@ class GoalDriver:
                 "claim each undelivered id from receipts in hand -- "
                 "extract_result_quantities, derive_thermochemistry, "
                 "evaluate_quantity_expression, record_analysis_claims with "
-                "claim_id set to the declared id -- or "
+                "claim_id set to the declared id, in the declared unit; a "
+                "category is answered by a finding with "
+                "answers_observable_id set to the declared id, resting on "
+                "'<a claim> == <the word or count the host read>' -- or "
                 "plan_scientific_workflow with no calculation_nodes, which "
                 "the host executes when planned; or record_scientific_"
                 "decision naming each id that cannot be delivered, with its "
@@ -6677,9 +6763,10 @@ class GoalDriver:
                     chainless_prefix
                     + ", and no revision remains to certify it"
                     + (
-                        "; these declared observables have no claim "
-                        "carrying their id in any cycle: "
-                        + ", ".join(open_declared)
+                        "; "
+                        + _undelivered_declared_named(
+                            run_delivery, open_declared
+                        )
                         if open_declared
                         else ""
                     )
@@ -6725,10 +6812,11 @@ class GoalDriver:
                 open_items = open_requirements
             else:
                 reason = (
-                    f"cycle {self.cycles}: these declared observables have "
-                    "no claim carrying their id in any cycle, and no "
-                    "revision remains to claim them: "
-                    + ", ".join(run_delivery.undelivered_declared_ids)
+                    f"cycle {self.cycles}: "
+                    + _undelivered_declared_named(
+                        run_delivery, run_delivery.undelivered_declared_ids
+                    )
+                    + "; no revision remains to deliver them"
                     + (
                         "; " + " | ".join(run_delivery.open_declared_misses)
                         if run_delivery.open_declared_misses

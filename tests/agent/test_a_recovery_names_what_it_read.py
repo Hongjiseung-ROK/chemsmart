@@ -50,6 +50,7 @@ from .test_a_partial_delivery_ends_its_session import _call, _o2r_turns, _turn
 from .test_a_silent_cycle_gets_one_more_wake import _declared
 from .test_runtime_v2_launch_fence import _reserve
 from .test_the_goal_loop_recovers_or_returns import (
+    _execute,
     _loop,
     _planning_session,
     _review_payload,
@@ -1080,3 +1081,162 @@ def test_a_park_no_decision_can_resolve_settles_on_what_the_session_left(
         "bergman-refusal-v6" in reason and "not run" in reason
         for reason in result.reasons
     )
+
+
+_CATEGORY_MISS = (
+    "declared question 'real-stable' (category) has no word or integer "
+    "the host read answering it; claim the word the program printed or a "
+    "count the host rendered, and record a finding with "
+    "answers_observable_id 'real-stable' resting on "
+    "'<that claim> == <the value>'"
+)
+
+
+def _declared_category(observable_id):
+    return {
+        "kind": "requested_observable_declared",
+        "payload": {
+            "observables": [
+                {
+                    "observable_id": observable_id,
+                    "unit": "category",
+                    "dimension": (0, 0, 0, 0, 0, 0),
+                    "meaning": "is the restricted reference stable: yes/no",
+                }
+            ]
+        },
+    }
+
+
+def _category_claimed_as_a_number(completion):
+    """G-h2's cycle 2 (CUHK 2153627): the category question claimed under
+    its own id as the verdict number 0, next to a claim under another
+    name, and a completion receipt that says what answers a category."""
+
+    return [
+        {
+            "kind": "result_quantities_extracted",
+            "payload": {"receipt_sha256": "e" * 64},
+        },
+        {
+            "kind": "analysis_claims_recorded",
+            "payload": {
+                "receipt_sha256": "a1" + "a" * 62,
+                "record": {
+                    "claims": [
+                        {
+                            "claim_id": "real-stable",
+                            "quantity_id": "verdict-real",
+                            "display_value": 0.0,
+                            "display_unit": "1",
+                            "source_receipt_sha256": "e" * 64,
+                        },
+                        {
+                            "claim_id": "delta-e-hartree",
+                            "quantity_id": "delta-e-hartree",
+                            "display_value": -0.032,
+                            "display_unit": "hartree",
+                            "source_receipt_sha256": "e" * 64,
+                        },
+                    ]
+                },
+            },
+        },
+        {"kind": "scientific_decision_recorded", "payload": {}},
+        {
+            "kind": "analysis_completion_evaluated",
+            "payload": {
+                "receipt_sha256": "c2" + "c" * 62,
+                "status": completion,
+                "limitation_output_ids": ["declared_observable:real-stable"],
+                "declared_observable_misses": [_CATEGORY_MISS],
+            },
+        },
+    ]
+
+
+def test_a_rewake_says_a_claim_carries_the_id_and_what_answers_it(tmp_path):
+    """G-h2's re-wake said its three category questions were "still
+    undelivered by their id in any cycle" and that the cycle "rendered
+    claims under other names instead", listing the quantity ids of the
+    very claims that carried them. The completion receipt the host held
+    said what was missing -- a word the host read, bound by a finding --
+    and the wake did not carry it; the woken session judged again and
+    claimed under the same ids once more."""
+
+    contexts = []
+
+    def capture(inner):
+        def step(workspace, kwargs):
+            contexts.append(kwargs["goal_context"])
+            return inner(workspace, kwargs)
+
+        return step
+
+    _loop(
+        tmp_path,
+        sessions=[
+            capture(
+                _planning_session(
+                    "live-1",
+                    review=_review_payload(),
+                    wake_rows=[_declared_category("real-stable")],
+                )
+            ),
+            capture(
+                _planning_session(
+                    "live-2",
+                    terminal="planned",
+                    wake_rows=_category_claimed_as_a_number("partial"),
+                )
+            ),
+            capture(_planning_session("live-3", terminal="planned")),
+        ],
+        executes=[
+            _execute(
+                tmp_path, failed=True, status="partial", analysis="partial"
+            ),
+        ],
+        max_revisions=3,
+    )
+    diagnosis = contexts[2]["failure_report"]["diagnosis"]
+    assert "a claim carries" in diagnosis and "real-stable" in diagnosis
+    assert "undelivered by their id" not in diagnosis
+    # The quantity id of the claim that carries the declared id is not a
+    # claim "under another name"; the one that carries none is.
+    assert "verdict-real" not in diagnosis
+    assert "under other names: delta-e-hartree" in diagnosis
+    # What the completion receipt says answers the declaration.
+    assert _CATEGORY_MISS in diagnosis
+
+
+def test_a_returned_delivery_does_not_deny_the_claim_that_carries_the_id(
+    tmp_path,
+):
+    """G-h2 settled "these declared observables have no claim carrying
+    their id in any cycle" over three ids cycles 2 and 3 had each claimed
+    under its id. The census (R10 Q22): 4 of 11 checkable statements of
+    this kind named ids a claim carried -- as a number where a category was
+    declared (G-h2) or in another unit (ax41 ino3-cont, ino3-r13a)."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1",
+                terminal="planned",
+                wake_rows=[
+                    _declared_category("real-stable"),
+                    *_category_claimed_as_a_number("passed"),
+                ],
+            )
+        ],
+        executes=[],
+        # No revision to wake with: the goal settles on this delivery.
+        max_revisions=0,
+    )
+    assert result.settlement == "returned_to_human"
+    text = " | ".join(result.reasons)
+    assert "no claim carrying their id" not in text
+    assert "a claim carries" in text and "real-stable" in text
+    assert _CATEGORY_MISS in text
