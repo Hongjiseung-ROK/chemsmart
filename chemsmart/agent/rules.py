@@ -1527,6 +1527,32 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     ),
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append rules below this line
+    _r(
+        # ``stem:knowledge`` renders in the system prompt only beside the
+        # catalogue's own list of knowledge entries, so it can never
+        # describe entries a session cannot load.
+        "stem.knowledge_is_reference_text",
+        "stem:knowledge",
+        "T1",
+        "Advisory knowledge is reference text in this host's catalogue: "
+        "each entry listed below says what it covers, its text is its "
+        "description, and it loads when you call it by its exact name or "
+        "when a search returns it; one already in your tools you have "
+        "read. Read the entry that governs a choice before you make it -- "
+        "a method, basis, dispersion or solvation treatment, conformer "
+        "sample or electronic-state assignment for the question asked; a "
+        "comparison of a computed value with a measured one; the "
+        "direction, energy terms, standard state and unit of a reported "
+        "quantity; the repair of an analysis stage the host refused. It "
+        "informs a choice and never makes one: it establishes no "
+        "readiness, approval, terminal state or accuracy and replaces no "
+        "receipt, and a fact you state from it is said to come from it.",
+        "R10 Q3, 2026-09-24: from a1367535 (2026-09-20) the prompt called "
+        "three advisory documents 'carried in this prompt' and told every "
+        "session to consult them while no tool, entry or search could "
+        "open one, and the capability ladder asserted them advertised "
+        "from a constant string",
+    ),
     # R10 Q3 knowledge: end
     # R10 Q4 composition: append rules below this line
     # R10 Q4 composition: end

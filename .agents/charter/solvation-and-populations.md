@@ -23,9 +23,11 @@ area as a number. xTB answers its solvation free energy, the
 electrostatic term and its own SASA, hydrogen-bond and shift terms from
 the block it prints, and says that a run was solvated from the model
 line rather than from one Hamiltonian's field; a GFN-FF solvation free
-energy is not the sum of the terms it prints and is not decomposed. No
-archived Gaussian log carries the printed terms, so Gaussian declares
-none. The sentence this replaces read "every archived xTB run has solvation switched off";
+energy is not the sum of the terms it prints and is not decomposed. Gaussian
+answers SMD's cavitation-dispersion-solvent-structure (CDS) term with its
+model and solvent from the logs that print them (R10 Q13, e6385774); the
+sentence it replaced said no archived Gaussian log carried the printed
+terms, while fourteen logs under tests/data did. An earlier xTB sentence read "every archived xTB run has solvation switched off";
 two ALPB(toluene) runs had arrived with the xTB parser itself, and a
 track found it by opening them.
 

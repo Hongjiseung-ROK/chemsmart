@@ -1,0 +1,29 @@
+{
+ "artifact": "hydrogen_atom_sp_stability_heard_gas_phase.h5",
+ "command": "reference.py hydrogen_atom_sp_stability_heard_gas_phase.h5",
+ "frontier_orbitals": {
+  "alpha_homo_ev": -13.586057542174206,
+  "alpha_lumo_ev": 4.944319072872391,
+  "beta_lumo_ev": -13.586057542174206,
+  "gap_ev": 0.0,
+  "homo_ev": -13.586057542174206,
+  "lumo_ev": -13.586057542174206
+ },
+ "jobtype": "sp",
+ "masses_isotope_averaged_amu": [
+  1.008
+ ],
+ "point_group_detect_symm": "SO3",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -0.49927840571434734,
+ "scf_stability": {
+  "log_status_lines": [
+   "<class 'pyscf.scf.rohf.HF1e'> wavefunction is stable in the internal stability analysis"
+  ],
+  "reference_class": "HF1e",
+  "stable_external_error": "NotImplementedError: ",
+  "stable_internal": true
+ },
+ "symm_geom_tol_bohr": 1e-05
+}

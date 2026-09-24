@@ -1,0 +1,33 @@
+{
+ "artifact": "o2_triplet_sp_stability_heard_gas_phase.h5",
+ "command": "reference.py o2_triplet_sp_stability_heard_gas_phase.h5",
+ "frontier_orbitals": {
+  "alpha_homo_ev": -8.42916293152233,
+  "alpha_lumo_ev": 5.80007338177265,
+  "beta_homo_ev": -12.588056079502635,
+  "beta_lumo_ev": -3.092005063358589,
+  "gap_ev": 5.33715786816374,
+  "homo_ev": -8.42916293152233,
+  "lumo_ev": -3.092005063358589
+ },
+ "jobtype": "sp",
+ "masses_isotope_averaged_amu": [
+  15.999,
+  15.999
+ ],
+ "point_group_detect_symm": "Dooh",
+ "pyscf_version": "2.14.0",
+ "scf_converged": true,
+ "scf_energy_eh": -150.20470915603235,
+ "scf_stability": {
+  "log_status_lines": [
+   "<class 'pyscf.dft.uks.UKS'> wavefunction is stable in the internal stability analysis",
+   "<class 'pyscf.dft.uks.UKS'> wavefunction is stable in the real -> complex stability analysis",
+   "<class 'pyscf.dft.uks.UKS'> wavefunction has an UHF/UKS -> GHF/GKS instability"
+  ],
+  "reference_class": "UKS",
+  "stable_external": false,
+  "stable_internal": true
+ },
+ "symm_geom_tol_bohr": 1e-05
+}

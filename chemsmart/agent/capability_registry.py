@@ -220,15 +220,17 @@ def build_capability_registry(
 
     from chemsmart.agent.capabilities import load_program_capabilities
     from chemsmart.agent.catalogue import (
+        KNOWLEDGE_FAMILY,
         SEARCH_TOOL_NAME,
         build_tool_catalogue,
+        knowledge_entry_name,
     )
     from chemsmart.agent.execution import ANOMALY_SIGNALS
     from chemsmart.agent.rules import CODE_GATES, HOST_POLICIES, POLICY_RULES
     from chemsmart.agent.scientific_toolchain import (
         ANALYSIS_VALIDATION_PREDICATES,
     )
-    from chemsmart.agent.skills import available_skill_ids
+    from chemsmart.agent.skills import available_skill_ids, resolve_skill
     from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
     from chemsmart.agent.tool_specs import (
         build_approved_execution_tool_surface,
@@ -524,7 +526,12 @@ def build_capability_registry(
                 qualified_by=qualified(f"constant:{name}"),
             )
         )
+    # A skill is advertised when the catalogue serves it, which is the
+    # only way a session can read one. This rung was the constant
+    # "system prompt skill index" and reported all three advertised for
+    # four days in which no call, entry or search could open a body.
     for name in available_skill_ids():
+        entry = catalogue.entry(knowledge_entry_name(name))
         records.append(
             CapabilityV1(
                 kind="skill",
@@ -532,15 +539,27 @@ def build_capability_registry(
                 family="skills",
                 tier="T1",
                 declared_by="chemsmart/agent/skills",
-                wired_by="advisory_skill_documents",
-                advertised_in="system prompt skill index",
+                wired_by=(
+                    "chemsmart.agent.skills.resolve_skill"
+                    if resolve_skill(name) is not None
+                    else ""
+                ),
+                advertised_in=(
+                    f"catalogue reference {entry.name} "
+                    f"({SEARCH_TOOL_NAME}; loaded by name)"
+                    if entry is not None and entry.family == KNOWLEDGE_FAMILY
+                    else ""
+                ),
                 tested_by=tested(f"skill:{name}"),
                 family_tested_by=family_tested(f"skill:{name}"),
                 qualified_by=qualified(f"skill:{name}"),
             )
         )
     for entry in catalogue.entries:
-        if entry.kind != "reference":
+        # A knowledge entry is a skill's publication, ranked above as the
+        # skill it publishes; listing it twice would count one capability
+        # as two.
+        if entry.kind != "reference" or entry.family == KNOWLEDGE_FAMILY:
             continue
         records.append(
             CapabilityV1(

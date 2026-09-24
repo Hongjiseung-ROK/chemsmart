@@ -1038,22 +1038,34 @@ def _resolve_computed_surface(reader, output, selector, word):
 #: one, Gaussian names none -- so the space rides the answer and is
 #: never assumed from the question.  ``considered_perturbations`` is
 #: Gaussian's own hedge, kept as its own word rather than folded into
-#: either of the other two.
+#: either of the other two.  ``real_to_complex`` is the question PySCF
+#: solves inside its external analysis and does not return: a record
+#: that heard PySCF's answer to it carries it as a third question.
 REFERENCE_STABILITY_QUESTIONS = (
     "internal",
     "external",
+    "real_to_complex",
     "considered_perturbations",
 )
 
 
-def _stability_answer(question, *, rotation_space=None, reason=None):
-    """One question's answer, in the shape every reader writes."""
+def _stability_answer(
+    question, *, rotation_space=None, reason=None, lowest_eigenvalue=None
+):
+    """One question's answer, in the shape every reader writes.
+
+    ``lowest_eigenvalue`` is the number the verdict was drawn from, in the
+    program's own normalisation and unit, where the program printed one:
+    an anomaly is recorded with the numbers that tripped it.
+    """
 
     answer = {"question": str(question)}
     if rotation_space:
         answer["rotation_space"] = str(rotation_space)
     if reason:
         answer["reason"] = str(reason)
+    if lowest_eigenvalue is not None:
+        answer["lowest_eigenvalue"] = float(lowest_eigenvalue)
     return answer
 
 
@@ -1093,7 +1105,7 @@ def _pyscf_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
     on its own.
     """
 
-    record = getattr(output, "scf_stability", None)
+    record = _pyscf_stability_record(output)
     if not isinstance(record, Mapping):
         return None
     analyses = record.get("analyses")
@@ -1115,16 +1127,28 @@ def _pyscf_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
         if answered is None:
             continue
         target = stable if bool(answered) else unstable
+        eigenvalues = entry.get("lowest_eigenvalues") or ()
         target.append(
             _stability_answer(
-                question, rotation_space=entry.get("rotation_space")
+                question,
+                rotation_space=entry.get("rotation_space"),
+                lowest_eigenvalue=(
+                    eigenvalues[0]
+                    if eigenvalues
+                    and record.get("eigenvalue_unit")
+                    == _pyscf_stability_eigenvalue_unit()
+                    else None
+                ),
             )
         )
     not_determined = [
         _stability_answer(
             str(entry.get("question") or name),
             rotation_space=entry.get("rotation_space"),
-            reason=entry.get("reason"),
+            reason=(
+                str(entry.get("reason") or "")
+                + _printed_pointer(output, str(name))
+            ),
         )
         for name, entry in sorted((record.get("not_determined") or {}).items())
         if isinstance(entry, Mapping)
@@ -1168,11 +1192,12 @@ _GAUSSIAN_STABILITY_VERDICTS = {
 def _gaussian_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
     """Gaussian's stability verdict for the wavefunction it ended on.
 
-    Gaussian prints no rotation space, so none is recorded: "externally
-    unstable" is two different questions in PySCF's vocabulary and one
-    unnamed question in Gaussian's, and inventing a space here would
-    make two programs' answers look comparable when only one of them
-    said which question it answered.
+    The rotation space is the one Gaussian's own sentence names, and only
+    where it names one: an unstable answer says "internal" or the larger
+    space the reference fell into ("RHF -> UHF"), and a stable answer --
+    "stable under the perturbations considered" -- names none, so none is
+    recorded and none is invented.  The lowest eigenvalue of the stability
+    matrix printed with the verdict rides the answer, in hartree.
     """
 
     history = tuple(
@@ -1188,7 +1213,20 @@ def _gaussian_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
     )
     if standing is None:
         return None
-    answer = (_stability_answer(question),)
+    records = list(
+        getattr(output, "wavefunction_stability_records", None) or ()
+    )
+    last = records[-1] if records else {}
+    eigenvalues = last.get("eigenvalues") or ()
+    answer = (
+        _stability_answer(
+            question,
+            rotation_space=last.get("rotation_space"),
+            lowest_eigenvalue=(
+                eigenvalues[0]["eigenvalue"] if eigenvalues else None
+            ),
+        ),
+    )
     return {
         "analysis": "wavefunction_stability",
         "applies_to": "reference",
@@ -1909,6 +1947,94 @@ def _orca_correlation_energy(output: Any) -> float:
     return records[-1][1]
 
 
+def _orca_mayer_atoms_checked(output: Any) -> list[tuple[Any, ...]]:
+    """The last Mayer table, in molecular order, checked against symbols."""
+
+    from chemsmart.analysis import result_quantities as rq
+
+    rows = list(getattr(output, "mayer_atom_rows", None) or ())
+    if not rows:
+        raise MissingQuantityError(
+            "this ORCA result printed no Mayer population analysis"
+        )
+    symbols = _orca_symbols(output)
+    if [row[0] for row in rows] != list(range(len(symbols))) or [
+        str(row[1]).capitalize() for row in rows
+    ] != [str(symbol).capitalize() for symbol in symbols]:
+        raise rq.QuantityExtractionError(
+            "the Mayer table's atoms are not this molecule's atoms in "
+            "order; a per-atom vector is not reordered after the fact"
+        )
+    return rows
+
+
+def _orca_mayer_bond_orders(output: Any) -> list[list[Any]]:
+    """Mayer bond orders ORCA printed, as ``[atom_i, atom_j, order]`` rows.
+
+    Printed by default beneath every ORCA population analysis (238
+    archived outputs) and served by no reader: the bond order of a partial
+    bond at a saddle, of a delocalised radical, of a metal-ligand bond.
+    Zero-based molecular atom order, i < j.  Sparse as printed: ORCA lists
+    only orders above 0.1, so an omitted pair has no value here, not zero.
+    The last block belongs to the final density.
+    """
+
+    from chemsmart.analysis import result_quantities as rq
+
+    n_atoms = len(_orca_mayer_atoms_checked(output))
+    pairs = list(getattr(output, "mayer_bond_order_rows", None) or ())
+    if not pairs:
+        raise MissingQuantityError(
+            "this ORCA result printed no Mayer bond order above 0.1"
+        )
+    rows: list[list[Any]] = []
+    seen: set[tuple[int, int]] = set()
+    for atom_i, atom_j, order in pairs:
+        i0, j0 = sorted((int(atom_i), int(atom_j)))
+        if i0 == j0 or i0 < 0 or j0 >= n_atoms or (i0, j0) in seen:
+            raise rq.QuantityExtractionError(
+                f"ORCA's Mayer bond-order list names an impossible pair "
+                f"({atom_i}, {atom_j}) for {n_atoms} atoms"
+            )
+        seen.add((i0, j0))
+        rows.append([i0, j0, float(order)])
+    rows.sort(key=lambda row: (row[0], row[1]))
+    return rows
+
+
+def _orca_mayer_free_valence(output: Any) -> list[float]:
+    """Mayer's free valence per atom (FA), in molecular order.
+
+    Zero for a closed-shell atom whose valence is all bonding; on an open
+    shell it measures the unpaired population an atom carries (the Fe(II)
+    quintet archived here: 3.66 on iron).  Served beside the bond orders
+    it completes: total valence = bonded valence + free valence.
+    """
+
+    return [float(row[-1]) for row in _orca_mayer_atoms_checked(output)]
+
+
+def _orca_t1_diagnostic(output: Any) -> float:
+    """The T1 diagnostic of the last coupled-cluster calculation printed.
+
+    The standard single-reference check of a CCSD(T) number (Lee and
+    Taylor's T1: the singles-amplitude norm over the square root of twice
+    the number of correlated electrons).  ORCA prints it for every
+    canonical and DLPNO coupled-cluster calculation; 16 archived outputs
+    carry it and no reader served it, so a delivered CCSD(T) energy could
+    not be questioned from its own result.  A basis-set extrapolation
+    prints one per basis, and the last is the largest basis's.
+    """
+
+    values = list(getattr(output, "t1_diagnostics", None) or ())
+    if not values:
+        raise MissingQuantityError(
+            "this ORCA result printed no T1 diagnostic: no coupled-cluster "
+            "calculation ran"
+        )
+    return float(values[-1])
+
+
 def _orca_dispersion_energy(output: Any) -> float:
     """Return the final explicit empirical dispersion correction."""
 
@@ -2380,6 +2506,43 @@ def _orca_hirshfeld_charges(output: Any) -> list[float] | None:
         _orca_symbols(output),
         quantity="hirshfeld_atomic_charges",
     )
+
+
+def _orca_hirshfeld_spins(output: Any) -> list[float] | None:
+    """The Hirshfeld spin populations, positionally, or ``None``.
+
+    The second column of the block the ``Hirshfeld`` directive prints; on
+    a doublet it closes on one unpaired electron (the methyl radical,
+    CUHK 2152359: C 0.839, each H 0.054, total 1.000000).
+    """
+
+    spins = output.hirshfeld_spin_densities
+    if spins is None:
+        return None
+    return _per_atom_vector(
+        spins,
+        _orca_symbols(output),
+        quantity="hirshfeld_atomic_spin_populations",
+    )
+
+
+#: Hirshfeld's spin partition, declared by each program that prints it: the
+#: same record the Mulliken and Loewdin spin populations carry.
+_HIRSHFELD_SPIN_DECLARATION = (
+    ("hirshfeld_atomic_spin_populations", "1", "DIMENSIONLESS"),
+)
+_HIRSHFELD_SPIN_ATOM_DECLARATION = (
+    (
+        "hirshfeld_atomic_spin_populations",
+        tuple(
+            {
+                "semantic_quantity": "atomic_spin_population",
+                "population_scheme": "Hirshfeld",
+                "atom_order": "zero-based molecular atom order",
+            }.items()
+        ),
+    ),
+)
 
 
 def _orca_channel_eigenvalues(
@@ -3101,6 +3264,9 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "scf_energy": _orca_scf_energy,
             "reference_energy": _orca_scf_energy,
             "correlation_energy": _orca_correlation_energy,
+            "t1_diagnostic": _orca_t1_diagnostic,
+            "mayer_bond_orders": _orca_mayer_bond_orders,
+            "mayer_free_valence": _orca_mayer_free_valence,
             "dispersion_energy": _orca_dispersion_energy,
             "auxiliary_basis": _orca_auxiliary_basis,
             "auxiliary_basis_role": _orca_auxiliary_basis_role,
@@ -3144,6 +3310,7 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             # so, and a run that did not ask has no Hirshfeld analysis at
             # all rather than a failed one.
             "hirshfeld_atomic_charges": _orca_hirshfeld_charges,
+            "hirshfeld_atomic_spin_populations": _orca_hirshfeld_spins,
             "functional": _orca_functional,
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
@@ -3291,6 +3458,8 @@ _GAUSSIAN_IRC_BRANCH_SELECTORS = (
     "trajectory_start_connectivity",
     "trajectory_start_positions",
     "wavefunction_stability_history",
+    "wavefunction_stability_lowest_eigenvalue",
+    "wavefunction_stability_rotation_space",
     "wavefunction_stability_verdict",
 )
 
@@ -3515,6 +3684,170 @@ def _gaussian_energies(output: Any) -> list[float]:
     raise MissingQuantityError("this Gaussian result printed no energy")
 
 
+def _gaussian_last_stability_record(output: Any) -> Mapping[str, Any]:
+    """The stability analysis the run ended on, or why there is none."""
+
+    records = list(
+        getattr(output, "wavefunction_stability_records", None) or ()
+    )
+    if not records:
+        raise MissingQuantityError(
+            "this Gaussian result printed no stability analysis (the route "
+            "asked for no Stable)"
+        )
+    return records[-1]
+
+
+def _gaussian_stability_lowest_eigenvalue(output: Any) -> float:
+    """The lowest stability-matrix eigenvalue of the last analysis, in Eh.
+
+    Printed as ``Eigenvector 1: <label> Eigenvalue= X`` beside every
+    verdict and served by no reader: the number the verdict is drawn from.
+    For a restricted reference it is the lowest root over the singlet
+    (internal) and triplet (RHF -> UHF) blocks Gaussian tests; on singlet
+    O2 at RB3LYP/def2-SVP it is -0.0926178 Eh, the triplet root, equal to
+    PySCF's RHF/RKS -> UHF/UKS eigenvalue at the same level to 1e-6 Eh
+    (CUHK 2152098, 2151881) -- while PySCF's internal eigenvalue is four
+    times Gaussian's singlet root, a normalisation of PySCF's own.
+    """
+
+    record = _gaussian_last_stability_record(output)
+    eigenvalues = record.get("eigenvalues") or ()
+    if not eigenvalues:
+        raise MissingQuantityError(
+            "the last stability verdict this log prints has no eigenvalue "
+            "printed before it"
+        )
+    return float(eigenvalues[0]["eigenvalue"])
+
+
+def _gaussian_stability_rotation_space(output: Any) -> str:
+    """The space Gaussian's last verdict names, where it names one."""
+
+    record = _gaussian_last_stability_record(output)
+    space = record.get("rotation_space")
+    if not space:
+        raise MissingQuantityError(
+            "Gaussian's last verdict names no rotation space: 'stable under "
+            "the perturbations considered' does not say which were"
+        )
+    return str(space)
+
+
+def _gaussian_molecular_volume(output: Any) -> float:
+    """The molecule's volume as Gaussian's ``volume`` keyword measured it.
+
+    The volume inside the 0.001 e/bohr^3 density contour, a Monte Carlo
+    estimate per molecule, in bohr^3 (Gaussian prints it beside the molar
+    figure in cm^3/mol, which is N_A times it).  Asked for in R10 Q6
+    (ar04/ar10) and verified unreachable because no reader served it.
+    Printed only when the route asks for ``volume``; the SMD solvent
+    parameter printed under the same words is not read.
+    """
+
+    values = list(getattr(output, "molecular_volumes_bohr3", None) or ())
+    if not values:
+        raise MissingQuantityError(
+            "this Gaussian result printed no molecular volume: the route did "
+            "not ask for volume"
+        )
+    return float(values[-1])
+
+
+def _gaussian_solvation_model(output: Any) -> str:
+    """The continuum the route applied, in the route's own word, or
+    ``gas_phase`` when the route asks for none.
+
+    Read from the route Gaussian echoes, as the level record already does,
+    so a solvation term is read beside the model that gives it its
+    meaning.  A route that asks for a continuum this reader cannot name is
+    an absence, never gas phase.
+    """
+
+    model = getattr(output, "solvent_model", None)
+    if model:
+        return str(model).strip().lower()
+    route = str(getattr(output, "route_string", "") or "").lower()
+    if "scrf" in route:
+        raise MissingQuantityError(
+            "this Gaussian route asks for a continuum (scrf) this reader "
+            "does not name"
+        )
+    return "gas_phase"
+
+
+def _gaussian_solvent(output: Any) -> str:
+    if _gaussian_solvation_model(output) == "gas_phase":
+        raise MissingQuantityError("this Gaussian run is gas phase")
+    solvent = getattr(output, "solvent_id", None)
+    if not solvent:
+        raise MissingQuantityError(
+            "this Gaussian solvated route names no solvent"
+        )
+    return str(solvent).strip().lower()
+
+
+def _gaussian_smd_cds_energy(output: Any) -> float:
+    """SMD's non-electrostatic term, as Gaussian printed it, in kcal/mol.
+
+    The same quantity ORCA and PySCF already serve under this name: the
+    cavity-dispersion-solvent-structure part of the solvation free energy
+    the model put into the total.  The solvation charter topic recorded
+    "No archived Gaussian log carries the printed terms"; fourteen archived
+    Gaussian SMD logs print this one ("SMD-CDS (non-electrostatic) energy
+    (kcal/mol) = ...  (included in total energy above)").  Gaussian prints
+    no separate electrostatic term, so that one stays undeclared.  The last
+    print belongs to the final structure; a run with no SMD continuum
+    printed none, and the absence says so.
+    """
+
+    values = list(getattr(output, "smd_cds_energies_kcal_per_mol", None) or ())
+    if not values:
+        raise MissingQuantityError(
+            "this Gaussian result printed no SMD-CDS term: it ran in the gas "
+            "phase or in a continuum model without one"
+        )
+    return float(values[-1])
+
+
+def _gaussian_electronic_spatial_extent(output: Any) -> float:
+    """<R**2> of the SCF density at the structure the run ended on, bohr^2.
+
+    Printed by every Gaussian population analysis and served by no reader
+    until now, although it is one of the few numbers that say how diffuse
+    a density is: an anion or a Rydberg-like state that the basis cannot
+    hold shows up here before it shows up anywhere else, and Q10's LG1
+    session (CUHK 2151662) could only be told that the log printed it.
+    The last print belongs to the final density.  The value depends on the
+    origin, so it is served only where Gaussian computed in its standard
+    orientation (origin at the centre of nuclear charge), and only for the
+    SCF density the population analysis names.
+    """
+
+    records = list(getattr(output, "electronic_spatial_extents", None) or ())
+    if not records:
+        raise MissingQuantityError(
+            "this Gaussian result printed no <R**2>: no population analysis "
+            "ran"
+        )
+    last = records[-1]
+    density = str(last.get("density") or "")
+    if not density.casefold().startswith("scf"):
+        raise MissingQuantityError(
+            "the last <R**2> this log prints belongs to the "
+            f"{density or 'unnamed'} density, not the SCF reference this "
+            "selector serves"
+        )
+    if not getattr(output, "standard_orientations", None):
+        raise MissingQuantityError(
+            "this Gaussian run computed in the input orientation "
+            "(reorientation suppressed), so its <R**2> is about the "
+            "coordinates' own origin; the spatial extent depends on the "
+            "origin and is served only about the centre of nuclear charge"
+        )
+    return float(last["value"])
+
+
 def _gaussian_scf_energy(output: Any) -> float:
     """The SCF reference total at the last geometry (``SCF Done``).
 
@@ -3539,6 +3872,8 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("dipole_moment", "reference"),
     ("dipole_moment_magnitude", "reference"),
     ("effective_multiplicity", "reference"),
+    ("electronic_spatial_extent", "reference"),
+    ("molecular_volume", "reference"),
     ("energies", "computed_surface"),
     ("energy", "computed_surface"),
     ("excitation_energies", "excited_root"),
@@ -3551,6 +3886,7 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("excited_state_spin_square", "excited_root"),
     ("gap", "reference"),
     ("hirshfeld_atomic_charges", "reference"),
+    ("hirshfeld_atomic_spin_populations", "reference"),
     ("homo", "reference"),
     ("lumo", "reference"),
     ("mulliken_atomic_charges", "reference"),
@@ -3559,6 +3895,9 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("scf_energy", "reference"),
     ("singlet_excitation_energies", "excited_root"),
     ("singlet_oscillator_strengths", "excited_root"),
+    # SMD's non-electrostatic term is part of the SCF total it printed
+    # beneath, the reference's own energy.
+    ("solvation_nonelectrostatic_energy", "reference"),
     ("spin_square", "reference"),
     ("spin_square_after_annihilation", "reference"),
     ("spin_square_deviation", "reference"),
@@ -3635,6 +3974,11 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
             "hirshfeld_atomic_charges": _gaussian_population(
                 "hirshfeld_charges",
                 quantity="hirshfeld_atomic_charges",
+            ),
+            # The S-H column of the same block, parsed and never served.
+            "hirshfeld_atomic_spin_populations": _gaussian_population(
+                "hirshfeld_spin_densities",
+                quantity="hirshfeld_atomic_spin_populations",
             ),
             "absorption_wavelengths": lambda output: [
                 float(item) for item in output.absorptions_in_nm
@@ -3717,6 +4061,11 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
             "dipole_moment_magnitude": lambda output: float(
                 output.all_dipole_moment_magnitudes[-1]
             ),
+            "electronic_spatial_extent": _gaussian_electronic_spatial_extent,
+            "molecular_volume": _gaussian_molecular_volume,
+            "solvation_model": _gaussian_solvation_model,
+            "solvent": _gaussian_solvent,
+            "solvation_nonelectrostatic_energy": _gaussian_smd_cds_energy,
             "spin_square": lambda output: _last_spin_square(
                 output, "before_annihilation"
             ),
@@ -3737,6 +4086,12 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
             "wavefunction_stability_history": lambda output: [
                 str(item) for item in output.wavefunction_stability_history
             ],
+            "wavefunction_stability_lowest_eigenvalue": (
+                _gaussian_stability_lowest_eigenvalue
+            ),
+            "wavefunction_stability_rotation_space": (
+                _gaussian_stability_rotation_space
+            ),
             "trajectory_frame_count": lambda output: len(
                 _irc_structures(output)
             ),
@@ -4910,6 +5265,83 @@ def _pyscf_response_dielectric(output: Any) -> float:
     return float(value)
 
 
+def _pyscf_stability_eigenvalue_unit() -> str:
+    """The unit the driver records stability eigenvalues in (its table)."""
+
+    from chemsmart.jobs.pyscf.settings import PYSCF_STABILITY_EIGENVALUE_UNIT
+
+    return PYSCF_STABILITY_EIGENVALUE_UNIT
+
+
+def _pyscf_stability_record(output: Any) -> Mapping[str, Any] | None:
+    """The stability record this result carries, or None."""
+
+    record = getattr(output, "scf_stability", None)
+    return record if isinstance(record, Mapping) else None
+
+
+def _pyscf_printed_stability(output: Any, question: str) -> tuple[str, ...]:
+    """Where this run's own PySCF log prints its answer to one question.
+
+    A pointer, never a reading: the typed answer is the record's, and a
+    record written before the driver listened to the analysis does not
+    hold real -> complex or any eigenvalue although PySCF logged both.
+    Saying "not determined" there without saying where PySCF said it would
+    be a statement of absence the output contradicts.  The log is this
+    run's only when the driver configuration it echoes carries this
+    artifact's run nonce; the echoed driver script is skipped, and a
+    Davidson's eigenvalue line is paired with the verdict PySCF notes
+    after it, in PySCF's own words (``PYSCF_STABILITY_PRINTED_KINDS``).
+    """
+
+    from chemsmart.jobs.pyscf.settings import PYSCF_STABILITY_PRINTED_KINDS
+
+    kinds = {
+        kind
+        for kind, name in PYSCF_STABILITY_PRINTED_KINDS.items()
+        if name == question
+    }
+    nonce = str((getattr(output, "spec", None) or {}).get("run_nonce") or "")
+    log = Path(str(getattr(output, "logfile", "") or ""))
+    if not kinds or not nonce or not log.is_file() or log.is_symlink():
+        return ()
+    try:
+        if log.stat().st_size > 64 * 1024 * 1024:
+            return ()
+        lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return ()
+    if not any(f'"run_nonce": "{nonce}"' in line for line in lines[:200]):
+        return ()
+    found: list[str] = []
+    in_script = pending = False
+    for number, line in enumerate(lines, 1):
+        text = line.strip()
+        if "#INFO: **** input file is" in text:
+            in_script = True
+            continue
+        if in_script:
+            in_script = "input file end" not in text
+            continue
+        head, sep, _rest = text.partition(": lowest eigs of H = ")
+        if sep:
+            pending = head.rsplit("_", 1)[-1] in kinds
+            if pending:
+                found.append(f"{log.name}:{number}: {text[:120]}")
+            continue
+        if pending and text.startswith("<class ") and "wavefunction" in text:
+            found.append(f"{log.name}:{number}: {text[:120]}")
+            pending = False
+    return tuple(found[-2:])
+
+
+def _printed_pointer(output: Any, question: str) -> str:
+    printed = _pyscf_printed_stability(output, question)
+    if not printed:
+        return ""
+    return "; this run's own PySCF log prints it: " + " | ".join(printed)
+
+
 def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
     """One question's entry from the recorded analysis, or why there is none.
 
@@ -4918,10 +5350,12 @@ def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
     could not answer this question for this reference (an ROHF reference
     has no external answer at all), or it returned no answer. None of
     them is stability, which is why absence is spelled out rather than
-    defaulted.
+    defaulted.  A fifth belongs to real -> complex alone: a record written
+    before the driver listened to PySCF's analysis names it not
+    determined, with the reason, and that reason is what is said.
     """
 
-    record = getattr(output, "scf_stability", None)
+    record = _pyscf_stability_record(output)
     if not isinstance(record, Mapping):
         if getattr(output, "scf_stability_requested", None) is False:
             raise MissingQuantityError(
@@ -4936,6 +5370,14 @@ def _pyscf_stability_entry(output: Any, question: str) -> Mapping[str, Any]:
         )
     entry = (record.get("analyses") or {}).get(question)
     if not isinstance(entry, Mapping):
+        undetermined = (record.get("not_determined") or {}).get(question)
+        if isinstance(undetermined, Mapping):
+            raise MissingQuantityError(
+                f"this stability record names the {question!r} question "
+                f"({undetermined.get('rotation_space') or question}) not "
+                f"determined: {undetermined.get('reason') or 'no reason'}"
+                + _printed_pointer(output, question)
+            )
         raise MissingQuantityError(
             f"this stability analysis carries no {question!r} question"
         )
@@ -4991,6 +5433,48 @@ def _pyscf_stability_rotation_space(output: Any) -> str:
             "this external stability answer names no rotation space"
         )
     return str(space)
+
+
+def _pyscf_stability_lowest_eigenvalue(
+    question: str,
+) -> Callable[[Any], float]:
+    """The lowest eigenvalue PySCF found for one rotation question, in Eh.
+
+    The number the verdict is drawn from: PySCF calls the reference
+    unstable when it lies below its threshold (-1e-5 Eh), so a value just
+    above zero is a reference close to an instability and a value just
+    below the threshold one barely across it -- what a bare word hides.
+    It is a root of PySCF's orbital Hessian in PySCF's own normalisation,
+    comparable across PySCF results and against that threshold, and not
+    against another program's stability matrix, which is why the name is
+    PySCF's own family and not Gaussian's.  The record states the unit
+    it wrote; one that differs from the driver's table is a divergence,
+    not an absence.
+    """
+
+    def accessor(output: Any) -> float:
+        from chemsmart.analysis import result_quantities as rq
+
+        entry = _pyscf_stability_entry(output, question)
+        values = entry.get("lowest_eigenvalues")
+        if not values:
+            raise MissingQuantityError(
+                f"this {question!r} stability answer records no "
+                "eigenvalues: it was written before the driver kept the "
+                "numbers PySCF's analysis logged"
+                + _printed_pointer(output, question)
+            )
+        record = _pyscf_stability_record(output) or {}
+        written = record.get("eigenvalue_unit")
+        if written != _pyscf_stability_eigenvalue_unit():
+            raise rq.QuantityExtractionError(
+                f"this stability record states its eigenvalues in "
+                f"{written!r}; the driver's table writes "
+                f"{_pyscf_stability_eigenvalue_unit()!r}"
+            )
+        return float(values[0])
+
+    return accessor
 
 
 def _pyscf_absence_reason(
@@ -5402,6 +5886,22 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
         "scf_stability_external_rotation_space": (
             _pyscf_stability_rotation_space
         ),
+        # The question PySCF solves inside its external analysis and does
+        # not return, and the number behind each verdict. Recorded since
+        # the driver listened to the analysis; before, the record said
+        # real -> complex was not determined while the log beside it said.
+        "scf_stability_real_to_complex": _pyscf_stability_verdict(
+            "real_to_complex"
+        ),
+        "scf_stability_internal_lowest_eigenvalue": (
+            _pyscf_stability_lowest_eigenvalue("internal")
+        ),
+        "scf_stability_external_lowest_eigenvalue": (
+            _pyscf_stability_lowest_eigenvalue("external")
+        ),
+        "scf_stability_real_to_complex_lowest_eigenvalue": (
+            _pyscf_stability_lowest_eigenvalue("real_to_complex")
+        ),
         "solvation_electrostatic_energy": _pyscf_decomposition_scalar(
             "solvation_electrostatic_energy"
         ),
@@ -5520,8 +6020,12 @@ _PYSCF_SCF_SELECTORS = (
     "positions",
     "scf_energy",
     "scf_stability_external",
+    "scf_stability_external_lowest_eigenvalue",
     "scf_stability_external_rotation_space",
     "scf_stability_internal",
+    "scf_stability_internal_lowest_eigenvalue",
+    "scf_stability_real_to_complex",
+    "scf_stability_real_to_complex_lowest_eigenvalue",
     "solvation_electrostatic_energy",
     "solvation_model",
     "solvation_nonelectrostatic_energy",
@@ -5683,8 +6187,15 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             # belongs to the structure that SCF ran on, as every other
             # mean-field property here does.
             ("scf_stability_external", "as_reached"),
+            ("scf_stability_external_lowest_eigenvalue", "as_reached"),
             ("scf_stability_external_rotation_space", "as_reached"),
             ("scf_stability_internal", "as_reached"),
+            ("scf_stability_internal_lowest_eigenvalue", "as_reached"),
+            ("scf_stability_real_to_complex", "as_reached"),
+            (
+                "scf_stability_real_to_complex_lowest_eigenvalue",
+                "as_reached",
+            ),
             ("singlet_excitation_energies", "as_reached"),
             ("singlet_oscillator_strengths", "as_reached"),
             ("solvation_electrostatic_energy", "as_reached"),
@@ -5760,8 +6271,12 @@ _PYSCF_ELECTRONIC_PROVENANCE = tuple(
             # carries a total that is not the reference's beside a
             # verdict that is.
             ("scf_stability_external", "reference"),
+            ("scf_stability_external_lowest_eigenvalue", "reference"),
             ("scf_stability_external_rotation_space", "reference"),
             ("scf_stability_internal", "reference"),
+            ("scf_stability_internal_lowest_eigenvalue", "reference"),
+            ("scf_stability_real_to_complex", "reference"),
+            ("scf_stability_real_to_complex_lowest_eigenvalue", "reference"),
             ("surface_id", "stateless"),
             ("trajectory_energies", "reference"),
             ("trajectory_start_frequencies", "reference"),
@@ -5810,10 +6325,13 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("gap", "reference"),
     ("gibbs_free_energy", "computed_surface"),
     ("hirshfeld_atomic_charges", "reference"),
+    ("hirshfeld_atomic_spin_populations", "reference"),
     ("homo", "reference"),
     ("loewdin_atomic_charges", "reference"),
     ("loewdin_atomic_spin_populations", "reference"),
     ("lumo", "reference"),
+    ("mayer_bond_orders", "reference"),
+    ("mayer_free_valence", "reference"),
     ("mulliken_atomic_charges", "reference"),
     ("mulliken_atomic_spin_populations", "reference"),
     ("oscillator_strengths", "excited_root"),
@@ -5825,6 +6343,8 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("spin_square_after_annihilation", "reference"),
     ("spin_square_deviation", "reference"),
     ("spin_square_target", "reference"),
+    # The singles amplitudes of the coupled-cluster calculation itself.
+    ("t1_diagnostic", "correlated"),
     # Every point of an ORCA IRC path is a total on the surface the job
     # computed on, exactly as ``energy`` is, and is resolved the same way.
     ("trajectory_energies", "computed_surface"),
@@ -5859,6 +6379,12 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         selector_declarations=(
             _CONSTRAINED_COORDINATE_DECLARATIONS
             + _EXCITED_CHARACTER_DECLARATIONS
+            + (
+                ("t1_diagnostic", "1", "DIMENSIONLESS"),
+                ("mayer_bond_orders", "1", "DIMENSIONLESS"),
+                ("mayer_free_valence", "1", "DIMENSIONLESS"),
+            )
+            + _HIRSHFELD_SPIN_DECLARATION
         ),
         #: An atom index this plane delivers indexes the vectors this
         #: plane delivers -- symbols, positions, every population -- so it
@@ -5868,7 +6394,36 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         #: the two are converted at the accessor. What the Agent *writes*
         #: -- the constrained coordinate on a modred node -- is one-based,
         #: which is the round trip this record exists to keep honest.
-        atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
+        atom_resolved_declarations=(
+            _CONSTRAINED_COORDINATE_ATOM_DECLARATIONS
+            + _HIRSHFELD_SPIN_ATOM_DECLARATION
+            + (
+                (
+                    "mayer_bond_orders",
+                    tuple(
+                        {
+                            "semantic_quantity": "bond_order",
+                            "population_scheme": "Mayer",
+                            "atom_order": "zero-based molecular atom order",
+                            "data_shape": "rows of [atom_i, atom_j, order]",
+                            "sparsity": (
+                                "ORCA prints only orders above 0.1; an "
+                                "omitted pair has no printed value and is "
+                                "not zero"
+                            ),
+                        }.items()
+                    ),
+                ),
+                (
+                    "mayer_free_valence",
+                    (
+                        ("semantic_quantity", "free_valence"),
+                        ("population_scheme", "Mayer"),
+                        ("atom_order", "zero-based molecular atom order"),
+                    ),
+                ),
+            )
+        ),
         # Coverage is ``parser_supported_when_emitted``: it states what a job
         # of this type can be asked for, while method and settings still
         # decide whether the engine prints it.  The spin family and the
@@ -5916,6 +6471,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("solvation_cavity_surface_area", "as_reached"),
             ("solvation_electrostatic_energy", "as_reached"),
             ("solvation_nonelectrostatic_energy", "as_reached"),
+            ("t1_diagnostic", "as_reached"),
             # A comparison across the two ends of one branch belongs to
             # neither of them alone.
             ("trajectory_connectivity_changed", "trajectory_endpoint"),
@@ -5979,10 +6535,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6099,10 +6658,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6153,10 +6715,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6254,10 +6819,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6273,6 +6841,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
+                    # The single-reference check of a coupled-cluster
+                    # number, printed beside it.
+                    "t1_diagnostic",
                 ),
             ),
             (
@@ -6347,10 +6918,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6388,13 +6962,29 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         parser_id="chemsmart.io.gaussian.output.Gaussian16Output",
         open_output=_gaussian_output,
         accessors=_gaussian_accessors(),
+        # Gaussian prints the SMD-CDS term in kcal/mol to two decimals.
+        source_units={"solvation_nonelectrostatic_energy": "kcal/mol"},
         # A held coordinate keeps its unit and its atoms as ORCA's do: one
         # declaration for both programs' constrained optimisations.
         selector_declarations=(
             _CONSTRAINED_COORDINATE_DECLARATIONS
             + _EXCITED_CHARACTER_DECLARATIONS
+            # <R**2> of the SCF density about the centre of nuclear
+            # charge, as Gaussian prints it (atomic units, bohr^2).
+            + (("electronic_spatial_extent", "bohr^2", "AREA"),)
+            # The volume keyword's per-molecule figure, bohr^3.
+            + (("molecular_volume", "bohr^3", "VOLUME"),)
+            # The number and the space beside Gaussian's stability word.
+            + (
+                ("wavefunction_stability_lowest_eigenvalue", "Eh", "ENERGY"),
+                ("wavefunction_stability_rotation_space", "", "DIMENSIONLESS"),
+            )
+            + _HIRSHFELD_SPIN_DECLARATION
         ),
-        atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
+        atom_resolved_declarations=(
+            _CONSTRAINED_COORDINATE_ATOM_DECLARATIONS
+            + _HIRSHFELD_SPIN_ATOM_DECLARATION
+        ),
         # Coverage is ``parser_supported_when_emitted``, as for ORCA: it
         # states what a job of this type can be asked for, while route and
         # settings still decide what Gaussian prints.  The spin family, the
@@ -6467,11 +7057,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "lumo",
                     "mulliken_atomic_charges",
@@ -6486,6 +7078,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_target",
                     "symbols",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6500,12 +7094,14 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "functional",
                     "gap",
                     "gibbs_free_energy",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "ir_intensities",
                     "lumo",
@@ -6522,6 +7118,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     # one is admissible as a structure to carry forward.
                     "reached_positions",
                     "scf_energy",
+                    "solvation_model",
+                    "solvation_nonelectrostatic_energy",
+                    "solvent",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -6529,6 +7128,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "symbols",
                     "vibrational_frequencies",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6572,6 +7173,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_target",
                     "symbols",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6585,24 +7188,32 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "lumo",
+                    "molecular_volume",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
                     "positions",
                     "scf_energy",
+                    "solvation_model",
+                    "solvation_nonelectrostatic_energy",
+                    "solvent",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6623,6 +7234,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "excitation_energies",
@@ -6643,6 +7255,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "excited_state_spin_square",
                     "functional",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6659,6 +7272,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "triplet_excitation_energies",
                     "triplet_oscillator_strengths",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6673,11 +7288,13 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "dipole_moment",
                     "dipole_moment_magnitude",
                     "effective_multiplicity",
+                    "electronic_spatial_extent",
                     "energies",
                     "energy",
                     "functional",
                     "gibbs_free_energy",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "ir_intensities",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
@@ -6692,6 +7309,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "symbols",
                     "vibrational_frequencies",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6740,6 +7359,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("constrained_dihedral_angles", "as_reached"),
                     ("dipole_moment", "as_reached"),
                     ("dipole_moment_magnitude", "as_reached"),
+                    ("electronic_spatial_extent", "as_reached"),
                     ("energy", "as_reached"),
                     ("gap", "as_reached"),
                     ("gibbs_free_energy", "as_reached"),
@@ -6748,6 +7368,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("ir_intensities", "as_reached"),
                     ("lumo", "as_reached"),
                     ("mulliken_atomic_charges", "as_reached"),
+                    ("molecular_volume", "as_reached"),
                     ("mulliken_atomic_spin_populations", "as_reached"),
                     ("multiplicity", "as_reached"),
                     ("positions", "as_reached"),
@@ -6756,6 +7377,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("scan_energies", "scan_point"),
                     ("scan_point_indices", "scan_point"),
                     ("scf_energy", "as_reached"),
+                    ("solvation_nonelectrostatic_energy", "as_reached"),
                     ("symbols", "stateless"),
                     ("trajectory_end_connectivity", "trajectory_endpoint"),
                     ("trajectory_end_positions", "trajectory_endpoint"),
@@ -6949,6 +7571,17 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("scf_stability_internal", "", "DIMENSIONLESS"),
             ("scf_stability_external", "", "DIMENSIONLESS"),
             ("scf_stability_external_rotation_space", "", "DIMENSIONLESS"),
+            ("scf_stability_real_to_complex", "", "DIMENSIONLESS"),
+            # Roots of PySCF's orbital Hessian, in hartree and in PySCF's
+            # own normalisation: comparable within PySCF, not across
+            # programs, so the names stay this family's.
+            ("scf_stability_internal_lowest_eigenvalue", "Eh", "ENERGY"),
+            ("scf_stability_external_lowest_eigenvalue", "Eh", "ENERGY"),
+            (
+                "scf_stability_real_to_complex_lowest_eigenvalue",
+                "Eh",
+                "ENERGY",
+            ),
             *_EXCITED_CHARACTER_DECLARATIONS,
         ),
         jobtype_selectors=(
@@ -7462,7 +8095,9 @@ def extract_logged_quantities(
             value = int(source_value)
             unit = "1"
             data_kind = "integer"
-        elif selector.selector == "wiberg_bond_orders":
+        elif selector.selector in {"wiberg_bond_orders", "mayer_bond_orders"}:
+            # Sparse bond-order rows, [atom_i, atom_j, order], either
+            # scheme: the pair is an index, the order a pure number.
             value = tuple(
                 (int(r[0]), int(r[1]), float(r[2])) for r in source_value
             )

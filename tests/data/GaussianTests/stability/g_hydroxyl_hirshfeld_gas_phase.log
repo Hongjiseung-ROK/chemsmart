@@ -1,0 +1,325 @@
+ Entering Gaussian System, Link 0=/project/xlzhang/shared/bin/g16C02/g16
+ Input=/lustre/project/xlzhang/jiseung/r10/q13/cli/hspin1/g_hydroxyl_hirshfeld_gas_phase.com
+ Output=/lustre/project/xlzhang/jiseung/r10/q13/cli/hspin1/g_hydroxyl_hirshfeld_gas_phase.log
+ Initial command:
+ /project/xlzhang/shared/bin/g16C02/l1.exe "/scratch/s1/xlzhang/jiseung/Gau-1337315.inp" -scrdir="/scratch/s1/xlzhang/jiseung/"
+ Entering Link 1 = /project/xlzhang/shared/bin/g16C02/l1.exe PID=   1337316.
+  
+ Copyright (c) 1988-2021, Gaussian, Inc.  All Rights Reserved.
+  
+ This is part of the Gaussian(R) 16 program.  It is based on
+ the Gaussian(R) 09 system (copyright 2009, Gaussian, Inc.),
+ the Gaussian(R) 03 system (copyright 2003, Gaussian, Inc.),
+ the Gaussian(R) 98 system (copyright 1998, Gaussian, Inc.),
+ the Gaussian(R) 94 system (copyright 1995, Gaussian, Inc.),
+ the Gaussian 92(TM) system (copyright 1992, Gaussian, Inc.),
+ the Gaussian 90(TM) system (copyright 1990, Gaussian, Inc.),
+ the Gaussian 88(TM) system (copyright 1988, Gaussian, Inc.),
+ the Gaussian 86(TM) system (copyright 1986, Carnegie Mellon
+ University), and the Gaussian 82(TM) system (copyright 1983,
+ Carnegie Mellon University). Gaussian is a federally registered
+ trademark of Gaussian, Inc.
+  
+ This software contains proprietary and confidential information,
+ including trade secrets, belonging to Gaussian, Inc.
+  
+ This software is provided under written license and may be
+ used, copied, transmitted, or stored only in accord with that
+ written license.
+  
+ The following legend is applicable only to US Government
+ contracts under FAR:
+  
+                    RESTRICTED RIGHTS LEGEND
+  
+ Use, reproduction and disclosure by the US Government is
+ subject to restrictions as set forth in subparagraphs (a)
+ and (c) of the Commercial Computer Software - Restricted
+ Rights clause in FAR 52.227-19.
+  
+ Gaussian, Inc.
+ 340 Quinnipiac St., Bldg. 40, Wallingford CT 06492
+  
+  
+ ---------------------------------------------------------------
+ Warning -- This program may not be used in any manner that
+ competes with the business of Gaussian, Inc. or will provide
+ assistance to any competitor of Gaussian, Inc.  The licensee
+ of this program is prohibited from giving any competitor of
+ Gaussian, Inc. access to this program.  By using this program,
+ the user acknowledges that Gaussian, Inc. is engaged in the
+ business of creating and licensing software in the field of
+ computational chemistry and represents and warrants to the
+ licensee that it is not a competitor of Gaussian, Inc. and that
+ it will not use this program in any manner prohibited above.
+ ---------------------------------------------------------------
+  
+
+ Cite this work as:
+ Gaussian 16, Revision C.02,
+ M. J. Frisch, G. W. Trucks, H. B. Schlegel, G. E. Scuseria, 
+ M. A. Robb, J. R. Cheeseman, G. Scalmani, V. Barone, 
+ G. A. Petersson, H. Nakatsuji, X. Li, M. Caricato, A. V. Marenich, 
+ J. Bloino, B. G. Janesko, R. Gomperts, B. Mennucci, H. P. Hratchian, 
+ J. V. Ortiz, A. F. Izmaylov, J. L. Sonnenberg, D. Williams-Young, 
+ F. Ding, F. Lipparini, F. Egidi, J. Goings, B. Peng, A. Petrone, 
+ T. Henderson, D. Ranasinghe, V. G. Zakrzewski, J. Gao, N. Rega, 
+ G. Zheng, W. Liang, M. Hada, M. Ehara, K. Toyota, R. Fukuda, 
+ J. Hasegawa, M. Ishida, T. Nakajima, Y. Honda, O. Kitao, H. Nakai, 
+ T. Vreven, K. Throssell, J. A. Montgomery, Jr., J. E. Peralta, 
+ F. Ogliaro, M. J. Bearpark, J. J. Heyd, E. N. Brothers, K. N. Kudin, 
+ V. N. Staroverov, T. A. Keith, R. Kobayashi, J. Normand, 
+ K. Raghavachari, A. P. Rendell, J. C. Burant, S. S. Iyengar, 
+ J. Tomasi, M. Cossi, J. M. Millam, M. Klene, C. Adamo, R. Cammi, 
+ J. W. Ochterski, R. L. Martin, K. Morokuma, O. Farkas, 
+ J. B. Foresman, and D. J. Fox, Gaussian, Inc., Wallingford CT, 2019.
+ 
+ ******************************************
+ Gaussian 16:  ES64L-G16RevC.02  7-Dec-2021
+                24-Sep-2026 
+ ******************************************
+ %chk=g_hydroxyl_hirshfeld_gas_phase.chk
+ %nprocshared=64
+ Will use up to   64 processors via shared memory.
+ %mem=8GB
+ -----------------------------
+ # b3lyp def2svp pop=hirshfeld
+ -----------------------------
+ 1/38=1,172=1/1;
+ 2/12=2,17=6,18=5,40=1/2;
+ 3/5=43,7=101,11=2,25=1,30=1,74=-5/1,2,3;
+ 4//1;
+ 5/5=2,38=5/2;
+ 6/7=2,8=2,9=2,10=2,28=1,79=1/1;
+ 99/5=1,9=1/99;
+ ----------------------------------
+ Gaussian job with default settings
+ ----------------------------------
+ Symbolic Z-matrix:
+ Charge =  0 Multiplicity = 2
+ O                     0.        0.        0. 
+ H                     0.        0.        0.97 
+ 
+                          Input orientation:                          
+ ---------------------------------------------------------------------
+ Center     Atomic      Atomic             Coordinates (Angstroms)
+ Number     Number       Type             X           Y           Z
+ ---------------------------------------------------------------------
+      1          8           0        0.000000    0.000000    0.000000
+      2          1           0        0.000000    0.000000    0.970000
+ ---------------------------------------------------------------------
+ Stoichiometry    HO(2)
+ Framework group  C*V[C*(HO)]
+ Deg. of freedom     1
+ Full point group                 C*V     NOp   4
+ Largest Abelian subgroup         C2V     NOp   4
+ Largest concise Abelian subgroup C1      NOp   1
+                         Standard orientation:                         
+ ---------------------------------------------------------------------
+ Center     Atomic      Atomic             Coordinates (Angstroms)
+ Number     Number       Type             X           Y           Z
+ ---------------------------------------------------------------------
+      1          8           0        0.000000    0.000000    0.107778
+      2          1           0        0.000000    0.000000   -0.862222
+ ---------------------------------------------------------------------
+ Rotational constants (GHZ):           0.0000000         566.5334626         566.5334626
+ Standard basis: def2SVP (5D, 7F)
+ There are    11 symmetry adapted cartesian basis functions of A1  symmetry.
+ There are     1 symmetry adapted cartesian basis functions of A2  symmetry.
+ There are     4 symmetry adapted cartesian basis functions of B1  symmetry.
+ There are     4 symmetry adapted cartesian basis functions of B2  symmetry.
+ There are    10 symmetry adapted basis functions of A1  symmetry.
+ There are     1 symmetry adapted basis functions of A2  symmetry.
+ There are     4 symmetry adapted basis functions of B1  symmetry.
+ There are     4 symmetry adapted basis functions of B2  symmetry.
+    19 basis functions,    32 primitive gaussians,    20 cartesian basis functions
+     5 alpha electrons        4 beta electrons
+       nuclear repulsion energy         4.3643481313 Hartrees.
+ NAtoms=    2 NActive=    2 NUniq=    2 SFac= 1.00D+00 NAtFMM=   60 NAOKFM=F Big=F
+ Integral buffers will be    131072 words long.
+ Raffenetti 2 integral format.
+ Two-electron integral symmetry is turned on.
+ One-electron integrals computed using PRISM.
+   4 Symmetry operations used in ECPInt.
+ ECPInt:  NShTT=      45 NPrTT=     169 LenC2=      46 LenP2D=     169.
+ LDataN:  DoStor=T MaxTD1= 4 Len=   56
+ NBasis=    19 RedAO= T EigKep=  5.47D-02  NBF=    10     1     4     4
+ NBsUse=    19 1.00D-06 EigRej= -1.00D+00 NBFU=    10     1     4     4
+ ExpMin= 1.22D-01 ExpMax= 2.27D+03 ExpMxC= 3.41D+02 IAcc=3 IRadAn=         5 AccDes= 0.00D+00
+ Harris functional with IExCor=  402 and IRadAn=       5 diagonalized for initial guess.
+ HarFok:  IExCor=  402 AccDes= 0.00D+00 IRadAn=         5 IDoV= 1 UseB2=F ITyADJ=14
+ ICtDFT=  3500011 ScaDFX=  1.000000  1.000000  1.000000  1.000000
+ FoFCou: FMM=F IPFlag=           0 FMFlag=      100000 FMFlg1=           0
+         NFxFlg=           0 DoJE=T BraDBF=F KetDBF=T FulRan=T
+         wScrn=  0.000000 ICntrl=       500 IOpCl=  0 I1Cent=   200000004 NGrid=           0
+         NMat0=    1 NMatS0=      1 NMatT0=    0 NMatD0=    1 NMtDS0=    0 NMtDT0=    0
+ Petite list used in FoFCou.
+ Initial guess orbital symmetries:
+ Alpha Orbitals:
+       Occupied  (SG) (SG) (SG) (PI) (PI)
+       Virtual   (SG) (SG) (SG) (PI) (PI) (SG) (PI) (PI) (SG) (DLTA)
+                 (DLTA) (PI) (PI) (SG)
+ Beta  Orbitals:
+       Occupied  (SG) (SG) (SG) (PI)
+       Virtual   (PI) (SG) (SG) (SG) (PI) (PI) (SG) (PI) (PI) (SG)
+                 (DLTA) (DLTA) (PI) (PI) (SG)
+ Initial guess <Sx>= 0.0000 <Sy>= 0.0000 <Sz>= 0.5000 <S**2>= 0.7500 S= 0.5000
+ Keep R1 and R2 ints in memory in symmetry-blocked form, NReq=55252456.
+ Requested convergence on RMS density matrix=1.00D-08 within 128 cycles.
+ Requested convergence on MAX density matrix=1.00D-06.
+ Requested convergence on             energy=1.00D-06.
+ No special actions if energy rises.
+ Integral accuracy reduced to 1.0D-05 until final iterations.
+ Initial convergence to 1.0D-05 achieved.  Increase integral accuracy.
+ SCF Done:  E(UB3LYP) =  -75.6673259051     A.U. after   11 cycles
+            NFock= 11  Conv=0.33D-08     -V/T= 2.0054
+ <Sx>= 0.0000 <Sy>= 0.0000 <Sz>= 0.5000 <S**2>= 0.7518 S= 0.5009
+ <L.S>=  0.00000000000    
+ Annihilation of the first spin contaminant:
+ S**2 before annihilation     0.7518,   after     0.7500
+
+ **********************************************************************
+
+            Population analysis using the SCF Density.
+
+ **********************************************************************
+
+ Orbital symmetries:
+ Alpha Orbitals:
+       Occupied  (SG) (SG) (SG) (PI) (PI)
+       Virtual   (SG) (SG) (PI) (SG) (PI) (SG) (PI) (PI) (?A) (?A)
+                 (?A) (PI) (PI) (SG)
+ Beta  Orbitals:
+       Occupied  (SG) (SG) (SG) (PI)
+       Virtual   (PI) (SG) (SG) (SG) (PI) (PI) (SG) (PI) (PI) (SG)
+                 (DLTA) (DLTA) (PI) (PI) (SG)
+ Unable to determine electronic state:  partially filled degenerate orbitals.
+ Alpha  occ. eigenvalues --  -19.19117  -0.99000  -0.46265  -0.40347  -0.32856
+ Alpha virt. eigenvalues --    0.05236   0.56243   0.84509   0.87476   0.89406
+ Alpha virt. eigenvalues --    1.02682   1.39117   1.41066   2.16078   2.56539
+ Alpha virt. eigenvalues --    2.56654   2.89314   2.94635   3.64046
+  Beta  occ. eigenvalues --  -19.16580  -0.92077  -0.43571  -0.30179
+  Beta virt. eigenvalues --   -0.15232   0.06023   0.56918   0.89780   0.91026
+  Beta virt. eigenvalues --    0.94639   1.05237   1.40909   1.40952   2.17767
+  Beta virt. eigenvalues --    2.64684   2.65804   2.95818   2.96811   3.66698
+          Condensed to atoms (all electrons):
+               1          2
+     1  O    7.895801   0.281461
+     2  H    0.281461   0.541278
+          Atomic-Atomic Spin Densities.
+               1          2
+     1  O    1.020672   0.005615
+     2  H    0.005615  -0.031901
+ Mulliken charges and spin densities:
+               1          2
+     1  O   -0.177261   1.026287
+     2  H    0.177261  -0.026287
+ Sum of Mulliken charges =  -0.00000   1.00000
+ Mulliken charges and spin densities with hydrogens summed into heavy atoms:
+               1          2
+     1  O   -0.000000   1.000000
+ Electronic spatial extent (au):  <R**2>=             14.8764
+ Charge=             -0.0000 electrons
+ Dipole moment (field-independent basis, Debye):
+    X=              0.0000    Y=              0.0000    Z=             -1.7145  Tot=              1.7145
+ Quadrupole moment (field-independent basis, Debye-Ang):
+   XX=             -5.1910   YY=             -6.3056   ZZ=             -4.4955
+   XY=              0.0000   XZ=              0.0000   YZ=              0.0000
+ Traceless Quadrupole moment (field-independent basis, Debye-Ang):
+   XX=              0.1397   YY=             -0.9748   ZZ=              0.8352
+   XY=              0.0000   XZ=              0.0000   YZ=              0.0000
+ Octapole moment (field-independent basis, Debye-Ang**2):
+  XXX=              0.0000  YYY=              0.0000  ZZZ=             -1.7015  XYY=              0.0000
+  XXY=              0.0000  XXZ=             -0.1506  XZZ=              0.0000  YZZ=              0.0000
+  YYZ=             -0.2490  XYZ=              0.0000
+ Hexadecapole moment (field-independent basis, Debye-Ang**3):
+ XXXX=             -3.1668 YYYY=             -4.3717 ZZZZ=             -5.0298 XXXY=              0.0000
+ XXXZ=              0.0000 YYYX=              0.0000 YYYZ=              0.0000 ZZZX=              0.0000
+ ZZZY=              0.0000 XXYY=             -1.2564 XXZZ=             -1.5850 YYZZ=             -1.8050
+ XXYZ=              0.0000 YYXZ=              0.0000 ZZXY=              0.0000
+ N-N= 4.364348131299D+00 E-N=-1.879538407329D+02  KE= 7.526356086476D+01
+ Symmetry A1   KE= 6.793524134370D+01
+ Symmetry A2   KE= 3.240873172017D-35
+ Symmetry B1   KE= 2.525375766499D+00
+ Symmetry B2   KE= 4.802943754562D+00
+ Symmetry A1   SP= 7.753291250654D-15
+ Symmetry A2   SP= 5.234287459894D-36
+ Symmetry B1   SP= 1.000000000000D+00
+ Symmetry B2   SP= 2.059591954719D-15
+ There are a total of       43862 grid points.
+ ElSum from          density=        8.9999999891
+ ElSum from atomic densities=        8.9999999845
+ Hirshfeld populations at iteration   1 (CA, CB, DipXYZ):
+               1          2          3          4          5
+     1  O    4.565056   3.600741  -0.000000   0.000000  -0.162692
+     2  H    0.434944   0.399259  -0.000000  -0.000000  -0.207929
+       Tot   5.000000   4.000000  -0.000000  -0.000000  -0.370621
+
+ Dip from Atomic Chgs              0.000000   0.000000  -0.303912
+         Total Dipole             -0.000000  -0.000000  -0.674534
+
+ Hirshfeld charges, spin densities, dipoles, and CM5 charges using IRadAn=      5:
+              Q-H        S-H        Dx         Dy         Dz        Q-CM5   
+     1  O   -0.165797   0.964315  -0.000000   0.000000  -0.162692  -0.328814
+     2  H    0.165797   0.035685  -0.000000  -0.000000  -0.207929   0.328814
+       Tot   0.000000   1.000000  -0.000000  -0.000000  -0.370621   0.000000
+ Hirshfeld charges and spin densities with hydrogens summed into heavy atoms:
+              Q-H        S-H       Q-CM5   
+     1  O    0.000000   1.000000   0.000000
+ 
+ EQQ= 0.187731040402E-01 EQD=-0.579471015213E-01 EDD= 0.549249859343E-02
+ EQQ+QD+DD=-0.336814988877E-01
+ 
+                          Isotropic Fermi Contact Couplings
+        Atom                 a.u.       MegaHertz       Gauss      10(-4) cm-1
+     1  O(17)              0.30615    -185.58526     -66.22144     -61.90458
+     2  H(1)              -0.01301     -58.13803     -20.74509     -19.39276
+ --------------------------------------------------------
+       Center         ----  Spin Dipole Couplings  ----
+                      3XX-RR        3YY-RR        3ZZ-RR
+ --------------------------------------------------------
+     1   Atom        3.680438     -1.864315     -1.816123
+     2   Atom       -0.039009     -0.132981      0.171990
+ --------------------------------------------------------
+                        XY            XZ            YZ
+ --------------------------------------------------------
+     1   Atom        0.000000      0.000000      0.000000
+     2   Atom        0.000000      0.000000      0.000000
+ --------------------------------------------------------
+
+
+ ---------------------------------------------------------------------------------
+              Anisotropic Spin Dipole Couplings in Principal Axis System
+ ---------------------------------------------------------------------------------
+
+       Atom             a.u.   MegaHertz   Gauss  10(-4) cm-1        Axes
+
+              Baa    -1.8643   134.901    48.136    44.998 -0.0000  1.0000  0.0000
+     1 O(17)  Bbb    -1.8161   131.413    46.892    43.835  0.0000  0.0000  1.0000
+              Bcc     3.6804  -266.314   -95.027   -88.833  1.0000  0.0000  0.0000
+ 
+              Baa    -0.1330   -70.952   -25.318   -23.667 -0.0000  1.0000  0.0000
+     2 H(1)   Bbb    -0.0390   -20.813    -7.427    -6.943  1.0000  0.0000  0.0000
+              Bcc     0.1720    91.766    32.744    30.610  0.0000  0.0000  1.0000
+ 
+
+ ---------------------------------------------------------------------------------
+
+ Unable to Open any file for archive entry.
+ 1\1\GINC-CHPC-CN072\SP\UB3LYP\def2SVP\H1O1(2)\B169250\24-Sep-2026\0\\#
+  b3lyp def2svp pop=hirshfeld\\Gaussian job with default settings\\0,2\
+ O,0,0.,0.,0.\H,0,0.,0.,0.97\\Version=ES64L-G16RevC.02\HF=-75.6673259\S
+ 2=0.751799\S2-1=0.\S2A=0.750002\RMSD=3.269e-09\Dipole=0.,0.,0.6745336\
+ Quadrupole=0.1038533,-0.7247742,0.6209209,0.,0.,0.\PG=C*V [C*(H1O1)]\\
+ @
+ The archive entry for this job was punched.
+
+
+ TOWERING GENIUS DISDAINS A BEATEN PATH.  IT SEEKS 
+ REGIONS HITHERTO UNEXPLORED.
+
+                                -- ABRAHAM LINCOLN
+ Job cpu time:       0 days  0 hours  0 minutes 30.1 seconds.
+ Elapsed time:       0 days  0 hours  0 minutes  7.7 seconds.
+ File lengths (MBytes):  RWF=     17 Int=      0 D2E=      0 Chk=      1 Scr=      2
+ Normal termination of Gaussian 16 at Thu Sep 24 20:07:44 2026.

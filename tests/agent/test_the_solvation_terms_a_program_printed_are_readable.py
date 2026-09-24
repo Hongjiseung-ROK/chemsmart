@@ -186,6 +186,12 @@ def test_declared_only_where_the_meaning_was_audited():
 #: its results contract", was true until the driver was asked to write the
 #: terms down (result contract v10), and PySCF's row arrived with it.
 _ARCHIVED_SOLVATED_RESULT: dict[str, str] = {
+    # MN15/def2-QZVP in SMD(generic): "SMD-CDS (non-electrostatic) energy
+    # (kcal/mol) = 7.20", beneath the SCF Done it is included in.
+    "gaussian": (
+        "tests/data/GaussianTests/outputs/"
+        "5PQ_Me_ts1_b_no_pd_opt_sp_smd_generic.log"
+    ),
     "orca": "tests/data/ORCATests/outputs/phenol_pka_B_sp.out",
     "pyscf": (
         "tests/data/PySCFTests/outputs/water_sp_smd_water/"
@@ -207,8 +213,10 @@ _NOT_REPORTED_BY_THE_PROGRAM: dict[str, frozenset[str]] = {
 def test_declared_only_where_an_archived_solvated_result_exercises_them():
     """A term is declared where its meaning was audited, and nowhere else.
 
-    Gaussian prints its SMD-CDS term but no archived log carries one, so it
-    declares nothing here.
+    Gaussian prints its SMD-CDS term beneath every SMD SCF.  This said "no
+    archived log carries one"; fourteen archived Gaussian SMD logs do (R10
+    Q13's census), and Gaussian now declares that term -- its electrostatic
+    part it never prints, and that stays undeclared.
     """
 
     for program, reader in RESULT_READERS.items():

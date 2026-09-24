@@ -5,7 +5,11 @@ own generated driver script writes -- not a log parser. ``io/orca/output.py``
 is ~4,000 lines of regex because ORCA's printed text is the only interface it
 offers; here ChemSmart controls both ends, so the numbers come back as exact
 float64 arrays and the sibling ``label.out`` (PySCF's own log) is never
-parsed. It exists for humans only; the HDF5 schema identifies itself.
+parsed for a value. It exists for humans, and for one pointer: where a
+stability record written before the driver kept PySCF's real -> complex
+answer and eigenvalues says "not determined", the result reader quotes the
+lines this run's log prints instead (bound by the run nonce the log echoes).
+The HDF5 schema identifies itself.
 
 Thermochemistry is **delegated** to ``chemsmart/analysis/thermochemistry.py``
 rather than recomputed. PySCF ships ``pyscf.hessian.thermo.thermo()``, but

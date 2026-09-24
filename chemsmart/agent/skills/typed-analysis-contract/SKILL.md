@@ -1,7 +1,7 @@
 ---
 name: typed-analysis-contract
-version: 0.1.0
-description: Explains how the typed analysis layer expects intent to be written - identifiers, units, declared quantity kinds, evidence references, and which bookkeeping the host derives for you rather than demanding. Use this skill BEFORE re-sending any analysis call the host refused, and before authoring a workflow whose analysis nodes compare repeated quantities. Triggers on a refusal naming an identifier pattern, a missing or unsupported unit, a dimensionless quantity, a declared quantity kind an operation does not derive, a selector a result does not resolve, a semantic role, a producer output, or a blocked stage. Do NOT use it to choose the chemistry, the method or the observable - only for how an already-chosen analysis is expressed.
+version: 0.1.2
+description: How an already-chosen analysis is expressed so the host can carry its evidence - identifiers, units, declared quantity kinds, evidence references, the bookkeeping the host derives for you - and how to read and repair an analysis stage the host refused.
 ---
 
 # Expressing an analysis so the host can carry the evidence
@@ -38,8 +38,9 @@ before it will combine anything. Two consequences follow:
 
 - A quantity that genuinely has no dimension — a count, a population or mole
   fraction, an oscillator strength, a degeneracy, a verdict — is dimensionless
-  and says so with the dimensionless unit. It is not unitless-by-omission, and
-  a word describing what is being counted is not a unit.
+  and says so with the dimensionless unit, written `1`. It is not
+  unitless-by-omission, and a word describing what is being counted is not a
+  unit.
 - A percentage is a presentation of a fraction, not a separate dimension.
   Choose the dimensionless form and present it however you like afterwards.
 

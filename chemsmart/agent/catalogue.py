@@ -1357,6 +1357,74 @@ def _selector_reference_entries() -> tuple[CatalogueEntryV1, ...]:
     return tuple(entries)
 
 
+#: The family advisory knowledge is found under.
+KNOWLEDGE_FAMILY = "knowledge"
+
+
+def knowledge_entry_name(skill_id: str) -> str:
+    """The catalogue name of one advisory skill document."""
+
+    return "about_" + str(skill_id).strip().lower().replace("-", "_")
+
+
+def _knowledge_reference_entries() -> tuple[CatalogueEntryV1, ...]:
+    """One reference entry per advisory skill document.
+
+    From the 2026-09-20 deletion of the guide tree until these entries,
+    the system prompt named three advisory documents, called them
+    "carried in this prompt" and told every session to consult them
+    before judging a method or comparing with experiment -- and carried
+    one line of each. Nothing could open a body: ``open_guide`` had been
+    the opener and was deleted, ``consult_domain_skill`` kept a handler
+    and lost its definition, and no catalogue entry held the text, so a
+    search found nothing either. Every R8 and R9 goal ran that way.
+
+    A skill is reference text, so it is published the way the catalogue
+    publishes reference text: its body is its description, found by
+    searching, loaded by its exact name. The summary leads, separated by
+    a blank line, so a search result and the prompt's index read the
+    same sentence the document opens with. A user overlay replaces the
+    text and changes the catalogue digest, which is how the session's
+    record says which text it could read.
+    """
+
+    from chemsmart.agent.skills import advertised_skill_documents
+
+    entries = []
+    for document in advertised_skill_documents():
+        name = knowledge_entry_name(document.skill_id)
+        entries.append(
+            CatalogueEntryV1(
+                name=name,
+                family=KNOWLEDGE_FAMILY,
+                kind="reference",
+                loading="deferred",
+                derived_from="chemsmart.agent.skills",
+                definition=_reference_definition(
+                    name,
+                    str(document.description).strip()
+                    + "\n\n"
+                    + str(document.body).strip(),
+                ),
+            )
+        )
+    return tuple(entries)
+
+
+def knowledge_index(catalogue: ToolCatalogueV1) -> tuple[str, ...]:
+    """``name: summary`` for every knowledge entry the catalogue holds.
+
+    Read off the catalogue the session will load from, so the prompt can
+    only name knowledge that a call by name or a search can open.
+    """
+
+    return tuple(
+        f"{entry.name}: {entry.description.split(chr(10) * 2, 1)[0].strip()}"
+        for entry in catalogue.entries
+        if entry.family == KNOWLEDGE_FAMILY and entry.kind == "reference"
+    )
+
+
 def _topic_reference_entries(
     registry: Any = None,
 ) -> tuple[tuple[CatalogueEntryV1, ...], dict[str, str]]:
@@ -1437,6 +1505,7 @@ def build_tool_catalogue(registry: Any = None) -> ToolCatalogueV1:
     entries.extend(_selector_reference_entries())
     entries.append(_planning_reference_entry())
     entries.extend(topic_entries)
+    entries.extend(_knowledge_reference_entries())
     return make_catalogue(entries)
 
 
@@ -1447,6 +1516,7 @@ __all__ = [
     "DEFAULT_SEARCH_LIMIT",
     "ENTRY_KINDS",
     "FAMILY_REFERENCES",
+    "KNOWLEDGE_FAMILY",
     "LOADING_MODES",
     "MAX_QUERY_CHARACTERS",
     "MAX_SEARCH_LIMIT",
@@ -1460,6 +1530,8 @@ __all__ = [
     "ToolCatalogueV1",
     "build_tool_catalogue",
     "catalogue_digest",
+    "knowledge_entry_name",
+    "knowledge_index",
     "make_catalogue",
     "render_reference_body",
 ]

@@ -97,7 +97,6 @@ from chemsmart.agent.identity import (
     ApprovedMolecularInputV1,
     validate_identity_for_geometry,
 )
-from chemsmart.agent.knowledge_packs import BUILTIN_PROGRAM_PACKS
 from chemsmart.agent.projects import project_document, render_project_yaml
 from chemsmart.agent.provider_config import (
     AgentProviderProfileV1,
@@ -118,8 +117,7 @@ from chemsmart.agent.runtime.transport import ProviderTurnDeadlinesV1
 from chemsmart.agent.services.unified_session import UnifiedSessionRunner
 from chemsmart.agent.skills import (
     SkillDocumentV1,
-    resolve_skills,
-    skills_enabled,
+    advertised_skill_documents,
 )
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from chemsmart.agent.workflows import (
@@ -1307,42 +1305,22 @@ def _provider_public_record(
     return record
 
 
-def cross_program_skill_ids() -> tuple[str, ...]:
-    """Skills every program pack carries, and which therefore belong to none.
-
-    Derived from the packs rather than listed separately: a skill that all of
-    them advertise is program-neutral by construction, so adding or removing
-    one cannot leave a second list behind to drift.
-    """
-
-    advertised = [set(pack.skill_ids) for pack in BUILTIN_PROGRAM_PACKS]
-    if not advertised:
-        return ()
-    return tuple(sorted(set.intersection(*advertised)))
-
-
 def advisory_skill_documents() -> tuple[SkillDocumentV1, ...]:
-    """The advisory skills a session may consult.
+    """The advisory skills a session is offered.
 
     Every skill any pack advertises is advertised by all of them, so the
-    intersection ``cross_program_skill_ids`` computes is the whole set and
-    no text could ever change it. The text gate that ran beside it here
-    matched each pack's brand names against the task, discarded the
-    resulting receipt at the call site, and left the skill index exactly
-    as it would have been -- the repair that seeded ``skill_ids`` with
-    the program-neutral set made the gate inert rather than removing it.
+    intersection is the whole set and no text could ever change it. A
+    text gate that once ran beside it matched each pack's brand names
+    against the task, and "a DFT setup and a cheaper semi-empirical one"
+    -- correct chemistry, naming no vendor -- then listed no knowledge at
+    all. General chemistry knowledge is not gated behind mentioning a
+    vendor, and it is not gated behind the task's words at all.
 
-    The gate's own history says why nothing replaces it: the packs' terms
-    are product names, so "a DFT setup and a cheaper semi-empirical one"
-    -- correct chemistry, naming no vendor -- matched nothing and the
-    prompt then listed no skills at all, which the tool's description
-    reads as an instruction to consult nothing. General chemistry
-    knowledge is not gated behind mentioning a vendor.
+    The catalogue asks the same function, so what the prompt may name
+    and what a session can load are one answer.
     """
 
-    if not skills_enabled():
-        return ()
-    return resolve_skills(cross_program_skill_ids())
+    return advertised_skill_documents()
 
 
 def _coordinator_base_messages(
@@ -1353,15 +1331,24 @@ def _coordinator_base_messages(
     task: str = "",
     exposure: Any = None,
 ) -> list[dict[str, str]]:
-    documents = advisory_skill_documents()
     goal_record = context.get("goal") if isinstance(context, Mapping) else None
+    # The index is read off the catalogue this session loads from, never
+    # off the documents beside it: from 2026-09-20 the prompt listed
+    # three documents that no call could open, because the list and the
+    # opener were computed by two organs and one of them was deleted.
+    from chemsmart.agent.catalogue import knowledge_index
+
     messages = [
         {
             "role": "system",
             "content": _system_prompt(
                 approved_workflow,
                 bounded_review_requested=bounded_review_requested,
-                skill_index=tuple(item.index_entry() for item in documents),
+                skill_index=(
+                    knowledge_index(exposure.catalogue)
+                    if exposure is not None
+                    else ()
+                ),
                 exposure=exposure,
                 goal_record=goal_record,
             ),
@@ -3781,7 +3768,7 @@ def _system_prompt(
     # Under a goal the host executes what the session plans, and the
     # prompt says so instead of contradicting the wake context beneath
     # it (NOVEL-3 ino3: two woken cycles ended "planned").
-    from chemsmart.agent.rules import rules_by_id
+    from chemsmart.agent.rules import render_rules, rules_by_id
 
     bounded_review = bool(bounded_review_requested)
     execution_sentence = (
@@ -3830,28 +3817,21 @@ def _system_prompt(
         catalogue_index_sentence(exposure) if exposure is not None else ""
     )
     if skill_index:
+        # The sentence is a registered rule; the listing is the catalogue's
+        # own knowledge entries (``knowledge_index``), so it can name only
+        # what a call by name or a search opens. It said "carried in this
+        # prompt" for four days while only one line of each was.
         listing = " ".join(f"({item})" for item in skill_index)
         skill_sentence += (
-            " Domain-knowledge skills are advisory reading carried in "
-            "this prompt. Available now: "
-            f"{listing}. Consult the relevant skill before you commit to a "
-            "reporting convention, an electronic-state assignment, or a "
-            "workflow shape it covers; before you judge whether a method, "
-            "basis, solvation model or conformer sample can answer the "
-            "question asked, or compare a computed value with experiment; and "
-            "before you repair a rejected analysis node. Say when a stated "
-            "fact came from a "
-            "skill. A skill is advisory knowledge only: it never establishes "
-            "readiness, approval, terminal state, or an accuracy claim, and it "
-            "never replaces a typed host receipt."
+            " "
+            + render_rules("stem:knowledge")
+            + f" The knowledge entries: {listing}."
         )
     # The body renders from the rules registry (chemsmart.agent.rules):
     # every sentence has an id, a placement and a provenance there. A
     # rule placed on a reference entry renders inside that entry's text,
     # and one placed on a tool inside that tool's description; neither
     # is ever in the stem.
-    from chemsmart.agent.rules import render_rules
-
     return (
         render_rules("stem")
         + " "
