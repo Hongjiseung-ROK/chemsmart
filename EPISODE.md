@@ -163,6 +163,33 @@ Gaussian with `nosymm`, with `guess=mix stable=opt`, and an 85-degree twist
 - H3: `guess=mix stable=opt` reaches ORCA's solution at 90 deg.
 - H4: `nosymm` leaves H2 2.00 and p-benzyne unchanged within 1e-7 Eh.
 
+## Oracle O1 -- the typed request through the live CLI (pre-registered)
+
+`chemsmart run` on the packed commits c54dd56e..404adffb (code tree digest
+recorded by the job), project YAML with `broken_symmetry: true`, B3LYP (the
+Gaussian VWN3 form in every program) / def2-SVP, the O0 geometries; ORCA with
+NoRI, TightSCF, DefGrid3; PySCF defgrid3 and scf_tol 1e-10; 24 commands.
+- T1 (translation = native mechanism): each hub broken-symmetry single point
+  equals the same program's O0 native energy -- Gaussian U + guess=mix within
+  1e-6 Eh (H2 2.00 -1.01848664, p-benzyne -230.70472415), ORCA GuessMix within
+  1e-6 Eh (-1.01848664, -230.70472404), PySCF's followed instability within
+  2e-5 Eh (grid (99,590) against O0's level 5: -1.01848665, -230.70472508);
+  H2 0.74 and planar ethylene at the program's restricted energy within 1e-6.
+- T2 (the host says so): every broken-symmetry result's level carries
+  reference uks and broken_symmetry true; the spin-symmetry record reads
+  broken for H2 2.00 and p-benzyne (<S**2> 0.705 and 0.970, +-0.01) and
+  unbroken for H2 0.74 and planar ethylene (<S**2> < 0.01) in all three
+  programs; the plain singlets read rks and the triplets uks, no word.
+- T3 (cross-program): p-benzyne broken-symmetry and triplet energies agree
+  within 2e-4 Eh across the three programs.
+- T4 (the request survives an optimisation): each program's
+  broken-symmetry p-benzyne opt ends with <S**2> > 0.1 below its own sp
+  energy, and the three reached C1...C4 distances agree within 0.02 A.
+- T5: PySCF's scf stage records its restricted solution externally unstable
+  for H2 2.00 and p-benzyne and stable for H2 0.74 and planar ethylene.
+A failed T1 is a translation defect; a failed T3 or T4 with T1 held is a
+program fact (the particular solution is not portable), reported as such.
+
 ## Jobs issued
 
 - O0: CUHK Slurm 2153330 (r10-q18-a), 4 cores, native inputs, 16 min, prereg
