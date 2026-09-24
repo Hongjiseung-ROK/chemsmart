@@ -1,6 +1,10 @@
 import importlib
 import logging
 import os
+import shutil
+import tempfile
+from importlib import resources
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -20,6 +24,73 @@ thermochemistry_cli_module = importlib.import_module(
 )
 
 mol_cli_module = importlib.import_module("chemsmart.cli.mol.mol")
+
+
+############ Home fence #####################################
+# Every test -- and every fixture of a wider scope -- runs in a home of its
+# own, never the developer's. HOME (USERPROFILE on Windows), and so
+# Path.home and os.path.expanduser, point into a fresh temporary directory
+# holding the configuration `chemsmart config` installs, and the variables
+# that route user state elsewhere are unset. Without it the suite appended a
+# `qualified` row to the developer's ~/.chemsmart/agent/qualification.jsonl
+# on every run (655 rows by 2026-09-25), and 67 tests passed only because
+# the developer's home happened to be configured (R10 Q25). A fence works
+# only where the host resolves a user path at use; the census in
+# tests/test_a_user_path_is_resolved_where_it_is_used.py keeps it so.
+# This is the mechanism the lesson config-tests-fence-home names.
+
+#: Variables that name user state outside HOME. A developer's own value
+#: would route a test's writes into a real directory.
+_USER_STATE_VARIABLES = (
+    "CHEMSMART_CONFIG_DIR",
+    "CHEMSMART_AGENT_CONFIG",
+    "CHEMSMART_AGENT_KEYS",
+    "CHEMSMART_SKILL_ROOT",
+)
+
+
+def _configured(config_dir):
+    """Write the configuration `chemsmart config` gives a new user."""
+
+    template = resources.files("chemsmart.settings") / "templates"
+    with resources.as_file(template / ".chemsmart") as source:
+        shutil.copytree(source, config_dir, dirs_exist_ok=True)
+    return config_dir
+
+
+def _new_home(parent):
+    """A fresh home holding the configuration a new user is given."""
+
+    home = Path(tempfile.mkdtemp(prefix="home-", dir=parent))
+    _configured(home / ".chemsmart")
+    return home
+
+
+def _fence_home(patcher, home):
+    patcher.setenv("HOME", str(home))
+    patcher.setenv("USERPROFILE", str(home))
+    for name in _USER_STATE_VARIABLES:
+        patcher.delenv(name, raising=False)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _homes(tmp_path_factory):
+    """The parent of every fenced home, fenced itself for wider fixtures."""
+
+    parent = tmp_path_factory.mktemp("homes")
+    with pytest.MonkeyPatch.context() as patcher:
+        _fence_home(patcher, _new_home(parent))
+        yield parent
+
+
+@pytest.fixture(autouse=True)
+def fenced_home(_homes, monkeypatch):
+    """The home this test runs in."""
+
+    home = _new_home(_homes)
+    _fence_home(monkeypatch, home)
+    yield home
+    shutil.rmtree(home, ignore_errors=True)
 
 
 ############ IO Fixtures ####################################
@@ -1558,10 +1629,14 @@ def server_yaml_file(utils_test_directory):
 
 @pytest.fixture()
 def gaussian_project_config_dir(tmp_path):
-    """Minimal Gaussian project config under a temporary CHEMSMART config root."""
-    config_root = tmp_path / "chemsmart_cfg"
+    """A temporary CHEMSMART config root, as a new user has it, holding a
+    Gaussian project. The root answers every user-configuration lookup --
+    the server profiles too -- now that each is resolved where it is used;
+    when it held the project alone, the local server was found in whatever
+    home the process had at import (R10 Q25)."""
+    config_root = _configured(tmp_path / "chemsmart_cfg")
     gaussian_cfg = config_root / "gaussian"
-    gaussian_cfg.mkdir(parents=True)
+    gaussian_cfg.mkdir(parents=True, exist_ok=True)
     (gaussian_cfg / "test.yaml").write_text(
         "gas:\n  functional: B3LYP\n  basis: def2-SVP\n"
         "solv:\n  functional: B3LYP\n  basis: def2-SVP\n"
