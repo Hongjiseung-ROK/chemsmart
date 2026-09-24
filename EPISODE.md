@@ -315,6 +315,61 @@ route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
   prefix, so `functional` answers `b3lyp` either way and the surface's
   `reference` is `unknown`. To be settled by Gaussian's own output.
 
+## G1 -- READ (CUHK Slurm 2152875, COMPLETED 22:57:47 HKT after 1 h 17 min; code digest 85752dd3 verified on the node)
+
+- Settlement (ledger): `returned_to_human`, 2 cycles, 1 revision admitted,
+  1 engine call: "cycle 2: the run ended in a state no revision can
+  answer: pbnz-opt=not_launched, ts-search=not_launched".
+- The one node that ran, ORCA `ene-opt` (B3LYP/G def2-TZVP defgrid3, no
+  dispersion, opt+freq, 550 s), validated: E -230.977263 Eh, no imaginary
+  mode. Its structure crossed to Gaussian inside the approval: two
+  `validated_handoff` receipts and two bound data edges, ene-opt ->
+  cc-tz-ene and cc-qz-ene, state (0, 1), atom order digest 84fcaa15
+  (R2 holds on the only handoff executed). The analysis chain ran on that
+  branch: extraction, host RRHO at 298.15 and 470 K. Everything
+  downstream of the Gaussian nodes settled failed or skipped.
+- HUB BREAK (the finding; repaired in 9cda6569, a `shared:` commit). Both
+  Gaussian nodes were refused by the executor with ORCA's input-check
+  lines ("orca: UNRECOGNIZED OR DUPLICATED KEYWORD(S) IN SIMPLE INPUT LINE";
+  ORCA process ids 1682980/1682981). Those were ORCA's words about the
+  earlier ORCA compiles of the same node ids (`FlipSpin 1,6`, 14:37:44).
+  `_probe_input_check` returns early for a program with no probe and
+  never retired the node's record. The stale abort reached the compile
+  replies the model read for the Gaussian nodes (14:46:27, 14:46:30),
+  the frozen review (`reviews/cycle-2.json` node_observations), and the
+  executor's launch check, which called it "the program's own input check
+  refused these exact bytes". Witness
+  `test_an_input_check_speaks_only_for_the_compile_it_read`: red on the
+  base with g1's lines, green on 9cda6569. This is the round's own gate
+  (the probe runs inside allocations since Q9) breaking on the first
+  route that re-planned a node across programs.
+- Evidence for Q18 (reference / initial guess; from g1's host records):
+  - No Gaussian output exists: the two Gaussian nodes never launched.
+  - The previewed Gaussian inputs asked a restricted method for a
+    singlet: `# opt=(ts,calcfc,noeigentest) freq b3lyp def2tzvp
+    guess=mix` and `# opt freq b3lyp def2tzvp guess=mix`; the six
+    CCSD(T) nodes `ccsd(t) <basis> guess=mix`. Nothing in the hub adds
+    the U prefix, so these would have run restricted.
+  - The Agent intended broken symmetry and planned host checks for it:
+    validations `val-spin-ts` and `val-spin-pbnz` require <S^2> in
+    [0.5, 1.6] (thresholds 0.5 / 1.6 on the extracted `spin_square`).
+    Against O1, the saddle's RKS -> UKS eigenvalue is +0.0047 Eh (stable),
+    so a true UKS saddle would also have collapsed to <S^2> 0 and failed
+    its own check; p-benzyne is RKS -> UKS unstable (-0.064 Eh), where
+    broken symmetry is physical.
+  - ORCA: the session tried `BrokenSym 1,1` (refused by the loader as
+    `joboption`, then by ORCA as a simple-input keyword) and `FlipSpin`
+    (refused by ORCA); it recorded that `%scf` blocks are unreachable
+    through the ORCA settings (input_string replaces the whole file).
+- Model-side record (host records, not graded): cycle 1 ended `planned`
+  because an amended scan node was never recompiled, and the review was
+  refused. Cycle 2's decision names CASSCF/NEVPT2 as the unavailable gold
+  standard, DLPNO-CCSD(T) or CCSD(T) at TZ and QZ as the primary energies
+  with the TZ-QZ spread as an uncertainty term, and the composite
+  E_CC + H_corr(DFT) at 470 and 298 K. A defensible route.
+- B: not earned by g1 (a hub break stopped it). The rest is not read:
+  B1-B4 had no delivered numbers.
+
 ## Status
 
 - 2026-09-24: base verified; chemistry and references chosen and read;
