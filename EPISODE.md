@@ -329,6 +329,18 @@ shape the writer reads (the CLI's own ScanTS builder is the found-and-left
 defect below); `--fake` writes `! ScanTS Freq B3LYP/G def2-tzvp d3bj` with
 `B 0 5 = 3.1, 1.9, 13`. Every O1 prediction stands.
 
+O1c (2153578) failed at ScanTS's first scan step in ORCA itself: "Error
+(ORCA_GSTEP): could not find the Hessian file!" (it looked for
+`hx_scan.carthess`). The ORCA writer puts the TS Hessian block (`Calc_Hess
+True`, `Recalc_Hess 5`) in a ScanTS input too, and ORCA 6.1.1 then reads an
+exact Hessian during the scan steps that was never computed -- a second
+ScanTS defect, after the CLI's shape mismatch (found and left; ScanTS through
+the hub cannot run). I cancelled O1c. O1d: the qualified plain relaxed scan
+(`! Opt ... Scan B 0 5 = 3.1, 1.9, 13`) from the optimised cZc, the highest
+point picked from ORCA's own scan table by a 20-line helper (pick_max.py,
+sha256 376a336c...), OptTS from it with an exact Hessian, then every other O1
+command. Predictions unchanged.
+
 O-D read from O1's finished part (B3LYP-D3(BJ)/def2-TZVP, ORCA, unscaled
 RRHO of my own, which reproduces ORCA's 298.15 K enthalpy to 0.01
 kcal/mol): tZt E -233.509133588 Eh, lowest mode 106 cm-1; cZc E
