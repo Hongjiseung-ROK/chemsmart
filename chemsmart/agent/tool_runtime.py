@@ -16750,16 +16750,59 @@ class CommandCompiledToolHostV1:
             - non_executable_ids
         )
         if not initial_ids or not initial_ids.issubset(previewed_ids):
+            # Name the nodes and what they hold. The bare sentence cost
+            # R10 Q15 g1 (CUHK 2152875) its first cycle: one amended scan
+            # node was never materialized again, the refusal reached the
+            # re-wake verbatim, and nothing in it said which node.
+            held = {
+                item.node_id: {
+                    "grounded": "grounded, not compiled",
+                    "compiled": "compiled, not previewed",
+                }.get(item.state, item.state)
+                for item in materialized.nodes
+            }
+            missing = ", ".join(
+                f"{node_id} "
+                f"({held.get(node_id, 'not materialized for the current plan')})"
+                for node_id in sorted(initial_ids - previewed_ids)
+            )
             raise ContractError(
                 "every initial workflow node requires a green preview before "
-                "bounded execution"
+                "bounded execution; "
+                + (
+                    "the latest materialization of this plan holds none for "
+                    f"{missing}: compile_command previews a node, and a node "
+                    "an amendment changed is compiled again"
+                    if missing
+                    else "this plan has no initial node that executes"
+                )
             )
         unresolved_ids = (
             set(materialized.unresolved_node_ids) - non_executable_ids
         )
         if unresolved_ids != data_targets:
+            stray = sorted(unresolved_ids - data_targets)
+            resolved = sorted(data_targets - unresolved_ids)
             raise ContractError(
-                "only exact producer-dependent nodes may remain unresolved"
+                "only exact producer-dependent nodes may remain unresolved; "
+                + "; ".join(
+                    part
+                    for part in (
+                        (
+                            "unresolved without a producer edge: "
+                            + ", ".join(stray)
+                            if stray
+                            else ""
+                        ),
+                        (
+                            "resolved although they wait on a producer: "
+                            + ", ".join(resolved)
+                            if resolved
+                            else ""
+                        ),
+                    )
+                    if part
+                )
             )
         return materialized
 

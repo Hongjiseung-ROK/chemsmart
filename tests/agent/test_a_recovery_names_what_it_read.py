@@ -23,8 +23,17 @@ from types import SimpleNamespace
 
 import pytest
 
+from chemsmart.agent._contracts import ContractError
 from chemsmart.agent.execution import build_program_execution_receipt
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
+from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+from chemsmart.agent.workflows import (
+    MaterializedNodeV1,
+    ScientificWorkflowEdgeV2,
+    ScientificWorkflowNodeV2,
+    build_materialized_workflow,
+    build_scientific_workflow_plan,
+)
 
 from .test_a_failed_criterion_is_a_finding_the_goal_can_deliver import (
     _RULE,
@@ -282,3 +291,97 @@ def test_a_wake_names_the_failed_criterion_it_read_and_the_receipts_to_cite(
     assert any(
         f"failed_criterion:{_RULE}:answered" in r for r in result.reasons
     )
+
+
+def _node(node_id, stage):
+    return ScientificWorkflowNodeV2(
+        node_id=node_id,
+        stage=stage,
+        requested_program="orca",
+        program="orca",
+        engine="cpu",
+        project_role=f"project.{stage}",
+        unresolved_fields=(),
+    )
+
+
+def _materialized_node(node_id, state):
+    return MaterializedNodeV1(
+        node_id=node_id,
+        input_artifact_sha256="e" * 64,
+        project_artifact_sha256="f" * 64,
+        project_validation_receipt_sha256="1" * 64,
+        environment_receipt_sha256="2" * 64,
+        invocation_sha256="3" * 64 if state != "grounded" else "",
+        preflight_receipt_sha256="4" * 64 if state == "previewed" else "",
+        state=state,
+    )
+
+
+@pytest.mark.parametrize(
+    "scan_materialized, named",
+    [
+        # R10 Q15 g1 (CUHK 2152875): the scan node was amended after its
+        # last compile, so the latest materialization of the final plan
+        # held it unresolved, and the refusal the goal lost a cycle on
+        # named no node.
+        (None, "bergman-scan (not materialized for the current plan)"),
+        ("compiled", "bergman-scan (compiled, not previewed)"),
+    ],
+)
+def test_a_review_refused_for_a_missing_preview_names_the_node(
+    scan_materialized, named
+):
+    plan = build_scientific_workflow_plan(
+        workflow_id="bergman-wf1",
+        task_spec_sha256="a" * 64,
+        scientific_identity_sha256="b" * 64,
+        nodes=(
+            _node("bergman-scan", "scan"),
+            _node("ene-optfreq", "opt"),
+            _node("ene-sp-tz", "sp"),
+        ),
+        edges=(
+            ScientificWorkflowEdgeV2(
+                edge_id="data.ene-optfreq.ene-sp-tz.filename",
+                source_node_id="ene-optfreq",
+                target_node_id="ene-sp-tz",
+                edge_kind="data",
+                artifact_class="geometry_xyz",
+                producer_output_id="geom",
+                consumer_input_id="filename",
+            ),
+        ),
+    )
+    nodes = [_materialized_node("ene-optfreq", "previewed")]
+    unresolved = ["ene-sp-tz"]
+    if scan_materialized is None:
+        unresolved.append("bergman-scan")
+    else:
+        nodes.append(_materialized_node("bergman-scan", scan_materialized))
+    materialized = build_materialized_workflow(
+        plan=plan,
+        live_cli_schema_sha256="c" * 64,
+        resource_sha256="d" * 64,
+        nodes=tuple(sorted(nodes, key=lambda node: node.node_id)),
+        unresolved_node_ids=tuple(sorted(unresolved)),
+        status="partial",
+    )
+    host = object.__new__(CommandCompiledToolHostV1)
+    host.registry = {
+        "orca": SimpleNamespace(
+            execution_engine_job_pairs=frozenset(
+                {("cpu", "opt"), ("cpu", "scan"), ("cpu", "sp")}
+            )
+        )
+    }
+    host.materialized_workflows = {
+        materialized.materialized_sha256: materialized
+    }
+    with pytest.raises(ContractError) as refused:
+        host._latest_bounded_materialization(plan)
+    message = str(refused.value)
+    assert "requires a green preview" in message
+    assert named in message
+    # The node that holds its preview is not named as missing one.
+    assert "ene-optfreq" not in message
