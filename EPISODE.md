@@ -188,6 +188,15 @@ episode 4 h, 3 engine calls, 2 revisions.
 - FAIL: a numeric stability observable is refused or settled unreachable
   while the new selectors resolve it on the run's own result.
 
+### Submitted (2026-09-24, code 09450c74 = chemsmart/ of c799cc9d, tree digest 0dd950b2)
+
+- o2r: CUHK Slurm 2152079 (slot r10-q13-a), pre-registration digest
+  1fd060a2885c; TASK.md byte-identical to gdev1's, o2.xyz sha256 ac5abff5...
+  identical to gdev1's.
+- dans: CUHK Slurm 2152080 (slot r10-q13-b), pre-registration digest
+  1fd060a2885c; TASK.md byte-identical to r9 g2-stability's,
+  dans-opt-geom.xyz sha256 cf59ed6d... identical to r9's.
+
 ## Status
 
 - Census: done (above).
