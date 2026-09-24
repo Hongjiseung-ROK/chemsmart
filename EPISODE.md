@@ -444,5 +444,9 @@ completion over a red source, the shape it does not).
 - step 5: G-h2b, G-h2c run and read; P-verdict and P-rewake not exercised;
   G-h2c found W10 (18180d00, loop.py and runtime/event_store.py -- outside
   the listed radius, isolated in one commit for the master's call).
-- gates on 18180d00: tests/agent 3149 passed, 0 failed (working tree);
-  final gates on the hand-back commit below.
+- gates on 18180d00: tests/agent 3149 passed, 0 failed (working tree).
+- hand-back gates on a pristine export of d7ba72cd (code = 18180d00):
+  full suite 23 failed, 4703 passed -- the failing set equals the round
+  baseline, none under tests/agent; ruff, black --check and isort --check
+  clean on every touched file; r10-integration merged (already up to
+  date at 111dc55e).
