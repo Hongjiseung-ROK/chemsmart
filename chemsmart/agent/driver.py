@@ -6414,18 +6414,44 @@ class GoalDriver:
             line = "the reading turn recorded nothing: " + str(
                 summary.get("error") or "the session named no stream"
             )
-        elif findings:
-            line = (
-                f"the reading turn ({run_id}, ended "
-                f"{summary.get('terminal_state') or 'unstated'}) read the "
-                "delivered results and recorded "
-                f"{len(findings)} finding(s), in its own words beneath"
-            )
         else:
+            # What the reading did, from its own stream's counts. The line
+            # used to quote the session's terminal word and assert that it
+            # "read the delivered results": a reading that recorded only a
+            # decision ends 'blocked' -- the planning word for stopping
+            # before a workflow, which is how a reading stops -- and two
+            # sealed Q6 goals settled saying "ended blocked ... read the
+            # delivered results" of a session that had read nothing. The
+            # terminal word stays in the evidence, and is quoted here only
+            # when it says the session failed.
+            reads = int(summary.get("typed_reads") or 0)
+            claims = int(summary.get("claims") or 0)
+            decisions = int(summary.get("decisions") or 0)
+            terminal = str(summary.get("terminal_state") or "")
             line = (
-                f"the reading turn ({run_id}, ended "
-                f"{summary.get('terminal_state') or 'unstated'}) read the "
-                "delivered results and recorded no finding"
+                f"the reading turn ({run_id}) made "
+                + (
+                    f"{reads} typed read(s) of the delivered results"
+                    if reads
+                    else "no typed read of the delivered results"
+                )
+                + " and recorded "
+                + (
+                    f"{len(findings)} finding(s), in its own words beneath"
+                    if findings
+                    else "no finding"
+                )
+                + (
+                    f"; it recorded {claims} claim(s) and "
+                    f"{decisions} decision(s)"
+                    if claims or decisions
+                    else ""
+                )
+                + (
+                    f"; its session ended {terminal}"
+                    if terminal in {"failed", "cancelled"}
+                    else ""
+                )
             )
         added = (line,) + _finding_reasons(findings)
         evidence = dict(opened.get("evidence") or {})
