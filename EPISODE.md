@@ -345,6 +345,47 @@ What counts:
 - Replay: every repaired session's category acts are re-dispatched on
   the base tree (42f2fd90) to show what the old surface would have said.
 
+## Live goals -- READ (host records; all eight exited 0, code verified on the nodes)
+
+| goal | arm/task | categorical answer delivered | refused category acts (M2r) | settlement |
+|---|---|---|---|---|
+| bs1 2153692 | base S | 'unstable' (scf_stability_external) via a finding, after the chain's claim node and the session's claim were refused by the false word gate | 2 | execution_wave_decision_pending (a park, not a category effect) |
+| bs2 2153696 | base S | 'unstable' via a finding, after the session's claim was refused; the chain's verdict 0 under the id was accepted and answered nothing | 1 | achieved_with_observations |
+| bt1 2153694 | base T | minimum_verdict = '0' (read by the host: selector unrecorded) -- a validation verdict | 1 (a finding refused first) | achieved_with_observations |
+| bt2 2153698 | base T | none as a category: declared "1 if ... minimum, 0 ..." in unit '1' | 0 | returned_to_human (energy precision, not the category) |
+| rs1 2153693 | repaired S | 'unstable' (scf_stability_external) claimed under the id, join claim_id; "claimed under the declared id" | 1 (the new gate refused the chain's verdict under the id) | achieved_with_observations |
+| rs2 2153697 | repaired S | 'unstable' claimed under the id (and a finding beside it) | 1 (same; that claim node failed whole, the energy with it) | achieved_with_observations |
+| rt1 2153695 | repaired T | 'first-order saddle' (stationary_point_kind) claimed under the id by the cycle-1 approved chain | 0 | achieved_with_observations |
+| rt2 2153699 | repaired T | same, cycle-1 chain; "claimed under the declared id" | 0 | achieved_with_observations |
+
+Physics: all eight in band -- E(RKS N2) -109.1788318 Eh, RKS->UKS -0.0694
+Eh; E(planar NH3) -56.5000358 Eh, one mode at -829.9 cm^-1. Every answer
+is chemically right in all eight; what differs is its form.
+
+Against the pre-registration (f41b694bf2bf):
+- Milestone A: met. Both tasks have repaired goals whose categorical
+  answer is certified as a host word through the new path, physics in
+  band; for T the answer came from the approved chain, provider-free,
+  from a selector the task never named (2 of 2).
+- Milestone C: NOT met as pre-registered. Base: 4 of 4 show a refused
+  category act (S) or no host-word answer (T). Repaired T: 2 of 2 host
+  word, M2r = 0. Repaired S: 2 of 2 host word, but M2r = 1 in both --
+  the Agent's first plan still carried the yes/no as a validation
+  verdict under the category id, the new gate refused it with the route,
+  and the woken session then claimed the word. The prediction "M2r = 0
+  for repaired" is falsified for S; reported, not re-rolled.
+- Falsifier "a repaired goal meets a refused act on the honest form":
+  not triggered (0 of 4).
+
+Replays: the ten category acts of the repaired sessions and chains
+reproduce byte for byte on their own commit f20bec0c (10/10); on
+42f2fd90 every accepted one is refused by the false word gate
+(including 'first-order saddle' under is_minimum) and the two refused
+verdict nodes are accepted.
+
+Record: 8c29efde (shared, additive) pyscf:hess:stationary_point_kind,
+status recorded, run rt1/rt2.
+
 ## Oracle
 
 Host records only: session event streams (declarations, claims,
@@ -384,10 +425,6 @@ behavioural statement needs a transcript and a control.
   new gate refused that node (claim.a_category_is_answered_by_a_word_the_
   host_read); both goals woke a cycle-2 session. Nothing is concluded
   from this.
-- WAITING on jobs 2153692-2153699 (all eight goals); the CUHK gate closed
-  at 06:45 KST and nothing can be read until it reopens. Remaining work
-  needs those records: read M1-M4 and physics per goal, replay the
-  repaired sessions' category acts on 42f2fd90 (scratch
-  q23/scripts/replay_claims.py, export-base-pkg), judge A/C against the
-  pre-registration, a release.json record for pyscf:hess:
-  stationary_point_kind if a repaired goal delivered it.
+- step 6 (07:16 KST, gate reopened): eight goals read, replays run,
+  judged above. Milestone A claimed; C not. r10-integration (ec41a57c)
+  was already merged at b34ee9b6.
