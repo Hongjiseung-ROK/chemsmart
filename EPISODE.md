@@ -239,6 +239,20 @@ Q7 outputs.
 - Falsifier: PySCF's labels disagree with G/O on a root all three windows
   hold (the offsets would then not be one description).
 
+### G3 -- G2's task re-issued unchanged on the repaired tree (live goal, goals/g3-allyl)
+
+Why: G2's cycle-1 stream (CUHK 2150296) showed ORCA's td bound no engine
+on the allyl radical because the bootstrap fixture asked ORCA for a
+singlet manifold on a doublet (repaired in 22e22752). G2 is reported as it
+runs; G3 is a new observation of the same task (TASK.md byte-identical,
+same allyl.xyz) on the tree that also carries 43862950 (what a root is
+made of). Code: the pack of this commit, in its own directory.
+- Bands: exactly G2's (above), plus: ORCA's unrestricted td binds and
+  executes (the first Agent run of ORCA's open-shell TD).
+- Recorded, not scored: whether the session reads
+  excited_state_dominant_excitations to pair states, and whether a window
+  gap (if its windows leave one) is found by character.
+
 ## Results read so far (host records, through ChemSmart's readers)
 
 O1 (Slurm 2150194, code 4a01097a, tree digest 15fd46c4 recomputed on the
