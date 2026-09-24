@@ -175,3 +175,82 @@ def test_no_advisory_knowledge_means_no_sentence_about_it(monkeypatch):
     assert KNOWLEDGE_FAMILY not in exposure.catalogue.families()
     sentence = rules_by_id()["stem.knowledge_is_reference_text"].text
     assert sentence.strip() not in prompt
+
+
+def _tagged_requests() -> tuple[list[str], list[str]]:
+    """Drive the terminal's own /skills, /skill and submit handlers.
+
+    Returns the request texts the terminal handed to planning after each
+    advisory document was tagged, and everything it wrote for the human.
+    Nothing is planned: the stub controller records the text and stops.
+    """
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent._contracts import ContractError
+    from chemsmart.agent.tui.app import ChemSmartAgentApp
+
+    requests: list[str] = []
+
+    class _Controller:
+        def begin_planning(self, text: str) -> str:
+            requests.append(text)
+            raise ContractError("stopped after the request was composed")
+
+    import io
+
+    from rich.console import Console
+
+    def plain(renderable) -> str:
+        buffer = io.StringIO()
+        Console(file=buffer, width=200, color_system=None).print(renderable)
+        return buffer.getvalue()
+
+    app = ChemSmartAgentApp(_Controller())
+    written: list[str] = []
+    app._write = lambda renderable: written.append(plain(renderable))
+    app._usage = lambda message: written.append(str(message))
+    app._operation_failed = lambda label, exc: None
+    app._sync_phase = lambda *args, **kwargs: None
+    app.notify = lambda *args, **kwargs: None
+    app._dispatch_command("/skills")
+    for skill_id in available_skill_ids():
+        app._dispatch_command(f"/skill {skill_id}")
+        event = SimpleNamespace(
+            value="Plan a calculation.", input=SimpleNamespace(value="")
+        )
+        app.submit(event)
+    return requests, written
+
+
+@pytest.mark.parametrize("knowledge", ("1", "0"))
+def test_a_tag_the_human_puts_on_a_request_names_what_the_session_can_load(
+    monkeypatch, knowledge
+):
+    """The terminal's /skill tag reaches the model beside the request.
+
+    It named the advisory document by its id, which no call or search
+    serves, and it still offered every document with the knowledge
+    switched off -- the prompt's old failure reached through the human's
+    path instead of the prompt. Off, the terminal says the knowledge is
+    off and how to turn it on, and tags nothing.
+    """
+
+    pytest.importorskip("textual")
+    monkeypatch.setenv("CHEMSMART_AGENT_SKILLS", knowledge)
+    served = _served_vocabulary(build_exposure("host_search"))
+    requests, written = _tagged_requests()
+    assert requests, "the terminal handed no request to planning"
+    unserved = {
+        text[:80]: sorted(names)
+        for text in requests
+        if (names := _unserved_names(text, served))
+    }
+    assert not unserved, (
+        "a tagged request names what the session cannot load: " f"{unserved}"
+    )
+    if knowledge == "0":
+        assert all(text == "Plan a calculation." for text in requests)
+        assert any("CHEMSMART_AGENT_SKILLS=1" in text for text in written)
+    else:
+        assert all(text != "Plan a calculation." for text in requests)

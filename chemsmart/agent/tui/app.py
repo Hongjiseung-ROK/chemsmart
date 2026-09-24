@@ -100,6 +100,23 @@ class ChemSmartCommandProvider(Provider):
             )
 
 
+def _offered_knowledge() -> dict[str, str]:
+    """Skill id -> the catalogue entry a session can load, for each offered document.
+
+    Empty when the knowledge switch is off. Asked of the same two
+    functions the catalogue and the prompt ask, so a tag can only name an
+    entry the session is able to load.
+    """
+
+    from chemsmart.agent.catalogue import knowledge_entry_name
+    from chemsmart.agent.skills import advertised_skill_documents
+
+    return {
+        document.skill_id: knowledge_entry_name(document.skill_id)
+        for document in advertised_skill_documents()
+    }
+
+
 class ChemSmartAgentApp(App[None]):
     """Production terminal shell over the current Runtime V2 composition."""
 
@@ -221,10 +238,12 @@ class ChemSmartAgentApp(App[None]):
             self._dispatch_command(text)
             return
         if self._pending_skill:
-            text = (
-                f"The user tagged domain skill '{self._pending_skill}' -- "
-                "consult it before planning.\n\n" + text
-            )
+            entry = _offered_knowledge().get(self._pending_skill)
+            if entry:
+                text = (
+                    f"The user tagged the domain-knowledge entry '{entry}' "
+                    "-- read it before planning.\n\n" + text
+                )
             self._pending_skill = ""
         try:
             normalized = self.controller.begin_planning(text)
@@ -698,33 +717,49 @@ class ChemSmartAgentApp(App[None]):
             "Review shown; /approve runs once, /revise or /deny declines"
         )
 
-    def _show_skills(self, tail: list[str]) -> None:
-        from chemsmart.agent.skills import available_skill_ids
+    def _knowledge_off(self) -> bool:
+        """Say so, plainly, when this session offers no domain knowledge."""
 
-        table = Table(title="Consultable domain skills")
+        if _offered_knowledge():
+            return False
+        self._write(
+            Panel(
+                "Domain knowledge is off in this session: no knowledge "
+                "entry can be loaded, so none can be tagged. Start the "
+                "agent with CHEMSMART_AGENT_SKILLS=1 to offer it.",
+                title="Domain knowledge",
+                border_style="yellow",
+            )
+        )
+        return True
+
+    def _show_skills(self, tail: list[str]) -> None:
+        if self._knowledge_off():
+            return
+        table = Table(title="Domain knowledge this session can load")
         table.add_column("Skill", style="bold cyan")
-        for skill_id in available_skill_ids():
-            table.add_row(skill_id)
+        table.add_column("Catalogue entry")
+        for skill_id, entry in sorted(_offered_knowledge().items()):
+            table.add_row(skill_id, entry)
         self._write(table)
         self._write(
             Text(
-                "/skill <id> tags your next request; the session still "
-                "consults it through its own tool, so the record of what "
-                "was consulted is kept.",
+                "/skill <id> tags your next request; the session loads the "
+                "entry by name, and the load is recorded in its events.",
                 style="dim",
             )
         )
 
     def _tag_skill(self, tail: list[str]) -> None:
-        from chemsmart.agent.skills import available_skill_ids
-
         if len(tail) != 1:
             self._usage(
                 "/skill takes exactly one skill id; /skills lists them"
             )
             return
+        if self._knowledge_off():
+            return
         skill_id = tail[0]
-        known = tuple(available_skill_ids())
+        known = tuple(sorted(_offered_knowledge()))
         if skill_id not in known:
             self._write(
                 Panel(
@@ -739,8 +774,8 @@ class ChemSmartAgentApp(App[None]):
         self._write(
             Panel(
                 f"The next scientific request will carry a visible tag "
-                f"asking the session to consult '{skill_id}' before "
-                "planning.",
+                f"asking the session to read "
+                f"'{_offered_knowledge()[skill_id]}' before planning.",
                 title="Skill tagged",
             )
         )
