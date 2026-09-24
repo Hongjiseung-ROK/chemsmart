@@ -549,8 +549,57 @@ by the release, none changing an arm, a measure or a test:
 | 2152987 | r10-q17-b | hc1 slot b (dA P, dB S/U, dE P) | a3eda4485329 | COMPLETED 0:35:02; 4 goals, mechanics pass |
 | 2153435 | r10-q17-a | sealed1 plan slot a (39 goals) | 19b5352e3f59 | COMPLETED 2:50:31, exit 0:0; both arms' imports and digests verified on the node; tasks manifest 12079111... and plan f60980d1... re-computed equal; stopped on STOP after its 15th goal |
 | 2153436 | r10-q17-b | sealed1 plan slot b (38 goals) | 19b5352e3f59 | COMPLETED 2:54:07, exit 0:0; wrote STOP at 18:55:25 UTC (below), started no goal after it |
-| 2153652 | r10-q17-a | sealed1 continuation, slot a (25 remaining), runner eb77fd11 | e9d20b0b2ca8 | RUNNING (started 19:02 UTC) |
-| 2153653 | r10-q17-b | sealed1 continuation, slot b (23 remaining), runner eb77fd11 | e9d20b0b2ca8 | RUNNING (started 19:02 UTC) |
+| 2153652 | r10-q17-a | sealed1 continuation, slot a (25 remaining), runner eb77fd11 | e9d20b0b2ca8 | COMPLETED 4:37:38, exit 0:0, "plan finished" 23:40 UTC, no STOP |
+| 2153653 | r10-q17-b | sealed1 continuation, slot b (23 remaining), runner eb77fd11 | e9d20b0b2ca8 | COMPLETED 4:20:07, exit 0:0, "plan finished" 23:22 UTC, no STOP |
+
+### Sealed run complete (host facts only; nothing here is a grade)
+
+- 77 of 77 goals finished, one goal per plan row, none re-run; 0
+  infrastructure endings; 1803 provider attempts, 3 of them `rate_limited`
+  (in 3 goals, all recovered inside live sessions; the first is the STOP
+  event above), no other failed attempt; no zero-turn session.
+- Provider tokens, all 77 goals (planning and reading sessions): 153.18 M
+  input, 6.07 M output, 4.36 M reasoning. By arm (input): S 67.75 M over 33
+  goals, P 66.01 M over 33, U 19.41 M over 11.
+- Host settlement words by arm: S achieved 16, achieved_with_observations
+  10, returned_to_human 7; P achieved 17, achieved_with_observations 6,
+  returned_to_human 8, unreachable_from_evidence 2; U achieved 5,
+  achieved_with_observations 3, returned_to_human 3.
+- Records: `fetch_runset.sh` (sha256 prefix changed to fetch only each
+  goal's meta.json, goal.stdout/stderr, TASK.md and
+  workspace/.chemsmart-agent -- the copied inputs are the released files
+  already in sealed/<task>/ -- and to write an uncompressed tar, because
+  the login node killed the gzip child of the first attempt with signal 9);
+  records tar sha256 03228efa9f99d377... on CUHK and locally; 77 goal
+  folders in the worktree's `sealed/q17-fetched/sealed1/` (git-ignored).
+  The duplicate staged copy of the tasks (sealed/q17-stage/sealed1/tasks
+  and its tar) was deleted to spare a data volume at 99 % (its manifest
+  digest stays recorded above; the cluster copy is intact).
+
+### Packets (built after the run, before any grade exists)
+
+- Built by `after_run.sh` with build_packets.py (acd91e4d..., the frozen
+  version), 6 duplicates drawn with seed 20260925 among the conclusion
+  packets, random packet ids.
+- 132 packets = 77 conclusion (S 33, P 33, U 11) + 49 later reading (S 26,
+  P 23; U's readings not packaged, as pre-registered) + 6 duplicates.
+- Folder for the graders: `sealed/q17-packets/` in this worktree
+  (`packets/*.md` and GRADER.md, sha256 709704beafb355b0...).
+- **Packet-to-arm mapping sha256:
+  `1a2d7b761d4463c09819100317575c9b97eb5d2f2c2a885d85a72ad1db17a414`.**
+  Kept by me only: `sealed/q17-private/mapping.json` (mode 600) and a
+  mode-600 copy on CUHK (r10/q17/private/sealed1-mapping.json, digest
+  recomputed equal). It never leaves me before grading is returned.
+- Checks: no packet carries an artifact id, a run id or a 64-hex digest;
+  none names an arm or the switch.
+- Leakage, measured and not acted on (leak.py): P-revealing phrases in 2 of
+  33 P conclusion packets and in 0 S or U packets; "not served"-like
+  phrases in 1 P and 1 S conclusion packet and 0 U (arms that serve
+  everything, so these are ordinary words); hidden-selector names in 10 P
+  and 10 S conclusion packets and 0 U (U cannot name what it cannot read,
+  a structural difference the U-vs-S contrast carries by design). The
+  pre-registered sensitivity analysis drops the tasks whose P or S
+  conclusion packets carry a P-revealing phrase.
 
 ### STOP on a recovered throttle (2026-09-24 18:55 UTC), and the continuation
 
