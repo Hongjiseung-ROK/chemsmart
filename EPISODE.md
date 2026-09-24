@@ -190,6 +190,51 @@ NoRI, TightSCF, DefGrid3; PySCF defgrid3 and scf_tol 1e-10; 24 commands.
 A failed T1 is a translation defect; a failed T3 or T4 with T1 held is a
 program fact (the particular solution is not portable), reported as such.
 
+## Live goals -- pre-registered before submission
+
+Model under study: deepseek-v4-flash-0731 via alibaba-token-plan (the only
+provider credential); approvals delegated (claude-researcher-q18-owner-
+delegated), never a human decision. Code: the packed commit named in each
+job's output.
+
+G1 -- p-benzyne singlet-triplet splitting (goals/g1/TASK.md, sha256
+b3c411a8e3a8c26b...; start: a regular hexagon, not a stationary point; all
+four programs; 16 cores, 48 GB, node 2 h, episode 5 h, 16 engine calls).
+The task asks for the adiabatic splitting without and with spin projection
+and never names broken symmetry, a program keyword or a mechanism.
+Reference: triplet 3.8 +- 0.5 kcal/mol above the singlet (Wenthold, Squires,
+Lineberger, JACS 1998, 120, 5279, as quoted by the NIST WebBook, read in
+this session). Bands (dE_ST = E(T) - E(S), kcal/mol, any hybrid-DFT
+broken-symmetry route):
+- unprojected [0.5, 6.0]; projected [1.5, 10.0]; projected/unprojected in
+  [1.6, 2.5]; <S**2> of the singlet in [0.6, 1.05], of the triplet in
+  [2.00, 2.10].
+Capability outcomes (from host records, not the report):
+- M1: the singlet is requested with `broken_symmetry: true` and no native
+  broken-symmetry word (FlipSpin, BrokenSym, guess=mix) is written;
+- M2: the compile reply / review of that node carries the translation;
+- M3: the singlet result's level says reference uks and broken_symmetry
+  true, and the host's spin-symmetry record says broken, <S**2> in band;
+- M4: the delivered numbers stand on extraction receipts of those results;
+- M5: the goal settles achieved or achieved_with_observations.
+Outcome words: success = M1-M5 and both numbers in band; a restricted
+singlet (no request) is a behavioural finding about the model, read against
+whether the affordance was visible in its transcript; a request the host
+reads as unbroken on p-benzyne contradicts O0/O1 and is a defect.
+
+G2 -- the R8-era twisted-ethylene task, byte-identical (sha256 954087be...,
+the archived pyscf-agent-knowledge-20260919 g2-ethylene TASK and start;
+PySCF and xTB; the archived envelope: 8 cores, 32 GB, node 3000 s, episode
+5400 s, reserve 600 s, 6 engine calls). The archived run (CUHK 2140019)
+delivered the rigid restricted barrier, 97.3 kcal/mol, having written that a
+broken-symmetry singlet was "not selectable". This is an observation on a
+different tree, not a controlled A/B.
+- Bands: a barrier resting on a broken-symmetry singlet at 90 degrees in
+  [55, 76] kcal/mol (rigid or relaxed, B3LYP-class); a restricted one in
+  [88, 106]. The twisted singlet's host record: uks, broken, <S**2> in
+  [0.95, 1.05], PySCF's restricted start externally unstable.
+- Capability outcomes M1-M5 as for G1, PySCF.
+
 ## Jobs issued
 
 - O0: CUHK Slurm 2153330 (r10-q18-a), 4 cores, native inputs, 16 min, prereg
