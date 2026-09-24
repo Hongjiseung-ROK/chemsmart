@@ -165,9 +165,47 @@ Predictions (bands never tuned after a result):
 - O-H ORCA's T1 for p-benzyne exceeds the enediyne's and the saddle's;
   prediction T1(p-benzyne) > 0.015.
 
+## Live goal G1 -- PRE-REGISTRATION (written before submission)
+
+- Task: goals/g1/TASK.md, sha256 5d430a8837725b06cdf78290a0ba920755ff4009474855b398fb33220045cf2f;
+  workspace enediyne.xyz sha256 e18b5b9fe987f0650ff9fe993a6429b073e0ffc938b9e1ff63b57ea57e34633e
+  (the RDKit/MMFF structure; the only workspace file).
+- Agent: deepseek-v4-flash-0731 via alibaba-token-plan; knowledge documents
+  off (Q3's default); approval `claude-researcher-q15-owner-delegated` (a
+  delegated approval, never a human decision).
+- Envelope (make_goal.py): orca, pyscf, gaussian, xtb on cpu; 32 cores,
+  100 GB, node 3 h, episode 11 h, reserve 30 min, 30 engine calls, 0
+  excursion calls, 3 revisions. Local dispatch (one node at a time).
+- Code: the tree of this commit (chemsmart/ unchanged from the base unless
+  a repair lands before submission; the job prints the digest it verified).
+
+What is read, from host records only (ledger, run streams, receipts, native
+output), against the bands B1-B5 above:
+- R1 route: which programs the Agent used for which stage and why (its
+  recorded decisions); whether it crossed programs; whether each crossing
+  had a scientific reason on the record. A single-program route is
+  recorded as its choice, and B is then not claimed.
+- R2 lineage per handoff: producer node, handoff receipt, atom order,
+  state (0, 1), and the level each program applied (functional literal,
+  RI/density fitting, dispersion, basis, frozen core). An ORCA saddle
+  handed to a PySCF stage is a surface change (RIJCOSX in ORCA, exact
+  exchange in PySCF; O1's ORCA output shows RIJCOSX with def2/J applied
+  by default) and is read as such.
+- R3 the numbers: dH++(470 K) against B3, dH_R(298 K) against B4, the
+  saddle against B1, connectivity against B2; each against O1 at matched
+  level where one exists.
+- R4 the host's words: settlement, anomalies raised (e.g.
+  scf.reference_unstable on p-benzyne if stability is asked), and
+  whether each word is true of what it read.
+Milestone B is claimed only if R1 shows an Agent-chosen cross-program
+route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
+(B4 read as stated).
+
 ## Jobs issued
 
-(none yet)
+- 2026-09-24: O1, CUHK Slurm 2152790 (r10-q15-a), CLI oracle, 32 cores,
+  code 943882de (tree digest 85752dd3), pre-registration digest
+  47fcb74af3be.
 
 ## Status
 
