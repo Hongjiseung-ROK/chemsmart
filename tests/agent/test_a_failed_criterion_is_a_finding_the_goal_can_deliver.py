@@ -224,13 +224,25 @@ def test_a_criterion_the_session_answered_is_delivered_with_its_finding(
     # completion certifies the delivery and carries the verdict.
     certified = completions[-1]
     assert certified["status"] == "passed"
+    assert any(
+        item.startswith(f"failed_criterion:{_RULE}:answered:")
+        for item in certified["anomaly_output_ids"]
+    )
     assert [
         event["payload"]["terminal_state"]
         for event in _stream_rows(_o2r_stream(tmp_path))
         if event["kind"] == "runtime_terminated"
     ] == ["complete"]
-    # The goal is no longer handed back for a finding its session read.
-    assert result.settlement != "returned_to_human"
+    # The goal delivers the finding under the word that never hides one,
+    # and the reason names the verdict, its number and the decision.
+    assert result.settlement == "achieved_with_observations"
+    assert any(
+        f"failed_criterion:{_RULE}:answered" in r for r in result.reasons
+    )
+    assert any(
+        _RULE in reason and "-0.0926" in reason and "cites" in reason
+        for reason in result.reasons
+    )
 
 
 @pytest.mark.capability("rule:wake.failed_validation_receipt_answers_verdict")
@@ -240,6 +252,10 @@ def test_a_criterion_nobody_answered_holds_the_delivery_and_is_named(
     result = _o2r_goal(tmp_path, cite_verdict=False)
     certified = _completions(_o2r_stream(tmp_path))[-1]
     assert certified["status"] == "partial"
+    assert any(
+        item.startswith(f"failed_criterion:{_RULE}:unanswered:")
+        for item in certified["anomaly_output_ids"]
+    )
     assert result.settlement == "returned_to_human"
     # The reason says which finding the goal is waiting on, not only
     # that a gate did not pass.

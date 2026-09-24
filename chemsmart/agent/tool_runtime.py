@@ -12781,7 +12781,9 @@ class CommandCompiledToolHostV1:
         decision cites is answered: the session has read the finding
         and stands by its delivery, which the settlement has always
         counted as the scientist's call, so the completion no longer
-        names claims under it.
+        names claims under it -- the verdict rides the completion's
+        observations instead (``_record_toolchain_completion``) and the
+        settlement word carries it.
         """
 
         nodes = {node.node_id: node for node in plan.analysis_nodes}
@@ -13036,8 +13038,18 @@ class CommandCompiledToolHostV1:
             for row in declared_predictions
             if row.get("agreement") == "diverged" and row.get("observable_id")
         )
+        # The plan's own acceptance criteria that failed are the other
+        # pre-registration the physics can leave, and they ride the same
+        # list under their own prefix, with whether a recorded decision
+        # has answered them: a completion certified over an answered one
+        # still says the delivery carries it.
+        failed = tuple(
+            verdict.observation_id for verdict in self._failed_criteria()
+        )
         anomaly_output_ids = tuple(
-            sorted(set(self._anomaly_output_ids()) | set(falsified))
+            sorted(
+                set(self._anomaly_output_ids()) | set(falsified) | set(failed)
+            )
         )
         body = {
             "schema_version": "chemsmart.analysis-completion-receipt.v1",

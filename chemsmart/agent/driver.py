@@ -46,6 +46,7 @@ from chemsmart.agent.delivery import (
 from chemsmart.agent.execution import STRUCTURE_MOVING_STAGES, anomaly_standing
 from chemsmart.agent.goal import (
     GOAL_SCHEMA_VERSION,
+    FailedCriterionV1,
     GoalLedger,
     GoalRecordV1,
     admit_revision,
@@ -259,6 +260,30 @@ def _finding_reasons(
     )
 
 
+def _answered_criterion_reasons(
+    answered: Sequence[tuple[FailedCriterionV1, tuple[str, ...]]],
+) -> tuple[str, ...]:
+    """One reason per failed criterion a recorded decision answered.
+
+    The verdict with the number that failed it, the receipt the decision
+    cites, and the delivered numbers standing on it: the delivery carries
+    the failed expectation and the session's reading of it, and the word
+    says which finding it rests on.
+    """
+
+    return tuple(
+        "the plan's own acceptance criterion did not hold and the recorded "
+        f"decision cites it ({verdict.answered_by[-1][:8]}): "
+        f"{verdict.statement()}"
+        + (
+            "; delivered standing on it: " + ", ".join(standing)
+            if standing
+            else ""
+        )
+        for verdict, standing in answered
+    )
+
+
 def _achieved_word(
     delivery: "_AnalysisDelivery",
     ledger_anomalies: Sequence[Mapping[str, Any]] = (),
@@ -271,10 +296,24 @@ def _achieved_word(
     not hide what the run found (owner ruling, 2026-09-03).
     """
 
+    # A failed acceptance criterion the session answered is a finding the
+    # delivery carries, and the word says so: the charter's own words for
+    # achieved_with_observations include "a pre-registered expectation
+    # the physics left". The settlement names each from the records as
+    # they stand now; a completion's listing, minted before a decision
+    # that answered it, describes that earlier moment.
     observed = tuple(
         sorted(
-            set(delivery.anomaly_output_ids)
+            {
+                item
+                for item in delivery.anomaly_output_ids
+                if not str(item).startswith("failed_criterion:")
+            }
             | set(_anomaly_output_ids_from_records(ledger_anomalies))
+            | {
+                verdict.observation_id
+                for verdict, _standing in delivery.answered_criteria
+            }
         )
     )
     # Where a delivered number came from is true of either word, so it is
@@ -335,6 +374,10 @@ def _achieved_word(
         provenance = provenance + (
             "delivered in an earlier cycle: "
             + ", ".join(delivery.delivered_in_earlier_cycles),
+        )
+    if delivery.answered_criteria:
+        provenance = provenance + _answered_criterion_reasons(
+            delivery.answered_criteria
         )
     if delivery.findings:
         provenance = provenance + _finding_reasons(delivery.findings)
@@ -459,14 +502,28 @@ def _achieved_word(
         else "no completion gate certified this delivery"
     )
     if observed:
-        return (
-            "achieved_with_observations",
-            (
-                certified + "; the host also recorded observations nobody "
-                "asked for: " + ", ".join(observed),
-            )
-            + provenance,
+        # What the host detected unasked and what the session expected
+        # before the physics are both what the run found, and they are
+        # not one kind of thing: a criterion of the session's own plan
+        # is not an observation "nobody asked for".
+        expected = tuple(
+            item
+            for item in observed
+            if item.startswith(("falsified_expectation:", "failed_criterion:"))
         )
+        unasked = tuple(item for item in observed if item not in expected)
+        lead = certified
+        if unasked:
+            lead += (
+                "; the host also recorded observations nobody asked for: "
+                + ", ".join(unasked)
+            )
+        if expected:
+            lead += (
+                "; expectations registered before the physics that it did "
+                "not bear out: " + ", ".join(expected)
+            )
+        return ("achieved_with_observations", (lead,) + provenance)
     return ("achieved", (certified,) + provenance)
 
 
@@ -2401,6 +2458,13 @@ class _AnalysisDelivery:
     #: that cites the validation receipt has answered it; one that does
     #: not has left it open.
     unanswered_verdicts: tuple[str, ...] = ()
+    #: The plan's own acceptance criteria that failed and that a recorded
+    #: decision answered, each with the delivered quantities standing on
+    #: the results it judged. The session read the finding and stands by
+    #: its numbers; the delivery carries both, and the word says so.
+    answered_criteria: tuple[
+        tuple[FailedCriterionV1, tuple[str, ...]], ...
+    ] = ()
     #: Delivered quantities whose own receipt lineage traces back to a
     #: result a failed verdict rejected. A recovery cycle that replaces
     #: the structure does not replace the numbers computed from the old
@@ -3364,6 +3428,24 @@ def _analysis_delivery(
         artifact_by_receipt=artifact_by_receipt,
         inherited_rejected_artifacts=flagged_artifact_sha256s,
     )
+    # The same walk once per failed criterion: which numbers this stream
+    # delivers stand on the results that criterion judged. An answered
+    # verdict rides the word with the numbers it carries.
+    goal_expressions = tuple(
+        (receipt, output_id, tuple(sources))
+        for (receipt, output_id), sources in goal.expression_sources.items()
+    )
+    answered_criteria: list[tuple[FailedCriterionV1, tuple[str, ...]]] = []
+    for verdict in verdicts:
+        standing, _judged = _stale_quantity_ids(
+            claim_pairs=claim_pairs,
+            rejected_bindings=verdict.bindings,
+            expression_outputs=goal_expressions,
+            artifact_by_receipt=goal.result_artifacts,
+        )
+        typed_here = bool(here_receipts.intersection(verdict.receipt_sha256s))
+        if verdict.answered and (standing or typed_here):
+            answered_criteria.append((verdict, standing))
     # An expression's exported outputs, as opposed to the intermediate
     # node_values it computed on the way: the receipt contract pins
     # output_dependencies' ids to outputs' quantity_ids, in order, so the
@@ -3451,6 +3533,7 @@ def _analysis_delivery(
         stopped_by=tuple(stopped_by),
         anomaly_output_ids=anomaly_ids,
         unanswered_verdicts=unanswered,
+        answered_criteria=tuple(answered_criteria),
         completion_status=completion_status,
         limitation_output_ids=limitations,
         claims=claims,
