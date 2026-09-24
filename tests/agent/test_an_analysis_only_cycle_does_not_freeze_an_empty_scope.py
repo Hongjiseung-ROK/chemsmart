@@ -245,6 +245,13 @@ def test_the_driver_carries_its_own_analysis_evidence_to_admission(tmp_path):
             ),
             # Cycle 2: the first executable plan of the goal.
             capture(_planning_session("live-2", review=_review_payload())),
+            # Its run claims nothing, and cycle 1's claims never carried
+            # `gap`, so the goal is woken again. What the woken cycles do is
+            # not under test.
+            *(
+                _planning_session(f"live-{index}", terminal="blocked")
+                for index in range(3, 9)
+            ),
         ],
         executes=[_execute(tmp_path, failed=False, status="completed")],
         max_revisions=3,

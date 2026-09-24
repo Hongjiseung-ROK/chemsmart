@@ -19303,6 +19303,34 @@ class CommandCompiledToolHostV1:
             output_ids=tuple(item.quantity_id for item in receipt.outputs),
             semantic_signature_sha256=receipt.semantic_signature_sha256,
             record=record,
+            # What the evaluation read, as it was bound: each operand by
+            # receipt and quantity, the nodes and the outputs -- so the
+            # request whose digest the receipt carries (request_sha256)
+            # can be rebuilt from the stream alone and the evaluation
+            # replayed. The receipt holds the digest and not the request,
+            # and a provider-free walk's arguments reach no transcript: 8
+            # CUHK and 43 ax41 archived expressions could not be rebuilt
+            # (R10 Q21), and a signed word whose inputs cannot be replayed
+            # cannot be checked.
+            request_bindings={
+                "inputs": tuple(
+                    {
+                        "input_id": str(item["input_id"]),
+                        "receipt_sha256": str(item["receipt_sha256"]),
+                        "quantity_id": str(item["quantity_id"]),
+                        **(
+                            {"semantic_role": str(item["semantic_role"])}
+                            if str(item.get("semantic_role", "")).strip()
+                            else {}
+                        ),
+                    }
+                    for item in values["inputs"]
+                ),
+                "nodes": canonical_data(tuple(values["nodes"])),
+                "output_node_ids": tuple(
+                    str(item) for item in values["output_node_ids"]
+                ),
+            },
             **(
                 {"geometry_observations": geometry_observations}
                 if geometry_observations
