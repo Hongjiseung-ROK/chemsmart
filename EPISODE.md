@@ -204,6 +204,58 @@ arithmetic. A model that never plans a correlated node on water or H
 not re-rolled. Control: the base tree's outcome on this class is the
 archived record (Q3 g2, Q9 G1, Q12 g1-hi), not a new run.
 
+### G1 results (Slurm 2152811, prereg 5bf25eb91343, code r1 5b95c12f)
+
+Settled `achieved` in 2 cycles, 0 revisions, 6 engine calls, dH298 =
+112.44 kcal/mol (band 112-120: inside, at its low edge; my anchor of ~116
+was 3.6 high: the def2-TZVP De is 119.28, not 122-124).
+- S1 held: no MDCI abort. The model planned CCSD(T) on the H atom; the
+  compile refused it (`compile.program_accepts_the_state`, cost "no engine
+  call"); it promoted `ab_initio: hf, reference: uhf` for H.
+- S2 held: the review's h2o-ccsdt observation says "this state has 10 pairs
+  (8 correlated electrons), so the input runs 10 of the 16 granted
+  processes"; the input carries `# 10 of 16 granted` / `%pal nprocs 10`;
+  ORCA: "Program running with 10 parallel MPI-processes", "Number of pairs
+  included ... 10", TERMINATED NORMALLY, -76.326616900887 Eh. OH ran at 16
+  (21 pairs), -75.636721439480 Eh.
+- S3 held: E(H) = -0.499809832061 Eh (UHF/def2-TZVP, = O1 A3); the model's
+  decision: "numerically identical to CCSD(T) because a one-electron atom
+  has zero correlation energy and cannot form doubles".
+- S4 held (achieved, in band).
+- NOT pre-registered, found: the model's B3LYP opt+freq of the H atom
+  (ORCA ran Freq, TERMINATED NORMALLY, printed thermochemistry) was refused
+  by the result verifier (optimization_not_converged, frequencies_missing):
+  one refused engine call and a second cycle. Fixed in 6b22522e (a
+  finished atom's opt+freq is not refused), witness on this output.
+  Arithmetic check: De = 0.190085629346 Eh = 119.28 kcal/mol; d(H-E) =
+  7.332 + 1.480 - 15.652 = -6.840; 112.44. Its 5/2 RT for H was composed
+  from literals in cycle 2 (the host's atom thermochemistry was not
+  called).
+
+## G2 -- replication on a chemically different task (pre-registered)
+
+Code `r2` (this branch at the commit packed, including 6b22522e and
+094df51c). Envelope ORCA only, 16 cores, 48 GB, node 1 h, episode 2 h, 8
+engine calls, 2 revisions. Task: D0 of the hydroxyl radical, OH(X2Pi) ->
+O(3P) + H(2S), CCSD(T)/def2-TZVP electronic energies, geometry and
+harmonic ZPE at MP2/def2-TZVP; only `oh.xyz` (0.97 A) is given; nothing
+about processes, pairs, NumFreq or atoms.
+Natural route and what it meets: OH MP2 opt+freq (NumFreq translation,
+base: ORCA input-check abort); O atom UHF CCSD(T), 6 correlated
+electrons, 15 pairs < 16 (translation to 15; base: MDCI abort); H atom
+CCSD(T) (compile refusal; base: MDCI abort); OH CCSD(T) 21 pairs (none).
+Success (all): T1 no engine call ends failed or refused; T2 any MP2
+frequency node's review/compile observation names NumFreq and its input
+says NumFreq, OH harmonic stretch 3650-3900 cm-1 (experiment omega_e
+~3738, recalled); T3 an O-atom CCSD(T) node, if planned, runs at 15 of 16
+with the observation shown and "Number of pairs included ... 15"; T4 E(H)
+as in G1 (-0.499809832061 Eh) or an identical number; T5 settled achieved
+or achieved_with_observations with D0 in 94-103 kcal/mol (anchor: CBS De
+~106.6 recalled, def2-TZVP some 3-5 below, ZPE(OH) ~5.3; experiment D0
+~101.8 recalled). Failure: any failed engine call, D0 outside the band
+from host arithmetic. A route that avoids a class leaves it untested:
+reported, not re-rolled.
+
 ## Status
 
 - Census: done (above). O1: done (above).
