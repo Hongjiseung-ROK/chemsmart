@@ -535,6 +535,11 @@ by the release, none changing an arm, a measure or a test:
   f60980d1714a0346...; slot a 39 goals (S 17, P 16, U 6), slot b 38 (S 16,
   P 17, U 5); every task 7 goals; job scripts a a92e06b0..., b fc11b182...;
   envelope b72e5e03...; runner 9ebfce01....
+- Smoke of the re-pinned tree and the new runner, local, on development
+  task dE in the release layout (TASK.md + workspace/), arm P, from a
+  `git archive` of 55729bc4 run from its own directory: exit 0, achieved,
+  18 provider turns (planning 8, reading 10), 0.73 M input tokens, the
+  inspection reply carried values, no stop condition. Not a sealed goal.
 
 ## Jobs issued
 
