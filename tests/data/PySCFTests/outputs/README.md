@@ -316,3 +316,23 @@ refused the run at execution time. Every receipt `validated`.
 | `hi_hf_def2svp_ecp` | HF | 26 explicit electrons, `spec/ecp_core_electrons` {H: 0, I: 28}, atomic numbers [1, 53]; total -297.2315316634 Eh, 9.5e-11 from ORCA's and 1.2e-8 from Gaussian's def2-SVP (CUHK 2151773) |
 | `hi_mp2_def2svp_ecp_auto` | MP2 with `frozen_core: auto` | 4 frozen orbitals (4s4p: the chemical core less the potential's 14), ORCA's and Gaussian's default count; total within 2e-9 Eh of ORCA's |
 | `hi_mp2_def2svp_ecp_all_electron` | MP2 with `frozen_core` unset | every explicit electron correlated: 14.87 mEh below the frozen one, the HI bond energy 0.27 kcal/mol higher -- one project literal, a different core treatment from ORCA's default |
+
+## A stationary O2 Hessian (2026-09-25, R10 q21)
+
+Produced through the ordinary CLI on CUHK (**Slurm 2153611**, code
+`6dceb065`, digest verified on the node) at PySCF 2.14.0, with the
+fixtures' own projects: `b3lyp-def2svp.yaml` (opt) and
+`hess-b3lyp-svp-stability.yaml` (hess), closed-shell singlet O2 from
+`inputs/dioxygen.xyz`. Both receipts `validated`.
+
+Why it is here: `o2_singlet_hess_stability_heard` is a Hessian at the
+experimental 1.2075 A bond length, 0.0099 Eh/Bohr from the RKS minimum --
+not a stationary point of its own surface -- and a test derived a
+zero-point energy from it. A free energy (and its zero-point energy) is a
+property of a stationary point, so the host now refuses that derivation;
+this pair is the same question asked where it has an answer.
+
+| directory | what it is | numbers |
+|---|---|---|
+| `o2_singlet_opt` | the RKS relaxation, geomeTRIC | converged; r(O-O) = 1.20122 A; -150.141866 Eh |
+| `o2_singlet_relaxed_hess_stability_heard` | the Hessian with `scf_stability: true`, handed `o2_singlet_opt_gas_phase.h5` | max\|g\| 6.2e-8 Eh/Bohr; one mode at 1680.73 cm-1; internal / real -> complex / external lowest eigenvalues 5.7e-9 / **-0.03831** / **-0.09265** Eh -- the unrelaxed geometry's -0.03830 / -0.09262 to 3e-5 Eh: the instability is the determinant's, not the bond length's |
