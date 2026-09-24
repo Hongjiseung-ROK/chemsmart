@@ -19118,28 +19118,34 @@ class CommandCompiledToolHostV1:
         cache = self.__dict__.setdefault("_result_species_cache", {})
         key = (str(receipt.program), str(receipt.artifact_sha256))
         if key not in cache:
-            species = None
+            species, not_stationary = None, ""
             artifact = self.artifacts.get(str(receipt.artifact_id))
             if artifact is not None:
                 from chemsmart.analysis.result_quantities import (
                     result_species,
+                    structure_stationarity,
                 )
                 from chemsmart.analysis.result_readers import reader_for
 
                 try:
-                    species = result_species(
-                        str(receipt.program),
-                        reader_for(str(receipt.program)).open_output(
-                            str(artifact.path)
-                        ),
+                    output = reader_for(str(receipt.program)).open_output(
+                        str(artifact.path)
                     )
+                    species = result_species(str(receipt.program), output)
+                    reading = structure_stationarity(
+                        str(receipt.program), output
+                    )
+                    if reading.stationarity == "not_stationary":
+                        not_stationary = reading.sentence()
                 except Exception:  # noqa: BLE001 - unreadable says nothing
-                    species = None
-            cache[key] = species
+                    pass
+            cache[key] = (species, not_stationary)
+        species, not_stationary = cache[key]
         return ExpressionOperandV1(
             name=name,
-            species=cache[key],
+            species=species,
             structure=str(receipt.artifact_sha256),
+            not_stationary=not_stationary,
         )
 
     def _geometry_operation_observations(

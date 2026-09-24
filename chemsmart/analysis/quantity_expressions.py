@@ -3439,12 +3439,16 @@ class ExpressionOperandV1:
     it to, or a thermochemistry receipt's quantity id -- which
     ``result_quantities.ENERGY_KINDS`` reads as a kind. ``species`` is
     ``(formula, charge, multiplicity)`` of the structure the result
-    describes, read by its reader; ``structure`` the digest of that result.
+    describes, read by its reader; ``structure`` the digest of that result;
+    ``not_stationary`` the sentence ``structure_stationarity`` says when
+    the result's structure is shown not to be a stationary point, and
+    empty otherwise.
     """
 
     name: str
     species: tuple[str, Any, Any] | None = None
     structure: str = ""
+    not_stationary: str = ""
 
 
 def hill_formula(symbols: Iterable[str]) -> str:
@@ -3619,6 +3623,7 @@ def _expression_linear_terms(
                             name="zero_point_energy",
                             species=facts.species,
                             structure=facts.structure,
+                            not_stationary=facts.not_stationary,
                         ),
                     )
                 ]
@@ -3811,6 +3816,39 @@ def expression_kind_observations(
                         "an orbital eigenvalue is a one-electron energy; "
                         "adding it to or subtracting it from the energy of "
                         "a state is no energy difference between states"
+                    ),
+                }
+            )
+        # A zero-point or thermal part built from the modes of a structure
+        # shown not to be stationary is the curvature there, which the
+        # thermochemistry derivation refuses to call a free energy; the
+        # same modes reached through arithmetic are named, not refused.
+        unstationary = sorted(
+            {
+                (label, operand.not_stationary)
+                for _coefficient, label, operand in linear
+                if isinstance(operand, ExpressionOperandV1)
+                and operand.not_stationary
+                and energy_kind(operand.name) is not None
+                and any(
+                    layer > 0 for layer in energy_kind(operand.name).layers
+                )
+            }
+        )
+        if unstationary:
+            observations.append(
+                {
+                    "kind": "vibrational_energy_of_a_structure_not_stationary",
+                    "output_id": output_id,
+                    "operands": dict(unstationary),
+                    "meaning": (
+                        "the zero-point or thermal part of this output comes "
+                        "from harmonic modes of a structure that is not a "
+                        "stationary point ("
+                        + "; ".join(reason for _label, reason in unstationary)
+                        + "): it is the curvature there, not the energy of "
+                        "any state, and a free energy or zero-point-corrected "
+                        "energy built on it describes no state"
                     ),
                 }
             )

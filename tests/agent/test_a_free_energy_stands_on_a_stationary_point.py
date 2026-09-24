@@ -192,3 +192,76 @@ def test_an_order_is_refused_where_a_free_energy_is(artifact_id):
     report = getattr(refused.value, "failure_report", {})
     assert report.get("gate") == "result.order_needs_a_stationary_point"
     assert "not a stationary point" in report["diagnosis"]
+
+
+@pytest.mark.capability("tool:evaluate_quantity_expression")
+@pytest.mark.parametrize(
+    "artifact_id,control",
+    [("pyscf-stretched-hess", False), ("pyscf-water-hess", True)],
+)
+def test_a_zero_point_energy_rebuilt_by_hand_says_what_its_modes_are(
+    tmp_path, artifact_id, control
+):
+    """The door beside the refusal: the same modes, extracted and summed by
+    harmonic_zero_point_energy, are named as the curvature of a structure
+    that is not stationary -- and a stationary Hessian stays silent."""
+
+    import json
+
+    host = _host(tmp_path)
+    extraction = host._extract_result_quantities(
+        "turn-1",
+        {
+            "program": "pyscf",
+            "artifact_id": artifact_id,
+            "selectors": [
+                {"quantity_id": "e", "selector": "energy"},
+                {"quantity_id": "nu", "selector": "vibrational_frequencies"},
+            ],
+        },
+    )
+    host._evaluate_quantity_expression(
+        "turn-2",
+        {
+            "expression_id": "e0-by-hand",
+            "inputs": [
+                {
+                    "input_id": name,
+                    "receipt_sha256": extraction.receipt_sha256,
+                    "quantity_id": name,
+                }
+                for name in ("e", "nu")
+            ],
+            "nodes": [
+                {
+                    "node_id": "zpe",
+                    "operation": "harmonic_zero_point_energy",
+                    "input_ids": ["nu"],
+                },
+                {
+                    "node_id": "e0",
+                    "operation": "add",
+                    "input_ids": ["e", "zpe"],
+                },
+            ],
+            "output_node_ids": ["e0"],
+        },
+    )
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    ]
+    observations = [
+        item
+        for event in events
+        if event.get("kind") == "quantity_expression_evaluated"
+        for item in event["payload"].get("level_observations") or ()
+        if item.get("kind")
+        == "vibrational_energy_of_a_structure_not_stationary"
+    ]
+    if control:
+        assert not observations
+    else:
+        assert len(observations) == 1
+        assert "0.0185 Eh/Bohr" in observations[0]["meaning"]
