@@ -314,6 +314,7 @@ no findings; read through the readers of 28b8b48c/c2873226):
 | 2150295 | r10-q8-a | goals/g1-ladder: acrolein S/T ladder, ORCA + PySCF | fcb115eb | f1f16826f111 |
 | 2150296 | r10-q8-b | goals/g2-allyl: allyl doublets to 7 eV, ORCA + PySCF | fcb115eb | f1f16826f111 |
 | 2150298 | r10-q8-a | cli/oracle2: O2 (4 PySCF runs, code-5d2dfc54 beside the goals' code) | 5d2dfc54 | 80f84d0ef09b |
+| 2150299 | r10-q8-b | goals/g3-allyl: G2's task unchanged, repaired tree (code-68f77aa1) | 68f77aa1 | e48ed29b9a23 |
 
 ## Status
 
