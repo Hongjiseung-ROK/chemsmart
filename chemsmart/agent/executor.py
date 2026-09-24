@@ -135,7 +135,9 @@ class WorkflowExecutionResultV1:
     non_executable_node_ids: tuple[str, ...] = ()
     #: The approved analysis chain's fate, when the bundle carried one.
     analysis_nodes: tuple[ExecutedAnalysisNodeV1, ...] = ()
-    #: "" (no chain) | "completed" | "partial" | "not_run"
+    #: "" (no analysis node ran: no chain, one with no analysis node, or
+    #: one whose every node is declared non-executable) | "completed" |
+    #: "partial" | "not_run"
     analysis_status: str = ""
     analysis_completion_receipt_sha256s: tuple[str, ...] = ()
     analysis_report_path: str = ""
@@ -1355,6 +1357,20 @@ class ApprovedWorkflowExecutor:
         )
         executed_all = executed_all and not starved_requirements
         analysis_status = "completed" if executed_all else "partial"
+        # What the walk did, not what all() says about nothing. An approved
+        # toolchain with no analysis node -- or whose every node is
+        # declared non-executable intent -- runs no node and binds no
+        # receipt, and "completed" over it read as a finished chain
+        # wherever the word went: the driver's chainless read (seven
+        # archived achieved words, R10 Q24), the terminal interface's
+        # green "analysis: completed", the recovery row a woken session
+        # reads. No node ran, so no chain was walked: the word the
+        # executor already gives a bundle that carries no toolchain.
+        if not any(
+            record.state != "blocked_unsupported"
+            for record in settled.values()
+        ):
+            analysis_status = ""
         completion_receipts: tuple[str, ...] = ()
         report_path = ""
 

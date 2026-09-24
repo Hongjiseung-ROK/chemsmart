@@ -144,6 +144,33 @@ def signed_word_violations(workspace: Path, goal_id: str) -> list[str]:
     return found
 
 
+def executor_word_violations(word: str, stream: Path) -> list[str]:
+    """What the executor's analysis word says that its walk's stream
+    does not: ``completed`` over no completion receipt, ``partial`` over
+    neither a receipt nor a recorded refusal, and ``""`` (no chain was
+    walked) over a receipt or a node that ran."""
+
+    rows = _rows(stream)
+    receipts = _completions(stream)
+    refused = any(
+        row.get("kind") == "workflow_analysis_completion_refused"
+        for row in rows
+    )
+    ran = [
+        row["payload"]["node_id"]
+        for row in rows
+        if row.get("kind") == "workflow_analysis_node_settled"
+        and row["payload"].get("state") != "blocked_unsupported"
+    ]
+    if word == "completed" and not receipts:
+        return ["completed over a stream that holds no completion receipt"]
+    if word == "partial" and not (receipts or refused):
+        return ["partial over neither a completion receipt nor a refusal"]
+    if word == "" and (receipts or ran):
+        return [f"no chain walked, over receipts {len(receipts)}, ran {ran}"]
+    return []
+
+
 # -- the writer under test: the real executor walk -------------------------
 
 
@@ -328,3 +355,33 @@ def test_a_run_whose_chain_ran_no_node_certifies_nothing(
     assert "cycle 1's run, whose completion is partial" in told
     assert "irc-forward-points" in told
     assert not _host_store.exists()
+
+
+@pytest.mark.parametrize(
+    "shape", ["empty", "blocked", "chain", "verdict", "starved"]
+)
+def test_the_executors_word_is_what_its_walk_wrote(tmp_path, shape):
+    """The executor's analysis word travels further than its receipts: the
+    driver reads it, the terminal interface prints it green or yellow,
+    and a recovery row carries it into the wake a session reads. Over a
+    chain that ran no node it said "completed" -- all() over nothing --
+    and that one word is what the seven archived false achieved words
+    stood on. Each shape here is walked by the executor itself."""
+
+    from .test_the_executor_walks_the_approved_analysis_chain import (
+        _chain,
+        _executor,
+    )
+
+    toolchain = {
+        "empty": lambda: _toolchain(),
+        "blocked": lambda: _toolchain(_declared_non_executable()),
+        "chain": lambda: _chain(),
+        "verdict": lambda: _chain(validation_threshold=1.0e9),
+        "starved": lambda: _chain(selector="solvation_electrostatic_energy"),
+    }[shape]()
+    executor = _executor(tmp_path, toolchain)
+
+    _nodes, word, _receipts, _report = executor._run_analysis_phase(toolchain)
+
+    assert executor_word_violations(word, tmp_path / "events.jsonl") == []
