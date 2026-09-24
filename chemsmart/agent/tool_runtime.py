@@ -2714,7 +2714,8 @@ _PLAN_SHAPED_TOOLS = frozenset(
 #: miss that needs it: the same act that delivers a number, with a word.
 _CATEGORY_ROUTE = (
     "extract the word the program printed (its extraction selector, e.g. "
-    "scf_stability_external or irc_direction) and claim it with "
+    "scf_stability_external or irc_direction, or stationary_point_kind for "
+    "what a structure is) and claim it with "
     "record_analysis_claims under the question's own id, as a number is "
     "claimed under its id; an integer the host read there (e.g. "
     "irc_converged) answers the same way. A finding with "
