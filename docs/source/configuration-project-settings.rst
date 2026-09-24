@@ -441,6 +441,51 @@ This produces:
    For SMD in ORCA 6.0, the model is activated by the ``SMD(solvent)`` route keyword alone — no ``SMD true`` /
    ``SMDsolvent`` lines are needed in the ``%cpcm`` block.
 
+*************************************
+ Broken-Symmetry Open-Shell Singlet
+*************************************
+
+A singlet diradical -- two weakly coupled electrons of opposite spin, as in a stretched bond, p-benzyne or ethylene
+twisted to 90 degrees -- is commonly described by a broken-symmetry unrestricted determinant: an Ms = 0 solution whose
+alpha and beta orbitals differ. Ask for it with one key in any job-type section of a Gaussian, ORCA or PySCF project,
+with multiplicity 1 on the molecule:
+
+.. code:: yaml
+
+   gas:
+     functional: b3lyp
+     basis: def2-svp
+     broken_symmetry: true
+
+CHEMSMART writes each program's own mechanism:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 15 85
+
+   -  -  Program
+      -  What is written
+   -  -  Gaussian
+      -  The method unrestricted (for example ``ub3lyp``) with ``guess=mix``.
+   -  -  ORCA
+      -  ``HFTyp UHF`` and ``GuessMix 45`` in the ``%scf`` block (the alpha HOMO and LUMO of the guess mixed 50:50).
+   -  -  PySCF
+      -  The restricted solution first; its RHF/RKS to UHF/UKS instability, from PySCF's stability analysis, is followed
+         into the unrestricted reference, then internal instabilities until stable.
+
+Do not also write a native guess keyword; the key is refused where it cannot be written as asked: a multiplicity other
+than 1 (the triplet is the same project without the key and with multiplicity 3), a ``td`` stage, a semiempirical
+method, a route or input that replaces the one CHEMSMART builds, a Gaussian route that already names a guess, Gaussian
+link and QM/MM jobs, ORCA QM/MM, and PySCF's GPU engine.
+
+The key asks for a solution; it cannot guarantee one. A structure without diradical character keeps its spin-symmetric
+solution, and the result is then the restricted energy with <S**2> = 0. Whether the symmetry broke is read from the
+result, never assumed: its level states the reference that ran and ``broken_symmetry``, <S**2> is reported against 0,
+and the Agent host raises the observation ``spin.broken_symmetry_request_unbroken`` when a request stayed
+spin-symmetric. At an exactly degenerate geometry, such as the 90-degree twist of ethylene, a mixed guess can converge
+to a higher broken-symmetry solution with the same <S**2>; compare with the triplet, and in Gaussian add
+``additional_route_parameters: stable=opt`` to follow the solution's own instability.
+
 *******************
  Scratch Directory
 *******************
