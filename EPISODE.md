@@ -19,50 +19,136 @@ node terminal word all of them build on -- is each statement
 Where one is not, can the host say what its records already hold, and does
 saying it change what the Agent does next?
 
-## Priors from the brief (to verify, not conclusions)
+## Priors from the brief (verified in the base tree before the census)
 
-- P1 the wake names failed verdicts by `node/rule` only, no receipt digest
-  and no number (driver.py `_deliverables_record`, "unanswered_failed_verdicts");
-  L-S2 (CUHK 2153514) re-evaluated its rules in-session to mint receipts it
-  could cite.
-- P2 `wake.recovery_route` (rules.py) frames every failed verdict as "a
-  structure the host judged not to be what the task required" and offers
-  only structural repairs.
-- P3 the analysis-partial recovery row writes `"verdicts": []` while a
-  criterion failed (driver.py `_settle`, last recovery_opened).
-- P4 the planning path returns an unanswered verdict to the human while the
-  run path opens a recovery naming it.
-- P5 the review refusal "every initial workflow node requires a green
-  preview" names no node (tool_runtime.py `_latest_bounded_materialization`).
-- P6 an undiagnosed native death of an opt before any SCF (Gaussian l301 at
-  0.4 s) is typed `failed_nonconverged_geometry`, and its menu offers a
-  restart from a reached geometry that does not exist (terminal_states.py
-  `_classify_failure`).
-- P7 a goal whose last workflow holds no calculation parks at
-  `execution_wave_decision_pending` instead of reading its recorded refusal.
-- P8 the settlement reason does not name the completion's findings.
+P1 wake names failed verdicts by node/rule only; P2 wake.recovery_route
+calls every failed criterion "a structure the host judged"; P3 the
+not-achieved recovery row writes "verdicts": []; P4 planning path returns
+on an unanswered verdict, run path recovers; P5 "every initial workflow
+node requires a green preview" names no node; P6 a pre-SCF native death
+of an opt is typed failed_nonconverged_geometry; P7 a goal whose last
+workflow holds no calculation parks instead of reading its refusal; P8
+the settlement reason does not name the completion's findings. All eight
+were visible in 111dc55e as described.
 
 ## Falsifiers (armed before the census)
 
 - F1 the census finds the defects are only P1-P8: repair those and end.
-- F2 a message classified false/unspecific here reproduces differently on
-  its own run commit: the harness is wrong and nothing downstream of it is
-  believed.
-- F3 the Agent recovered equally well whatever the message said (in the
-  archive: the same recovery point met under a specific and an unspecific
-  message, with the same next act): that is the result, reported.
+- F2 a message reproduces differently on its own run commit: the harness is
+  wrong and nothing downstream of it is believed.
+- F3 the Agent recovered equally well whatever the message said.
 - F4 a repair that makes a message specific changes what a settlement word
-  means: it is a `shared:` commit for the owner, not mine to make silently.
+  means: a `shared:` commit for the owner.
 
-## Oracle
+## Census (provider-free, 2026-09-25)
 
-Host records only: ledgers, run streams, session streams, public
-transcripts, receipts and native output; every replay on the commit that
-produced the record, base reproduced byte-for-byte before a repaired word
-is believed.
+Scope. CUHK R8-R10, named directories only: r8/{gaussian,integration,orca,
+pyscf,xtb}, r9/{gaussian,master,orca,pyscf,xtb}, r10/q1-q5, q7-q16, q18,
+q19 goals -- 61 goal ledgers, 60 goal roots (excluded: r10/q6/goals,
+r10/q3/private, r10/q17 (a running sealed study), r10/q20 (running),
+r10/m*). ax41 mirror 2026-09-14 campaign + research: 195 goal ledgers.
+Records fetched without engine binaries (scratch q22/cuhk, 195 MB).
+Tools: scratch q22/tools (ledger_story, wakes, refusals, verdict_sessions,
+completion_findings, replay_final (Q19's harness), settle_stream).
+
+What each session was told is read from the goal block its public
+transcript restates ("goal terms, restated for recency"), not recomposed.
+
+| message class | archived | true | specific | actionable | still produced by 111dc55e |
+|---|---|---|---|---|---|
+| wake naming a failed criterion | 13 (CUHK 3, ax41 10) | framing false 4/13 (not a structure: o2r, L1, L-S2 stability; po3-r19 margin); 0/13 the host's judgement of the task | 0/13 name a receipt or the number | citation route needs a digest the wake withholds; inspect_run shows no chain receipts | yes (P1, P2) |
+| ... what the woken session did | 13 | -- | -- | 0/13 cited the run-minted receipt; 3/3 CUHK re-evaluated their criteria to mint one (2, 4, 6 evaluations) | -- |
+| recovery row when a criterion failed and the chain was partial | 2 (o2r c1, L-S2 c1) | "verdicts": [] false | names nothing | -- | yes, every such run since Q19 (P3) |
+| node word on a death before any energy | 10 nodes (Q15 g2 ene-opt; r7m-h3 x3; ax41 po3-triazole-regio x6) | failed_nonconverged_geometry false 10/10; 14/14 real walks carry an energy | engine lines present | menu route "restart from the reached geometry" does not exist; both CUHK sessions said so | yes (P6) |
+| node word on a finished run a host rule refused | 13 nodes (Q5 g1 x6, Q12 g1-hi x2, r9 xtb g3 x2, ax41 h2 x3) | failed_native false | -- | Q5 g1 took the route twice, same refusal | no (Q14 094df51c) |
+| review refusal | 3 (Q15 g1, ax41 po3-r17, r9 gaussian g2) | true | 2/3 name no node | -- | yes (P5) |
+| re-wake report (cycle_delivers_or_returns) | 6 | cost "no engine call" false of the plan ending | -- | route omits the executable-plan ending 6/6; mattered in 1 (Q15 g1), where the Agent took it anyway (F3) | yes |
+| re-wake report (requirement_is_resolved) | 11 | true | names numbers | routes fit the state | -- |
+| launch refusal | 3 (Q15 g1 x2, r9 orca g5) | Q15 g1's false (stale check; Q15 9cda6569) | r9 g5 names no producer (execution.py, outside radius) | -- | g1's reason: no |
+| run-path settlement over unlaunched wave members | 1 (Q15 g1) | true | omits the refusal it held | -- | yes |
+| park | 6 (R8 x5 ready calculations; Q15 g2) | true | -- | Q15 g2: no decision can resolve it; its stream held a verified refusal the base settles as unreachable_from_evidence | yes (P7) |
+| "recorded analysis but the host completion gate did not pass" | 31 settlements | base replay: 25/25 still said; 24/25 streams hold no completion receipt at all | 1/25 drops the partial receipt's findings | -- | yes (P8) |
+
+Found beyond P1-P8 (F1 falsified): the re-wake route/cost, the run-path
+settlement over unlaunched members, and P8's truth (not only its
+specificity).
+
+## Repairs (one commit each; witness red on 111dc55e, green here)
+
+- 6dd0c9f5 wake: a failed criterion is named with the number it read and
+  the receipts that state it (P1, P2, P3, settlement reasons).
+- 3c490a8b terminal_states: a death before the first energy is the
+  program's own ending (P6).
+- d7514215 tool_runtime: a review refused for a missing preview names each
+  node and what it holds (P5).
+- ca9c6377 driver: a re-wake's route names every ending its invariant
+  admits, and its cost is true of each.
+- 40449039 driver: a run whose wave member never launched settles quoting
+  the executor's refusal.
+- a4fb8a86 driver: a returned delivery says what its completion receipt
+  holds, or that it holds none (P8).
+- 1aef6143 driver: a park no decision can resolve settles on what the
+  session's stream holds (P7; losartan's replaced-selection park kept).
+- P4 left: whether the planning path should re-wake on an unanswered
+  verdict decides when a goal returns (settlement semantics, owner).
+
+Gates on 1aef6143: tests/agent on a pristine export, 3144 passed, 0 failed.
+
+## Reference job R1 -- PRE-REGISTRATION (written before submission)
+
+CLI oracle, no Agent, code = this branch. PySCF RKS B3LYP/def2-SVP
+single points with scf_stability (Q19's project file), 8 cores:
+- S2 at 1.889 A (calibration, L-S2's system): E -796.1097378, external
+  -0.0584831, real->complex -0.0288198 Eh, internal stable, each within
+  1e-5 Eh of Q19's 2153508.
+- ethylene twisted 90 deg (CH2 planes perpendicular; C-C 1.47, C-H 1.08
+  A, H-C-H 118 deg): RKS->UKS unstable (lowest external eigenvalue below
+  -0.01 Eh). Internal and real->complex: no prediction (at exact D2d the
+  pi pair is degenerate, and either may be unstable).
+- H2 at 2.20 A: RKS->UKS unstable (below -0.01 Eh); internal stable.
+The reference fixes the live goals' physics bands, written here before
+any goal is submitted. A system whose external eigenvalue is not negative
+is dropped from the live set (its criterion would not fail).
+
+## Live goals G-tw, G-h2 -- PRE-REGISTRATION (bands follow the reference)
+
+Tasks: L-S2's task with the molecule changed (twisted ethylene; H2 at
+2.20 A): "is that restricted reference a stable solution ... yes-or-no
+answer I can defend, stated for both kinds of orbital rotation, and the
+electronic energy of the reference in hartree. Use PySCF." Nothing names
+a criterion, a validation, an expectation or a receipt. Envelope as L-S2:
+pyscf cpu, 8 cores, 16 GB, node 1800 s, episode 5400 s, 4 engine calls,
+max-revisions 2, local dispatch, granted by
+claude-researcher-q22-owner-delegated (a delegated approval, never a
+human decision). Agent deepseek-v4-flash-0731 via alibaba-token-plan.
+
+The recovery point is met when cycle 1's run holds a failed criterion no
+decision cited. Then, read from host records:
+- host (deterministic; the repair): R1 the recovery row names the
+  verdict; R2 the cycle-2 goal block the session received names each
+  verdict with its statement, every receipt of the run that states it,
+  and minted_by the run; R3 it does not call the criterion a structure
+  the host judged. FAIL: any of R1-R3 false, or the host refusing a
+  citation of a receipt the wake named.
+- behaviour (the Agent's; one observation per goal): B1 the woken
+  session's decision cites at least one receipt the wake named; B2 it does
+  not re-evaluate a named verdict's rule (no evaluate_scientific_validation
+  on that node, no new validation node with that id). Control: the three
+  archived sessions woken this way (o2r, L1, L-S2) cited 0 run-minted
+  receipts and re-evaluated 3/3. Reported as observations with their N,
+  never as a rate.
+- the word: achieved_with_observations when the decision cites the verdict
+  and the declared answers are delivered; otherwise the reason is read.
+- replay: the cycle-2 wake recomposed on 111dc55e from the same records
+  shows what the old message would have been.
+Not counted either way: no failed criterion at cycle 1 (recovery point not
+met: "not exercised"); zero provider turns or turn_deadline_exceeded
+(infrastructure). A weak run is reported, never re-rolled.
 
 ## Status
 
-- step 0: brief read, base verified, CONDUCT/RSL/charter topics read,
-  priors located in the base tree (all eight visible as described).
-- step 1 (census, provider-free): starting.
+- step 0: brief read, base verified, CONDUCT/RSL/charter read, priors
+  located.
+- step 1 (census): done (above).
+- step 2 (repairs): seven commits, witnesses red on base and green here.
+- step 3: reference job R1 next; then the live goals.
