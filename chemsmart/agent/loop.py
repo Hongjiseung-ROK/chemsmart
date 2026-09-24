@@ -183,13 +183,19 @@ def _unapprovable_reason(summary: Mapping[str, Any]) -> str:
     return "workflow recorded but not approvable"
 
 
-def _completion_is_green(host: Any, receipt_sha256s: Iterable[str]) -> bool:
+def _completion_is_green(
+    host: Any, receipt_sha256s: Iterable[str], event_store: Any = None
+) -> bool:
     """Whether every required completion receipt the host minted passed.
 
     The same question ``terminate`` asks before it admits the word
     ``complete``, asked here so the caller chooses a word the gate will
     accept rather than asserting one and meeting a ContractError from
-    the last statement of the loop.
+    the last statement of the loop. With the event store it is that
+    question whole: terminate also reads every receipt a completion
+    stands on, and a completion that passed over a partial extraction
+    was asserted ``complete`` here and refused there, after the session's
+    last turn (R10 Q22, G-h2c, CUHK 2153673).
     """
 
     required = tuple(receipt_sha256s or ())
@@ -206,6 +212,9 @@ def _completion_is_green(host: Any, receipt_sha256s: Iterable[str]) -> bool:
             return False
         if tuple(getattr(receipt, "findings", ()) or ()):
             return False
+    red = getattr(event_store, "red_receipts", None)
+    if callable(red) and red(required):
+        return False
     return True
 
 
@@ -766,11 +775,25 @@ class ToolLoopRunner:
                             # a delivery with stated limitations, which
                             # the settlement reads from the receipts.
                             if _completion_is_green(
-                                self.host, completion_required
+                                self.host,
+                                completion_required,
+                                self.event_store,
                             ):
                                 terminal_state = "complete"
                                 terminal_reason = "host readiness gates passed"
                             else:
+                                # A completion that passed over a receipt
+                                # the gate calls red is not "partial":
+                                # the word names what is red instead.
+                                red = (
+                                    self.event_store.red_receipts(
+                                        completion_required
+                                    )
+                                    if _completion_is_green(
+                                        self.host, completion_required
+                                    )
+                                    else ()
+                                )
                                 # `planned` is bound to the plan the
                                 # session made: terminate admits it only
                                 # over the stream's latest workflow draft,
@@ -800,7 +823,13 @@ class ToolLoopRunner:
                                     )
                                     terminal_state = "planned"
                                     terminal_reason = (
-                                        "the analysis completion is "
+                                        "the analysis completion passed "
+                                        "over receipts the gate calls red: "
+                                        + "; ".join(red)
+                                        + "; the delivery stands with the "
+                                        "limitations they name"
+                                        if red
+                                        else "the analysis completion is "
                                         "partial; the delivery stands "
                                         "with the limitations it names"
                                     )
@@ -808,7 +837,13 @@ class ToolLoopRunner:
                                     terminal_state = "blocked"
                                     terminal_reason = (
                                         "the analysis completion is not "
-                                        "green and no workflow draft "
+                                        "green"
+                                        + (
+                                            ": " + "; ".join(red)
+                                            if red
+                                            else ""
+                                        )
+                                        + " and no workflow draft "
                                         "stands for it"
                                     )
                             # Under a bounded review the host builds the

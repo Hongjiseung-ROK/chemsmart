@@ -43,6 +43,7 @@ from chemsmart.agent.workflows import (
 from .test_a_failed_criterion_is_a_finding_the_goal_can_deliver import (
     _RULE,
     _goal,
+    _real_session,
     _run_turns,
     _stream_rows,
 )
@@ -1240,3 +1241,126 @@ def test_a_returned_delivery_does_not_deny_the_claim_that_carries_the_id(
     assert "no claim carrying their id" not in text
     assert "a claim carries" in text and "real-stable" in text
     assert _CATEGORY_MISS in text
+
+
+def _claims_over_a_partial_extraction(artifact_id):
+    """G-h2c's cycle 2 (R10 Q22, CUHK 2153673): one extraction asked for a
+    quantity the result does not hold (reference_energy: no correlated
+    stage), so its receipt is partial; the session claimed the energy it
+    did read, recorded its decision, and stopped without a plan."""
+
+    def replies(payload):
+        return _tool_receipts(payload)
+
+    return [
+        lambda payload: _turn(
+            1,
+            "Reading the energy.",
+            (
+                _call(
+                    1,
+                    "extract_result_quantities",
+                    {
+                        "program": "pyscf",
+                        "artifact_id": artifact_id,
+                        "selectors": [
+                            {"quantity_id": "e-ref", "selector": "energy"},
+                            {
+                                "quantity_id": "e-ref-correlated",
+                                "selector": "reference_energy",
+                            },
+                        ],
+                    },
+                ),
+            ),
+        ),
+        lambda payload: _turn(
+            2,
+            "Claiming the energy it read.",
+            (
+                _call(
+                    2,
+                    "record_analysis_claims",
+                    {
+                        "claims": [
+                            {
+                                "claim_id": "e-ref-hartree",
+                                "receipt_sha256": replies(payload)[-1],
+                                "quantity_id": "e-ref",
+                                "display_unit": "hartree",
+                            }
+                        ]
+                    },
+                ),
+            ),
+        ),
+        lambda payload: _turn(
+            3,
+            "Recording the decision.",
+            (
+                _call(
+                    3,
+                    "record_scientific_decision",
+                    {
+                        "decision_id": "o2-energy-read",
+                        "assumptions": ["the restricted reference"],
+                        "method_rationale": "the task fixed the level",
+                        "alternatives": ["a broken-symmetry solution"],
+                        "uncertainties": ["SCF convergence"],
+                        "diagnostics": ["none beyond the energy"],
+                        "stage_order": ["extract", "claim"],
+                        "evidence_refs": [],
+                        "postprocessing_receipt_sha256s": list(
+                            replies(payload)[-2:]
+                        ),
+                    },
+                ),
+            ),
+        ),
+        lambda payload: _turn(4, "The energy is delivered."),
+    ]
+
+
+def test_a_session_does_not_assert_complete_over_a_receipt_the_gate_calls_red(
+    tmp_path,
+):
+    """The loop asked whether its delivered-claims completion passed; the
+    terminate gate asks whether every receipt under it is green, and a
+    partial extraction is not. G-h2c's session had claimed its energy and
+    answered both declared yes/no questions with words the host read; the
+    loop asserted "complete", terminate refused it, the stream was left
+    open, and the goal settled "cycle 2, planning session: a required
+    completion gate is red" -- naming no receipt, and reading nothing the
+    session delivered."""
+
+    run_id = "live-20260925T040000000000Z-q22-partial-extraction"
+    result = _goal(
+        tmp_path,
+        goal_id="goal-partial-extraction",
+        sessions=[
+            _real_session(tmp_path, run_id, _claims_over_a_partial_extraction)
+        ],
+    )
+    stream = (
+        tmp_path / "ws" / ".chemsmart-agent" / "runs" / run_id / "events.jsonl"
+    )
+    rows = _stream_rows(stream)
+    extraction = [
+        row["payload"]
+        for row in rows
+        if row["kind"] == "result_quantities_extracted"
+    ]
+    assert extraction and extraction[0]["status"] == "partial"
+    # The session ends on a word the gate admits, naming the receipt that
+    # is red, and the goal settles on what the session delivered rather
+    # than on the gate's exception.
+    (terminated,) = [
+        row for row in rows if row["kind"] == "runtime_terminated"
+    ]
+    assert terminated["payload"]["terminal_state"] != "complete"
+    partial = extraction[0]["receipt_sha256"][:8]
+    assert f"{partial} (result_quantities_extracted, partial)" in (
+        terminated["payload"]["reason"]
+    )
+    assert not any("completion gate is red" in r for r in result.reasons)
+    assert result.settlement.startswith("achieved")
