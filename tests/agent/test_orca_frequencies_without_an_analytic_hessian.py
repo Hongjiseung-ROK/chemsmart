@@ -17,7 +17,10 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-pytestmark = pytest.mark.capability("program_jobtype:orca:cpu:opt")
+pytestmark = [
+    pytest.mark.capability("program_jobtype:orca:cpu:opt"),
+    pytest.mark.capability("setting:orca:freq"),
+]
 
 WATER = (
     "3\nwater\nO 0.0 0.0 0.1173\nH 0.0 0.7572 -0.4692\n"
