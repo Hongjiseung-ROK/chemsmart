@@ -200,6 +200,18 @@
       "date": "2026-09-13"
     },
     {
+      "kind": "setting",
+      "id": "pyscf:broken_symmetry",
+      "status": "recorded",
+      "values": [
+        "true"
+      ],
+      "run": "CUHK Charles r10/q18/goals/g2 (Slurm 2153511, Agent goal g2), cycle 2, nodes sp-planar-bs and sp-twisted-bs",
+      "commit": "95c85ed0 (code tree digest 2d27f643b7db5d02747890a7cd0802e36c8cc01b6602e2cf9e9b70d6f0d2ff0d, 426 files)",
+      "date": "2026-09-25",
+      "source": "Ethylene torsional barrier, B3LYP/6-31G*, rigid 90-degree twist. The session's cycle-1 plan was restricted and delivered 99.97 kcal/mol; the host raised scf.reference_unstable on the twisted RKS result (RHF/RKS -> UHF/UKS), and the session repaired it with broken_symmetry: true on both single points, no native word written. Both compile replies and the frozen review carried the PySCF translation. Twisted: reference uks, broken_symmetry true, <S**2> 1.0111, restricted start externally unstable (-0.0955 Eh) and followed, E -78.4743274138 Eh. Planar: reference uks, <S**2> 0, restricted start stable (+0.0992 Eh), E equal to the RKS energy to 2e-13 Eh, and the host raised spin.broken_symmetry_request_unbroken with those numbers. Delivered 69.907 kcal/mol from extraction receipts of the two results (the restricted barrier was 99.97); settled achieved_with_observations. The same translation reproduced PySCF's native stability-following energies to 2.4e-7 Eh on H2 and p-benzyne through the ordinary CLI (R10 Q18 oracle O1, Slurm 2153479)."
+    },
+    {
       "kind": "selector",
       "id": "xtb:hess:ir_intensities",
       "status": "recorded",
