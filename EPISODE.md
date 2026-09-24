@@ -174,17 +174,94 @@ Read through the host's own extraction tool from the result files:
   symmetry breaking and to complex rotations -- the same answer as O2's,
   under a perturbation of the molecule.
 
+### L-S2 result (CUHK Slurm 2153514, read from the host records)
+
+Settled `achieved_with_observations` at cycle 2 (1 of 4 engine calls, 1 of
+2 revisions, analysis-only). The Agent wrote its criteria unseeded.
+
+- Cycle 1 (planning session, 18 provider turns; one executor run): the plan
+  carried val-rks-internal and val-rks-external, each "lowest eigenvalue
+  >= 0". The run: E = -796.109737809348 Eh; internal +4.417e-7 Eh (passed,
+  a946a1b9); external -0.058483161239773276 Eh (failed, fdcf92e6). The
+  executor's completion is partial -- its claim node failed to render (the
+  Agent claimed the word `unstable` under a numeric declared id) -- and
+  lists `failed_criterion:val-rks-external/external-stability-rule:
+  unanswered:fdcf92e6`. recovery_opened names no verdict (defect below).
+- Cycle 2 (session, 10 provider turns): inspected and extracted the run's
+  result (row 42 holds stab-rtc -0.0288), then planned an analysis-only
+  revision adding val-rks-rtc (row 57) -- a criterion stated after its
+  number was read. The chain's completion is partial (same claim-node
+  error) with external and rtc unanswered (372d8ed3, fcf38cf5). The session
+  evaluated all three again (4ee4129b pass; 49629928, 3b0126d0 fail),
+  recorded four claims and decision ls2-rks-stability-verdict, whose
+  evidence_refs cite 49629928 and 3b0126d0. The completion then passed with
+  both criteria answered; terminal complete; ledger `qualified`
+  pyscf:cpu:sp.
+- The word's reasons: the lead (certified; the unasked anomaly
+  scf.reference_unstable; both criteria answered), one reason per criterion
+  naming rule, number and the cited verdict receipt, the findings --
+  internal stable; external unstable, in the Agent's words "the sealed
+  external-stability rule evaluated false, which is the expected and
+  intended outcome and is accepted as the finding"; rtc unstable, "not
+  asked for"; the energy in its declared band -- and the uncertainties.
+- Physics against the bands: E -796.109738 (band -796.1097 +/- 0.0005),
+  internal +4.4e-7 stable, external -0.058483 (-0.0585 +/- 0.003), rtc
+  -0.028820 (-0.0288 +/- 0.003). All met.
+- Against the pre-registration: (b) met live. (a) not exercised live -- no
+  completion was evaluated while a claim stood on an unanswered criterion
+  (neither chain rendered a claim; the session's claims at row 96 and its
+  decision at row 101 precede the only completion over them). (c) not
+  exercised. No settlement or wake quotes a host error. PASS on (b).
+- Reproduction: the cycle-2 transcript replayed on its own code
+  (fd093662) reproduces recovery_opened (164 B) and goal_settled (9,859 B)
+  byte for byte, and so does the settle step alone. The same ten provider
+  turns replayed on the round base a7bc02e0: the session's last completion
+  is partial, naming all four claims `analysis.claim_on_failed_criterion.*`
+  although the decision cites both verdicts; terminal planned; the goal
+  re-wakes on its last revision (the archive holds no cycle-3 turn). On
+  this evidence the repair is what let the delivery settle at cycle 2.
+
+### A premise of this episode's own repair, falsified live
+
+f0658c67's lead said "expectations registered before the physics that it
+did not bear out". The rtc criterion was stated after the session had read
+its number, and the Agent read the failed external criterion as a test
+whose failure was the answer. The host reads neither; a declaration
+carries `declared_after_evidence`, a criterion carries nothing. d52d8ab8:
+the lead says "criteria and predictions the session itself stated that did
+not hold". Witness red on 6dd7865b, green on d52d8ab8; L-S2's settle step
+on d52d8ab8 keeps the word and changes only reason 0.
+
+## Defects found and left
+
+- driver.py:6706 -- the analysis-partial recovery writes `"verdicts": []`
+  even when the run's completion lists an unanswered criterion (L-S2 cycle
+  1).
+- driver.py:836-890 -- the planning path returns on an unanswered verdict;
+  the run path (6471) opens a recovery naming it.
+- driver.py:4138-4152 -- run-path rejections accumulate across cycles and a
+  later answer never lifts them.
+- driver.py:769-798 -- the unreachable_from_evidence branches precede the
+  verdict holds (0 archived instances).
+- driver.py:3501-3544 -- the failed-node and flagged walks read extraction
+  receipts only; the verdict walk reads thermochemistry too.
+- tool_runtime.py:13261 -- the delivered-claims certificate does not read
+  doubts (the settlement's doubt branch, driver.py:748, still holds the
+  word).
+- tests/agent/test_a_goal_settles_from_every_cycle.py:75-79 -- writes its
+  stream with json.dumps' spaced separators, not the event store's bytes.
+- A criterion carries no mark of being stated after its number was read.
+
 ## Status
 
 - step 0: brief read, base verified, charter/lessons/CONDUCT read.
 - step 1 (census, provider-free): done (above).
-- step 2 (repairs): done, seven commits (b568eab3 repairs c642982a's
-  regression on a host built without __init__).
-- hand-back gates on the merge of r10-integration (a14bdbe0, Q15 included,
-  clean): pristine git-archive export -- tests/agent 3103 passed, 0 failed;
-  full suite 23 failed == the round baseline list, 4657 passed; ruff,
-  black --check, isort --check clean on the seven touched files.
-- step 3: reference job 2153508 done (above). Live goal L-S2 submitted:
-  CUHK Slurm 2153514 (slot r10-q19-a), code fd093662 (chemsmart tree ==
-  b568eab3, digest b50dd4cb), pre-registration digest d0cfc0730bb9,
-  /project/xlzhang/jiseung/r10/q19/goals/ls2.
+- step 2 (repairs): done, eight commits (b568eab3 repairs c642982a's
+  regression on a host built without __init__; d52d8ab8 is the live
+  goal's correction of f0658c67's wording).
+- step 3: reference job 2153508 and live goal 2153514 done (above).
+- hand-back gates on d52d8ab8 (r10-integration still d5b15126, merged at
+  a14bdbe0): pristine git-archive export -- tests/agent 3103 passed, 0
+  failed; full suite 23 failed == the round baseline list, 4657 passed;
+  ruff, black --check, isort --check clean on the touched files.
+- Milestone A claimed.
