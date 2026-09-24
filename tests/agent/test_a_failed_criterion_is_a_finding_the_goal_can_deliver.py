@@ -13,14 +13,14 @@ makes of the delivery, each differently:
   (L1, R10 Q16, CUHK Slurm 2152989: "it recorded analysis but the host
   completion gate did not pass");
 - the settlement counted a verdict answered only when a decision cited that
-  exact receipt, and settled an answered verdict plain ``achieved``, naming
-  nothing.
+  exact receipt, read only the stream it settled, and settled an answered
+  verdict plain ``achieved``, naming nothing.
 
 One function now answers for all three (``chemsmart.agent.goal
 .failed_criteria``): a verdict is answered when a recorded decision cites a
-receipt that states it. Answered, the goal delivers the finding and
-says so; unanswered, nothing standing on it is certified and the reason
-names it.
+receipt that states it, in any cycle of the goal. Answered, the goal
+delivers the finding and says so; unanswered, nothing standing on it is
+certified and the reason names it.
 
 Driven through the goal loop and the tool loop a provider talks to, with a
 real host over the archived bytes of a PySCF run of closed-shell singlet O2
@@ -589,3 +589,42 @@ def test_a_woken_decision_may_cite_the_failed_receipt_its_run_minted(
         if row["kind"] == "tool_failed"
         and "receipt_is_one_the_host_minted" in json.dumps(row)
     ]
+
+
+@pytest.mark.capability("rule:wake.failed_validation_receipt_answers_verdict")
+def test_a_number_on_an_earlier_cycles_unread_verdict_is_not_certified(
+    tmp_path,
+):
+    """h1b (ax41 general round, 2026-09-02): the first run's criterion
+    rejected both saddles, the next cycle rewrote it without the rules
+    that failed, and the last cycle delivered from the same two results
+    and settled achieved -- its own stream held no failed verdict, so
+    the planning path had nothing to read, while the run path would have
+    held the same numbers stale. Here the woken cycle delivers the energy
+    from the result the run's criterion rejected and evaluates nothing."""
+
+    result = _run_then_claim(tmp_path, cite=False)
+    assert result.cycles == 2
+    assert result.settlement == "returned_to_human"
+    assert any(
+        _RULE in reason
+        and "ref-energy-hartree" in reason
+        and "another cycle" in reason
+        for reason in result.reasons
+    )
+
+
+@pytest.mark.capability("rule:wake.failed_validation_receipt_answers_verdict")
+def test_the_route_the_wake_prescribes_answers_an_earlier_cycles_verdict(
+    tmp_path,
+):
+    """The wake tells a session to cite the failed receipt of the run it
+    was woken with. Doing exactly that answers the verdict whichever
+    cycle typed it, and the word carries it."""
+
+    result = _run_then_claim(tmp_path, cite=True)
+    assert result.cycles == 2
+    assert result.settlement == "achieved_with_observations"
+    assert any(
+        f"failed_criterion:{_RULE}:answered" in r for r in result.reasons
+    )

@@ -284,6 +284,21 @@ def _answered_criterion_reasons(
     )
 
 
+def _inherited_verdict_reason(delivery: "_AnalysisDelivery") -> str:
+    """Why numbers standing on another cycle's unanswered verdict wait."""
+
+    return (
+        "these delivered quantities stand on results the goal's own "
+        "acceptance criterion rejected in another cycle, and no recorded "
+        "decision cites that verdict: "
+        + "; ".join(
+            f"{', '.join(standing)} on {verdict.statement()} (receipt "
+            f"{verdict.receipt_sha256s[-1][:8]})"
+            for verdict, standing in delivery.inherited_unanswered
+        )
+    )
+
+
 def _achieved_word(
     delivery: "_AnalysisDelivery",
     ledger_anomalies: Sequence[Mapping[str, Any]] = (),
@@ -666,6 +681,7 @@ def _delivery_settlement(
         goal_delivered_ids=_goal_delivered_ids(workspace, goal_id),
         declared_observables=_first_declarations(ledger),
         goal_findings=_goal_findings(workspace, goal_id),
+        goal_streams=_goal_streams(ledger, workspace, goal_id),
     )
     evidence = _settlement_evidence(delivery)
     # What the goal declared and has not delivered under its id in any
@@ -820,6 +836,13 @@ def _delivery_settlement(
             "a validation verdict failed and no recorded decision cites "
             "it: " + ", ".join(delivery.unanswered_verdicts),
         )
+    elif certified and delivery.inherited_unanswered:
+        # The delivery stands on results the goal's own criterion rejected
+        # in another cycle, and no recorded decision answered that
+        # verdict: certifying it would say achieved over a finding nobody
+        # read.
+        settled = "returned_to_human"
+        reasons = (_inherited_verdict_reason(delivery),)
     elif certified and delivery.claims:
         goal_anomalies = _goal_anomalies(ledger)
         settled, reasons = _achieved_word(delivery, goal_anomalies)
@@ -839,7 +862,7 @@ def _delivery_settlement(
         settled = "returned_to_human"
         reasons = delivery.stopped_by
     elif (delivery.claims or delivery.decisions) and (
-        delivery.unanswered_verdicts
+        delivery.unanswered_verdicts or delivery.inherited_unanswered
     ):
         # The gate did not certify because the plan's own criterion failed
         # and nobody answered it. Say which finding the goal is waiting
@@ -855,6 +878,8 @@ def _delivery_settlement(
                 "a validation verdict failed and no recorded decision "
                 "cites it: " + ", ".join(delivery.unanswered_verdicts),
             )
+        if delivery.inherited_unanswered:
+            reasons = reasons + (_inherited_verdict_reason(delivery),)
     elif delivery.claims or delivery.decisions:
         # Something was recorded, but the host never certified
         # completion -- a human reads it, whatever the session's
@@ -2465,6 +2490,13 @@ class _AnalysisDelivery:
     answered_criteria: tuple[
         tuple[FailedCriterionV1, tuple[str, ...]], ...
     ] = ()
+    #: Failed criteria another stream of the goal typed and no recorded
+    #: decision answered, each with the quantities this stream delivers
+    #: from the results it rejected. Nothing standing on them is
+    #: certified.
+    inherited_unanswered: tuple[
+        tuple[FailedCriterionV1, tuple[str, ...]], ...
+    ] = ()
     #: Delivered quantities whose own receipt lineage traces back to a
     #: result a failed verdict rejected. A recovery cycle that replaces
     #: the structure does not replace the numbers computed from the old
@@ -2868,6 +2900,13 @@ class _VerdictRecords:
     )
 
 
+def _stream_lines(path: Path) -> list[str]:
+    try:
+        return Path(path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+
+
 def _verdict_records(lines: Sequence[str]) -> _VerdictRecords:
     validations: list[Mapping[str, Any]] = []
     cited: set[str] = set()
@@ -2917,6 +2956,54 @@ def _verdict_records(lines: Sequence[str]) -> _VerdictRecords:
     )
 
 
+def _merge_verdict_records(*parts: _VerdictRecords) -> _VerdictRecords:
+    """The goal's records, in stream order, each receipt once."""
+
+    validations: list[Mapping[str, Any]] = []
+    seen: set[str] = set()
+    cited: set[str] = set()
+    result_artifacts: dict[str, str] = {}
+    expression_sources: dict[tuple[str, str], tuple[str, ...]] = {}
+    for part in parts:
+        for item in part.validations:
+            digest = str(item.get("receipt_sha256") or "")
+            if digest and digest in seen:
+                continue
+            seen.add(digest)
+            validations.append(item)
+        cited |= part.cited
+        result_artifacts.update(part.result_artifacts)
+        expression_sources.update(part.expression_sources)
+    return _VerdictRecords(
+        validations=tuple(validations),
+        cited=frozenset(cited),
+        result_artifacts=result_artifacts,
+        expression_sources=expression_sources,
+    )
+
+
+def _goal_streams(
+    ledger: GoalLedger, workspace: Path | None, goal_id: str
+) -> tuple[Path, ...]:
+    """Every stream the goal's own spine names: planning sessions and runs."""
+
+    if workspace is None:
+        return ()
+    agent = Path(workspace) / ".chemsmart-agent"
+    streams: list[Path] = []
+    for entry in ledger.entries():
+        payload = entry.get("payload") or {}
+        if entry["kind"] == "session_stream_recorded":
+            run_id = str(payload.get("run_id") or "")
+            if run_id:
+                streams.append(agent / "runs" / run_id / "events.jsonl")
+        elif entry["kind"] == "run_recorded":
+            run = str(payload.get("run") or "")
+            if run:
+                streams.append(agent / Path(*run.split("/")) / "events.jsonl")
+    return tuple(dict.fromkeys(path for path in streams if path.is_file()))
+
+
 def _analysis_delivery(
     events_path: Path,
     *,
@@ -2928,8 +3015,16 @@ def _analysis_delivery(
     failed_artifact_sha256s: Sequence[str] = (),
     inherited_unreachable: Mapping[str, str] = {},
     goal_findings: Sequence[Mapping[str, Any]] = (),
+    goal_streams: Sequence[Path] = (),
 ) -> _AnalysisDelivery:
     """Read the delivery facts a settlement stands on.
+
+    ``goal_streams`` are the goal's other streams -- its earlier cycles'
+    planning sessions and runs. A settlement reads the plan's own failed
+    acceptance criteria across all of them: a verdict one cycle's run was
+    typed with is answered by the decision a later session records, and a
+    number this stream delivers from a result an earlier verdict rejected
+    stands on that verdict whichever stream typed it.
 
     Every field is a typed record the host itself wrote: the
     completion receipt with its stated limitations, the claim and
@@ -3315,9 +3410,12 @@ def _analysis_delivery(
     # The plan's own acceptance criteria, judged by the one function the
     # session's completion and the executor's completion also call. A
     # verdict is answered when a recorded decision cites a receipt that
-    # states it.
+    # states it -- in this stream or in any other stream of the goal, since
+    # a woken session answers the verdict its previous run was typed with.
     here = _verdict_records(lines)
-    goal = here
+    goal = _merge_verdict_records(
+        here, *(_verdict_records(_stream_lines(path)) for path in goal_streams)
+    )
     verdicts = failed_criteria(
         goal.validations,
         cited=goal.cited,
@@ -3428,14 +3526,22 @@ def _analysis_delivery(
         artifact_by_receipt=artifact_by_receipt,
         inherited_rejected_artifacts=flagged_artifact_sha256s,
     )
-    # The same walk once per failed criterion: which numbers this stream
-    # delivers stand on the results that criterion judged. An answered
-    # verdict rides the word with the numbers it carries.
+    # The same walk once per failed criterion, over the whole goal's
+    # records: which numbers this stream delivers stand on the results
+    # that criterion judged. An answered verdict rides the word with the
+    # numbers it carries. An unanswered one typed in another stream holds
+    # every number of this stream standing on it: the planning path read
+    # only its own stream, so a woken session could deliver from results
+    # an earlier run's criterion had rejected, rewrite the criterion
+    # without the rules that failed, and settle achieved (h1b, ax41
+    # general round, 2026-09-02) -- while the run path, which carries
+    # rejections across cycles, would have held the same numbers stale.
     goal_expressions = tuple(
         (receipt, output_id, tuple(sources))
         for (receipt, output_id), sources in goal.expression_sources.items()
     )
     answered_criteria: list[tuple[FailedCriterionV1, tuple[str, ...]]] = []
+    inherited_unanswered: list[tuple[FailedCriterionV1, tuple[str, ...]]] = []
     for verdict in verdicts:
         standing, _judged = _stale_quantity_ids(
             claim_pairs=claim_pairs,
@@ -3446,6 +3552,8 @@ def _analysis_delivery(
         typed_here = bool(here_receipts.intersection(verdict.receipt_sha256s))
         if verdict.answered and (standing or typed_here):
             answered_criteria.append((verdict, standing))
+        elif not verdict.answered and standing and not typed_here:
+            inherited_unanswered.append((verdict, standing))
     # An expression's exported outputs, as opposed to the intermediate
     # node_values it computed on the way: the receipt contract pins
     # output_dependencies' ids to outputs' quantity_ids, in order, so the
@@ -3534,6 +3642,7 @@ def _analysis_delivery(
         anomaly_output_ids=anomaly_ids,
         unanswered_verdicts=unanswered,
         answered_criteria=tuple(answered_criteria),
+        inherited_unanswered=tuple(inherited_unanswered),
         completion_status=completion_status,
         limitation_output_ids=limitations,
         claims=claims,
