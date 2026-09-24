@@ -547,8 +547,33 @@ by the release, none changing an arm, a measure or a test:
 |---|---|---|---|---|
 | 2152986 | r10-q17-a | hc1 slot a (dA S/U, dB P, dE S/U) | a3eda4485329 | COMPLETED 0:42:51; 5 goals, mechanics pass |
 | 2152987 | r10-q17-b | hc1 slot b (dA P, dB S/U, dE P) | a3eda4485329 | COMPLETED 0:35:02; 4 goals, mechanics pass |
-| 2153435 | r10-q17-a | sealed1 plan slot a (39 goals) | 19b5352e3f59 | RUNNING (started 16:04 UTC); both arms' imports and digests verified on the node; tasks manifest 12079111... and plan f60980d1... re-computed equal |
-| 2153436 | r10-q17-b | sealed1 plan slot b (38 goals) | 19b5352e3f59 | RUNNING (started 16:04 UTC) |
+| 2153435 | r10-q17-a | sealed1 plan slot a (39 goals) | 19b5352e3f59 | COMPLETED 2:50:31, exit 0:0; both arms' imports and digests verified on the node; tasks manifest 12079111... and plan f60980d1... re-computed equal; stopped on STOP after its 15th goal |
+| 2153436 | r10-q17-b | sealed1 plan slot b (38 goals) | 19b5352e3f59 | COMPLETED 2:54:07, exit 0:0; wrote STOP at 18:55:25 UTC (below), started no goal after it |
+
+### STOP on a recovered throttle (2026-09-24 18:55 UTC), and the continuation
+
+- What fired: runner 9ebfce01 (the literal rule) wrote STOP after goal
+  t08-P3 (the eighth task in sorted order, arm P, replicate 3):
+  "provider error(s) rate_limited". Both slots then finished the goal they
+  held and started no other; 29 of 77 goals had finished.
+- What the records show (read on CUHK from the goal's two streams, counts
+  and error classes only): the planning session's 10th provider request
+  was classed `rate_limited`; the transport retried it and the 11th request
+  succeeded; the session went on to 21 provider turns in all (20 after the
+  throttle) and ended normally (`runtime_terminated`); its reading session
+  ran 8 turns with no failed attempt; the goal exited 0 and settled
+  achieved. The throttle was recovered.
+- Across all 29 finished goals: 653 provider attempts, that one
+  `rate_limited` and no other failed attempt; 0 infrastructure endings; no
+  zero-turn session. Cumulative provider tokens at the stop: 55.95 M input,
+  2.31 M output, 1.64 M reasoning (29 goals; ~11.9 min per goal per slot).
+- By the recorded ruling STOP fired on a recovered throttle alone, so on the
+  master's word: STOP deleted (its text stays in both slot logs);
+  tools/run_sessions.py on CUHK replaced by eb77fd11 (sha256 recomputed on
+  CUHK, eb77fd11bc000fb6..., equal to the recorded digest; the finished
+  version kept beside it as run_sessions_v2_9ebfce01.py); the same job
+  scripts resubmitted, which skip the 29 goals with meta.json and run the
+  remaining 48 in plan order (slot a 25, slot b 23).
 
 ### The master's ruling on the stop rule (2026-09-25, recorded 16:15 UTC, 2 goals done, no STOP yet)
 
