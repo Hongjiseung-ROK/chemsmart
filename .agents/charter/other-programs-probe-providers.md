@@ -153,7 +153,10 @@ Where the active server profile names an ORCA executable, preflight also
 runs ORCA's own input check on the materialised input that the safe
 preview retained by digest: a bounded probe launch on the controller,
 stopped the moment ORCA's ``INPUT FILE`` banner appears or a 20 s cap is
-reached, never inside a scheduler allocation, minting a typed receipt --
+reached, wherever the controller runs -- inside a scheduler allocation
+too (R10 Q9, merge 16e5f961: the old skip left every CUHK goal's check
+``not_run``), the probe's whole process group stopped with it -- minting a
+typed receipt --
 passed, aborted, or not run, with ORCA's own lines -- that rides an
 ``input_check_probed`` event marked uncharged, joins the node's
 observations on the review **and the compile reply the model reads**,
