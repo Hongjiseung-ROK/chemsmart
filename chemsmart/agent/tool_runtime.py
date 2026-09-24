@@ -12714,7 +12714,12 @@ class CommandCompiledToolHostV1:
         return (
             {
                 str(digest): str(receipt.artifact_sha256)
-                for digest, receipt in self.quantity_extractions.items()
+                for registry in (
+                    self.quantity_extractions,
+                    # A derivation reads its result as an extraction does.
+                    self.thermochemistry_receipts,
+                )
+                for digest, receipt in registry.items()
                 if getattr(receipt, "artifact_sha256", "")
             },
             {

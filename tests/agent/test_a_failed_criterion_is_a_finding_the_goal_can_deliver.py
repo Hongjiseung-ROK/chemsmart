@@ -75,22 +75,24 @@ def _stream_rows(path: Path) -> list[dict]:
     ]
 
 
-def _artifact() -> TrustedArtifactRefV1:
+def _artifact(result: Path = _RESULT) -> TrustedArtifactRefV1:
     return TrustedArtifactRefV1(
-        artifact_id=f"pyscf-result-{file_sha256(_RESULT)[:16]}",
+        artifact_id=f"pyscf-result-{file_sha256(result)[:16]}",
         kind="pyscf_hdf5",
-        sha256=file_sha256(_RESULT),
-        size_bytes=_RESULT.stat().st_size,
-        path=str(_RESULT),
-        cli_value=str(_RESULT),
+        sha256=file_sha256(result),
+        size_bytes=result.stat().st_size,
+        path=str(result),
+        cli_value=str(result),
     )
 
 
-def _run_turns(stream: Path, turns, *, session_id, scratch, workspace=None):
+def _run_turns(
+    stream: Path, turns, *, session_id, scratch, workspace=None, result=_RESULT
+):
     """Drive a real host through the tool loop over ``turns`` into
     ``stream``; the turn factories take the registered artifact id."""
 
-    artifact = _artifact()
+    artifact = _artifact(result)
     host = CommandCompiledToolHostV1(
         event_store=RuntimeEventStore(stream, session_id=session_id),
         task_spec_sha256s=(_TASK,),
@@ -120,22 +122,23 @@ def _run_turns(stream: Path, turns, *, session_id, scratch, workspace=None):
     )
 
 
-def _real_session(tmp_path, run_id, turns):
+def _real_session(tmp_path, run_id, turns, result=_RESULT):
     """A goal's planning session, run for real in its own stream."""
 
     def step(workspace, _kwargs):
         stream = (
             workspace / ".chemsmart-agent" / "runs" / run_id / "events.jsonl"
         )
-        result = _run_turns(
+        ended = _run_turns(
             stream,
             turns,
             session_id="protocol-session",
             scratch=tmp_path,
             workspace=workspace,
+            result=result,
         )
         return SimpleNamespace(
-            terminal_state=result.terminal_state,
+            terminal_state=ended.terminal_state,
             run_id=run_id,
             task_spec_sha256=_TASK,
             selected_execution_wave=(),
@@ -430,7 +433,7 @@ def test_a_delivery_certified_from_its_claims_reads_the_criterion_too(
     assert result.terminal_state != "complete"
 
 
-def _run_with_the_failed_criterion(tmp_path):
+def _run_with_the_failed_criterion(tmp_path, result=_RESULT):
     """Cycle 1's run: an engine node, then the approved chain over the
     registered O2 result -- the criterion fails, the energy is claimed,
     and a run's stream holds no decision."""
@@ -449,6 +452,7 @@ def _run_with_the_failed_criterion(tmp_path):
             turns,
             session_id="protocol-session",
             scratch=tmp_path,
+            result=result,
         )
         return SimpleNamespace(status="completed", analysis_status="completed")
 
@@ -627,4 +631,118 @@ def test_the_route_the_wake_prescribes_answers_an_earlier_cycles_verdict(
     assert result.settlement == "achieved_with_observations"
     assert any(
         f"failed_criterion:{_RULE}:answered" in r for r in result.reasons
+    )
+
+
+#: A PySCF Hessian of the same closed-shell O2, with its stability analysis:
+#: the criterion fails exactly as on the single point, and the result also
+#: carries the frequencies a thermochemistry derivation reads.
+_HESSIAN = (
+    Path(__file__).resolve().parents[1]
+    / "data"
+    / "PySCFTests"
+    / "outputs"
+    / "o2_singlet_hess_stability_heard"
+    / "o2_singlet_hess_stability_heard_gas_phase.h5"
+)
+
+
+def _derive_zpe_and_claim(artifact_id):
+    """The woken cycle: derive thermochemistry from the result the run's
+    criterion judged and claim its zero-point energy, citing no verdict."""
+
+    def replies(payload):
+        return [
+            json.loads(message["content"])["result"]["receipt_sha256"]
+            for message in payload["messages"]
+            if message.get("role") == "tool"
+        ]
+
+    def derived(payload):
+        return _call(
+            1,
+            "derive_thermochemistry",
+            {
+                "artifact_id": artifact_id,
+                "program": "pyscf",
+                "temperature_k": 298.15,
+                "pressure_atm": 1.0,
+            },
+        )
+
+    def claimed(payload):
+        return _call(
+            2,
+            "record_analysis_claims",
+            {
+                "claims": [
+                    {
+                        "claim_id": "zpe-hartree",
+                        "receipt_sha256": replies(payload)[-1],
+                        "quantity_id": "zero_point_energy",
+                        "display_unit": "hartree",
+                    }
+                ]
+            },
+        )
+
+    def decided(payload):
+        return _call(
+            3,
+            "record_scientific_decision",
+            {
+                "decision_id": "o2-rks-zpe",
+                "assumptions": ["harmonic modes of the restricted reference"],
+                "method_rationale": "the task fixed B3LYP/def2-SVP",
+                "alternatives": ["an anharmonic treatment, not asked"],
+                "uncertainties": ["harmonic approximation"],
+                "diagnostics": ["one stretching mode"],
+                "stage_order": ["thermochemistry", "claim"],
+                "evidence_refs": [],
+                "postprocessing_receipt_sha256s": list(replies(payload)[-2:]),
+            },
+        )
+
+    return [
+        lambda payload: _turn(1, "Deriving it.", (derived(payload),)),
+        lambda payload: _turn(2, "Claiming it.", (claimed(payload),)),
+        lambda payload: _turn(3, "Deciding.", (decided(payload),)),
+        lambda payload: _turn(4, "The zero-point energy is claimed."),
+    ]
+
+
+@pytest.mark.capability("rule:wake.failed_validation_receipt_answers_verdict")
+def test_a_number_derived_through_thermochemistry_stands_on_the_verdict_too(
+    tmp_path,
+):
+    """A verdict rejects the result, and a result is read by thermochemistry
+    as surely as by an extraction: a zero-point energy derived from the
+    reference the run's criterion found unstable stands on that verdict.
+    The join followed extraction receipts only, so this delivery was
+    certified over the unanswered verdict."""
+
+    result = _goal(
+        tmp_path,
+        goal_id="goal-o2r-zpe",
+        sessions=[
+            _planning_session(
+                "live-20260925T000000000000Z-q19-plan",
+                review=_review_payload(),
+            ),
+            _real_session(
+                tmp_path,
+                "live-20260925T010000000000Z-q19-zpe",
+                _derive_zpe_and_claim,
+                result=_HESSIAN,
+            ),
+        ],
+        executes=[_run_with_the_failed_criterion(tmp_path, result=_HESSIAN)],
+    )
+    assert result.cycles == 2
+    assert result.settlement == "returned_to_human"
+    assert any(
+        _RULE in reason
+        and "zpe-hartree" in reason
+        and "another cycle" in reason
+        for reason in result.reasons
     )

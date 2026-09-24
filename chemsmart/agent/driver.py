@@ -2932,7 +2932,13 @@ def _verdict_records(lines: Sequence[str]) -> _VerdictRecords:
             # scientist's call to make, and citing the receipt is how it
             # is made without the host grading prose.
             cited |= cited_receipts(record.get("evidence_refs") or ())
-        elif kind == "result_quantities_extracted" and digest:
+        elif (
+            kind in {"result_quantities_extracted", "thermochemistry_derived"}
+            and digest
+        ):
+            # A thermochemistry derivation reads its result as surely as
+            # an extraction does: a zero-point energy of a rejected saddle
+            # stands on the verdict that rejected it.
             artifact = str(
                 payload.get("artifact_sha256")
                 or record.get("artifact_sha256")
@@ -3513,7 +3519,9 @@ def _analysis_delivery(
         claim_pairs=claim_pairs,
         rejected_bindings=rejected_bindings,
         expression_outputs=expression_outputs,
-        artifact_by_receipt=artifact_by_receipt,
+        # The verdict join reads every receipt that read a result,
+        # thermochemistry derivations included.
+        artifact_by_receipt=here.result_artifacts,
         inherited_rejected_artifacts=inherited_rejected_artifacts,
     )
     # The same walk, seeded with the artifacts of every node an anomaly
