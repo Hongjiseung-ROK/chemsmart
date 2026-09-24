@@ -222,3 +222,12 @@ Bands (never tuned after a result):
 - 2026-09-24: C2 (5ea8199b), writer (4a9654cc), compiler (f2525546)
   and host wiring (3d3daa36) committed with witnesses red on the base;
   tests/agent green on 5ea8199b (2975 passed).
+- 2026-09-24: C3 refused handoff (edd8f0a9-series, see git log), C4
+  Gaussian scan point (c6b20491) and the two shared text commits
+  (cde2c806 wave tool and rules, 1f11e221 relaxed-scan guide).
+- 2026-09-24: r10-integration merged (Q10's episode; no conflict).
+  Pristine export of the merge: tests/agent 2996 passed / 19 skipped /
+  2 xfailed; full suite 23 failed, identical to the round baseline set
+  (test_structures 19, test_pyscf_dispersion_conformance 2,
+  test_PyscfSettings 1, test_aggregation 1), 4480 passed.
+- Waiting on G2 (2151911) and G1 (2151912).
