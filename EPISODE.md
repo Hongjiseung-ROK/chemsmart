@@ -106,9 +106,110 @@ Resource ownership:
   allocation records any ORCA probe `not_run` for the allocation reason, or
   if any node branch contains a file whose content another launch wrote.
 
+## Repairs (committed before any job)
+
+- e68c1bc3 jobs: every engine run writes in a scratch directory no earlier run left (S1, S3-S5)
+- d2b3e6ca jobs: ORCA's numbered temporaries stay in scratch (S2)
+- 0cb2bf09 agent: ORCA's input check runs where the controller runs, inside an allocation too (E1, S7)
+- 364bf2fd jobs: an ORCA project cannot state cores or memory; the refusal names the grant (R1)
+
+Each has a witness red on its parent and green on it. Full suite at 5965fe61
+from a `git archive` export: 23 failed / 4433 passed -- the round's 23
+environmental failures (InChI, CDX, PySCF dispersion probe); none in a file
+this episode touched.
+
 ## Pre-registration
 
 (written before each job is issued; never edited after its result)
+
+### O1 -- oracle, provider-free, real ORCA 6.1.1, one slot job (8 tasks, 24 GB, 1 h)
+
+`/project/xlzhang/jiseung/r10/q9/oracle1/{job.sh,oracle.py}`; two packed trees,
+`code-base` = d2c192af (the round's base) and `code-repaired` = this branch's
+code (digest ad888d1d... at 5965fe61; chemsmart/ unchanged since). Inputs are
+pair3-b's archived files copied read-only into `oracle1/inputs/` (sha256 in
+the job's own listing): cycle-3's `.inp` with `MaxCore 1800`, cycle-2's
+valid DLPNO `.inp`, cycle-1's `geom-h-atom.xyz`, `prj-h-sp-cc.yaml`
+(UHF DLPNO-CCSD(T)/def2-TZVP), `prj-h-sp-dft.yaml` (UHF wB97X-D3BJ/def2-TZVP),
+cycle-3's `proj-radical-cc-r3b.yaml`. TMPDIR is set to the q9 scratch.
+
+Expected, per part (a miss on the repaired tree falsifies that repair on real
+ORCA; a miss on the base tree falsifies my reading of the archived loss):
+
+- A (the probe function, both trees): `maxcore-cycle3.inp` -> `aborted`, engine
+  lines contain `UNRECOGNIZED OR DUPLICATED KEYWORD(S) IN SIMPLE INPUT LINE`
+  and `MAXCORE 1800`, wall < 5 s; `dlpno-cycle2.inp` -> `passed`, wall < 20 s.
+  Repaired: the work root is empty afterwards. No ORCA process left after
+  either tree.
+- B (the host's `_probe_input_check` under this job's SLURM_JOB_ID): base ->
+  both `not_run`, reason "inside a scheduler allocation ..."; repaired ->
+  rad-sp-cc-r3 `aborted` with ORCA's lines and a review line starting
+  `input-check probe: aborted`, radical-sp-cc `passed`; the envelope's scratch
+  root holds nothing afterwards.
+- C (the executor's command line on geom-h-atom.xyz, same label twice: node-a =
+  h-sp's project, node-b = h-sp-dft's project, one shared scratch root; control
+  = h-sp-dft's project alone in its own root). Both trees: node-a exits nonzero
+  (MDCI error, as h-sp did); node-b and control terminate normally.
+  Base: node-b's output shows `GBW file was renamed to GES file`; node-b holds
+  names the control does not (at least `.ges`); node-a holds >= 1 `.tmp` file.
+  Repaired: no AutoStart line in node-b; node-b's names are a subset of the
+  control's; node-a holds no `.tmp` file; the shared scratch root holds exactly
+  one directory afterwards (node-a's `<label>-<hex>`, kept because it failed).
+  Physics: E(node-b) = E(control) within 1e-6 Eh in each tree, both equal to
+  the archived h-sp-dft value -0.505034793652 Eh within 1e-6 Eh (the same
+  input on the same ORCA; an H-atom UHF-DFT solution is unique, so AutoStart
+  is not expected to move the number -- the defect is provenance, not value).
+- D (the ORCA project loader on cycle-3's project): base loads it with
+  `MaxCore 1800`; repaired refuses it with the message naming the grant.
+
+### G1 -- live Agent goal on the repaired tree (the milestone run)
+
+`goals/g1`: methanol O-H BDE, task text in the shape of Q6's pair3 (level of
+theory the model's choice), ORCA the only program the envelope allows;
+8 cores / 16 GB, node 1800 s, episode 7200 s, 12 engine calls, 2 revisions;
+allocation 8 tasks / 24 GB / 2:20:00; delegated approval
+(`claude-researcher-q9-owner-delegated`, never a human decision); model
+deepseek-v4-flash-0731 via alibaba-token-plan.
+
+Infrastructure expectations (the question; read from events, ledger, branches
+and scratch):
+1. Every `input_check_probed` event for an ORCA node has status `passed` or
+   `aborted` with wall < 20 s; none is `not_run` for the allocation reason.
+   Any `not_run` for another reason is reported with its reason. FAIL if any
+   allocation-reason `not_run` appears.
+2. No ORCA output in any branch contains `GBW file was renamed to GES file`;
+   no branch holds a `.ges` or a `.tmp` file; every file an engine wrote in a
+   branch carries that branch's own job label; the scratch root holds one
+   `<label>-<hex>` directory per failed launch and none for completed ones.
+3. If a node fails and a later node of the same label runs (pair3-b's pattern:
+   a DLPNO step on the H atom dies in MDCI and the atom is recomputed), the
+   later branch holds only its own run's files (checked as in O1-C). If no
+   such pair occurs, expectation 3 is not tested by G1 and rests on O1-C;
+   that is reported, not re-rolled.
+4. If the session writes a resource token into a route, the project is refused
+   naming the grant before any engine call (not expected; reported if seen).
+
+Physics (sanity, recorded not scored): a delivered BDE(298 K) of methanol's
+O-H in 100-110 kcal/mol (Blanksby & Ellison 2003 list 105.2 +/- 0.7 kcal/mol --
+recalled, not read this session, so only a band); an H-atom energy, if one is
+computed, within [-0.51, -0.49] Eh.
+
+Agent-side facts (method, failures, repairs, claims) are recorded as
+deepseek-v4-flash behaviour and are not what G1 tests. A session with zero
+provider turns or a `turn_deadline_exceeded` death is infrastructure.
+
+### G2 -- conditional, pre-registered now
+
+Issued only if G1 shows no failed-then-same-label pair (expectation 3
+untested) AND O1-C passes: the same shape of goal on the hydrogen atom alone,
+"What is the energy of the hydrogen atom at the DLPNO-CCSD(T)/def2-TZVP
+level?", same envelope numbers. Expectation: ORCA's MDCI refuses DLPNO on one
+electron (as h-sp did), and whatever the session computes next on the same
+geometry file runs in its own scratch and its branch holds only its own
+files (expectations 1-3 of G1). Physics band: an H-atom energy delivered at a
+one-electron-exact wavefunction method with def2-TZVP within
+-0.49981 +/- 0.00002 Eh (the archived UHF/def2-TZVP reference energy of h-sp,
+-0.49980983 Eh).
 
 ## Jobs issued
 
@@ -116,4 +217,4 @@ Resource ownership:
 
 ## Status
 
-Census in progress (provider-free).
+Repairs committed; O1 and G1 pre-registered; next: pack, upload, submit.
