@@ -90,9 +90,19 @@ def signed_word_violations(workspace: Path, goal_id: str) -> list[str]:
     found: list[str] = []
     streams: list[tuple[int, int, Path]] = []
     declared = False
+    required: set[str] = set()
     for row in ledger:
         payload = row.get("payload") or {}
         kind = row.get("kind")
+        if kind == "observables_declared":
+            # A refusal of an id declared with a tolerance is a refused
+            # precision, and the claimed number stands.
+            required.update(
+                str(item.get("observable_id") or "")
+                for item in payload.get("observables") or ()
+                if str(item.get("role") or "requested") != "diagnostic"
+                and item.get("required_tolerance") is None
+            )
         if kind == "observables_declared" and any(
             str(item.get("role") or "requested") != "diagnostic"
             for item in payload.get("observables") or ()
@@ -135,6 +145,46 @@ def signed_word_violations(workspace: Path, goal_id: str) -> list[str]:
         found.append(
             f"{word} over a delivery whose newest completion is "
             f"{latest or 'absent'}"
+        )
+    # The latest typed word about each declared id: a claim, or a refusal
+    # the host verified. An achieved word stands on no id whose latest word
+    # is a verified refusal of its presence (a refused precision stands on
+    # its claimed number and is not asked).
+    last_claim: dict[str, tuple[int, int]] = {}
+    last_refusal: dict[str, tuple[int, int]] = {}
+    for cycle, order, stream in streams:
+        for row in _rows(stream):
+            payload = row.get("payload") or {}
+            if row.get("kind") == "analysis_claims_recorded":
+                for claim in (payload.get("record") or {}).get("claims") or ():
+                    for name in (
+                        claim.get("claim_id"),
+                        claim.get("quantity_id"),
+                    ):
+                        if name:
+                            last_claim[str(name)] = max(
+                                last_claim.get(str(name), (0, 0)),
+                                (cycle, order),
+                            )
+            if row.get("kind") == "scientific_decision_recorded":
+                for item in payload.get("unreachable_observables") or ():
+                    presence = item.get("blocked_node_id") or item.get(
+                        "selector"
+                    )
+                    if item.get("verified") and presence:
+                        name = str(item.get("observable_id") or "")
+                        last_refusal[name] = max(
+                            last_refusal.get(name, (0, 0)), (cycle, order)
+                        )
+    refused_last = sorted(
+        name
+        for name, when in last_refusal.items()
+        if name in required and when > last_claim.get(name, (-1, -1))
+    )
+    if word in _ACHIEVED and refused_last:
+        found.append(
+            f"{word} over declared ids whose latest word is a verified "
+            f"refusal: {', '.join(refused_last)}"
         )
     qualified = any(row.get("kind") == "qualified" for row in ledger)
     if qualified and word not in _ACHIEVED:
@@ -590,10 +640,19 @@ def _blocking_plan(observable_id):
     )
 
 
-def _refusing_session_rows(tmp_path, name, *, refused, delivered, value):
+def _refusing_session_rows(
+    tmp_path,
+    name,
+    *,
+    refused,
+    delivered,
+    value,
+    unit="kcal/mol",
+    band=(2.0, 7.0),
+):
     """What a session's own host writes when it delivers one observable
     and refuses another: the declarations (the delivered one with an
-    expectation band of 2-7 kcal/mol), a claim at `value`, a decision whose
+    expectation band, when given), a claim at `value`, a decision whose
     refusal the host verifies against a blocked node of its plan, and the
     completion its gate mints."""
 
@@ -612,11 +671,17 @@ def _refusing_session_rows(tmp_path, name, *, refused, delivered, value):
             "observables": [
                 {
                     "observable_id": delivered,
-                    "unit": "kcal/mol",
-                    "meaning": "the delivered energy",
-                    "expected_low": 2.0,
-                    "expected_high": 7.0,
-                    "expectation_basis": "a prior the physics may leave",
+                    "unit": unit,
+                    "meaning": "the delivered quantity",
+                    **(
+                        {
+                            "expected_low": band[0],
+                            "expected_high": band[1],
+                            "expectation_basis": "a prior the physics may leave",
+                        }
+                        if band
+                        else {}
+                    ),
                 },
                 {
                     "observable_id": refused,
@@ -638,7 +703,7 @@ def _refusing_session_rows(tmp_path, name, *, refused, delivered, value):
                     "node_id": "n1",
                     "operation": "literal",
                     "literal_value": value,
-                    "literal_unit": "kcal/mol",
+                    "literal_unit": unit,
                 }
             ],
             "output_node_ids": ["n1"],
@@ -655,7 +720,7 @@ def _refusing_session_rows(tmp_path, name, *, refused, delivered, value):
                     "claim_id": delivered,
                     "receipt_sha256": receipt,
                     "quantity_id": "n1",
-                    "display_unit": "kcal/mol",
+                    "display_unit": unit,
                 }
             ],
         },
@@ -773,3 +838,45 @@ def test_a_refusal_word_carries_what_the_rest_of_the_delivery_found(
     reasons = " | ".join(result.reasons)
     assert "g-90 -- no admissible structure holds it" in reasons
     assert "falsified_expectation:g-180" in reasons
+
+
+def test_a_verified_refusal_governs_the_claim_an_earlier_cycle_made(
+    tmp_path,
+):
+    """R10 Q24's live goal g2r (CUHK 2153691): cycle 1's approved chain
+    claimed dg-torsion-90deg from a saddle search seeded at 90 degrees;
+    cycle 2 read that the search had reached the cis saddle, renamed the
+    number, refused the observable through a blocked node the host
+    verified, and its passed completion listed the id as delivered
+    without. The goal settled achieved_with_observations, "delivered in an
+    earlier cycle: dg-torsion-90deg" -- the cis barrier presented as the
+    90-degree free energy, over the goal's own later, verified word. Here
+    cycle 1's run claims barrier-forward, and cycle 2's session, its own
+    host writing every row, refuses it and delivers the rest."""
+
+    rows = _refusing_session_rows(
+        tmp_path,
+        "live-2",
+        refused="barrier-forward",
+        delivered="irc-forward-points",
+        value=21.0,
+        unit="1",
+        band=None,
+    )
+
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _declaring_session(tmp_path, "live-1"),
+            _planning_session("live-2", terminal="complete", wake_rows=rows),
+        ],
+        executes=[_run_with_partial_chain(tmp_path)],
+        max_revisions=2,
+    )
+
+    assert result.settlement == "unreachable_from_evidence", result.reasons
+    reasons = " | ".join(result.reasons)
+    assert "barrier-forward -- no admissible structure holds it" in reasons
+    assert "supersedes the claim cycle 1 rendered under this id" in reasons
+    assert "delivered in an earlier cycle: barrier-forward" not in reasons
+    assert signed_word_violations(tmp_path / "ws", "goal-t1") == []

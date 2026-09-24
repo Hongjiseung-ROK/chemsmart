@@ -354,6 +354,77 @@ def _inherited_verdict_reason(delivery: "_AnalysisDelivery") -> str:
     )
 
 
+def _claims_a_later_refusal_supersedes(
+    refusing: "_AnalysisDelivery",
+    claimed_here: Collection[str],
+    goal_delivered: Mapping[str, Mapping[str, Any]],
+    declarations: Sequence[Mapping[str, Any]],
+    verified: Collection[str] | None = None,
+) -> dict[str, Mapping[str, Any]]:
+    """Declared ids an earlier cycle claimed that this cycle refused, with
+    the host's verification: the latest typed word about an id governs it.
+
+    A claim made in an earlier cycle delivers an id the later cycles did
+    not claim again (the goal-grain rule), and it used to deliver one a
+    later cycle refused as well. R10 Q24's live goal g2r (CUHK 2153691)
+    claimed dg-torsion-90deg in cycle 1 from a saddle search seeded at 90
+    degrees; cycle 2 read that the search had reached the cis saddle, H-O-O-H
+    0.047 degrees, renamed the number, and refused the observable through a
+    blocked node the host verified, and its passed completion listed the id
+    as delivered without. The goal settled achieved_with_observations
+    saying "delivered in an earlier cycle: dg-torsion-90deg" -- the cis
+    barrier, 7.95 kcal/mol, presented as the 90-degree free energy.
+
+    Not asked: an id this cycle claimed itself, and an id declared with a
+    required tolerance. A refusal of a claimed requirement is the
+    sufficiency menu's route for a precision no admissible calculation
+    reaches, and the claimed number stands (ax41 po3-r19 refused its
+    0.5 kcal/mol, through a blocked node, over the value it delivered).
+    An id declared with no tolerance has no precision to refuse, so its
+    refusal can only be of the number itself.
+    """
+
+    allowed = set(
+        refusing.verified_unreachable_ids if verified is None else verified
+    )
+    here = {str(item) for item in claimed_here}
+    requirements = {
+        str(row.get("observable_id") or "")
+        for row in declarations
+        if row.get("required_tolerance") is not None
+    }
+    superseded: dict[str, Mapping[str, Any]] = {}
+    for observable_id in sorted(allowed):
+        selector, _jobtype, blocked = refusing.unreachable_producers.get(
+            observable_id, ("", "", "")
+        )
+        if (
+            not (selector or blocked)
+            or observable_id in here
+            or observable_id in requirements
+        ):
+            continue
+        row = goal_delivered.get(observable_id)
+        if row is not None:
+            superseded[observable_id] = row
+    return superseded
+
+
+def _superseded_claim_named(row: Mapping[str, Any]) -> str:
+    """The clause a refusal adds about the earlier claim it supersedes."""
+
+    value = row.get("value")
+    number = (
+        f" ({value} {row.get('unit') or ''})".replace(" )", ")")
+        if value is not None
+        else ""
+    )
+    return (
+        "; this refusal supersedes the claim cycle "
+        f"{row.get('cycle')} rendered under this id{number}"
+    )
+
+
 def _earlier_deliveries(
     delivery: "_AnalysisDelivery", superseded: Collection[str] = ()
 ) -> tuple[str, ...]:
@@ -788,6 +859,14 @@ def _delivery_settlement(
         goal_streams=_goal_streams(ledger, workspace, goal_id),
     )
     evidence = _settlement_evidence(delivery)
+    # An earlier cycle's claim this cycle's verified refusal superseded:
+    # the id is open again, and the refusal answers it.
+    superseded = _claims_a_later_refusal_supersedes(
+        delivery,
+        delivery.claim_rows,
+        _goal_delivered_ids(workspace, goal_id),
+        _first_declarations(ledger),
+    )
     # What the goal declared and has not delivered under its id in any
     # cycle, read from the ledger's first declarations and the record --
     # a refusal made from the in-session route has no completion and so
@@ -801,6 +880,7 @@ def _delivery_settlement(
                 delivered_here=delivery.delivered_quantity_ids,
             )
             + tuple(delivery.undelivered_declared_ids)
+            + tuple(superseded)
         )
     )
     # An undelivered observable the session refused, and an observable
@@ -864,7 +944,7 @@ def _delivery_settlement(
         # the typed refusal.
         settled = "unreachable_from_evidence"
         carried, evidence = _what_the_delivery_carries(
-            delivery, _goal_anomalies(ledger), evidence
+            delivery, _goal_anomalies(ledger), evidence, superseded
         )
         reasons = (
             "the completion receipt names required outputs "
@@ -888,13 +968,18 @@ def _delivery_settlement(
         # reply had promised this word for it.
         settled = "unreachable_from_evidence"
         carried, evidence = _what_the_delivery_carries(
-            delivery, _goal_anomalies(ledger), evidence
+            delivery, _goal_anomalies(ledger), evidence, superseded
         )
         reasons = (
             _VERIFIED_REFUSAL_LEAD
             + "; ".join(
                 f"{observable_id} -- "
                 f"{delivery.unreachable_bases.get(observable_id, '')}"
+                + (
+                    _superseded_claim_named(superseded[observable_id])
+                    if observable_id in superseded
+                    else ""
+                )
                 for observable_id in refused_ids
             ),
         ) + carried
@@ -931,10 +1016,10 @@ def _delivery_settlement(
                 delivery, delivery.undelivered_declared_ids
             ),
         ) + delivery.open_declared_misses
-        if delivery.delivered_in_earlier_cycles:
+        earlier = _earlier_deliveries(delivery, superseded)
+        if earlier:
             reasons = reasons + (
-                "delivered in an earlier cycle: "
-                + ", ".join(delivery.delivered_in_earlier_cycles),
+                "delivered in an earlier cycle: " + ", ".join(earlier),
             )
     elif certified and delivery.unanswered_verdicts:
         # The host itself rendered a verdict saying a delivered structure
@@ -956,7 +1041,9 @@ def _delivery_settlement(
         reasons = (_inherited_verdict_reason(delivery),)
     elif certified and delivery.claims:
         goal_anomalies = _goal_anomalies(ledger)
-        settled, reasons = _achieved_word(delivery, goal_anomalies)
+        settled, reasons = _achieved_word(
+            delivery, goal_anomalies, superseded=superseded
+        )
         if settled == "achieved_with_observations":
             evidence = _anomaly_evidence(evidence, goal_anomalies)
         if terminal != "complete":
@@ -6776,10 +6863,25 @@ class GoalDriver:
         # ending a deliverable. Only the first was ever read, so a goal
         # that ran engines and had its stated accuracy certified
         # unreachable settled achieved.
+        # An earlier cycle's claim this cycle's verified refusal superseded
+        # (`_claims_a_later_refusal_supersedes`): the refusal answers it.
+        superseded = (
+            _claims_a_later_refusal_supersedes(
+                session_delivery,
+                set(run_delivery.claim_rows)
+                | set(session_delivery.claim_rows),
+                _goal_delivered_ids(self.workspace, self.goal_id),
+                _first_declarations(self.ledger),
+                verified=refused,
+            )
+            if session_delivery is not None
+            else {}
+        )
         refused_ids = tuple(
             dict.fromkeys(
                 tuple(run_delivery.undelivered_declared_ids)
                 + tuple(run_delivery.refused_requirement_ids)
+                + tuple(superseded)
             )
         )
         if (
@@ -6797,6 +6899,11 @@ class GoalDriver:
                 + "; ".join(
                     f"{observable_id} -- "
                     f"{session_delivery.unreachable_bases.get(observable_id, '')}"
+                    + (
+                        _superseded_claim_named(superseded[observable_id])
+                        if observable_id in superseded
+                        else ""
+                    )
                     for observable_id in refused_ids
                 )
             )
@@ -6804,6 +6911,7 @@ class GoalDriver:
                 run_delivery,
                 _goal_anomalies(self.ledger),
                 _settlement_evidence(session_delivery),
+                superseded,
             )
             self.ledger.settle(
                 "unreachable_from_evidence",
@@ -6953,7 +7061,9 @@ class GoalDriver:
             return
         if achieved:
             goal_anomalies = _goal_anomalies(self.ledger)
-            word, why = _achieved_word(run_delivery, goal_anomalies)
+            word, why = _achieved_word(
+                run_delivery, goal_anomalies, superseded=superseded
+            )
             evidence = _settlement_evidence(run_delivery)
             if word == "achieved_with_observations":
                 evidence = _anomaly_evidence(evidence, goal_anomalies)
