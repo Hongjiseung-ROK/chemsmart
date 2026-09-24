@@ -547,6 +547,8 @@ by the release, none changing an arm, a measure or a test:
 |---|---|---|---|---|
 | 2152986 | r10-q17-a | hc1 slot a (dA S/U, dB P, dE S/U) | a3eda4485329 | COMPLETED 0:42:51; 5 goals, mechanics pass |
 | 2152987 | r10-q17-b | hc1 slot b (dA P, dB S/U, dE P) | a3eda4485329 | COMPLETED 0:35:02; 4 goals, mechanics pass |
+| 2153435 | r10-q17-a | sealed1 plan slot a (39 goals) | 19b5352e3f59 | submitted |
+| 2153436 | r10-q17-b | sealed1 plan slot b (38 goals) | 19b5352e3f59 | submitted |
 
 ## Status
 
