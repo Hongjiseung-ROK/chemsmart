@@ -19,7 +19,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-pytestmark = pytest.mark.capability("program_jobtype:orca:sp")
+pytestmark = pytest.mark.capability("program_jobtype:orca:cpu:sp")
 
 GEOMETRIES = {
     "h": "1\nH atom\nH 0.0 0.0 0.0\n",

@@ -13,7 +13,7 @@ import pytest
 
 from chemsmart.io.native_failure import summarize_orca_native_failure
 
-pytestmark = pytest.mark.capability("program_jobtype:orca:sp")
+pytestmark = pytest.mark.capability("program_jobtype:orca:cpu:sp")
 
 
 def test_mdci_s_own_refusal_is_named_as_its_own_class():

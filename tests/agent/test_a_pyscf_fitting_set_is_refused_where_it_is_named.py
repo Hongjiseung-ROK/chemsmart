@@ -15,7 +15,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-pytestmark = pytest.mark.capability("program_jobtype:pyscf:sp")
+pytestmark = pytest.mark.capability("program_jobtype:pyscf:cpu:sp")
 
 WATER = (
     "3\nwater\nO 0.0 0.0 0.1173\nH 0.0 0.7572 -0.4692\n"
