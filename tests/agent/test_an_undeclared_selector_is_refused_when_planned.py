@@ -141,7 +141,9 @@ def test_method_identity_is_a_typed_quantity_on_real_output():
 
     reader = reader_for("orca")
     output = ORCAOutput(filename="tests/data/ORCATests/outputs/KOH.out")
-    assert reader.read(output, "functional")[0] == "b3lyp"
+    # The route says B3LYP and ORCA printed LDAOpt VWN-5: the VWN5 form,
+    # which the literal b3lyp5 names in every program.
+    assert reader.read(output, "functional")[0] == "b3lyp5"
     assert reader.read(output, "basis")[0] == "def2-svp"
     assert reader.read(output, "converged")[0] == 1
     for jobtype in ("sp", "opt", "ts"):

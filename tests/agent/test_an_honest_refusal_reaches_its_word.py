@@ -88,6 +88,12 @@ def _extraction_receipt(host):
 
 
 def test_a_selector_no_program_declares_verifies_the_refusal(tmp_path):
+    """Verified when, besides no reader declaring the selector, the goal
+    holds no result of the named job type it could be read from. The one
+    result here is an ORCA optimisation; over it the host cannot say the
+    selector is absent (ORCA prints Hirshfeld spins beside the charges it
+    serves), and test_a_host_word_is_true_of_what_it_read pins that."""
+
     host = _host(
         tmp_path, approved_requested_observable_declarations=[_SPIN, _GAP]
     )
@@ -97,7 +103,7 @@ def test_a_selector_no_program_declares_verifies_the_refusal(tmp_path):
         receipt,
         observable_id="spin-nickel",
         selector="hirshfeld_atomic_spin_populations",
-        jobtype="opt",
+        jobtype="hess",
     )
     (entry,) = reply["result"]["unreachable_observables"]
     assert entry["verified"] is True

@@ -476,6 +476,66 @@ def test_an_absent_quantity_settles_the_node_instead_of_crashing(tmp_path):
     assert CLAIMS_HEADING not in report
 
 
+def test_a_validation_over_a_delivered_sibling_of_a_refusal_is_evaluated(
+    tmp_path,
+):
+    """R10 q8 G3 (CUHK 2150299): a window check refused by a sibling's gap.
+
+    One extraction asked for excitation energies and ORCA's full-TD-DFT
+    <S^2>, which the reader refuses for an open-shell root. The walk ran
+    the expression over the energies, as it should since 121a127a, and
+    the validation over that expression's output was then refused as "not
+    typed evidence from its planned producer": the host's own relation
+    between receipts and plan nodes was still node-level. Here the refused
+    sibling is <S^2> of a closed-shell result beside its energy.
+    """
+
+    import dataclasses
+
+    base = _chain()
+    extraction, expression, validation, claims = base.analysis_nodes
+    extraction = dataclasses.replace(
+        extraction,
+        selectors=extraction.selectors
+        + (
+            AnalysisSelectorIntentV1(quantity_id="s2", selector="spin_square"),
+        ),
+        outputs=extraction.outputs
+        + (
+            AnalysisOutputIntentV1(
+                output_id="s2", quantity_kind="count", unit="1"
+            ),
+        ),
+    )
+    toolchain = build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="w",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(_calculation(),),
+        calculation_observables={"sp": ("sp-out",)},
+        analysis_nodes=(extraction, expression, validation, claims),
+        required_output_ids=("final-energy",),
+    )
+    executor = _executor(tmp_path, toolchain)
+
+    nodes, status, _completions, _report = executor._run_analysis_phase(
+        toolchain
+    )
+
+    settled = {record.node_id: record for record in nodes}
+    assert settled["extract-sp"].absent_output_ids == ("s2",)
+    assert settled["to-kcal"].state == "executed"
+    assert settled["check"].state == "executed", settled["check"].reason
+    assert status == "completed"
+    matched = executor.host._scientific_toolchain_analysis_receipts(
+        toolchain, task_spec_sha256="a" * 64
+    )
+    # The extraction itself is still incomplete -- it was refused a
+    # quantity it planned -- while what consumed only delivered values is.
+    assert "extract-sp" not in matched
+    assert {"to-kcal", "check"} <= set(matched)
+
+
 def test_several_claim_records_complete_green(tmp_path):
     """Two claim-rendering nodes are a whole delivery, not a broken one.
 

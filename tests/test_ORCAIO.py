@@ -91,7 +91,8 @@ class TestORCARoute:
             "noprintmos",
             "nopop",
         ]
-        assert r4.functional == "bp86"
+        # ORCA's BP86 is the PW92 form, which the literal bp86-pw92 names.
+        assert r4.functional == "bp86-pw92"
         assert r4.ab_initio is None
         assert r4.basis == "sto-3g"
         assert r4.extrapolation_basis is None
@@ -117,7 +118,8 @@ class TestORCARoute:
         s6 = "! B3LYP D3ZERO def2-TZVP "
         r6 = ORCARoute(route_string=s6)
         assert r6.route_keywords == ["b3lyp", "d3zero", "def2-tzvp"]
-        assert r6.functional == "b3lyp"
+        # ORCA's bare B3LYP is the VWN5 form, which the literal b3lyp5 names.
+        assert r6.functional == "b3lyp5"
         assert r6.dispersion == "d3zero"
         assert r6.ab_initio is None
         assert r6.basis == "def2-tzvp"
@@ -128,7 +130,7 @@ class TestORCARoute:
         s7 = "!QM/XTB BP86 def2-TZVP def2/J"
         r7 = ORCARoute(route_string=s7)
         assert r7.route_keywords == ["qm/xtb", "bp86", "def2-tzvp", "def2/j"]
-        assert r7.qm_functional == "bp86"
+        assert r7.qm_functional == "bp86-pw92"
         assert r7.qm_basis == "def2-tzvp"
         assert r7.auxiliary_basis == "def2/j"
         assert r7.qm2_method == "xtb"
@@ -146,7 +148,7 @@ class TestORCARoute:
             "numfreq",
             "cpcm(water)",
         ]
-        assert r8.qm_functional == "b3lyp"
+        assert r8.qm_functional == "b3lyp5"
         assert r8.qm_basis == "def2-tzvp"
         assert r8.auxiliary_basis == "def2/j"
         assert r8.qm2_method == "hf-3c"
@@ -216,7 +218,7 @@ class TestORCAInput:
 
     def test_read_solvent(self, orca_epr_solv):
         orca_inp = ORCAInput(filename=orca_epr_solv)
-        assert orca_inp.functional == "b3lyp"
+        assert orca_inp.functional == "b3lyp5"
         assert orca_inp.basis == "6-311++g(2d,2p)"
         assert orca_inp.aux_basis == "def2/jk"
         assert orca_inp.scf_tol == "extreme"
@@ -225,7 +227,7 @@ class TestORCAInput:
 
     def test_orca_faulty_solvent(self, orca_faulty_solv):
         orca_inp = ORCAInput(filename=orca_faulty_solv)
-        assert orca_inp.functional == "b3lyp"
+        assert orca_inp.functional == "b3lyp5"
         assert orca_inp.basis == "6-311++g(2d,2p)"
         assert orca_inp.aux_basis == "def2/jk"
         assert orca_inp.scf_tol == "extreme"
@@ -3281,15 +3283,22 @@ class TestORCApKaOutput:
     PHENOL_HB_E = -307.111134
     PHENOL_HB_QH_G = -307.031069
     PHENOL_B_E = -306.533586
-    PHENOL_B_QH_G = -306.467527
+    # combined.dat was written with the symmetry number ORCA printed for
+    # the phenolate, 1 ("Only C1 symmetry has been detected"); its own
+    # converged geometry is C2v to 1.6e-3 A, so the host counts 2 and the
+    # phenolate's Gibbs energy rises by RT ln 2 at 298.15 K. Phenol (Cs)
+    # and the L2 pair (C1) are unchanged, and the exchange cycle's dG
+    # falls by the same RT ln 2.
+    RT_LN_2_298 = 8.314462618 * 298.15 * np.log(2.0) / 2625499.6394799546
+    PHENOL_B_QH_G = -306.467527 + RT_LN_2_298
 
     L2_HA_SP_E = -1101.625867
     L2_A_SP_E = -1101.157126
     PHENOL_HB_SP_E = -307.121330
     PHENOL_B_SP_E = -306.628244
 
-    EXPECTED_DG_AU = -0.02392099999997299
-    EXPECTED_DG_KCAL = -15.010654129046468
+    EXPECTED_DG_AU = -0.02392099999997299 - RT_LN_2_298
+    EXPECTED_DG_KCAL = EXPECTED_DG_AU * 627.5094740631
 
     @staticmethod
     def _p(*parts):

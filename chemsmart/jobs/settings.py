@@ -8,6 +8,242 @@ from chemsmart.utils.utils import update_dict_with_existing_keys
 logger = logging.getLogger(__name__)
 
 
+#: What a ChemSmart functional literal means, whichever program runs it.
+#:
+#: A project literal named here is one functional in every program that
+#: accepts it.  Each program's settings class spells it in that program's
+#: own vocabulary (or refuses it where the program has no spelling), and
+#: each result reader reads the applied form back from the program's own
+#: record; this table is the meaning both sides answer to, so no program
+#: table restates it.  A literal absent from the table passes through to
+#: each program unchanged, which is safe only where the programs agree on
+#: the name.
+#:
+#: Measured, not recalled (CUHK Slurm 2149277/2149278, water and seven
+#: other species at tight matched numerics): Gaussian ``B3LYP``, ORCA
+#: ``B3LYP/G`` (which prints ``LDAOpt .... VWN-3``) and PySCF ``b3lypg``
+#: (libxc 402) agree to 2.2e-6 Eh; ORCA's bare ``B3LYP`` (``VWN-5``) and
+#: PySCF ``b3lyp5`` agree to 8.6e-7 Eh and lie 0.032-0.154 Eh above the
+#: first form, 2.34 kcal/mol apart in the vertical IP of water and 0.38
+#: in the C-Cl homolysis of CH3Cl.  Before this table ``b3lyp`` meant the
+#: first form in Gaussian and PySCF and the second in ORCA.
+FUNCTIONAL_IDENTITIES = {
+    "b3lyp": {
+        "functional_family": "b3lyp",
+        "correlation_convention": "vwn3_gaussian",
+        "definition": (
+            "B3LYP of Stephens et al. (1994) with the VWN RPA local "
+            "correlation: Gaussian's B3LYP (VWN functional III), ORCA's "
+            "B3LYP/G, libxc HYB_GGA_XC_B3LYP"
+        ),
+    },
+    "b3lyp5": {
+        "functional_family": "b3lyp",
+        "correlation_convention": "vwn5",
+        "definition": (
+            "B3LYP with the VWN functional V local correlation: ORCA's and "
+            "TURBOMOLE's bare B3LYP, libxc HYB_GGA_XC_B3LYP5"
+        ),
+    },
+    # Gaussian's spelling differs, and Gaussian completes a route word
+    # that prefixes one of its keywords: ``pbe0`` ran PBE0-DH, a double
+    # hybrid, 0.0365 Eh above PBE0 on water (CUHK Slurm 2149277). ORCA
+    # PBE0 and PySCF pbe0 agree to 1.0e-5 Eh there, PBE to 1.4e-5 Eh --
+    # the precision of the PW92 constants, well inside the numerics of a
+    # relative energy.
+    "pbe0": {
+        "functional_family": "pbe0",
+        "correlation_convention": "pw92",
+        "definition": (
+            "PBE0 (25% exact exchange on PBE): Gaussian's PBE1PBE, ORCA's "
+            "PBE0, libxc HYB_GGA_XC_PBEH"
+        ),
+    },
+    "pbe": {
+        "functional_family": "pbe",
+        "correlation_convention": "pw92",
+        "definition": "the PBE GGA: Gaussian's PBEPBE, ORCA's PBE",
+    },
+    # ORCA's BP86 puts P86 on the Perdew-Wang 92 local correlation (it
+    # prints ``LDAOpt .... PW91-LDA``); Gaussian's BP86 and libxc's B88+P86
+    # put it on Perdew-Zunger 81. At tight numerics ORCA sits 0.96-2.67 mEh
+    # below Gaussian on seven species, 0.74 kcal/mol apart in the vertical
+    # IP of water and 1.06 in the C-Cl homolysis of CH3Cl, while Gaussian
+    # and PySCF agree in those to 0.003 kcal/mol (their totals differ by
+    # 6e-5-2.3e-4 Eh inside P86) -- CUHK Slurm 2149487.
+    "bp86": {
+        "functional_family": "bp86",
+        "correlation_convention": "pz81",
+        "definition": (
+            "Becke 88 exchange with Perdew 86 correlation on the "
+            "Perdew-Zunger 81 local correlation: Gaussian's BP86, libxc "
+            "B88+P86"
+        ),
+    },
+    "bp86-pw92": {
+        "functional_family": "bp86",
+        "correlation_convention": "pw92",
+        "definition": (
+            "Becke 88 exchange with Perdew 86 correlation on the Perdew-Wang "
+            "92 local correlation: ORCA's BP86"
+        ),
+    },
+}
+
+#: Other spellings of a literal in ``FUNCTIONAL_IDENTITIES``.
+FUNCTIONAL_LITERAL_SYNONYMS = {
+    "b3lypg": "b3lyp",
+    "b3lyp/g": "b3lyp",
+    "b3lyp-g": "b3lyp",
+    "b3lyp-vwn5": "b3lyp5",
+    "pbe1pbe": "pbe0",
+    "pbepbe": "pbe",
+}
+
+
+def canonical_functional_literal(value):
+    """Return the ChemSmart literal a functional spelling means.
+
+    A spelling in ``FUNCTIONAL_IDENTITIES`` or its synonym table answers
+    the literal it names; anything else answers ``None``, which means the
+    literal carries no cross-program definition here and passes through.
+    """
+
+    if value is None:
+        return None
+    key = str(value).strip().lower()
+    key = FUNCTIONAL_LITERAL_SYNONYMS.get(key, key)
+    return key if key in FUNCTIONAL_IDENTITIES else None
+
+
+def functional_identity(value):
+    """Return the program-neutral identity of a functional spelling.
+
+    ``{"literal", "functional_family", "correlation_convention"}`` for a
+    literal the table defines, ``None`` otherwise.
+    """
+
+    literal = canonical_functional_literal(value)
+    if literal is None:
+        return None
+    record = FUNCTIONAL_IDENTITIES[literal]
+    return {
+        "literal": literal,
+        "functional_family": record["functional_family"],
+        "correlation_convention": record["correlation_convention"],
+    }
+
+
+def functional_resolution_record(
+    *, program, functional, ab_initio, native, source
+):
+    """What one program is told for a project functional, as a host record.
+
+    Every program's settings module answers its receipt through this one
+    shape: the literal the project named, the literal it means, the native
+    spelling the program's own writer produces (``native``, passed in so
+    the record states the writer's output rather than a copy of its table)
+    and the program-neutral identity.  ``literal_preserved`` says the name
+    has no cross-program definition here, which is not a claim that the
+    programs agree on it.
+    """
+
+    base = {
+        "schema_version": "chemsmart.functional-resolution.v2",
+        "program": str(program),
+        "source": str(source),
+    }
+    if ab_initio is not None and str(ab_initio).strip():
+        return {
+            **base,
+            "status": "not_applicable",
+            "requested_method_kind": "ab_initio",
+            "requested_literal": None,
+            "canonical_literal": "",
+            "applied_native": None,
+            "functional_family": "wavefunction",
+            "correlation_convention": "not_applicable",
+            "rule_id": f"{program}.functional.not_applicable_ab_initio",
+        }
+    if functional is None or not str(functional).strip():
+        return {
+            **base,
+            "status": "missing",
+            "requested_method_kind": "dft",
+            "requested_literal": None,
+            "canonical_literal": "",
+            "applied_native": None,
+            "functional_family": "",
+            "correlation_convention": "unresolved",
+            "rule_id": f"{program}.functional.missing",
+        }
+    requested = str(functional).strip()
+    identity = functional_identity(requested)
+    if identity is None:
+        return {
+            **base,
+            "status": "literal_preserved",
+            "requested_method_kind": "dft",
+            "requested_literal": requested,
+            "canonical_literal": requested.lower(),
+            "applied_native": None if native is None else str(native),
+            "functional_family": "no_cross_program_definition",
+            "correlation_convention": "not_declared",
+            "rule_id": f"{program}.functional.literal_preserved",
+        }
+    return {
+        **base,
+        "status": "canonical_literal",
+        "requested_method_kind": "dft",
+        "requested_literal": requested,
+        "canonical_literal": identity["literal"],
+        "applied_native": None if native is None else str(native),
+        "functional_family": identity["functional_family"],
+        "correlation_convention": identity["correlation_convention"],
+        "rule_id": f"{program}.functional.{identity['literal']}",
+    }
+
+
+#: Which excited-state manifolds a reference has, whichever program runs
+#: the response.  A closed-shell (singlet) reference has spin-adapted
+#: singlet and triplet excitations, asked for alone or together; an
+#: open-shell reference has one spin-conserving manifold, ``unrestricted``,
+#: whose roots are not spin eigenfunctions.  This is a fact about the
+#: reference and not about a program, so every program's settings ask this
+#: one rule rather than restating it.
+TD_CLOSED_SHELL_MANIFOLDS = ("singlet", "singlet_triplet", "triplet")
+TD_OPEN_SHELL_MANIFOLD = "unrestricted"
+
+
+def td_manifold_reference_refusal(manifold, multiplicity):
+    """Why *manifold* cannot belong to a reference of *multiplicity*.
+
+    Returns None when the pair is admissible or either is unknown, and
+    otherwise the sentence a settings class refuses with, naming the
+    manifold the reference does have.
+    """
+
+    if manifold is None or multiplicity is None:
+        return None
+    word = str(manifold).strip().lower()
+    closed_shell = int(multiplicity) == 1
+    if word in TD_CLOSED_SHELL_MANIFOLDS and not closed_shell:
+        return (
+            f"state_manifold={word!r} is spin-adapted and needs a "
+            f"closed-shell (singlet) reference; multiplicity {multiplicity} "
+            "has one manifold, state_manifold: "
+            f"{TD_OPEN_SHELL_MANIFOLD}."
+        )
+    if word == TD_OPEN_SHELL_MANIFOLD and closed_shell:
+        return (
+            "A closed-shell (singlet) reference asks for singlet, triplet "
+            "or singlet_triplet excitations; state_manifold: "
+            f"{TD_OPEN_SHELL_MANIFOLD} is the one manifold of an open-shell "
+            "reference."
+        )
+    return None
+
+
 # Public top-level vocabulary owned by the loader below.  These are section
 # names, not the Click job inventory: the two sets intentionally differ.
 MOLECULAR_GAS_PHASE_JOB_SECTIONS = (
@@ -63,7 +299,12 @@ def molecular_project_section_sources(project_config, *, program, jobtype):
     direct = jobtype if jobtype in available else None
     if jobtype in {"qmmm", "link"}:
         return (direct,) if direct is not None else ()
-    if jobtype == "td" and "gas" in available:
+    # A ``td:`` section is read on its own: the loader seeds it from the
+    # stage defaults, never from ``gas:`` or ``solv:``.  This answered
+    # ``('solv', 'td')`` for a project with no ``gas:``, so the Agent's
+    # project observation reported the solv level feeding a td stage whose
+    # route the writer then built with no method at all.
+    if jobtype == "td" and (direct is not None or "gas" in available):
         return (direct,) if direct is not None else ()
     if jobtype == "sp":
         phase = "solv" if "solv" in available else "gas"
@@ -434,6 +675,16 @@ def read_molecular_job_yaml(filename, program="gaussian"):
             all_project_configs[job] = update_dict_with_existing_keys(
                 all_project_configs[job], phase_config
             )
+            if job == "td":
+                # A td stage is a vertical spectrum at the supplied
+                # geometry, as the td: branch below says; the solv phase
+                # is borrowed here for its level, and neither the shared
+                # default's ``freq: true`` nor that phase's own frequency
+                # flag makes it a frequency job. Gaussian wrote
+                # ``freq TD(...)`` -- an excited-state frequency
+                # calculation -- for a solv-only project, where ORCA's td
+                # settings refuse ``freq`` outright.
+                all_project_configs[job]["freq"] = False
     else:
         # settings for gas phase exist - also solv settings exist
         for job in gas_phase_jobs:  # jobs using gas config

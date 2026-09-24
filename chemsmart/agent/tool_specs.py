@@ -24,6 +24,7 @@ from chemsmart.analysis.quantity_expressions import (
     OPERATION_DESCRIPTIONS,
 )
 from chemsmart.analysis.result_quantities import (
+    QUASI_HARMONIC_COUNTERPARTS,
     derivable_thermochemistry_quantities,
     supported_selectors,
 )
@@ -1142,7 +1143,15 @@ def _legacy_tool_definitions(
                                     "Unit the answer will be reported "
                                     "in, from the typed unit vocabulary "
                                     "(e.g. 'kcal/mol', 'eV', "
-                                    "'angstrom', '1' for a count)."
+                                    "'angstrom', '1' for a count), or "
+                                    "'category' when the answer is a word "
+                                    "a program prints -- a stability "
+                                    "verdict, an IRC branch word -- "
+                                    "delivered as the host read it through "
+                                    "a finding that answers it. A relation "
+                                    "between numbers (which minimum, which "
+                                    "isomer) is delivered by its numbers "
+                                    "and stated as a finding."
                                 ),
                             },
                             "meaning": {
@@ -1728,7 +1737,11 @@ def _legacy_tool_definitions(
                 "doubt:{receipt_sha256} and the completion gate will not "
                 "certify past it (passed becomes partial naming the doubted "
                 "quantity, and the goal returns to the human). A doubt kept "
-                "in prose alone binds to nothing."
+                "in prose alone binds to nothing, and so does a conclusion: "
+                "one of yours that is not a number -- a verdict, a relation "
+                "between structures or results, or something the task did "
+                "not ask about that you judge important -- stands only as a "
+                "finding bound to the claims it rests on."
             ),
             {
                 "decision_id": _string(),
@@ -1751,10 +1764,16 @@ def _legacy_tool_definitions(
                         "selector no program in the envelope declares for "
                         "the job type, or a blocked_unsupported analysis "
                         "node in this session's plan whose output_id is the "
-                        "observable -- and only a verified refusal settles "
-                        "the goal unreachable_from_evidence; an unverified "
-                        "one returns to the human naming it. Never a "
-                        "shortcut past computing what can be computed."
+                        "observable -- and then reads the registered results "
+                        "for the named selector, now and again when the goal "
+                        "settles: a value it reads there, or a result of "
+                        "that job type no reader reads for it, leaves the "
+                        "refusal unverified, because the evidence holds it "
+                        "or may. Only a verified refusal "
+                        "settles the goal unreachable_from_evidence; an "
+                        "unverified one returns to the human naming it. "
+                        "Never a shortcut past computing what can be "
+                        "computed."
                     ),
                     "items": {
                         "type": "object",
@@ -1818,6 +1837,104 @@ def _legacy_tool_definitions(
                         "tools. The host validates and canonicalizes them; do "
                         "not embed receipt IDs in free-form evidence strings."
                     ),
+                },
+                "findings": {
+                    "type": "array",
+                    "maxItems": 16,
+                    "description": (
+                        "Your conclusions, each as your own sentence plus "
+                        "the relations it rests on over claims recorded on "
+                        "this task (record_analysis_claims first; a claim "
+                        "may be a number or a word the program printed). "
+                        "The host evaluates every relation from the values "
+                        "it rendered, refuses one that does not hold with "
+                        "the values it read, and never reads your sentence. "
+                        "A finding that answers a question declared in unit "
+                        "'category' delivers the word the host read through "
+                        "its == relation on that word. A number the task asked "
+                        "for is delivered by its claim; a finding resting "
+                        "only on claims of declared observables is recorded "
+                        "as on the request; one resting on evidence no "
+                        "declaration asked for, as not asked for. Every "
+                        "finding is carried in the settlement's reasons and "
+                        "evidence as yours, with any host anomaly already "
+                        "standing on its evidence named beside it, and none "
+                        "changes the word the host settles on. Rest it on "
+                        "the claims that would read differently were it "
+                        "false."
+                    ),
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "finding_id": _public_identifier(),
+                            "statement": {
+                                **_string(),
+                                "description": (
+                                    "The conclusion, in your words; it is "
+                                    "recorded as yours and never checked."
+                                ),
+                            },
+                            "answers_observable_id": {
+                                **_public_identifier(),
+                                "description": (
+                                    "Optional: the declared observable "
+                                    "(unit 'category') this finding "
+                                    "answers. Its answer is the word the "
+                                    "program printed, so rests_on must "
+                                    "include '<claim of that word> == <the "
+                                    "word>'; the delivered answer is the "
+                                    "host's word and your statement is shown "
+                                    "beside it as your interpretation."
+                                ),
+                            },
+                            "rests_on": {
+                                "type": "array",
+                                "minItems": 1,
+                                "maxItems": 16,
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "claim_id": _public_identifier(),
+                                        "relation": {
+                                            "type": "string",
+                                            "enum": [
+                                                "<",
+                                                "<=",
+                                                ">",
+                                                ">=",
+                                                "==",
+                                                "!=",
+                                            ],
+                                        },
+                                        "value": {
+                                            "type": ["number", "string"],
+                                            "description": (
+                                                "What the claim is compared "
+                                                "with: a number (in the "
+                                                "claim's display unit "
+                                                "unless unit says "
+                                                "otherwise) or a word. "
+                                                "Recorded as yours."
+                                            ),
+                                        },
+                                        "unit": _string(),
+                                        "other_claim_id": {
+                                            **_public_identifier(),
+                                            "description": (
+                                                "Compare with another "
+                                                "claim instead of a value."
+                                            ),
+                                        },
+                                    },
+                                    "required": ["claim_id", "relation"],
+                                    "additionalProperties": False,
+                                },
+                            },
+                            "supersedes_finding_id": _public_identifier(),
+                        },
+                        "required": ["finding_id", "statement", "rests_on"],
+                        "additionalProperties": False,
+                    },
                 },
             },
             (
@@ -2110,9 +2227,11 @@ def _legacy_tool_definitions(
         _tool(
             "record_analysis_claims",
             (
-                "Bind reportable numerical claims to exact typed receipt "
-                "quantities. Supply identifiers and display units only; the "
-                "host copies and converts the values. Where a claim "
+                "Bind reportable claims to exact typed receipt quantities: "
+                "a number, or a word the program printed (a verdict, a "
+                "branch word), which is copied as read and never delivers a "
+                "declared number. Supply identifiers and display units only; "
+                "the host copies and converts the values. Where a claim "
                 "answers an observable you declared, set its "
                 "``claim_id`` to that observable's id -- the "
                 "expectation you recorded is printed beside the "
@@ -3118,6 +3237,17 @@ _THERMOCHEMISTRY_KINDS = tuple(
     sorted(derivable_thermochemistry_quantities("rrho"))
 )
 
+#: What a quasi-harmonic treatment adds beside a harmonic kind, read from
+#: the writer's own table. Listing only the harmonic kinds taught two live
+#: sessions to declare gibbs_free_energy on a Grimme node, which binds the
+#: RRHO value.
+_QUASI_HARMONIC_KINDS_TEXT = "; ".join(
+    f"{counterpart} beside {harmonic}"
+    for harmonic, (counterpart, _needs) in sorted(
+        QUASI_HARMONIC_COUNTERPARTS.items()
+    )
+)
+
 
 def _public_identifier(
     joins: str | None = None, *, spelling_rule: bool = False
@@ -3687,6 +3817,14 @@ def _analysis_intent_node_schema_full(
                             + " -- so a Gibbs correction is "
                             "thermal_gibbs_correction and a free energy is "
                             "gibbs_free_energy, never a bare 'energy'. "
+                            "Those names are harmonic (RRHO) under every "
+                            "treatment. A Grimme or Truhlar entropy_method "
+                            "or an enthalpy cutoff adds a quasi-harmonic "
+                            "kind beside its harmonic one -- "
+                            + _QUASI_HARMONIC_KINDS_TEXT
+                            + " -- and a node that requests a "
+                            "quasi-harmonic treatment declares the "
+                            "quasi-harmonic kind it wants. "
                             "Extraction and expression outputs name their "
                             "own kinds."
                         ),

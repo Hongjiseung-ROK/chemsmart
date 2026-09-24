@@ -2700,20 +2700,22 @@ def _conformance_project_sections(
                         "stable": "opt",
                     }
                 elif stage == "td":
-                    sections[stage] = (
-                        {
-                            **common,
-                            "nstates": 3,
-                            "states": "singlets",
-                        }
-                        if program == "gaussian"
-                        else {
-                            **common,
-                            "nstates": 3,
-                            "response_method": "tda",
-                            "state_manifold": "singlet",
-                        }
-                    )
+                    # The shared words every program's td takes, and the
+                    # manifold follows the reference the probe binds, as
+                    # PySCF's fixture does: a closed shell asks for
+                    # singlets, an open shell has one unrestricted
+                    # manifold. A fixed ``singlet`` bound no ORCA td on
+                    # the allyl radical (R10 q8 G2, CUHK 2150296).
+                    sections[stage] = {
+                        **common,
+                        "nstates": 3,
+                        "response_method": "tda",
+                        "state_manifold": (
+                            "singlet"
+                            if int(multiplicity) == 1
+                            else "unrestricted"
+                        ),
+                    }
         return sections
     return None
 

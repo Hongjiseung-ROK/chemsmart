@@ -7,24 +7,27 @@
       "id": "xtb:cpu:opt",
       "status": "recorded",
       "run": "ax41-refine-100/general-round/workspaces/w1b goals/goal-w1b/runs/cycle-1",
-      "commit": "7fa80f17",
-      "date": "2026-09-02"
+      "commit": "6fd0b686",
+      "date": "2026-09-02",
+      "source": "The run's workspace records head 7fa80f17 of the ax41 host's feat/agent-close branch, a pre-landing SHA that is not in this repository. 6fd0b686 is its landed twin: the same four W1 repairs (queue-wait key, g98.out sidecar, xTB count from the log, recovery reason), committed at 06:37Z, seven minutes before this run (06:44Z). Matched by content and time; tree identity was not verified."
     },
     {
       "kind": "program_jobtype",
       "id": "xtb:cpu:hess",
       "status": "recorded",
       "run": "ax41-refine-100/general-round/workspaces/w1b goals/goal-w1b/runs/cycle-1",
-      "commit": "7fa80f17",
-      "date": "2026-09-02"
+      "commit": "6fd0b686",
+      "date": "2026-09-02",
+      "source": "The run's workspace records head 7fa80f17 of the ax41 host's feat/agent-close branch, a pre-landing SHA that is not in this repository. 6fd0b686 is its landed twin: the same four W1 repairs (queue-wait key, g98.out sidecar, xTB count from the log, recovery reason), committed at 06:37Z, seven minutes before this run (06:44Z). Matched by content and time; tree identity was not verified."
     },
     {
       "kind": "program_jobtype",
       "id": "orca:cpu:opt",
       "status": "recorded",
       "run": "ax41-refine-100/general-round/workspaces/r2b goals/goal-r2b/runs/cycle-2",
-      "commit": "7fa80f17",
-      "date": "2026-09-02"
+      "commit": "6fd0b686",
+      "date": "2026-09-02",
+      "source": "The run's workspace records head 7fa80f17 of the ax41 host's feat/agent-close branch, a pre-landing SHA that is not in this repository. 6fd0b686 is its landed twin: the same four W1 repairs (queue-wait key, g98.out sidecar, xTB count from the log, recovery reason), committed at 06:37Z, seven minutes before this run (06:44Z). Matched by content and time; tree identity was not verified."
     },
     {
       "kind": "program_jobtype",
@@ -110,7 +113,8 @@
       "status": "recorded",
       "run": "ax41-refine-100/pyscf-round-2/workspaces/E1-acrolein goals/goal-e1-acrolein/runs/cycle-1 + ax41-refine-100/pyscf-round-2/workspaces/E2-acetone goals/goal-e2-acetone/runs/cycle-1",
       "commit": "a4f20506",
-      "date": "2026-09-13"
+      "date": "2026-09-13",
+      "source": "R10 Q10's census (merge 4759b4a0) judged this goal's `achieved` settlement false: a run that carried no analysis chain certified what it never claimed. The record rests on the nodes named here, which were engine-complete and host-validated, not on that word; it stands."
     },
     {
       "kind": "program_jobtype",
@@ -130,7 +134,8 @@
       ],
       "run": "ax41-refine-100/pyscf-round-2/workspaces/E2-acetone goals/goal-e2-acetone/runs/cycle-1 + cycle-2",
       "commit": "a4f20506",
-      "date": "2026-09-13"
+      "date": "2026-09-13",
+      "source": "R10 Q10's census (merge 4759b4a0) judged this goal's `achieved` settlement false: a run that carried no analysis chain certified what it never claimed. The record rests on the nodes named here, which were engine-complete and host-validated, not on that word; it stands."
     },
     {
       "kind": "setting",
@@ -141,7 +146,8 @@
       ],
       "run": "ax41-refine-100/pyscf-round-2/workspaces/E1-acrolein goals/goal-e1-acrolein/runs/cycle-1 + ax41-refine-100/pyscf-round-2/workspaces/E2-acetone goals/goal-e2-acetone/runs/cycle-1",
       "commit": "a4f20506",
-      "date": "2026-09-13"
+      "date": "2026-09-13",
+      "source": "R10 Q10's census (merge 4759b4a0) judged this goal's `achieved` settlement false: a run that carried no analysis chain certified what it never claimed. The record rests on the nodes named here, which were engine-complete and host-validated, not on that word; it stands."
     },
     {
       "kind": "setting",
@@ -152,7 +158,8 @@
       ],
       "run": "ax41-refine-100/pyscf-round-2/workspaces/E1-acrolein goals/goal-e1-acrolein/runs/cycle-1 + ax41-refine-100/pyscf-round-2/workspaces/E2-acetone goals/goal-e2-acetone/runs/cycle-1",
       "commit": "a4f20506",
-      "date": "2026-09-13"
+      "date": "2026-09-13",
+      "source": "R10 Q10's census (merge 4759b4a0) judged this goal's `achieved` settlement false: a run that carried no analysis chain certified what it never claimed. The record rests on the nodes named here, which were engine-complete and host-validated, not on that word; it stands."
     },
     {
       "kind": "setting",
@@ -164,7 +171,8 @@
       ],
       "run": "ax41-refine-100/pyscf-round-2/workspaces/E1-acrolein goals/goal-e1-acrolein/runs/cycle-1 + ax41-refine-100/pyscf-round-2/workspaces/E2-acetone goals/goal-e2-acetone/runs/cycle-1",
       "commit": "a4f20506",
-      "date": "2026-09-13"
+      "date": "2026-09-13",
+      "source": "R10 Q10's census (merge 4759b4a0) judged this goal's `achieved` settlement false: a run that carried no analysis chain certified what it never claimed. The record rests on the nodes named here, which were engine-complete and host-validated, not on that word; it stands."
     },
     {
       "kind": "setting",
@@ -531,7 +539,7 @@
       "run": "r9/gaussian goals/g1/runs/cycle-1 (Slurm 2142871) + goals/g3/runs/cycle-1 (Slurm 2142917)",
       "commit": "3ec0d656+flags(tree sha256 f5b5c0c3c233944df4c896cda152c661cbe3d48e00995c0aab39c51a03670197) for g1; 45d8ca96 (tree sha256 ea7aef46f7396c0124427187e57ab153f85bc0ee4edf6f6049b997aa9bca295d) for g3, that digest verified on the cluster immediately before submission -- the job script's own digest line did not fire, a generator defect",
       "date": "2026-09-21",
-      "source": "Gaussian 16 C.02 on the CUHK Central Cluster, driven through the R9 server profile's GAUSSIAN block: the first saddle search the Agent has run on any Gaussian target under the approval chain. The goal was handed one geometry -- the chelated cis-enol of malonaldehyde with the enolic hydrogen displaced to the midpoint of the two oxygens, stated in the task as a guess at a transition state and not a minimum -- and asked for the saddle near it and where the path from it goes. `run ... gaussian --project ... --filename ... --charge 0 --multiplicity 1 ts` compiled from the live CLI, previewed, was approved once under granted_by=claude-researcher-gaussian-owner-delegated, and ran provider-free in 29.0 s of engine wall clock at B3LYP/6-31G(d) on route `# opt=(ts,calcfc,noeigentest) freq`. What it reached is checkable without trusting the search: exactly one imaginary mode of twenty-one, -1231.2699 cm^-1, at a structure symmetric in every pair the degeneracy constrains -- O...O 2.3781 A with O-H 1.2157 and 1.2149 A, C-O 1.2816 and 1.2818 A, C-C 1.4006 and 1.4004 A. The guess was not symmetric in those pairs and its O...O was 2.683 A, so the symmetry is the engine's answer and not the input's. The host's analysis chain rendered ts-imag-mode-count = 1 and ts-imag-max-cm-1 = -1231.2699 from typed receipts, the stationary-point rule passed, and the review recorded that the session's own stated expectation of -2400..-1600 cm^-1 diverged from what the engine delivered: the prior was wrong and the host said so. Repeated on a scientifically non-trivial system: goal g3 was handed the chelated cis-enol of 1,3-bis(4-cyanophenyl)propane-1,3-dione (C17H10N2O2, 21 heavy atoms, 31 atoms) symmetrised the same way, and in 374.6 s reached a saddle with exactly one imaginary mode of eighty-seven at -1106.1223 cm^-1, O...O 2.3636 A, the two O-H equal to 2e-4 A and the two C-O identical to four decimals, from a guess whose O...O was 2.737 A. The host recorded two observations nobody asked for on that node -- the molecular graph changed and the heavy atoms moved 0.467 A from the guess -- which is what tightening a chelate into a symmetric saddle does, and is reported rather than suppressed."
+      "source": "Gaussian 16 C.02 on the CUHK Central Cluster, driven through the R9 server profile's GAUSSIAN block: the first saddle search the Agent has run on any Gaussian target under the approval chain. The goal was handed one geometry -- the chelated cis-enol of malonaldehyde with the enolic hydrogen displaced to the midpoint of the two oxygens, stated in the task as a guess at a transition state and not a minimum -- and asked for the saddle near it and where the path from it goes. `run ... gaussian --project ... --filename ... --charge 0 --multiplicity 1 ts` compiled from the live CLI, previewed, was approved once under granted_by=claude-researcher-gaussian-owner-delegated, and ran provider-free in 29.0 s of engine wall clock at B3LYP/6-31G(d) on route `# opt=(ts,calcfc,noeigentest) freq`. What it reached is checkable without trusting the search: exactly one imaginary mode of twenty-one, -1231.2699 cm^-1, at a structure symmetric in every pair the degeneracy constrains -- O...O 2.3781 A with O-H 1.2157 and 1.2149 A, C-O 1.2816 and 1.2818 A, C-C 1.4006 and 1.4004 A. The guess was not symmetric in those pairs and its O...O was 2.683 A, so the symmetry is the engine's answer and not the input's. The host's analysis chain rendered ts-imag-mode-count = 1 and ts-imag-max-cm-1 = -1231.2699 from typed receipts, the stationary-point rule passed, and the review recorded that the session's own stated expectation of -2400..-1600 cm^-1 diverged from what the engine delivered: the prior was wrong and the host said so. Repeated on a scientifically non-trivial system: goal g3 was handed the chelated cis-enol of 1,3-bis(4-cyanophenyl)propane-1,3-dione (C17H10N2O2, 21 heavy atoms, 31 atoms) symmetrised the same way, and in 374.6 s reached a saddle with exactly one imaginary mode of eighty-seven at -1106.1223 cm^-1, O...O 2.3636 A, the two O-H equal to 2e-4 A and the two C-O identical to four decimals, from a guess whose O...O was 2.737 A. The host recorded two observations nobody asked for on that node -- the molecular graph changed and the heavy atoms moved 0.467 A from the guess -- which is what tightening a chelate into a symmetric saddle does, and is reported rather than suppressed. R10 Q10's census (merge 4759b4a0) judged this goal's `achieved` settlement false: a run that carried no analysis chain certified what it never claimed. The record rests on the nodes named here, which were engine-complete and host-validated, not on that word; it stands."
     },
     {
       "kind": "program_jobtype",
@@ -540,7 +548,7 @@
       "run": "r9/gaussian goals/g1/runs/cycle-2 (Slurm 2142871) + goals/g3/runs/cycle-2 nodes irc-forward and irc-reverse (Slurm 2142917)",
       "commit": "3ec0d656+flags(tree sha256 f5b5c0c3c233944df4c896cda152c661cbe3d48e00995c0aab39c51a03670197) for g1; 45d8ca96 (tree sha256 ea7aef46f7396c0124427187e57ab153f85bc0ee4edf6f6049b997aa9bca295d) for g3, that digest verified on the cluster immediately before submission -- the job script's own digest line did not fire, a generator defect",
       "date": "2026-09-21",
-      "source": "The same goal one cycle later, walking away from the saddle the search had just reached; the host's geometry handoff lifted that structure and bound it as the path's input, and nothing model-authored carried it. ChemSmart runs one Gaussian `irc` as two native one-direction inputs and the host verified it as that: output_count 2, required_output_count 2, irc_directions [ircf, ircr], both normally terminated, zero critical findings, 95.7 s of engine wall clock for the pair. The reaction is degenerate, which makes the pair a check rather than two samples: each branch walked 15 accepted points to a net reaction coordinate of 1.50918 and 1.50917 and ended at -267.148804378 and -267.148803942 Eh -- mirror images to 4.4e-7 Eh across a 3.447 kcal/mol barrier from the saddle at -267.143310949 Eh, which is the malonaldehyde proton-transfer barrier this level is known for, and nothing told the engine the legs should agree. Through the typed layer each branch answers with its own direction, 17 frames, and trajectory_connectivity_changed = 1: at the saddle the hydrogen is bonded to both oxygens and at each end to one, so which minima the saddle connects is observed rather than asserted. Both logs are archived as tests/data/GaussianTests/outputs/malonaldehyde_pt_ircf.log and malonaldehyde_pt_ircr.log. Goal g3 then walked the same reaction on 21 heavy atoms and did it the way the architecture means: two nodes, one direction each, through the project section this round made legal and the preview repair admitted -- irc-forward and irc-reverse, 257.4 and 256.6 s, each qualified by the host separately. Both branches walked 20 accepted points to the same net reaction coordinate of 2.05099 and ended at -913.759967594 and -913.759967404 Eh, mirror images to 1.9e-7 Eh across a barrier of 2.1605 and 2.1604 kcal/mol from the saddle at -913.756524592 Eh. Read through the typed layer each branch answers with its own direction, 23 frames, a reached structure equal to the end of its own walk and not to the saddle it was handed, and trajectory_connectivity_changed = 1. That the aryl diketone's barrier is lower than malonaldehyde's (2.16 against 3.45 kcal/mol) with a shorter O...O (2.3636 against 2.3781 A) is the resonance-assisted hydrogen bond, measured across the two systems rather than asserted. The declaration necessarily precedes the first approved execution, because it is what admits a node to approval at all; it is withdrawn if the runs do not hold."
+      "source": "The same goal one cycle later, walking away from the saddle the search had just reached; the host's geometry handoff lifted that structure and bound it as the path's input, and nothing model-authored carried it. ChemSmart runs one Gaussian `irc` as two native one-direction inputs and the host verified it as that: output_count 2, required_output_count 2, irc_directions [ircf, ircr], both normally terminated, zero critical findings, 95.7 s of engine wall clock for the pair. The reaction is degenerate, which makes the pair a check rather than two samples: each branch walked 15 accepted points to a net reaction coordinate of 1.50918 and 1.50917 and ended at -267.148804378 and -267.148803942 Eh -- mirror images to 4.4e-7 Eh across a 3.447 kcal/mol barrier from the saddle at -267.143310949 Eh, which is the malonaldehyde proton-transfer barrier this level is known for, and nothing told the engine the legs should agree. Through the typed layer each branch answers with its own direction, 17 frames, and trajectory_connectivity_changed = 1: at the saddle the hydrogen is bonded to both oxygens and at each end to one, so which minima the saddle connects is observed rather than asserted. Both logs are archived as tests/data/GaussianTests/outputs/malonaldehyde_pt_ircf.log and malonaldehyde_pt_ircr.log. Goal g3 then walked the same reaction on 21 heavy atoms and did it the way the architecture means: two nodes, one direction each, through the project section this round made legal and the preview repair admitted -- irc-forward and irc-reverse, 257.4 and 256.6 s, each qualified by the host separately. Both branches walked 20 accepted points to the same net reaction coordinate of 2.05099 and ended at -913.759967594 and -913.759967404 Eh, mirror images to 1.9e-7 Eh across a barrier of 2.1605 and 2.1604 kcal/mol from the saddle at -913.756524592 Eh. Read through the typed layer each branch answers with its own direction, 23 frames, a reached structure equal to the end of its own walk and not to the saddle it was handed, and trajectory_connectivity_changed = 1. That the aryl diketone's barrier is lower than malonaldehyde's (2.16 against 3.45 kcal/mol) with a shorter O...O (2.3636 against 2.3781 A) is the resonance-assisted hydrogen bond, measured across the two systems rather than asserted. The declaration necessarily precedes the first approved execution, because it is what admits a node to approval at all; it is withdrawn if the runs do not hold. R10 Q10's census (merge 4759b4a0) judged this goal's `achieved` settlement false: a run that carried no analysis chain certified what it never claimed. The record rests on the nodes named here, which were engine-complete and host-validated, not on that word; it stands."
     },
     {
       "kind": "selector",
@@ -639,7 +647,207 @@
       "run": "CUHK Charles r9/orca/goals/g5 (Slurm 2144929, COMPLETED 0:0, 18:01:43) goals/g5/runs/cycle-2 node calc-coplanar-modred; its reached structure consumed by cycle-3 node calc-ts",
       "commit": "4d70e6c0 plus the then-uncommitted modred execution flag (committed here); the code tree digest the job recorded is in goals/g5/slurm-2144929.out on the cluster (prefix 9e1f919a, verified identical on both sides by the ORCA track before submission)",
       "date": "2026-09-23",
-      "source": "(R)-BINOL, 22 heavy atoms, B3LYP-D3(BJ)/def2-SVP, 64 MPI ranks. The session chose one constrained relaxation holding the biaryl torsion D(C12,C11,C10,C1) at 0 degrees after its first choice, a 10-point relaxed scan, died on step 1 in ORCA's SHARK input-read path (24672 s; the session's recorded reasons reject re-running the scan, loosening the criterion and seeding from the partial point). The modred node terminated normally after 108 cycles, ORCA's default MaxIter of 3N, with the torsion held at 0.00 degrees and the geometry still descending: NOT converged, E = -919.866121 Eh, 32.0 kcal/mol above the minimum (19578 s, peak RSS 11.6 GB). The host verified the result and the extraction chain read it. Inside cycle 2 the waiting consumer's launch was refused (workflow_node_launch_refused: \"orca result is not a converged OPT or TS\"); an admitted revision carried the reached structure through bind_reached_geometry into cycle 3's OptTS Freq node, which converged to a first-order saddle (one imaginary mode, -137.51 cm^-1, E = -919.904757 Eh, 16453 s, peak RSS 56.9 GB). The goal settled returned_to_human because the settle phase claimed in prose without receipts. Recorded as a qualifying run by the owner's ruling of 2026-09-23: the capability exercised is that a constrained optimisation executes under the approval chain, is read by its declared selectors and hands its structure on; whether the relaxation converged is the result's own converged selector."
+      "source": "(R)-BINOL, 22 heavy atoms, B3LYP-D3(BJ)/def2-SVP, 64 MPI ranks. The session chose one constrained relaxation holding the biaryl torsion D(C12,C11,C10,C1) at 0 degrees after its first choice, a 10-point relaxed scan, died on step 1 in ORCA's SHARK input-read path (24672 s; the session's recorded reasons reject re-running the scan, loosening the criterion and seeding from the partial point). The modred node terminated normally after 108 cycles, ORCA's default MaxIter of 3N, with the torsion held at 0.00 degrees and the geometry still descending: NOT converged, E = -919.866121 Eh, 32.0 kcal/mol above the minimum (19578 s, peak RSS 11.6 GB). The host verified the result and the extraction chain read it. Inside cycle 2 the waiting consumer's launch was refused (workflow_node_launch_refused: \"orca result is not a converged OPT or TS\"); an admitted revision carried the reached structure through bind_reached_geometry into cycle 3's OptTS Freq node, which converged to a first-order saddle (one imaginary mode, -137.51 cm^-1, E = -919.904757 Eh, 16453 s, peak RSS 56.9 GB). The goal returned to the human through a host contract error, not a prose claim: the delivery carried an observation (the session's pre-registered band diverged) and the settle step took receipts only from a decision the executor's stream never holds, so GoalLedger.settle raised 'achieved_with_observations settles on receipts, never prose alone' (repaired in R10, 58d024fb). Recorded as a qualifying run by the owner's ruling of 2026-09-23: the capability exercised is that a constrained optimisation executes under the approval chain, is read by its declared selectors and hands its structure on; whether the relaxation converged is the result's own converged selector."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:sp:scf_stability_external",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q1/goals/gdev1 (Slurm 2149848, Agent goal gdev1, cycle 1 run + cycle 2 woken session live-20260923T203308732817Z-38a2ef1a4f-8a54e1a7)",
+      "commit": "e687b9cf (code tree digest ded5d770c660fd4f9047e08a6ae76e9d1ec7c87e5aa16489449b0ace2e580903, 426 files)",
+      "date": "2026-09-24",
+      "source": "Singlet O2 as a closed shell, RKS B3LYP/def2-SVP at 1.2075 A, one PySCF 2.14.0 single point with stability analysis (12.4 s, 8 cores). The run's own sensor recorded scf.reference_unstable. The woken session read the three stability selectors in one extract_result_quantities receipt on the validated result: internal 'stable', external 'unstable', rotation space 'RHF/RKS -> UHF/UKS' -- equal to the archived run at the same level and geometry (tests/data/PySCFTests/outputs/o2_singlet_sp_stability), energy -150.141807 Eh within 1e-7 Eh of it. The session claimed the external word as read and answered its question, declared in unit 'category', with a finding resting on external == 'unstable'; the completion delivered the question by that finding and the goal settled achieved_with_observations -- the question r9 g2-stability (Slurm 2145043) settled unreachable_from_evidence over."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:sp:scf_stability_internal",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q1/goals/gdev1 (Slurm 2149848, Agent goal gdev1, cycle 1 run + cycle 2 woken session live-20260923T203308732817Z-38a2ef1a4f-8a54e1a7)",
+      "commit": "e687b9cf (code tree digest ded5d770c660fd4f9047e08a6ae76e9d1ec7c87e5aa16489449b0ace2e580903, 426 files)",
+      "date": "2026-09-24",
+      "source": "Singlet O2 as a closed shell, RKS B3LYP/def2-SVP at 1.2075 A, one PySCF 2.14.0 single point with stability analysis (12.4 s, 8 cores). The run's own sensor recorded scf.reference_unstable. The woken session read the three stability selectors in one extract_result_quantities receipt on the validated result: internal 'stable', external 'unstable', rotation space 'RHF/RKS -> UHF/UKS' -- equal to the archived run at the same level and geometry (tests/data/PySCFTests/outputs/o2_singlet_sp_stability), energy -150.141807 Eh within 1e-7 Eh of it. Read on the same receipt as the external word; the session stated the internal verdict in its finding's sentence and rested the finding on the external word only."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:sp:scf_stability_external_rotation_space",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q1/goals/gdev1 (Slurm 2149848, Agent goal gdev1, cycle 1 run + cycle 2 woken session live-20260923T203308732817Z-38a2ef1a4f-8a54e1a7)",
+      "commit": "e687b9cf (code tree digest ded5d770c660fd4f9047e08a6ae76e9d1ec7c87e5aa16489449b0ace2e580903, 426 files)",
+      "date": "2026-09-24",
+      "source": "Singlet O2 as a closed shell, RKS B3LYP/def2-SVP at 1.2075 A, one PySCF 2.14.0 single point with stability analysis (12.4 s, 8 cores). The run's own sensor recorded scf.reference_unstable. The woken session read the three stability selectors in one extract_result_quantities receipt on the validated result: internal 'stable', external 'unstable', rotation space 'RHF/RKS -> UHF/UKS' -- equal to the archived run at the same level and geometry (tests/data/PySCFTests/outputs/o2_singlet_sp_stability), energy -150.141807 Eh within 1e-7 Eh of it. Read on the same receipt as the two verdicts."
+    },
+    {
+      "kind": "program_jobtype",
+      "id": "gaussian:cpu:td",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q7 goals/g1-td/runs/cycle-2 nodes td-lr and td-tda (Slurm 2150077)",
+      "commit": "7111e2a6 (code tree digest 4d7248e71e6f23d9c6381fbc277412172d02a1c3bacd51d9055fc6fb927f7fa4, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "Gaussian 16 C.02 on the CUHK Central Cluster through the R10 CUHK profile's GAUSSIAN block. One goal (granted_by claude-researcher-q7-owner-delegated, a delegated approval, not a human decision), task fixed before issue: acrolein from a rough planar s-trans geometry, PBE0/def2-SVP, relax to the S0 minimum and compute the six lowest singlet vertical excitations there by full linear-response TD-DFT and by the Tamm-Dancoff approximation. Cycle 1 ran the opt+freq (10.6 s; E = -191.544925639 Eh, lowest mode 176.7 cm^-1, no imaginary mode); after one admitted revision cycle 2 ran two td nodes on the structure the optimisation reached, each project written in the program-neutral words (response_method tddft | tda, state_manifold singlet, nstates 6) that the hub spelled TD(singlets,nstates=6,root=1) and TDA(singlets,nstates=6,root=1); 5.8 s and 5.3 s, both validated, settled achieved under the host completion gate. Every root and strength equals the same calculation through the human CLI (Slurm 2150076, oracle O1) to the printed digit: n->pi* (A'') 3.6243 eV, f 0.0001 (TDA 3.6508); pi->pi* (A') 6.5343 eV, f 0.3812 (TDA 6.9733, f 0.4961). The same YAML in PySCF gives every root within 3e-4 eV and in ORCA (NoRI) within 0.003 eV. Not qualified by this run: the triplet, singlet_triplet and unrestricted manifolds and solvated TD in Gaussian (oracle and fixture level only), and excited-root optimisation."
+    },
+    {
+      "kind": "program_jobtype",
+      "id": "gaussian:cpu:scan",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q7 goals/g2-scan-modred/runs/cycle-1 node calc-scan-torsion (Slurm 2150187)",
+      "commit": "01c34759 (code tree digest fb681a6f33974d68233d6f3580a4e1454f7ab3b013912014749720f5db49d4a1, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "Gaussian 16 C.02 on the CUHK Central Cluster through the R10 CUHK profile's GAUSSIAN block. One goal (granted_by claude-researcher-q7-owner-delegated, a delegated approval, not a human decision), task fixed before issue: hydrogen peroxide from a geometry at a 115.0 degree H-O-O-H torsion, B3LYP/def2-SVP, map the relaxed torsion profile from 0 to 180 degrees in 15-degree steps and relax the molecule with its O-O bond held at 1.60 A. One cycle ran an opt+freq, the scan and the constrained optimisation side by side (46.3 s of engine wall); the approved typed analysis chain rendered the claims, a second session delivered the one it could not, and the goal settled achieved under the host completion gate with no revision. The session set the torsion to 0 degrees itself (edit_molecular_geometry) before planning and asked for {dihedral 3-1-2-4, start 0, stop 180, points 13}; the hub wrote D 3 1 2 4 S 12 15.0 under opt=modredundant with no frequency step (28.6 s). The reader served 13 points at 0.000 ... 180.000 degrees and the chain delivered the cis barrier 8.2988 and the trans barrier 0.5343 kcal/mol above the fully relaxed minimum (-151.423093111 Eh). Every point equals the same scan run through the human CLI (Slurm 2150076, oracle O2) within 1.9e-7 Eh, the relative profile within 1e-4 kcal/mol, and ORCA's scan of the same request (O2, NoRI) within 0.0014 kcal/mol at every point. Not qualified by this run: carrying a Gaussian scan point forward -- bind_scan_point_geometry raised KeyError 'geometry_file' on this result and the in-approval scan-minimum edge admits ORCA scans only, so the session measured the lowest point's torsion on the optimised minimum instead and said so; a scan whose start differs from the bound geometry (refused by scan.start_is_where_the_geometry_is, not met here); several driven coordinates."
+    },
+    {
+      "kind": "program_jobtype",
+      "id": "gaussian:cpu:modred",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q7 goals/g2-scan-modred/runs/cycle-1 node calc-modred-oo160 (Slurm 2150187)",
+      "commit": "01c34759 (code tree digest fb681a6f33974d68233d6f3580a4e1454f7ab3b013912014749720f5db49d4a1, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "Gaussian 16 C.02 on the CUHK Central Cluster through the R10 CUHK profile's GAUSSIAN block. One goal (granted_by claude-researcher-q7-owner-delegated, a delegated approval, not a human decision), task fixed before issue: hydrogen peroxide from a geometry at a 115.0 degree H-O-O-H torsion, B3LYP/def2-SVP, map the relaxed torsion profile from 0 to 180 degrees in 15-degree steps and relax the molecule with its O-O bond held at 1.60 A. One cycle ran an opt+freq, the scan and the constrained optimisation side by side (46.3 s of engine wall); the approved typed analysis chain rendered the claims, a second session delivered the one it could not, and the goal settled achieved under the host completion gate with no revision. The session built the O-O = 1.600 A start itself (set_bond_length) and asked for a hold on B(1,2); the hub wrote B 1 2 F under opt=modredundant freq -- the Hessian the project's loader default asks for, which the reader serves as no vibrational quantity (8.3 s). The reader served converged, one held coordinate, the held O-O 1.59999982 A, E = -151.413821057 Eh; the chain delivered the cost 5.8183 kcal/mol above the minimum and the torsion 141.54 degrees. Both equal the same constrained optimisation through the human CLI (Slurm 2150078, oracle O3) to every printed digit and ORCA's (O3, NoRI) within 0.0003 kcal/mol and 0.19 degrees. Not qualified by this run: angle and dihedral holds in Gaussian (a dihedral hold is oracle- and fixture-level only: Slurm 2150076, tests/data/GaussianTests/constrained_dihedral), several holds, a Gaussian modred's structure crossing a producer edge."
+    },
+    {
+      "kind": "setting",
+      "id": "orca:state_manifold",
+      "status": "recorded",
+      "values": [
+        "singlet_triplet",
+        "unrestricted"
+      ],
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 nodes orca-td and pyscf-td (Slurm 2150295) (singlet_triplet); CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 nodes orca-allyl-td and pyscf-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299) (unrestricted)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line); 68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "ORCA 6.1.1 on the CUHK Central Cluster; two Agent goals under the approval chain (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision), tasks fixed before issue. G1: acrolein from a rough planar s-trans geometry, relaxed at PBE0/def2-SVP in each program, then full TD-DFT singlets and triplets at each minimum independently in ORCA and in PySCF, compared state by state. The session wrote ORCA's td in the words it wrote PySCF's (response_method tddft, state_manifold singlet_triplet, nstates 5); the hub wrote %tddft NRoots 5, TDA false, Triplets true (42.2 s), validated; S1 3.6225, T1 2.9766, T2 3.1959 eV, each within 0.0009 eV of the same request through the human CLI (Slurm 2150194, oracle O1, NoRI) and within 0.0021 eV of PySCF's; settled achieved_with_observations. G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison. state_manifold unrestricted, nstates 30 on a UHF reference; the hub wrote %tddft NRoots 30, TDA false with no Triplets line (69.5 s) -- ORCA's first open-shell TD-DFT through the hub, which refused the word before 6322d48e; validated; the six states below 7 eV within 0.0053 eV of O1 and 0.0059 eV of PySCF's unrestricted run, the strongest (6.3129 eV, f 0.3876) the same state in both; settled unreachable_from_evidence only because the per-root <S^2> the session declared is refused for a full-TD-DFT open-shell root (the reader names TDA). Not qualified by these runs: singlet and triplet (CLI oracles only: Q7's O1 and this round's O1, where ORCA's triplet block equals its singlet_triplet run's to 1e-6 eV), unrestricted TDA (oracle O1 only), solvated TD."
+    },
+    {
+      "kind": "setting",
+      "id": "orca:response_method",
+      "status": "recorded",
+      "values": [
+        "tddft"
+      ],
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 nodes orca-td and pyscf-td (Slurm 2150295); CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 nodes orca-allyl-td and pyscf-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line); 68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "The two goals of setting:orca:state_manifold (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision). Both wrote response_method tddft; the hub wrote TDA false and ORCA's output states 'Tamm-Dancoff approximation ... deactivated', which the ORCA reader now serves on the result's level (c2873226), so a full-response root and a TDA root are named where they combine. Not qualified by these runs: tda in ORCA (CLI oracles only)."
+    },
+    {
+      "kind": "setting",
+      "id": "orca:nstates",
+      "status": "recorded",
+      "values": [
+        "5",
+        "30"
+      ],
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 nodes orca-td and pyscf-td (Slurm 2150295) (5 per spin block); CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 nodes orca-allyl-td and pyscf-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299) (30)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line); 68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "The two goals of setting:orca:state_manifold (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision): NRoots 5 beside Triplets true gave five singlets and five triplets; NRoots 30 on the UHF reference gave thirty roots, and ORCA's output states the number of roots it determined, which the reader serves on the level. A window is not a spectrum: ORCA's thirty-root window lacks a state at 11.232 eV that PySCF's holds (by the dominant excitation, alpha HOMO-2 -> LUMO+3), below its own top root."
+    },
+    {
+      "kind": "selector",
+      "id": "orca:td:singlet_excitation_energies",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 node orca-td (Slurm 2150295)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G1: acrolein from a rough planar s-trans geometry, relaxed at PBE0/def2-SVP in each program, then full TD-DFT singlets and triplets at each minimum independently in ORCA and in PySCF, compared state by state (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision). The approved chain extracted singlet_excitation_energies, singlet_oscillator_strengths and triplet_excitation_energies from ORCA's %tddft Triplets true solve (electronic provenance excited_root): S1 3.6225, T1 2.9766, T2 3.1959 eV, brightest singlet f 0.3807, each within 0.0009 eV of the same request through the human CLI (oracle O1), and paired with the other program's S1, T1, T2 by manifold and rank, never by list position (largest program difference 0.0021 eV). Before 28b8b48c the same two-manifold request read T1 at index 0 in Gaussian and S1 in ORCA, and ORCA's td declared no triplet_* selector."
+    },
+    {
+      "kind": "selector",
+      "id": "orca:td:singlet_oscillator_strengths",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 node orca-td (Slurm 2150295)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G1: acrolein from a rough planar s-trans geometry, relaxed at PBE0/def2-SVP in each program, then full TD-DFT singlets and triplets at each minimum independently in ORCA and in PySCF, compared state by state (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision). The approved chain extracted singlet_excitation_energies, singlet_oscillator_strengths and triplet_excitation_energies from ORCA's %tddft Triplets true solve (electronic provenance excited_root): S1 3.6225, T1 2.9766, T2 3.1959 eV, brightest singlet f 0.3807, each within 0.0009 eV of the same request through the human CLI (oracle O1), and paired with the other program's S1, T1, T2 by manifold and rank, never by list position (largest program difference 0.0021 eV). Before 28b8b48c the same two-manifold request read T1 at index 0 in Gaussian and S1 in ORCA, and ORCA's td declared no triplet_* selector."
+    },
+    {
+      "kind": "selector",
+      "id": "orca:td:triplet_excitation_energies",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 node orca-td (Slurm 2150295)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G1: acrolein from a rough planar s-trans geometry, relaxed at PBE0/def2-SVP in each program, then full TD-DFT singlets and triplets at each minimum independently in ORCA and in PySCF, compared state by state (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision). The approved chain extracted singlet_excitation_energies, singlet_oscillator_strengths and triplet_excitation_energies from ORCA's %tddft Triplets true solve (electronic provenance excited_root): S1 3.6225, T1 2.9766, T2 3.1959 eV, brightest singlet f 0.3807, each within 0.0009 eV of the same request through the human CLI (oracle O1), and paired with the other program's S1, T1, T2 by manifold and rank, never by list position (largest program difference 0.0021 eV). Before 28b8b48c the same two-manifold request read T1 at index 0 in Gaussian and S1 in ORCA, and ORCA's td declared no triplet_* selector."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:td:singlet_excitation_energies",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 node pyscf-td (Slurm 2150295)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G1: acrolein from a rough planar s-trans geometry, relaxed at PBE0/def2-SVP in each program, then full TD-DFT singlets and triplets at each minimum independently in ORCA and in PySCF, compared state by state (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision). The approved chain extracted singlet_excitation_energies, singlet_oscillator_strengths and triplet_excitation_energies from PySCF's two-block singlet_triplet solve (61a46f4e: both spin blocks on one reference), its first Agent run (electronic provenance excited_root): S1 3.6246, T1 2.9780, T2 3.1961 eV, brightest singlet f 0.3811, each within 0.0009 eV of the same request through the human CLI (oracle O1), and paired with the other program's S1, T1, T2 by manifold and rank, never by list position (largest program difference 0.0021 eV). Before 28b8b48c the same two-manifold request read T1 at index 0 in Gaussian and S1 in ORCA, and ORCA's td declared no triplet_* selector."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:td:singlet_oscillator_strengths",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 node pyscf-td (Slurm 2150295)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G1: acrolein from a rough planar s-trans geometry, relaxed at PBE0/def2-SVP in each program, then full TD-DFT singlets and triplets at each minimum independently in ORCA and in PySCF, compared state by state (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision). The approved chain extracted singlet_excitation_energies, singlet_oscillator_strengths and triplet_excitation_energies from PySCF's two-block singlet_triplet solve (61a46f4e: both spin blocks on one reference), its first Agent run (electronic provenance excited_root): S1 3.6246, T1 2.9780, T2 3.1961 eV, brightest singlet f 0.3811, each within 0.0009 eV of the same request through the human CLI (oracle O1), and paired with the other program's S1, T1, T2 by manifold and rank, never by list position (largest program difference 0.0021 eV). Before 28b8b48c the same two-manifold request read T1 at index 0 in Gaussian and S1 in ORCA, and ORCA's td declared no triplet_* selector."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:td:triplet_excitation_energies",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g1-ladder/runs/cycle-2 node pyscf-td (Slurm 2150295)",
+      "commit": "fcb115eb (code tree digest cc7c2ef3c34cf6d3317df04a41c9d4edb3ded3667e03e0d03c3922bc6a3268e3, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G1: acrolein from a rough planar s-trans geometry, relaxed at PBE0/def2-SVP in each program, then full TD-DFT singlets and triplets at each minimum independently in ORCA and in PySCF, compared state by state (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision). The approved chain extracted singlet_excitation_energies, singlet_oscillator_strengths and triplet_excitation_energies from PySCF's two-block singlet_triplet solve (61a46f4e: both spin blocks on one reference), its first Agent run (electronic provenance excited_root): S1 3.6246, T1 2.9780, T2 3.1961 eV, brightest singlet f 0.3811, each within 0.0009 eV of the same request through the human CLI (oracle O1), and paired with the other program's S1, T1, T2 by manifold and rank, never by list position (largest program difference 0.0021 eV). Before 28b8b48c the same two-manifold request read T1 at index 0 in Gaussian and S1 in ORCA, and ORCA's td declared no triplet_* selector."
+    },
+    {
+      "kind": "selector",
+      "id": "orca:td:excitation_energies",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 node orca-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299)",
+      "commit": "68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision); bound by a host extraction on the live result: thirty roots of ORCA's unrestricted TD-DFT, read at ORCA's six-decimal eV in ascending energy (28b8b48c); the six below 7 eV claimed (4.002387 ... 6.900124 eV) within 0.0053 eV of the human CLI's NoRI run (oracle O1) and 0.0059 eV of PySCF's. The goal settled unreachable_from_evidence only because the per-root <S^2> it declared is refused for full TD-DFT on an open shell."
+    },
+    {
+      "kind": "selector",
+      "id": "orca:td:oscillator_strengths",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 node orca-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299)",
+      "commit": "68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision); bound by a host extraction on the live result: the thirty strengths beside those roots, each row paired to its state by ORCA's absorption table; the strongest below 7 eV f 0.3876 at 6.3129 eV, PySCF's 0.3875 at 6.3106 eV. The goal settled unreachable_from_evidence only because the per-root <S^2> it declared is refused for full TD-DFT on an open shell."
+    },
+    {
+      "kind": "selector",
+      "id": "orca:td:excited_state_indices",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 node orca-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299)",
+      "commit": "68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision); bound by a host extraction on the live result: a unique rank 1..30 in energy order, where before 28b8b48c ORCA's STATE number restarted per manifold and repeated. The goal settled unreachable_from_evidence only because the per-root <S^2> it declared is refused for full TD-DFT on an open shell."
+    },
+    {
+      "kind": "selector",
+      "id": "orca:td:spin_square",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 node orca-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299)",
+      "commit": "68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision); bound by a host extraction on the live result: the UHF reference's <S^2> 0.792076 beside the td roots, delivered as context where the per-root <S^2> is refused (PySCF's 0.792085). The goal settled unreachable_from_evidence only because the per-root <S^2> it declared is refused for full TD-DFT on an open shell."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:td:excited_state_indices",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 node pyscf-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299)",
+      "commit": "68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision); bound by a host extraction on the live result: a unique rank 1..30 in energy order, the same list shape ORCA's reader serves. The goal settled unreachable_from_evidence only because the per-root <S^2> it declared is refused for full TD-DFT on an open shell."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:td:spin_square",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q8 goals/g3-allyl/runs/cycle-1 node pyscf-allyl-td, analysis in cycle 1 (the approved chain) and cycle 2 (an admitted analysis-only revision) (Slurm 2150299)",
+      "commit": "68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision); bound by a host extraction on the live result: the UKS reference's <S^2> 0.792085 beside the td roots (ORCA's 0.792076). The goal settled unreachable_from_evidence only because the per-root <S^2> it declared is refused for full TD-DFT on an open shell."
     }
   ]
 }

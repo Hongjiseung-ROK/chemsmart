@@ -94,7 +94,10 @@ consumer was refused ("orca result is not a converged OPT or TS"); an
 admitted revision carried the reached structure into it in the next cycle
 through ``bind_reached_geometry``, where it converged to a first-order saddle (one
 imaginary mode, -137.51 cm^-1, 7.8 kcal/mol above the minimum). The
-settle phase claimed in prose and the goal returned to the human. The
+goal returned to the human through a host contract error: the delivery
+carried an observation (the session's own pre-registered band diverged),
+and the settle step looked for its receipts only in a decision the
+executor's stream never holds (repaired in R10, 58d024fb). The
 owner ruled that run a qualifying success on 2026-09-23; the release
 record names the node, the cycle limit, the held value and the
 non-convergence, so a reader of ``chemsmart agent capabilities`` knows

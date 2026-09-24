@@ -71,8 +71,10 @@ def test_project_validation_exposes_resolution_without_changing_settings():
     (resolution,) = project_scientific_materializations(validation)
 
     assert dict(validation.settings)["functional"] == "b3lyp"
+    assert resolution.program == "pyscf"
     assert resolution.requested_literal == "b3lyp"
-    assert resolution.applied_xc == "b3lypg"
+    assert resolution.canonical_literal == "b3lyp"
+    assert resolution.applied_native == "b3lypg"
     assert resolution.correlation_convention == "vwn3_gaussian"
     assert resolution.evidence_ref == (
         f"functional_resolution:{resolution.receipt_sha256}"
@@ -96,6 +98,6 @@ def test_hf_resolution_is_not_a_fictitious_xc_literal():
 
     (resolution,) = project_scientific_materializations(validation)
 
-    assert resolution.requested_method_kind == "hf"
-    assert resolution.applied_xc is None
+    assert resolution.requested_method_kind == "ab_initio"
+    assert resolution.applied_native is None
     assert resolution.correlation_convention == "not_applicable"

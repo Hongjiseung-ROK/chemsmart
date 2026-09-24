@@ -87,5 +87,7 @@ def test_the_chemistry_is_unchanged_by_the_reclassification(path):
 
     parsed = ORCAInput(path)
 
-    assert parsed.functional == "b3lyp"
+    # ``! ... b3lyp`` in a native ORCA input is ORCA's VWN5 form, which the
+    # ChemSmart literal ``b3lyp5`` names.
+    assert parsed.functional == "b3lyp5"
     assert parsed.basis in {"def2-tzvp", "def2-svp"}

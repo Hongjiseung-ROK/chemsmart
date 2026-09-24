@@ -6,13 +6,16 @@
 
 Gaussian ``sp/opt/ts/irc/td/link/scan/modred`` is supported for project YAML,
 native-input generation, safe preview, and parsing of user-supplied completed
-results. Gaussian ``opt``, ``sp``, ``ts`` and ``irc`` are release-qualified for
-Agent execution on CPU, each recorded from live goals on the
+results. Which of them execute under approval is computed
+(``chemsmart agent capabilities --kind program_jobtype``, ``release.json``).
+As recorded: ``opt``, ``sp``, ``ts`` and ``irc`` from live goals on the
 configuration they ran -- goals whose task text was fixed before their
 first issue, but which no seal record binds, so they are not called
-sealed; ``scan``, ``modred``, ``td`` and ``link`` have real engine runs
-on that target through the human CLI and no approved Agent execution,
-which is a different fact and stays unclaimed.
+sealed; ``td`` (singlet TD-DFT and TDA), ``scan`` (one driven coordinate
+whose start the geometry already has) and ``modred`` (a held bond) from
+the R10 Q7 goals (CUHK Slurm 2150077 and 2150187, merge ``cd66bb33``);
+``link`` has real engine runs through the human CLI only, which is a
+different fact and stays unclaimed.
 
 What a completed Gaussian result answers is decided by the job the log says
 produced it, and its route line alone cannot say: ``opt=modredundant`` is
@@ -150,7 +153,10 @@ Where the active server profile names an ORCA executable, preflight also
 runs ORCA's own input check on the materialised input that the safe
 preview retained by digest: a bounded probe launch on the controller,
 stopped the moment ORCA's ``INPUT FILE`` banner appears or a 20 s cap is
-reached, never inside a scheduler allocation, minting a typed receipt --
+reached, wherever the controller runs -- inside a scheduler allocation
+too (R10 Q9, merge 16e5f961: the old skip left every CUHK goal's check
+``not_run``), the probe's whole process group stopped with it -- minting a
+typed receipt --
 passed, aborted, or not run, with ORCA's own lines -- that rides an
 ``input_check_probed`` event marked uncharged, joins the node's
 observations on the review **and the compile reply the model reads**,

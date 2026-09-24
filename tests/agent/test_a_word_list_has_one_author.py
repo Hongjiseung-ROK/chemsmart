@@ -244,30 +244,6 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     ): _A4,
     (
         "chemsmart/agent/tool_runtime.py",
-        "CommandCompiledToolHostV1/_bounded_deferred_target_ids",
-        None,
-        ("gaussian", "orca", "pyscf", "xtb"),
-    ): _READER_PROGRAMS,
-    (
-        "chemsmart/agent/tool_runtime.py",
-        "CommandCompiledToolHostV1/_execute_approved_program_node",
-        None,
-        ("gaussian", "orca", "pyscf", "xtb"),
-    ): _READER_PROGRAMS,
-    (
-        "chemsmart/agent/tool_runtime.py",
-        "CommandCompiledToolHostV1/build_execution_review",
-        None,
-        ("gaussian", "orca", "pyscf", "xtb"),
-    ): _READER_PROGRAMS,
-    (
-        "chemsmart/agent/tool_runtime.py",
-        "CommandCompiledToolHostV1/_admit_bounded_workflow",
-        None,
-        ("gaussian", "orca", "pyscf", "xtb"),
-    ): _READER_PROGRAMS,
-    (
-        "chemsmart/agent/tool_runtime.py",
         "CommandCompiledToolHostV1/_evaluate_execution_outputs",
         None,
         ("gaussian", "orca", "xtb"),
@@ -496,10 +472,28 @@ RECORDED: dict[tuple[str, str, str | None, tuple[str, ...]], str] = {
     # R10 Q1 claims: append entries below this line
     # R10 Q1 claims: end
     # R10 Q2 one name, one physics: append entries below this line
+    (
+        "chemsmart/analysis/result_readers.py",
+        "<module>",
+        "PRINTED_THERMOCHEMISTRY_CONVENTIONS",
+        ("gaussian", "xtb"),
+    ): _DECLARATION
+    + ": what each program's own printed free energy is, measured by "
+    "oracle O1 (R10 Q5); a program missing here is described as its own, "
+    "never assumed to be the host's",
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append entries below this line
     # R10 Q3 knowledge: end
     # R10 Q4 composition: append entries below this line
+    (
+        "chemsmart/agent/execution.py",
+        "<module>",
+        "STRUCTURE_HANDOFF_PROGRAMS",
+        ("gaussian", "orca", "pyscf", "xtb"),
+    ): _DECLARATION
+    + ": the programs a structure handoff exists for; the review, the "
+    "bounded admission and the frontier each spelled the four out and "
+    "now read this one",
     # R10 Q4 composition: end
 }
 

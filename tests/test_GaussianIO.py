@@ -189,7 +189,8 @@ class TestRouteString:
         assert r3a.freq is True
         assert r3a.numfreq is True
         assert r3a.solv is False
-        assert r3a.functional == "pbepbe"
+        # Gaussian's PBEPBE is the literal pbe in every program.
+        assert r3a.functional == "pbe"
         assert r3a.basis == "def2svp"
         assert r3a.additional_route_parameters == "nosymm guess=mix"
 
@@ -359,7 +360,10 @@ class TestGaussian16Input:
         assert g16_scan.molecule.empirical_formula == "C3H7NO3"
         assert g16_scan.additional_opt_options_in_route is None
         assert g16_scan.additional_route_parameters is None
-        assert g16_scan.jobtype == "modred"
+        # Its rows drive a coordinate (`S 10 0.05`): a relaxed scan, which
+        # the route's `opt=modred` alone cannot tell from a constrained
+        # optimisation.
+        assert g16_scan.jobtype == "scan"
         assert g16_scan.modred == {
             "coords": [[2, 12], [9, 2]],
             "num_steps": 10,
@@ -455,7 +459,7 @@ class TestGaussian16Input:
         assert g16_pbc_1d.additional_route_parameters == "scf=tight"
         assert g16_pbc_1d.jobtype == "sp"
         assert g16_pbc_1d.modred is None
-        assert g16_pbc_1d.functional == "pbepbe"
+        assert g16_pbc_1d.functional == "pbe"
         assert g16_pbc_1d.basis == "6-31g(d,p)/auto"
 
 

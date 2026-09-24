@@ -12,7 +12,6 @@ import os
 import re
 import shlex
 import subprocess
-from contextlib import suppress
 from functools import lru_cache
 from glob import glob
 from shutil import copy
@@ -29,6 +28,15 @@ from chemsmart.utils.repattern import (
 pt = PeriodicTable()
 
 logger = logging.getLogger(__name__)
+
+#: ORCA's own temporaries, ``<base>.<what>.tmp`` and the per-rank
+#: ``<base>.<what>.tmp.<n>``: integrals and PNO pair data, gigabytes for a
+#: DLPNO run. They are scratch and stay there. The filter this replaces,
+#: ``endswith((".tmp", ".tmp.*"))``, tested the second member as a literal
+#: string, so every numbered one was copied into the job folder -- 9.9 GB
+#: under /project for one failed node, each file then hashed and bound as
+#: that node's output (R10 Q6 pair3-b, CUHK Slurm 2150179).
+_ORCA_TEMPORARY = re.compile(r"\.tmp(?:\.\d+)?$")
 
 
 class ORCAJobRunner(JobRunner):
@@ -175,10 +183,9 @@ class ORCAJobRunner(JobRunner):
         Args:
             job: The job object to configure for scratch execution
         """
-        scratch_job_dir = os.path.join(self.scratch_dir, job.label)
-        if not os.path.exists(scratch_job_dir):
-            with suppress(FileExistsError):
-                os.makedirs(scratch_job_dir)
+        # Never ``<scratch>/<label>``: ORCA's AutoStart reads any .gbw of
+        # its basename it finds there (see JobRunner._fresh_scratch_directory).
+        scratch_job_dir = self._fresh_scratch_directory(job)
         self.running_directory = scratch_job_dir
         logger.debug(f"Running directory: {self.running_directory}")
 
@@ -237,9 +244,14 @@ class ORCAJobRunner(JobRunner):
         """
         from chemsmart.utils.repattern import xyz_filename_pattern
 
-        # Read from the scratch input file location
+        # The input as written into this run's scratch once it is there,
+        # otherwise the one the job was given. Each run's scratch starts
+        # empty, so nothing may be read from it that this run did not put
+        # there (JobRunner._fresh_scratch_directory).
         input_file_to_read = (
-            self.job_inputfile if self.scratch else job.inputfile
+            self.job_inputfile
+            if self.scratch and os.path.exists(self.job_inputfile)
+            else job.inputfile
         )
 
         with open(input_file_to_read, "r") as f:
@@ -444,9 +456,9 @@ class ORCAJobRunner(JobRunner):
         if self.scratch:
             logger.debug(f"Running directory: {self.running_directory}")
             # if job was run in scratch, copy files to
-            # job folder except files containing .tmp
+            # job folder except ORCA's own temporaries
             for file in glob(f"{self.running_directory}/{job.label}*"):
-                if not file.endswith((".tmp", ".tmp.*")):
+                if not _ORCA_TEMPORARY.search(os.path.basename(file)):
                     logger.info(
                         f"Copying file {file} from {self.running_directory} "
                         f"to {job.folder}"
@@ -510,10 +522,7 @@ class FakeORCAJobRunner(ORCAJobRunner):
 
     def _set_up_variables_in_scratch(self, job):
         """Set fake ORCA file paths for scratch execution."""
-        scratch_job_dir = os.path.join(self.scratch_dir, job.label)
-        if not os.path.exists(scratch_job_dir):
-            with suppress(FileExistsError):
-                os.makedirs(scratch_job_dir)
+        scratch_job_dir = self._fresh_scratch_directory(job)
         self.running_directory = scratch_job_dir
         logger.debug(f"Running directory: {self.running_directory}")
 

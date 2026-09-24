@@ -12,6 +12,7 @@ import click
 from chemsmart.agent._contracts import (
     AuxiliaryArtifactBindingV1,
     ContractError,
+    RoutedContractError,
     TrustedArtifactRefV1,
     canonical_sha256,
     file_sha256,
@@ -306,8 +307,81 @@ def _coordinate_atoms(entry: Mapping[str, Any]) -> list[int]:
     return atoms
 
 
+#: How far a scan's stated start may sit from the value its input geometry
+#: has before a program that walks from that value would run another range.
+#: The geometry-edit tool sets a coordinate to within 1e-6 of its target,
+#: so these are far above that and far below a chemically different start.
+_SCAN_START_TOLERANCE = {"bond": 1e-3, "angle": 0.05, "dihedral": 0.05}
+_SCAN_EDIT_OPERATION = {
+    "bond": "set_bond_length",
+    "angle": "set_angle",
+    "dihedral": "set_dihedral",
+}
+
+
+def _require_scan_start_on_geometry(
+    program: str,
+    scan: Mapping[str, Any],
+    atoms: list[int],
+    geometry_path: str | Path,
+) -> None:
+    """Refuse a range an increment-idiom program would not run.
+
+    Gaussian drives a relaxed scan by ``S <steps> <size>`` from the value the
+    input geometry already has; it has no start of its own. A value written
+    on the scan row is not one either: G16 C.02 read
+    ``D 3 1 2 4 0.0 S 2 15.0`` as ``D 3 1 2 4 0.0000 B``, set the torsion to
+    0 and ran a plain optimisation with no scan at all (CUHK Slurm 2150076,
+    V1). So the range a plan states is the range that runs only when the
+    geometry sits at the scan's start, and this is where that is measured.
+    """
+
+    from chemsmart.io.molecules.structure import Molecule
+
+    kind = str(scan["kind"])
+    start = float(scan["start"])
+    stop = float(scan["stop"])
+    molecule = Molecule.from_filepath(str(geometry_path))
+    measure = {
+        "bond": molecule.get_distance,
+        "angle": molecule.get_angle,
+        "dihedral": molecule.get_dihedral,
+    }[kind]
+    value = float(measure(*atoms))
+    offset = value - start
+    if kind == "dihedral":
+        offset = ((offset + 180.0) % 360.0) - 180.0
+    if abs(offset) <= _SCAN_START_TOLERANCE[kind]:
+        return
+    unit = "angstrom" if kind == "bond" else "degrees"
+    raise RoutedContractError(
+        gate="scan.start_is_where_the_geometry_is",
+        invariant=(
+            f"{program} drives a relaxed scan by an increment from the value "
+            "its input geometry already has, so the range a plan states is "
+            "the range that runs only when that geometry sits at the scan's "
+            "start."
+        ),
+        diagnosis=(
+            f"the bound geometry has this {kind} (atoms {atoms}) at "
+            f"{value:.4f} {unit}; the scan asks to run from {start} to "
+            f"{stop}, and would run from {value:.4f} to "
+            f"{value + (stop - start):.4f} instead."
+        ),
+        route=(
+            f"move the {kind} to {start} with edit_molecular_geometry "
+            f"(operation {_SCAN_EDIT_OPERATION[kind]}) and bind the edited "
+            f"geometry to this node, or restate the scan's start as "
+            f"{value:.4f}."
+        ),
+    )
+
+
 def native_coordinate_options(
-    program: str, internal_coordinates: Mapping[str, Any] | None
+    program: str,
+    internal_coordinates: Mapping[str, Any] | None,
+    *,
+    geometry_path: str | Path | None = None,
 ) -> dict[str, str]:
     """Render one physical coordinate specification into a program's idiom.
 
@@ -319,6 +393,11 @@ def native_coordinate_options(
     Both describe the same scan, and translating between them is exactly the
     hub's job -- the alternative is making every model learn both idioms, which
     is the memorisation this project exists to remove.
+
+    An increment starts where the geometry is, so for such a program the
+    translation is exact only when the input geometry sits at ``start``;
+    given the geometry it will run on (``geometry_path``), the host measures
+    that and refuses a range the program would not run.
     """
 
     if not internal_coordinates:
@@ -355,7 +434,11 @@ def native_coordinate_options(
         elif idiom == "increment_steps":
             # A program with this idiom walks outward from the starting
             # geometry, so the increment carries the direction and the
-            # endpoint is implied.
+            # endpoint is implied -- and the start is the geometry's own.
+            if geometry_path is not None:
+                _require_scan_start_on_geometry(
+                    program, scan, atoms, geometry_path
+                )
             intervals = points - 1
             values["step_size"] = f"{(stop - start) / intervals}"
             values["num_steps"] = f"{intervals}"
