@@ -338,11 +338,13 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "tool.select_execution_wave",
         "tool:select_execution_wave",
         "T0",
-        "Nothing here is refused. A member the host cannot dispatch comes "
-        "back as a verdict naming what it waits on -- a producer that has "
-        "not run, or another member of this same wave that it consumes -- "
-        "and you select again from that. The order you give is the order "
-        "the host keeps.",
+        "Nothing here is refused. A member that takes another member's "
+        "output through an edge the approval carries runs after it "
+        "(verdict `after`). A member the host cannot dispatch comes back "
+        "as a verdict naming what it waits on -- a producer outside this "
+        "wave, or a member of this wave it consumes through an edge the "
+        "approval does not carry inside one run -- and you select again "
+        "from that. The order you give is the order the host keeps.",
         "Round A (2026-09-16): an undispatchable wave is typed evidence "
         "and not an error, because an exception teaches a session to "
         "carry workarounds for a decision that is the host's.",
@@ -368,14 +370,17 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "or several. Approved calculations execute in waves that you select. "
         "A wave is "
         "the set of currently-ready, scientifically independent "
-        "calculations you want to see together before you reason again. "
+        "calculations you want to see together before you reason again, "
+        "and any consumer of one of them you name beside it, which runs "
+        "once its producer validates. "
         "The host runs them concurrently and wakes you once, when every "
         "member has reached a terminal state -- not when the first "
         "finishes, and not only when they succeed. A calculation that "
         "failed, was cancelled, or validated into something you did not "
         "expect has reached a terminal state, and its outcome is evidence "
         "you asked for. A node whose dependency clears mid-wave is not "
-        "started for you: choosing it is the decision the wake exists for.",
+        "started for you unless you named it: choosing it is the decision "
+        "the wake exists for.",
         "owner ruling 2026-09-16: the completed wave is an epistemic "
         "barrier, not a scheduler detail",
     ),

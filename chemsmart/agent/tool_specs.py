@@ -1613,7 +1613,11 @@ def _legacy_tool_definitions(
                 "completed before you reason again. One member is valid; "
                 "several mean you do not need one member's result before "
                 "deciding whether the others run. Name them in the order "
-                "you want them."
+                "you want them. A calculation that takes another member's "
+                "output through an edge this workflow declares may be named "
+                "with it: it runs after that member validates and the host "
+                "hands the output on, inside the same wave. Leave it out to "
+                "read the producer's evidence before choosing it."
             ),
             {
                 "workflow_id": _public_identifier(),
