@@ -12646,9 +12646,10 @@ class CommandCompiledToolHostV1:
         if doubted_quantity_ids:
             # A session that doubts a receipt and claims from it has said
             # both things in typed form; the completion word carries that
-            # truth instead of certifying past it.
+            # truth instead of certifying past it -- beside, never in place
+            # of, the criteria its claims stand under.
             status = "partial"
-            findings = tuple(
+            findings = findings + tuple(
                 f"analysis.claim_under_recorded_doubt.{quantity_id}"
                 for quantity_id in doubted_quantity_ids
             )

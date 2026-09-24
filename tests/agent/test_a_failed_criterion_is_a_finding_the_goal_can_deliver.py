@@ -249,6 +249,68 @@ def test_a_criterion_nobody_answered_holds_the_delivery_and_is_named(
     )
 
 
+def _doubted_and_unanswered(artifact_id):
+    """o2r's acts, with a decision that doubts the extraction its claims
+    stand on and does not cite the failed verdict."""
+
+    turns = _o2r_turns(artifact_id, cite_verdict=False)
+
+    def doubted(payload):
+        results = [
+            json.loads(message.get("content") or "{}").get("result")
+            for message in payload["messages"]
+            if message.get("role") == "tool"
+        ]
+        # The extraction, the verdict and the claims, as o2r's own
+        # decision reads them.
+        extraction, _verdict, claim_record = [
+            result["receipt_sha256"]
+            for result in results
+            if isinstance(result, dict) and result.get("receipt_sha256")
+        ][-3:]
+        return _turn(
+            4,
+            "Recording the decision.",
+            (
+                _call(
+                    8,
+                    "record_scientific_decision",
+                    {
+                        "decision_id": "o2-rks-doubt",
+                        "assumptions": ["the restricted reference"],
+                        "method_rationale": "the task fixed the level",
+                        "alternatives": ["a broken-symmetry solution"],
+                        "uncertainties": ["whether this extraction holds"],
+                        "diagnostics": ["the external eigenvalue"],
+                        "stage_order": ["extract", "validate", "claim"],
+                        "evidence_refs": [f"doubt:{extraction}"],
+                        "postprocessing_receipt_sha256s": [claim_record],
+                    },
+                ),
+            ),
+        )
+
+    return turns[:3] + [doubted] + turns[4:]
+
+
+@pytest.mark.capability("rule:wake.failed_validation_receipt_answers_verdict")
+def test_a_doubt_does_not_erase_the_criterion_a_claim_stands_under(tmp_path):
+    """A completion names every finding it holds: the doubt branch used to
+    rebind the findings, so a claim both doubted and standing on an
+    unanswered criterion was named only as doubted."""
+
+    stream = tmp_path / "doubt" / "events.jsonl"
+    _run_turns(
+        stream,
+        _doubted_and_unanswered,
+        session_id="protocol-session",
+        scratch=tmp_path,
+    )
+    findings = _completions(stream)[-1]["record"]["findings"]
+    assert any("claim_under_recorded_doubt" in item for item in findings)
+    assert any("claim_on_failed_criterion" in item for item in findings)
+
+
 def _decided_citing_only_the_extraction(artifact_id):
     """o2r's acts, with a decision that cites the extraction alone -- so
     the delivery is certified from its claims, not from the plan."""
