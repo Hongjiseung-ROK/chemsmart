@@ -163,9 +163,13 @@ LG1 -- a value the output holds but no reader serves (repair 4, live).
 
 ## Status
 
-- census, repairs 1-10, replays done (final-tree replays in scratch
-  replay_final.txt: all five chainless goals open a recovery naming the
-  partial completion); tests/agent green (2962).
-- LG1 files ready (scratch/q10/goals/lg1: TASK.md, envelope.yaml, goal.sh,
-  workspace/water.xyz); not submitted: CUHK gate closed since ~13:00 KST.
-- r10-integration unchanged since the base (c79c39a1): nothing to merge.
+- Done: census, repairs 1-10 plus dea84078 (found by LG1), replays, LG1.
+- r10-integration (1dbc9984: Q4 and Q9) merged at 3d2265a0 without
+  conflicts. Pristine export of 3d2265a0: tests/agent 2984 passed; full
+  suite 23 failed / 4468 passed, the failing set identical to c79c39a1's.
+- Evidence on CUHK: /project/xlzhang/jiseung/r10/q10/census/
+  (q10-census-and-replays.tar: census JSONs, judgments, replay scripts),
+  /project/xlzhang/jiseung/r10/q10/lg1-records.tar and goals/lg1/.
+- Milestone claimed: A (a verification the host did not have -- a refusal
+  read against the registered results when written and when the goal
+  settles -- and LG1 showing its word true live).
