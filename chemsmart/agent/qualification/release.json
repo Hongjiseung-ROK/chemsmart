@@ -848,6 +848,18 @@
       "commit": "68f77aa1 (code tree digest 6ae2ba3d2f9590066be19a03e46c1accd6fc584e145c7b6911ec926f9448ee24, recomputed on the node by the job's own digest line)",
       "date": "2026-09-24",
       "source": "G3: the allyl radical (doublet) at its UPBE0/def2-SVP minimum, full TD-DFT in ORCA and in PySCF covering every state up to 7 eV, the strongest absorption, spin contamination where the programs allow it, and a state-by-state comparison (granted_by claude-researcher-q8-owner-delegated, a delegated approval, not a human decision); bound by a host extraction on the live result: the UKS reference's <S^2> 0.792085 beside the td roots (ORCA's 0.792076). The goal settled unreachable_from_evidence only because the per-root <S^2> it declared is refused for full TD-DFT on an open shell."
+    },
+    {
+      "kind": "setting",
+      "id": "orca:inithess",
+      "status": "recorded",
+      "values": [
+        "read"
+      ],
+      "run": "CUHK Charles r10/q11 goals/g2/runs/cycle-1 node orca-irc (Slurm 2151911)",
+      "commit": "20dd195d (code tree digest 35a90313d7986b216de2080ab0da7cf05488fa1b65157e5fa6a2b0a0cdaf0ebd, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G2: the archived r8 goal-ts task, byte-identical, re-issued on the repaired tree (granted_by claude-researcher-q11-owner-delegated, a delegated approval, not a human decision). One approval admitted orca-ts -> orca-irc with the saddle's geometry and its Hessian; the session named both in one wave and the IRC launched one second after the saddle validated, under the same approval, its argv carrying --hess-filename bound to the handoff's Hessian. ORCA 6.1.1 read it: the IRC's native input carries 'inithess read' and 'Hess_Filename \"orca-ts--orca-irc.hess\"', and the output prints 'Initial displacement Hessian type .... Read'. Every earlier executed in-approval IRC printed 'Compute numerically'. The branch walked to the HNC side (N-H 1.005 A) and stopped at ORCA's 21-step limit, which the session reported."
     }
   ]
 }

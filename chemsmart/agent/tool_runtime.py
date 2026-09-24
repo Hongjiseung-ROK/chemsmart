@@ -157,6 +157,7 @@ from chemsmart.agent.execution import (
     structure_edge_by_target,
     structure_producer_stage,
     transform_trusted_molecular_geometry,
+    write_host_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
 from chemsmart.agent.identity import (
@@ -389,6 +390,71 @@ def _undeferrable_producer_finding(
             "producer's result exists and a structure has been chosen from it"
         ),
     }
+
+
+def _admitted_producer_pairs(
+    plan: ScientificWorkflowPlanV2 | None,
+) -> frozenset[tuple[str, str]]:
+    """The (producer, consumer) pairs a wave may run in one line.
+
+    A pair qualifies when the one owner of producer edges admits every
+    data edge between the two -- the geometry and, for an IRC, the
+    saddle's Hessian beside it -- so a consumer never runs in its
+    producer's line on an edge the approval does not hand over.
+    """
+
+    if plan is None:
+        return frozenset()
+    verdicts: dict[tuple[str, str], bool] = {}
+    for edge in getattr(plan, "edges", ()) or ():
+        if getattr(edge, "edge_kind", "") != "data":
+            continue
+        pair = (str(edge.source_node_id), str(edge.target_node_id))
+        admitted = bool(producer_edge_selection_rule(plan, edge))
+        verdicts[pair] = verdicts.get(pair, True) and admitted
+    return frozenset(pair for pair, admitted in verdicts.items() if admitted)
+
+
+def _future_auxiliary_role(parameter_name: str) -> str:
+    """The placeholder role of an auxiliary file a producer hands on."""
+
+    return "producer-" + str(parameter_name)
+
+
+def _future_auxiliary_placeholders(
+    producer_edges: Sequence[Any],
+    node_id: str,
+) -> dict[str, str]:
+    """The auxiliary inputs producers inside one approval hand ``node_id``.
+
+    Each is the job option its registered role names (``hess_filename``
+    for an IRC, ``inhess_filename`` for a TS search), displayed as the
+    digest-bound placeholder of the admitted edge that produces it. The
+    executor binds the file its handoff selected to the same placeholder,
+    so the reviewed and the launched command are one command.
+    """
+
+    placeholders: dict[str, str] = {}
+    for edge in producer_edges:
+        if getattr(edge, "consumer_node_id", "") != node_id:
+            continue
+        role = hessian_role_for_rule(getattr(edge, "selection_rule", ""))
+        if role is None:
+            continue
+        placeholders[role.consumer_input_id] = execution_path_placeholder(
+            _future_auxiliary_role(role.consumer_input_id), edge.edge_sha256
+        )
+    return placeholders
+
+
+#: What a wave reply adds when some member runs after its producer.
+_AFTER_MEMBERS_CLAUSE = {
+    False: "",
+    True: (
+        " -- each member marked after runs once the member it takes its "
+        "input from validates, and not at all if that member does not --"
+    ),
+}
 
 
 def _node_coordinates(node, input_artifact=None) -> dict[str, str]:
@@ -5042,22 +5108,39 @@ class CommandCompiledToolHostV1:
                 f"this scan has points 1 to {len(records)}; there is no "
                 f"point {requested}"
             )
-        if not chosen["geometry_file"]:
+        # A program that writes a file per point (ORCA) names it; one that
+        # keeps every point in its log (Gaussian) hands the structure it
+        # converged there, and the host writes that structure's bytes.
+        structure = chosen.get("structure")
+        point_artifact_id = values["artifact_id"] + f".point.{requested:03d}"
+        if chosen.get("geometry_file"):
+            path = Path(chosen["geometry_file"]).resolve()
+            if not path.is_file():
+                raise ContractError(
+                    "the chosen scan point geometry is missing"
+                )
+            artifact = TrustedArtifactRefV1(
+                artifact_id=point_artifact_id,
+                kind="geometry_xyz",
+                sha256=file_sha256(path),
+                size_bytes=path.stat().st_size,
+                path=str(path),
+                cli_value=str(path),
+            )
+        elif structure is not None and self.approved_workspace is not None:
+            artifact = write_host_geometry(
+                approved_workspace=self.approved_workspace,
+                file_name=f"{point_artifact_id}.xyz",
+                artifact_id=point_artifact_id,
+                symbols=tuple(structure.chemical_symbols),
+                positions=structure.positions,
+                comment=f"scan point {requested} of {source.artifact_id}",
+            )
+        else:
             raise ContractError(
                 f"point {requested} converged but ChemSmart kept no geometry "
-                "file for it, so it cannot be carried forward"
+                "for it, so it cannot be carried forward"
             )
-        path = Path(chosen["geometry_file"]).resolve()
-        if not path.is_file():
-            raise ContractError("the chosen scan point geometry is missing")
-        artifact = TrustedArtifactRefV1(
-            artifact_id=values["artifact_id"] + f".point.{requested:03d}",
-            kind="geometry_xyz",
-            sha256=file_sha256(path),
-            size_bytes=path.stat().st_size,
-            path=str(path),
-            cli_value=str(path),
-        )
         self.artifacts[artifact.artifact_id] = artifact
         return {
             "schema_version": "chemsmart.scan-point-geometry.v1",
@@ -5066,8 +5149,8 @@ class CommandCompiledToolHostV1:
             "source_result_sha256": source.sha256,
             "point_index": requested,
             "point_count": len(records),
-            "coordinate": chosen["coordinate"],
-            "energy_hartree": chosen["energy"],
+            "coordinate": chosen.get("coordinate"),
+            "energy_hartree": chosen.get("energy"),
             "selection_owner": "model",
             "next_action": (
                 "bind this geometry's charge and multiplicity, then plan the "
@@ -9626,10 +9709,9 @@ class CommandCompiledToolHostV1:
             planned=tuple(
                 str(node.node_id) for node in getattr(draft, "nodes", ()) or ()
             ),
+            admitted=_admitted_producer_pairs(scientific),
         )
-        dispatchable = bool(verdict.rows) and all(
-            row.status == "ready" for row in verdict.rows
-        )
+        dispatchable = verdict.dispatchable
         # Where the dispatcher reads it. A wave that lives only in a
         # tool reply is a wave the array never hears about -- and a wave
         # left standing after the Agent has moved on is worse, because
@@ -9647,6 +9729,9 @@ class CommandCompiledToolHostV1:
             node_ids=tuple(verdict.members) if dispatchable else (),
         )
         record = verdict.public_record()
+        after_members = [
+            row.node_id for row in verdict.rows if row.status == "after"
+        ]
         # A wave is submitted only inside an approved workflow. This reply
         # answered "this wave is what will be submitted" while the workflow
         # it belonged to could not be approved, and the session ended
@@ -9685,7 +9770,9 @@ class CommandCompiledToolHostV1:
             # a revision remains after this cycle's own plan is admitted.
             next_action = (
                 "this wave is what will be submitted and every member "
-                "runs, but this goal can open no further cycle after it: "
+                "runs"
+                + _AFTER_MEMBERS_CLAUSE[bool(after_members)]
+                + ", but this goal can open no further cycle after it: "
                 "nothing wakes you when it ends, and a number the "
                 "approved analysis chain computes without rendering it as "
                 "a claim is not delivered -- put every claim you need into "
@@ -9693,8 +9780,9 @@ class CommandCompiledToolHostV1:
             )
         elif dispatchable:
             next_action = (
-                "this wave is what will be submitted; every member runs "
-                "and you are woken once, when all of them have ended"
+                "this wave is what will be submitted; every member runs"
+                + _AFTER_MEMBERS_CLAUSE[bool(after_members)]
+                + " and you are woken once, when all of them have ended"
             )
         else:
             next_action = (
@@ -11659,6 +11747,15 @@ class CommandCompiledToolHostV1:
         # the same coordinate-free argv and were correctly refused as
         # differing from the reviewed operation.
         coordinates = values.get("internal_coordinates") or None
+        # The executor rebuilds every approved node through this tool, and
+        # the files a producer inside the approval handed this node beside
+        # its structure -- a saddle's Hessian for its IRC -- are the host's
+        # to bind, never the caller's to name. They were never bound, so
+        # every IRC the approval admitted with its saddle's Hessian was
+        # launched without it.
+        job_artifact_options = self._approved_auxiliary_inputs(
+            values["node_id"]
+        )
         invocation = compile_command(
             proposal,
             capability=capability,
@@ -11667,6 +11764,7 @@ class CommandCompiledToolHostV1:
             project_validation=validation,
             input_artifact=input_artifact,
             scientific_identity=identity,
+            job_artifact_options=dict(job_artifact_options),
             job_option_values=native_coordinate_options(
                 values["program"],
                 coordinates,
@@ -11699,8 +11797,53 @@ class CommandCompiledToolHostV1:
                 proposal.node_id, input_artifact
             ),
             scientific_identity=identity,
+            job_artifact_options=job_artifact_options,
         )
         return self._record_compiled_command(turn_id, invocation, context)
+
+    def _approved_auxiliary_inputs(
+        self, node_id: str
+    ) -> tuple[tuple[str, TrustedArtifactRefV1], ...]:
+        """The auxiliary files an approved producer handed ``node_id``.
+
+        One entry per admitted Hessian edge into the node, bound to the
+        artifact its validated handoff selected; empty outside an approved
+        execution or for a node no such edge feeds. An admitted edge with
+        no handoff is refused by name: the consumer must not run without
+        the input the approval granted it.
+        """
+
+        approval = getattr(self, "workflow_execution_approval", None)
+        if approval is None:
+            return ()
+        options: dict[str, TrustedArtifactRefV1] = {}
+        for edge in getattr(approval, "producer_edges", ()) or ():
+            if edge.consumer_node_id != node_id:
+                continue
+            role = hessian_role_for_rule(edge.selection_rule)
+            if role is None:
+                continue
+            handoff = self.hessian_handoffs.get(node_id)
+            if (
+                handoff is None
+                or handoff.producer_edge_sha256 != edge.edge_sha256
+            ):
+                raise ContractError(
+                    f"node {node_id!r} was approved with the "
+                    f"{role.consumer_input_id} that {edge.producer_node_id!r} "
+                    "hands on, and no validated handoff of it exists"
+                )
+            artifact = self.artifacts.get(handoff.selected_artifact_id)
+            if (
+                artifact is None
+                or artifact.sha256 != handoff.selected_artifact_sha256
+            ):
+                raise ContractError(
+                    f"the {role.consumer_input_id} handed to {node_id!r} is "
+                    "not the artifact its handoff selected"
+                )
+            options[role.consumer_input_id] = artifact
+        return tuple(sorted(options.items()))
 
     def _preview_command(self, turn_id: str, values: dict) -> Any:
         invocation = self._get(
@@ -13909,6 +14052,354 @@ class CommandCompiledToolHostV1:
             )
         return "\n".join(lines)
 
+    def _block_refused_consumers(
+        self,
+        turn_id: str,
+        *,
+        run_id: str,
+        plan: ScientificWorkflowPlanV2,
+        refused: Sequence[tuple[Any, str]],
+        timestamp: str,
+    ) -> None:
+        """Block each consumer whose producer's output could not be handed on.
+
+        The refusal is the consumer's: it is recorded under the consumer's
+        name with the producer and the reason, and the consumer ends
+        ``blocked`` under a ``workflow.dependency.`` rule, so the run
+        reaches a terminal state and the outcome reads it as a dependency
+        that did not arrive -- never as a failure of the calculation that
+        ran.
+        """
+
+        from chemsmart.agent.runtime.events import EventKind as _Kinds
+
+        blocked: set[str] = set()
+        for edge, reason in refused:
+            consumer = str(edge.consumer_node_id)
+            self.event_store.append(
+                turn_id=turn_id,
+                kind=_Kinds.WORKFLOW_NODE_LAUNCH_REFUSED.value,
+                payload={
+                    "node_id": consumer,
+                    "producer_node_id": str(edge.producer_node_id),
+                    "selection_rule": str(edge.selection_rule),
+                    "reason": (
+                        f"{edge.producer_node_id!r} ran and validated, and "
+                        f"its {edge.artifact_kind} could not be handed to "
+                        f"{consumer!r}: {reason}"
+                    ),
+                },
+            )
+            if consumer in blocked:
+                continue
+            blocked.add(consumer)
+            try:
+                self.event_store.transition_workflow_run_node(
+                    turn_id=turn_id,
+                    run_id=run_id,
+                    node_id=consumer,
+                    new_state="blocked",
+                    plan=plan,
+                    failure_rule_ids=(
+                        "workflow.dependency.handoff_refused."
+                        + str(edge.producer_node_id),
+                    ),
+                    timestamp=timestamp,
+                )
+            except ContractError:
+                # Already terminal (a sibling edge blocked it first, or the
+                # run state blocked it behind another producer).
+                continue
+
+    def _hand_off_producer_edge(
+        self,
+        *,
+        edge: Any,
+        approval: Any,
+        context: Any,
+        receipt: Any,
+        outputs: tuple[TrustedArtifactRefV1, ...],
+        scientific_plan: ScientificWorkflowPlanV2,
+    ) -> tuple[Any, TrustedArtifactRefV1, Any, Any]:
+        """Hand one admitted producer edge its artifact, or refuse it.
+
+        Returns the handoff receipt, the artifact handed on, the
+        consumer's scientific identity and the plan edge it binds. A
+        refusal is a ContractError about this edge alone: the producer
+        already ran and validated, and what it computed stands whatever
+        its consumer can or cannot be handed.
+        """
+
+        consumer_binding = approval.node(edge.consumer_node_id)
+        hessian_role = hessian_role_for_rule(edge.selection_rule)
+        if edge.selection_rule == "validated_final_orca_ts_hessian":
+            if (
+                context.proposal.program != hessian_role.producer_program
+                or context.proposal.jobtype not in hessian_role.producer_stages
+            ):
+                raise ContractError(
+                    "final ORCA Hessian handoff requires an ORCA TS"
+                )
+            result_candidates = tuple(
+                item for item in outputs if item.kind == "orca_output"
+            )
+            hessian_candidates = tuple(
+                item for item in outputs if item.kind == "orca_hessian"
+            )
+            if len(result_candidates) != 1 or not hessian_candidates:
+                raise ContractError(
+                    "validated ORCA TS requires one output and at least "
+                    "one native Hessian candidate"
+                )
+            artifact, observed = handoff_final_orca_ts_hessian(
+                producer_receipt=receipt,
+                result_artifact=result_candidates[0],
+                hessian_candidates=hessian_candidates,
+                producer_edge=edge,
+                approved_workspace=self.approved_workspace,
+                hessian_artifact_id=(
+                    f"hessian.{edge.producer_node_id}-to-"
+                    f"{edge.consumer_node_id}"
+                ),
+                expected_charge=context.scientific_identity.charge,
+                expected_multiplicity=(
+                    context.scientific_identity.multiplicity
+                ),
+            )
+            geometry_handoff = self.handoffs.get(edge.consumer_node_id)
+            if geometry_handoff is None:
+                raise ContractError(
+                    "ORCA TS Hessian handoff requires its final geometry"
+                )
+            if observed.consumer_state != (
+                consumer_binding.charge,
+                consumer_binding.multiplicity,
+            ):
+                raise ContractError(
+                    "ORCA IRC must remain on the transition-state "
+                    "charge and multiplicity surface"
+                )
+            geometry = self.artifacts.get(
+                geometry_handoff.geometry_artifact_id
+            )
+            if geometry is None:
+                raise ContractError(
+                    "ORCA TS Hessian lacks its selected geometry"
+                )
+            identity = build_scientific_identity_binding(
+                task_spec_sha256=approval.task_spec_sha256,
+                geometry_artifact=geometry,
+                charge=consumer_binding.charge,
+                multiplicity=consumer_binding.multiplicity,
+            )
+            self.artifacts[artifact.artifact_id] = artifact
+            self.hessian_handoffs[edge.consumer_node_id] = observed
+        elif edge.selection_rule == "validated_producer_orca_hessian":
+            if (
+                context.proposal.program != hessian_role.producer_program
+                or context.proposal.jobtype not in hessian_role.producer_stages
+            ):
+                raise ContractError(
+                    "a producer ORCA Hessian handoff requires a "
+                    "frequency-bearing ORCA producer"
+                )
+            result_candidates = tuple(
+                item for item in outputs if item.kind == "orca_output"
+            )
+            hessian_candidates = tuple(
+                item for item in outputs if item.kind == "orca_hessian"
+            )
+            if len(result_candidates) != 1 or not hessian_candidates:
+                raise ContractError(
+                    "a validated ORCA producer requires one output "
+                    "and at least one native Hessian candidate"
+                )
+            artifact, observed = handoff_validated_orca_producer_hessian(
+                producer_receipt=receipt,
+                result_artifact=result_candidates[0],
+                hessian_candidates=hessian_candidates,
+                producer_edge=edge,
+                approved_workspace=self.approved_workspace,
+                hessian_artifact_id=(
+                    f"hessian.{edge.producer_node_id}-to-"
+                    f"{edge.consumer_node_id}"
+                ),
+                expected_charge=(context.scientific_identity.charge),
+                expected_multiplicity=(
+                    context.scientific_identity.multiplicity
+                ),
+            )
+            if observed.consumer_state != (
+                consumer_binding.charge,
+                consumer_binding.multiplicity,
+            ):
+                raise ContractError(
+                    "an ORCA TS search must start from a Hessian on "
+                    "its own charge and multiplicity surface"
+                )
+            self.artifacts[artifact.artifact_id] = artifact
+            geometry_handoff = self.handoffs.get(edge.consumer_node_id)
+            geometry = (
+                None
+                if geometry_handoff is None
+                else self.artifacts.get(geometry_handoff.geometry_artifact_id)
+            )
+            if geometry is None:
+                raise ContractError(
+                    "a starting Hessian is handed to a TS search once its "
+                    "structure is: no validated structure of "
+                    f"{edge.consumer_node_id!r} has been handed on"
+                )
+            identity = build_scientific_identity_binding(
+                task_spec_sha256=approval.task_spec_sha256,
+                geometry_artifact=geometry,
+                charge=consumer_binding.charge,
+                multiplicity=consumer_binding.multiplicity,
+            )
+            self.hessian_handoffs[edge.consumer_node_id] = observed
+        elif edge.selection_rule == "validated_scan_minimum_geometry":
+            if context.proposal.program != "orca":
+                raise ContractError(
+                    "a scan-minimum geometry handoff requires an "
+                    "ORCA scan producer"
+                )
+            candidates = tuple(
+                item for item in outputs if item.kind == "orca_output"
+            )
+            if len(candidates) != 1:
+                raise ContractError(
+                    "a validated ORCA scan requires exactly one "
+                    "orca_output result"
+                )
+            artifact, observed = handoff_scan_minimum_geometry(
+                producer_receipt=receipt,
+                result_artifact=candidates[0],
+                input_artifact=context.input_artifact,
+                producer_edge=edge,
+                approved_workspace=self.approved_workspace,
+                geometry_artifact_id=(
+                    f"geometry.{edge.producer_node_id}-to-"
+                    f"{edge.consumer_node_id}"
+                ),
+                expected_charge=context.scientific_identity.charge,
+                expected_multiplicity=(
+                    context.scientific_identity.multiplicity
+                ),
+                consumer_charge=consumer_binding.charge,
+                consumer_multiplicity=(consumer_binding.multiplicity),
+            )
+        elif context.proposal.program == "pyscf":
+            candidates = tuple(
+                item for item in outputs if item.kind == "pyscf_hdf5"
+            )
+            if len(candidates) != 1:
+                raise ContractError(
+                    "validated PySCF OPT requires exactly one HDF5 result"
+                )
+            artifact, observed = handoff_optimized_pyscf_geometry(
+                producer_receipt=receipt,
+                result_artifact=candidates[0],
+                input_artifact=context.input_artifact,
+                producer_edge=edge,
+                approved_workspace=self.approved_workspace,
+                geometry_artifact_id=(
+                    f"geometry.{edge.producer_node_id}-to-"
+                    f"{edge.consumer_node_id}"
+                ),
+                expected_charge=context.scientific_identity.charge,
+                expected_multiplicity=(
+                    context.scientific_identity.multiplicity
+                ),
+                consumer_charge=consumer_binding.charge,
+                consumer_multiplicity=(consumer_binding.multiplicity),
+            )
+        elif context.proposal.program == "xtb":
+            candidates = tuple(
+                item
+                for item in outputs
+                if item.kind == "geometry_xyz"
+                and Path(item.path).name == "xtbopt.xyz"
+            )
+            if len(candidates) != 1:
+                raise ContractError(
+                    "validated xTB OPT requires exactly one xtbopt.xyz"
+                )
+            artifact, observed = handoff_optimized_xtb_geometry(
+                producer_receipt=receipt,
+                result_artifact=candidates[0],
+                input_artifact=context.input_artifact,
+                producer_edge=edge,
+                approved_workspace=self.approved_workspace,
+                geometry_artifact_id=(
+                    f"geometry.{edge.producer_node_id}-to-"
+                    f"{edge.consumer_node_id}"
+                ),
+                expected_charge=context.scientific_identity.charge,
+                expected_multiplicity=(
+                    context.scientific_identity.multiplicity
+                ),
+                consumer_charge=consumer_binding.charge,
+                consumer_multiplicity=(consumer_binding.multiplicity),
+            )
+        else:
+            output_kind = f"{context.proposal.program}_output"
+            candidates = tuple(
+                item for item in outputs if item.kind == output_kind
+            )
+            if len(candidates) != 1:
+                raise ContractError(
+                    f"validated {context.proposal.program} OPT/TS "
+                    f"requires exactly one {output_kind}"
+                )
+            artifact, observed = handoff_optimized_native_geometry(
+                program=context.proposal.program,
+                producer_receipt=receipt,
+                result_artifact=candidates[0],
+                input_artifact=context.input_artifact,
+                producer_edge=edge,
+                approved_workspace=self.approved_workspace,
+                geometry_artifact_id=(
+                    f"geometry.{edge.producer_node_id}-to-"
+                    f"{edge.consumer_node_id}"
+                ),
+                expected_charge=context.scientific_identity.charge,
+                expected_multiplicity=(
+                    context.scientific_identity.multiplicity
+                ),
+                consumer_charge=consumer_binding.charge,
+                consumer_multiplicity=(consumer_binding.multiplicity),
+            )
+        if edge.selection_rule in {
+            "validated_optimized_geometry",
+            "validated_scan_minimum_geometry",
+        }:
+            consumer_charge, consumer_multiplicity = observed.consumer_state
+            identity = build_scientific_identity_binding(
+                task_spec_sha256=approval.task_spec_sha256,
+                geometry_artifact=artifact,
+                charge=consumer_charge,
+                multiplicity=consumer_multiplicity,
+            )
+            self.artifacts[artifact.artifact_id] = artifact
+            self.scientific_identities[identity.binding_sha256] = identity
+            self.handoffs[edge.consumer_node_id] = observed
+        scientific_edge = next(
+            (
+                item
+                for item in scientific_plan.edges
+                if item.edge_kind == "data"
+                and item.source_node_id == edge.producer_node_id
+                and item.target_node_id == edge.consumer_node_id
+                and item.artifact_class == edge.artifact_kind
+            ),
+            None,
+        )
+        if scientific_edge is None:
+            raise ContractError(
+                "producer handoff lacks an exact scientific data edge"
+            )
+        return observed, artifact, identity, scientific_edge
+
     def _execute_approved_program_node(
         self, turn_id: str, values: dict
     ) -> Any:
@@ -14464,6 +14955,7 @@ class CommandCompiledToolHostV1:
         )
         self.execution_receipts[node_id] = receipt
         produced_handoffs = []
+        refused_handoffs: list[tuple[Any, str]] = []
         pending_data_edges = []
         if (
             receipt.validated
@@ -14485,268 +14977,27 @@ class CommandCompiledToolHostV1:
             for edge in outgoing_edges:
                 if edge.producer_node_id != node_id:
                     continue
-                consumer_binding = approval.node(edge.consumer_node_id)
-                hessian_role = hessian_role_for_rule(edge.selection_rule)
-                if edge.selection_rule == "validated_final_orca_ts_hessian":
-                    if (
-                        context.proposal.program
-                        != hessian_role.producer_program
-                        or context.proposal.jobtype
-                        not in hessian_role.producer_stages
-                    ):
-                        raise ContractError(
-                            "final ORCA Hessian handoff requires an ORCA TS"
-                        )
-                    result_candidates = tuple(
-                        item for item in outputs if item.kind == "orca_output"
-                    )
-                    hessian_candidates = tuple(
-                        item for item in outputs if item.kind == "orca_hessian"
-                    )
-                    if len(result_candidates) != 1 or not hessian_candidates:
-                        raise ContractError(
-                            "validated ORCA TS requires one output and at least "
-                            "one native Hessian candidate"
-                        )
-                    artifact, observed = handoff_final_orca_ts_hessian(
-                        producer_receipt=receipt,
-                        result_artifact=result_candidates[0],
-                        hessian_candidates=hessian_candidates,
-                        producer_edge=edge,
-                        approved_workspace=self.approved_workspace,
-                        hessian_artifact_id=(
-                            f"hessian.{edge.producer_node_id}-to-"
-                            f"{edge.consumer_node_id}"
-                        ),
-                        expected_charge=context.scientific_identity.charge,
-                        expected_multiplicity=(
-                            context.scientific_identity.multiplicity
-                        ),
-                    )
-                    geometry_handoff = self.handoffs.get(edge.consumer_node_id)
-                    if geometry_handoff is None:
-                        raise ContractError(
-                            "ORCA TS Hessian handoff requires its final geometry"
-                        )
-                    if observed.consumer_state != (
-                        consumer_binding.charge,
-                        consumer_binding.multiplicity,
-                    ):
-                        raise ContractError(
-                            "ORCA IRC must remain on the transition-state "
-                            "charge and multiplicity surface"
-                        )
-                    geometry = self.artifacts.get(
-                        geometry_handoff.geometry_artifact_id
-                    )
-                    if geometry is None:
-                        raise ContractError(
-                            "ORCA TS Hessian lacks its selected geometry"
-                        )
-                    identity = build_scientific_identity_binding(
-                        task_spec_sha256=approval.task_spec_sha256,
-                        geometry_artifact=geometry,
-                        charge=consumer_binding.charge,
-                        multiplicity=consumer_binding.multiplicity,
-                    )
-                    self.artifacts[artifact.artifact_id] = artifact
-                    self.hessian_handoffs[edge.consumer_node_id] = observed
-                elif edge.selection_rule == "validated_producer_orca_hessian":
-                    if (
-                        context.proposal.program
-                        != hessian_role.producer_program
-                        or context.proposal.jobtype
-                        not in hessian_role.producer_stages
-                    ):
-                        raise ContractError(
-                            "a producer ORCA Hessian handoff requires a "
-                            "frequency-bearing ORCA producer"
-                        )
-                    result_candidates = tuple(
-                        item for item in outputs if item.kind == "orca_output"
-                    )
-                    hessian_candidates = tuple(
-                        item for item in outputs if item.kind == "orca_hessian"
-                    )
-                    if len(result_candidates) != 1 or not hessian_candidates:
-                        raise ContractError(
-                            "a validated ORCA producer requires one output "
-                            "and at least one native Hessian candidate"
-                        )
-                    artifact, observed = (
-                        handoff_validated_orca_producer_hessian(
-                            producer_receipt=receipt,
-                            result_artifact=result_candidates[0],
-                            hessian_candidates=hessian_candidates,
-                            producer_edge=edge,
-                            approved_workspace=self.approved_workspace,
-                            hessian_artifact_id=(
-                                f"hessian.{edge.producer_node_id}-to-"
-                                f"{edge.consumer_node_id}"
-                            ),
-                            expected_charge=(
-                                context.scientific_identity.charge
-                            ),
-                            expected_multiplicity=(
-                                context.scientific_identity.multiplicity
-                            ),
+                try:
+                    observed, artifact, identity, scientific_edge = (
+                        self._hand_off_producer_edge(
+                            edge=edge,
+                            approval=approval,
+                            context=context,
+                            receipt=receipt,
+                            outputs=outputs,
+                            scientific_plan=scientific_plan,
                         )
                     )
-                    if observed.consumer_state != (
-                        consumer_binding.charge,
-                        consumer_binding.multiplicity,
-                    ):
-                        raise ContractError(
-                            "an ORCA TS search must start from a Hessian on "
-                            "its own charge and multiplicity surface"
-                        )
-                    self.artifacts[artifact.artifact_id] = artifact
-                    self.hessian_handoffs[edge.consumer_node_id] = observed
-                elif edge.selection_rule == "validated_scan_minimum_geometry":
-                    if context.proposal.program != "orca":
-                        raise ContractError(
-                            "a scan-minimum geometry handoff requires an "
-                            "ORCA scan producer"
-                        )
-                    candidates = tuple(
-                        item for item in outputs if item.kind == "orca_output"
-                    )
-                    if len(candidates) != 1:
-                        raise ContractError(
-                            "a validated ORCA scan requires exactly one "
-                            "orca_output result"
-                        )
-                    artifact, observed = handoff_scan_minimum_geometry(
-                        producer_receipt=receipt,
-                        result_artifact=candidates[0],
-                        input_artifact=context.input_artifact,
-                        producer_edge=edge,
-                        approved_workspace=self.approved_workspace,
-                        geometry_artifact_id=(
-                            f"geometry.{edge.producer_node_id}-to-"
-                            f"{edge.consumer_node_id}"
-                        ),
-                        expected_charge=context.scientific_identity.charge,
-                        expected_multiplicity=(
-                            context.scientific_identity.multiplicity
-                        ),
-                        consumer_charge=consumer_binding.charge,
-                        consumer_multiplicity=(consumer_binding.multiplicity),
-                    )
-                elif context.proposal.program == "pyscf":
-                    candidates = tuple(
-                        item for item in outputs if item.kind == "pyscf_hdf5"
-                    )
-                    if len(candidates) != 1:
-                        raise ContractError(
-                            "validated PySCF OPT requires exactly one HDF5 result"
-                        )
-                    artifact, observed = handoff_optimized_pyscf_geometry(
-                        producer_receipt=receipt,
-                        result_artifact=candidates[0],
-                        input_artifact=context.input_artifact,
-                        producer_edge=edge,
-                        approved_workspace=self.approved_workspace,
-                        geometry_artifact_id=(
-                            f"geometry.{edge.producer_node_id}-to-"
-                            f"{edge.consumer_node_id}"
-                        ),
-                        expected_charge=context.scientific_identity.charge,
-                        expected_multiplicity=(
-                            context.scientific_identity.multiplicity
-                        ),
-                        consumer_charge=consumer_binding.charge,
-                        consumer_multiplicity=(consumer_binding.multiplicity),
-                    )
-                elif context.proposal.program == "xtb":
-                    candidates = tuple(
-                        item
-                        for item in outputs
-                        if item.kind == "geometry_xyz"
-                        and Path(item.path).name == "xtbopt.xyz"
-                    )
-                    if len(candidates) != 1:
-                        raise ContractError(
-                            "validated xTB OPT requires exactly one xtbopt.xyz"
-                        )
-                    artifact, observed = handoff_optimized_xtb_geometry(
-                        producer_receipt=receipt,
-                        result_artifact=candidates[0],
-                        input_artifact=context.input_artifact,
-                        producer_edge=edge,
-                        approved_workspace=self.approved_workspace,
-                        geometry_artifact_id=(
-                            f"geometry.{edge.producer_node_id}-to-"
-                            f"{edge.consumer_node_id}"
-                        ),
-                        expected_charge=context.scientific_identity.charge,
-                        expected_multiplicity=(
-                            context.scientific_identity.multiplicity
-                        ),
-                        consumer_charge=consumer_binding.charge,
-                        consumer_multiplicity=(consumer_binding.multiplicity),
-                    )
-                else:
-                    output_kind = f"{context.proposal.program}_output"
-                    candidates = tuple(
-                        item for item in outputs if item.kind == output_kind
-                    )
-                    if len(candidates) != 1:
-                        raise ContractError(
-                            f"validated {context.proposal.program} OPT/TS "
-                            f"requires exactly one {output_kind}"
-                        )
-                    artifact, observed = handoff_optimized_native_geometry(
-                        program=context.proposal.program,
-                        producer_receipt=receipt,
-                        result_artifact=candidates[0],
-                        input_artifact=context.input_artifact,
-                        producer_edge=edge,
-                        approved_workspace=self.approved_workspace,
-                        geometry_artifact_id=(
-                            f"geometry.{edge.producer_node_id}-to-"
-                            f"{edge.consumer_node_id}"
-                        ),
-                        expected_charge=context.scientific_identity.charge,
-                        expected_multiplicity=(
-                            context.scientific_identity.multiplicity
-                        ),
-                        consumer_charge=consumer_binding.charge,
-                        consumer_multiplicity=(consumer_binding.multiplicity),
-                    )
-                if edge.selection_rule in {
-                    "validated_optimized_geometry",
-                    "validated_scan_minimum_geometry",
-                }:
-                    consumer_charge, consumer_multiplicity = (
-                        observed.consumer_state
-                    )
-                    identity = build_scientific_identity_binding(
-                        task_spec_sha256=approval.task_spec_sha256,
-                        geometry_artifact=artifact,
-                        charge=consumer_charge,
-                        multiplicity=consumer_multiplicity,
-                    )
-                    self.artifacts[artifact.artifact_id] = artifact
-                    self.scientific_identities[identity.binding_sha256] = (
-                        identity
-                    )
-                    self.handoffs[edge.consumer_node_id] = observed
-                scientific_edge = next(
-                    (
-                        item
-                        for item in scientific_plan.edges
-                        if item.edge_kind == "data"
-                        and item.source_node_id == edge.producer_node_id
-                        and item.target_node_id == edge.consumer_node_id
-                        and item.artifact_class == edge.artifact_kind
-                    ),
-                    None,
-                )
-                if scientific_edge is None:
-                    raise ContractError(
-                        "producer handoff lacks an exact scientific data edge"
-                    )
+                except ContractError as error:
+                    # The producer ran and validated; a refused handoff
+                    # is its consumer's word. Raised here, it reached the
+                    # executor as the *producer's* launch refusal before
+                    # the producer's state was written, and the run was
+                    # left running with nothing terminal to recover from
+                    # (CUHK r9o-g5 cycle 2: 19,578 s of modred, then
+                    # 'launch refused').
+                    refused_handoffs.append((edge, str(error)))
+                    continue
                 produced_handoffs.append(
                     {
                         "handoff": observed,
@@ -14832,6 +15083,13 @@ class CommandCompiledToolHostV1:
                         for item in produced_handoffs:
                             if item["handoff"] == observed_handoff:
                                 item["data_edge_binding"] = binding
+                    self._block_refused_consumers(
+                        turn_id,
+                        run_id=v2_run_id,
+                        plan=scientific_plan,
+                        refused=refused_handoffs,
+                        timestamp=finished,
+                    )
                 else:
                     self.event_store.transition_workflow_run_node(
                         turn_id=turn_id,
@@ -15489,6 +15747,15 @@ class CommandCompiledToolHostV1:
                     ),
                     live_schema=self.live_schema,
                     server=self.preview_server,
+                    # The Hessian a producer inside this approval hands on
+                    # is displayed where it will be passed, bound to the
+                    # edge that produces it; the reviewed command once
+                    # left it out, and so did every IRC that ran.
+                    future_job_artifact_options=(
+                        _future_auxiliary_placeholders(
+                            producer_edges, planned_node.node_id
+                        )
+                    ),
                 )
                 review_input_sha256 = edge.edge_sha256
                 input_binding = (
@@ -16606,12 +16873,48 @@ class CommandCompiledToolHostV1:
                 review.server_profile_sha256,
             )
         auxiliary_by_name = dict(context.job_artifact_options)
+        # A file a producer inside the approval handed on had no bytes when
+        # the command was reviewed: the review shows the edge that makes
+        # it, and the launch binds the file its handoff selected to that
+        # same edge -- nothing else may stand in its place.
+        future_edges = (
+            {
+                hessian_role_for_rule(edge.selection_rule).consumer_input_id: (
+                    edge
+                )
+                for edge in getattr(
+                    self.workflow_execution_approval, "producer_edges", ()
+                )
+                or ()
+                if edge.consumer_node_id == node_id
+                and hessian_role_for_rule(edge.selection_rule) is not None
+            }
+            if input_role == "producer-geometry"
+            else {}
+        )
         for binding in invocation.auxiliary_input_bindings:
             artifact = auxiliary_by_name.get(binding.parameter_name)
             if artifact is None or artifact.sha256 != binding.artifact_sha256:
                 raise ContractError(
                     "auxiliary input differs from human review"
                 )
+            future_edge = future_edges.get(binding.parameter_name)
+            if future_edge is not None:
+                handoff = self.hessian_handoffs.get(node_id)
+                if (
+                    handoff is None
+                    or handoff.producer_edge_sha256 != future_edge.edge_sha256
+                    or handoff.selected_artifact_sha256 != artifact.sha256
+                ):
+                    raise ContractError(
+                        f"{binding.parameter_name} is not the file the "
+                        "reviewed producer edge handed on"
+                    )
+                path_bindings[artifact.cli_value] = (
+                    _future_auxiliary_role(binding.parameter_name),
+                    future_edge.edge_sha256,
+                )
+                continue
             path_bindings[artifact.cli_value] = (
                 "auxiliary-" + binding.parameter_name,
                 binding.artifact_sha256,
