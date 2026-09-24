@@ -119,6 +119,18 @@ ORCA 6.1.1, PySCF 2.14.0).
 - 5e85422f io: MDCI's process-count refusal is its own failure class.
 - 4ed32f97 shared: %pal nprocs <= MDCI's certain pairs; zero pairs refused
   at compile (routed), translation stated in the compile reply and review.
+- 4d19784d pyscf: ORCA-spelled fitting sets refused at validation with
+  PySCF's own set named.
+- d342ed7a shared: a writer with no job writes the grant (fixup of 4ed32f97).
+- 0e906e38 tests: capability markers the ladder holds.
+- eed90076 shared: MP2 / RI-MP2 / double-hybrid freq -> NumFreq, verifier
+  and compile reply read the owner's function.
+- 094df51c shared: failed_result_validation for a finished run a host rule
+  refused (census replay: exactly the 13 readable host-refused runs move).
+- f6dae95d merge of r10-integration (clean; only jobs/pyscf/settings.py
+  touched on both sides).
+- b4108a2d shared: a PySCF atom's single point is admitted for
+  thermochemistry.
 
 ## O2 -- the repaired writer on the inputs O1 saw abort (pre-registered)
 
