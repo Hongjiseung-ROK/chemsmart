@@ -264,6 +264,15 @@ replayed planning path writes no ledger row, so the repaired tree's "0 of
 - tests/agent on a pristine export of fdf62230: 3186 passed, 0 failed
   (HOME fenced with the program configuration copied in, so no test
   writes the developer's qualification store).
+- Full suite on the same export: 23 failed, 4740 passed; the failing set
+  equals the round baseline's (test_structures x19, pyscf dispersion x2,
+  PyscfSettings, aggregation), none under tests/agent.
+
+## Cluster gate
+
+- Closed at about 05:43 HKT, while g2r (2153691) was in its first cycle
+  (it keeps running under Slurm; its records are read when the gate
+  reopens).
 
 ## Status
 
