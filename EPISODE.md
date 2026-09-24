@@ -257,6 +257,51 @@ different tree, not a controlled A/B.
   [0.95, 1.05], PySCF's restricted start externally unstable.
 - Capability outcomes M1-M5 as for G1, PySCF.
 
+## G2 read (CUHK 2153511, complete: achieved_with_observations, 2 cycles, 4 engine calls)
+
+Read from host records (ledger, run events, the frozen review, results
+through result_readers), not from the report.
+- Cycle 1 (the model's first plan): RKS B3LYP/6-31G* planar and rigid
+  90-degree single points with `scf_stability: true`, no broken-symmetry
+  request, barrier 99.97 kcal/mol -- in the restricted band [88, 106]. The
+  affordance was visible: inspect_program listed `broken_symmetry` among
+  PySCF's project-owned parameters in this session. The model's declared
+  expectation (55-75, "RKS DFT (e.g. B3LYP) gives rigid-twist values in the
+  low-to-mid sixties") was chemically wrong about RKS; the host displayed
+  the disagreement and settled nothing on it.
+- The host raised scf.reference_unstable on the twisted RKS result
+  (RHF/RKS -> UHF/UKS and real -> complex unstable) and the wake carried it.
+  The model's visible text: the 90-degree geometry is "a diradicaloid
+  singlet; a closed-shell RKS description is not its DFT ground state", and
+  the repair is `broken_symmetry: true` ("PySCF's own RKS->UKS instability
+  route into the broken-symmetry singlet") at both geometries, one level.
+  It had searched "PySCF project parameter broken_symmetry ..." and loaded
+  about_cross_program_work, which carries the rule sentence.
+- Cycle 2, revision admitted by the host: both single points with
+  `broken_symmetry: true`, `scf_stability: true`, no native word anywhere
+  (M1). Both compile replies and the frozen cycle-2 review carry the PySCF
+  translation sentence (M2). Twisted: uks, broken_symmetry true, <S**2>
+  1.0111, word broken, restricted start externally unstable (-0.0955 Eh),
+  E -78.4743274138 (M3; <S**2> in [0.95, 1.05]). Planar: uks,
+  broken_symmetry true, <S**2> 0, word unbroken, restricted start stable
+  (+0.0992 Eh), E equal to the RKS energy to 2e-13 Eh; the host minted
+  spin.broken_symmetry_request_unbroken with those numbers -- the honest
+  answer for planar ethylene.
+- Delivered: 69.907 kcal/mol (claim 227a801b <- expression a3fd0768 <-
+  extractions 4dfa0c42 and e7dc4f67 of the two cycle-2 results, matched by
+  file digest) (M4), inside the broken-symmetry band [55, 76]; settled
+  achieved_with_observations (M5). The archived R8 run on the same TASK
+  delivered the restricted 97.3 having written broken symmetry "not
+  selectable" (a different tree; not a controlled comparison).
+- Other observations the host recorded, all correct: s2_deviation_ge_0.2 on
+  the twisted singlet (<S**2> 1.01 against 0), and scf.reference_unstable on
+  the twisted UKS itself (UHF/UKS -> GHF/GKS): the model's own
+  `scf_stability` asked about the final reference, a different question
+  from the followed restricted instability, and both records say which.
+- Outcome word (pre-registered): success -- M1-M5 held and the barrier is
+  in band. The capability was reached by self-correction from a host
+  observation, not on the first plan.
+
 ## Jobs issued
 
 - O0: CUHK Slurm 2153330 (r10-q18-a), 4 cores, native inputs, 16 min, prereg
