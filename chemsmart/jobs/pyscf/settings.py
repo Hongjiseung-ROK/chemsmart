@@ -312,6 +312,73 @@ def is_double_hybrid_functional(functional):
     return any(marker in normal for marker in PYSCF_DOUBLE_HYBRID_MARKERS)
 
 
+#: PySCF's own names for the Weigend JK-fitting sets ORCA spells ``/JK``.
+_PYSCF_JK_FITTING_NAMES = {
+    "def2/jk": "def2-universal-jkfit",
+    "cc-pvtz/jk": "cc-pvtz-jkfit",
+    "cc-pvqz/jk": "cc-pvqz-jkfit",
+    "cc-pv5z/jk": "cc-pv5z-jkfit",
+    "aug-cc-pvtz/jk": "aug-cc-pvtz-jkfit",
+    "aug-cc-pvqz/jk": "aug-cc-pvqz-jkfit",
+    "aug-cc-pv5z/jk": "aug-cc-pv5z-jkfit",
+}
+
+
+def pyscf_fitting_set_refusal(aux_basis):
+    """Why an ORCA-spelled fitting set cannot fit PySCF's SCF, or "".
+
+    PySCF's ``density_fit`` fits the Coulomb and the exchange integrals of
+    the SCF with the one ``aux_basis``. ORCA's names -- ``def2/J`` (a
+    Coulomb-only set ORCA pairs with COSX exchange), the ``/C`` sets (fitted
+    for correlation), ``AutoAux`` and ``def2/JKsmall`` (ORCA's own
+    generators and sets) -- are not PySCF basis names, and were refused
+    only at run time by the compute interpreter's probe, which ``--fake``
+    skips, so a preview passed and the approved node was spent (R10 Q12,
+    CUHK 2151773). Nor would a translation be the same approximation:
+    PySCF fitting exchange with the Coulomb-only Weigend set moved water's
+    B3LYP/def2-SVP energy 1.9e-4 Eh (the same oracle). The ORCA registry
+    of auxiliary names (``chemsmart.io.orca.orca_ref``) says which is
+    which; a name it does not hold is PySCF's to resolve.
+    """
+
+    from chemsmart.io.orca import orca_ref
+
+    literal = str(aux_basis or "").strip()
+    key = literal.casefold()
+    if not key:
+        return ""
+    route_off = "or density_fit: false for the exact SCF"
+    if key in _PYSCF_JK_FITTING_NAMES:
+        return (
+            f"aux_basis {literal!r} is ORCA's spelling; PySCF names the same "
+            f"Weigend JK-fitting set {_PYSCF_JK_FITTING_NAMES[key]!r}. Set "
+            f"aux_basis: {_PYSCF_JK_FITTING_NAMES[key]}, {route_off}."
+        )
+    if key in orca_ref.orca_auxiliary_basis_coulomb:
+        return (
+            f"aux_basis {literal!r} is a Coulomb-only fitting set (ORCA pairs "
+            "it with COSX exchange), and PySCF's density fitting fits the "
+            "exchange with the same set, which is not the approximation "
+            "ORCA makes. Use a JK-fitting set (def2-universal-jkfit, ORCA's "
+            f"def2/JK), {route_off}."
+        )
+    if key in orca_ref.orca_auxiliary_basis_cc:
+        return (
+            f"aux_basis {literal!r} is a correlation-fitting (/C) set, fitted "
+            "for MP2 and coupled-cluster integrals, not for the SCF Coulomb "
+            "and exchange PySCF's density_fit approximates. Use a JK-fitting "
+            f"set (def2-universal-jkfit, ORCA's def2/JK), {route_off}."
+        )
+    if key in orca_ref.orca_auxiliary_basis_autoaux or key == "def2/jksmall":
+        return (
+            f"aux_basis {literal!r} names an ORCA-only fitting set or "
+            "generator. Omit aux_basis to let PySCF choose its default "
+            "JK-fitting set for the orbital basis, name one "
+            f"(def2-universal-jkfit), {route_off}."
+        )
+    return ""
+
+
 class PySCFJobSettings(MolecularJobSettings):
     """Configuration for a PySCF calculation.
 
@@ -696,6 +763,9 @@ class PySCFJobSettings(MolecularJobSettings):
             raise ValueError(
                 "aux_basis cannot be applied when density_fit is disabled."
             )
+        refusal = pyscf_fitting_set_refusal(self.aux_basis)
+        if refusal:
+            raise ValueError(refusal)
 
         if self.multiplicity is not None and int(self.multiplicity) < 1:
             raise ValueError(
