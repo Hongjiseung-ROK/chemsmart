@@ -112,6 +112,52 @@ def test_a_silent_program_hits_the_cap_and_is_not_run(tmp_path):
     assert receipt.wall_seconds < 5.0
 
 
+@pytest.mark.capability("rule:compile.the_probe_is_the_programs_check")
+def test_a_stopped_probe_leaves_no_process_and_no_directory(tmp_path):
+    """The probe's whole process group is gone before it returns.
+
+    Past its INPUT FILE banner ORCA starts the program's first module
+    in children of its own. Stopping only the leader returned while a
+    child still held the probe's files open, and on cluster scratch (NFS)
+    a file unlinked while open survives as a hidden placeholder, so the
+    directory stayed behind (R10 Q9 G1, CUHK Slurm 2150438: an empty
+    ``chemsmart-input-check-*`` left in the granted scratch). Here the
+    child ignores SIGTERM, which is the slowest honest way to leave.
+    """
+
+    import os
+    import signal
+
+    record = tmp_path / "leader-and-workdir"
+    orca = _fake_orca(
+        tmp_path,
+        f'echo "$$ $(pwd)" > {record}\n'
+        "( trap '' TERM; exec sleep 30 ) &\n"
+        "echo '                   INPUT FILE'\n"
+        "sleep 30\n",
+    )
+    work_root = tmp_path / "granted-scratch"
+    receipt = probe_orca_input_check(
+        node_id="opt",
+        input_path=_input(tmp_path),
+        executable=orca,
+        cap_seconds=10.0,
+        work_root=work_root,
+    )
+    assert receipt.status == "passed"
+    leader, workdir = record.read_text().split()
+    try:
+        os.killpg(int(leader), 0)
+    except ProcessLookupError:
+        alive = False
+    else:
+        alive = True
+        os.killpg(int(leader), signal.SIGKILL)
+    assert not alive, "a process of the probe's group outlived the probe"
+    assert not Path(workdir).exists()
+    assert list(work_root.iterdir()) == []
+
+
 def _previewed(tmp_path, retention: Path):
     source = _input(tmp_path)
     digest = file_sha256(source)

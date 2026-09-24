@@ -248,7 +248,7 @@ def probe_orca_input_check(
                     line.rstrip() for line in lines[-8:] if line.strip()
                 )
     finally:
-        shutil.rmtree(work, ignore_errors=True)
+        _remove(work)
     return build_input_check_probe_receipt(
         node_id=node_id,
         program="orca",
@@ -263,19 +263,54 @@ def probe_orca_input_check(
     )
 
 
+def _group_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:  # pragma: no cover - a reused id, not ours
+        return False
+    return True
+
+
 def _stop(process: subprocess.Popen) -> None:
-    if process.poll() is not None:
-        return
+    """Stop the probe's whole process group and wait until it is gone.
+
+    Past its INPUT FILE banner ORCA starts its first module in children
+    of its own. Waiting for the leader alone returned while a child
+    still held the probe's files open; on cluster scratch (NFS) a file
+    unlinked while open survives as a placeholder and the directory
+    cannot be removed (R10 Q9 G1, CUHK Slurm 2150438). The group -- the
+    probe runs in its own session -- is signalled, then waited on as a
+    group, SIGKILL after a grace.
+    """
+
+    pgid = process.pid
     for signum, grace in ((signal.SIGTERM, 1.0), (signal.SIGKILL, 5.0)):
+        process.poll()
+        if not _group_alive(pgid):
+            return
         try:
-            os.killpg(process.pid, signum)
+            os.killpg(pgid, signum)
         except ProcessLookupError:
             return
-        try:
-            process.wait(timeout=grace)
+        deadline = time.monotonic() + grace
+        while time.monotonic() < deadline:
+            process.poll()
+            if not _group_alive(pgid):
+                return
+            time.sleep(0.05)
+
+
+def _remove(work: Path) -> None:
+    """Remove the probe's directory, allowing a network filesystem the
+    moment it takes to drop what a stopped process held open."""
+
+    for _ in range(40):
+        shutil.rmtree(work, ignore_errors=True)
+        if not work.exists():
             return
-        except subprocess.TimeoutExpired:
-            continue
+        time.sleep(0.05)
 
 
 def probe_observation_lines(
