@@ -175,6 +175,73 @@ ran on, repaired = my tree):
   refused; a finding-based answer certified on base and not on
   repaired; any archived settlement word changed by R-D.
 
+## The change, built (step 2, done)
+
+- ae1f17aa (shared) D1 and the one answer rule. Witnesses
+  tests/agent/test_a_category_is_claimed_as_a_number_is.py: 4/4 red on a
+  pristine export of 42f2fd90, green here.
+- f20bec0c (shared) D3: `terminal_states.stationary_point_kind` and the
+  selector `stationary_point_kind` on every reader that serves
+  `vibrational_frequencies` (Gaussian opt/ts, ORCA freq/opt/ts, PySCF
+  hess, xTB hess). Witnesses tests/agent/test_a_stationary_point_is_named_in_a_word.py:
+  9/9 red on ae1f17aa, green here; the word equals the order the
+  characterisation certifies on 8 archived outputs of four programs, and
+  is 'not a stationary point' exactly where it refuses (stretched water).
+- tests/agent after both: 3326 passed.
+
+## Replays (provider-free), read
+
+Harness: scratch q23/scripts/replay_claims.py (a host rebuilt over a copy
+of the stream prefix before each archived claim act, seeded with the
+goal's declarations; the act re-dispatched; a refusal read as the live
+loop reads it). Records: the nine typed-category goals fetched whole
+(r10/q1 gdev1, q11 g2, q13 o2r, q16 l1-o2r, q19 ls2, q22 gh2 gh2b gh2c gtw).
+
+- R-A/R-B, base: on each record's own run commit (e687b9cf, 20dd195d,
+  09450c74, 71de94b9, fd093662, 8048c9de, 57b1759e) all 22 archived claim
+  acts that put something under a category id (12 session calls, 10 chain
+  claim nodes) reproduce their archived outcome byte for byte (22/22).
+  Two further gh2 chain nodes could not be rebuilt (the harness could not
+  recover the executed plan revision) and are not counted.
+- R-A/R-B, repaired: the 16 acts refused on base under category ids (15
+  by the false word gate, 1 -- Q11 g2's chain -- "unsupported unit:
+  'category'" for its IRC flags) are accepted and answer with the
+  program's words: every SCF-stability id by scf_stability_*, Q11 g2's
+  three IRC ids by irc_direction 'forward', irc_converged '0',
+  trajectory_connectivity_changed '1'. Q11 g2's second call stays refused
+  on another claim of the same call ('category' as a display unit of a
+  number under a non-category id: a true refusal).
+- R-C: gh2's two session calls and its cycle-1 chain node, and l1-o2r's
+  cycle-1 chain node, put validation verdicts under category ids:
+  accepted on base (byte-identical), refused on repaired with the route.
+  Stated consequence: such a chain's claim node now fails whole (its
+  sibling numeric claims with it) and the woken session is told why; on
+  base the same chain's category stayed unanswered and a session woke
+  anyway.
+- Found by the replay (loud): gh2c's cycle-1 chain claimed
+  stab_complex_verdict with the real->complex word; on repaired it
+  answers 'stable' read by scf_stability_real_to_complex -- the right
+  kind and the right physics for H2 at 2.20 A (+0.0719 Eh). The
+  archive's one answer of another kind ('unstable' read by
+  scf_stability_external, cycle 2) came one cycle after the host refused
+  that chain with the false diagnosis.
+- R-D: the delivery facts every settlement word is computed from
+  (undelivered and delivered ids, which declarations each stream answers,
+  the goal-grain open ids, the answer and finding reasons), over 975
+  archived (goal, stream) pairs of 365 ledgers (CUHK and ax41), are
+  byte-identical on 42f2fd90 and on this tree: no archived word moves.
+
+## Live goals -- plan (bands fixed after ref1, before any goal)
+
+Reference job ref1 (CLI, repaired code, PySCF B3LYP/def2-SVP, no density
+fitting): stability of four candidate closed-shell references (N2 at
+1.60 A, ozone at its experimental geometry, D4h cyclobutadiene, F2 at
+1.80 A) and planar NH3 relaxed in plane. The stability molecule for the
+live task is chosen from ref1 as one whose restricted reference is
+unstable to RKS->UKS by a clear margin (lowest external eigenvalue below
+-0.02 Eh) and was not used by an earlier episode; the stationary task
+supplies the in-plane-relaxed planar NH3.
+
 ## Oracle
 
 Host records only: session event streams (declarations, claims,
@@ -188,4 +255,7 @@ behavioural statement needs a transcript and a control.
   RSL README and lessons, the two charter topics, the Q1/Q13/Q19/Q22
   merges and EPISODE.md histories read; gate open.
 - step 1 (census): done (above). CUHK slot job 2153688 (tar of records).
-- step 2 (repair): pre-registered above; starting.
+- step 2 (repair): done, ae1f17aa and f20bec0c; replays read (above).
+- step 3: code packs on CUHK -- r10/q23/repaired (f20bec0c, tree digest
+  ed67866f...) and r10/q23/base (42f2fd90, tree digest e5821303...);
+  reference job ref1 submitting.
