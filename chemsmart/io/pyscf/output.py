@@ -505,6 +505,24 @@ class PySCFOutput(FileMixin):
         return self.spec.get("num_basis_functions")
 
     @property
+    def ecp_core_electrons(self):
+        """Core electrons a core potential replaced, per element present.
+
+        Recorded by the driver off the molecule it computed on; every
+        element is named, all-electron ones with zero.  An artifact
+        without the record was written by a driver that attached no core
+        potential (``pyscf.M`` was given none), so every element present
+        replaced none -- a statement about that driver, not a default.
+        """
+        record = self.spec.get("ecp_core_electrons")
+        if isinstance(record, dict):
+            return {
+                str(symbol): int(count) for symbol, count in record.items()
+            }
+        symbols = self.spec.get("symbols") or ()
+        return {str(symbol): 0 for symbol in symbols}
+
+    @property
     def num_shells(self):
         return self.spec.get("num_shells")
 

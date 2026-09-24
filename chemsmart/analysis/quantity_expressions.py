@@ -14,7 +14,7 @@ import math
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 import numpy as np
 from ase import units as ase_units
@@ -2952,11 +2952,24 @@ def evaluate_quantity_expression(
 LEVEL_IDENTITY_FIELDS = (
     "method",
     "basis",
+    "basis_functions",
+    "ecp_core_electrons",
     "dispersion",
     "solvation",
     "frozen_core",
     "response_method",
 )
+#: Level fields compared only between operands whose level states them: a
+#: record minted before a reader stated the field, or a program with no
+#: basis at all, says nothing about it, which is not a difference.
+STATED_ONLY_LEVEL_FIELDS = ("basis_functions",)
+#: Level fields that are facts about the molecule as well as the level,
+#: and so are compared by what they mean rather than by equality: the
+#: electrons each element's core potential replaced agree when every
+#: element two operands share is treated alike (HI and H are one level
+#: with 28 and 0 in total), and a frozen core agrees when the operands'
+#: counts share one rule (HI freezes 4 orbitals, H none, under one rule).
+MOLECULE_DEPENDENT_LEVEL_FIELDS = ("ecp_core_electrons", "frozen_core")
 #: Level fields that describe how an excited root was computed, and so
 #: are compared only between operands that are excited-root values: a
 #: ground-state energy read from a TDA run and one read from a full TD-DFT
@@ -3022,17 +3035,84 @@ def _level_identity(level: Mapping[str, Any]) -> dict[str, Any]:
     )
     basis = _word(level.get("basis"))
     model = _word(level.get("solvent_model"))
+    cores = level.get("ecp_core_electrons")
+    conventions = level.get("frozen_core_conventions")
     return {
         "method": _word(method),
-        # def2-SVP and Gaussian's def2svp are one basis.
-        "basis": basis.replace("-", "") if basis else None,
+        # def2-SVP and Gaussian's def2svp are one basis, and so are
+        # 6-31G* and 6-31G(d): Pople's star is the parenthesised name.
+        "basis": _canonical_basis_name(basis) if basis else None,
+        "basis_functions": _word(level.get("basis_functions")),
+        "ecp_core_electrons": (
+            {str(key): int(value) for key, value in cores.items()}
+            if isinstance(cores, Mapping)
+            else None
+        ),
         "dispersion": _word(level.get("dispersion")),
         "solvation": (
             f"{model}:{_word(level.get('solvent')) or ''}" if model else "gas"
         ),
-        "frozen_core": level.get("frozen_core"),
+        "frozen_core": (
+            (level.get("frozen_core"), tuple(conventions))
+            if conventions is not None
+            else level.get("frozen_core")
+        ),
         "response_method": _word(level.get("response_method")),
     }
+
+
+#: The 6-31G and 6-311G names whose star notation is a synonym by
+#: definition: one star is (d) on the heavy atoms, two add (p) on
+#: hydrogen.  A session wrote Gaussian's 6-31g(d) and PySCF's 6-31g* for
+#: one basis set in one goal (R10 q12 g2-nh3).
+_POPLE_STAR = re.compile(r"(6311|631)(\+{0,2})g(\*{1,2})")
+
+
+def _canonical_basis_name(basis: str) -> str:
+    """One spelling for one basis name, as the level compares it."""
+
+    word = basis.replace("-", "")
+    match = _POPLE_STAR.fullmatch(word)
+    if match is None:
+        return word
+    family, diffuse, stars = match.groups()
+    return f"{family}{diffuse}g" + ("(d,p)" if stars == "**" else "(d)")
+
+
+def _ecp_cores_differ(values: Mapping[str, Any]) -> bool:
+    """Whether two operands treat one shared element with different cores."""
+
+    per_element: dict[str, set[int]] = {}
+    for mapping in values.values():
+        if not isinstance(mapping, Mapping):
+            continue
+        for element, count in mapping.items():
+            per_element.setdefault(element, set()).add(int(count))
+    return any(len(counts) > 1 for counts in per_element.values())
+
+
+def _frozen_cores_differ(values: Mapping[str, Any]) -> bool:
+    """Whether operands' frozen cores follow no one rule.
+
+    A value is ``(count, conventions)`` when its reader classified the
+    count, and a bare count from a record minted before it did; bare
+    counts compare as counts, among themselves.  A molecule with no core
+    is consistent with every rule.
+    """
+
+    from chemsmart.analysis.result_readers import FROZEN_CORE_NO_CORE
+
+    classified = [
+        set(value[1])
+        for value in values.values()
+        if isinstance(value, tuple) and FROZEN_CORE_NO_CORE not in value[1]
+    ]
+    bare = {value for value in values.values() if not isinstance(value, tuple)}
+    if len(bare) > 1:
+        return True
+    if classified and not set.intersection(*classified):
+        return True
+    return False
 
 
 def expression_level_observations(
@@ -3041,6 +3121,7 @@ def expression_level_observations(
     *,
     request: QuantityExpressionRequestV1 | None = None,
     provenance_by_receipt: Mapping[str, Mapping[str, str]] | None = None,
+    source_extractions: Mapping[str, Iterable[str]] | None = None,
 ) -> tuple[dict[str, Any], ...]:
     """Say when an output combines numbers computed at different levels.
 
@@ -3053,6 +3134,13 @@ def expression_level_observations(
     single point on a low-level geometry is an ordinary protocol -- the
     number stands and the reader is told what it is made of.
 
+    An operand that is an earlier expression's output stands for the
+    extraction receipts that output descends from, which
+    ``source_extractions`` names per expression receipt: a difference of
+    two per-program bond energies combines every result both energies
+    came from, not two unlevelled numbers (R10 q12: both live goals built
+    their cross-program comparison that way, and nothing was compared).
+
     ``EXCITED_ROOT_LEVEL_FIELDS`` are compared only between the receipts
     whose consumed quantities are excited-root values, which needs the
     ``request`` (which quantity of which receipt feeds each output) and
@@ -3064,9 +3152,18 @@ def expression_level_observations(
         expression_output_sources(request) if request is not None else {}
     )
     provenance_by_receipt = provenance_by_receipt or {}
+    source_extractions = source_extractions or {}
     observations: list[dict[str, Any]] = []
     for dependency in receipt.output_dependencies:
-        sources = tuple(dependency.source_receipt_sha256s)
+        sources = tuple(
+            sorted(
+                {
+                    leaf
+                    for digest in dependency.source_receipt_sha256s
+                    for leaf in (source_extractions.get(digest) or (digest,))
+                }
+            )
+        )
         if len(sources) < 2:
             continue
         stated = {
@@ -3096,15 +3193,30 @@ def expression_level_observations(
                 if field in EXCITED_ROOT_LEVEL_FIELDS
                 else stated
             )
+            if field in STATED_ONLY_LEVEL_FIELDS:
+                compared = {
+                    digest: identity
+                    for digest, identity in compared.items()
+                    if identity[field] is not None
+                }
             if len(compared) < 2:
                 continue
             values = {
                 digest: identity[field]
                 for digest, identity in compared.items()
             }
-            if len(set(values.values())) > 1:
+            if field in MOLECULE_DEPENDENT_LEVEL_FIELDS:
+                differs = {
+                    "ecp_core_electrons": _ecp_cores_differ,
+                    "frozen_core": _frozen_cores_differ,
+                }[field](values)
+            else:
+                differs = len(set(values.values())) > 1
+            if differs:
                 differing[field] = {
-                    digest[:12]: value
+                    digest[:12]: (
+                        list(value) if isinstance(value, tuple) else value
+                    )
                     for digest, value in sorted(values.items())
                 }
         if not differing:

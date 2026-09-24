@@ -1328,6 +1328,115 @@ class Gaussian16Output(GaussianFileMixin):
         return None
 
     @cached_property
+    def basis_angular_form(self):
+        """The angular functions Gaussian says it built, in shared words.
+
+        Gaussian states them beside the basis (``Standard basis: 6-31G(d)
+        (6D, 7F)``, ``General basis read from cards: (5D, 7F)``); the last
+        statement is the one the final job used.  ``spherical`` is 5D 7F,
+        ``cartesian`` 6D 10F, and ``cartesian_d`` / ``cartesian_f`` name
+        the two mixed forms.  None when the log states no basis.
+        """
+        words = {
+            ("5", "7"): "spherical",
+            ("6", "10"): "cartesian",
+            ("6", "7"): "cartesian_d",
+            ("5", "10"): "cartesian_f",
+        }
+        form = None
+        pattern = re.compile(r"basis.*\(([56])D,\s*(7|10)F\)")
+        for line in self.contents:
+            match = pattern.search(line)
+            if match is not None:
+                form = words[(match.group(1), match.group(2))]
+        return form
+
+    @cached_property
+    def ecp_core_electrons(self):
+        """Core electrons Gaussian's core potentials replaced, per element.
+
+        Every element present is named, all-electron ones with zero.  Read
+        from Gaussian's own numbers: the electrons it counted (alpha plus
+        beta) against the nuclear charges less the charge gives the total;
+        the pseudopotential table, when the route printed one, gives each
+        element's share, and otherwise the nuclear repulsion energy does,
+        because Gaussian computes it with the effective charges Z - core
+        (HI at def2-SVP: 8.2221443586 Eh, which is Z(I) = 25 and not 53).
+        None when those numbers do not attribute the total to one
+        assignment.
+        """
+        from itertools import product
+
+        from ase.data import atomic_numbers
+
+        counts = self.electron_counts
+        charge = self.charge
+        try:
+            molecule = self.last_structure
+            symbols = [str(symbol) for symbol in molecule.chemical_symbols]
+            positions = np.asarray(molecule.positions, dtype=float)
+        except Exception:  # noqa: BLE001 - no structure, no attribution
+            return None
+        if counts is None or charge is None or not symbols:
+            return None
+        numbers = {symbol: int(atomic_numbers[symbol]) for symbol in symbols}
+        replaced = sum(numbers[s] for s in symbols) - int(charge) - sum(counts)
+        elements = sorted(set(symbols), key=lambda s: numbers[s])
+        if replaced == 0:
+            return {symbol: 0 for symbol in elements}
+        table = self._parse_pseudopotential_section()
+        if table:
+            cores = {symbol: 0 for symbol in elements}
+            for symbol, record in table.items():
+                valence = record.get("n_valence_electrons")
+                if symbol in cores and valence is not None:
+                    cores[symbol] = numbers[symbol] - int(valence)
+            if sum(cores[s] for s in symbols) == replaced:
+                return cores
+            return None
+        repulsion = None
+        for line in self.contents:
+            if "nuclear repulsion energy" in line:
+                try:
+                    repulsion = float(line.split()[-2])
+                except (IndexError, ValueError):
+                    continue
+        candidates = [symbol for symbol in elements if numbers[symbol] > 2]
+        tally = {symbol: symbols.count(symbol) for symbol in elements}
+        bohr = positions / 0.52917721092
+        pairs = [
+            (i, j, float(np.linalg.norm(bohr[i] - bohr[j])))
+            for i in range(len(symbols))
+            for j in range(i + 1, len(symbols))
+        ]
+        # A core potential replaces closed shells: a noble-gas core, with
+        # the filled d or f shells below the valence where it goes deeper.
+        closed = (2, 10, 18, 28, 36, 46, 54, 60, 68, 78, 86, 92)
+        choices = [
+            (0,) + tuple(core for core in closed if core < numbers[s])
+            for s in candidates
+        ]
+        if np.prod([len(choice) for choice in choices]) > 200000:
+            return None
+        found = []
+        for assignment in product(*choices):
+            cores = dict.fromkeys(elements, 0)
+            cores.update(zip(candidates, assignment))
+            if sum(tally[s] * cores[s] for s in elements) != replaced:
+                continue
+            if pairs:
+                if repulsion is None:
+                    return None
+                charges = [numbers[s] - cores[s] for s in symbols]
+                energy = sum(charges[i] * charges[j] / r for i, j, r in pairs)
+                if abs(energy - repulsion) > 1e-4 * max(abs(repulsion), 1.0):
+                    continue
+            found.append(cores)
+            if len(found) > 1:
+                return None
+        return found[0] if found else None
+
+    @cached_property
     def num_primitive_gaussians(self):
         for line in self.contents:
             if "primitive gaussians," in line:

@@ -1999,6 +1999,126 @@ def _orca_solvation_model(output: Any) -> str:
     return _orca_solvation_context(output)[0]
 
 
+def _chemical_core_table() -> tuple[int, ...]:
+    table = [0] * 119
+    for first, last, orbitals in (
+        (5, 12, 1),
+        (13, 30, 5),
+        (31, 38, 9),
+        (39, 48, 14),
+        (49, 70, 18),
+        (71, 80, 23),
+        (81, 103, 34),
+        (104, 112, 50),
+        (113, 118, 55),
+    ):
+        for number in range(first, last + 1):
+            table[number] = orbitals
+    return tuple(table)
+
+
+#: The chemical core, in orbitals, of each element by atomic number: the
+#: rule PySCF 2.14 applies for ``frozen_core: auto`` (``chemcore_atm`` in
+#: pyscf/data/elements.py, read on the CUHK deployment 2026-09-24), which
+#: ORCA 6.1.1's default frozen core matched on every molecule measured --
+#: water, CH2O, CH3, CH3Cl, HBr, ZnH2, HI, CH3I, I (CUHK Slurm 2149277,
+#: 2149487, 2151772, 2151773).  Gaussian's default matches it there too,
+#: except zinc (9 orbitals against 5).  A core potential's orbitals leave
+#: the count, as PySCF's own rule removes them.
+CHEMICAL_CORE_ORBITALS = _chemical_core_table()
+
+#: The frozen-core word of an operand whose molecule has no core to
+#: freeze (H, He, Li, Be): every convention freezes nothing there.
+FROZEN_CORE_NO_CORE = "no_core"
+
+
+def chemical_core_orbitals(
+    symbols: Any, ecp_core_electrons: Mapping[str, int] | None = None
+) -> int:
+    """Orbitals the chemical-core rule freezes in one molecule."""
+
+    from ase.data import atomic_numbers
+
+    cores = ecp_core_electrons or {}
+    total = 0
+    for symbol in symbols:
+        orbitals = CHEMICAL_CORE_ORBITALS[int(atomic_numbers[str(symbol)])]
+        replaced = int(cores.get(str(symbol), 0)) // 2
+        total += 0 if replaced > orbitals else orbitals - replaced
+    return total
+
+
+def frozen_core_conventions(
+    frozen: int,
+    *,
+    symbols: Any,
+    ecp_core_electrons: Mapping[str, int] | None,
+    program_rule: str | None,
+) -> tuple[str, ...]:
+    """The conventions one frozen-core count is consistent with.
+
+    A count is a fact about one molecule -- HI freezes 4 orbitals where H
+    freezes none under one rule -- so two results of one level compare
+    by rule, never by count: ``chemical_core`` when the count is the
+    molecule's chemical core, ``all_electrons`` when it is zero, and the
+    rule the program applied by default (``orca_default``,
+    ``gaussian_default``, ``pyscf_default``, ``pyscf_auto``) when it was
+    not told one.  A molecule with no core is consistent with every rule.
+    """
+
+    chemical = chemical_core_orbitals(symbols, ecp_core_electrons)
+    if chemical == 0:
+        return (FROZEN_CORE_NO_CORE,)
+    words = set()
+    if int(frozen) == chemical:
+        words.add("chemical_core")
+    if int(frozen) == 0:
+        words.add("all_electrons")
+    if program_rule:
+        words.add(program_rule)
+    return tuple(sorted(words))
+
+
+def _add_frozen_core_conventions(
+    level: dict[str, Any], symbols: Any, program_rule: str | None
+) -> None:
+    """State, beside a correlated level's frozen count, the rules it fits.
+
+    A molecule with no core is consistent with every rule whether or not
+    the program printed a count for it (ORCA prints none for a hydrogen
+    atom); otherwise the stated count is classified, and a level that
+    states no count states no convention.
+    """
+
+    method = str(level.get("ab_initio") or "").lower()
+    cores = level.get("ecp_core_electrons")
+    if (
+        not any(marker in method for marker in _CORRELATED_METHOD_MARKERS)
+        or cores is None
+        or not symbols
+    ):
+        return
+    if chemical_core_orbitals(symbols, cores) == 0:
+        level["frozen_core_conventions"] = (FROZEN_CORE_NO_CORE,)
+        return
+    frozen = level.get("frozen_core")
+    if frozen is None:
+        return
+    level["frozen_core_conventions"] = frozen_core_conventions(
+        int(frozen),
+        symbols=symbols,
+        ecp_core_electrons=cores,
+        program_rule=program_rule,
+    )
+
+
+def _molecule_symbols(output: Any) -> list[str]:
+    try:
+        return [str(symbol) for symbol in output.molecule.chemical_symbols]
+    except Exception:  # noqa: BLE001 - no structure, no symbols
+        return []
+
+
 def _normalized_dispersion(value: Any) -> str:
     """One word for an empirical dispersion, whatever program spelled it."""
 
@@ -2057,6 +2177,27 @@ def _orca_level(output: Any) -> dict[str, Any]:
                 electrons = int(match.group(1) or match.group(2))
         if electrons is not None:
             level["frozen_core"] = electrons // 2
+    # What the basis was built of: ORCA's angular form is a fact about
+    # ORCA, and its core potentials are named where it assigns them.
+    from chemsmart.jobs.orca.settings import ORCA_BASIS_FUNCTIONS
+
+    if "basis" in level:
+        level["basis_functions"] = ORCA_BASIS_FUNCTIONS
+    try:
+        cores = output.ecp_core_electrons
+    except Exception:  # noqa: BLE001 - an unreadable record states nothing
+        cores = None
+    if cores is not None:
+        level["ecp_core_electrons"] = dict(cores)
+    # ORCA freezes its chemical core unless its input says otherwise.
+    told = any(
+        str(line).lstrip().startswith("|")
+        and "frozencore" in str(line).lower()
+        for line in getattr(output, "contents", ())
+    )
+    _add_frozen_core_conventions(
+        level, _molecule_symbols(output), None if told else "orca_default"
+    )
     # The response an excited stage ran on, in the words Gaussian's and
     # PySCF's levels use: ORCA's own header says which approximation it
     # applied and how many roots of each block it determined, and the
@@ -2116,6 +2257,45 @@ def _gaussian_level(output: Any) -> dict[str, Any]:
                 frozen = int(match.group(1))
         if frozen is not None:
             level["frozen_core"] = frozen
+    # What the basis was built of, in Gaussian's own statement: the
+    # angular form it printed beside the basis, and the electrons its
+    # core potentials replaced.
+    form = getattr(output, "basis_angular_form", None)
+    if form and "basis" in level:
+        level["basis_functions"] = form
+    try:
+        cores = output.ecp_core_electrons
+    except Exception:  # noqa: BLE001 - an unreadable record states nothing
+        cores = None
+    if cores is not None:
+        level["ecp_core_electrons"] = dict(cores)
+    # Gaussian's FC is its default; a route that names another rule
+    # (Full, a window, a named freeze) chose its own.
+    route_words = set(
+        re.split(
+            r"[^a-z0-9]+", str(getattr(output, "route_string", "")).lower()
+        )
+    )
+    told = bool(
+        route_words
+        & {
+            "full",
+            "window",
+            "readwindow",
+            "rw",
+            "freezeg2",
+            "freezeg3",
+            "freezeg4",
+            "freezenoblegascore",
+            "freezeinnernoblegascore",
+        }
+    )
+    if correlated and correlated != "double_hybrid":
+        _add_frozen_core_conventions(
+            level,
+            _molecule_symbols(output),
+            None if told else "gaussian_default",
+        )
     # The response an excited stage ran on, in the words PySCF's level
     # uses: full TD-DFT and TDA are different calculations of the same
     # roots, and the route is where Gaussian says which ran.
@@ -4960,6 +5140,26 @@ def _pyscf_level(output: Any) -> dict[str, Any]:
         for name in ("response_method", "state_manifold", "nstates"):
             if record.get(name) is not None:
                 level.setdefault(name, record[name])
+    # What the basis was built of: the angular form the driver passes to
+    # ``pyscf.M`` and the core potentials the molecule it built carried.
+    from chemsmart.jobs.pyscf.writer import PYSCF_BASIS_FUNCTIONS
+
+    if "basis" in level:
+        level["basis_functions"] = PYSCF_BASIS_FUNCTIONS
+    symbols = [str(symbol) for symbol in spec.get("symbols") or ()]
+    try:
+        cores = output.ecp_core_electrons
+    except Exception:  # noqa: BLE001 - an unreadable record states nothing
+        cores = None
+    if cores is not None and symbols:
+        level["ecp_core_electrons"] = dict(cores)
+    requested = spec.get("frozen_core")
+    rule = (
+        "pyscf_default"
+        if requested in (None, "")
+        else "pyscf_auto" if str(requested).lower() == "auto" else None
+    )
+    _add_frozen_core_conventions(level, symbols, rule)
     return level
 
 

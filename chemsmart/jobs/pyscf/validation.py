@@ -1742,9 +1742,11 @@ _REFERENCE_RUNTIME_CLASSES = {
 }
 
 
-def _expected_reference_family(spec, *, symbols, charge, multiplicity):
+def _expected_reference_family(
+    spec, *, symbols, charge, multiplicity, core_electrons=0
+):
     atomic_numbers = _expected_atomic_numbers(symbols)
-    electron_count = sum(atomic_numbers) - int(charge)
+    electron_count = sum(atomic_numbers) - int(charge) - int(core_electrons)
     spin = int(multiplicity) - 1
     xc = spec.get("xc")
     if xc is not None:
@@ -1792,12 +1794,14 @@ def _validate_reference_family(
     multiplicity,
     orbital_representation,
     require_current,
+    core_electrons=0,
 ):
     expected, one_electron = _expected_reference_family(
         spec,
         symbols=symbols,
         charge=charge,
         multiplicity=multiplicity,
+        core_electrons=core_electrons,
     )
     declared = spec.get("reference_family")
     runtime = provenance.get("runtime")
@@ -2420,6 +2424,10 @@ def validate_pyscf_result(
             )
         )
 
+    core_electrons = _ecp_core_electron_total(
+        spec, findings, symbols=expected_symbols
+    )
+    electronic_state_observation["ecp_core_electrons"] = core_electrons
     _validate_orbital_arrays(
         results,
         findings,
@@ -2427,6 +2435,7 @@ def validate_pyscf_result(
         charge=int(expected_charge),
         multiplicity=int(expected_multiplicity),
         observation=electronic_state_observation,
+        core_electrons=core_electrons,
     )
     reference_observation, reference_findings = _validate_reference_family(
         spec,
@@ -2438,6 +2447,7 @@ def validate_pyscf_result(
             "orbital_representation"
         ],
         require_current=current_result_contract,
+        core_electrons=core_electrons,
     )
     findings.extend(reference_findings)
     _validate_result_electron_metadata(
@@ -2446,6 +2456,7 @@ def validate_pyscf_result(
         symbols=expected_symbols,
         charge=int(expected_charge),
         multiplicity=int(expected_multiplicity),
+        core_electrons=core_electrons,
     )
     (
         spin_diagnostic_observation,
@@ -4072,6 +4083,7 @@ def _validate_orbital_arrays(
     charge,
     multiplicity,
     observation,
+    core_electrons=0,
 ):
     """Validate restricted or unrestricted orbital arrays and occupations."""
 
@@ -4119,7 +4131,9 @@ def _validate_orbital_arrays(
         return
 
     atomic_numbers = _expected_atomic_numbers(symbols)
-    expected_electrons = sum(atomic_numbers) - int(charge)
+    expected_electrons = (
+        sum(atomic_numbers) - int(charge) - int(core_electrons)
+    )
     expected_spin = int(multiplicity) - 1
     if (
         not atomic_numbers
@@ -4263,12 +4277,12 @@ def _validate_orbital_arrays(
 
 
 def _validate_result_electron_metadata(
-    spec, findings, *, symbols, charge, multiplicity
+    spec, findings, *, symbols, charge, multiplicity, core_electrons=0
 ):
     atomic_numbers = _expected_atomic_numbers(symbols)
     if not atomic_numbers:
         return
-    electron_count = sum(atomic_numbers) - int(charge)
+    electron_count = sum(atomic_numbers) - int(charge) - int(core_electrons)
     spin = int(multiplicity) - 1
     if electron_count < 0 or spin < 0 or (electron_count - spin) % 2:
         return
@@ -4313,6 +4327,51 @@ def _validate_result_electron_metadata(
                 "h5:/spec/nelec",
             )
         )
+
+
+def _ecp_core_electron_total(spec, findings, *, symbols):
+    """Core electrons the run's core potentials replaced, over all atoms.
+
+    The driver records, per element, what the molecule it computed on
+    replaced (``spec/ecp_core_electrons``); an artifact without the record
+    was written by a driver that attached no potential, so it replaced
+    none.  The explicit electrons every other check counts are the nuclear
+    charges less the molecular charge less these.  A record naming a count
+    no core potential can have (odd, negative, or not below the nuclear
+    charge) is itself a finding, and counts as none.
+    """
+
+    record = spec.get("ecp_core_electrons")
+    if record is None:
+        return 0
+    valid = isinstance(record, Mapping)
+    cores = {}
+    if valid:
+        for symbol, count in record.items():
+            number = ASE_ATOMIC_NUMBERS.get(str(symbol))
+            if (
+                number is None
+                or isinstance(count, bool)
+                or not isinstance(count, Integral)
+                or int(count) < 0
+                or int(count) % 2
+                or int(count) >= int(number)
+            ):
+                valid = False
+                break
+            cores[str(symbol)] = int(count)
+    if not valid:
+        findings.append(
+            _result_finding(
+                RULE_RESULT_STATE,
+                "spec.ecp_core_electrons",
+                "an even core count below the nuclear charge, per element",
+                record if isinstance(record, Mapping) else repr(record),
+                "h5:/spec/ecp_core_electrons",
+            )
+        )
+        return 0
+    return sum(cores.get(str(symbol), 0) for symbol in symbols)
 
 
 def _result_array(value):

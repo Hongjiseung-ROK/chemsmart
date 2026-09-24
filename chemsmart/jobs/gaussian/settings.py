@@ -181,6 +181,63 @@ def gaussian_native_basis_token(basis):
     return _GAUSSIAN_NATIVE_DEF2_BASIS_TOKENS.get(normalized, basis)
 
 
+#: Basis keywords Gaussian builds with Cartesian functions unless told.
+#: Gaussian 16's manual (Basis Sets, read 2026-09-24): "All of the
+#: built-in basis sets use pure f functions. Most also use pure d
+#: functions; the exceptions are 3-21G, 6-21G, 4-31G, 6-31G, 6-31G†,
+#: 6-31G‡, CEP-31G, D95 and D95V."  A project basis name is one basis set
+#: in every program only with one angular form, and spherical harmonics
+#: are the form every program here can build (ORCA has no other), so the
+#: writer tells Gaussian ``5D 7F`` for these names.  Before this, the same
+#: ``6-31G(d)`` was 34 functions for CH2O in Gaussian and 32 in ORCA and
+#: PySCF, 0.25-4.1 mEh lower in total energy across eight species and up
+#: to 0.18 kcal/mol apart in a relative energy (CUHK Slurm 2151772).  The
+#: manual's f sentence is not the whole story: told ``5D`` alone, CEP-31G
+#: printed ``(5D, 10F)`` (CUHK Slurm 2151890), so the f form is stated
+#: too, and for every CEP name.  A route that names its own angular form
+#: keeps it, and the result's level then says which form Gaussian
+#: printed.  ``6-311G`` is not a member: the pattern requires the ``G``
+#: (or a ``+``) straight after ``6-31``.
+_GAUSSIAN_CARTESIAN_D_DEFAULT_BASIS = re.compile(
+    r"^(?:(?:3-21|6-21|4-31|6-31)\+{0,2}g|cep-|d95v?(?![0-9]))",
+    re.IGNORECASE,
+)
+#: Route words that state an angular form (Gaussian: 5D/6D for d, 7F/10F
+#: for f and higher, Pure or Cartesian for both).
+GAUSSIAN_ANGULAR_FORM_WORDS = frozenset(
+    {"5d", "6d", "7f", "10f", "pure", "cartesian"}
+)
+
+
+def gaussian_basis_defaults_to_cartesian_d(basis):
+    """Whether Gaussian builds *basis* with Cartesian d functions by default."""
+
+    if not isinstance(basis, str):
+        return False
+    return _GAUSSIAN_CARTESIAN_D_DEFAULT_BASIS.match(basis.strip()) is not None
+
+
+def gaussian_route_states_angular_form(route):
+    """Whether route words already name an angular form."""
+
+    if not isinstance(route, str):
+        return False
+    return any(
+        word.strip().lower() in GAUSSIAN_ANGULAR_FORM_WORDS
+        for word in route.split()
+    )
+
+
+def gaussian_spherical_d_token(basis, *route_parts):
+    """The route words that make *basis* spherical, or '' when none are due."""
+
+    if not gaussian_basis_defaults_to_cartesian_d(basis):
+        return ""
+    if any(gaussian_route_states_angular_form(part) for part in route_parts):
+        return ""
+    return "5d 7f"
+
+
 def _gaussian_route_contains_token(route, token):
     """Return whether *route* contains one complete Gaussian token."""
 
@@ -982,6 +1039,11 @@ class GaussianJobSettings(MolecularJobSettings):
                 f"Added ab initio method: {self.ab_initio} with basis: "
                 f"{native_basis}"
             )
+            spherical = gaussian_spherical_d_token(
+                native_basis, additional_route_parameters
+            )
+            if spherical:
+                route_string += f" {spherical}"
 
         elif self.functional is not None and self.ab_initio is None:
             # DFT method requires a basis set
@@ -999,6 +1061,11 @@ class GaussianJobSettings(MolecularJobSettings):
                 f"Added DFT functional: {functional} with basis: "
                 f"{native_basis}"
             )
+            spherical = gaussian_spherical_d_token(
+                native_basis, additional_route_parameters
+            )
+            if spherical:
+                route_string += f" {spherical}"
 
         elif self.ab_initio is not None and self.functional is not None:
             logger.error(
@@ -2525,6 +2592,13 @@ class GaussianLinkJobSettings(GaussianJobSettings):
                 )
             ):
                 link_route_string += f" {native_basis}"
+            # Each Link1 step builds its own basis, so the second one is
+            # told the angular form the first was.
+            spherical = gaussian_spherical_d_token(
+                native_basis, link_route_string
+            )
+            if spherical:
+                link_route_string += f" {spherical}"
             if "geom=check" not in link_route_string:
                 link_route_string += " geom=check"
             if "guess=read" not in link_route_string:

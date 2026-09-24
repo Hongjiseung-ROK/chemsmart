@@ -1090,20 +1090,31 @@ def test_the_level_names_the_convention_and_the_root():
     the artifact rather than from a project the session may not hold."""
 
     reader = reader_for("pyscf")
+    # What the basis was built of rides with its name: the angular form
+    # the driver passes and the electrons a core potential replaced,
+    # per element (R10 Q12).
     assert reader.level_for_output(_open("water_sp")) == {
         "functional": "b3lyp",
         "dispersion": "none",
         "basis": "def2-svp",
+        "basis_functions": "spherical",
+        "ecp_core_electrons": {"O": 0, "H": 0},
     }
     assert reader.level_for_output(_open("water_mp2_sp")) == {
         "ab_initio": "mp2",
         "basis": "def2-svp",
         "frozen_core": 0,
+        "basis_functions": "spherical",
+        "ecp_core_electrons": {"O": 0, "H": 0},
+        "frozen_core_conventions": ("all_electrons", "pyscf_default"),
     }, "PySCF's all-electron default is a level, never an absence"
     assert reader.level_for_output(_open("water_ccsdt_sp")) == {
         "ab_initio": "ccsd(t)",
         "basis": "def2-svp",
         "frozen_core": 1,
+        "basis_functions": "spherical",
+        "ecp_core_electrons": {"O": 0, "H": 0},
+        "frozen_core_conventions": ("chemical_core", "pyscf_auto"),
     }, "'auto' is displayed as the count it applied"
     # A solvent name is not a level. The permittivity the density was
     # polarised with, the one the spectrum's fast term ran on, and the
@@ -1121,6 +1132,8 @@ def test_the_level_names_the_convention_and_the_root():
         "nstates": 3,
         "excitation_response_dielectric": 1.78,
         "excitation_response_solvation": "non_equilibrium",
+        "basis_functions": "spherical",
+        "ecp_core_electrons": {"O": 0, "H": 0},
     }
     assert reader.level_for_output(_open("formaldehyde_s1_opt")) == {
         "functional": "b3lyp",
@@ -1130,6 +1143,8 @@ def test_the_level_names_the_convention_and_the_root():
         "state_manifold": "singlet",
         "nstates": 1,
         "excited_state_root": 1,
+        "basis_functions": "spherical",
+        "ecp_core_electrons": {"C": 0, "O": 0, "H": 0},
     }
     assert reader_for("orca").level_for_output(object()) == {}
 

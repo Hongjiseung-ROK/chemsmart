@@ -860,6 +860,31 @@
       "commit": "20dd195d (code tree digest 35a90313d7986b216de2080ab0da7cf05488fa1b65157e5fa6a2b0a0cdaf0ebd, recomputed on the node by the job's own digest line)",
       "date": "2026-09-24",
       "source": "G2: the archived r8 goal-ts task, byte-identical, re-issued on the repaired tree (granted_by claude-researcher-q11-owner-delegated, a delegated approval, not a human decision). One approval admitted orca-ts -> orca-irc with the saddle's geometry and its Hessian; the session named both in one wave and the IRC launched one second after the saddle validated, under the same approval, its argv carrying --hess-filename bound to the handoff's Hessian. ORCA 6.1.1 read it: the IRC's native input carries 'inithess read' and 'Hess_Filename \"orca-ts--orca-irc.hess\"', and the output prints 'Initial displacement Hessian type .... Read'. Every earlier executed in-approval IRC printed 'Compute numerically'. The branch walked to the HNC side (N-H 1.005 A) and stopped at ORCA's 21-step limit, which the session reported."
+    },
+    {
+      "kind": "setting",
+      "id": "pyscf:basis",
+      "status": "recorded",
+      "values": [
+        "def2-tzvp",
+        "6-31g*"
+      ],
+      "run": "CUHK Charles r10/q12 goals/g1-hi/runs/cycle-1 nodes sp-hi-pyscf, sp-i-atom-pyscf and sp-h-atom-pyscf (Slurm 2152052) + goals/g2-nh3/runs/cycle-1 nodes opt-p-nh3 and opt-p-nh4 (Slurm 2152096)",
+      "commit": "d31f1170 (code tree digest 29ed0893430f7b61c101d2b61707bd081ff3ff92cb487066a0d8f129fd26866b, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G1: the bond energy of HI at CCSD(T)/def2-TZVP asked of ORCA and PySCF; G2: the proton affinity of NH3 at B3LYP/6-31G(d) asked of Gaussian and PySCF (granted_by claude-researcher-q12-owner-delegated, a delegated approval, not a human decision). def2-tzvp on iodine ran with def2's 28-electron core potential, which the PySCF driver attaches since adc130b1 and records since 1b5ae687 (receipt: 26 electrons, ecp_core_electrons 28, validated; the base tree refused the run at run time); at matched numerics PySCF's CCSD(T) HI total equals ORCA's within 1e-8 Eh (oracle O2', Slurm 2152029). 6-31g* ran spherical, the form Gaussian is now told to build. G1 settled unreachable_from_evidence on its ORCA side; the record rests on the PySCF nodes named here, engine-complete and host-validated, not on that word."
+    },
+    {
+      "kind": "setting",
+      "id": "gaussian:basis",
+      "status": "recorded",
+      "values": [
+        "6-31g(d)"
+      ],
+      "run": "CUHK Charles r10/q12 goals/g2-nh3/runs/cycle-1 nodes opt-g-nh3 and opt-g-nh4 (Slurm 2152096)",
+      "commit": "d31f1170 (code tree digest 29ed0893430f7b61c101d2b61707bd081ff3ff92cb487066a0d8f129fd26866b, recomputed on the node by the job's own digest line)",
+      "date": "2026-09-24",
+      "source": "G2: the proton affinity of NH3 at B3LYP/6-31G(d) asked of Gaussian and PySCF (granted_by claude-researcher-q12-owner-delegated, a delegated approval, not a human decision). Each route carried `6-31g(d) 5d 7f` (ab42ab5d, 8c4a7169) and each log printed `Standard basis: 6-31G(d) (5D, 7F)` with 20 (NH3) and 22 (NH4+) functions, the spherical set ORCA and PySCF build; the two programs' proton affinities, from independent optimisations, differ by 5.8e-5 kcal/mol (217.0969). Settled achieved."
     }
   ]
 }
