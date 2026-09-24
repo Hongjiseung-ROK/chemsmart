@@ -547,8 +547,19 @@ by the release, none changing an arm, a measure or a test:
 |---|---|---|---|---|
 | 2152986 | r10-q17-a | hc1 slot a (dA S/U, dB P, dE S/U) | a3eda4485329 | COMPLETED 0:42:51; 5 goals, mechanics pass |
 | 2152987 | r10-q17-b | hc1 slot b (dA P, dB S/U, dE P) | a3eda4485329 | COMPLETED 0:35:02; 4 goals, mechanics pass |
-| 2153435 | r10-q17-a | sealed1 plan slot a (39 goals) | 19b5352e3f59 | submitted |
-| 2153436 | r10-q17-b | sealed1 plan slot b (38 goals) | 19b5352e3f59 | submitted |
+| 2153435 | r10-q17-a | sealed1 plan slot a (39 goals) | 19b5352e3f59 | RUNNING (started 16:04 UTC); both arms' imports and digests verified on the node; tasks manifest 12079111... and plan f60980d1... re-computed equal |
+| 2153436 | r10-q17-b | sealed1 plan slot b (38 goals) | 19b5352e3f59 | RUNNING (started 16:04 UTC) |
+
+First sealed goal done 16:12 UTC: 17 provider turns, 1.45 M input tokens,
+456 s, no stop condition; it settled returned_to_human on a precision
+requirement its own session declared (a behaviour ending, not a host
+error). At ~7.6 min per goal the slots finish near 21:00 UTC. On resumption:
+`after_run.sh` (scratchpad tools; sha256 recorded when it runs) fetches the
+records into `sealed/q17-fetched/`, builds the packets into
+`sealed/q17-packets/` (packets + GRADER.md) with the mapping in
+`sealed/q17-private/` (mode 600, and a mode-600 copy on CUHK in
+r10/q17/private/), measures leakage, and totals the provider tokens; the
+mapping digest is committed before any packet leaves.
 
 ## Status
 
