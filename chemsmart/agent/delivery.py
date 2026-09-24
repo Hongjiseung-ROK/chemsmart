@@ -69,13 +69,14 @@ def observable_is_delivered(
 
     if not claim_row:
         return False
-    # A question declared as a category is answered by a word the host
-    # read, bound through a finding's relation, and by nothing else; a
-    # finding answers no declared number.
-    answered_by_finding = bool(claim_row.get("finding_receipt_sha256"))
+    # A question declared as a category is answered by the words the host
+    # read -- through a claim under its id or a finding's relation, as the
+    # completion gate certified them -- and by nothing else; a categorical
+    # answer delivers no declared number.
+    answer = claim_row.get("answer")
     if str(declaration.get("unit") or "") == "category":
-        return answered_by_finding and bool(claim_row.get("answer"))
-    if answered_by_finding:
+        return bool(answer)
+    if answer or claim_row.get("finding_receipt_sha256"):
         return False
     declared = _dimension_of(declaration)
     delivered = _dimension_of(claim_row)

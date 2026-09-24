@@ -227,6 +227,54 @@ def consequential_imaginary_mode_count(
     )
 
 
+#: The host's words for what a structure is, by how many of its own
+#: printed modes are imaginary under the convention above.
+STATIONARY_POINT_ORDER_WORDS: Mapping[int, str] = MappingProxyType(
+    {
+        0: "minimum",
+        1: "first-order saddle",
+        2: "second-order saddle",
+        3: "third-order saddle",
+    }
+)
+
+#: What a structure is when the gradient where its spectrum was taken is
+#: above the optimiser's own criterion: it has no order at all.
+NOT_A_STATIONARY_POINT = "not a stationary point"
+
+
+def stationary_point_kind(
+    frequencies: tuple[float, ...] | list[float] | None,
+    stationarity: str = "unmeasured",
+) -> str | None:
+    """The host's word for what a structure is, or None when nothing says.
+
+    Is it a minimum, a saddle, neither? The host has always decided this --
+    the stationary-point rule types a node by it, and a characterisation
+    checks a session's claimed order against it -- and has only ever said
+    it as a number: in the archive the question was declared 178 times
+    (82 % of every categorical question asked) and delivered as a word
+    never, as an expression count 64 times and as the 0/1 verdict of a
+    rule the session wrote 25 times, each session choosing its own
+    convention (R10 Q23 census). This is the same judgement as a word: the
+    modes below -20 cm^-1 counted by ``consequential_imaginary_mode_count``,
+    and ``not a stationary point`` wherever the one function that says
+    whether a structure is stationary (``result_quantities
+    .structure_stationarity``: a measured gradient, a held or driven
+    coordinate, a search's own non-convergence) says it is not -- an order
+    is a property of a stationary point, and the characterisation refuses
+    one there for the same reason. ``unmeasured`` says nothing, as it does
+    there.
+    """
+
+    order = consequential_imaginary_mode_count(frequencies)
+    if order is None:
+        return None
+    if stationarity == "not_stationary":
+        return NOT_A_STATIONARY_POINT
+    return STATIONARY_POINT_ORDER_WORDS.get(order, f"saddle of order {order}")
+
+
 def start_point_order_finding(
     jobtype: str, observed_imaginary_modes: int | None
 ) -> str:

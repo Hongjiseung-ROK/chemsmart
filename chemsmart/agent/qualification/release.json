@@ -957,6 +957,15 @@
       "commit": "95c85ed0 (code tree digest 2d27f643b7db5d02747890a7cd0802e36c8cc01b6602e2cf9e9b70d6f0d2ff0d, 426 files)",
       "date": "2026-09-25",
       "source": "p-benzyne adiabatic singlet-triplet splitting (deepseek-v4-flash-0731; granted_by claude-researcher-q18-owner-delegated, a delegated approval, not a human decision). The session's first search was in ORCA's words (FlipSpin) and found the rule sentence; its first plan asked for the singlet with broken_symmetry: true on two opt+freq nodes (B3LYP-D3BJ and wB97X-D4 / def2-TZVP) and wrote no native word. The review stated ORCA's translation (%scf HFTyp UHF, GuessMix 45) and ORCA's input check passed. Host records: reference uks, broken_symmetry true, word broken, <S**2> 0.9403 and 0.9879 against triplets at 2.0067 and 2.0065; no imaginary mode. Delivered from extraction receipts of the four outputs: unprojected dE_ST 2.22 +- 0.5 and Yamaguchi-projected 4.26 +- 0.8 kcal/mol (measured 3.8 +- 0.5), settled achieved_with_observations. Through the ordinary CLI the same translation reproduced ORCA's native GuessMix, BrokenSym 1,1 and STABPerform energy for H2 at 2.00 A and p-benzyne to the printed digit, and left H2 at 0.74 A and planar ethylene spin-symmetric (R10 Q18 oracles O0 and O1, Slurm 2153330 and 2153479)."
+    },
+    {
+      "kind": "selector",
+      "id": "pyscf:hess:stationary_point_kind",
+      "status": "recorded",
+      "run": "CUHK Charles r10/q23/repaired/goals/rt1 and rt2 (Slurm 2153695 and 2153699, Agent goals rt1 and rt2), cycle 1 approved analysis chains",
+      "commit": "f20bec0c (code tree digest ed67866f45579dbcdf94abd21a86fdabcd316d0b52ed71979ee010b594671cf0, 426 files)",
+      "date": "2026-09-25",
+      "source": "Planar ammonia (in-plane relaxed, N-H 1.0048 A), PySCF 2.14.0 B3LYP/def2-SVP gas phase, asked whether the structure is a minimum (deepseek-v4-flash-0731; granted_by claude-researcher-q23-owner-delegated, a delegated approval, not a human decision; the task named no selector, word or criterion). In both goals the session declared the question in unit 'category' and its first approved chain extracted stationary_point_kind from the Hessian node and claimed it under the question's id; the executor's completion certified the category by that claim (join claim_id), with no refused act on the category path. The word read 'first-order saddle' in both: one imaginary mode at -829.9 cm^-1 (reference CUHK 2153690: -829.89 cm^-1, max|g| 4.9e-6 Eh/Bohr), E = -56.50003585 Eh (reference -56.500035850). Both goals settled achieved_with_observations, the settlement stating 'first-order saddle' read by stationary_point_kind. The two base-tree controls on the same task (2153694, 2153698) delivered the answer as '0' with the selector unrecorded (a validation verdict) and as a 0/1 number."
     }
   ]
 }

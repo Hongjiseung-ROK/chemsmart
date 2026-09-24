@@ -260,6 +260,29 @@ def _finding_reasons(
     )
 
 
+def _claimed_answer_reasons(
+    claimed_answers: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> tuple[str, ...]:
+    """One reason per declared category a claim answered under its id.
+
+    The word the host read, stated first and in the same form a finding's
+    answer is, with what read it: a category is delivered as a number
+    is, by the claim that carries its id.
+    """
+
+    return tuple(
+        f"{observable_id} = "
+        + ", ".join(
+            f"{word.get('word')!r} (read by the host: "
+            f"{word.get('selector') or 'selector unrecorded'} on "
+            f"{str(word.get('source_receipt_sha256') or '')[:8]})"
+            for word in words
+        )
+        + ", claimed under the declared id"
+        for observable_id, words in sorted(claimed_answers.items())
+    )
+
+
 def _answered_criterion_reasons(
     answered: Sequence[tuple[FailedCriterionV1, tuple[str, ...]]],
 ) -> tuple[str, ...]:
@@ -451,6 +474,10 @@ def _achieved_word(
     if delivery.answered_criteria:
         provenance = provenance + _answered_criterion_reasons(
             delivery.answered_criteria
+        )
+    if delivery.claimed_answers:
+        provenance = provenance + _claimed_answer_reasons(
+            delivery.claimed_answers
         )
     if delivery.findings:
         provenance = provenance + _finding_reasons(delivery.findings)
@@ -1669,6 +1696,27 @@ def _goal_delivered_ids(
     for entry in read_workspace_record(workspace):
         if entry.get("goal_id") != goal_id:
             continue
+        if entry.get("kind") == "answer":
+            # A declared category a claim answered under its own id, as the
+            # completion gate certified it; the shared predicate delivers
+            # only a category by it, as it does a finding's answer.
+            key = str(entry.get("claim_id") or "")
+            previous = delivered.get(key)
+            if key and (
+                previous is None
+                or int(entry.get("cycle") or 0)
+                >= int(previous.get("cycle") or 0)
+            ):
+                delivered[key] = {
+                    "cycle": int(entry.get("cycle") or 0),
+                    "run": entry.get("run"),
+                    "claim_id": key,
+                    "claim_receipt_sha256": entry.get("claim_receipt_sha256"),
+                    "answer": tuple(
+                        dict(item) for item in entry.get("answer") or ()
+                    ),
+                }
+            continue
         if entry.get("kind") == "finding":
             # A declared question the session answered with a finding;
             # the shared predicate delivers only a category by it.
@@ -2738,6 +2786,13 @@ class _AnalysisDelivery:
     #: relations it checked, and the host anomalies already under its
     #: evidence. A conclusion that reached no reader was prose.
     findings: tuple[Mapping[str, Any], ...] = ()
+    #: Declared categories a claim answered under their own id, as the
+    #: completion gate certified them: id -> the words the host read,
+    #: each with its selector and receipt. A finding answering the same
+    #: id speaks for it in ``findings`` instead.
+    claimed_answers: Mapping[str, tuple[Mapping[str, Any], ...]] = field(
+        default_factory=dict
+    )
 
     @property
     def retired_observable_ids(self) -> frozenset[str]:
@@ -3193,6 +3248,7 @@ def _analysis_delivery(
     completion_status = ""
     completion_receipt = ""
     completion_findings: tuple[str, ...] = ()
+    categorical_answers: dict[str, tuple[dict[str, Any], ...]] = {}
     prediction_rows: tuple[dict[str, Any], ...] = ()
     route_dispositions: tuple[dict[str, Any], ...] = ()
 
@@ -3512,6 +3568,19 @@ def _analysis_delivery(
         elif kind == "analysis_completion_evaluated":
             completion_status = str(payload.get("status") or "")
             completion_receipt = digest
+            # What the gate certified for each declared category, the last
+            # completion's word: a claim under the category's id answers
+            # it exactly as a finding does (R10 Q23).
+            categorical_answers = {
+                str(observable_id): tuple(
+                    dict(word)
+                    for word in words or ()
+                    if isinstance(word, Mapping)
+                )
+                for observable_id, words in (
+                    payload.get("declared_categorical_answers") or {}
+                ).items()
+            }
             completion_findings = tuple(
                 str(item)
                 for item in (
@@ -3790,6 +3859,21 @@ def _analysis_delivery(
         if finding_id not in retired_findings
     )
     answered_ids: set[str] = set()
+    # A declared category a claim answered under its own id, as the gate
+    # certified it; a finding answering the same id below speaks for it.
+    claimed_answers = {
+        observable_id: words
+        for observable_id, words in categorical_answers.items()
+        if words and not any(word.get("finding_id") for word in words)
+    }
+    for observable_id, words in claimed_answers.items():
+        answered_ids.add(observable_id)
+        claim_rows[observable_id] = {
+            "answer": words,
+            "claim_record_sha256": str(
+                words[0].get("claim_record_sha256") or ""
+            ),
+        }
     for row in standing_findings:
         receipts.append(row["receipt_sha256"])
         if row["answers_observable_id"] and row["answer"]:
@@ -3813,6 +3897,14 @@ def _analysis_delivery(
         # evidence under every word instead, as its own.
     return _AnalysisDelivery(
         findings=standing_findings,
+        claimed_answers={
+            observable_id: words
+            for observable_id, words in claimed_answers.items()
+            if not any(
+                row["answers_observable_id"] == observable_id and row["answer"]
+                for row in standing_findings
+            )
+        },
         ending=ending,
         terminal_reason=terminal_reason,
         sufficiency=carried + tuple(sufficiency_rows),
@@ -5352,9 +5444,9 @@ class GoalDriver:
                 "extract_result_quantities, derive_thermochemistry, "
                 "evaluate_quantity_expression, record_analysis_claims with "
                 "claim_id set to the declared id, in the declared unit; a "
-                "category is answered by a finding with "
-                "answers_observable_id set to the declared id, resting on "
-                "'<a claim> == <the word or count the host read>' -- or "
+                "category is answered the same way, by the word (or the "
+                "integer) the host read from the program's output claimed "
+                "with claim_id set to the declared id -- or "
                 "plan_scientific_workflow with no calculation_nodes, which "
                 "the host executes when planned; or record_scientific_"
                 "decision naming each id that cannot be delivered, with its "
