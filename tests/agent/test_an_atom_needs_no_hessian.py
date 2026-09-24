@@ -60,9 +60,7 @@ def test_an_atom_single_point_derives_translational_thermochemistry():
     values = {item.quantity_id: item for item in receipt.quantities}
     energy = values["electronic_energy"].value
     assert energy == pytest.approx(-0.505029107560, abs=1e-11)
-    assert values["zero_point_energy"].value == pytest.approx(
-        0.0, abs=1e-12
-    )
+    assert values["zero_point_energy"].value == pytest.approx(0.0, abs=1e-12)
     # H - E = 3/2 RT (translation) + RT (pV) = 5/2 RT.
     assert values["enthalpy"].value - energy == pytest.approx(
         2.5 * R * 298.15 * HARTREE_PER_J_MOL, abs=1e-9

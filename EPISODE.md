@@ -87,13 +87,40 @@ pairs kept as CCSD pairs (unknown before the run; >= n diagonal pairs).
   parameterized functional used for dispersion correction"), past the
   INPUT FILE banner. L2 wB97X-D3BJ keyword: normal.
 
+### O1 results (Slurm 2152636, prereg f293c77fa8ab; read from raw outputs)
+
+Every pre-registered pair prediction held: B1 runs / B2 "(2) ... (1)";
+C1 10 runs / C2 "(11) ... (10)"; D1 21 runs / D2 "(22) ... (21)"; E1 Li
+"NO frozen core", 3 correlated, 3 pairs, runs / E2 "(4) ... (3)"; F1/F2 Na
+"chemical core (2 el)", 9 correlated, 36 pairs, both run; H1 water DLPNO
+"10 OF 10 PAIRS ARE KEPT CCSD PAIRS" at 4 / H2 "(11) ... (10)"; I1 (8) and
+I2 (27) dimer DLPNO both "27 OF 36 ... CCSD PAIRS", equal energies to
+1e-12 Eh / I3 "(28) ... (27)".
+OPEN questions answered: A1 = Y -- the H atom's UHF CCSD(T) aborts at ONE
+process ("Number of processes (1) ... exceeds number of pairs (0)"): the
+brief's "one MDCI rank" prior is falsified. G1/G2 DLPNO H atom: CopyBlock
+crash at 1 and 2 processes. J3 RI-MP2 and K1 B2PLYP analytic Hessians:
+the same main_input_check abort as MP2 ("MP2 analytic Hessian calculations
+are not implemented - please use NumFreq"), before INPUT FILE (probe-
+catchable). J1 as predicted. J4/J5 HF analytic vs numerical: 1750.42/
+1749.87, 4148.52/4148.84, 4244.77/4244.88 cm-1 (all within 0.6). J2 MP2
+NumFreq: 1654.07, 3895.19, 4010.90 cm-1, 30 s. L1 wB97X + D3BJ aborts after
+the SCF (line 825 of the output, INPUT FILE at 214); L2 wB97X-D3BJ runs.
+
 ## Oracle
 
 The program itself, run through `chemsmart run` in slot jobs: the refused
 input and the translated input, side by side, on the same host (CUHK,
 ORCA 6.1.1, PySCF 2.14.0).
 
+## Commits so far
+
+- 8ff25825 analysis: an atom's thermochemistry needs no Hessian.
+- 5e85422f io: MDCI's process-count refusal is its own failure class.
+- 4ed32f97 shared: %pal nprocs <= MDCI's certain pairs; zero pairs refused
+  at compile (routed), translation stated in the compile reply and review.
+
 ## Status
 
-- Census: done (above).
-- Jobs issued: O1 (pending submission).
+- Census: done (above). O1: done (above).
+- Jobs issued: O1 2152636 (done).
