@@ -444,6 +444,160 @@ def thermochemistry_route_hint(selectors) -> str:
     )
 
 
+#: The layers one structure's thermochemical state functions are sums of,
+#: in the order they accumulate: E(el), + ZPE = E0, + thermal energy above
+#: the zero-point level = U(T), + pV = H(T), - TS = G(T).  An energy a
+#: receipt carries is a fixed block of these for one structure, which is
+#: what lets the host read a combination of energies as a reaction.
+ENERGY_LAYERS = ("electronic", "zero_point", "thermal", "pV", "minus_TS")
+
+#: What a contiguous block of layers is called when one species enters an
+#: output with it.
+ENERGY_LAYER_BLOCKS: Mapping[tuple[int, ...], str] = {
+    (0,): "E",
+    (0, 1): "E0 (E + ZPE)",
+    (0, 1, 2): "U",
+    (0, 1, 2, 3): "H",
+    (0, 1, 2, 3, 4): "G",
+}
+
+
+@dataclass(frozen=True)
+class EnergyKindV1:
+    """What an energy-valued number is, beyond its dimension.
+
+    Dimensional analysis checks that two numbers share a unit; it cannot
+    tell a total energy from an orbital eigenvalue or an orbital-rotation
+    curvature, all of which the vocabulary serves in hartree.  ``kind`` is
+    one of:
+
+    - ``state_energy``: the energy of one structure in one state, as the
+      block of ``ENERGY_LAYERS`` in ``layers`` (``E``, ``E0``, ``U``, ``H``
+      or ``G``);
+    - ``correction``: a block of layers without the electronic one (a
+      zero-point energy, a thermal correction, T*S with ``sign`` -1);
+    - ``electronic_component``: a part of one electronic energy (a
+      correlation, dispersion or solvation term) -- a decomposition, with
+      no layer of its own;
+    - ``orbital_energy``: a one-electron eigenvalue or a gap between two;
+    - ``excitation_energy``: a vertical energy between two states of one
+      structure, positive by convention;
+    - ``orbital_rotation_curvature``: an eigenvalue of an SCF stability
+      matrix -- the curvature of the energy along a rotation of the
+      orbitals, not an energy difference between states -- under the
+      ``normalisation`` of the matrix it belongs to.
+    """
+
+    kind: str
+    layers: tuple[int, ...] = ()
+    sign: int = 1
+    normalisation: str = ""
+
+
+_E = EnergyKindV1("state_energy", (0,))
+_COMPONENT = EnergyKindV1("electronic_component")
+_ORBITAL = EnergyKindV1("orbital_energy")
+_EXCITATION = EnergyKindV1("excitation_energy")
+
+#: One kind per energy-valued selector or thermochemistry quantity id.  The
+#: two name spaces agree wherever they share a name (``gibbs_free_energy``
+#: printed by a program and derived by the host are both a G), so they are
+#: one table; ``test_every_energy_names_its_kind`` holds every energy a
+#: reader declares, and every one a thermochemistry receipt writes, to it.
+ENERGY_KINDS: Mapping[str, EnergyKindV1] = {
+    # One structure's electronic energy, however the program reached it.
+    "energy": _E,
+    "energies": _E,
+    "scf_energy": _E,
+    "reference_energy": _E,
+    "electronic_energy": _E,
+    "scan_energies": _E,
+    "trajectory_energies": _E,
+    # Thermochemical state functions of one structure.
+    "internal_energy": EnergyKindV1("state_energy", (0, 1, 2)),
+    "enthalpy": EnergyKindV1("state_energy", (0, 1, 2, 3)),
+    "quasi_harmonic_enthalpy": EnergyKindV1("state_energy", (0, 1, 2, 3)),
+    "gibbs_free_energy": EnergyKindV1("state_energy", (0, 1, 2, 3, 4)),
+    "quasi_harmonic_gibbs_free_energy": EnergyKindV1(
+        "state_energy", (0, 1, 2, 3, 4)
+    ),
+    # Corrections: layers above the electronic energy of one structure.
+    "zero_point_energy": EnergyKindV1("correction", (1,)),
+    "thermal_internal_energy_correction": EnergyKindV1("correction", (1, 2)),
+    "thermal_enthalpy_correction": EnergyKindV1("correction", (1, 2, 3)),
+    "enthalpy_increment_above_zero_point": EnergyKindV1("correction", (2, 3)),
+    "thermal_gibbs_correction": EnergyKindV1("correction", (1, 2, 3, 4)),
+    "quasi_harmonic_thermal_gibbs_correction": EnergyKindV1(
+        "correction", (1, 2, 3, 4)
+    ),
+    "entropy_times_temperature": EnergyKindV1("correction", (4,), sign=-1),
+    "quasi_harmonic_entropy_times_temperature": EnergyKindV1(
+        "correction", (4,), sign=-1
+    ),
+    # Parts of one electronic energy.
+    "correlation_energy": _COMPONENT,
+    "ccsd_correlation_energy": _COMPONENT,
+    "triples_correction": _COMPONENT,
+    "dispersion_energy": _COMPONENT,
+    "solvation_electrostatic_energy": _COMPONENT,
+    "solvation_nonelectrostatic_energy": _COMPONENT,
+    "solvation_free_energy": _COMPONENT,
+    "xtb_solvation_sasa_energy": _COMPONENT,
+    "xtb_solvation_hydrogen_bond_energy": _COMPONENT,
+    "xtb_solvation_shift_energy": _COMPONENT,
+    # One-electron eigenvalues.
+    "homo": _ORBITAL,
+    "lumo": _ORBITAL,
+    "gap": _ORBITAL,
+    "alpha_homo": _ORBITAL,
+    "alpha_lumo": _ORBITAL,
+    "beta_homo": _ORBITAL,
+    "beta_lumo": _ORBITAL,
+    # Vertical state-to-state energies.
+    "excitation_energies": _EXCITATION,
+    "singlet_excitation_energies": _EXCITATION,
+    "triplet_excitation_energies": _EXCITATION,
+    # Stability-matrix eigenvalues: curvatures, each of its own matrix
+    # (R10 Q13: PySCF's internal root is 4 x Gaussian's singlet (A+B) root,
+    # its external root equals Gaussian's triplet root to 1e-6 Eh, and
+    # real -> complex is (A-B)).
+    "scf_stability_internal_lowest_eigenvalue": EnergyKindV1(
+        "orbital_rotation_curvature",
+        normalisation=(
+            "PySCF internal: real rotations that keep the reference's spin "
+            "form, eigenvalue of its orbital Hessian 4(A+B)"
+        ),
+    ),
+    "scf_stability_external_lowest_eigenvalue": EnergyKindV1(
+        "orbital_rotation_curvature",
+        normalisation=(
+            "PySCF external: rotations into the next space (RHF/RKS -> "
+            "UHF/UKS triplet block, UHF/UKS -> GHF/GKS), eigenvalue of that "
+            "block's (A+B)"
+        ),
+    ),
+    "scf_stability_real_to_complex_lowest_eigenvalue": EnergyKindV1(
+        "orbital_rotation_curvature",
+        normalisation=(
+            "PySCF real -> complex: imaginary rotations, eigenvalue of (A-B)"
+        ),
+    ),
+    "wavefunction_stability_lowest_eigenvalue": EnergyKindV1(
+        "orbital_rotation_curvature",
+        normalisation=(
+            "Gaussian: lowest (A+B) root over the blocks it tested (singlet "
+            "and RHF -> UHF triplet for a restricted reference)"
+        ),
+    ),
+}
+
+
+def energy_kind(name: str) -> EnergyKindV1 | None:
+    """The kind of an energy selector or thermochemistry quantity id."""
+
+    return ENERGY_KINDS.get(str(name))
+
+
 _IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{0,127}$")
 #: Executed-evidence contracts the analysis plane admits, owned by the
 #: writer: a previous supported contract is a subset of the current one.
@@ -2026,6 +2180,38 @@ def structure_stationarity(
             )
     return StructureStationarityV1(
         stationarity="unmeasured", basis="fixed_geometry", **common
+    )
+
+
+def result_species(program: str, output: Any) -> tuple[str, Any, Any] | None:
+    """``(formula, charge, multiplicity)`` of the structure a result is of.
+
+    Read through the program's reader, as every other fact about a
+    result is; the formula is Hill-ordered, and a charge or multiplicity
+    the reader does not serve is None rather than a guess. None when the
+    reader serves no atoms.
+    """
+
+    from chemsmart.analysis.quantity_expressions import hill_formula
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(str(program).strip().lower())
+    if reader is None:
+        return None
+    symbols = _reader_answer(reader, output, "symbols")
+    if not symbols:
+        return None
+
+    def _integer(value: Any) -> Any:
+        try:
+            return int(round(float(value)))
+        except (TypeError, ValueError):
+            return None
+
+    return (
+        hill_formula(symbols),
+        _integer(_reader_answer(reader, output, "charge")),
+        _integer(_reader_answer(reader, output, "multiplicity")),
     )
 
 

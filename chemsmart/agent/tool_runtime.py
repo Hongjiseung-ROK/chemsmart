@@ -289,10 +289,12 @@ from chemsmart.analysis.literature_constants import (
     literature_constant,
 )
 from chemsmart.analysis.quantity_expressions import (
+    ExpressionOperandV1,
     QuantityExpressionError,
     QuantityExpressionRequestV1,
     canonical_unit_for_dimension,
     convert_normalized_value,
+    expression_kind_observations,
     expression_level_observations,
     expression_node_from_plan,
     expression_thermochemical_convention_observations,
@@ -19046,6 +19048,16 @@ class CommandCompiledToolHostV1:
                 },
             )
         )
+        # What each output is, where its operands' kinds decide it: a
+        # curvature, an orbital energy beside a state energy, or the
+        # reaction its coefficients describe (R10 Q21). An observation that
+        # cannot be computed says nothing; it never fails the evaluation.
+        try:
+            level_observations += expression_kind_observations(
+                request, receipt, self._expression_operand
+            )
+        except Exception:  # noqa: BLE001 - an observation never fails a call
+            pass
         self._emit(
             turn_id,
             EventKind.QUANTITY_EXPRESSION_EVALUATED,
@@ -19070,6 +19082,65 @@ class CommandCompiledToolHostV1:
                 tuple(geometry_observations) + level_observations
             )
         return receipt
+
+    def _expression_operand(self, receipt_sha256: str, quantity_id: str):
+        """What the host knows about one number an expression read.
+
+        An earlier expression's output is handed back as that
+        expression's own request and receipt, so the kind reading can
+        follow it to the results it came from; an extraction's quantity
+        is named by the selector it was bound to, a thermochemistry
+        receipt's by its own id; the species is read from the result
+        through its reader, once per result.
+        """
+
+        expression = self.quantity_expression_receipts.get(receipt_sha256)
+        request = self.quantity_expression_requests.get(receipt_sha256)
+        if expression is not None and request is not None:
+            return ("expression", request, expression)
+        extraction = self.quantity_extractions.get(receipt_sha256)
+        receipt = extraction or self.thermochemistry_receipts.get(
+            receipt_sha256
+        )
+        if receipt is None:
+            return None
+        name = str(quantity_id)
+        if extraction is not None:
+            name = str(
+                dict(getattr(extraction, "selector_bindings", ()) or ()).get(
+                    quantity_id
+                )
+                or self.quantity_extraction_bindings.get(
+                    receipt_sha256, {}
+                ).get(quantity_id)
+                or quantity_id
+            )
+        cache = self.__dict__.setdefault("_result_species_cache", {})
+        key = (str(receipt.program), str(receipt.artifact_sha256))
+        if key not in cache:
+            species = None
+            artifact = self.artifacts.get(str(receipt.artifact_id))
+            if artifact is not None:
+                from chemsmart.analysis.result_quantities import (
+                    result_species,
+                )
+                from chemsmart.analysis.result_readers import reader_for
+
+                try:
+                    species = result_species(
+                        str(receipt.program),
+                        reader_for(str(receipt.program)).open_output(
+                            str(artifact.path)
+                        ),
+                    )
+                except Exception:  # noqa: BLE001 - unreadable says nothing
+                    species = None
+            cache[key] = species
+        return ExpressionOperandV1(
+            name=name,
+            species=cache[key],
+            structure=str(receipt.artifact_sha256),
+        )
 
     def _geometry_operation_observations(
         self, values: Mapping[str, Any], nodes: Sequence[Any]

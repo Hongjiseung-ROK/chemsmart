@@ -3431,6 +3431,540 @@ def expression_thermochemical_convention_observations(
     return tuple(observations)
 
 
+@dataclass(frozen=True)
+class ExpressionOperandV1:
+    """What the host knows about one number an expression reads.
+
+    ``name`` is the quantity's meaning -- the selector an extraction bound
+    it to, or a thermochemistry receipt's quantity id -- which
+    ``result_quantities.ENERGY_KINDS`` reads as a kind. ``species`` is
+    ``(formula, charge, multiplicity)`` of the structure the result
+    describes, read by its reader; ``structure`` the digest of that result.
+    """
+
+    name: str
+    species: tuple[str, Any, Any] | None = None
+    structure: str = ""
+
+
+def hill_formula(symbols: Iterable[str]) -> str:
+    """Carbon first, hydrogen second, the rest alphabetical (Hill)."""
+
+    counts = Counter(str(symbol) for symbol in symbols)
+    if "C" in counts:
+        order = ["C"] + (["H"] if "H" in counts else [])
+        order += sorted(item for item in counts if item not in {"C", "H"})
+    else:
+        order = sorted(counts)
+    return "".join(
+        element + (str(counts[element]) if counts[element] != 1 else "")
+        for element in order
+    )
+
+
+def _formula_counts(formula: str) -> Counter:
+    counts: Counter = Counter()
+    for element, number in re.findall(r"([A-Z][a-z]?)(\d*)", formula or ""):
+        counts[element] += int(number) if number else 1
+    return counts
+
+
+def _scalar_value(value: Any) -> float | None:
+    try:
+        array = np.asarray(value, dtype=float)
+    except (TypeError, ValueError):
+        return None
+    return float(array) if array.ndim == 0 else None
+
+
+def _expression_input_sources(
+    request: QuantityExpressionRequestV1,
+) -> dict[str, tuple[str, str]]:
+    """input id -> (receipt digest, quantity id) read from its evidence."""
+
+    sources = {}
+    for quantity in request.inputs:
+        receipts = _RECEIPT_REF.findall(quantity.evidence_ref)
+        quantities = _QUANTITY_REF.findall(quantity.evidence_ref)
+        if receipts and quantities:
+            sources[quantity.quantity_id] = (receipts[-1], quantities[-1])
+    return sources
+
+
+def _expression_linear_terms(
+    request: QuantityExpressionRequestV1,
+    receipt: QuantityExpressionReceiptV1,
+    operand_for: Any,
+    depth: int = 0,
+) -> dict[str, list[tuple[float, str, Any]] | None]:
+    """Each output as a linear combination of the numbers it reads.
+
+    A term is ``(coefficient, label, operand)`` where the operand is an
+    ``ExpressionOperandV1`` or ``("literal"|"constant", text)`` for a
+    number the session or the registry supplied. ``None`` where the
+    output is not linear in its operands (a product, a logarithm, a
+    vector reduction). An operand that is an earlier expression's output
+    is expanded through that expression's own request, which
+    ``operand_for`` returns as ``("expression", request, receipt)``.
+    """
+
+    node_values = {
+        item.quantity_id: _scalar_value(item.value)
+        for item in receipt.node_values
+    }
+    sources = _expression_input_sources(request)
+    lin: dict[str, list[tuple[float, str, Any]] | None] = {}
+    single: dict[str, Any] = {}
+    for quantity in request.inputs:
+        node_values[quantity.quantity_id] = _scalar_value(quantity.value)
+        source = sources.get(quantity.quantity_id)
+        facts = operand_for(*source) if source else None
+        if isinstance(facts, ExpressionOperandV1):
+            single[quantity.quantity_id] = facts
+            lin[quantity.quantity_id] = (
+                [(1.0, quantity.quantity_id, facts)]
+                if node_values[quantity.quantity_id] is not None
+                else None
+            )
+        elif (
+            isinstance(facts, tuple)
+            and len(facts) == 3
+            and facts[0] == "expression"
+            and depth < 8
+        ):
+            nested = _expression_linear_terms(
+                facts[1], facts[2], operand_for, depth + 1
+            ).get(source[1])
+            lin[quantity.quantity_id] = (
+                None
+                if nested is None
+                else [
+                    (coefficient, f"{quantity.quantity_id}/{label}", operand)
+                    for coefficient, label, operand in nested
+                ]
+            )
+        else:
+            lin[quantity.quantity_id] = None
+    for node in request.nodes:
+        name = node.node_id
+        inputs = list(node.input_ids)
+        operation = node.operation
+        parts = [lin.get(item) for item in inputs]
+        if operation == "ref":
+            source = node.reference or (inputs[0] if inputs else "")
+            single[name] = single.get(source)
+            lin[name] = lin.get(source) if not node.indices else None
+            if node.indices and source in single:
+                facts = single[source]
+                lin[name] = [(1.0, f"{source}{list(node.indices)}", facts)]
+        elif operation == "convert":
+            single[name] = single.get(inputs[0]) if inputs else None
+            lin[name] = parts[0] if parts else None
+        elif operation in {"add", "subtract", "sum", "mean"}:
+            if not parts or any(part is None for part in parts):
+                lin[name] = None
+                continue
+            if operation == "subtract":
+                weights = [1.0, -1.0]
+            elif operation == "mean":
+                weights = [1.0 / len(parts)] * len(parts)
+            else:
+                weights = [1.0] * len(parts)
+            lin[name] = [
+                (weight * coefficient, label, operand)
+                for weight, part in zip(weights, parts)
+                for coefficient, label, operand in part
+            ]
+        elif operation == "scale":
+            lin[name] = (
+                None
+                if not parts or parts[0] is None or node.scale_factor is None
+                else [
+                    (float(node.scale_factor) * coefficient, label, operand)
+                    for coefficient, label, operand in parts[0]
+                ]
+            )
+        elif operation == "abs":
+            source_value = node_values.get(inputs[0]) if inputs else None
+            lin[name] = (
+                None
+                if not parts or parts[0] is None or source_value is None
+                else [
+                    (
+                        (-1.0 if source_value < 0 else 1.0) * coefficient,
+                        label,
+                        operand,
+                    )
+                    for coefficient, label, operand in parts[0]
+                ]
+            )
+        elif operation in {"min", "max"}:
+            # The result is one of its operands; which one is read from
+            # the values the evaluation recorded.
+            chosen = [
+                item
+                for item in inputs
+                if node_values.get(item) is not None
+                and node_values.get(item) == node_values.get(name)
+            ]
+            lin[name] = lin.get(chosen[0]) if chosen else None
+        elif operation == "harmonic_zero_point_energy":
+            facts = single.get(inputs[0]) if inputs else None
+            lin[name] = (
+                [
+                    (
+                        1.0,
+                        name,
+                        ExpressionOperandV1(
+                            name="zero_point_energy",
+                            species=facts.species,
+                            structure=facts.structure,
+                        ),
+                    )
+                ]
+                if isinstance(facts, ExpressionOperandV1)
+                else None
+            )
+        elif operation in {"literal", "constant"}:
+            text = (
+                str(node.constant_name)
+                if operation == "constant"
+                else f"{node.literal_value} {node.literal_unit}"
+            )
+            lin[name] = [(1.0, name, (operation, text))]
+        else:
+            lin[name] = None
+    return {output: lin.get(output) for output in request.output_node_ids}
+
+
+def _expression_reached_operands(
+    request: QuantityExpressionRequestV1, operand_for: Any
+) -> dict[str, dict[str, ExpressionOperandV1]]:
+    """output id -> the host-known operands its value was computed from."""
+
+    sources = _expression_input_sources(request)
+    reads: dict[str, dict[str, ExpressionOperandV1]] = {}
+    for quantity in request.inputs:
+        source = sources.get(quantity.quantity_id)
+        facts = operand_for(*source) if source else None
+        reads[quantity.quantity_id] = (
+            {quantity.quantity_id: facts}
+            if isinstance(facts, ExpressionOperandV1)
+            else {}
+        )
+    for node in request.nodes:
+        if node.operation in {"literal", "constant"}:
+            reads[node.node_id] = {}
+        elif node.operation == "ref":
+            reads[node.node_id] = dict(
+                reads.get(node.reference or node.input_ids[0], {})
+            )
+        else:
+            merged: dict[str, ExpressionOperandV1] = {}
+            for item in node.input_ids:
+                merged.update(reads.get(item, {}))
+            reads[node.node_id] = merged
+    return {
+        output: reads.get(output, {}) for output in request.output_node_ids
+    }
+
+
+def _species_text(species: tuple[str, Any, Any]) -> str:
+    formula, charge, _multiplicity = species
+    if not isinstance(charge, (int, float)) or int(charge) == 0:
+        return formula
+    magnitude = abs(int(charge))
+    return (
+        formula
+        + (str(magnitude) if magnitude > 1 else "")
+        + ("+" if charge > 0 else "-")
+    )
+
+
+def expression_kind_observations(
+    request: QuantityExpressionRequestV1,
+    receipt: QuantityExpressionReceiptV1,
+    operand_for: Any,
+) -> tuple[dict[str, Any], ...]:
+    """Say what each output is, where its operands' kinds decide it.
+
+    Units say two numbers can be added; they cannot say whether the sum
+    means anything. For each output this reads the kind of every energy
+    it was computed from (``result_quantities.ENERGY_KINDS``) and states:
+
+    - ``output_is_an_orbital_rotation_curvature``: an output built from
+      SCF stability eigenvalues is a curvature, not an energy between
+      states, and eigenvalues of different matrices compare in sign only
+      (R10 Q13 dans: ``min`` over PySCF's internal, external and
+      real -> complex roots was claimed as "the lowest eigenvalue" and a
+      spread of two was read as "~3.2 kcal/mol");
+    - ``orbital_energy_combined_with_a_state_energy``: a one-electron
+      eigenvalue added to or subtracted from an energy of a state;
+    - ``one_species_at_two_coefficients``: where the output is linear in
+      its energies, one species whose own layers (E, ZPE, thermal, pV,
+      -TS) enter with different coefficients -- the change of no reaction
+      (R10 Q14 G2: ``[E(OH) - E(O) - E(H)] - ZPE(OH)`` delivered as a D0 of
+      -105.90 kcal/mol);
+    - ``reaction_the_output_measures``: otherwise, the reaction the
+      coefficients describe, reactants to products, each species' layer
+      block, and whether the atoms balance -- the sign convention of the
+      number, stated by the host rather than left to be inferred.
+
+    Observations, never refusals: a curvature compared with zero is a
+    legitimate question, and a number stands as computed. What the host
+    adds is what the number is.
+    """
+
+    from chemsmart.analysis.result_quantities import (
+        ENERGY_LAYER_BLOCKS,
+        ENERGY_LAYERS,
+        energy_kind,
+    )
+
+    reached = _expression_reached_operands(request, operand_for)
+    terms = _expression_linear_terms(request, receipt, operand_for)
+    observations: list[dict[str, Any]] = []
+    for output_id in request.output_node_ids:
+        operands = reached.get(output_id, {})
+        kinds = {
+            input_id: energy_kind(facts.name)
+            for input_id, facts in operands.items()
+            if energy_kind(facts.name) is not None
+        }
+        curvatures = {
+            input_id: kind
+            for input_id, kind in kinds.items()
+            if kind.kind == "orbital_rotation_curvature"
+        }
+        if curvatures:
+            normalisations = sorted(
+                {kind.normalisation for kind in curvatures.values()}
+            )
+            others = sorted(
+                {
+                    kind.kind
+                    for kind in kinds.values()
+                    if kind.kind != "orbital_rotation_curvature"
+                }
+            )
+            meaning = (
+                "this output is built from eigenvalues of SCF stability "
+                "matrices: curvatures of the energy along rotations of the "
+                "orbitals, not energy differences between states -- a "
+                "hartree here is no gap of any kind, and it is never a "
+                "kcal/mol of anything"
+            )
+            if len(normalisations) > 1:
+                meaning += (
+                    f"; its operands come from {len(normalisations)} "
+                    "different matrices, whose signs compare (each says "
+                    "whether its own rotation space holds a lower "
+                    "solution) and whose magnitudes do not"
+                )
+            if others:
+                meaning += (
+                    "; it also combines them with "
+                    + ", ".join(item.replace("_", " ") for item in others)
+                    + ", which are not curvatures"
+                )
+            observations.append(
+                {
+                    "kind": "output_is_an_orbital_rotation_curvature",
+                    "output_id": output_id,
+                    "operands": {
+                        input_id: operands[input_id].name
+                        for input_id in sorted(curvatures)
+                    },
+                    "normalisations": normalisations,
+                    "magnitudes_comparable": len(normalisations) == 1
+                    and not others,
+                    "meaning": meaning,
+                }
+            )
+        linear = terms.get(output_id)
+        if not linear:
+            continue
+        linear_kinds = {
+            label: energy_kind(operand.name)
+            for _coefficient, label, operand in linear
+            if isinstance(operand, ExpressionOperandV1)
+            and energy_kind(operand.name) is not None
+        }
+        orbital = sorted(
+            label
+            for label, kind in linear_kinds.items()
+            if kind.kind == "orbital_energy"
+        )
+        stated = sorted(
+            label
+            for label, kind in linear_kinds.items()
+            if kind.kind in {"state_energy", "correction", "excitation_energy"}
+        )
+        if orbital and stated:
+            observations.append(
+                {
+                    "kind": "orbital_energy_combined_with_a_state_energy",
+                    "output_id": output_id,
+                    "orbital_operands": orbital,
+                    "state_operands": stated,
+                    "meaning": (
+                        "an orbital eigenvalue is a one-electron energy; "
+                        "adding it to or subtracting it from the energy of "
+                        "a state is no energy difference between states"
+                    ),
+                }
+            )
+        layers: dict[tuple, list[float]] = {}
+        placed: dict[tuple, list[tuple[float, str, str]]] = {}
+        authored = []
+        for coefficient, label, operand in linear:
+            if not isinstance(operand, ExpressionOperandV1):
+                authored.append(f"{coefficient:+g} x {operand[1]} ({label})")
+                continue
+            kind = energy_kind(operand.name)
+            if kind is None or not kind.layers or operand.species is None:
+                continue
+            vector = layers.setdefault(
+                operand.species, [0.0] * len(ENERGY_LAYERS)
+            )
+            for layer in kind.layers:
+                vector[layer] += coefficient * kind.sign
+            placed.setdefault(operand.species, []).append(
+                (coefficient, label, operand.name)
+            )
+        if not layers:
+            continue
+        inconsistent = {
+            species: vector
+            for species, vector in layers.items()
+            if len({round(value, 9) for value in vector if abs(value) > 1e-9})
+            > 1
+        }
+        if inconsistent:
+            for species, vector in sorted(inconsistent.items(), key=str):
+                entering = ", ".join(
+                    f"{value:+g} x {ENERGY_LAYERS[index]}"
+                    for index, value in enumerate(vector)
+                    if abs(value) > 1e-9
+                )
+                observations.append(
+                    {
+                        "kind": "one_species_at_two_coefficients",
+                        "output_id": output_id,
+                        "species": _species_text(species),
+                        "layers": {
+                            ENERGY_LAYERS[index]: value
+                            for index, value in enumerate(vector)
+                            if abs(value) > 1e-9
+                        },
+                        "operands": [
+                            f"{coefficient:+g} x {name} ({label})"
+                            for coefficient, label, name in placed[species]
+                        ],
+                        "meaning": (
+                            f"{_species_text(species)} enters this output "
+                            f"as {entering}: the layers of one species' "
+                            "energy carry different coefficients, so the "
+                            "output is the energy change of no reaction and "
+                            "no state function of that species -- a sign "
+                            "was flipped on part of it, or a part belongs to "
+                            "another step"
+                        ),
+                    }
+                )
+            continue
+        sides: dict[str, list[str]] = {"reactants": [], "products": []}
+        blocks = {}
+        net_atoms: Counter = Counter()
+        net_charge = 0.0
+        electronic = False
+        for species, vector in sorted(layers.items(), key=str):
+            nonzero = [
+                (index, value)
+                for index, value in enumerate(vector)
+                if abs(value) > 1e-9
+            ]
+            if not nonzero:
+                continue
+            coefficient = nonzero[0][1]
+            block = tuple(index for index, _value in nonzero)
+            blocks[_species_text(species)] = ENERGY_LAYER_BLOCKS.get(
+                block, "+".join(ENERGY_LAYERS[index] for index in block)
+            )
+            text = (
+                f"{abs(coefficient):g} "
+                if abs(abs(coefficient) - 1) > 1e-9
+                else ""
+            ) + _species_text(species)
+            sides["products" if coefficient > 0 else "reactants"].append(text)
+            if 0 in block:
+                electronic = True
+                for element, count in _formula_counts(species[0]).items():
+                    net_atoms[element] += coefficient * count
+                if isinstance(species[1], (int, float)):
+                    net_charge += coefficient * float(species[1])
+        if not sides["reactants"] or not sides["products"]:
+            continue
+        imbalance = {
+            element: round(value, 6)
+            for element, value in net_atoms.items()
+            if abs(value) > 1e-9
+        }
+        if not electronic:
+            balance = (
+                "no electronic energy enters: a difference of corrections "
+                "between the species named"
+            )
+        elif not imbalance:
+            balance = "the atoms balance"
+        elif (
+            set(imbalance) == {"H"} and abs(imbalance["H"] - net_charge) < 1e-9
+        ):
+            balance = (
+                f"the atoms balance with {abs(imbalance['H']):g} bare "
+                "proton(s), which carry no electronic energy (their "
+                "thermochemistry does not vanish)"
+            )
+        elif authored:
+            balance = (
+                f"the atoms do not balance (net {imbalance}) except "
+                "through number(s) the expression itself supplies: "
+                + "; ".join(authored)
+            )
+        else:
+            balance = (
+                f"the atoms do not balance (net {imbalance}): this is not "
+                "the energy change of any reaction"
+            )
+        reaction = (
+            " + ".join(sides["reactants"])
+            + " -> "
+            + " + ".join(sides["products"])
+        )
+        treatments = sorted(set(blocks.values()))
+        observations.append(
+            {
+                "kind": "reaction_the_output_measures",
+                "output_id": output_id,
+                "reaction": reaction,
+                "treatments": blocks,
+                "atoms_balance": electronic and not imbalance,
+                "meaning": (
+                    f"this output is the change of {reaction} (products "
+                    "minus reactants), "
+                    + (
+                        f"in {treatments[0]}"
+                        if len(treatments) == 1
+                        else "with species at different treatments "
+                        + ", ".join(f"{k} as {v}" for k, v in blocks.items())
+                    )
+                    + f"; {balance}"
+                ),
+            }
+        )
+    return tuple(observations)
+
+
 def quantity_expression_receipt_from_record(
     record: Mapping[str, Any], *, receipt_sha256: str
 ) -> QuantityExpressionReceiptV1:
@@ -3488,9 +4022,12 @@ __all__ = [
     "canonical_unit_for_dimension",
     "convert_normalized_value",
     "evaluate_quantity_expression",
+    "ExpressionOperandV1",
+    "expression_kind_observations",
     "expression_level_observations",
     "expression_output_sources",
     "expression_thermochemical_convention_observations",
+    "hill_formula",
     "EXCITED_ROOT_LEVEL_FIELDS",
     "LEVEL_IDENTITY_FIELDS",
     "THERMOCHEMICAL_CONVENTION_FIELDS",
