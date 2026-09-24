@@ -355,6 +355,12 @@ Failure: a Gaussian route without the angular statement for a 6-31G name,
 a level saying cartesian_d, a difference over 0.05 kcal/mol, or numbers
 that do not reproduce.
 
+## Goals issued
+
+- 2152052 (slot b, prereg 1fd17df834b4) goals/g1-hi, code d31f1170
+  (digest verified on the node).
+- 2152096 (slot a, prereg 9d5d7b3df135) goals/g2-nh3, same code.
+
 ## Status
 
 - step 1: tree read; O1 pre-registered above; code unchanged.
@@ -362,3 +368,9 @@ that do not reproduce.
   Gaussian are one def2 basis on iodine (ECP and frozen core); PySCF
   refuses it at run time; the level record is silent on the angular form
   and ECP and false on frozen core across species.
+- step 3: repairs adc130b1, ab42ab5d, 4002da10; O2 read: physics held,
+  the PySCF iodine record did not (1b5ae687); CEP f form (8c4a7169);
+  Gaussian basis vocabulary (4107e350).
+- step 4: O2' read (all iodine PySCF runs validated); ECP fixtures and
+  witnesses (9e4d39ab); goals g1-hi and g2-nh3 issued; r10-integration
+  merged (c8edd0fc, no conflicts).
