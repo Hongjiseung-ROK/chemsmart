@@ -89,6 +89,50 @@ not list -- a free energy from an unconverged TS (po3-r19). Constrained
 3. Curvature selectors carry kind and normalisation in the vocabulary; an
    expression combining them across normalisations says so.
 
+## Repair 1 -- stationarity (committed 493d3daf, 8c2e8d0c, 9347f4c1)
+
+`structure_stationarity` (analysis plane) is the one answer to "is the
+structure these modes belong to stationary?"; `derive_result_thermochemistry`
+refuses not_stationary with a route and states the basis in every receipt;
+the characterisation asks the same function.
+
+Provider-free replay of every archived derivation on the repaired tree
+(artifacts sha-checked; CUHK artifacts fetched read-only, ax41 from the mirror):
+- CUHK 59/59: 43 search_converged, 1 atom (the Q14 H atom ORCA calls
+  unconverged), 3 measured stationary, 12 unmeasured -> none refused; every
+  RRHO replay reproduces the archived G (q4's two differ by 6.5e-4 Eh for
+  reasons older than this change).
+- ax41 425/425 (291 artifacts): 409 search_converged, 11 unmeasured
+  (e3-phenol/aniline sp+freq at a force-field geometry, h2b, xTB hess),
+  5 not_stationary/search_not_converged -> refused: po3-r19 ts-esterc4 in the
+  cycle-2 approved chain and three sessions (two with claims), and po3-a
+  goal-progress ts-c4 (no claim).
+- Characterisations: 2 archived certifications of unconverged searches would
+  now be refused (ax41 po3-r19 order 1; live-20260906T151655 order 2).
+- tests/data: 6 of 72 frequency-bearing fixtures refused (2 Gaussian modred,
+  4 PySCF Hessians above criterion). One Q19 test derived a ZPE from the
+  O2 singlet stability Hessian (max|g| 0.0099 Eh/Bohr): red until its fixture
+  is replaced by a stationary one (job o2fix below).
+
+## Job o2fix (CLI reference, pre-registered before submission)
+
+Why: a stationary closed-shell singlet O2 Hessian carrying the SCF stability
+analysis, to replace the non-stationary fixture of
+test_a_number_derived_through_thermochemistry_stands_on_the_verdict_too.
+PySCF 2.14.0, B3LYP/def2-SVP (the fixtures' own projects), 4 cores, 8 GB.
+Expected (bands fixed now, never tuned):
+- opt converges; r(O-O) in [1.18, 1.23] A.
+- hess at the reached structure: max|g| <= 4.5e-4 Eh/Bohr (stationary), one
+  real mode in [1550, 1750] cm-1, no imaginary mode.
+- scf_stability_external_lowest_eigenvalue < 0 (RKS -> UKS unstable, as at the
+  unrelaxed geometry, -0.0383 there); within [-0.06, -0.02] Eh.
+- derive_result_thermochemistry on it: derived, "stationary point: the
+  largest gradient ...".
+Falsifier: the external instability vanishes at the relaxed geometry (then the
+Q19 test needs another failed criterion and I say so), or the opt does not
+converge.
+
 ## Status
 
-- Step 1 (census) done; implementation starting.
+- Step 1 (census) done; repair 1 committed; o2fix about to be submitted.
+- Next: repairs 2 (direction/layers) and 3 (curvature kind), then a live goal.
