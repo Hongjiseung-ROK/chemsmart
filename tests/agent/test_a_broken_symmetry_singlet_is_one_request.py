@@ -337,7 +337,7 @@ def _o1_evaluate(program: str, label: str):
     )
 
 
-@pytest.mark.capability(f"signal:{SIGNAL}")
+@pytest.mark.capability("signal:spin.broken_symmetry_request_unbroken")
 @pytest.mark.parametrize("program", ["gaussian", "orca", "pyscf"])
 def test_a_request_that_stayed_spin_symmetric_has_standing(program):
     """H2 at 0.74 A has no diradical character: every program's request
@@ -363,7 +363,7 @@ def test_a_request_that_stayed_spin_symmetric_has_standing(program):
         assert followed["external_lowest_eigenvalue"] > 0
 
 
-@pytest.mark.capability(f"signal:{SIGNAL}")
+@pytest.mark.capability("signal:spin.broken_symmetry_request_unbroken")
 @pytest.mark.parametrize(
     "program,label,spin_square",
     [
