@@ -190,6 +190,28 @@ NoRI, TightSCF, DefGrid3; PySCF defgrid3 and scf_tol 1e-10; 24 commands.
 A failed T1 is a translation defect; a failed T3 or T4 with T1 held is a
 program fact (the particular solution is not portable), reported as such.
 
+## O1 read (CUHK 2153479, complete; code 5da66f9c, 24 of 24 commands exit 0)
+
+Read through the host's own readers (result_readers.reader_for), not by eye.
+- T1 held: Gaussian and ORCA hub single points equal their O0 native
+  energies to the printed digit (H2 2.00, p-benzyne, H2 0.74, planar
+  ethylene); PySCF within 2.4e-7 Eh (p-benzyne), 4e-11 (H2).
+- T2 held: every broken-symmetry result reads reference uks and
+  broken_symmetry true; the word is broken for H2 2.00 (<S**2> 0.7053 in
+  all three) and p-benzyne (0.9703), unbroken for H2 0.74 and planar
+  ethylene (<S**2> 0); the plain singlet reads rks and the triplets uks,
+  with no word.
+- T3 held: p-benzyne broken-symmetry energies span 8.0e-7 Eh across the
+  three programs, the triplets 9.1e-7 Eh.
+- T4 held: each program's broken-symmetry opt ends broken (<S**2> 0.957),
+  5.51e-3 Eh below its own sp, the three optimised energies within 5.5e-7
+  Eh, C1...C4 2.6816 / 2.6819 / 2.6818 A.
+- T5 held: PySCF's restricted start is externally unstable for H2 2.00
+  (-0.097 Eh) and p-benzyne (-0.101) and stable for H2 0.74 (+0.318) and
+  planar ethylene (+0.098).
+- At the fixed hexagon (Gaussian numbers): E(T) - E(BS) 2.56 kcal/mol;
+  Yamaguchi-projected 4.95; ratio 1.94 -- inside the G1 ratio band.
+
 ## Live goals -- pre-registered before submission
 
 Model under study: deepseek-v4-flash-0731 via alibaba-token-plan (the only
@@ -241,6 +263,8 @@ different tree, not a controlled A/B.
   digest 835945193c43.
 - O0b: CUHK Slurm 2153375 (r10-q18-b), 4 cores, native inputs, 3 min, prereg
   digest 6ca6f084cb46.
+- O1: CUHK Slurm 2153479, 8 cores, the ordinary CLI on code 5da66f9c (tree
+  digest 33bf5023dd70...), prereg digest a27e0cacb045, ~16 min.
 
 ## Status
 
