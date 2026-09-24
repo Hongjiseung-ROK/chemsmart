@@ -259,9 +259,13 @@ def test_a_gaussian_instability_that_was_repaired_is_history_not_state():
         "stable_under_considered_perturbations",
     )
     assert repaired["unstable"] == ()
-    assert repaired["stable"] == ({"question": "considered_perturbations"},)
-    # And Gaussian names no rotation space, so the record invents none:
-    # one program's "external" is two questions and the other's is one.
+    assert [answer["question"] for answer in repaired["stable"]] == [
+        "considered_perturbations"
+    ]
+    # And a stable Gaussian verdict names no rotation space, so the record
+    # invents none: one program's "external" is two questions and the
+    # other's is one.  (An unstable verdict names its own -- "RHF -> UHF"
+    # -- and that is recorded where Gaussian prints it.)
     assert "rotation_space" not in repaired["stable"][0]
     # A run that printed no verdict at all says nothing.
     assert (
