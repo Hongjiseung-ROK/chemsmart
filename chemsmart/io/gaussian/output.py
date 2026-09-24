@@ -2434,7 +2434,68 @@ class Gaussian16Output(GaussianFileMixin):
                     ),
                 }
             )
+        dominants = self.excited_state_dominant_excitations
+        if len(dominants) == len(records):
+            for record, dominant in zip(records, dominants):
+                record["dominant_excitation"] = dominant
         return records
+
+    @cached_property
+    def electron_counts(self):
+        """``(alpha, beta)`` electrons, as Gaussian's last count prints them."""
+
+        pattern = re.compile(
+            r"^\s*(\d+)\s+alpha electrons\s+(\d+)\s+beta electrons"
+        )
+        counts = None
+        for line in self.contents:
+            match = pattern.match(line)
+            if match is not None:
+                counts = (int(match.group(1)), int(match.group(2)))
+        return counts
+
+    @cached_property
+    def excited_state_dominant_excitations(self):
+        """Each root's largest single excitation, relative to the frontier.
+
+        One entry per ``Excited State`` line (the order of
+        ``excited_state_records``): ``(occupied_offset, virtual_offset,
+        weight, channel)`` with the occupied orbital counted from the HOMO
+        (0, -1, ...) and the virtual from the LUMO (0, 1, ...) of its own
+        spin, ``channel`` 0 for a spin-adapted root and +1/-1 for an alpha
+        or beta excitation of an unrestricted one.  Gaussian prints the
+        coefficient c of each ``i -> a`` excitation (``i <- a`` lines are
+        de-excitations and are not candidates); its weight is 2c^2 for a
+        spin-adapted root and c^2 for an unrestricted one, so the weights
+        of a Tamm-Dancoff root sum to one.  None for a root that printed no
+        excitation, or when the electron count is not printed.
+        """
+
+        counts = self.electron_counts
+        transitions = self.transitions
+        coefficients = self.contribution_coefficients
+        entries = []
+        for pairs, values in zip(transitions, coefficients):
+            best = None
+            for pair, value in zip(pairs, values):
+                source, arrow, target = pair.split()
+                if arrow != "->" or counts is None:
+                    continue
+                spin = source[-1] if source[-1] in "AB" else ""
+                occupied = int(source.rstrip("AB"))
+                virtual = int(target.rstrip("AB"))
+                homo = counts[1] if spin == "B" else counts[0]
+                weight = float(value) ** 2 * (1.0 if spin else 2.0)
+                entry = (
+                    occupied - homo,
+                    virtual - homo - 1,
+                    weight,
+                    {"": 0, "A": 1, "B": -1}[spin],
+                )
+                if best is None or weight > best[2]:
+                    best = entry
+            entries.append(best)
+        return entries
 
     @cached_property
     def tddft_transitions(self):

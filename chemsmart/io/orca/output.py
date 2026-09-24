@@ -3346,24 +3346,40 @@ class ORCAOutput(ORCAFileMixin):
             rf"(?:\s+Sym:\s+\S+)?\s+Mult\s+(\d+)",
             re.IGNORECASE,
         )
+        excitation = re.compile(
+            rf"^\s*(\d+)([ab])\s*->\s*(\d+)([ab])\s*:\s*({number})"
+        )
         printed = []
+        current = None
         for line in self.contents:
             match = pattern.match(line)
             if match is None:
+                # The weighted excitations ORCA lists under each STATE
+                # line, until the blank line that ends the root.
+                if current is not None:
+                    found = excitation.match(line)
+                    if found is None:
+                        if not line.strip():
+                            current = None
+                        continue
+                    source, spin, target, _spin, weight = found.groups()
+                    current["excitations"].append(
+                        (int(source), int(target), spin, float(weight))
+                    )
                 continue
             state, energy_au, energy_ev, energy_cm1, spin_square, mult = (
                 match.groups()
             )
-            printed.append(
-                {
-                    "orca_state": int(state),
-                    "orca_multiplicity": int(mult),
-                    "energy_Eh": float(energy_au.replace("D", "E")),
-                    "energy_eV": float(energy_ev.replace("D", "E")),
-                    "energy_cm^-1": float(energy_cm1.replace("D", "E")),
-                    "spin_square": float(spin_square.replace("D", "E")),
-                }
-            )
+            current = {
+                "orca_state": int(state),
+                "orca_multiplicity": int(mult),
+                "energy_Eh": float(energy_au.replace("D", "E")),
+                "energy_eV": float(energy_ev.replace("D", "E")),
+                "energy_cm^-1": float(energy_cm1.replace("D", "E")),
+                "spin_square": float(spin_square.replace("D", "E")),
+                "excitations": [],
+            }
+            printed.append(current)
         rows = {
             (row["manifold_root"], row["multiplicity"]): row
             for row in self.electronic_absorption_transition_records
@@ -3374,6 +3390,11 @@ class ORCAOutput(ORCAFileMixin):
                 record["energy_eV"] = row["energy_eV"]
                 record["energy_cm^-1"] = row["energy_cm^-1"]
         unrestricted = self.state_manifold == "unrestricted"
+        reference = str(
+            (self.excited_state_applied or {}).get("reference") or ""
+        )
+        spin_channels = reference.upper().startswith("U")
+        counts = self.electron_counts
         order = sorted(
             range(len(printed)),
             key=lambda index: (printed[index]["energy_eV"], index),
@@ -3388,15 +3409,39 @@ class ORCAOutput(ORCAFileMixin):
             manifold_counts[multiplicity] = (
                 manifold_counts.get(multiplicity, 0) + 1
             )
+            dominant = None
+            if counts is not None and record["excitations"]:
+                source, target, spin, weight = max(
+                    record["excitations"], key=lambda item: item[3]
+                )
+                # ORCA numbers orbitals from 0 within each spin.
+                homo = (counts[1] if spin == "b" else counts[0]) - 1
+                channel = (1 if spin == "a" else -1) if spin_channels else 0
+                dominant = (source - homo, target - homo - 1, weight, channel)
             records.append(
                 {
                     "state_index": rank,
                     "manifold_root": manifold_counts[multiplicity],
                     "multiplicity": multiplicity,
+                    "dominant_excitation": dominant,
                     **record,
                 }
             )
         return records
+
+    @property
+    def electron_counts(self):
+        """``(alpha, beta)`` electrons from ORCA's NEL and multiplicity."""
+
+        electrons = self.num_electrons
+        multiplicity = self.multiplicity
+        if electrons is None or multiplicity is None:
+            return None
+        unpaired = int(multiplicity) - 1
+        return (
+            (int(electrons) + unpaired) // 2,
+            (int(electrons) - unpaired) // 2,
+        )
 
     @cached_property
     def excited_state_applied(self):

@@ -243,6 +243,10 @@ RESULT_UNITS = {
     "energies": "Eh",
     "excitation_energies": "Eh",
     "excited_state_converged": "dimensionless",
+    # Per root: the occupied orbital's offset from the HOMO, the virtual's
+    # from the LUMO, the weight of that single excitation, and its spin
+    # channel (0 spin-adapted, +1 alpha, -1 beta).
+    "excited_state_dominant_excitations": "dimensionless",
     "excited_state_multiplicities": "dimensionless",
     "force_constants": "Dyne/Angstrom",
     "forces": "Eh/Bohr",
@@ -1782,6 +1786,50 @@ def _build_response(config, mf, manifold=None):
     return td
 
 
+def _dominant_excitations(td, mf):
+    """Each root's largest single excitation, relative to the frontier.
+
+    Rows of ``(occupied_offset, virtual_offset, weight, channel)``: the
+    occupied orbital counted from the HOMO (0, -1, ...) and the virtual
+    from the LUMO (0, 1, ...) of its own spin, ``channel`` 0 for a
+    spin-adapted root and +1/-1 for an alpha or beta excitation of an
+    unrestricted one.  The weight is 2|X_ia|^2 for a spin-adapted root
+    (PySCF normalises its X to one half) and |X_ia|^2 per spin for an
+    unrestricted one, so a Tamm-Dancoff root's weights sum to one.
+    """
+
+    rows = []
+    occupations = np.asarray(mf.mo_occ)
+    for x, _y in td.xy:
+        if occupations.ndim == 2:
+            blocks = (
+                (np.asarray(x[0]), int(np.count_nonzero(occupations[0] > 0)), 1),
+                (np.asarray(x[1]), int(np.count_nonzero(occupations[1] > 0)), -1),
+            )
+            scale = 1.0
+        else:
+            blocks = (
+                (np.asarray(x), int(np.count_nonzero(occupations > 0)), 0),
+            )
+            scale = 2.0
+        best = None
+        for amplitudes, occupied, channel in blocks:
+            if amplitudes.size == 0:
+                continue
+            weights = scale * np.abs(amplitudes) ** 2
+            i, a = np.unravel_index(int(np.argmax(weights)), weights.shape)
+            row = (
+                float(i - (occupied - 1)),
+                float(a),
+                float(weights[i, a]),
+                float(channel),
+            )
+            if best is None or row[2] > best[2]:
+                best = row
+        rows.append(best if best is not None else (np.nan,) * 4)
+    return rows
+
+
 def _root_convergence(td):
     """Per-root convergence flags as a 1-d boolean array."""
     flags = np.asarray(td.converged, dtype=bool).reshape(-1)
@@ -1844,7 +1892,7 @@ def _run_td(config, mf, results, status, runtime):
     td = blocks[0][1]
     runtime["response_class"] = _class_name(td)
     energies, multiplicities, flags = [], [], []
-    strengths, dipoles = [], []
+    strengths, dipoles, dominants = [], [], []
     strength_failure = dipole_failure = None
     block_records = {}
     for word, td_block in blocks:
@@ -1854,6 +1902,7 @@ def _run_td(config, mf, results, status, runtime):
         energies.extend(float(value) for value in excitations)
         multiplicities.extend([_RESPONSE_BLOCK_MULTIPLICITY[word]] * count)
         flags.extend(bool(flag) for flag in converged)
+        dominants.extend(_dominant_excitations(td_block, mf)[:count])
         try:
             strengths.extend(
                 float(value)
@@ -1891,6 +1940,10 @@ def _run_td(config, mf, results, status, runtime):
         results["excited_state_multiplicities"] = np.asarray(
             multiplicities, dtype=int
         )[order]
+    if len(dominants) == obtained:
+        results["excited_state_dominant_excitations"] = np.asarray(
+            dominants, dtype=float
+        ).reshape(obtained, 4)[order]
     stage = {
         "converged": bool(obtained > 0 and converged.all()),
         "all_converged": bool(obtained > 0 and converged.all()),

@@ -505,6 +505,45 @@ def _excited_spin_squares(records, response_method, manifold):
     ]
 
 
+def _frontier_orbital(base: str, offset: float) -> str:
+    step = int(round(offset))
+    return base if step == 0 else f"{base}{step:+d}"
+
+
+def _dominant_excitation_values(records, what: str) -> list[Any]:
+    """Each root's largest single excitation, in one program-neutral form.
+
+    Every reader records ``(occupied_offset, virtual_offset, weight,
+    channel)`` from its own program's print: the occupied orbital counted
+    from the HOMO and the virtual from the LUMO of its own spin, and the
+    spin channel of an unrestricted root.  ``labels`` spells it
+    ``HOMO-1 -> LUMO`` (``beta HOMO -> LUMO`` on an open shell) and
+    ``weights`` gives the program's own weight of that excitation (2c^2 of
+    a spin-adapted coefficient, c^2 of an unrestricted one, ORCA's printed
+    weight).  A root's character is what it is made of, so it is how a
+    root is recognised in another program's list, where its position may
+    differ.
+    """
+
+    values = []
+    for record in records:
+        dominant = record.get("dominant_excitation")
+        if dominant is None:
+            raise MissingQuantityError(
+                "result does not print the excitations of every root"
+            )
+        occupied, virtual, weight, channel = dominant
+        if what == "weights":
+            values.append(float(weight))
+            continue
+        spin = {1: "alpha ", -1: "beta "}.get(int(round(channel)), "")
+        values.append(
+            f"{spin}{_frontier_orbital('HOMO', occupied)} -> "
+            f"{_frontier_orbital('LUMO', virtual)}"
+        )
+    return values
+
+
 def _orca_served_records(output: Any) -> list[dict[str, Any]]:
     """The roots of the manifold the request named, ranked by energy.
 
@@ -2601,6 +2640,13 @@ _CONSTRAINED_COORDINATE_DECLARATIONS = (
     ("constrained_dihedral_angles", "degree", "ANGLE"),
     ("constrained_dihedral_atoms", "1", "DIMENSIONLESS"),
 )
+#: What each excited root is made of, served by all three td readers: the
+#: root's largest single excitation in frontier-orbital words (``HOMO-1 ->
+#: LUMO``, ``beta HOMO -> LUMO``) and the program's own weight of it.
+_EXCITED_CHARACTER_DECLARATIONS = (
+    ("excited_state_dominant_excitations", "", "DIMENSIONLESS"),
+    ("excited_state_dominant_weights", "1", "DIMENSIONLESS"),
+)
 _CONSTRAINED_COORDINATE_ATOM_DECLARATIONS = (
     (
         "constrained_bond_atoms",
@@ -2830,6 +2876,16 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
                         "response_method"
                     ),
                     output.state_manifold,
+                )
+            ),
+            "excited_state_dominant_excitations": lambda output: (
+                _dominant_excitation_values(
+                    _orca_served_records(output), "labels"
+                )
+            ),
+            "excited_state_dominant_weights": lambda output: (
+                _dominant_excitation_values(
+                    _orca_served_records(output), "weights"
                 )
             ),
             "singlet_excitation_energies": lambda output: (
@@ -3306,6 +3362,8 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("energies", "computed_surface"),
     ("energy", "computed_surface"),
     ("excitation_energies", "excited_root"),
+    ("excited_state_dominant_excitations", "excited_root"),
+    ("excited_state_dominant_weights", "excited_root"),
     ("excited_state_indices", "excited_root"),
     ("excited_state_labels", "excited_root"),
     ("excited_state_manifold_roots", "excited_root"),
@@ -3439,6 +3497,16 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                         "response_method"
                     ),
                     (output.excited_state_request or {}).get("state_manifold"),
+                )
+            ),
+            "excited_state_dominant_excitations": lambda output: (
+                _dominant_excitation_values(
+                    output.excited_state_records, "labels"
+                )
+            ),
+            "excited_state_dominant_weights": lambda output: (
+                _dominant_excitation_values(
+                    output.excited_state_records, "weights"
                 )
             ),
             "singlet_excitation_energies": lambda output: [
@@ -5096,6 +5164,16 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
             )
         ],
         "transition_dipole_moments": _pyscf_transition_dipoles,
+        "excited_state_dominant_excitations": lambda output: (
+            _dominant_excitation_values(
+                _pyscf_excited_records(output), "labels"
+            )
+        ),
+        "excited_state_dominant_weights": lambda output: (
+            _dominant_excitation_values(
+                _pyscf_excited_records(output), "weights"
+            )
+        ),
         "excited_state_converged": _pyscf_excited_converged,
         "excited_state_followed_root": _pyscf_followed_root,
         # The correlated stage: the program's own components at the final
@@ -5266,6 +5344,8 @@ _PYSCF_SCF_SELECTORS = (
 _PYSCF_TD_SELECTORS = (
     "excitation_energies",
     "excited_state_converged",
+    "excited_state_dominant_excitations",
+    "excited_state_dominant_weights",
     "excited_state_indices",
     "excited_state_manifold_roots",
     "excited_state_multiplicities",
@@ -5383,6 +5463,8 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             ("energy", "as_reached"),
             ("excitation_energies", "as_reached"),
             ("excited_state_converged", "as_reached"),
+            ("excited_state_dominant_excitations", "as_reached"),
+            ("excited_state_dominant_weights", "as_reached"),
             ("excited_state_indices", "as_reached"),
             ("excited_state_manifold_roots", "as_reached"),
             ("excited_state_multiplicities", "as_reached"),
@@ -5459,6 +5541,8 @@ _PYSCF_ELECTRONIC_PROVENANCE = tuple(
             ("energy", "computed_surface"),
             ("excitation_energies", "excited_root"),
             ("excited_state_converged", "excited_root"),
+            ("excited_state_dominant_excitations", "excited_root"),
+            ("excited_state_dominant_weights", "excited_root"),
             ("excited_state_followed_root", "excited_root"),
             ("excited_state_indices", "excited_root"),
             ("excited_state_manifold_roots", "excited_root"),
@@ -5516,6 +5600,8 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("energy", "computed_surface"),
     ("entropy_times_temperature", "computed_surface"),
     ("excitation_energies", "excited_root"),
+    ("excited_state_dominant_excitations", "excited_root"),
+    ("excited_state_dominant_weights", "excited_root"),
     ("excited_state_indices", "excited_root"),
     ("excited_state_labels", "excited_root"),
     ("excited_state_manifold_roots", "excited_root"),
@@ -5570,7 +5656,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         #: spells that ``1`` rather than leaving the unit empty: an
         #: introduced selector says what it is measured in, and "" reads
         #: as nobody having said.
-        selector_declarations=_CONSTRAINED_COORDINATE_DECLARATIONS,
+        selector_declarations=(
+            _CONSTRAINED_COORDINATE_DECLARATIONS
+            + _EXCITED_CHARACTER_DECLARATIONS
+        ),
         #: An atom index this plane delivers indexes the vectors this
         #: plane delivers -- symbols, positions, every population -- so it
         #: is zero-based like all of them, and it says so where the model
@@ -6001,6 +6090,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "excitation_energies",
+                    # What each root is made of: its largest single
+                    # excitation and that excitation's weight.
+                    "excited_state_dominant_excitations",
+                    "excited_state_dominant_weights",
                     "excited_state_indices",
                     "excited_state_manifold_roots",
                     "excited_state_multiplicities",
@@ -6097,7 +6190,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         accessors=_gaussian_accessors(),
         # A held coordinate keeps its unit and its atoms as ORCA's do: one
         # declaration for both programs' constrained optimisations.
-        selector_declarations=_CONSTRAINED_COORDINATE_DECLARATIONS,
+        selector_declarations=(
+            _CONSTRAINED_COORDINATE_DECLARATIONS
+            + _EXCITED_CHARACTER_DECLARATIONS
+        ),
         atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
         # Coverage is ``parser_supported_when_emitted``, as for ORCA: it
         # states what a job of this type can be asked for, while route and
@@ -6330,6 +6426,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "excitation_energies",
+                    # What each root is made of: its largest single
+                    # excitation and that excitation's weight.
+                    "excited_state_dominant_excitations",
+                    "excited_state_dominant_weights",
                     "excited_state_indices",
                     "excited_state_labels",
                     # Which manifold each state belongs to and its rank
@@ -6649,6 +6749,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("scf_stability_internal", "", "DIMENSIONLESS"),
             ("scf_stability_external", "", "DIMENSIONLESS"),
             ("scf_stability_external_rotation_space", "", "DIMENSIONLESS"),
+            *_EXCITED_CHARACTER_DECLARATIONS,
         ),
         jobtype_selectors=(
             (
@@ -6865,7 +6966,11 @@ _TEXT_SELECTORS = frozenset(
     }
 )
 _TEXT_VECTOR_SELECTORS = frozenset(
-    {"excited_state_labels", "wavefunction_stability_history"}
+    {
+        "excited_state_dominant_excitations",
+        "excited_state_labels",
+        "wavefunction_stability_history",
+    }
 )
 _INTEGER_SELECTORS = frozenset(
     {

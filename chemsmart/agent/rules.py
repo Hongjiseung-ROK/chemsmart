@@ -1453,11 +1453,13 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
         "state's spin (excited_state_multiplicities: 1 or 3, none on an "
         "open-shell reference, whose roots are not spin eigenfunctions) and "
         "its rank in its own manifold (excited_state_manifold_roots: S_k, "
-        "T_k), and each spin block by name (singlet_*, triplet_*). "
-        "state_manifold takes singlet, triplet or singlet_triplet on a "
-        "closed shell and unrestricted on an open shell in every program. "
-        "Name a state by its manifold and rank, never by its position in "
-        "one program's list.",
+        "T_k), what it is made of (excited_state_dominant_excitations: "
+        "HOMO-1 -> LUMO, beta HOMO -> LUMO; with its weight), and each "
+        "spin block by name (singlet_*, triplet_*). state_manifold takes "
+        "singlet, triplet or singlet_triplet on a closed shell and "
+        "unrestricted on an open shell in every program. Name a state by "
+        "its manifold, rank and character, never by its position in one "
+        "program's list.",
         "R10 q8 (a86d9658 -> 28b8b48c): one acrolein singlet_triplet request "
         "read T1 at index 0 in Gaussian and S1 in ORCA, ORCA's indices "
         "repeated (1,2,3,1,2,3) and Gaussian declared no manifold selector; "

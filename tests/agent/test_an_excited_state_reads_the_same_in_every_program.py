@@ -296,3 +296,71 @@ def test_an_open_shell_root_has_one_spin_square_or_none():
                 _ALLYL[(program, "tddft")],
                 "excited_state_spin_square",
             )
+
+
+@pytest.mark.capability(
+    "selector:gaussian:td:excited_state_dominant_excitations"
+)
+@pytest.mark.capability("selector:orca:td:excited_state_dominant_excitations")
+@pytest.mark.parametrize(
+    "paths",
+    (
+        (_SINGLET_TRIPLET["gaussian"], _SINGLET_TRIPLET["orca"]),
+        (_ALLYL[("gaussian", "tddft")], _ALLYL[("orca", "tddft")]),
+    ),
+    ids=("acrolein-singlet-triplet", "allyl-unrestricted"),
+)
+def test_a_root_is_named_by_what_it_is_made_of(paths):
+    """Each root's largest excitation, in words both programs share.
+
+    Gaussian numbers orbitals from 1 and prints coefficients; ORCA numbers
+    them from 0 within each spin and prints weights. Read relative to the
+    frontier, the same root is the same excitation in both.
+    """
+
+    gaussian, orca = paths
+    labels = {
+        program: _read(program, path, "excited_state_dominant_excitations")
+        for program, path in (("gaussian", gaussian), ("orca", orca))
+    }
+    weights = {
+        program: _read(program, path, "excited_state_dominant_weights")
+        for program, path in (("gaussian", gaussian), ("orca", orca))
+    }
+    assert labels["gaussian"] == labels["orca"]
+    assert all(0.5 < weight <= 1.0 + 1e-6 for weight in weights["gaussian"])
+    for w_g, w_o in zip(weights["gaussian"], weights["orca"]):
+        assert abs(w_g - w_o) < 0.06
+
+
+@pytest.mark.capability(
+    "selector:gaussian:td:excited_state_dominant_excitations"
+)
+@pytest.mark.capability("selector:orca:td:excited_state_dominant_excitations")
+def test_what_a_root_is_made_of_finds_the_root_a_window_missed():
+    """Allyl TDA, six roots each: ORCA's window lacks the bright band.
+
+    By position the two windows differ from the fifth root on; by what the
+    roots are made of, ORCA's window holds every excitation Gaussian's
+    does except one -- the alpha HOMO -> LUMO root that carries f = 0.56 --
+    and one above Gaussian's top instead.
+    """
+
+    gaussian = _ALLYL[("gaussian", "tda")]
+    orca = _ALLYL[("orca", "tda")]
+    g_labels = _read(
+        "gaussian", gaussian, "excited_state_dominant_excitations"
+    )
+    o_labels = _read("orca", orca, "excited_state_dominant_excitations")
+    assert set(g_labels) - set(o_labels) == {"alpha HOMO -> LUMO"}
+    strengths = _read("gaussian", gaussian, "oscillator_strengths")
+    bright = max(range(len(strengths)), key=strengths.__getitem__)
+    assert g_labels[bright] == "alpha HOMO -> LUMO"
+    energies = _read("orca", orca, "excitation_energies")
+    extra = [
+        energy
+        for energy, label in zip(energies, o_labels)
+        if label not in g_labels
+    ]
+    assert extra
+    assert min(extra) > max(_read("gaussian", gaussian, "excitation_energies"))

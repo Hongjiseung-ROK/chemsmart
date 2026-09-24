@@ -3604,17 +3604,22 @@ def _validate_excited_state_results(results, stage_statuses):
                     f"h5:/results/{name}",
                 )
             )
-    dipoles = results.get("transition_dipole_moments")
-    if dipoles is not None:
-        values = _result_array(dipoles)
-        if values is None or values.shape != (count, 3):
+    for name, width in (
+        ("transition_dipole_moments", 3),
+        ("excited_state_dominant_excitations", 4),
+    ):
+        per_root = results.get(name)
+        if per_root is None:
+            continue
+        values = _result_array(per_root)
+        if values is None or values.shape != (count, width):
             findings.append(
                 _result_finding(
                     RULE_RESULT_EXCITED,
-                    "results.transition_dipole_moments",
-                    (count, 3),
+                    f"results.{name}",
+                    (count, width),
                     _array_observation(values),
-                    "h5:/results/transition_dipole_moments",
+                    f"h5:/results/{name}",
                 )
             )
     td_status = stage_statuses.get("td")

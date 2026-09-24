@@ -698,6 +698,20 @@ class PySCFOutput(FileMixin):
         return [bool(int(value)) for value in np.asarray(values).reshape(-1)]
 
     @cached_property
+    def excited_state_dominant_excitations(self):
+        """Per root ``(occupied_offset, virtual_offset, weight, channel)``.
+
+        None on an artifact written before the driver recorded it.
+        """
+        values = self.results.get("excited_state_dominant_excitations")
+        if values is None:
+            return None
+        return [
+            tuple(float(item) for item in row)
+            for row in np.asarray(values, dtype=float).reshape(-1, 4)
+        ]
+
+    @cached_property
     def excited_state_multiplicities(self):
         """Per-root multiplicity of a restricted manifold; None otherwise.
 
@@ -745,6 +759,7 @@ class PySCFOutput(FileMixin):
         strengths = self.oscillator_strengths or []
         converged = self.excited_state_converged or []
         multiplicities = self.excited_state_multiplicities
+        dominants = self.excited_state_dominant_excitations or []
         manifold_counts = {}
         records = []
         for index, energy in enumerate(excitations):
@@ -772,6 +787,9 @@ class PySCFOutput(FileMixin):
                         bool(converged[index])
                         if index < len(converged)
                         else None
+                    ),
+                    "dominant_excitation": (
+                        dominants[index] if index < len(dominants) else None
                     ),
                 }
             )
