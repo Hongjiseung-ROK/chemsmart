@@ -571,7 +571,7 @@ def _achieved_word(
     # sentence was written over it all the same.
     certified = (
         "the host completion gate certified the delivery"
-        if delivery.completion_status == "passed"
+        if _delivery_certified(delivery)
         else "no completion gate certified this delivery"
     )
     if observed:
@@ -775,7 +775,7 @@ def _delivery_settlement(
     # claims, passed the gate, then left an analysis-only draft and
     # ended "planned", and the goal returned to the human saying the
     # gate had not passed (E2 window, 2026-09-03). The receipt decides.
-    certified = delivery.completion_status == "passed"
+    certified = _delivery_certified(delivery)
     if delivery.unresolved_requirement_ids:
         # The task said how good the answer had to be, the delivery says
         # it is not that good, and nothing computed, argued or refused
@@ -2551,6 +2551,46 @@ def _achieved(execute_result: Any) -> bool:
     status = str(getattr(execute_result, "status", "") or "")
     analysis = str(getattr(execute_result, "analysis_status", "") or "")
     return status == "completed" and analysis in {"completed", ""}
+
+
+def _delivery_certified(delivery: "_AnalysisDelivery") -> bool:
+    """Did a completion gate certify this delivery? Its receipt says.
+
+    The one answer every settlement path reads: the planning path, the
+    run path and the achieved word's own sentence asked it three ways,
+    and the run path never asked at all -- it signed achieved beside the
+    sentence "no completion gate certified this delivery" (g2-hooh).
+    """
+
+    return delivery.completion_status == "passed"
+
+
+def _analysis_nodes_run(events_path: Path) -> int:
+    """How many analysis nodes a run's stream records as having run.
+
+    A node the walk settled ``blocked_unsupported`` was declared
+    non-executable intent and never ran; every other settlement --
+    executed, failed, skipped -- is a node the chain reached.
+    """
+
+    count = 0
+    try:
+        lines = Path(events_path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return 0
+    for line in lines:
+        if '"workflow_analysis_node_settled"' not in line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("kind") != "workflow_analysis_node_settled":
+            continue
+        state = str((event.get("payload") or {}).get("state") or "")
+        if state and state != "blocked_unsupported":
+            count += 1
+    return count
 
 
 @dataclass(frozen=True)
@@ -5328,7 +5368,7 @@ class GoalDriver:
             )
             + (
                 "; no completion was certified"
-                if delivery.completion_status != "passed"
+                if not _delivery_certified(delivery)
                 else "; the completion certified the chain without them"
             )
             + "."
@@ -6559,12 +6599,20 @@ class GoalDriver:
         # its two falsified expectations never reached the word. The
         # goal's delivery is the one its latest completion receipt holds.
         run_completion = run_delivery.completion_status
-        # Two witnesses agree before the run is read as chainless: the
-        # executor's own word for a bundle with no toolchain is the empty
-        # analysis status, and the stream holds no completion receipt.
-        chainless = (
-            not str(getattr(self.execute_result, "analysis_status", "") or "")
-            and not run_delivery.completion_status
+        # Read from the run's own records, never from the executor's word.
+        # This used to need two witnesses -- the executor's empty analysis
+        # status and no receipt -- and the executor's word for an approved
+        # toolchain with no analysis node is "completed" (all() over
+        # nothing), so the first witness never agreed: every archived
+        # chainless run was such an empty chain, the six repaired above
+        # among them, and each still signed achieved. R10 Q21's g2-hooh
+        # (CUHK 2153668) was the seventh, over the words "no completion
+        # gate certified this delivery". A run whose stream holds no
+        # completion receipt and in which no analysis node ran -- none
+        # planned, or every one declared non-executable -- certified
+        # nothing, whatever its executor reported.
+        chainless = not run_delivery.completion_status and not (
+            _analysis_nodes_run(self.run_directory / "events.jsonl")
         )
         stands_on = ""
         if chainless:
@@ -6579,15 +6627,14 @@ class GoalDriver:
             if chainless
             else ()
         )
-        # Something was owed and no completion the goal holds passed: a
-        # partial chain, or none at all over declared observables.
-        uncertified = (
-            chainless
-            and run_delivery.completion_status != "passed"
-            and bool(
-                run_delivery.completion_status
-                or _required_declared_ids(self.ledger)
-            )
+        # Something was owed and the completion the delivery stands on did
+        # not pass: a partial chain, or none at all over declared
+        # observables. Asked of every run, as the planning path asks it
+        # (`_delivery_certified`), so an achieved word is never signed over
+        # an uncertified delivery by a path that forgot to look.
+        uncertified = not _delivery_certified(run_delivery) and bool(
+            run_delivery.completion_status
+            or _required_declared_ids(self.ledger)
         )
         self.rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
         if run_delivery.claims_rendered:
@@ -6668,6 +6715,14 @@ class GoalDriver:
             if chainless
             else ""
         )
+        # The uncertified word for a run that carried a chain names the
+        # receipt its own chain minted.
+        uncertified_reason = chainless_prefix or (
+            f"cycle {self.cycles}: this run's completion receipt "
+            f"{run_delivery.completion_receipt_sha256[:8]} is "
+            f"{run_delivery.completion_status or 'absent'}, so no "
+            "completion gate certified the delivery"
+        )
         # An observable the session refused, and an observable it
         # delivered whose precision it refused, settle by one rule: the
         # host verified both as unreachable, and the charter calls that
@@ -6729,8 +6784,18 @@ class GoalDriver:
                     "unresolved_requirement_ids": list(open_requirements),
                     "engine_calls_remaining": budgets.engine_calls_remaining,
                     **(
-                        {"uncertified": chainless_prefix}
+                        {"uncertified": uncertified_reason}
                         if uncertified
+                        and (
+                            chainless
+                            or not (
+                                run_delivery.unanswered_verdicts
+                                or unrefreshed
+                                or run_delivery.unclaimed_output_ids
+                                or open_declared
+                                or open_requirements
+                            )
+                        )
                         else {}
                     ),
                     **({"refusals_reread": dict(reread)} if reread else {}),
@@ -6760,7 +6825,7 @@ class GoalDriver:
                 or open_requirements
             ):
                 reason = (
-                    chainless_prefix
+                    uncertified_reason
                     + ", and no revision remains to certify it"
                     + (
                         "; "
@@ -6775,7 +6840,7 @@ class GoalDriver:
                     "returned_to_human", reasons=(reason, *reread_reasons)
                 )
                 self._settled(
-                    "returned_to_human", open_declared or (chainless_prefix,)
+                    "returned_to_human", open_declared or (uncertified_reason,)
                 )
                 return
             if run_delivery.unanswered_verdicts:
@@ -6982,7 +7047,13 @@ class GoalDriver:
                 "undelivered_declared_observable_ids": list(open_declared),
                 "unresolved_requirement_ids": list(open_requirements),
                 "engine_calls_remaining": budgets.engine_calls_remaining,
-                **({"uncertified": chainless_prefix} if uncertified else {}),
+                # A partial chain's row already says analysis_status
+                # partial; only a chainless run needs the sentence.
+                **(
+                    {"uncertified": chainless_prefix}
+                    if uncertified and chainless
+                    else {}
+                ),
                 **({"refusals_reread": dict(reread)} if reread else {}),
             },
         )
