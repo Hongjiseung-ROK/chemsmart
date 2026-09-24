@@ -221,6 +221,12 @@ route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
   5343f551), pre-registration digest 5acc431bcad8. Submitted after O1's
   commands 1-3 (ORCA opt, saddle, p-benzyne) and while its IRC ran
   ("Initial displacement Hessian type .... Read").
+- 2026-09-25: G2, CUHK Slurm 2153334 (r10-q15-a), live goal, g1's task
+  byte-identical, 32 cores; code 8869a23e (tree digest b572f5bd, verified
+  on chpc-cn073), pre-registration digest 185315206e8a.
+- Census (read-only grep of every run stream under r10/q1..q17): the
+  executor's input-check launch refusal fired twice in R10, both in g1 and
+  both on a Gaussian node quoting ORCA's lines -- 2 of 2 false.
 
 ## O1 -- partial READ (commands 1-3; ORCA 6.1.1 output read by me)
 
