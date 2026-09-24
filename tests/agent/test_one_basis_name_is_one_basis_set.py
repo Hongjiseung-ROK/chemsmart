@@ -258,6 +258,38 @@ def test_a_core_potential_on_a_light_element_is_named_with_its_basis(
 PYSCF = Path("tests/data/PySCFTests/outputs")
 
 
+@pytest.mark.capability("selector:pyscf:opt:energy")
+def test_two_spellings_of_one_pople_basis_are_one_basis(tmp_path):
+    """6-31G* and 6-31G(d) name one basis set.
+
+    The live goal g2-nh3 (CUHK Slurm 2152096) wrote Gaussian's project
+    at `6-31g(d)` and PySCF's at `6-31g*`; the two proton affinities
+    agreed to 6e-5 kcal/mol, and a level that compared the strings would
+    have said the operands were at two bases.
+    """
+
+    receipts, observations = _combine(
+        tmp_path,
+        {
+            "gaussian": (
+                "gaussian",
+                GAUSSIAN / "nh3_opt_b3lyp_631gd_g2.log",
+            ),
+            "pyscf": (
+                "pyscf",
+                Path("tests/data/PySCFTests/basis_forms/nh3_opt_b3lyp_631gs")
+                / "nh3_opt_gas_phase.h5",
+            ),
+        },
+        _difference("gaussian", "pyscf"),
+    )
+
+    assert receipts["gaussian"].level["basis"] == "6-31g(d)"
+    assert receipts["pyscf"].level["basis"] == "6-31g*"
+    assert receipts["gaussian"].level["basis_functions"] == "spherical"
+    assert not observations
+
+
 @pytest.mark.capability("selector:pyscf:sp:energy")
 @pytest.mark.parametrize(
     "case, label, differing",

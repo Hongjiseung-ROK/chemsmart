@@ -3039,8 +3039,9 @@ def _level_identity(level: Mapping[str, Any]) -> dict[str, Any]:
     conventions = level.get("frozen_core_conventions")
     return {
         "method": _word(method),
-        # def2-SVP and Gaussian's def2svp are one basis.
-        "basis": basis.replace("-", "") if basis else None,
+        # def2-SVP and Gaussian's def2svp are one basis, and so are
+        # 6-31G* and 6-31G(d): Pople's star is the parenthesised name.
+        "basis": _canonical_basis_name(basis) if basis else None,
         "basis_functions": _word(level.get("basis_functions")),
         "ecp_core_electrons": (
             {str(key): int(value) for key, value in cores.items()}
@@ -3058,6 +3059,24 @@ def _level_identity(level: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "response_method": _word(level.get("response_method")),
     }
+
+
+#: The 6-31G and 6-311G names whose star notation is a synonym by
+#: definition: one star is (d) on the heavy atoms, two add (p) on
+#: hydrogen.  A session wrote Gaussian's 6-31g(d) and PySCF's 6-31g* for
+#: one basis set in one goal (R10 q12 g2-nh3).
+_POPLE_STAR = re.compile(r"(6311|631)(\+{0,2})g(\*{1,2})")
+
+
+def _canonical_basis_name(basis: str) -> str:
+    """One spelling for one basis name, as the level compares it."""
+
+    word = basis.replace("-", "")
+    match = _POPLE_STAR.fullmatch(word)
+    if match is None:
+        return word
+    family, diffuse, stars = match.groups()
+    return f"{family}{diffuse}g" + ("(d,p)" if stars == "**" else "(d)")
 
 
 def _ecp_cores_differ(values: Mapping[str, Any]) -> bool:
