@@ -266,6 +266,19 @@ saddle's output is `hx_optts.out`, and O1's five commands that read
 fail on a missing file. They are re-issued unchanged as O1b reading
 `hx_optts.*` once the saddle exists. Every O1 prediction stands as written.
 
+Second error of mine, found before any prediction was read: O1's OptTS
+started from my MMFF guess with an exact Hessian (`Calc_Hess True`), and at
+that geometry the lowest mode was a soft torsion (eigenvalue -0.0013 au,
+wandering between -0.0024 and +0.0050 for 21 cycles) while C1...C6 drifted
+from 2.26 to 3.25 A. I cancelled O1 (2153554) after tZt and cZc had
+converged (cZc a true minimum, lowest modes 78 and 101 cm-1). O1b re-issues
+every remaining O1 command with one change of route: the saddle is sought
+from a DFT constrained optimisation holding C1...C6 at the guess's 2.263 A
+(ORCA modred, `Constraints {B 0 5 C}`), then OptTS with an exact Hessian
+(labels without "ts"). ORCA ScanTS through the CLI crashed at write time
+(`KeyError: 'coords'` in the scants modred path; found and left). All O1
+predictions stand as written.
+
 ## Jobs issued
 
 - 2026-09-25: census D, CUHK Slurm 2153534 (r10-q20-a), 16 cores,
@@ -274,8 +287,17 @@ fail on a missing file. They are re-issued unchanged as O1b reading
   pre-registration 44967a4b7b9e.
 - 2026-09-25: O1, CUHK Slurm 2153554, 32 cores, pre-registration
   b40a5f4a3218, code a8dd1777 (tree b572f5bd).
-- 2026-09-25: D-run3 (the repaired PySCF probe on the target), next
-  submission, code r1 (tree 81e437c5).
+- 2026-09-25: D-run3, CUHK Slurm 2153567, pre-registration 5b104ca8acc3,
+  code r1 (tree 81e437c5). READ: 0 problems -- all 272 pairs PySCF ran stay
+  GREEN, all 299 that died on the dispersion pair are refused with PySCF's
+  own message ("No entry for 'wb97x' present", ...). D6 answered: yes, and
+  closed. D-run3 PASS.
+- 2026-09-25: O1 cancelled by me (see above). O1b, next submission, code
+  a8dd1777 (tree b572f5bd, the oracle's writers unchanged by the repair for
+  B3LYP-D3(BJ)), in cli/o1b with O1's tZt and cZc outputs copied in.
+- Merged r10-integration again (Q18, de13de96) as c0896a07; packed as r2
+  (tree 5c72afb5); tests/agent 3147 passed on the merged tree; census D
+  replayed through the merged writers unchanged (zero false refusals).
 
 ## Status
 
