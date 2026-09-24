@@ -488,9 +488,11 @@ workspace are refused before a decision is offered, because resolving them would
  Domain-knowledge skills
 *************************
 
-The Agent can consult short, advisory skill documents that describe general computational-chemistry practice. They are
-surfaced by name in the planning prompt and fetched on request; they are advisory only and never establish readiness,
-approval, terminal state, or an accuracy claim, and they never replace a typed host receipt.
+Short, advisory skill documents that describe general computational-chemistry practice can be offered to the Agent as
+knowledge entries in its catalogue. They are off by default; set ``CHEMSMART_AGENT_SKILLS=1`` to offer them. When they
+are on, the planning prompt names each entry, and a session loads one by its name or through a search. They are advisory
+only: they never establish readiness, approval, terminal state, or an accuracy claim, and they never replace a typed host
+receipt.
 
 Released skills:
 
@@ -504,8 +506,7 @@ Released skills:
 -  ``typed-analysis-contract`` — how the typed analysis layer expects intent to be expressed: identifiers, units,
    declared quantity kinds, and evidence references.
 
-Set ``CHEMSMART_SKILL_ROOT`` to add or override skills from a directory of your own; set ``CHEMSMART_AGENT_SKILLS=0`` to
-remove the skill index and the consultation tool entirely.
+Set ``CHEMSMART_SKILL_ROOT`` to add or override skills from a directory of your own.
 
 ***************************
  Analyse completed results

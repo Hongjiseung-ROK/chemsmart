@@ -136,8 +136,9 @@ same run; scientific interpretation and the recorded decision remain a subsequen
    The declared Agent program/engine/job matrix. A declared route is not proof that this host has its engine.
 
 ``/skills`` and ``/skill <id>``
-   List the consultable domain skills; tag the next request with one. The tag is a visible line in the request -- the
-   session still consults the skill through its own tool, so the receipt chain is preserved.
+   List the domain-knowledge entries this session can load, and tag the next request with one. The tag is a visible
+   line in the request naming the entry, and the session's load of it is recorded in its events. With domain knowledge
+   off (the default; see ``CHEMSMART_AGENT_SKILLS``), both commands say so and tag nothing.
 
 ``/dag``
    Toggle the workflow panel (works before approval too).
