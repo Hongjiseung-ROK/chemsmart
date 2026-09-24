@@ -1004,6 +1004,72 @@ def test_a_finding_on_the_asked_number_says_nothing_was_seen_beyond_it(
     assert "(on the requested answer)" in " ".join(result.reasons)
 
 
+@pytest.mark.parametrize("undeclared_first", [True, False])
+def test_a_finding_standing_reads_every_operand_it_rests_on(
+    tmp_path, undeclared_first
+):
+    """r10/q7 g2-scan-modred (CUHK, 2026-09-23) recorded its finding
+    minimum-torsion-agreement on_the_request and the settlement said "(on
+    the requested answer)", while two of its relations rest on
+    lowest-coord, a claim no declaration names. The standing was read off
+    the last relation's left operand alone. One undeclared operand makes
+    a finding unrequested, whatever order its relations come in."""
+
+    host = _host(tmp_path / "events.jsonl", tmp_path / "workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "torsion-lowest-scan-point",
+                "unit": "degree",
+                "meaning": "torsion at the scan's lowest point",
+            }
+        ],
+    )
+    asked = _literal(host, "relaxed-torsion", 120.64, "degree")
+    unasked = _literal(host, "grid-torsion", 119.99994, "degree")
+    claimed = _claim(
+        host,
+        [
+            {
+                "claim_id": "torsion-lowest-scan-point",
+                "receipt_sha256": asked,
+                "quantity_id": "n1",
+                "display_unit": "degree",
+            },
+            {
+                "claim_id": "lowest-coord",
+                "receipt_sha256": unasked,
+                "quantity_id": "n1",
+                "display_unit": "degree",
+            },
+        ],
+    )
+    assert claimed["status"] == "ok", claimed
+    rests_on = [
+        {"claim_id": "lowest-coord", "relation": ">", "value": 119.0},
+        {
+            "claim_id": "torsion-lowest-scan-point",
+            "relation": "<",
+            "value": 121.0,
+        },
+    ]
+    if not undeclared_first:
+        rests_on.reverse()
+    reply = _decide(
+        host,
+        [
+            {
+                "finding_id": "minimum-torsion-agreement",
+                "statement": "the grid minimum and the relaxed minimum agree",
+                "rests_on": rests_on,
+            }
+        ],
+    )
+    (finding,) = reply["result"]["findings"]
+    assert finding["standing"] == "unrequested"
+
+
 @pytest.mark.capability("signal:scf.reference_unstable")
 def test_the_ledger_keeps_the_results_a_sensor_flagged(tmp_path):
     """gdev1 (CUHK Slurm 2149848, 2026-09-24): the executor's stream

@@ -7217,8 +7217,15 @@ class CommandCompiledToolHostV1:
             # restates or qualifies what was asked. The first
             # development session typed its requested distance as a
             # finding, and the word said it had observed something.
-            operands = [row["left"]] + [
-                row["right"] for row in relations if "claim_id" in row["right"]
+            # Every relation's both sides: this read the left side of the
+            # last relation alone, through a name the loop above left
+            # bound, and r10/q7 g2-scan-modred's finding resting on an
+            # undeclared lowest-coord settled "on the requested answer".
+            operands = [
+                side
+                for relation_row in relations
+                for side in (relation_row["left"], relation_row["right"])
+                if "claim_id" in side
             ]
             undeclared = [
                 operand
