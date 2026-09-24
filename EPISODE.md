@@ -147,9 +147,32 @@ a human decision). Agent: deepseek-v4-flash-0731 via alibaba-token-plan.
   turn_deadline_exceeded (infrastructure). A weak run is reported, never
   re-rolled.
 
+### Reference job s2ref (CUHK Slurm 2153508, code c642982a, digest 905bf301)
+
+Read through the host's own extraction tool from the result files:
+- O2 calibration: E = -150.1418068 Eh, internal -3.2e-7 (stable),
+  external -0.0926179, real->complex -0.0382998 Eh -- L1's archived
+  values reproduced within 1e-6 Eh. PASS.
+- S2 at 1.889 A: E = -796.1097378 Eh; internal +1.2e-6 (stable);
+  external -0.0584831 Eh (unstable); real->complex -0.0288198 Eh
+  (unstable).
+
+### L-S2 physics bands (fixed here, before the goal is submitted)
+
+- E(RKS S2) = -796.1097 +/- 0.0005 Eh.
+- internal rotations: stable (|lowest| < 1e-4 Eh).
+- RKS->UKS (external): unstable, lowest -0.0585 +/- 0.003 Eh.
+- real->complex: unstable, lowest -0.0288 +/- 0.003 Eh.
+- The scientific answer: the restricted reference of singlet S2 is not a
+  stable solution -- stable to real restricted rotations, unstable to spin
+  symmetry breaking and to complex rotations -- the same answer as O2's,
+  under a perturbation of the molecule.
+
 ## Status
 
 - step 0: brief read, base verified, charter/lessons/CONDUCT read.
 - step 1 (census, provider-free): done (above).
-- step 2 (repairs): done, six commits.
-- step 3: reference job s2ref (slot a) -- being submitted.
+- step 2 (repairs): done, seven commits (b568eab3 repairs c642982a's
+  regression on a host built without __init__).
+- step 3: reference job 2153508 done (above); live goal L-S2 next, on
+  code b568eab3.
