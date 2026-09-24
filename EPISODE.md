@@ -172,8 +172,9 @@ claude-researcher-q17-owner-delegated. Model deepseek-v4-flash-0731.
   `wavefunction_stability_verdict` for both results and wrote that the gap
   "can carry only qualitative weight: the singlet restricted solution is
   externally unstable"; P extracted the verdict and the eigenvalue.
-- dE (water CCSD(T)/cc-pVDZ, ORCA, T1 0.0059; a control): S extracted T1
-  and called it benign; no alarm.
+- dE (water CCSD(T)/cc-pVDZ, ORCA, T1 0.0059; a control): S and P both
+  extracted T1 and called it benign ("confirms a securely single-reference"
+  wavefunction, P); no alarm.
 
 Development, read together (n = 1 per cell, 11 local goals and the 9 of
 hc1; not evidence for the sealed question): where the base arm already
@@ -184,8 +185,10 @@ related questions (dA-S-1: `scf_stability_internal`, "stable", of the
 three the result answered), P put the right one in front of it. The base
 rate of S reading a long-served diagnostic unprompted is high on these
 textbook systems, which is why the recently- versus long-served split is
-reported. Cost over the 21 goals: 1.02 M input tokens and 489 s of
-provider time per goal (mean; max 1.81 M, 776 s); 16 of 21 had a reading.
+reported. Cost over the 21 goals (12 local, 9 hc1): 1.06 M input tokens
+and 507 s of provider time per goal (mean; max 1.81 M, 776 s); 17 of 21 had
+a reading. The local batch ended 14:54 UTC with dE-P-1 (achieved); no
+development process remains.
 
 A second host-error instance: dF-P-1 settled returned_to_human on
 "planned termination requires the latest workflow draft" after its
