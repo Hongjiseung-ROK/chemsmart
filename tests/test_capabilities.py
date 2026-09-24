@@ -203,6 +203,7 @@ def test_declared_capabilities_preserve_project_ownership_contract():
         "ab_initio",
         "aux_basis",
         "basis",
+        "broken_symmetry",
         "cc_max_cycle",
         "defgrid",
         "density_fit",

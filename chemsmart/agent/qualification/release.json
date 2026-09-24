@@ -200,6 +200,18 @@
       "date": "2026-09-13"
     },
     {
+      "kind": "setting",
+      "id": "pyscf:broken_symmetry",
+      "status": "recorded",
+      "values": [
+        "true"
+      ],
+      "run": "CUHK Charles r10/q18/goals/g2 (Slurm 2153511, Agent goal g2), cycle 2, nodes sp-planar-bs and sp-twisted-bs",
+      "commit": "95c85ed0 (code tree digest 2d27f643b7db5d02747890a7cd0802e36c8cc01b6602e2cf9e9b70d6f0d2ff0d, 426 files)",
+      "date": "2026-09-25",
+      "source": "Ethylene torsional barrier, B3LYP/6-31G*, rigid 90-degree twist. The session's cycle-1 plan was restricted and delivered 99.97 kcal/mol; the host raised scf.reference_unstable on the twisted RKS result (RHF/RKS -> UHF/UKS), and the session repaired it with broken_symmetry: true on both single points, no native word written. Both compile replies and the frozen review carried the PySCF translation. Twisted: reference uks, broken_symmetry true, <S**2> 1.0111, restricted start externally unstable (-0.0955 Eh) and followed, E -78.4743274138 Eh. Planar: reference uks, <S**2> 0, restricted start stable (+0.0992 Eh), E equal to the RKS energy to 2e-13 Eh, and the host raised spin.broken_symmetry_request_unbroken with those numbers. Delivered 69.907 kcal/mol from extraction receipts of the two results (the restricted barrier was 99.97); settled achieved_with_observations. The same translation reproduced PySCF's native stability-following energies to 2.4e-7 Eh on H2 and p-benzyne through the ordinary CLI (R10 Q18 oracle O1, Slurm 2153479)."
+    },
+    {
       "kind": "selector",
       "id": "xtb:hess:ir_intensities",
       "status": "recorded",
@@ -933,6 +945,18 @@
       "commit": "fb8f00f4 for g2 (code tree digest bae8d06833c4c2b6aa2c048caed7128ce1b34ddb13b07549644f7a99ff16e1fc) and 5b95c12f for g1 (digest 35c7be18adf864075c32cb688df36101ca4dba3bf7981b6f29c307f8eca73d4c), each recomputed on the node by the job's own digest line",
       "date": "2026-09-24",
       "source": "Two live goals (deepseek-v4-flash-0731; granted_by claude-researcher-q14-owner-delegated, a delegated approval, not a human decision) whose sessions promoted ORCA projects with freq: true. g1: B3LYP/def2-TZVP opt+freq of water and OH, written as analytic Freq; both host-validated, frequencies read and RRHO thermochemistry derived at 298.15 K. g2: MP2/def2-TZVP opt+freq of OH, which ORCA 6.1.1's input check refuses as Freq (R10 Q3 g1, CUHK 2151849; oracle O1, CUHK 2152636) and the writer now asks for as NumFreq (eed90076): the review and the compile reply stated the translation, the node ran 61 s on 16 cores and was host-validated, its one harmonic stretch 3779.56 cm-1 and ZPE 5.40 kcal/mol, which the session claimed. Oracle O2 (CUHK 2152810) ran the same translation for MP2, RI-MP2 and B2PLYP water: 1654.07/3895.19/4010.90, 1654.13/3895.23/4010.86 and 1651.64/3841.66/3944.25 cm-1; O1 measured numerical against analytic HF frequencies within 0.6 cm-1."
+    },
+    {
+      "kind": "setting",
+      "id": "orca:broken_symmetry",
+      "status": "recorded",
+      "values": [
+        "true"
+      ],
+      "run": "CUHK Charles r10/q18/goals/g1 (Slurm 2153510, Agent goal g1), cycle 1, nodes bs-sing-b3lyp-opt and bs-sing-wb97xd4-opt",
+      "commit": "95c85ed0 (code tree digest 2d27f643b7db5d02747890a7cd0802e36c8cc01b6602e2cf9e9b70d6f0d2ff0d, 426 files)",
+      "date": "2026-09-25",
+      "source": "p-benzyne adiabatic singlet-triplet splitting (deepseek-v4-flash-0731; granted_by claude-researcher-q18-owner-delegated, a delegated approval, not a human decision). The session's first search was in ORCA's words (FlipSpin) and found the rule sentence; its first plan asked for the singlet with broken_symmetry: true on two opt+freq nodes (B3LYP-D3BJ and wB97X-D4 / def2-TZVP) and wrote no native word. The review stated ORCA's translation (%scf HFTyp UHF, GuessMix 45) and ORCA's input check passed. Host records: reference uks, broken_symmetry true, word broken, <S**2> 0.9403 and 0.9879 against triplets at 2.0067 and 2.0065; no imaginary mode. Delivered from extraction receipts of the four outputs: unprojected dE_ST 2.22 +- 0.5 and Yamaguchi-projected 4.26 +- 0.8 kcal/mol (measured 3.8 +- 0.5), settled achieved_with_observations. Through the ordinary CLI the same translation reproduced ORCA's native GuessMix, BrokenSym 1,1 and STABPerform energy for H2 at 2.00 A and p-benzyne to the printed digit, and left H2 at 0.74 A and planar ethylene spin-symmetric (R10 Q18 oracles O0 and O1, Slurm 2153330 and 2153479)."
     }
   ]
 }

@@ -26,6 +26,79 @@ _GAUSSIAN_RESPONSE_KEYWORD = re.compile(
 )
 
 
+#: The mixing guess, however the route spells it: ``guess=mix``,
+#: ``guess=(mix)`` or ``guess=(mix,always)``.
+_GAUSSIAN_GUESS_MIX = re.compile(
+    r"(?<![a-z0-9_])guess\s*=\s*\(?[^\s)]*(?<![a-z0-9_])mix(?![a-z0-9_])"
+)
+
+
+#: The spin prefixes a Gaussian method word can carry, longest first.
+_GAUSSIAN_SPIN_PREFIXES = ("ro", "u", "r")
+
+
+def _gaussian_functional_spin_prefix(word):
+    """The prefix the route parser strips from a functional word, or None.
+
+    The rule ``get_functional_and_basis`` applies when it reads the
+    functional back -- a prefix followed by a word that names a functional
+    fragment -- so what is read as the prefix is exactly what the parser
+    removed from the functional, one rule for both.
+    """
+
+    for prefix in _GAUSSIAN_SPIN_PREFIXES:
+        if word.startswith(prefix) and any(
+            fragment in word[len(prefix) :]
+            for fragment in GAUSSIAN_FUNCTIONALS
+        ):
+            return prefix
+    return None
+
+
+def gaussian_method_spin_prefix(route_string):
+    """The spin prefix (``u``, ``r``, ``ro``) the route's method carries.
+
+    ``None`` when the method is written bare, which leaves the choice to
+    Gaussian: restricted for a singlet, unrestricted for an open shell.
+    A functional is read by the parser's own stripping rule; an ab initio
+    method is a prefix followed by exactly one of Gaussian's method words,
+    so ``ultrafine`` or ``readfc`` never looks like a prefix.
+    """
+
+    ab_initio = tuple(
+        word for word in GAUSSIAN_AB_INITIO if word not in {"rhf", "uhf"}
+    )
+    for word in str(route_string).lower().split():
+        head = word.split("/")[0].lstrip("#")
+        if not head or "=" in head:
+            continue
+        if any(fragment in head for fragment in GAUSSIAN_FUNCTIONALS):
+            prefix = _gaussian_functional_spin_prefix(head)
+            if prefix is not None:
+                return prefix
+            continue
+        for prefix in _GAUSSIAN_SPIN_PREFIXES:
+            if head.startswith(prefix) and head[len(prefix) :] in ab_initio:
+                return prefix
+    return None
+
+
+def gaussian_route_broken_symmetry(route_string):
+    """Whether the route is the broken-symmetry request ChemSmart writes.
+
+    An unrestricted method started from ``guess=mix``: the two together
+    are what ``broken_symmetry: true`` is written as, so the route reads
+    back to the request and a native spelling of the same two words is
+    read as that request too -- the review then says what runs.
+    """
+
+    route = str(route_string).lower()
+    return (
+        gaussian_method_spin_prefix(route) == "u"
+        and _GAUSSIAN_GUESS_MIX.search(route) is not None
+    )
+
+
 def route_requests_response(route_string):
     """Whether a Gaussian route asks for a response (TD/TDA/CIS) calculation.
 
@@ -383,6 +456,15 @@ class GaussianRoute:
         """
         return self.get_additional_route_parameters()
 
+    @property
+    def broken_symmetry(self):
+        """Whether this route is the broken-symmetry request.
+
+        See :func:`gaussian_route_broken_symmetry`: the unrestricted method
+        and its ``guess=mix`` are the request, and they read back as it.
+        """
+        return gaussian_route_broken_symmetry(self.route_string)
+
     def get_dieze_tag(self):
         """
         Extract the job priority tag from route string.
@@ -476,6 +558,14 @@ class GaussianRoute:
         for each_input in self.route_inputs:
             if any(ab in each_input for ab in GAUSSIAN_AB_INITIO):
                 ab_initio = each_input
+        if (
+            ab_initio is not None
+            and ab_initio.startswith("u")
+            and self.broken_symmetry
+        ):
+            # The unrestricted prefix is the broken-symmetry request's,
+            # read back by ``broken_symmetry``; the method is its own word.
+            ab_initio = ab_initio[1:]
         return ab_initio
 
     def _get_oniom_layer_methods_and_bases(self):
@@ -588,14 +678,10 @@ class GaussianRoute:
             )
             stripped_parts = []
             for part in parts:
-                stripped = part
-                for prefix in ("ro", "u", "r"):
-                    if part.startswith(prefix) and any(
-                        f in part[len(prefix) :] for f in GAUSSIAN_FUNCTIONALS
-                    ):
-                        stripped = part[len(prefix) :]
-                        break
-                stripped_parts.append(stripped)
+                prefix = _gaussian_functional_spin_prefix(part)
+                stripped_parts.append(
+                    part if prefix is None else part[len(prefix) :]
+                )
             # The route word is Gaussian's and the answer is ChemSmart's:
             # ``pbe1pbe`` is the literal ``pbe0``, so a written input reads
             # back to what was requested and a Gaussian result names its
@@ -633,12 +719,18 @@ class GaussianRoute:
         """
         Extract additional route parameters.
         """
+        broken_symmetry = self.broken_symmetry
         additional_route = [
             each_input
             for each_input in self.route_inputs
             if any(
                 route_parameter in each_input
                 for route_parameter in GAUSSIAN_ADDITIONAL_ROUTE_PARAMETERS
+            )
+            # The mixing guess of a broken-symmetry route belongs to that
+            # request, which reads back under its own name.
+            and not (
+                broken_symmetry and _GAUSSIAN_GUESS_MIX.search(each_input)
             )
         ]
 

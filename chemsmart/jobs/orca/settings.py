@@ -20,7 +20,10 @@ from chemsmart.io.orca import (
     normalize_orca_neb_joboption,
 )
 from chemsmart.jobs.settings import (
+    BROKEN_SYMMETRY_GUESS_MIX_DEGREES,
     MolecularJobSettings,
+    broken_symmetry_refusal,
+    broken_symmetry_request,
     canonical_functional_literal,
     functional_identity,
     functional_resolution_record,
@@ -1134,6 +1137,28 @@ def describe_functional_resolution(functional=None, *, ab_initio=None):
     )
 
 
+def describe_broken_symmetry(settings, *, multiplicity=None):
+    """What ORCA is told for ``broken_symmetry``, in one sentence, or "".
+
+    Read by the compile reply and the review, so the translation the
+    ``%scf`` block makes is stated where the request is approved.
+    """
+
+    from chemsmart.jobs.settings import BROKEN_SYMMETRY_EVIDENCE_SENTENCE
+
+    values = settings if isinstance(settings, dict) else dict(settings)
+    if values.get("broken_symmetry") is not True:
+        return ""
+    return (
+        "broken_symmetry: ORCA runs the unrestricted determinant (%scf "
+        f"HFTyp UHF) from GuessMix {BROKEN_SYMMETRY_GUESS_MIX_DEGREES}, the "
+        "alpha LUMO mixed into the alpha HOMO of its guess 50:50, on the "
+        "singlet (Ms = 0); measured to reach the solution ORCA's BrokenSym "
+        "1,1 and its own stability following reach. "
+        + BROKEN_SYMMETRY_EVIDENCE_SENTENCE
+    )
+
+
 def _normalize_orca_semiempirical(value):
     if value is None:
         return None
@@ -1242,6 +1267,7 @@ class ORCAJobSettings(MolecularJobSettings):
         mdci_density=None,
         relativistic=None,
         reference=None,
+        broken_symmetry=None,
         frozen_core=None,
         frozen_core_electrons=None,
         ri_approximation=None,
@@ -1390,6 +1416,18 @@ class ORCAJobSettings(MolecularJobSettings):
         self.reference = _normalize_choice(
             reference, ORCA_REFERENCE_DETERMINANTS, "reference"
         )
+        self.broken_symmetry = broken_symmetry_request(broken_symmetry)
+        if self.broken_symmetry:
+            # The request is an unrestricted determinant: an explicit
+            # restricted one contradicts it, and an unset one is the
+            # unrestricted determinant ORCA spells HFTyp UHF.
+            if self.reference in ("rhf", "rohf"):
+                raise ValueError(
+                    "broken_symmetry asks for an unrestricted determinant and "
+                    f"reference={self.reference!r} names a restricted one; "
+                    "use reference: uhf, or leave reference unset."
+                )
+            self.reference = "uhf"
         self.frozen_core = _normalize_choice(
             frozen_core, ORCA_FROZEN_CORE_POLICIES, "frozen_core"
         )
@@ -1502,6 +1540,58 @@ class ORCAJobSettings(MolecularJobSettings):
             light_elements_basis=self.light_elements_basis,
         )
 
+    def broken_symmetry_refusal(self):
+        """Why this job writes no broken-symmetry request, or None.
+
+        ORCA's own mechanism for the request is the unrestricted determinant
+        (``HFTyp UHF``) started from ``GuessMix``: the alpha LUMO mixed into
+        the alpha HOMO, 50:50 at 45 degrees (the ORCA 6.1 manual, "Choice of
+        Initial Guess"). R10 Q18 oracle O0 (CUHK Slurm 2153330) measured it
+        reaching the solution ORCA's BrokenSym 1,1 and its own stability
+        following reach, to 1e-10 Eh. A job whose input this settings
+        object does not write, or whose reference the request does not
+        define, is refused here rather than run without the request.
+        """
+
+        if not getattr(self, "broken_symmetry", False):
+            return None
+        state = broken_symmetry_refusal(True, self.multiplicity)
+        if state:
+            return state
+        if self.semiempirical is not None:
+            return (
+                "broken_symmetry is written for HF, DFT and correlated "
+                "methods; ChemSmart writes no unrestricted semiempirical "
+                "input. Name a functional or ab_initio method."
+            )
+        if self.input_string:
+            return (
+                "broken_symmetry is written into the input ChemSmart builds; "
+                "an input_string replaces that input, so the request would be "
+                "silently dropped. Remove one."
+            )
+        if self.jobtype == "td":
+            return (
+                "A td stage's manifolds are defined on a spin-adapted "
+                "closed-shell or an open-shell reference; the roots of a "
+                "broken-symmetry singlet are neither, so broken_symmetry is "
+                "not written into a td stage."
+            )
+        if self.jobtype == "qmmm":
+            return (
+                "ChemSmart writes no broken-symmetry request into a QM/MM "
+                "input; run the broken-symmetry singlet as an ordinary sp, "
+                "opt, ts or irc stage."
+            )
+        return None
+
+    def broken_symmetry_scf_lines(self):
+        """The ``%scf`` lines that write the request, after ``HFTyp``."""
+
+        if not getattr(self, "broken_symmetry", False):
+            return ()
+        return (f"GuessMix {BROKEN_SYMMETRY_GUESS_MIX_DEGREES}",)
+
     def _validate_electronic_structure_consistency(self):
         """Refuse electronic-structure settings that cannot describe the state.
 
@@ -1520,6 +1610,10 @@ class ORCAJobSettings(MolecularJobSettings):
                 f"{self.multiplicity}; a restricted closed-shell determinant "
                 "has no open shell. Use 'rohf' or 'uhf'."
             )
+
+        refusal = self.broken_symmetry_refusal()
+        if refusal:
+            raise ValueError(refusal)
 
         if self.relativistic is not None:
             bases = [
