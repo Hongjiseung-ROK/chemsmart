@@ -257,6 +257,47 @@ different tree, not a controlled A/B.
   [0.95, 1.05], PySCF's restricted start externally unstable.
 - Capability outcomes M1-M5 as for G1, PySCF.
 
+## G1 read (CUHK 2153510, complete: achieved_with_observations, 2 cycles, 0 revisions, 4 engine calls)
+
+Read from host records (ledger, run events, the frozen review, the four
+ORCA outputs through result_readers), not from the report.
+- The first plan asked for the singlet by type. The model's first search
+  was in ORCA's words ("... ORCA project YAML section FlipSpin"), and
+  about_cross_program_work, which carries the rule sentence naming FlipSpin
+  as not the model's to write (1c10090a), ranked first. Four ORCA opt+freq
+  nodes, B3LYP-D3BJ and wB97X-D4 / def2-TZVP: BS singlets with
+  `broken_symmetry: true` (plus `reference: uhf`), triplets at
+  multiplicity 3; no FlipSpin, BrokenSym, GuessMix or guess=mix in any
+  project YAML, and no input_string or route words (M1). The frozen review
+  carries the ORCA translation sentence on both singlet nodes (M2); ORCA's
+  input check passed all four.
+- Host records (M3): BS singlets uks, broken_symmetry true, word broken,
+  <S**2> 0.9403 (B3LYP) and 0.9879 (wB97X-D4); triplets uks, 2.0067 and
+  2.0065. No imaginary mode on any of the four (the session's own
+  validation, lowest 380-415 cm-1).
+- Delivered (M4: claims <- expressions <- extraction receipts of the four
+  outputs, matched by file digest): unprojected dE_ST 2.56 (B3LYP) / 1.88
+  (wB97X-D4), mean 2.22 +- 0.5 kcal/mol; Yamaguchi-projected with the
+  measured <S**2> 4.82 / 3.71, mean 4.26 +- 0.8; ratio 1.92; ZPE raises
+  each by 0.2-0.3. The session named the projected gap as the one to
+  compare with the photoelectron measurement (the detachment reaches the
+  spin-pure singlet; the BS energy is triplet-contaminated) and stated the
+  functional spread, def2-TZVP basis error and the projection model as its
+  uncertainties. Settled achieved_with_observations (M5); the two host
+  observations are s2_deviation_ge_0.2 on the BS singlets, which is what a
+  broken-symmetry singlet is.
+- Bands: all held -- unprojected in [0.5, 6.0], projected in [1.5, 10.0],
+  ratio in [1.6, 2.5], singlet <S**2> in [0.6, 1.05], triplet in
+  [2.00, 2.10]. Against the measurement (3.8 +- 0.5), the projected mean
+  4.26 +- 0.8 overlaps; B3LYP alone is 1.0 above it.
+- Outcome word (pre-registered): success, on the first plan.
+- Found and left: the session's recorded assumption merged two different
+  symmetries -- the identity binding's spatial observation (D2h start;
+  `break_symmetry` perturbs a geometry by seed) was cited as the reason the
+  spin "broken-symmetry seed" (GuessMix from `broken_symmetry: true`) is
+  needed. The plan was right; the stated reason was not. Two host words
+  one letter apart name unrelated operations.
+
 ## G2 read (CUHK 2153511, complete: achieved_with_observations, 2 cycles, 4 engine calls)
 
 Read from host records (ledger, run events, the frozen review, results
