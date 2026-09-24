@@ -111,9 +111,10 @@ PYSCF_FD_STEP_ANGSTROM = 0.005
 #: depends on the reference -- so a bare "externally unstable" is ambiguous
 #: across reference classes and the record names the space.  The
 #: real -> complex question PySCF also computes inside ``rhf_external`` and
-#: ``uhf_external`` is deliberately absent: those functions log it and
-#: return only the R->U / U->G flag, so this host cannot determine it and
-#: records it as unknown rather than folding it into the returned boolean.
+#: ``uhf_external`` is not in this table: those functions return only the
+#: R->U / U->G flag, so its answer is recorded under its own question from
+#: what PySCF's analysis says (``PYSCF_STABILITY_PRINTED_KINDS``) rather
+#: than folded into the returned boolean.
 PYSCF_STABILITY_SPACES = {
     "rhf": {"internal": "internal", "external": "RHF/RKS -> UHF/UKS"},
     "rks": {"internal": "internal", "external": "RHF/RKS -> UHF/UKS"},
@@ -125,9 +126,34 @@ PYSCF_STABILITY_SPACES = {
     "roks": {"internal": "internal", "external": None},
 }
 
-#: The question PySCF computes and discards, recorded by name so a reader
-#: is told it was not answered rather than left to assume it was.
+#: The rotation space of the question PySCF solves inside ``rhf_external``
+#: and ``uhf_external`` and does not return.  Artifacts written before the
+#: driver listened to the analysis record it as not determined, by name;
+#: later ones record PySCF's answer to it under ``real_to_complex``.
 PYSCF_STABILITY_UNRETURNED_SPACE = "real -> complex"
+
+#: What PySCF's stability analysis says, in its own words
+#: (``scf/stability.py``, 2.14): every Davidson it runs logs
+#: ``<reference>_<kind>: lowest eigs of H = <array>`` -- the lowest roots of
+#: the orbital Hessian for that rotation, in Eh, in PySCF's own
+#: normalisation, and PySCF calls the reference unstable when the lowest is
+#: below ``PYSCF_STABILITY_THRESHOLD`` -- and ``dump_status`` then notes
+#: "wavefunction has an <space> instability" or "wavefunction is stable in
+#: the <space> stability analysis".  ``rhf_external`` and ``uhf_external``
+#: each run two of these, real -> complex first, so the ``real2complex``
+#: kind is the question the returned flag never carried.  Keyed kind ->
+#: the question this host records; the driver hears the analysis through
+#: this table, and the reader reads an older run's log through the same one.
+PYSCF_STABILITY_PRINTED_KINDS = {
+    "internal": "internal",
+    "real2complex": "real_to_complex",
+    "external": "external",
+}
+
+#: PySCF's own instability threshold on the lowest eigenvalue, in Eh
+#: (``stable = not (e < -1e-5)`` in every analysis of ``scf/stability.py``):
+#: an eigenvalue between it and zero is PySCF's "stable".
+PYSCF_STABILITY_THRESHOLD = -1e-5
 
 #: Excitation manifolds.  A closed-shell reference asks for singlet or
 #: triplet excitations, or both (``singlet_triplet``: the driver solves the

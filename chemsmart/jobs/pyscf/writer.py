@@ -33,7 +33,9 @@ from chemsmart.jobs.pyscf.settings import (
     PYSCF_FD_STEP_ANGSTROM,
     PYSCF_MOVING_STAGES,
     PYSCF_SOLVENT_MODELS,
+    PYSCF_STABILITY_PRINTED_KINDS,
     PYSCF_STABILITY_SPACES,
+    PYSCF_STABILITY_THRESHOLD,
     PYSCF_STABILITY_UNRETURNED_SPACE,
     PYSCF_TWO_BLOCK_MANIFOLD,
     PYSCF_UNRESTRICTED_MANIFOLD,
@@ -2472,6 +2474,75 @@ def _stability_family(mf):
     return None
 
 
+def _stability_listener(mf):
+    """A PySCF logger that writes where the run's own log goes, and keeps
+    what the stability analysis says while it says it.
+
+    ``mf.stability(verbose=...)`` accepts a ``Logger`` and hands it to
+    every Davidson it runs, so the values PySCF computes and only logs --
+    each rotation's lowest eigenvalues, and the real -> complex verdict
+    that ``rhf_external``/``uhf_external`` never return -- are heard as
+    the objects PySCF logged, at full precision, instead of being read
+    back out of the text afterwards.  The log file receives exactly what
+    it received before.
+    """
+    from pyscf.lib import logger
+
+    class _Listener(logger.Logger):
+        def __init__(self):
+            logger.Logger.__init__(
+                self, mf.stdout, max(int(mf.verbose), logger.INFO)
+            )
+            self.heard = []
+
+        def info(self, msg, *args):
+            self.heard.append((str(msg), args))
+            return logger.Logger.info(self, msg, *args)
+
+        def note(self, msg, *args):
+            self.heard.append((str(msg), args))
+            return logger.Logger.note(self, msg, *args)
+
+    return _Listener()
+
+
+def _stability_heard(heard, kinds):
+    """``{question: {"lowest_eigenvalues", "verdict"}}`` from what one
+    call's analysis logged, keyed by the question this host records.
+
+    Each Davidson logs ``<reference>_<kind>: lowest eigs of H = %s`` with
+    the eigenvalue array as its argument and then notes its verdict, so a
+    verdict belongs to the Davidson logged just before it.
+    """
+
+    answers = {}
+    current = None
+    for msg, args in heard:
+        head, sep, _rest = msg.partition(": lowest eigs of H")
+        if sep:
+            kind = head.rsplit("_", 1)[-1]
+            current = kinds.get(kind)
+            if current is None or not args:
+                current = None
+                continue
+            values = np.atleast_1d(np.asarray(args[0], dtype=float))
+            answers.setdefault(current, {})["lowest_eigenvalues"] = [
+                float(value) for value in values.reshape(-1)
+            ]
+            continue
+        if current is None or "wavefunction" not in msg:
+            continue
+        if " instability" in msg and "wavefunction has an " in msg:
+            answers[current]["verdict"] = "unstable"
+            answers[current]["printed"] = msg.split("> ", 1)[-1].strip()
+            current = None
+        elif "wavefunction is stable in the " in msg:
+            answers[current]["verdict"] = "stable"
+            answers[current]["printed"] = msg.split("> ", 1)[-1].strip()
+            current = None
+    return answers
+
+
 def _scf_stability(mf):
     """PySCF's own stability analysis of the converged reference.
 
@@ -2484,13 +2555,19 @@ def _scf_stability(mf):
     because "externally unstable" is not one question: for a restricted
     reference PySCF searches RHF/RKS -> UHF/UKS, and for an unrestricted
     one UHF/UKS -> GHF/GKS.  ``rhf_external`` and ``uhf_external`` also
-    solve the real -> complex question and log it without returning it,
-    so this host cannot determine that answer and says so by name rather
-    than letting a reader assume the returned flag covers it.
+    solve the real -> complex question and log it without returning it;
+    the driver listens to the analysis (``_stability_listener``), so that
+    answer is recorded under its own question, and each question carries
+    the lowest eigenvalues PySCF's Davidson found, in Eh.  An answer the
+    analysis did not say stays not determined, by name, rather than being
+    read into the returned flag.  Before the driver listened, every record
+    named real -> complex not determined although the log beside it said.
     """
 
     spaces = __CHEMSMART_STABILITY_SPACES__
     unreturned = __CHEMSMART_STABILITY_UNRETURNED_SPACE__
+    kinds = __CHEMSMART_STABILITY_PRINTED_KINDS__
+    threshold = __CHEMSMART_STABILITY_THRESHOLD__
     family = _stability_family(mf)
     named = spaces.get(family or "", {})
     record = {
@@ -2512,16 +2589,36 @@ def _scf_stability(mf):
             "this host has not named the rotation spaces of this "
             "reference class; the flags are PySCF's own and unnamed"
         )
+    # PySCF's eigenvalues are orbital-Hessian roots in its own
+    # normalisation; the unit and the line PySCF draws are stated beside
+    # them so a reader never has to know either.
+    record["eigenvalue_unit"] = "Eh"
+    record["instability_threshold"] = threshold
     started = time.time()
     external_answered = False
+    heard_external = {}
     for question in ("internal", "external"):
         entry = {"rotation_space": named.get(question), "stable": None}
+        listener = _stability_listener(mf)
         try:
-            statuses = mf.stability(
-                internal=(question == "internal"),
-                external=(question == "external"),
-                return_status=True,
-            )[2:]
+            try:
+                statuses = mf.stability(
+                    internal=(question == "internal"),
+                    external=(question == "external"),
+                    return_status=True,
+                    verbose=listener,
+                )[2:]
+            except TypeError as exc:
+                # A reference class whose stability takes no logger: ask
+                # as before, and what it only logs stays undetermined.
+                if "verbose" not in str(exc):
+                    raise
+                listener = None
+                statuses = mf.stability(
+                    internal=(question == "internal"),
+                    external=(question == "external"),
+                    return_status=True,
+                )[2:]
             value = statuses[0 if question == "internal" else 1]
             if value is None:
                 entry["unavailable"] = "pyscf returned no status"
@@ -2532,16 +2629,38 @@ def _scf_stability(mf):
                 )
         except Exception as exc:  # noqa: BLE001 - PySCF's own word
             entry["unavailable"] = "%s: %s" % (type(exc).__name__, exc)
+        heard = (
+            _stability_heard(listener.heard, kinds)
+            if listener is not None
+            else {}
+        )
+        said = heard.get(question) or {}
+        if entry["stable"] is not None and said.get("lowest_eigenvalues"):
+            entry["lowest_eigenvalues"] = said["lowest_eigenvalues"]
         record["analyses"][question] = entry
+        if question == "external":
+            heard_external = heard
     if external_answered:
-        record["not_determined"]["real_to_complex"] = {
-            "question": "external",
-            "rotation_space": unreturned,
-            "reason": (
-                "pyscf.scf.stability.rhf_external/uhf_external solve "
-                "this and return only the R->U / U->G flag"
-            ),
-        }
+        said = heard_external.get("real_to_complex") or {}
+        if said.get("verdict") and said.get("lowest_eigenvalues"):
+            # The question the returned flag never carried, in PySCF's own
+            # words and numbers, from the same call.
+            record["analyses"]["real_to_complex"] = {
+                "rotation_space": unreturned,
+                "stable": said["verdict"] == "stable",
+                "lowest_eigenvalues": said["lowest_eigenvalues"],
+                "printed": said.get("printed"),
+            }
+        else:
+            record["not_determined"]["real_to_complex"] = {
+                "question": "external",
+                "rotation_space": unreturned,
+                "reason": (
+                    "pyscf.scf.stability.rhf_external/uhf_external solve "
+                    "this and return only the R->U / U->G flag, and the "
+                    "analysis logged no answer to it that this run heard"
+                ),
+            }
     record["seconds"] = round(time.time() - started, 3)
     return record
 
@@ -3252,4 +3371,11 @@ _SKELETON = _SKELETON.replace(
 _SKELETON = _SKELETON.replace(
     "__CHEMSMART_STABILITY_UNRETURNED_SPACE__",
     repr(PYSCF_STABILITY_UNRETURNED_SPACE),
+)
+_SKELETON = _SKELETON.replace(
+    "__CHEMSMART_STABILITY_PRINTED_KINDS__",
+    repr(PYSCF_STABILITY_PRINTED_KINDS),
+)
+_SKELETON = _SKELETON.replace(
+    "__CHEMSMART_STABILITY_THRESHOLD__", repr(PYSCF_STABILITY_THRESHOLD)
 )
