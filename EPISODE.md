@@ -57,7 +57,44 @@ All read-only from `/project/xlzhang/jiseung/r10/q6/goals/pair3-b`
 
 ## Census (provider-free; the goal path's environment branches and scratch paths)
 
-To be completed in this file before any repair is committed.
+Read from the base tree (`grep -rn "SLURM_\|PBS_\|os.environ\|tempfile\|scratch"`
+over `chemsmart/agent`, `chemsmart/jobs`, `chemsmart/settings`), each item
+judged by whether its guarantee holds with the controller inside an
+allocation and engines on cluster scratch.
+
+Environment-dependent branches:
+
+| # | where | inside an allocation | verdict |
+|---|---|---|---|
+| E1 | `tool_runtime._probe_input_check`: `SLURM_JOB_ID`/`PBS_JOBID` -> `not_run` | the check never runs; the launch refusal it feeds (`executor._refuse_launch_the_program_already_refused`) has no input, so an input ORCA rejects is launched and charged | DEFECT (premise 1) |
+| E2 | `settings/probe/detect.detect_scheduler` (wizard) | answers SLURM from the job's own variables -- correct | keeps |
+| E3 | `settings/server.Server.detect_server_scheduler`/`current()` | not reached on the goal path: every node names `--server <execution-server.yaml>` | not on path |
+| E4 | `tool_runtime._launch_reserver` | diagnosis string only; liveness is the lease | keeps |
+| E5 | `live_session._allocated_execution_resources` | reads the dispatch receipt; under `--dispatch local` inside an allocation the envelope is taken as the grant with no check against the cgroup the process actually has (`sched_getaffinity`) | owner's ruling territory (hardware); noted, not repaired |
+| E6 | `live_session.local_orca_input_check` / `Executable.resolved_env` | resolves the same ORCA and ENVARS the engine gets | keeps |
+
+Scratch, staging and copy-back paths:
+
+| # | where | verdict |
+|---|---|---|
+| S1 | ORCA runner: scratch `<scratch_root>/<label>`, reused, deleted only after a complete job; copy-back of every `{label}*` | DEFECT: a later run of the label inherits and delivers an earlier failed run's files and ORCA reads its `.gbw` (premises 3, 4); concurrent wave members share the directory |
+| S2 | ORCA `_postrun` `.tmp` filter: `endswith((".tmp", ".tmp.*"))` | DEFECT: the second member is a literal; numbered temporaries (GBs of PNO integrals) are copied to /project and hashed as outputs |
+| S3 | Gaussian runner: same `<scratch_root>/<label>` keying and `{label}*` copy-back | same defect class as S1 (a stale `.chk` is delivered; Gaussian reads it only if asked) |
+| S4 | PySCF runner: same keying when `SCRATCH: true` | the agent profile sets `SCRATCH: false`; a stale `.h5` would fail the run-nonce provenance check visibly; keyed the same way for humans |
+| S5 | NCIPLOT, thermochemistry runners: same keying | off the Agent execution surface; same class |
+| S6 | xTB runner: `mkdtemp` per run under `.chemsmart-xtb-runs`, stale-artifact refusal | keeps (the pattern the others lack) |
+| S7 | input-check probe work dir: `tempfile.mkdtemp()` | unique and removed; would write under the compute node's `/tmp` once E1 is repaired, outside the scratch the server profile names |
+| S8 | `GAUSS_SCRDIR = <scratch_root>` for every Gaussian node | PID-named `Gau-*` files, unique per host; two array elements on two hosts could share a PID -- noted, not repaired |
+| S9 | PySCF engine temporaries (`lib.param.TMPDIR`) | node-local `/tmp` whatever the profile says; unique names -- noted |
+| S10 | `_prepare_execution_node_workspace` | refuses a non-empty branch before launch -- the promise S1 breaks after launch |
+| S11 | `_execution_output_artifacts` | binds every file in the branch as the node's output: the consumer that turns S1/S2 into false provenance, correct once its producer is |
+
+Resource ownership:
+
+| # | where | verdict |
+|---|---|---|
+| R1 | ORCA `additional_route_parameters` -> `!` line, no resource refusal; the tool sentence ("CPU count and memory belong to the ChemSmart run/server layer") did not hold on deepseek-v4-flash (pair3-b cycle 3) | DEFECT (premise 5) |
+| R2 | ORCA writer `%maxcore = 0.75 x MEM_GB x 1000 / NUM_CORES`, `%pal nprocs NUM_CORES` | host-owned, one number; no typed lever trades ranks for memory per core within a grant (pair3-b cycle 2: triples needed 1416.5 MB > 1044.7 MB available at %maxcore 1500) | frontier, not repaired here |
 
 ## Falsifiers
 
