@@ -101,6 +101,14 @@ claude-researcher-q17-owner-delegated. Model deepseek-v4-flash-0731.
     -0.0926 Eh", and the finding names "the unstable restricted
     closed-shell representation". One run each: an observation, not a
     rate.
+- dC (planar NH3 B3LYP/def2-SVP Hessian, PySCF, one imaginary mode at
+  -829.9 cm-1; "what ZPVE and N-H stretches for NH3").
+  - dC-S-1: the frequencies are the requested quantity, so the imaginary
+    mode sits inside the headline extraction; the session named it
+    (umbrella/inversion, all H in phase) and stated that the Hessian is not
+    at the C3v minimum; its reading added the zero dipole as corroboration.
+    A deciding quantity inside the headline read is not unnamed in effect:
+    such a task cannot separate S from P.
 
 ## Status
 
