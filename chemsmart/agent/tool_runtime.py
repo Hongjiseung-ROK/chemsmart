@@ -11686,10 +11686,15 @@ class CommandCompiledToolHostV1:
         launched and charged as an engine call (pair3-b, CUHK Slurm
         2150179: ``MaxCore 1800`` on the keyword line, rejected before
         ORCA's own INPUT FILE banner -- exactly the window the probe
-        watches). The probe is ORCA's serial front end, stopped at that
-        banner, before any rank is started; inside an allocation it runs
-        on the allocation's own cores, in the scratch the envelope
-        grants.
+        watches). It is not true that the probe stops before any rank
+        starts: past the banner ORCA 6.1.1 launches ``mpirun -np <n>
+        orca_startup_mpi`` within a tenth of a second, and before the
+        probe waited on its whole process group that mpirun outlived 10
+        of 30 probes and left 10 directories in NFS scratch (R10 Q9 O2,
+        CUHK Slurm 2150471). So the probe stops and waits for its group,
+        on the allocation's own cores, in the scratch the envelope grants
+        -- the same process and the same cores the node's engine uses a
+        moment later.
         """
 
         from chemsmart.agent.input_check import (
