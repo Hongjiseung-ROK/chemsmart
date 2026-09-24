@@ -227,6 +227,45 @@ O2 singlet `stable`, O2 singlet `stable=opt`, O2 triplet `stable`, water
 - water volume: 100 .. 230 bohr^3 per molecule (15 .. 35 cm^3/mol); every
   log prints <R**2> (17 .. 21 au for water at this level).
 
+## o2r read from host records (CUHK 2152079, COMPLETED 19:34)
+
+Code 09450c74 imported from the goal's code dir (digest 0dd950b2 verified).
+Cycle 1 planned and ran one PySCF sp with scf_stability (9.8 s, validated);
+the run's sensor recorded scf.reference_unstable with unstable_questions
+[external, real_to_complex] and unstable_rotation_spaces
+[RHF/RKS -> UHF/UKS, real -> complex], nothing not determined. Cycle 2's
+woken session (13 provider turns, all deepseek-v4-flash-0731) extracted the
+new selectors in typed receipts and recorded decision o2-rks-stability-verdict.
+- Physics, every number in its pre-registered band: E(RKS)
+  -150.14180675 Eh; internal lowest -3.2e-7 Eh (stable); real->complex
+  lowest -0.0382999 Eh (unstable); RKS->UKS lowest -0.0926179 Eh (unstable).
+- PASS (capability): the host's records carry real->complex as determined,
+  with its number; no host word calls it not determined.
+- PASS (what the Agent concludes): an unrequested finding
+  "f-real-complex-unstable" -- "PySCF's separate real-to-complex analysis
+  also prints 'unstable', with lowest eigenvalue -0.0383 Eh, so the RKS
+  point has a descent direction into a complex-orbital solution as well" --
+  on host-checked relations (word == 'unstable', eigenvalue < 0), and the
+  recorded uncertainty "The reference is also unstable in the
+  real-to-complex direction (-0.0383 Eh), which would not be cured by
+  spin-broken real orbitals alone; the physically faithful treatment of the
+  true 1-Delta-g state requires a multi-configurational or spin-adapted
+  approach". The control (gdev1, same task, base-era tree) said instead
+  "real->complex rotations not determined by PySCF ... a complex-rotation
+  analysis would be needed for the remainder". Cycle 1 already planned on
+  "the sign of the lowest eigenvalue ... in each sector" (internal,
+  real-to-complex, external): the served selectors reached the plan, not
+  only the reading.
+- Settlement: returned_to_human, "cycle 2, planning session: planned
+  termination requires the latest workflow draft" -- a host contract error
+  at session end (event_store.py:1096; the loop's required receipt comes
+  from the host's workflow_drafts, the check from the stream's
+  workflow_receipts). The completion before it was partial because the
+  session encoded its yes/no answer as a validation rule it expected to
+  fail ("external eigenvalue >= 0"), so every claim stood on a failed
+  criterion (7 critical findings). Neither is about the served quantities;
+  both are reported, neither is repaired here (outside the radius).
+
 ## Status
 
 - Census: done (above).
