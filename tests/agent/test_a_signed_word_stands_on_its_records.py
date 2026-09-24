@@ -556,3 +556,220 @@ def test_an_expression_is_replayed_from_what_its_event_recorded(tmp_path):
     assert [item["receipt_sha256"] for item in bindings["inputs"]] == list(
         receipts.values()
     )
+
+
+# -- a typed refusal is a word too -----------------------------------------
+
+
+def _blocking_plan(observable_id):
+    """A toolchain whose one node, declared non-executable, names the
+    refused observable as its output -- the route a session takes to have
+    the host verify a refusal."""
+
+    blocked = _analysis_node(
+        "producer-blocked",
+        "unsupported_external",
+        support_state="blocked_unsupported",
+        blocked_reason="no admissible producer holds it",
+        outputs=(
+            AnalysisOutputIntentV1(
+                output_id=observable_id,
+                quantity_kind="energy",
+                unit="kcal/mol",
+            ),
+        ),
+    )
+    return build_scientific_toolchain_plan(
+        plan_id="p",
+        workflow_id="refusal",
+        command_workflow_draft_sha256="9" * 64,
+        calculation_nodes=(),
+        calculation_observables={},
+        analysis_nodes=(blocked,),
+        required_output_ids=(observable_id,),
+    )
+
+
+def _refusing_session_rows(tmp_path, name, *, refused, delivered, value):
+    """What a session's own host writes when it delivers one observable
+    and refuses another: the declarations (the delivered one with an
+    expectation band of 2-7 kcal/mol), a claim at `value`, a decision whose
+    refusal the host verifies against a blocked node of its plan, and the
+    completion its gate mints."""
+
+    build = tmp_path / f"session-{name}"
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(build / "events.jsonl", session_id=name),
+        artifacts={},
+        task_spec_sha256s=(_TASK,),
+        approved_workspace=build / "ws",
+        approved_scientific_toolchain_plan=_blocking_plan(refused),
+    )
+    declared = host.dispatch(
+        turn_id="t0",
+        tool_name="declare_requested_observable",
+        arguments={
+            "observables": [
+                {
+                    "observable_id": delivered,
+                    "unit": "kcal/mol",
+                    "meaning": "the delivered energy",
+                    "expected_low": 2.0,
+                    "expected_high": 7.0,
+                    "expectation_basis": "a prior the physics may leave",
+                },
+                {
+                    "observable_id": refused,
+                    "unit": "kcal/mol",
+                    "meaning": "the refused energy",
+                },
+            ]
+        },
+    )
+    assert declared["status"] == "ok", declared
+    literal = host.dispatch(
+        turn_id="t1",
+        tool_name="evaluate_quantity_expression",
+        arguments={
+            "expression_id": "delivered",
+            "inputs": [],
+            "nodes": [
+                {
+                    "node_id": "n1",
+                    "operation": "literal",
+                    "literal_value": value,
+                    "literal_unit": "kcal/mol",
+                }
+            ],
+            "output_node_ids": ["n1"],
+        },
+    )
+    receipt = literal["result"]["receipt_sha256"]
+    claimed = host.dispatch(
+        turn_id="t2",
+        tool_name="record_analysis_claims",
+        arguments={
+            "task_spec_sha256": _TASK,
+            "claims": [
+                {
+                    "claim_id": delivered,
+                    "receipt_sha256": receipt,
+                    "quantity_id": "n1",
+                    "display_unit": "kcal/mol",
+                }
+            ],
+        },
+    )
+    assert claimed["status"] == "ok", claimed
+    decided = host.dispatch(
+        turn_id="t3",
+        tool_name="record_scientific_decision",
+        arguments={
+            "decision_id": "d1",
+            "assumptions": ["a"],
+            "method_rationale": "r",
+            "alternatives": ["b"],
+            "uncertainties": ["u"],
+            "diagnostics": ["g"],
+            "stage_order": ["s"],
+            "evidence_refs": [],
+            "unreachable_observable_ids": [
+                {
+                    "observable_id": refused,
+                    "statement": "no admissible structure holds it",
+                    "receipt_sha256s": [receipt],
+                    "blocked_node_id": "producer-blocked",
+                }
+            ],
+        },
+    )
+    (refusal,) = decided["result"]["unreachable_observables"]
+    assert refusal["verified"] is True, refusal
+    host._record_toolchain_completion(
+        "c" * 64,
+        task_spec_sha256=_TASK,
+        source_receipt_sha256s=(claimed["result"]["receipt_sha256"],),
+    )
+    return _rows(build / "events.jsonl")
+
+
+def _goal_ledger(workspace, observable_ids):
+    from chemsmart.agent.goal import GoalLedger, GoalRecordV1
+
+    ledger = GoalLedger(workspace / ".chemsmart-agent" / "goals" / "goal-r")
+    ledger.create(
+        GoalRecordV1(
+            schema_version="chemsmart.goal.v1",
+            goal_id="goal-r",
+            task_spec_sha256=_TASK,
+            scientific_identity_sha256="",
+            conditions={"solvents": (), "thermochemistry": ()},
+            envelope={
+                "allowed_program_engines": (),
+                "max_engine_calls": 30,
+                "episode_wall_time_seconds": 21600.0,
+                "max_excursion_calls": 0,
+            },
+            max_revisions=8,
+            granted_by="claude-owner-delegated-reviewer",
+            initial_review_sha256="",
+            created_at="2026-09-25T00:00:00+00:00",
+        )
+    )
+    ledger.append(
+        "observables_declared",
+        {
+            "cycle": 1,
+            "observables": [
+                {
+                    "observable_id": observable_id,
+                    "unit": "kcal/mol",
+                    "dimension": (1, 0, 0, 0, 0, 0),
+                    "meaning": observable_id,
+                }
+                for observable_id in observable_ids
+            ],
+        },
+    )
+    return ledger
+
+
+def test_a_refusal_word_carries_what_the_rest_of_the_delivery_found(
+    tmp_path,
+):
+    """A goal that refuses one observable with the host's verification
+    delivers the rest of its answer too, and its word carried the refusal
+    alone: 10 of 17 archived unreachable_from_evidence settlements left
+    out anomaly receipts, falsified expectations or findings their own
+    delivery held (R10 Q24 census). The first word a human reads must not
+    hide what the run found (owner ruling, 2026-09-03), whichever word it
+    is. Here the delivered number lies outside the band declared for it."""
+
+    from chemsmart.agent.driver import _settle_from_delivery
+
+    workspace = tmp_path / "ws"
+    stream = (
+        workspace / ".chemsmart-agent" / "runs" / "live-1" / "events.jsonl"
+    )
+    stream.parent.mkdir(parents=True)
+    rows = _refusing_session_rows(
+        tmp_path, "live-1", refused="g-90", delivered="g-180", value=0.35
+    )
+    stream.write_text(
+        "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+    )
+
+    result = _settle_from_delivery(
+        _goal_ledger(workspace, ("g-180", "g-90")),
+        goal_id="goal-r",
+        cycles=1,
+        revisions_admitted=0,
+        events_path=stream,
+        terminal="complete",
+        workspace=workspace,
+    )
+
+    assert result.settlement == "unreachable_from_evidence", result.reasons
+    reasons = " | ".join(result.reasons)
+    assert "g-90 -- no admissible structure holds it" in reasons
+    assert "falsified_expectation:g-180" in reasons

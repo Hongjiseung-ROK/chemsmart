@@ -32,7 +32,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Collection, Mapping, Sequence
 
 from chemsmart.agent._contracts import (
     ContractError,
@@ -354,9 +354,50 @@ def _inherited_verdict_reason(delivery: "_AnalysisDelivery") -> str:
     )
 
 
+def _earlier_deliveries(
+    delivery: "_AnalysisDelivery", superseded: Collection[str] = ()
+) -> tuple[str, ...]:
+    """The ids an earlier cycle delivered that this stream missed, less
+    the ones this cycle's verified refusal superseded."""
+
+    return tuple(
+        item
+        for item in delivery.delivered_in_earlier_cycles
+        if item.split(" (delivered in cycle", 1)[0] not in set(superseded)
+    )
+
+
+def _what_the_delivery_carries(
+    delivery: "_AnalysisDelivery",
+    ledger_anomalies: Sequence[Mapping[str, Any]],
+    evidence: Mapping[str, Any],
+    superseded: Collection[str] = (),
+) -> tuple[tuple[str, ...], dict[str, Any]]:
+    """The lines and receipts a delivery carries beside its word.
+
+    `_achieved_word` names them for an achieved goal -- the certificate
+    it stands on, the observations the host recorded, the provenance of
+    each number, the session's findings. A goal that settles on a typed
+    refusal delivered the rest of its answer as well, and its word used
+    to carry the refusal alone: 10 of 17 archived
+    unreachable_from_evidence settlements left out anomaly receipts,
+    falsified expectations or findings their own delivery held (R10
+    Q24 census), which is what the owner's ruling that the first word
+    must not hide what the run found was made against (2026-09-03).
+    """
+
+    word, lines = _achieved_word(
+        delivery, ledger_anomalies, superseded=superseded
+    )
+    if word == "achieved_with_observations":
+        evidence = _anomaly_evidence(evidence, ledger_anomalies)
+    return lines, dict(evidence)
+
+
 def _achieved_word(
     delivery: "_AnalysisDelivery",
     ledger_anomalies: Sequence[Mapping[str, Any]] = (),
+    superseded: Collection[str] = (),
 ) -> tuple[str, tuple[str, ...]]:
     """The settlement word for a certified delivery.
 
@@ -443,10 +484,10 @@ def _achieved_word(
                 )
             ),
         )
-    if delivery.delivered_in_earlier_cycles:
+    earlier = _earlier_deliveries(delivery, superseded)
+    if earlier:
         provenance = provenance + (
-            "delivered in an earlier cycle: "
-            + ", ".join(delivery.delivered_in_earlier_cycles),
+            "delivered in an earlier cycle: " + ", ".join(earlier),
         )
     if delivery.answered_criteria:
         provenance = provenance + _answered_criterion_reasons(
@@ -822,10 +863,13 @@ def _delivery_settlement(
         # not delivered, and the recorded decision with its receipts is
         # the typed refusal.
         settled = "unreachable_from_evidence"
+        carried, evidence = _what_the_delivery_carries(
+            delivery, _goal_anomalies(ledger), evidence
+        )
         reasons = (
             "the completion receipt names required outputs "
             "delivered without: " + ", ".join(delivery.blocked_output_ids),
-        )
+        ) + carried
     elif (
         delivery.decisions
         and refused_ids
@@ -843,6 +887,9 @@ def _delivery_settlement(
         # certified as unreachable settled achieved, and the tool's own
         # reply had promised this word for it.
         settled = "unreachable_from_evidence"
+        carried, evidence = _what_the_delivery_carries(
+            delivery, _goal_anomalies(ledger), evidence
+        )
         reasons = (
             _VERIFIED_REFUSAL_LEAD
             + "; ".join(
@@ -850,7 +897,7 @@ def _delivery_settlement(
                 f"{delivery.unreachable_bases.get(observable_id, '')}"
                 for observable_id in refused_ids
             ),
-        )
+        ) + carried
     elif (
         delivery.decisions
         and open_ids
@@ -6753,12 +6800,17 @@ class GoalDriver:
                     for observable_id in refused_ids
                 )
             )
+            carried, evidence = _what_the_delivery_carries(
+                run_delivery,
+                _goal_anomalies(self.ledger),
+                _settlement_evidence(session_delivery),
+            )
             self.ledger.settle(
                 "unreachable_from_evidence",
-                reasons=(reason,),
-                evidence=_settlement_evidence(session_delivery),
+                reasons=(reason, *carried),
+                evidence=evidence,
             )
-            self._settled("unreachable_from_evidence", (reason,))
+            self._settled("unreachable_from_evidence", (reason, *carried))
             return
         if achieved and open_delivery and recovery_affordable:
             # Every required output arrived and a host-rendered verdict
