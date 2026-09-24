@@ -159,6 +159,67 @@ root) -- never by list position:
   translating one request into two calculations; no Agent goal is judged
   against O1 until it is explained.
 
+### G1 -- acrolein's triplets relative to S1, in ORCA and PySCF (live goal, goals/g1-ladder)
+
+Task (fixed before issue, `goals/g1-ladder/TASK.md`): acrolein from Q7's
+rough planar s-trans geometry; relax at PBE0/def2-SVP (program the
+session's choice), then full TD-DFT singlets and triplets at the minimum
+independently in ORCA and in PySCF; per program S1, T1, T2, the S1-T1
+gap, every triplet below S1, the brightest computed singlet with its f;
+then a state-by-state comparison with the largest difference. Engines
+allowed: gaussian, orca, pyscf. Code: the pack of this commit.
+
+References (O1 at Q7's Gaussian PBE0/def2-SVP minimum; ORCA NoRI): ORCA
+S1 3.6223, T1 2.9763, T2 3.1961, S2 6.5357 eV (f 0.381); PySCF S1 3.6243,
+T1 2.9780, T2 3.1952, S2 6.5340 (f 0.381). ORCA's default RIJCOSX moved
+acrolein roots by <= 0.002 eV (Q7 E4).
+- Success: an ORCA and a PySCF td node executed under the approval chain,
+  validated and parsed; per program S1, T1, T2 within 0.02 eV of the
+  program's reference (a minimum reached by another program at the same
+  level moves roots by less); S1-T1 = 0.646 +- 0.02 eV; exactly T1 and T2
+  reported below S1 in both programs; the brightest singlet (if two or
+  more were computed) S2 at 6.53 +- 0.02 eV with f 0.38 +- 0.02; the
+  programs agree within 0.01 eV per paired state; settlement from the
+  ledger.
+- Failure: a state named by position across programs (a triplet called
+  S1, T2 taken for S2, a k-th root compared with another program's k-th
+  root of the other manifold); no td node in one of the two programs; a
+  claim of agreement over differently paired states.
+- Recorded, not scored: which manifold words and nstates the session
+  chose (singlet_triplet or separate nodes), which selectors it read
+  (singlet_*/triplet_* or multiplicities), which program optimised,
+  whether it opened the excitations reference.
+
+### G2 -- the allyl radical's doublet states up to 7 eV, in ORCA and PySCF (live goal, goals/g2-allyl)
+
+Task (fixed before issue, `goals/g2-allyl/TASK.md`): the allyl radical at
+the UPBE0/def2-SVP minimum O1 reached (supplied); full TD-DFT at
+PBE0/def2-SVP independently in ORCA and in PySCF covering every state up
+to 7 eV; per program energies and strengths of those states, the
+strongest absorption, a measure of spin contamination where the programs
+allow it; a state-by-state comparison with the largest difference.
+Engines allowed: orca, pyscf.
+
+References (O1, ten-root windows, NoRI ORCA): the states below 7 eV are
+4.0024/4.0013, 5.9998/6.0003, 6.3125/6.3106 (f 0.388, the strongest),
+6.4359/6.4356, 6.6357/6.6363, 6.9000/6.9000 eV (ORCA/PySCF); a six-root
+PySCF window misses the 6.90 eV root and returns 7.080 as its sixth. Under
+full TD-DFT the host serves no per-root <S^2> (b082d045) and names TDA as
+the route; under TDA D1 has <S^2> 0.756 in ORCA, and a six-root ORCA TDA
+window lacks the bright root.
+- Success: an ORCA and a PySCF unrestricted td node executed, validated
+  and parsed (the first Agent run of ORCA's `unrestricted`); the strongest
+  absorption at 6.31 +- 0.02 eV with f 0.39 +- 0.02 in both; every state
+  the session reports below 7 eV within 0.01 eV of the reference; where
+  the two programs' lists differ (a window missing a root), the report
+  says so rather than claiming agreement.
+- Failure: no unrestricted td in one program; a claimed state-by-state
+  agreement between lists that hold different states; a spin-contamination
+  number presented that the host did not serve (e.g. a full TD-DFT <S^2>).
+- Recorded, not scored: nstates and response chosen, whether the session
+  checked that its top root lies above 7 eV, whether it ran TDA for <S^2>,
+  whether it noticed a missing root (not asked).
+
 ## Results read so far (host records, through ChemSmart's readers)
 
 O1 (Slurm 2150194, code 4a01097a, tree digest 15fd46c4 recomputed on the
