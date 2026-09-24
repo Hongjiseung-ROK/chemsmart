@@ -255,3 +255,39 @@ Settled `achieved_with_observations` after 2 cycles, 0 revisions
   expectation band for the imaginary frequency (-1500 to -2600 cm-1)
   was falsified by the delivered -1122.56; the session wrote that down.
 - Recorded: setting orca:inithess ("read") in release.json (1af6fa66).
+
+## G1 -- READ (CUHK Slurm 2151912; code 20dd195d, digest 35a90313 verified on the node)
+
+Settled `achieved` after 3 cycles, 2 admitted revisions, 9 engine calls,
+every node validated (host ledger, read_goal.py).
+- Cycle 1 approval (9 nodes: orca-ts -> pyscf-irc-fwd/bwd -> pyscf-opt
+  -> pyscf-hess + orca-sp): the session named orca-ts ALONE (twice;
+  its choice: read the saddle first). The saddle validated and its edges
+  to both PySCF IRCs were bound; nothing else ran under that approval.
+- Cycle 2 (new approval, IRCs from the lifted ORCA saddle): the session
+  named pyscf-irc-fwd, pyscf-irc-bwd, pyscf-opt-fwd, pyscf-opt-bwd; each
+  opt ran after its IRC in the same run under the same approval (C2
+  live, a second system and program: PySCF IRC -> opt chains, bound
+  edges, 1 s gaps).
+- Cycle 3 (new approval): orca-sp-hcn/hnc and pyscf-hess-hcn/hnc.
+Physics, all bands PASS:
+- B1: one imaginary mode, 1119.15i cm-1 (ORCA, def2-TZVP).
+- B2: one branch relaxed to HCN (C-H 1.067 A, C-N 1.146 A, linear), the
+  other to HNC (N-H 0.998 A, C-N 1.164 A, linear); both PySCF Hessians
+  zero imaginary modes.
+- B3 (host-rendered claims): barrier from HCN 47.68, from HNC 33.39,
+  HNC - HCN electronic 14.29, with ZPE 13.78 kcal/mol (ATcT 14.90 at
+  0 K: B3LYP/def2-TZVP low by 1.1).
+Milestone B NOT earned per the pre-registration: the ORCA saddle and the
+PySCF nodes ran under three approvals, split by the session's own wave
+choices, not under one. The route crossed programs twice (ORCA ->
+PySCF -> ORCA) and delivered correct physics; one-approval execution of
+a chain is shown by G2 (ORCA) and by G1's cycle 2 (PySCF), not by one
+cross-program approval.
+
+## Status
+
+- Milestone A claimed: an approved consumer runs in its producer's wave
+  when the Agent names it, with every admitted input -- the saddle's
+  Hessian -- reaching the program (O1, G2, G1 cycle 2;
+  setting:orca:inithess recorded). B not earned (see G1).
