@@ -127,6 +127,44 @@ optimised by me at any level used by the Agent).
    numbers (pre-registered here before submission).
 3. One live goal (g1). A second system only for a general claim.
 
+## Oracle O1 -- PRE-REGISTRATION (written before submission)
+
+A CLI reference job (no Agent, no provider) on the code of this commit
+(chemsmart/ unchanged from the base). It is also the engine rehearsal of
+the writers and readers the route leans on: ORCA opt/ts/irc with the
+saddle's Hessian, PySCF stability at ORCA geometries (a cross-program
+geometry through the CLI), canonical CCSD(T) in both programs.
+Commands: `cli/o1/commands.txt` (14 `chemsmart run` lines, 32 cores,
+100 GB). Guesses built by me with RDKit/MMFF and by linear
+interpolation (enediyne -> a regular hexagon at 0.79, C1...C6 2.008 A);
+the Agent never sees them. DFT: B3LYP-D3(BJ)/def2-TZVP (ORCA writes
+B3LYP/G; whether ORCA applies RIJCOSX is read from its output).
+CCSD(T)/cc-pVTZ, frozen core (ORCA default; PySCF `frozen_core: auto`).
+
+Predictions (bands never tuned after a result):
+- O-A saddle: converges from the guess; exactly one imaginary mode,
+  |nu| in [250, 1000] cm-1; C1...C6 in [1.85, 2.15] A.
+- O-B IRC: the two directions move C1...C6 oppositely: one end below
+  1.7 A (toward p-benzyne), the other above 2.5 A (toward the
+  enediyne); ORCA's default step limit may stop both short of a minimum.
+- O-C stability (PySCF RKS, B3LYP-D3BJ/def2-TZVP): enediyne stable in
+  every question asked; saddle stable (prediction, after Graefenstein et
+  al.'s RDFT-stable TS); p-benzyne RKS -> UKS unstable (a negative
+  lowest external eigenvalue).
+- O-D B3LYP electronic barrier (ORCA) in [31, 38] kcal/mol (Sherer's
+  B3LYP/triple-zeta dH++(470 K) 32.3-34.2, and dH++(470) is about
+  dE++ - 1.6 from Kraka's ZPE and thermal terms).
+- O-E closed-shell RB3LYP reaction energy in [5, 25] kcal/mol (weak; an
+  upper bound to a broken-symmetry value).
+- O-F CCSD(T)/cc-pVTZ // B3LYP: dE++ in [28, 34], dE_R in [6, 17]
+  kcal/mol.
+- O-G ORCA and PySCF CCSD(T) totals agree within 1e-5 Eh on each
+  geometry when neither applied RI to the reference; a larger gap on
+  p-benzyne alone would say the two programs converged different RHF
+  solutions (a program fact, not a hub one).
+- O-H ORCA's T1 for p-benzyne exceeds the enediyne's and the saddle's;
+  prediction T1(p-benzyne) > 0.015.
+
 ## Jobs issued
 
 (none yet)
