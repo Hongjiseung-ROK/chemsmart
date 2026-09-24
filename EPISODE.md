@@ -256,7 +256,33 @@ or achieved_with_observations with D0 in 94-103 kcal/mol (anchor: CBS De
 from host arithmetic. A route that avoids a class leaves it untested:
 reported, not re-rolled.
 
+### G2 results (Slurm 2152988, prereg 04ca1d95fabe, code r2 fb8f00f4)
+
+Settled `returned_to_human` after 3 cycles, 1 revision, 7 engine calls.
+- T1 held: all 7 engine calls validated (derive_run_outcome on the
+  archived streams); no failed or refused call.
+- T2 held: `freq: true` on MP2 was written `! Opt NumFreq mp2 def2-tzvp`,
+  the review stated "has no analytic Hessian for MP2; the input asks for
+  NumFreq ...", ORCA TERMINATED NORMALLY in 61 s, stretch 3779.56 cm-1
+  (band 3650-3900), ZPE 5.40 kcal/mol.
+- T3 held: the O atom UHF CCSD(T) ran at 15 of 16 ("# 15 of 16 granted",
+  "Program running with 15", "Number of pairs included ... 15"), in both
+  the def2-TZVP and the def2-QZVP cycle; review observation shown.
+- T4 held: the compile refusal fired twice (cycles 1 and 3), cost "no
+  engine call"; the session took the route both times (UHF for H:
+  -0.499809832061 Eh TZVP, -0.499983297688 QZVP).
+- T5 FAILED as pre-registered. The cycle-1/2 delivery, D0 = 0.15154 Eh =
+  95.09 kcal/mol (De 100.50 - ZPE 5.40), is in the band (94-103); the
+  requirement stayed open on the session's own 3.0 kcal/mol tolerance
+  (uncertainty "asserted"); in cycle 3 the session measured the basis term
+  (De(QZ) - De(TZ) = 5.27 kcal/mol, beyond its own tolerance), and its new
+  expression flipped a sign: d0-oh = -105.90 kcal/mol, which the host
+  recorded as "diverged" from the session's declared band (85-100); the
+  goal returned to the human with de-tz-kcal and rss-total unclaimed. The
+  failure is the session's arithmetic under the goal's uncertainty loop,
+  not a program refusal; no false word was signed.
+
 ## Status
 
 - Census: done (above). O1: done (above).
-- Jobs issued: O1 2152636 (done).
+- Jobs issued: O1 2152636, O2 2152810, G1 2152811, G2 2152988 (all done). None running.
