@@ -1,0 +1,52 @@
+Excerpt of a real ORCA 6.1.1 output (R10 Q9 G1, CUHK Slurm 2150438, node
+sp-h-ccsd): UHF CCSD(T)/def2-QZVPPD on the H atom at 8 processes. The
+MDCI header and the abort are kept verbatim; the SCF between is cut.
+Correlation treatment                      ...      CCSD     
+Single excitations                         ... ON
+Orbital optimization                       ... OFF
+Calculation of Z vector                    ... OFF
+Calculation of Brueckner orbitals          ... OFF
+Perturbative triple excitations            ... ON
+Calculation of F12 correction              ... OFF
+Frozen core treatment                      ... NO frozen core
+Reference Wavefunction                     ... UHF
+  Alpha-MOs occ    :     0 ...    0 (  1 MO's/  1 electrons)
+  Beta-MOs occ     :     0 ...   -1 (  0 MO's/  0 electrons)
+  Alpha-MOs virt   :     1 ...   32 ( 32 MO's              )
+  Beta-MOs virt    :     0 ...   32 ( 33 MO's              )
+Number of AO's                             ...     33
+Number of electrons                        ...      1
+Number of correlated electrons             ...      1
+--------------------------
+UNRESTRICTED FOCK OPERATOR
+--------------------------
+
+Recanonicalizing the internal orbitals
+Recanonicalizing the virtual orbitals
+Storing new orbitals
+[file orca_mdci/mdci_state.cpp, line 1070, Process 5]: . . . aborting the run
+
+[file orca_mdci/mdci_state.cpp, line 1070, Process 6]: . . . aborting the run
+
+[file orca_mdci/mdci_state.cpp, line 1070, Process 7]: . . . aborting the run
+
+[file orca_mdci/mdci_state.cpp, line 1070, Process 2]: . . . aborting the run
+
+[file orca_mdci/mdci_state.cpp, line 1070, Process 3]: . . . aborting the run
+
+[file orca_mdci/mdci_state.cpp, line 1070, Process 4]: . . . aborting the run
+
+[file orca_mdci/mdci_state.cpp, line 1070, Process 1]: . . . aborting the run
+
+Time needed for Fock operator              ...            0.027 sec
+Reference energy                           ...     -0.499983298
+Error (ORCA_MDCI): Number of processes (8) in parallel calculation exceeds number of pairs (0)
+[file orca_mdci/mdci_state.cpp, line 1070, Process 0]: . . . aborting the run
+
+3 total processes killed (some possibly by mpirun during cleanup)
+
+ORCA finished by error termination in MDCI
+Calling Command: mpirun -np 8  /project/xlzhang/shared/bin/orca_6_1_1/orca_mdci_mpi /ss02/scratch/s1/xlzhang/jiseung/r10/q9/g1/geometry-h-atom_sp_sp_gas_phase-dcaea49d/geometry-h-atom_sp_sp_gas_phase.mdciinp.tmp /ss02/scratch/s1/xlzhang/jiseung/r10/q9/g1/geometry-h-atom_sp_sp_gas_phase-dcaea49d/geometry-h-atom_sp_sp_gas_phase 
+[file orca_tools/qcmsg.cpp, line 394]: 
+  .... aborting the run
+

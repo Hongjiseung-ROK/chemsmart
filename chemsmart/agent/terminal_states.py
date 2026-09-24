@@ -62,6 +62,7 @@ REPAIRABLE_NODE_STATES = frozenset(
         "timeout_terminated",
         "memory_limit_terminated",
         "failed_native",
+        "failed_result_validation",
     }
 )
 
@@ -268,6 +269,7 @@ NODE_TERMINAL_STATES = (
     "validated",
     "engine_complete_unvalidated",
     "failed_native",
+    "failed_result_validation",
     "failed_nonconverged_scf",
     "failed_nonconverged_geometry",
     "failed_nonconverged_scan_step",
@@ -578,27 +580,20 @@ def _native_failure(
     return ("", ())
 
 
-def _artifact_scan_facts(
-    validation_record: Mapping[str, Any],
-) -> tuple[bool | None, int | None, int | None, tuple[str, ...]]:
-    """Read convergence and scan facts from the node's own artifact.
+def _opened_outputs(validation_record: Mapping[str, Any]) -> Any:
+    """Yield ``(output, sha256)`` for the node's own program output.
 
-    Derive-on-read means a fact the producer never anticipated is still
-    reachable: the artifact is re-parsed under its recorded digest, and
-    a moved or altered file simply yields absent facts, never wrong
-    ones.
+    Each recorded artifact of the program reader's kind whose bytes still
+    match their digest, opened by that reader, in record order. A moved,
+    altered or unreadable file yields nothing, never a wrong fact.
     """
 
-    converged: bool | None = None
-    reached: int | None = None
-    planned: int | None = None
-    digests: list[str] = []
     from chemsmart.analysis.result_readers import reader_for
 
     program = str(validation_record.get("program") or "").strip().lower()
     reader = reader_for(program)
     if reader is None:
-        return converged, reached, planned, ()
+        return
     for artifact in validation_record.get("output_artifacts") or ():
         if not isinstance(artifact, Mapping):
             continue
@@ -619,16 +614,56 @@ def _artifact_scan_facts(
             if sha256 and file_sha256(path) != sha256:
                 continue
             output = reader.open_output(path)
+        except Exception:  # noqa: BLE001 - an unreadable file yields absence
+            continue
+        yield output, sha256
+
+
+def _artifact_scan_facts(
+    validation_record: Mapping[str, Any],
+) -> tuple[bool | None, int | None, int | None, tuple[str, ...]]:
+    """Read convergence and scan facts from the node's own artifact.
+
+    Derive-on-read means a fact the producer never anticipated is still
+    reachable: the artifact is re-parsed under its recorded digest, and
+    a moved or altered file simply yields absent facts, never wrong
+    ones.
+    """
+
+    for output, sha256 in _opened_outputs(validation_record):
+        try:
             value = getattr(output, "converged", None)
             converged = None if value is None else bool(value)
             reached = getattr(output, "scan_step_count", None) or None
             coordinate = getattr(output, "scan_coordinate", None)
             planned = int(coordinate["points"]) if coordinate else None
-            digests.append(sha256)
-            break
         except Exception:  # noqa: BLE001 - an unreadable file yields absence
             continue
-    return converged, reached, planned, tuple(digests)
+        return converged, reached, planned, (sha256,)
+    return None, None, None, ()
+
+
+def _artifact_terminated_normally(
+    validation_record: Mapping[str, Any],
+) -> bool | None:
+    """The program's own word on whether it finished, read from its output.
+
+    None when no output of the node can be read to say. A host rule that
+    refuses a result the program finished is a different fact from a
+    program that stopped on its own error, and only the output tells them
+    apart: 17 of the 133 failed engine calls in the R8-R10 CUHK goals and
+    the ax41 campaign (R10 Q14's census) were finished runs refused by a
+    reader or validator, and each was told "the program stopped on its
+    own error".
+    """
+
+    for output, _sha256 in _opened_outputs(validation_record):
+        try:
+            value = getattr(output, "normal_termination", None)
+        except Exception:  # noqa: BLE001 - an unreadable file says nothing
+            continue
+        return None if value is None else bool(value)
+    return None
 
 
 def _classify_failure(
@@ -639,6 +674,7 @@ def _classify_failure(
     converged: bool | None,
     reached: int | None,
     planned: int | None,
+    terminated_normally: bool | None = None,
 ) -> str:
     if "execution.process.timeout" in findings:
         return (
@@ -728,6 +764,19 @@ def _classify_failure(
         for item in findings
     ):
         return "failed_wrong_stationary_point"
+    # The program's own output says it finished, and no ending above
+    # explains the failure: a host rule refused the result. Calling that
+    # failed_native told the session "the program stopped on its own
+    # error" over an ORCA output that ended ORCA TERMINATED NORMALLY (R10
+    # Q12 g1-hi, an atomic-guess log read as a second result), six Gaussian
+    # logs that ended Normal termination (Q5, a dispersion spelled in the
+    # route), and eight xTB runs (R9, ax41): 17 of 133 failed calls in
+    # R10 Q14's census. A class that names a cause is the program's word
+    # and keeps it; the two that name none do not outrank the output.
+    if terminated_normally is True and (
+        not native_class or native_class in _UNDIAGNOSED_FAILURE_CLASSES
+    ):
+        return "failed_result_validation"
     return "failed_native"
 
 
@@ -1004,6 +1053,7 @@ def derive_run_outcome(events: tuple[Any, ...]) -> RunOutcomeV1:
                 converged=converged,
                 reached=reached,
                 planned=planned,
+                terminated_normally=_artifact_terminated_normally(validation),
             )
         elif effective_state == "ambiguous":
             if "execution.process.timeout" in findings:

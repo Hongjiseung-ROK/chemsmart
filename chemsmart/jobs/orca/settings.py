@@ -12,6 +12,7 @@ import copy
 import logging
 import os
 import re
+from dataclasses import dataclass
 
 from chemsmart.io.orca import (
     ORCA_ALL_SOLVENT_MODELS,
@@ -363,6 +364,252 @@ def _is_orca_dlpno_coupled_cluster(value):
         return False
     normalized = str(value).strip().casefold().replace("_", "-")
     return normalized.startswith(("dlpno-cc", "ro-dlpno-cc"))
+
+
+#: Correlated methods ORCA runs in its MDCI module, which hands each MPI
+#: process a share of the correlated electron pairs and aborts before
+#: correlating anything when a process would get none:
+#: "Number of processes (N) in parallel calculation exceeds number of
+#: pairs (P)". Canonical methods compare against every pair; the local
+#: (PNO) ones against the pairs they keep as CCSD pairs after screening.
+_ORCA_CANONICAL_MDCI_PREFIXES = (
+    "ccsd",
+    "ccd",
+    "qcisd",
+    "cisd",
+    "cepa",
+    "ncepa",
+    "cpf",
+    "ncpf",
+    "acpf",
+    "aqcc",
+)
+_ORCA_LOCAL_MDCI_PREFIXES = ("dlpno-", "lpno-", "ro-dlpno-", "ro-lpno-")
+
+
+@dataclass(frozen=True)
+class ORCACorrelatedPairs:
+    """How many electron pairs ORCA's MDCI module can share out.
+
+    Measured on ORCA 6.1.1 (R10 Q14 oracle O1, CUHK Slurm 2152636): a
+    closed-shell reference has n(n+1)/2 pairs for n correlated doubly
+    occupied orbitals (water, 10), an unrestricted one N(N-1)/2 for N
+    correlated electrons (OH 21, Li 3, H 0; I 136 in R10 Q12), the
+    correlated count follows the chemical-core rule of
+    ``result_readers.CHEMICAL_CORE_ORBITALS`` (Li none frozen, Na 1s
+    only), and MDCI aborts whenever the processes outnumber the pairs --
+    at one process too when there are none. A local method keeps an
+    unknown number of pairs as CCSD pairs (27 of the water dimer's 36 at
+    aug-cc-pVTZ) but always its n diagonal ones, so n processes is the
+    most that is certain; with one correlated electron it crashed at
+    every process count.
+    """
+
+    method: str
+    local: bool
+    correlated_electrons: int
+    pairs: int
+    #: The most MPI processes the module is certain to accept.
+    max_processes: int
+    #: True when no process count runs: the state has no electron pair.
+    refused_at_any_count: bool
+
+    def processes(self, granted: int) -> int:
+        """The process count to write for a grant of ``granted`` cores."""
+
+        return max(1, min(int(granted), int(self.max_processes)))
+
+    def translation(self, granted: int) -> str:
+        """The sentence a review shows when the count is lowered, or ""."""
+
+        used = self.processes(granted)
+        if used >= int(granted) or self.refused_at_any_count:
+            return ""
+        kept = "keeps at least" if self.local else "has"
+        return (
+            f"ORCA's MDCI module ({self.method}) aborts when its MPI "
+            "processes outnumber the correlated electron pairs; this state "
+            f"{kept} {self.max_processes} pair"
+            f"{'' if self.max_processes == 1 else 's'} "
+            f"({self.correlated_electrons} correlated electrons), so the "
+            f"input runs {used} of the {int(granted)} granted processes -- "
+            "the same calculation, on fewer cores"
+        )
+
+    def refusal(self) -> str:
+        """Why no process count runs this state, and the routes."""
+
+        return (
+            f"ORCA's {self.method} has no electron pair to correlate in a "
+            f"state with {self.correlated_electrons} correlated electron"
+            f"{'' if self.correlated_electrons == 1 else 's'}: its MDCI "
+            "module refuses it at every process count, one included "
+            '("Number of processes (1) ... exceeds number of pairs (0)"; '
+            "the local variant crashes). Such a state's correlation energy "
+            "is identically zero, so its correlated energy is its reference "
+            "energy in the same basis. Routes: compute the reference "
+            "(ab_initio hf, the same reference and basis) and state that "
+            "identity; or compute this species in PySCF or Gaussian, whose "
+            "correlated codes accept a single electron"
+        )
+
+
+def _setting_value(settings, name):
+    """One field of an ORCA settings object or of its validated mapping."""
+
+    from collections.abc import Mapping
+
+    if isinstance(settings, Mapping):
+        return settings.get(name)
+    if isinstance(settings, (tuple, list)):
+        return dict(settings).get(name)
+    return getattr(settings, name, None)
+
+
+def orca_correlated_pairs(settings, symbols, charge, multiplicity):
+    """The electron pairs ORCA's MDCI module would share, or None.
+
+    ``settings`` is an ``ORCAJobSettings`` or the validated project
+    mapping of one; the writer and the review ask with the same function.
+    None when the method does not run in MDCI, or when the count is not
+    certain before the run: an element beyond Kr (its core potential
+    depends on the basis), a frozen core by energy window, a QM/MM job, or
+    a state whose electron count does not fit its multiplicity.
+    """
+
+    if isinstance(settings, ORCAQMMMJobSettings):
+        return None
+    method = str(_setting_value(settings, "ab_initio") or "").strip()
+    literal = method.casefold().replace("_", "-")
+    if not literal:
+        return None
+    local = literal.startswith(_ORCA_LOCAL_MDCI_PREFIXES)
+    canonical = literal.startswith(_ORCA_CANONICAL_MDCI_PREFIXES)
+    if not (local or canonical):
+        return None
+    try:
+        from ase.data import atomic_numbers
+
+        numbers = [int(atomic_numbers[str(symbol)]) for symbol in symbols]
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not numbers or max(numbers) > 36:
+        return None
+    if charge is None or multiplicity is None:
+        return None
+    electrons = sum(numbers) - int(charge)
+    frozen_core = str(_setting_value(settings, "frozen_core") or "").lower()
+    stated_frozen = _setting_value(settings, "frozen_core_electrons")
+    if frozen_core == "fc_ewin":
+        return None
+    if frozen_core == "fc_none":
+        frozen_electrons = 0
+    elif frozen_core == "fc_electrons" and stated_frozen is not None:
+        frozen_electrons = int(stated_frozen)
+    else:
+        from chemsmart.analysis.result_readers import chemical_core_orbitals
+
+        frozen_electrons = 2 * chemical_core_orbitals(
+            [str(symbol) for symbol in symbols]
+        )
+    correlated = electrons - frozen_electrons
+    unpaired = int(multiplicity) - 1
+    if correlated < 0 or unpaired < 0 or (correlated - unpaired) % 2:
+        return None
+    beta = (correlated - unpaired) // 2
+    reference = str(_setting_value(settings, "reference") or "").lower()
+    closed_shell = unpaired == 0 and reference in ("", "rhf")
+    if closed_shell:
+        doubly = correlated // 2
+        pairs = doubly * (doubly + 1) // 2
+    else:
+        pairs = correlated * (correlated - 1) // 2
+    if local:
+        max_processes = beta
+        refused = correlated <= 1
+    else:
+        max_processes = pairs
+        refused = pairs == 0
+    return ORCACorrelatedPairs(
+        method=method,
+        local=local,
+        correlated_electrons=correlated,
+        pairs=pairs,
+        max_processes=max_processes,
+        refused_at_any_count=refused,
+    )
+
+
+#: ORCA's double-hybrid functional keywords (the double-hybrid sections of
+#: ``chemsmart.io.orca.ORCARefs.ORCA_FUNCTIONALS``), lower-cased. Their MP2
+#: part has no analytic second derivative in ORCA.
+ORCA_DOUBLE_HYBRID_FUNCTIONALS = frozenset(
+    {
+        "b2plyp",
+        "mpw2plyp",
+        "b2gp-plyp",
+        "b2k-plyp",
+        "b2t-plyp",
+        "pwpb95",
+        "pbe-qidh",
+        "pbe0-dh",
+        "scs/sos-b2plyp21",
+        "scs-pbe-qidh",
+        "sos-pbe-qidh",
+        "scs-b2gp-plyp21",
+        "sos-b2gp-plyp21",
+        "wb2plyp",
+        "wb2gp-plyp",
+        "wb97x-2",
+        "rsx-qidh",
+        "rsx-0dh",
+        "wpbepp86",
+        "scs/sos-wb2plyp",
+        "scs-wb2gp-plyp",
+        "sos-wb2gp-plyp",
+        "scs-rsx-qidh",
+        "sos-rsx-qidh",
+        "scs-wb88pp86",
+        "sos-wb88pp86",
+        "scs-wpbepp86",
+        "sos-wpbepp86",
+        "dsd-blyp",
+        "dsd-pbep86",
+        "revdsd-pbep86/2021",
+    }
+)
+
+
+def orca_numerical_hessian_reason(settings):
+    """Why ORCA computes this method's Hessian numerically, or "".
+
+    ORCA 6.1.1's input check refuses an analytic Hessian ("MP2 analytic
+    Hessian calculations are not implemented - please use NumFreq") for
+    MP2, RI-MP2 and the double hybrids built on them (R10 Q14 oracle O1,
+    CUHK Slurm 2152636; R10 Q3 g1 lost a cycle to it). The frequencies a
+    project asks for are then ORCA's numerical ones -- central differences
+    of analytic gradients, which O1 shows agree with analytic frequencies
+    to 0.6 cm-1 where both exist (HF water) -- so ``freq`` is written as
+    ``NumFreq`` rather than as an input ORCA is certain to refuse.
+    """
+
+    method = str(_setting_value(settings, "ab_initio") or "").casefold()
+    method = method.replace("_", "-")
+    if method.startswith(("mp2", "ri-mp2", "scs-mp2", "sos-mp2")):
+        return (
+            f"ORCA has no analytic Hessian for {method.upper()}; the input "
+            "asks for NumFreq, the same harmonic frequencies from central "
+            "differences of analytic gradients (6N gradient evaluations)"
+        )
+    functional = str(_setting_value(settings, "functional") or "").casefold()
+    if functional in ORCA_DOUBLE_HYBRID_FUNCTIONALS:
+        return (
+            f"ORCA has no analytic Hessian for the double hybrid "
+            f"{functional} (its MP2 part); the input asks for NumFreq, the "
+            "same harmonic frequencies from central differences of analytic "
+            "gradients (6N gradient evaluations)"
+        )
+    return ""
 
 
 def _uses_orca_ri_mp2(ab_initio, ri_approximation):
@@ -1292,7 +1539,12 @@ class ORCAJobSettings(MolecularJobSettings):
             route_string += " NumFreq"  # requires numerical frequency,
             # e.g., in SMD model where analytic Hessian is not available
         elif self.freq:
-            route_string += " Freq"
+            # A project's freq asks for harmonic frequencies; for a method
+            # ORCA has no analytic Hessian for, NumFreq is how ORCA
+            # computes them, and its input check refuses Freq outright.
+            route_string += (
+                " NumFreq" if orca_numerical_hessian_reason(self) else " Freq"
+            )
 
         if self.vpt2:
             route_string += " VPT2"

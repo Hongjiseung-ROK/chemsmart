@@ -1155,6 +1155,16 @@ REPAIR_MENU: Mapping[str, str] = {
         "abort reached no chemistry: nothing was reached to restart from, "
         "and the repair is the field the engine named."
     ),
+    "failed_result_validation": (
+        "The program finished normally and the host's check of its result "
+        "refused it; the native findings name the rule (a requested charge "
+        "or method the output does not state, an output the reader cannot "
+        "count as one result). A finding that names a setting is repaired "
+        "in project YAML. Running the same input again gives the same "
+        "output and the same refusal: when the output shows the program "
+        "did what was asked, the refusal is the host's to answer, and the "
+        "decision says so."
+    ),
 }
 
 #: Node endings a revision can answer (the repair menu's keys), which

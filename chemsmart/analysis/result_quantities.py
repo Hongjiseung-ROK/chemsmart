@@ -1741,11 +1741,15 @@ def _thermochemistry_assumptions(
             "Truhlar quasi-harmonic vibrational entropy with frequencies "
             f"below {request.entropy_cutoff_cm1:g} cm^-1 raised to the cutoff"
         )
-    if request.program == "pyscf":
+    monoatomic = any(
+        str(item).startswith("monoatomic:") for item in engine_statements
+    )
+    if request.program == "pyscf" and not monoatomic:
         # The frequencies came from PySCF's harmonic analysis under its
         # isotope-averaged masses while the rotational and translational
         # terms above use the table this engine names; both conventions
         # are on the receipt because the artifact records the first.
+        # An atom has no frequencies, so there is no convention to state.
         assumptions.append(
             "vibrational frequencies from PySCF harmonic analysis under "
             "isotope-averaged atomic masses (artifact mass_convention)"
@@ -1840,18 +1844,29 @@ def derive_result_thermochemistry(
     artifact = _verify_artifact(artifact_path, request.artifact_sha256)
     if request.program == "pyscf":
         output = PySCFOutput(artifact)
+        # An atom has no vibration to take a Hessian of: its partition
+        # function is translational and electronic, from the energy, the
+        # position and the multiplicity a single point already carries
+        # (the engine's own rule, analysis/thermochemistry.py).
+        monoatomic = len(tuple(output.chemical_symbols or ())) == 1
+        required_units = {
+            "results/energies": "Eh",
+            "results/positions": "Angstrom",
+        }
+        if not monoatomic:
+            required_units.update(
+                {
+                    "results/hessian": "Eh/Bohr^2",
+                    "results/vibrational_frequencies": "cm^-1",
+                }
+            )
         _require_analysis_ready_pyscf_result(
             artifact=artifact,
             expected_sha256=request.artifact_sha256,
             output=output,
-            required_units={
-                "results/energies": "Eh",
-                "results/positions": "Angstrom",
-                "results/hessian": "Eh/Bohr^2",
-                "results/vibrational_frequencies": "cm^-1",
-            },
+            required_units=required_units,
         )
-        if not output.freq:
+        if not output.freq and not monoatomic:
             raise QuantityExtractionError(
                 "thermochemistry requires a validated PySCF Hessian result"
             )

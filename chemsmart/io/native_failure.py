@@ -126,6 +126,23 @@ _ORCA_RULES = (
             re.compile(r"\bno\b.*\bauxc\b.*\bbasis\b", re.I),
         ),
     ),
+    # MDCI hands every MPI process a share of the correlated electron
+    # pairs and aborts, after the SCF, when a process would get none: at
+    # one process too when the state has no pair (a hydrogen atom). Four
+    # R10 goals lost calls to it (Q6 pair3-b, Q9 G1, Q12 g1-hi, Q3 g2's
+    # water at 32 processes) and it fell through to ``native_runtime``,
+    # a class that names no cause. Before ``mpi_runtime``: this is the
+    # module's own arithmetic, not a broken MPI.
+    (
+        "mdci_processes_exceed_pairs",
+        (
+            re.compile(
+                r"Number of processes \(\d+\) in parallel calculation "
+                r"exceeds number of pairs \(\d+\)",
+                re.I,
+            ),
+        ),
+    ),
     # The program could not start its own ranks: the launcher it called is
     # not on the search path it was given. Three approved calls died this way
     # in 22 seconds (CUHK job 2142445, 2026-09-21), fell through undiagnosed,
@@ -271,6 +288,11 @@ _CANONICAL_DIAGNOSTICS = {
         ),
         "auxiliary_basis": (
             "ORCA rejected the auxiliary basis for a correlated method.",
+        ),
+        "mdci_processes_exceed_pairs": (
+            "ORCA's MDCI module refused its process count: more MPI "
+            "processes than correlated electron pairs. The SCF ran; no "
+            "correlation energy was computed.",
         ),
         "parallel_launcher_missing": (
             "ORCA could not start its parallel ranks: the launcher it called "
