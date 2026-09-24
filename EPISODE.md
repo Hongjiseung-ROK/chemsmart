@@ -68,9 +68,16 @@ Premise falsified: the five named instances are not the only false words.
    results; settlement attributes basis vs statement (C4).
 5. cd711d3c reading line says what the reading read and recorded (instance 4).
 6. 0fea11cb a category is answered by == over a host-read integer (instance 5).
+7. a5cb66b7 `shared:` a refusal verified before the run is re-read against
+   the run's results at settlement (found while pre-registering LG1: the
+   likeliest Agent route -- refuse at planning, run, settle -- defeated 4).
+8. f3fa7b92 served-selector basis says "a reading of the selector", not the
+   observable; 6ec52fc9 `shared:` tool description names the settle-time read.
 
 Each has a witness red before and green after, driving `run_goal_loop` or
-the tool host's `dispatch`.
+the tool host's `dispatch`. Pristine export of f3fa7b92: tests/agent 2960
+passed; full suite 23 failed, identical set to c79c39a1's (environmental:
+test_structures x19, pyscf dispersion x2, PyscfSettings, aggregation).
 
 ## Provider-free replays on the archived records (scratch/q10/replay_*.py)
 
