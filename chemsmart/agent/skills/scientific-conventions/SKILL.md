@@ -1,7 +1,7 @@
 ---
 name: scientific-conventions
-version: 0.3.0
-description: How computational-chemistry quantities are conventionally defined and reported — direction of every difference quantity, adiabatic versus vertical geometry, which energy terms are included, when an established assignment may be stated, and thermochemistry standard states.
+version: 0.4.0
+description: How computational-chemistry quantities are conventionally defined and reported — direction of every difference quantity, adiabatic versus vertical geometry, which energy terms are included, when an established spin assignment may be stated, gas and solution standard states, and what a computed value must become before it is compared with a measured one.
 ---
 
 # Reporting conventions for computed quantities
@@ -27,15 +27,20 @@ convention the reader may not share.
 
 | Quantity class | Conventional direction | Sign that follows |
 |---|---|---|
-| Term value (`Te`, `T0`, excitation, ionization, electron affinity as `IE`-like) | upper/final state − ground state | non-negative by construction |
+| Term value (`Te`, `T0`, an excitation energy) | upper state − ground state | non-negative when the ground state is correctly identified |
+| Ionization energy | cation − neutral | positive for a bound electron |
+| Electron affinity | neutral − anion (the anion's ionization energy) | positive when the anion is bound; negative for an unbound anion |
 | Reaction energy / enthalpy / free energy | products − reactants | negative if exergonic |
 | Activation barrier | transition state − reactants | positive |
 | Interaction / binding energy | complex − separated fragments | negative if bound, but the opposite sign is also in common use — always say which |
 | State-ordering gap (e.g. a singlet–triplet gap) | higher-lying state − ground state | non-negative when the ground state is correctly identified |
 
-A term value is a spectroscopic band origin: it is measured upward from the
-ground state and cannot be negative. A negative term value means the two states
-were ordered the wrong way round, not that the quantity is negative.
+A term value is measured upward from the ground state — `Te` between the two
+minima, `T0` between the zero-point levels, which is the band origin — and
+cannot be negative. A negative term value means the two states were ordered the
+wrong way round, not that the quantity is negative. An electron affinity is
+different: it is an energy of detachment from the anion, and a negative value
+is a physical result, an anion that is not bound, rather than a sign error.
 
 ## 2. Adiabatic versus vertical is a geometry convention
 
@@ -55,7 +60,10 @@ than what was asked. For the signed difference
 ``E_final - E_initial``, the vertical value is normally no smaller because the
 final state is evaluated away from its own minimum. A positive electron
 affinity is commonly defined with the opposite sign, so its numerical
-inequality reverses; always state the direction before comparing values.
+inequality reverses; always state the direction before comparing values. The
+vertical electron affinity is taken at the neutral's geometry and the vertical
+detachment energy at the anion's, and the two bracket the adiabatic electron
+affinity from below and above.
 
 ## 3. Say which energy terms are included
 
@@ -90,12 +98,17 @@ one.
 
 Two generative principles cover most ground-state spin assignments:
 
-- Near-degenerate frontier orbitals follow **Hund's rule** — the high-spin
-  configuration lies lowest, because exchange stabilisation outweighs the small
-  orbital-energy gap.
-- A substituent or ligand field that **splits those orbitals** far enough
-  reverses the ordering in favour of the low-spin state. Strong π-donation into
-  a formally empty frontier orbital, or a strong-field ligand set, does this.
+- Near-degenerate frontier orbitals that share atoms follow **Hund's rule** —
+  the high-spin configuration lies lowest, because exchange stabilisation
+  outweighs the small orbital-energy gap. When the two singly occupied orbitals
+  can be confined to disjoint sets of atoms, their exchange is small and the
+  singlet can lie at or below the triplet: a known exception to Hund's rule in
+  diradicals, which makes such an assignment method-sensitive rather than
+  settled.
+- A substituent, a ligand field or a geometric distortion that **splits those
+  orbitals** far enough reverses the ordering in favour of the low-spin state.
+  Strong π-donation into a formally empty frontier orbital, a strong-field
+  ligand set, or a distortion that lifts an orbital degeneracy does this.
 
 Apply the principles to the system at hand rather than recalling a list.
 
@@ -140,6 +153,14 @@ cancellation the difference relies on.
   use 1 atm; the two differ by `R ln(1.01325)` in the standard entropy. When a
   request names a pressure, report the value at that pressure and say which one
   the calculation used.
+- A solute's conventional standard state is **1 mol/L**, not a gas at 1 bar.
+  Taking one mole of ideal gas from pressure `p°` to concentration `c°` adds
+  `RT ln(c° R T / p°)` to its free energy, and a reaction in solution that
+  changes the number of solute particles — an association, a dissociation, a
+  binding — or that joins a gas-phase free energy to solvation free energies
+  carries that term once per mole of change. A solvent that is itself a
+  reactant has its own standard state, the pure liquid. Say which standard
+  state each species is in.
 - A reported free energy should be reconstructible from the electronic energy,
   the zero-point energy, the thermal corrections, and `G = H − TS` at the stated
   temperature.
@@ -174,3 +195,14 @@ Report the unit explicitly and keep one unit per quantity within a document.
 When converting, state the source unit. Energies computed in Hartree are
 conventionally reported in kcal/mol or kJ/mol for chemical differences and in eV
 for ionization, attachment, and excitation.
+
+## 9. A computed value is compared with the quantity that was measured
+
+An experimental number measures one specific quantity, and a computed value is
+compared with it only after it has been turned into that quantity: an enthalpy
+or free energy at the measurement's temperature rather than an electronic
+energy; the measured phase and standard state; a vertical excitation against a
+band maximum, and an adiabatic one with zero-point energies against a band
+origin; a dissociation energy from the zero-point level (`D0`) against one
+measured that way, never one from the minimum (`De`). Name the conversion, and
+cite where the measured value comes from.

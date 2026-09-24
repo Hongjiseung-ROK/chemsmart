@@ -166,7 +166,7 @@ def test_skills_off_restores_historical_prompt_and_tool_surface(monkeypatch):
     )
     from chemsmart.agent.tool_specs import build_command_compiled_tool_surface
 
-    monkeypatch.delenv("CHEMSMART_AGENT_SKILLS", raising=False)
+    monkeypatch.setenv("CHEMSMART_AGENT_SKILLS", "1")
     documents = advisory_skill_documents()
     assert documents
     enabled_surface = build_command_compiled_tool_surface()
@@ -319,7 +319,7 @@ def test_skill_index_entry_is_one_line():
     assert entry.startswith("scientific-conventions:")
 
 
-def test_the_skill_index_does_not_depend_on_the_task_text():
+def test_the_skill_index_does_not_depend_on_the_task_text(monkeypatch):
     """Every pack advertises the same three skills, so the intersection
     is the whole set and the text gate beside it could never change the
     index. It was measured on three frozen tasks and read as evidence
@@ -327,6 +327,7 @@ def test_the_skill_index_does_not_depend_on_the_task_text():
 
     from chemsmart.agent.live_session import advisory_skill_documents
 
+    monkeypatch.setenv("CHEMSMART_AGENT_SKILLS", "1")
     assert {item.skill_id for item in advisory_skill_documents()} == {
         skill for pack in BUILTIN_PROGRAM_PACKS for skill in pack.skill_ids
     }
