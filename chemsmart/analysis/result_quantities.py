@@ -69,6 +69,10 @@ MOMENT_OF_INERTIA: Dimension = (0, 2, 0, 0, 0, 0, 0, 1)
 #: refer to it; it introduces no new base and composes exactly as a product
 #: of lengths, which is what a molecular cavity surface is.
 AREA: Dimension = (0, 2, 0, 0, 0, 0)
+#: Volume, length cubed, named for the same reason: the unit system
+#: already composes ``bohr^3`` and ``angstrom^3``; a selector declaring a
+#: molecular volume needs the name.
+VOLUME: Dimension = (0, 3, 0, 0, 0, 0)
 
 CHARGE: Dimension = (0, 0, 0, 0, 0, 0, 0, 0, 1)
 ELECTRIC_POTENTIAL: Dimension = (1, 0, 0, 0, 0, 0, 0, 0, -1)
@@ -2204,6 +2208,7 @@ __all__ = [
     "FREQUENCY",
     "LENGTH",
     "AREA",
+    "VOLUME",
     "CHARGE",
     "ELECTRIC_POTENTIAL",
     "MASS",
