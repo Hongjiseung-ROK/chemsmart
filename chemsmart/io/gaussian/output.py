@@ -2365,10 +2365,17 @@ class Gaussian16Output(GaussianFileMixin):
 
         Gaussian writes the spin label on each ``Excited State`` line for a
         closed-shell TD calculation (for example ``Singlet-A`` or
-        ``Triplet-A``).  Open-shell response calculations can instead print
-        labels such as ``2.316-A``; those labels do *not* establish a spin
-        multiplicity and are deliberately reported as unresolved rather than
-        inferred from ``<S**2>``.
+        ``Triplet-A``), in ascending energy across both spin blocks, so
+        ``state_index`` is the rank and ``manifold_root`` the rank within
+        the root's own block (S_k, T_k).
+
+        An open-shell reference has one spin-conserving manifold whose
+        roots are not spin eigenfunctions.  Gaussian labels each with the
+        effective 2S+1 of its ``<S**2>`` -- ``2.316-A``, or ``Doublet-A``
+        where that rounds -- so the label is Gaussian's estimate and not a
+        multiplicity: every root of that manifold is reported with the
+        multiplicity unresolved, as ORCA's and PySCF's readers report it,
+        and ranked within the one manifold.
         """
 
         number = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][-+]?\d+)?"
@@ -2386,6 +2393,8 @@ class Gaussian16Output(GaussianFileMixin):
             "quintet": 5,
             "sextet": 6,
         }
+        request = self.excited_state_request or {}
+        unrestricted = request.get("state_manifold") == "unrestricted"
         manifold_counts = {}
         records = []
         for line in self.contents:
@@ -2396,9 +2405,11 @@ class Gaussian16Output(GaussianFileMixin):
                 match.groups()
             )
             label_family = label.split("-", 1)[0].casefold()
-            multiplicity = multiplicities.get(label_family)
+            multiplicity = (
+                None if unrestricted else multiplicities.get(label_family)
+            )
             manifold_root = None
-            if multiplicity is not None:
+            if multiplicity is not None or unrestricted:
                 manifold_counts[multiplicity] = (
                     manifold_counts.get(multiplicity, 0) + 1
                 )

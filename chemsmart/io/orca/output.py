@@ -3316,12 +3316,26 @@ class ORCAOutput(ORCAFileMixin):
 
     @cached_property
     def excited_state_records(self):
-        """Return ORCA TD/TDA roots with their printed multiplicities.
+        """Return ORCA TD/TDA roots in ascending excitation energy.
 
-        The ``STATE`` table is the numeric authority for both singlet and
-        spin-adapted triplet roots.  Absorption tables alone are insufficient:
-        oscillator strengths can be absent and their local root numbering is
-        not ORCA's global ``STATE`` index.
+        The ``STATE`` tables are the authority for which roots exist: ORCA
+        prints one per spin block (the singlets, then the spin-adapted
+        triplets), numbering each from 1, and its absorption table in
+        energy order, to six decimals where a ``STATE`` line prints three.
+        Each root is returned once, in ascending energy -- the order
+        Gaussian prints and ORCA's own absorption table uses -- with
+        ``state_index`` its rank in that order (unique, where the printed
+        ``STATE`` number restarts in the second block), ``manifold_root``
+        its rank within its own manifold (S_k, T_k), and the energy of the
+        absorption row that names it where there is one.  ``orca_state``
+        and ``orca_multiplicity`` keep ORCA's own label.
+
+        An open-shell reference has one spin-conserving manifold, and
+        ORCA's per-root ``Mult`` there is, in its own words, "estimated
+        based on rounded <S**2> value, RELEVANCE IS LIMITED!": it is kept
+        as ORCA's label and not served as a multiplicity, as Gaussian's
+        and PySCF's readers serve none for that manifold; the <S**2>
+        beside it is.
         """
 
         number = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][-+]?\d+)?"
@@ -3332,8 +3346,7 @@ class ORCAOutput(ORCAFileMixin):
             rf"(?:\s+Sym:\s+\S+)?\s+Mult\s+(\d+)",
             re.IGNORECASE,
         )
-        manifold_counts = {}
-        records = []
+        printed = []
         for line in self.contents:
             match = pattern.match(line)
             if match is None:
@@ -3341,19 +3354,46 @@ class ORCAOutput(ORCAFileMixin):
             state, energy_au, energy_ev, energy_cm1, spin_square, mult = (
                 match.groups()
             )
-            multiplicity = int(mult)
+            printed.append(
+                {
+                    "orca_state": int(state),
+                    "orca_multiplicity": int(mult),
+                    "energy_Eh": float(energy_au.replace("D", "E")),
+                    "energy_eV": float(energy_ev.replace("D", "E")),
+                    "energy_cm^-1": float(energy_cm1.replace("D", "E")),
+                    "spin_square": float(spin_square.replace("D", "E")),
+                }
+            )
+        rows = {
+            (row["manifold_root"], row["multiplicity"]): row
+            for row in self.electronic_absorption_transition_records
+        }
+        for record in printed:
+            row = rows.get((record["orca_state"], record["orca_multiplicity"]))
+            if row is not None:
+                record["energy_eV"] = row["energy_eV"]
+                record["energy_cm^-1"] = row["energy_cm^-1"]
+        unrestricted = self.state_manifold == "unrestricted"
+        order = sorted(
+            range(len(printed)),
+            key=lambda index: (printed[index]["energy_eV"], index),
+        )
+        manifold_counts = {}
+        records = []
+        for rank, index in enumerate(order, start=1):
+            record = printed[index]
+            multiplicity = (
+                None if unrestricted else record["orca_multiplicity"]
+            )
             manifold_counts[multiplicity] = (
                 manifold_counts.get(multiplicity, 0) + 1
             )
             records.append(
                 {
-                    "state_index": int(state),
+                    "state_index": rank,
                     "manifold_root": manifold_counts[multiplicity],
                     "multiplicity": multiplicity,
-                    "energy_Eh": float(energy_au.replace("D", "E")),
-                    "energy_eV": float(energy_ev.replace("D", "E")),
-                    "energy_cm^-1": float(energy_cm1.replace("D", "E")),
-                    "spin_square": float(spin_square.replace("D", "E")),
+                    **record,
                 }
             )
         return records

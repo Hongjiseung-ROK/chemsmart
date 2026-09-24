@@ -476,8 +476,28 @@ def _required_record_values(
     return [record[key] for record in records]
 
 
-def _orca_excitation_energies(output: Any) -> list[float]:
+def _orca_served_records(output: Any) -> list[dict[str, Any]]:
+    """The roots of the manifold the request named, ranked by energy.
+
+    ORCA has no triplet-only solve, so a ``triplet`` request is written as
+    ``Triplets true`` and its output also holds the singlet block nobody
+    asked for.  The aggregate selectors serve the requested manifold -- as
+    Gaussian's and PySCF's triplet runs do, ranked 1..n -- and the
+    singlets stay readable by name (``singlet_*``).
+    """
+
     records = list(output.excited_state_records or ())
+    if getattr(output, "state_manifold", None) == "triplet":
+        triplets = [item for item in records if item["multiplicity"] == 3]
+        records = [
+            {**item, "state_index": rank}
+            for rank, item in enumerate(triplets, start=1)
+        ]
+    return records
+
+
+def _orca_excitation_energies(output: Any) -> list[float]:
+    records = _orca_served_records(output)
     if records:
         return [float(item["energy_eV"]) for item in records]
     # ORCA 6 spectrum-only fragments remain useful for the legacy aggregate
@@ -485,40 +505,57 @@ def _orca_excitation_energies(output: Any) -> list[float]:
     return [float(item) for item in output.excitation_energies_eV]
 
 
-def _orca_absorption_per_state(output: Any, key: str) -> list[float]:
-    """One absorption-table value per state, in ``excitation_energies`` order.
+def _orca_absorption_rows(output: Any, records, key: str) -> list[float]:
+    """The absorption-table value of each record, in the records' order.
 
-    ORCA prints its ``STATE`` table singlets first and triplets after,
-    which is the order ``excitation_energies`` serves, and its absorption
-    table in energy order, so for a singlet_triplet run the two lists were
-    not parallel: acrolein's bright S2 (6.536 eV) was served beside
-    f = 0 and its T2 (3.196 eV) beside f = 0.381 (CUHK Slurm 2150076).
-    Each state is paired with the absorption row that names it -- the
-    row's ``N-MA`` label is the state's manifold root and multiplicity --
-    so the i-th strength belongs to the i-th energy, as it does in every
-    other program's reader.
+    Each root is paired with the row whose ``N-MA`` label is ORCA's own
+    label for it (the ``STATE`` number within its block and the printed
+    multiplicity), never by position: ORCA prints the ``STATE`` blocks
+    singlets first and the absorption table in energy order, and pairing
+    by position served acrolein's bright S2 (6.536 eV) beside f = 0 and
+    its T2 (3.196 eV) beside f = 0.381 (CUHK Slurm 2150076).
     """
 
-    records = list(output.excited_state_records or ())
     rows = list(output.electronic_absorption_transition_records or ())
-    if not records:
-        # A spectrum-only fragment: the table is the only record, in the
-        # order the energies fall back to as well.
-        return [float(row[key]) for row in rows]
-    by_state = {
+    by_label = {
         (row["manifold_root"], row["multiplicity"]): row for row in rows
     }
     values = []
     for record in records:
-        row = by_state.get((record["manifold_root"], record["multiplicity"]))
+        label = (record["orca_state"], record["orca_multiplicity"])
+        row = by_label.get(label)
         if row is None:
             raise MissingQuantityError(
-                "ORCA printed no electric-dipole absorption row for root "
-                f"{record['manifold_root']} of multiplicity "
-                f"{record['multiplicity']}"
+                "ORCA printed no electric-dipole absorption row for its "
+                f"state {label[0]}-{label[1]}A"
             )
         values.append(float(row[key]))
     return values
+
+
+def _orca_absorption_per_state(output: Any, key: str) -> list[float]:
+    """One absorption-table value per state, in ``excitation_energies`` order."""
+
+    records = _orca_served_records(output)
+    if not records:
+        # A spectrum-only fragment: the table is the only record, in the
+        # order the energies fall back to as well.
+        rows = list(output.electronic_absorption_transition_records or ())
+        return [float(row[key]) for row in rows]
+    return _orca_absorption_rows(output, records, key)
+
+
+def _orca_manifold_values(output: Any, multiplicity: int, key: str):
+    """One spin block's values in manifold-root order (S_k or T_k)."""
+
+    records = [
+        item
+        for item in (output.excited_state_records or ())
+        if item["multiplicity"] == multiplicity
+    ]
+    if key == "energy_eV":
+        return [float(item["energy_eV"]) for item in records]
+    return _orca_absorption_rows(output, records, key)
 
 
 def _last_spin_square(output: Any, key: str | None = None) -> float:
@@ -2729,44 +2766,36 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             ),
             "excited_state_indices": lambda output: [
                 int(item["state_index"])
-                for item in output.excited_state_records
+                for item in _orca_served_records(output)
             ],
             "excited_state_manifold_roots": lambda output: [
                 int(item["manifold_root"])
-                for item in output.excited_state_records
+                for item in _orca_served_records(output)
             ],
             "excited_state_multiplicities": lambda output: [
                 int(item)
                 for item in _required_record_values(
-                    output.excited_state_records,
+                    _orca_served_records(output),
                     "multiplicity",
-                    "a spin multiplicity",
+                    "a spin multiplicity (an unrestricted manifold has none)",
                 )
             ],
             "excited_state_spin_square": lambda output: [
                 float(item["spin_square"])
-                for item in output.excited_state_records
+                for item in _orca_served_records(output)
             ],
-            "singlet_excitation_energies": lambda output: [
-                float(item["energy_eV"])
-                for item in output.excited_state_records
-                if item["multiplicity"] == 1
-            ],
-            "triplet_excitation_energies": lambda output: [
-                float(item["energy_eV"])
-                for item in output.excited_state_records
-                if item["multiplicity"] == 3
-            ],
-            "singlet_oscillator_strengths": lambda output: [
-                float(item["oscillator_strength"])
-                for item in output.electronic_absorption_transition_records
-                if item["multiplicity"] == 1
-            ],
-            "triplet_oscillator_strengths": lambda output: [
-                float(item["oscillator_strength"])
-                for item in output.electronic_absorption_transition_records
-                if item["multiplicity"] == 3
-            ],
+            "singlet_excitation_energies": lambda output: (
+                _orca_manifold_values(output, 1, "energy_eV")
+            ),
+            "triplet_excitation_energies": lambda output: (
+                _orca_manifold_values(output, 3, "energy_eV")
+            ),
+            "singlet_oscillator_strengths": lambda output: (
+                _orca_manifold_values(output, 1, "oscillator_strength")
+            ),
+            "triplet_oscillator_strengths": lambda output: (
+                _orca_manifold_values(output, 3, "oscillator_strength")
+            ),
             "energy": _orca_total_energy,
             "energies": lambda output: [
                 float(item) - _orca_fixed_geometry_root_shift(output)
@@ -5941,6 +5970,11 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
+                    # ORCA solves the spin-adapted triplets beside the
+                    # singlets; they were read and never declared, so a
+                    # triplet request could not be answered by name.
+                    "triplet_excitation_energies",
+                    "triplet_oscillator_strengths",
                 ),
             ),
             (
@@ -6249,6 +6283,14 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "excitation_energies",
                     "excited_state_indices",
                     "excited_state_labels",
+                    # Which manifold each state belongs to and its rank
+                    # there, and each spin block by name: the words ORCA's
+                    # and PySCF's td already answered.  The accessors read
+                    # Gaussian's own spin labels; undeclared, a 50-50 run
+                    # could be read only by list position, where Gaussian
+                    # interleaves singlets and triplets by energy.
+                    "excited_state_manifold_roots",
+                    "excited_state_multiplicities",
                     "excited_state_spin_square",
                     "functional",
                     "hirshfeld_atomic_charges",
@@ -6258,11 +6300,15 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "oscillator_strengths",
                     "positions",
                     "scf_energy",
+                    "singlet_excitation_energies",
+                    "singlet_oscillator_strengths",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
+                    "triplet_excitation_energies",
+                    "triplet_oscillator_strengths",
                     "wavefunction_stability_history",
                     "wavefunction_stability_verdict",
                 ),
