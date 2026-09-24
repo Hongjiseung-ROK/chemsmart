@@ -29,6 +29,15 @@ pt = PeriodicTable()
 
 logger = logging.getLogger(__name__)
 
+#: ORCA's own temporaries, ``<base>.<what>.tmp`` and the per-rank
+#: ``<base>.<what>.tmp.<n>``: integrals and PNO pair data, gigabytes for a
+#: DLPNO run. They are scratch and stay there. The filter this replaces,
+#: ``endswith((".tmp", ".tmp.*"))``, tested the second member as a literal
+#: string, so every numbered one was copied into the job folder -- 9.9 GB
+#: under /project for one failed node, each file then hashed and bound as
+#: that node's output (R10 Q6 pair3-b, CUHK Slurm 2150179).
+_ORCA_TEMPORARY = re.compile(r"\.tmp(?:\.\d+)?$")
+
 
 class ORCAJobRunner(JobRunner):
     """
@@ -442,9 +451,9 @@ class ORCAJobRunner(JobRunner):
         if self.scratch:
             logger.debug(f"Running directory: {self.running_directory}")
             # if job was run in scratch, copy files to
-            # job folder except files containing .tmp
+            # job folder except ORCA's own temporaries
             for file in glob(f"{self.running_directory}/{job.label}*"):
-                if not file.endswith((".tmp", ".tmp.*")):
+                if not _ORCA_TEMPORARY.search(os.path.basename(file)):
                     logger.info(
                         f"Copying file {file} from {self.running_directory} "
                         f"to {job.folder}"

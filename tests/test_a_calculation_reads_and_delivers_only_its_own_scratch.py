@@ -159,3 +159,25 @@ def test_a_later_run_of_one_label_neither_reads_nor_delivers_an_earlier_one(
     assert _fingerprinted(later, "hf def2-svp") == []
     # The failed run's own record is where it was.
     assert _fingerprinted(failed, "hf def2-svp")
+
+
+@pytest.mark.capability("program_jobtype:orca:cpu:sp")
+def test_a_failed_runs_numbered_temporaries_stay_in_scratch(tmp_path):
+    """ORCA's per-rank temporaries are scratch, not evidence.
+
+    The copy-back meant to leave them behind tested
+    ``endswith((".tmp", ".tmp.*"))``, whose second member is a literal
+    string, so ``<base>.PNO4.tmp.0`` and its siblings came back: 9.9 GB of
+    DLPNO pair integrals under /project for one failed node, each file then
+    hashed and bound as that node's output (R10 Q6 pair3-b).
+    """
+
+    profile = _profile(tmp_path)
+    failed, first = _run(tmp_path, profile, "node-a", "ab_initio: hf")
+    assert first.returncode != 0, first.stdout + first.stderr
+
+    names = sorted(path.name for path in failed.iterdir())
+    assert [name for name in names if ".tmp" in name] == [], names
+    # What the failed run wrote as its record still arrives.
+    assert any(name.endswith(".gbw") for name in names), names
+    assert any(name.endswith(".out") for name in names), names
