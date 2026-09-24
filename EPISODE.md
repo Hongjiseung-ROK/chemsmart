@@ -427,4 +427,9 @@ singlet_*/triplet_* selector blocks), repaired in cbd02f00.
 
 ## Status
 
-Phase 3 complete: tests, goals, merge, gates. Final report next.
+Closed. r10-integration merged again at 6bda4e21 (clean). Gates on a
+pristine export of 6bda4e21: full suite 23 failed / 4514 passed, the
+failing set identical to the 23-failure baseline, none in tests/agent;
+ruff, black and isort clean on all seven touched Python files; the
+export deleted afterwards. The knowledge default (1fd1d17e) is the
+owner's decision (OWNER-ITEMS #13).
