@@ -1764,10 +1764,15 @@ def _legacy_tool_definitions(
                         "selector no program in the envelope declares for "
                         "the job type, or a blocked_unsupported analysis "
                         "node in this session's plan whose output_id is the "
-                        "observable -- and only a verified refusal settles "
-                        "the goal unreachable_from_evidence; an unverified "
-                        "one returns to the human naming it. Never a "
-                        "shortcut past computing what can be computed."
+                        "observable -- and then reads this goal's results "
+                        "for the named selector: a value it reads there, "
+                        "or a result of that job type no reader reads for "
+                        "it, leaves the refusal unverified, because the "
+                        "evidence holds it or may. Only a verified refusal "
+                        "settles the goal unreachable_from_evidence; an "
+                        "unverified one returns to the human naming it. "
+                        "Never a shortcut past computing what can be "
+                        "computed."
                     ),
                     "items": {
                         "type": "object",

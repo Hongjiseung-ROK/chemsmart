@@ -9,14 +9,18 @@ from __future__ import annotations
 
 import json
 import shutil
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
 from chemsmart.agent.execution import build_program_execution_receipt
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 
+from .test_a_declared_observable_carries_its_band import _host
+from .test_an_honest_refusal_reaches_its_word import _plan_blocking
 from .test_runtime_v2_launch_fence import _reserve
 from .test_the_goal_loop_recovers_or_returns import (
     _READ_OUTCOME_ROWS,
@@ -298,3 +302,187 @@ def test_a_run_without_an_analysis_chain_certifies_nothing(
         opened = [e for e in entries if e["kind"] == "recovery_opened"]
         assert opened[-1]["payload"]["cycle"] == 2
         assert "irc-forward-points" in json.dumps(opened[-1]["payload"])
+
+
+# -- a refusal is verified against the goal's results, not a table ---------
+
+_ROOT = Path(__file__).resolve().parents[2]
+_STABILITY_H5 = (
+    _ROOT
+    / "tests/data/PySCFTests/outputs/water_sp_stability_cpcm"
+    / "water_sp_stability_cpcm_cpcm_water.h5"
+)
+_ROHF_STABILITY_H5 = (
+    _ROOT
+    / "tests/data/PySCFTests/outputs/hydrogen_atom_sp_stability"
+    / "hydrogen_atom_sp_stability_gas_phase.h5"
+)
+# A Gaussian SMD single point whose log prints a "Molar volume" line no
+# reader serves.
+_GAUSSIAN_SP = (
+    _ROOT / "tests/data/GaussianTests/outputs/collidine_opt_sp_smd_generic.log"
+)
+_OBSERVABLE = {
+    "observable_id": "lowest-stability-eigenvalue",
+    "unit": "1",
+    "dimension": (0, 0, 0, 0, 0, 0),
+    "meaning": "lowest eigenvalue of the orbital-rotation Hessian",
+}
+
+
+def _registered(host, path, artifact_id, kind):
+    host.artifacts[artifact_id] = TrustedArtifactRefV1(
+        artifact_id=artifact_id,
+        kind=kind,
+        sha256=file_sha256(path),
+        size_bytes=path.stat().st_size,
+        path=str(path.resolve()),
+        cli_value=str(path.resolve()),
+    )
+
+
+def _refuse(host, program, artifact_id, probe_selector, **refusal):
+    """The session probes the result, then refuses citing that receipt."""
+
+    probe = host.dispatch(
+        turn_id="probe",
+        tool_name="extract_result_quantities",
+        arguments={
+            "artifact_id": artifact_id,
+            "program": program,
+            "selectors": [{"quantity_id": "p", "selector": probe_selector}],
+        },
+    )
+    assert probe["status"] == "ok", probe
+    reply = host.dispatch(
+        turn_id="refuse",
+        tool_name="record_scientific_decision",
+        arguments={
+            "decision_id": "refusal",
+            "assumptions": ["a"],
+            "method_rationale": "r",
+            "alternatives": ["b"],
+            "uncertainties": ["u"],
+            "diagnostics": ["g"],
+            "stage_order": ["s"],
+            "evidence_refs": [],
+            "unreachable_observable_ids": [
+                {
+                    "observable_id": _OBSERVABLE["observable_id"],
+                    "statement": "no reader serves it as a number",
+                    "receipt_sha256s": [probe["result"]["receipt_sha256"]],
+                    **refusal,
+                }
+            ],
+        },
+    )
+    assert reply["status"] == "ok", reply
+    (entry,) = reply["result"]["unreachable_observables"]
+    return entry
+
+
+def test_a_refusal_is_not_verified_over_a_value_the_host_reads(tmp_path):
+    """r9/pyscf g2-stability (CUHK, 2026-09-22) settled
+    unreachable_from_evidence for the lowest stability eigenvalues, the
+    refusal verified by the session's own blocked node while the host
+    read the stability analysis of that very result -- and its log
+    prints the eigenvalues. A value the host serves for the named
+    selector means the evidence holds what the refusal names."""
+
+    host = _host(
+        tmp_path,
+        approved_requested_observable_declarations=[_OBSERVABLE],
+        approved_scientific_toolchain_plan=_plan_blocking(
+            _OBSERVABLE["observable_id"]
+        ),
+    )
+    _registered(host, _STABILITY_H5, "pyscf-result-water", "pyscf_hdf5")
+    entry = _refuse(
+        host,
+        "pyscf",
+        "pyscf-result-water",
+        "energy",
+        selector="scf_stability_internal",
+        jobtype="sp",
+        blocked_node_id="mp2-freq",
+    )
+    assert entry["verified"] is False
+    assert "the host read 'scf_stability_internal'" in entry["basis"]
+    assert "'stable'" in entry["basis"]
+
+
+def test_a_selector_no_reader_serves_over_a_result_is_not_verified(tmp_path):
+    """Two sealed goals of R10 settled unreachable_from_evidence for a
+    molar volume their Gaussian logs print: no reader serves one, and
+    "no reader serves it" was verified as "the evidence lacks it". Over a
+    result of the named job type the host cannot say that, and it points
+    at the lines that name the quantity."""
+
+    host = _host(
+        tmp_path, approved_requested_observable_declarations=[_OBSERVABLE]
+    )
+    _registered(host, _GAUSSIAN_SP, "gaussian-result-sp", "gaussian_output")
+    entry = _refuse(
+        host,
+        "gaussian",
+        "gaussian-result-sp",
+        "energy",
+        selector="molar_volume",
+        jobtype="sp",
+    )
+    assert entry["verified"] is False
+    assert "gaussian-result-sp" in entry["basis"]
+    assert "cannot say they lack it" in entry["basis"]
+    assert "Molar volume" in entry["basis"]
+
+
+def test_a_refusal_the_results_answer_by_absence_is_verified_saying_so(
+    tmp_path,
+):
+    """What stays verified says what the host read: the external
+    stability question PySCF cannot answer for a restricted-open
+    reference is absent from the result, read."""
+
+    host = _host(
+        tmp_path,
+        approved_requested_observable_declarations=[_OBSERVABLE],
+        approved_scientific_toolchain_plan=_plan_blocking(
+            _OBSERVABLE["observable_id"]
+        ),
+    )
+    _registered(host, _ROHF_STABILITY_H5, "pyscf-result-h", "pyscf_hdf5")
+    entry = _refuse(
+        host,
+        "pyscf",
+        "pyscf-result-h",
+        "energy",
+        selector="scf_stability_external",
+        jobtype="sp",
+        blocked_node_id="mp2-freq",
+    )
+    assert entry["verified"] is True
+    assert "found it absent" in entry["basis"]
+    assert "pyscf-result-h" in entry["basis"]
+
+
+def test_a_selector_no_reader_serves_and_no_result_could_hold_is_verified(
+    tmp_path,
+):
+    """The ethylene case (pak-g2, 2026-09-19): the observable needs a job
+    type the goal holds no result of. The host says both halves of what
+    it checked."""
+
+    host = _host(
+        tmp_path, approved_requested_observable_declarations=[_OBSERVABLE]
+    )
+    _registered(host, _GAUSSIAN_SP, "gaussian-result-sp", "gaussian_output")
+    entry = _refuse(
+        host,
+        "gaussian",
+        "gaussian-result-sp",
+        "energy",
+        selector="molar_volume",
+        jobtype="hess",
+    )
+    assert entry["verified"] is True
+    assert "no registered result of jobtype 'hess'" in entry["basis"]

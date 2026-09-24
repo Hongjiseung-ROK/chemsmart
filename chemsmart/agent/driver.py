@@ -172,6 +172,18 @@ def _execute_hook_takes_stop_file(hook: Any) -> bool:
     )
 
 
+#: How a settlement quotes verified refusals: the session's statement, and
+#: in brackets what the host checked. "the host verified each: <statement>"
+#: read as the host vouching for the session's reason -- a PubChem outage,
+#: a writer that dropped the IRC block (r9 xtb g1, r9 gaussian g2) -- when
+#: it had checked only that the plan retained a node as blocked.
+_VERIFIED_REFUSAL_LEAD = (
+    "the recorded decision names these declared observables unreachable "
+    "from the admissible evidence; the host verified each on the basis in "
+    "brackets, and the text before the brackets is the session's: "
+)
+
+
 def _anomaly_evidence(
     evidence: Mapping[str, Any] | None,
     ledger_anomalies: Sequence[Mapping[str, Any]],
@@ -682,9 +694,7 @@ def _delivery_settlement(
         # reply had promised this word for it.
         settled = "unreachable_from_evidence"
         reasons = (
-            "the recorded decision names these declared observables "
-            "unreachable from the admissible evidence, and the host "
-            "verified each: "
+            _VERIFIED_REFUSAL_LEAD
             + "; ".join(
                 f"{observable_id} -- "
                 f"{delivery.unreachable_bases.get(observable_id, '')}"
@@ -5962,9 +5972,8 @@ class GoalDriver:
             and session_delivery.decisions
         ):
             reason = (
-                f"cycle {self.cycles}: the recorded decision names these "
-                "declared observables unreachable from the admissible "
-                "evidence, and the host verified each: "
+                f"cycle {self.cycles}: "
+                + _VERIFIED_REFUSAL_LEAD
                 + "; ".join(
                     f"{observable_id} -- "
                     f"{session_delivery.unreachable_bases.get(observable_id, '')}"

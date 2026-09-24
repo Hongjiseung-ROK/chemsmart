@@ -727,6 +727,73 @@ def _pyscf_environment_evidence(
     return observation, tuple(sorted(set(findings)))
 
 
+def _brief_reading(value: Any, unit: str) -> str:
+    """One reading, short enough to stand in a refusal's basis."""
+
+    if isinstance(value, str):
+        return repr(value)
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float)):
+        return f"{value:g} {unit}".strip()
+    if isinstance(value, (list, tuple)):
+        return f"{len(value)} values ({unit})".replace(" ()", "")
+    return type(value).__name__
+
+
+def _printed_lines_naming(
+    selector: str, path: Path, *, limit: int = 3
+) -> tuple[str, ...]:
+    """Lines a program printed that name every word of a selector.
+
+    A pointer, never a reading: the host has no reader for the quantity,
+    so it can only show a human where the output names it -- a Gaussian
+    log's "Molar volume = ..." for ``molar_volume``. A PySCF result is
+    read beside its HDF5 file, from its log, past the driver script the
+    log echoes first.
+    """
+
+    words = [
+        word
+        for word in re.split(r"[^a-z0-9]+", selector.lower())
+        if len(word) >= 3
+    ]
+    if not words:
+        return ()
+    candidates = (
+        (path.with_suffix(".out"), path.with_suffix(".log"))
+        if path.suffix == ".h5"
+        else (path,)
+    )
+    found: list[str] = []
+    for candidate in candidates:
+        try:
+            if candidate.stat().st_size > 64 * 1024 * 1024:
+                continue
+            handle = candidate.open(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        with handle:
+            in_script = False
+            for number, line in enumerate(handle, 1):
+                if "#INFO: **** input file is" in line:
+                    in_script = True
+                    continue
+                if in_script:
+                    in_script = "input file end" not in line
+                    continue
+                lowered = line.lower()
+                if all(word in lowered for word in words) and re.search(
+                    r"\d", line
+                ):
+                    found.append(
+                        f"{candidate.name}:{number}: {line.strip()[:120]}"
+                    )
+                    if len(found) >= limit:
+                        return tuple(found)
+    return tuple(found)
+
+
 def _digest_valid_json_receipt(path: str | Path) -> Mapping[str, Any] | None:
     """Load a JSON receipt only when its embedded digest is exact."""
 
@@ -6828,8 +6895,8 @@ class CommandCompiledToolHostV1:
             blocked_node_id = str(entry.get("blocked_node_id") or "").strip()
             basis = ""
             is_verified = False
+            declaring: list[str] = []
             if selector:
-                declaring = []
                 for program in programs:
                     reader = reader_for(program)
                     if reader is None:
@@ -6881,7 +6948,9 @@ class CommandCompiledToolHostV1:
                     basis = selector_basis + (
                         f"analysis node {blocked_node_id!r} is declared "
                         "blocked_unsupported in this session's plan and "
-                        f"names {observable_id!r} as its output"
+                        f"names {observable_id!r} as its output; the reason "
+                        "it gives is the session's, which the host does "
+                        "not check"
                     )
                 else:
                     basis = selector_basis + (
@@ -6935,6 +7004,15 @@ class CommandCompiledToolHostV1:
                         "selector and jobtype, or blocked_node_id); the "
                         "refusal is stated, not verified"
                     )
+            if selector:
+                is_verified, basis = self._refusal_read_against_evidence(
+                    selector=selector,
+                    jobtype=jobtype,
+                    programs=programs,
+                    selector_declared=bool(declaring),
+                    is_verified=is_verified,
+                    basis=basis,
+                )
             verified.append(
                 {
                     "observable_id": observable_id,
@@ -6948,6 +7026,146 @@ class CommandCompiledToolHostV1:
                 }
             )
         return tuple(verified)
+
+    def _refusal_read_against_evidence(
+        self,
+        *,
+        selector: str,
+        jobtype: str,
+        programs: Sequence[str],
+        selector_declared: bool,
+        is_verified: bool,
+        basis: str,
+    ) -> tuple[bool, str]:
+        """Read this goal's own results for what a refusal names.
+
+        Both checks above consult tables -- which selectors the readers
+        declare, which nodes the session's plan retained as blocked --
+        and the settlement then said the evidence lacked what it held.
+        r9/pyscf g2-stability (CUHK, 2026-09-22) settled
+        unreachable_from_evidence, verified by its own blocked node, for
+        the lowest stability-Hessian eigenvalues its PySCF log prints; the
+        host had read the stability words from the same result. r8/orca
+        goal-ts settled it for an IRC direction the host had read as
+        'forward'. Two sealed goals of R10 did so for a molar volume their
+        Gaussian logs print, verified because no reader serves one.
+
+        So the results are read. A value served for the named selector
+        means the evidence holds it: never verified. A selector no reader
+        serves, over results of the named job type, means the host cannot
+        read them for it: not verified, with any printed line naming it.
+        What stays verified says what the host read: the selector absent
+        from each result, or no result it could come from.
+        """
+
+        served, absent, unread = self._goal_evidence_for_selector(
+            selector, jobtype, programs
+        )
+        if served:
+            return False, (
+                basis
+                + f"; the host read {selector!r} from the registered results -- "
+                + "; ".join(served)
+                + " -- so the evidence holds what the refusal names and the "
+                "refusal is not verified"
+            )
+        if not selector_declared and unread:
+            printed = tuple(
+                line
+                for _artifact_id, path in unread
+                for line in _printed_lines_naming(selector, Path(path))
+            )[:3]
+            return False, (
+                basis
+                + "; the registered results include ones no reader of this hub "
+                "reads for "
+                f"{selector!r} ("
+                + ", ".join(artifact_id for artifact_id, _path in unread)
+                + "), so the host cannot say they lack it"
+                + (
+                    "; they print lines naming it: " + " | ".join(printed)
+                    if printed
+                    else ""
+                )
+                + "; the refusal is not verified, and a reader is the "
+                "missing producer if they hold it"
+            )
+        if is_verified and absent:
+            return True, (
+                basis
+                + f"; the host read {selector!r} on the registered results and "
+                "found it absent -- " + "; ".join(absent)
+            )
+        if is_verified and not selector_declared:
+            return True, (
+                basis
+                + "; no registered result"
+                + (f" of jobtype {jobtype!r}" if jobtype else "")
+                + " exists it could be read from"
+            )
+        return is_verified, basis
+
+    def _goal_evidence_for_selector(
+        self, selector: str, jobtype: str, programs: Sequence[str]
+    ) -> tuple[tuple[str, ...], tuple[str, ...], tuple[tuple[str, str], ...]]:
+        """What the registered results say about one selector.
+
+        Returns what was served (``artifact: value``), what was read and
+        found absent (``artifact: reason``), and the results of the named
+        job type whose reader does not serve the selector at all
+        (``(artifact_id, path)``). Only results of the named job type
+        count when one is named: an optimisation's energy is not a
+        transition state's.
+        """
+
+        from chemsmart.analysis.result_readers import (
+            MissingQuantityError,
+            reader_for,
+        )
+
+        readers: dict[str, tuple[str, Any]] = {}
+        for program in programs:
+            reader = reader_for(program)
+            if reader is not None:
+                readers[str(reader.artifact_kind)] = (program, reader)
+        served: list[str] = []
+        absent: list[str] = []
+        unread: list[tuple[str, str]] = []
+        for artifact_id, artifact in sorted(self.artifacts.items()):
+            match = readers.get(str(getattr(artifact, "kind", "")))
+            if match is None:
+                continue
+            program, reader = match
+            try:
+                output = reader.open_output(Path(artifact.path))
+            except Exception:  # noqa: BLE001 - an unopenable file is unread
+                continue
+            result_jobtype = str(
+                getattr(output, "jobtype", "") or ""
+            ).casefold()
+            if jobtype and result_jobtype != jobtype:
+                continue
+            declared = (
+                reader.selectors_for_jobtype(result_jobtype)
+                if reader.jobtype_selectors
+                else tuple(reader.accessors)
+            )
+            if declared is None or selector not in declared:
+                unread.append((str(artifact_id), str(artifact.path)))
+                continue
+            try:
+                value, unit = reader.read(output, selector)
+            except MissingQuantityError as exc:
+                absent.append(f"{artifact_id}: {exc}")
+                continue
+            except Exception as exc:  # noqa: BLE001 - reported, not served
+                absent.append(f"{artifact_id}: {type(exc).__name__}: {exc}")
+                continue
+            served.append(
+                f"{artifact_id} ({program} {result_jobtype}): "
+                + _brief_reading(value, unit)
+            )
+        return tuple(served), tuple(absent), tuple(unread)
 
     def _verify_menu_route_dispositions(
         self, entries: Sequence[Mapping[str, Any]]
