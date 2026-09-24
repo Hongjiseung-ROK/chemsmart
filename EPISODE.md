@@ -370,6 +370,37 @@ route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
 - B: not earned by g1 (a hub break stopped it). The rest is not read:
   B1-B4 had no delivered numbers.
 
+## Live goal G2 -- PRE-REGISTRATION (written before submission)
+
+Why a second goal: g1 was stopped by a hub defect, not by the model or
+the science (its one executed handoff held; both Gaussian producers were
+refused on another program's check). G2 is g1's task re-issued
+byte-identical on the repaired tree -- the repair's first live probe
+(CONDUCT section 4), not a re-roll: g1 stands as its own observation, and
+G2 is a second, independent session (N runs are N observations).
+
+- Task and workspace byte-identical to g1 (TASK.md sha256 5d430a88...,
+  enediyne.xyz sha256 e18b5b9f...). Envelope numbers identical (make_goal.py
+  --goal g2, same arguments). Same Agent, provider, delegated approval.
+- Code: this branch at the commit that records this section: 9cda6569
+  (the input-check repair) plus r10-integration a7bc02e0 (Q14: MDCI pair
+  limit, NumFreq for MP2-class frequencies; Q16: goal-loop repairs),
+  merged as 102e476f; tests/agent 3095 passed on it.
+- H-G2a (the repair, live): if the session re-plans a probed node under
+  another program or recompiles it, the compile reply, the review and the
+  launch carry only the check of the node's latest compile. FALSIFIED by a
+  launch refusal or a review observation quoting a check of bytes the
+  node's current compile did not produce. "Not exercised" if no node is
+  re-planned or recompiled after a check.
+- Read exactly as g1 was pre-registered: R1-R4 and bands B1-B5 (B2 with
+  both readings stated), each number against O1 at matched level where one
+  exists. Milestone B is claimed only under the g1 condition (an
+  Agent-chosen cross-program route with a recorded scientific reason, R2
+  on every handoff, B1-B3 pass, B4 read as stated).
+- For Q18, if any Gaussian node runs: its `SCF Done: E(R...)` or
+  `E(U...)` label, any `S**2` line, and what the host's `functional`,
+  `spin_square` and surface `reference` selectors answered for it.
+
 ## Status
 
 - 2026-09-24: base verified; chemistry and references chosen and read;
