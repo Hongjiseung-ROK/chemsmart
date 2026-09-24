@@ -6370,6 +6370,9 @@ class GoalDriver:
         run_delivery = _analysis_delivery(
             self.run_directory / "events.jsonl", **delivery_kwargs
         )
+        # What the executor refused to launch, in this run's own stream,
+        # kept before a chainless run is re-read from another stream.
+        launch_refusals = run_delivery.stopped_by
         # A run whose stream holds no completion receipt carried no
         # analysis chain: nothing it computed was read, so it delivered
         # nothing and certified nothing. The settlement read that empty
@@ -6756,12 +6759,23 @@ class GoalDriver:
             if state in REPAIRABLE_TERMINAL_STATES
         }
         if terminal_states and not repairable:
+            # A launch the executor refused is an event in the run's own
+            # stream, and the settlement quotes it: R10 Q15 g1 returned
+            # naming "pbnz-opt=not_launched, ts-search=not_launched" while
+            # the stream held why -- a stale input check of another
+            # program's bytes, false, which only the quote would have let a
+            # reader see.
             reason = (
                 f"cycle {self.cycles}: the run ended in a state no revision "
                 "can answer: "
                 + ", ".join(
                     f"{node_id}={state}"
                     for node_id, state in sorted(terminal_states.items())
+                )
+                + (
+                    "; " + "; ".join(launch_refusals)
+                    if launch_refusals
+                    else ""
                 )
             )
             self.ledger.settle("returned_to_human", reasons=(reason,))

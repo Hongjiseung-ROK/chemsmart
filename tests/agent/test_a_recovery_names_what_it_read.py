@@ -23,8 +23,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from chemsmart.agent._contracts import ContractError
-from chemsmart.agent.execution import build_program_execution_receipt
+from chemsmart.agent._contracts import ContractError, canonical_sha256
+from chemsmart.agent.execution import (
+    ProgramExecutionInvocationV1,
+    build_execution_resource_spec,
+    build_frozen_workflow_approval,
+    build_program_execution_receipt,
+)
 from chemsmart.agent.runtime.event_store import RuntimeEventStore
 from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
 from chemsmart.agent.workflows import (
@@ -441,3 +446,172 @@ def test_a_rewake_after_a_refused_review_offers_the_plan_it_refused(
     assert "compile_command" in report["route"]
     # And the cost is true of that route: a plan spends engine calls.
     assert "an executable plan spends engine calls" in report["cost"]
+
+
+_REFUSAL = (
+    "node 'ts-search' is not launched: the program's own input check "
+    "refused these exact bytes -- orca: UNRECOGNIZED OR DUPLICATED "
+    "KEYWORD(S) IN SIMPLE INPUT LINE"
+)
+
+
+def _run_with_a_refused_launch(tmp_path):
+    """One approved node runs and validates; the executor refuses to launch
+    the other and writes why into the run stream -- the shape of R10 Q15
+    g1's second cycle (CUHK 2152875), whose two Gaussian nodes were refused
+    on ORCA's stale input check while ene-opt ran."""
+
+    def step(run_directory):
+        nodes = tuple(
+            ScientificWorkflowNodeV2(
+                node_id=node_id,
+                stage="sp",
+                requested_program="pyscf",
+                program="pyscf",
+                engine="cpu",
+                project_role="water-project",
+                unresolved_fields=(),
+            )
+            for node_id in ("sp-initial", "ts-search")
+        )
+        plan = build_scientific_workflow_plan(
+            workflow_id="water-workflow",
+            task_spec_sha256="a" * 64,
+            scientific_identity_sha256="b" * 64,
+            nodes=nodes,
+        )
+        resources = build_execution_resource_spec(
+            execution_target="run",
+            cores=4,
+            memory_gb=4,
+            gpu_count=0,
+            scratch_policy="none",
+            node_timeout_seconds=600,
+        )
+        invocations = {}
+        for index, node_id in enumerate(("sp-initial", "ts-search")):
+            body = {
+                "schema_version": "chemsmart.program-execution-invocation.v1",
+                "node_id": node_id,
+                "approval_sha256": "4" * 64,
+                "program": "pyscf",
+                "engine": "cpu",
+                "jobtype": "sp",
+                "project_sha256": "e" * 64,
+                "input_artifact_id": "water-xyz",
+                "input_sha256": "d" * 64,
+                "scientific_identity_sha256": plan.scientific_identity_sha256,
+                "environment_receipt_sha256": "1" * 64,
+                "resource_sha256": resources.resource_sha256,
+                "workspace": str(run_directory.resolve()),
+                "argv": ("chemsmart", "run", "pyscf", "sp"),
+                "idempotency_key": str(5 + index) * 64,
+                "status": "ready",
+            }
+            invocations[node_id] = ProgramExecutionInvocationV1(
+                **body, invocation_sha256=canonical_sha256(body)
+            )
+        materialized = build_materialized_workflow(
+            plan=plan,
+            live_cli_schema_sha256="c" * 64,
+            resource_sha256=resources.resource_sha256,
+            nodes=tuple(
+                MaterializedNodeV1(
+                    node_id=node_id,
+                    input_artifact_sha256="d" * 64,
+                    project_artifact_sha256="e" * 64,
+                    project_validation_receipt_sha256="f" * 64,
+                    environment_receipt_sha256="1" * 64,
+                    invocation_sha256=invocation.invocation_sha256,
+                    preflight_receipt_sha256="3" * 64,
+                    state="previewed",
+                )
+                for node_id, invocation in sorted(invocations.items())
+            ),
+            unresolved_node_ids=(),
+            status="ready_for_approval",
+        )
+        approval = build_frozen_workflow_approval(
+            approval_id="water-approval",
+            plan=plan,
+            materialized_workflow=materialized,
+            resources=resources,
+            environment_identity_sha256s=("1" * 64,),
+        )
+        store = RuntimeEventStore(
+            run_directory / "events.jsonl", session_id="exec-1"
+        )
+        store.reserve_workflow_node_launch(
+            turn_id="turn-1",
+            plan=plan,
+            materialized_workflow=materialized,
+            approval=approval,
+            invocation=invocations["sp-initial"],
+            run_id="run.water-approval",
+            timestamp="2026-09-25T00:00:00+00:00",
+        )
+        store.record_program_execution_receipt(
+            turn_id="turn-1",
+            workflow_id=plan.workflow_id,
+            run_id="run.water-approval",
+            receipt=build_program_execution_receipt(
+                invocations["sp-initial"],
+                execution_state="validated",
+                exit_status=0,
+                child_exit_status=0,
+                engine_complete=True,
+                validated=True,
+                validator_receipt_sha256s=("e" * 64,),
+                result_validation_receipt_sha256="e" * 64,
+                started_at="2026-09-25T00:00:00+00:00",
+                finished_at="2026-09-25T00:00:05+00:00",
+            ),
+        )
+        store.append(
+            turn_id="exec-refused-ts-search",
+            kind="workflow_node_launch_refused",
+            payload={
+                "node_id": "ts-search",
+                "program": "pyscf",
+                "jobtype": "sp",
+                "reason": _REFUSAL,
+            },
+        )
+        return SimpleNamespace(status="partial", analysis_status="")
+
+    return step
+
+
+def test_a_run_that_ended_unlaunched_quotes_why_the_launch_was_refused(
+    tmp_path,
+):
+    """The charter's promise: a launch the executor refused is an event in
+    its stream and the settlement quotes it. The run path said only
+    "ts-search=not_launched" (R10 Q15 g1), and the refusal it withheld was
+    itself false -- a stale check of another program's bytes -- so the
+    human was handed a word with nothing to check it against."""
+
+    from chemsmart.agent.cohort import build_execution_wave_decision
+
+    def both_in_one_wave(workspace, kwargs):
+        step = _planning_session("live-1", review=_review_payload())
+        session = step(workspace, kwargs)
+        wave = ("sp-initial", "ts-search")
+        session.selected_execution_wave = wave
+        session.execution_wave_decision = build_execution_wave_decision(
+            state="selected",
+            workflow_id="water-workflow",
+            ready_node_ids=wave,
+            node_ids=wave,
+        )
+        return session
+
+    result = _loop(
+        tmp_path,
+        sessions=[both_in_one_wave],
+        executes=[_run_with_a_refused_launch(tmp_path)],
+    )
+    assert result.settlement == "returned_to_human"
+    (reason,) = [r for r in result.reasons if "no revision can answer" in r]
+    assert "ts-search=not_launched" in reason
+    assert _REFUSAL in reason
