@@ -269,6 +269,22 @@ Neither touches an Agent node (every Agent branch is empty before launch, so
 the runner never takes the supplied-input path); G1's tree 55e4424a stands for
 the Agent path.
 
+## Integration check
+
+Merged r10-integration (c79c39a1, Q6's reading turn) at 95c4349e, no
+conflict. Full suite from a `git archive` export of 95c4349e: 23 failed /
+4439 passed, the failing set identical to the pre-merge run (all in
+test_structures, test_PyscfSettings, test_aggregation,
+test_pyscf_dispersion_conformance; none in tests/agent). ruff, black, isort
+clean on every file this episode touched.
+
+## G1 so far (host records, read-only)
+
+The first three ORCA compiles of the live session (opt-ch3oh, opt-ch3o,
+sp-h) each carry an `input_check_probed` event with status `passed`, wall
+0.35 / 0.13 / 0.12 s, inside Slurm 2150438 -- the first ORCA input checks to
+run inside an allocation in R10 (every earlier one was `not_run`).
+
 ## Status
 
 O1 read. G1 (2150438) running.
