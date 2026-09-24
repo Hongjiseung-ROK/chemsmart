@@ -242,6 +242,24 @@ unstable to RKS->UKS by a clear margin (lowest external eigenvalue below
 -0.02 Eh) and was not used by an earlier episode; the stationary task
 supplies the in-plane-relaxed planar NH3.
 
+### ref1 read (CUHK 2153689, code f20bec0c, digest ed67866f verified on the node)
+
+PySCF 2.14.0, B3LYP (B3LYPG) / def2-SVP, no density fitting, gas phase:
+
+| reference | E(RKS) / Eh | internal | real->complex | RKS->UKS |
+|---|---|---|---|---|
+| N2, 1.60 A | -109.178831765 | stable, +0.4350 | stable, +0.0680 | unstable, -0.0694 |
+| O3, exp. geometry | -225.229171808 | stable, +0.3577 | stable, +0.0590 | unstable, -0.0339 |
+| C4H4, D4h | -154.525711633 | stable, +0.1963 | unstable, -0.0062 | unstable, -0.0766 |
+| F2, 1.80 A | -199.290103257 | stable, +0.2954 | stable, +0.0286 | unstable, -0.0723 |
+
+All four meet the criterion; the pre-registered rule takes the first in
+order: N2 at 1.60 A. Planar NH3 relaxed in plane (geomeTRIC, 3 cycles):
+E = -56.500035850 Eh, N-H 1.0048 A, exactly planar; that geometry is the
+stationary task's workspace structure (comment line "planar ammonia").
+ref2 (submitting): the Hessian at that exact structure, and N2's single
+point from the exact workspace file, to fix the stationary task's bands.
+
 ## Oracle
 
 Host records only: session event streams (declarations, claims,
