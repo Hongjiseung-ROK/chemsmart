@@ -276,6 +276,9 @@ different tree, not a controlled A/B.
   every number -- and Q15's stale input-check repair. A goal lost to a
   repaired host defect would say nothing about this capability. Rerun on the
   merged tree, same TASK, start, envelope and bands.
+- G1: CUHK Slurm 2153510 (r10-q18-a), goal g1, code 95c85ed0 (the merge;
+  tree digest 2d27f643b7db...), prereg digest 3e98e0450372.
+- G2: CUHK Slurm 2153511 (r10-q18-b), goal g2, same code and digest.
 
 ## Status
 
