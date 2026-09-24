@@ -598,6 +598,19 @@ def energy_kind(name: str) -> EnergyKindV1 | None:
     return ENERGY_KINDS.get(str(name))
 
 
+def exists_only_at_a_stationary_point(name: str) -> bool:
+    """Whether a quantity is defined only at a stationary point.
+
+    Everything that carries a vibrational or thermal layer -- a zero-point
+    energy, a thermal correction, T*S, U, H, G -- is a harmonic expansion
+    about a point where the gradient vanishes; an electronic energy, an
+    orbital eigenvalue or a curvature is defined anywhere.
+    """
+
+    kind = energy_kind(name)
+    return kind is not None and any(layer > 0 for layer in kind.layers)
+
+
 _IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{0,127}$")
 #: Executed-evidence contracts the analysis plane admits, owned by the
 #: writer: a previous supported contract is a subset of the current one.

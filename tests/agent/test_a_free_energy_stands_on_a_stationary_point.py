@@ -281,3 +281,45 @@ def test_the_gate_is_wired_where_it_is_raised():
     assert "result_quantities.py" in (
         wired["thermochemistry.free_energy_needs_a_stationary_point"]
     )
+
+
+@pytest.mark.capability("tool:record_scientific_decision")
+def test_a_refused_free_energy_at_a_held_structure_is_verified_by_its_reading():
+    """The unreachability check reads a refused free energy the way the
+    thermochemistry stage does.
+
+    Live, R10 Q21 g1-hooh (CUHK 2153623): the session refused the Gibbs
+    energy of H2O2 held at 90 deg because the host refused a free energy
+    at that constrained optimum, and the check that verifies a refusal
+    found ORCA's printed "Final Gibbs free energy" line in the same
+    output, called the refusal unverified and "a reader the missing
+    producer", and the goal went back to the human. This is that output.
+    """
+
+    from chemsmart.agent.tool_runtime import refusal_read_against_results
+
+    path = (
+        _DATA
+        / "ORCATests/constrained_dihedral/h2o2_b3lypg_d3bj_def2svp_hooh90_freq.out"
+    ).resolve()
+    artifact = TrustedArtifactRefV1(
+        artifact_id="orca-result-3863610af1300088",
+        kind=reader_for("orca").artifact_kind,
+        sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+        size_bytes=path.stat().st_size,
+        path=str(path),
+        cli_value=str(path),
+    )
+    verified, basis = refusal_read_against_results(
+        artifacts={artifact.artifact_id: artifact},
+        observable_id="g-rel-90-deg",
+        selector="gibbs_free_energy",
+        jobtype="modred",
+        programs=("orca",),
+        selector_declared=False,
+        is_verified=True,
+        basis="",
+    )
+    assert verified, basis
+    assert "held 1 internal coordinate" in basis
+    assert "missing producer" not in basis

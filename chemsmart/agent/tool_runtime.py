@@ -945,6 +945,31 @@ def results_for_selector(
             else tuple(reader.accessors)
         )
         if declared is None or selector not in declared:
+            # A quantity that exists only at a stationary point is read,
+            # not left unread, where the host shows the structure is not
+            # one: the thermochemistry stage refuses it there by the same
+            # function, so a line the program printed for it (ORCA prints
+            # a "Final Gibbs free energy" after a constrained optimum) is
+            # no producer a reader is missing (R10 Q21 g1-hooh, CUHK
+            # 2153623: a verified refusal read as unverified over it).
+            from chemsmart.analysis.result_quantities import (
+                exists_only_at_a_stationary_point,
+                structure_stationarity,
+            )
+
+            if exists_only_at_a_stationary_point(selector):
+                try:
+                    reading = structure_stationarity(program, output)
+                except Exception:  # noqa: BLE001 - unread when unreadable
+                    reading = None
+                if reading is not None and (
+                    reading.stationarity == "not_stationary"
+                ):
+                    absent.append(
+                        f"{artifact_id}: {reading.sentence()}, so it has no "
+                        f"{selector} whatever its output prints"
+                    )
+                    continue
             unread.append((str(artifact_id), str(artifact.path)))
             continue
         try:
