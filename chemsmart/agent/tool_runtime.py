@@ -391,6 +391,39 @@ def _undeferrable_producer_finding(
     }
 
 
+def _admitted_producer_pairs(
+    plan: ScientificWorkflowPlanV2 | None,
+) -> frozenset[tuple[str, str]]:
+    """The (producer, consumer) pairs a wave may run in one line.
+
+    A pair qualifies when the one owner of producer edges admits every
+    data edge between the two -- the geometry and, for an IRC, the
+    saddle's Hessian beside it -- so a consumer never runs in its
+    producer's line on an edge the approval does not hand over.
+    """
+
+    if plan is None:
+        return frozenset()
+    verdicts: dict[tuple[str, str], bool] = {}
+    for edge in getattr(plan, "edges", ()) or ():
+        if getattr(edge, "edge_kind", "") != "data":
+            continue
+        pair = (str(edge.source_node_id), str(edge.target_node_id))
+        admitted = bool(producer_edge_selection_rule(plan, edge))
+        verdicts[pair] = verdicts.get(pair, True) and admitted
+    return frozenset(pair for pair, admitted in verdicts.items() if admitted)
+
+
+#: What a wave reply adds when some member runs after its producer.
+_AFTER_MEMBERS_CLAUSE = {
+    False: "",
+    True: (
+        " -- each member marked after runs once the member it takes its "
+        "input from validates, and not at all if that member does not"
+    ),
+}
+
+
 def _node_coordinates(node, input_artifact=None) -> dict[str, str]:
     """Render a planning node's internal coordinates into program options.
 
@@ -9275,10 +9308,9 @@ class CommandCompiledToolHostV1:
             planned=tuple(
                 str(node.node_id) for node in getattr(draft, "nodes", ()) or ()
             ),
+            admitted=_admitted_producer_pairs(scientific),
         )
-        dispatchable = bool(verdict.rows) and all(
-            row.status == "ready" for row in verdict.rows
-        )
+        dispatchable = verdict.dispatchable
         # Where the dispatcher reads it. A wave that lives only in a
         # tool reply is a wave the array never hears about -- and a wave
         # left standing after the Agent has moved on is worse, because
@@ -9296,6 +9328,9 @@ class CommandCompiledToolHostV1:
             node_ids=tuple(verdict.members) if dispatchable else (),
         )
         record = verdict.public_record()
+        after_members = [
+            row.node_id for row in verdict.rows if row.status == "after"
+        ]
         # A wave is submitted only inside an approved workflow. This reply
         # answered "this wave is what will be submitted" while the workflow
         # it belonged to could not be approved, and the session ended
@@ -9334,7 +9369,9 @@ class CommandCompiledToolHostV1:
             # a revision remains after this cycle's own plan is admitted.
             next_action = (
                 "this wave is what will be submitted and every member "
-                "runs, but this goal can open no further cycle after it: "
+                "runs"
+                + _AFTER_MEMBERS_CLAUSE[bool(after_members)]
+                + ", but this goal can open no further cycle after it: "
                 "nothing wakes you when it ends, and a number the "
                 "approved analysis chain computes without rendering it as "
                 "a claim is not delivered -- put every claim you need into "
@@ -9342,8 +9379,9 @@ class CommandCompiledToolHostV1:
             )
         elif dispatchable:
             next_action = (
-                "this wave is what will be submitted; every member runs "
-                "and you are woken once, when all of them have ended"
+                "this wave is what will be submitted; every member runs"
+                + _AFTER_MEMBERS_CLAUSE[bool(after_members)]
+                + " and you are woken once, when all of them have ended"
             )
         else:
             next_action = (
