@@ -4503,8 +4503,15 @@ class GoalDriver:
         # And the run's own stream, when one exists: an executor error
         # raised after nodes completed returns before _outcome, which
         # owns the only other projection, so a cycle could lose real
-        # engine wall time's evidence the same way.
-        if self.run_directory is not None:
+        # engine wall time's evidence the same way. Only this cycle's
+        # run: an error raised while planning finds the previous cycle's
+        # run directory here, and projecting it re-recorded that run
+        # under the label of a run this cycle never made (o2r).
+        if (
+            self.run_directory is not None
+            and self.run_directory
+            == self.goal_dir / "runs" / f"cycle-{self.cycles}"
+        ):
             run_events = self.run_directory / "events.jsonl"
             if run_events.is_file():
                 self._record_workspace(
@@ -4587,6 +4594,14 @@ class GoalDriver:
                 "wake_composed",
                 {"cycle": self.cycles, "run": self.wake["previous_run"]},
             )
+        # The stream this cycle plans in is not known until its session
+        # returns. Until then the previous cycle's stream is the previous
+        # cycle's, and a session that raises is projected from whatever
+        # this names: o2r's cycle 2 (R10 Q13, CUHK 2152079) raised after
+        # claiming its whole answer, and the typed-error projection read
+        # cycle 1's stream, so none of cycle 2's claims or findings
+        # reached the workspace record.
+        self.events_path = None
         try:
             self.session = self.plan_session(
                 task=self.task,
