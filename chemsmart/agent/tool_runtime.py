@@ -17492,9 +17492,15 @@ class CommandCompiledToolHostV1:
                         findings.append("orca.result.charge_mismatch")
                     if output.multiplicity != multiplicity:
                         findings.append("orca.result.multiplicity_mismatch")
+                    # An atom has nothing to optimise and no vibration: the
+                    # writer drops Opt from a monoatomic route and ORCA
+                    # runs the rest (R10 Q14 G1, CUHK 2152811: an H-atom
+                    # opt+freq that ended normally and was refused).
+                    monoatomic = _output_is_monoatomic(output)
                     if (
                         jobtype in GEOMETRY_SEARCH_JOBTYPES
                         and output.converged is not True
+                        and not monoatomic
                     ):
                         findings.append(
                             "orca.result.optimization_not_converged"
@@ -17514,7 +17520,11 @@ class CommandCompiledToolHostV1:
                         bool((expected_settings or {}).get(field))
                         for field in ("freq", "numfreq", "vpt2")
                     )
-                    if requested_frequency_analysis and not frequencies:
+                    if (
+                        requested_frequency_analysis
+                        and not frequencies
+                        and not monoatomic
+                    ):
                         findings.append("orca.result.frequencies_missing")
                     elif (
                         requested_frequency_analysis and not finite_frequencies
@@ -17831,9 +17841,11 @@ class CommandCompiledToolHostV1:
                             )
                         if energy is None or not math.isfinite(energy):
                             findings.append("gaussian.result.energy_missing")
+                        monoatomic = _output_is_monoatomic(output)
                         if (
                             expected_result_jobtype in GEOMETRY_SEARCH_JOBTYPES
                             and not optimization_converged
+                            and not monoatomic
                         ):
                             findings.append(
                                 "gaussian.result.optimization_not_converged"
@@ -17852,8 +17864,10 @@ class CommandCompiledToolHostV1:
                                 "gaussian.result.wavefunction_not_stable"
                             )
                         if (
-                            bool(requested.get("freq")) or jobtype == "freq"
-                        ) and not frequencies:
+                            (bool(requested.get("freq")) or jobtype == "freq")
+                            and not frequencies
+                            and not monoatomic
+                        ):
                             findings.append(
                                 "gaussian.result.frequencies_missing"
                             )
@@ -20932,6 +20946,20 @@ def _write_host_execution_artifact(path: Path, payload: str) -> None:
         raise ContractError(
             "execution emitted a reserved host artifact name"
         ) from exc
+
+
+def _output_is_monoatomic(output: Any) -> bool:
+    """Whether a program output is of one atom, which has no internal motion.
+
+    The one fact an atom's optimisation and frequency expectations turn
+    on, read from the output's own structure; an output the parser cannot
+    place answers False, so a molecule keeps every expectation.
+    """
+
+    try:
+        return bool(output.molecule.is_monoatomic)
+    except Exception:  # noqa: BLE001 - no readable structure, no exemption
+        return False
 
 
 def _process_observation_findings(
