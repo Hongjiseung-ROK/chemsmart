@@ -364,3 +364,73 @@ def test_what_a_root_is_made_of_finds_the_root_a_window_missed():
     ]
     assert extra
     assert min(extra) > max(_read("gaussian", gaussian, "excitation_energies"))
+
+
+# Oracle O2 of R10 Q8 (CUHK Slurm 2150298): PySCF 2.14 artifacts written by
+# the driver that records each root's largest single excitation.
+_PYSCF_CHARACTER = (
+    _DATA
+    / "PySCFTests/outputs/acrolein_td_singlet_triplet_character"
+    / "acro_p_st3c_gas_phase.h5"
+)
+_PYSCF_WINDOW6 = (
+    _DATA
+    / "PySCFTests/outputs/allyl_td_unrestricted_window6"
+    / "allyl_p_u6c_gas_phase.h5"
+)
+
+
+@pytest.mark.capability("selector:pyscf:td:excited_state_dominant_excitations")
+@pytest.mark.capability("selector:pyscf:td:excited_state_dominant_weights")
+def test_a_pyscf_root_is_made_of_what_the_log_programs_say():
+    """PySCF's X amplitudes and Gaussian's printed coefficients agree.
+
+    One acrolein singlet_triplet request at one geometry: the same
+    excitation at every index in PySCF, Gaussian and ORCA, and PySCF's
+    2|X|^2 equal to Gaussian's 2c^2 to the printed digit.
+    """
+
+    labels = _read(
+        "pyscf", _PYSCF_CHARACTER, "excited_state_dominant_excitations"
+    )
+    assert labels == _read(
+        "gaussian",
+        _SINGLET_TRIPLET["gaussian"],
+        "excited_state_dominant_excitations",
+    )
+    assert labels == _read(
+        "orca", _SINGLET_TRIPLET["orca"], "excited_state_dominant_excitations"
+    )
+    weights = _read(
+        "pyscf", _PYSCF_CHARACTER, "excited_state_dominant_weights"
+    )
+    gaussian = _read(
+        "gaussian",
+        _SINGLET_TRIPLET["gaussian"],
+        "excited_state_dominant_weights",
+    )
+    assert max(abs(p - g) for p, g in zip(weights, gaussian)) < 0.002
+
+
+@pytest.mark.capability("selector:pyscf:td:excited_state_dominant_excitations")
+def test_what_a_pyscf_root_is_made_of_finds_the_root_its_window_missed():
+    """Allyl full TD-DFT, six roots: PySCF's window lacks Gaussian's sixth.
+
+    PySCF's sixth root is alpha HOMO -> LUMO+2 at 7.080 eV where Gaussian's
+    (and ORCA's) is beta HOMO -> LUMO+1 at 6.901 eV, which a ten-root
+    PySCF window holds (O1, CUHK 2150194): by position the two sixth roots
+    are one state; by what they are made of they are two.
+    """
+
+    pyscf = _read(
+        "pyscf", _PYSCF_WINDOW6, "excited_state_dominant_excitations"
+    )
+    gaussian = _read(
+        "gaussian",
+        _ALLYL[("gaussian", "tddft")],
+        "excited_state_dominant_excitations",
+    )
+    assert pyscf[:5] == gaussian[:5]
+    assert gaussian[5] == "beta HOMO -> LUMO+1"
+    assert gaussian[5] not in pyscf
+    assert pyscf[5] not in gaussian
