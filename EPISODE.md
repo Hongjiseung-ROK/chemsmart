@@ -77,6 +77,48 @@ is not a few goals, it is every goal since 2026-09-17.
 - C3 is falsified if, on the repaired tree, a handoff refusal after a
   validated producer still records the producer as launch-refused.
 
+## Oracle O1 -- PRE-REGISTRATION (written before submission)
+
+Question: does ORCA 6.1.1 read the Hessian ChemSmart now hands an IRC
+and a saddle search, and which of `Calc_Hess True` / `InHess Read` does
+it honour when the base writer wrote both? A CLI reference job (no
+Agent, no provider), code = this branch after 4a9654cc (writer repair).
+System: HCN <-> HNC 1,2-H shift saddle, neutral singlet,
+B3LYP/def2-SVP (ChemSmart writes ORCA's `B3LYP/G`), 8 cores, 16 GB.
+Guess geometry = the archived r8 goal-ts guess. Archived control on the
+same system/ORCA (ORCA `b3lyp`, i.e. the VWN-3 form): saddle
+-93.224285928 Eh, one imaginary mode 1121.71i cm-1; its IRC printed
+"Initial displacement Hessian type .... Compute numerically", 21
+forward steps to the HNC side, 11 min 8 s on 8 cores.
+
+Commands (cli/o1/commands.txt): (1) saddle `ts` (Calc_Hess default,
+Freq); (2) IRC forward `--hess-filename o1a_saddle.hess`; (3) the same
+IRC with no Hessian (control); (4) saddle search from the guess
+`--inhess-filename o1a_saddle.hess`; (5) the base writer's form by hand
+(InHess Read beside Calc_Hess True) through `orca inp`.
+
+Expected (bands never tuned after a result):
+- A (1): converges; exactly one imaginary mode, |nu| in [1000, 1250]
+  cm-1.
+- B (2): native input carries `inithess read` and
+  `Hess_Filename "o1a_saddle.hess"`; ORCA's "Initial displacement
+  Hessian type" line is NOT "Compute numerically"; no numerical Hessian
+  is computed; engine wall < 1/2 of (3). The path descends to a
+  structure with N-H about 1.0 A (HNC side) or C-H about 1.07 A (HCN
+  side), never back to the saddle.
+- C (3): "Initial displacement Hessian type .... Compute numerically".
+- D (4): native input `InHess Read` + `InHessName "o1a_saddle.hess"`,
+  no Calc_Hess; the output reads that file as the initial Hessian and
+  computes no SCF Hessian before the first step; same saddle as (1):
+  |dE| < 1e-6 Eh, |d nu_imag| < 5 cm-1.
+- E (5): the open question, no band: an SCF Hessian computed in cycle 1
+  and read back from the job's own .001.hess means Calc_Hess wins (every
+  base-tree seeded saddle search computed the Hessian it was handed);
+  otherwise InHess Read wins (the base form was redundant, not wrong).
+Falsifiers of the repair on the engine: (2) prints "Compute
+numerically" or refuses the file; (4) computes an SCF Hessian before
+its first step.
+
 ## Jobs issued
 
 (none yet)
@@ -84,3 +126,6 @@ is not a few goals, it is every goal since 2026-09-17.
 ## Status
 
 - 2026-09-24: premise replay done on the base tree; plan written.
+- 2026-09-24: C2 (5ea8199b), writer (4a9654cc), compiler (f2525546)
+  and host wiring (3d3daa36) committed with witnesses red on the base;
+  tests/agent green on 5ea8199b (2975 passed).
