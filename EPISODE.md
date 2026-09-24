@@ -341,6 +341,19 @@ point picked from ORCA's own scan table by a 20-line helper (pick_max.py,
 sha256 376a336c...), OptTS from it with an exact Hessian, then every other O1
 command. Predictions unchanged.
 
+O1d (2153585): the relaxed scan from my cZc rose monotonically, 3.1 -> 1.9 A,
+by 55.9 kcal/mol with no maximum. The cause is symmetry, and it is my error
+of chemistry: the cZc I built and optimised is the C2 helix, a C2-symmetric
+path along C1...C6 is the conrotatory closure (thermally forbidden for 6pi),
+and a mirror-symmetric (Cs) path is the allowed disrotatory one; forces from
+a C2 start keep C2, so O1, O1b and O1d all searched the forbidden path.
+Cancelled (the OptTS from the scan's end was meaningless). O1e: the same
+commands from a Cs start (torsions held +18/-18 deg, C1...C6 2.508 A, MMFF;
+`chem/hold_cs.py`), scanning 2.50 -> 1.95 A in 12 points; the picker now
+refuses a maximum at an end of the scan (pick_max.py sha256 9eb1ed3d...).
+Predictions unchanged. The same trap is open to the Agent (its tZt start
+relaxed along two single bonds most naturally reaches the helix).
+
 O-D read from O1's finished part (B3LYP-D3(BJ)/def2-TZVP, ORCA, unscaled
 RRHO of my own, which reproduces ORCA's 298.15 K enthalpy to 0.01
 kcal/mol): tZt E -233.509133588 Eh, lowest mode 106 cm-1; cZc E
