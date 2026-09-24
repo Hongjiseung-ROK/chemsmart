@@ -550,6 +550,30 @@ by the release, none changing an arm, a measure or a test:
 | 2153435 | r10-q17-a | sealed1 plan slot a (39 goals) | 19b5352e3f59 | RUNNING (started 16:04 UTC); both arms' imports and digests verified on the node; tasks manifest 12079111... and plan f60980d1... re-computed equal |
 | 2153436 | r10-q17-b | sealed1 plan slot b (38 goals) | 19b5352e3f59 | RUNNING (started 16:04 UTC) |
 
+### The master's ruling on the stop rule (2026-09-25, recorded 16:15 UTC, 2 goals done, no STOP yet)
+
+It applies from now and identically to every arm.
+- Does not count: a `rate_limited` attempt the provider transport retried,
+  inside a session that went on to finish with provider turns (the rule
+  protects the owner's quota and keeps infrastructure out of the data; a
+  recovered throttle threatens neither).
+- Counts, and stops the run: `quota_exhausted` or `credential_invalid`; a
+  session with zero provider turns; a session that ended on a provider
+  error or `turn_deadline_exceeded`; three consecutive goals with throttled
+  attempts. (This replaces the pre-registered re-issue-once for a
+  turn-deadline ending: it now stops the run.)
+- The running jobs (2153435, 2153436) are not touched: they run the
+  literal rule (runner 9ebfce01), so a recovered throttle can write STOP.
+  If STOP fires on a recovered throttle alone, I hand back when the jobs
+  end; on resumption I delete STOP, record the event here, and submit the
+  remaining goals in plan order with runner a7cc1679... (scratchpad
+  tools/run_sessions.py), which implements the ruling -- three
+  consecutive = the last three finished goals in order of ending across
+  both slots; "ended on" = the session's last provider attempt carries an
+  error class; nothing is re-issued. Checked on synthetic streams and on
+  hc1's real records (under the ruling none of hc1's 9 goals would stop;
+  its 2 throttled goals were recovered).
+
 First sealed goal done 16:12 UTC: 17 provider turns, 1.45 M input tokens,
 456 s, no stop condition; it settled returned_to_human on a precision
 requirement its own session declared (a behaviour ending, not a host
