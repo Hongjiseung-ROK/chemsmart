@@ -476,8 +476,96 @@ def _required_record_values(
     return [record[key] for record in records]
 
 
-def _orca_excitation_energies(output: Any) -> list[float]:
+def _excited_spin_squares(records, response_method, manifold):
+    """Each root's <S^2>, where the quantity has one meaning.
+
+    A spin-adapted root's <S^2> is exact (0 or 2) and a Tamm-Dancoff root
+    of an open-shell reference is a CIS-like wavefunction whose <S^2> every
+    program computes alike -- Gaussian and ORCA agree to the printed digit
+    on the allyl radical (0.756/0.756 for D1, CUHK Slurm 2150194).  A full
+    TD-DFT root of an open-shell reference is not a wavefunction, and the
+    two programs print two different approximations for it (0.713 in
+    Gaussian, 0.801 in ORCA for the same D1): under one name that would be
+    two quantities, so none is served there.
+    """
+
+    if response_method == "tddft" and manifold == "unrestricted":
+        raise MissingQuantityError(
+            "a full TD-DFT root of an open-shell reference has no unique "
+            "<S^2>: Gaussian and ORCA print two different approximations "
+            "for the same root (allyl D1: 0.713 vs 0.801); a Tamm-Dancoff "
+            "run (response_method: tda) gives the CIS-like <S^2> both "
+            "programs agree on"
+        )
+    return [
+        float(item)
+        for item in _required_record_values(
+            records, "spin_square", "a printed excited-state <S^2>"
+        )
+    ]
+
+
+def _frontier_orbital(base: str, offset: float) -> str:
+    step = int(round(offset))
+    return base if step == 0 else f"{base}{step:+d}"
+
+
+def _dominant_excitation_values(records, what: str) -> list[Any]:
+    """Each root's largest single excitation, in one program-neutral form.
+
+    Every reader records ``(occupied_offset, virtual_offset, weight,
+    channel)`` from its own program's print: the occupied orbital counted
+    from the HOMO and the virtual from the LUMO of its own spin, and the
+    spin channel of an unrestricted root.  ``labels`` spells it
+    ``HOMO-1 -> LUMO`` (``beta HOMO -> LUMO`` on an open shell) and
+    ``weights`` gives the program's own weight of that excitation (2c^2 of
+    a spin-adapted coefficient, c^2 of an unrestricted one, ORCA's printed
+    weight).  A root's character is what it is made of, so it is how a
+    root is recognised in another program's list, where its position may
+    differ.
+    """
+
+    values = []
+    for record in records:
+        dominant = record.get("dominant_excitation")
+        if dominant is None:
+            raise MissingQuantityError(
+                "result does not print the excitations of every root"
+            )
+        occupied, virtual, weight, channel = dominant
+        if what == "weights":
+            values.append(float(weight))
+            continue
+        spin = {1: "alpha ", -1: "beta "}.get(int(round(channel)), "")
+        values.append(
+            f"{spin}{_frontier_orbital('HOMO', occupied)} -> "
+            f"{_frontier_orbital('LUMO', virtual)}"
+        )
+    return values
+
+
+def _orca_served_records(output: Any) -> list[dict[str, Any]]:
+    """The roots of the manifold the request named, ranked by energy.
+
+    ORCA has no triplet-only solve, so a ``triplet`` request is written as
+    ``Triplets true`` and its output also holds the singlet block nobody
+    asked for.  The aggregate selectors serve the requested manifold -- as
+    Gaussian's and PySCF's triplet runs do, ranked 1..n -- and the
+    singlets stay readable by name (``singlet_*``).
+    """
+
     records = list(output.excited_state_records or ())
+    if getattr(output, "state_manifold", None) == "triplet":
+        triplets = [item for item in records if item["multiplicity"] == 3]
+        records = [
+            {**item, "state_index": rank}
+            for rank, item in enumerate(triplets, start=1)
+        ]
+    return records
+
+
+def _orca_excitation_energies(output: Any) -> list[float]:
+    records = _orca_served_records(output)
     if records:
         return [float(item["energy_eV"]) for item in records]
     # ORCA 6 spectrum-only fragments remain useful for the legacy aggregate
@@ -485,40 +573,57 @@ def _orca_excitation_energies(output: Any) -> list[float]:
     return [float(item) for item in output.excitation_energies_eV]
 
 
-def _orca_absorption_per_state(output: Any, key: str) -> list[float]:
-    """One absorption-table value per state, in ``excitation_energies`` order.
+def _orca_absorption_rows(output: Any, records, key: str) -> list[float]:
+    """The absorption-table value of each record, in the records' order.
 
-    ORCA prints its ``STATE`` table singlets first and triplets after,
-    which is the order ``excitation_energies`` serves, and its absorption
-    table in energy order, so for a singlet_triplet run the two lists were
-    not parallel: acrolein's bright S2 (6.536 eV) was served beside
-    f = 0 and its T2 (3.196 eV) beside f = 0.381 (CUHK Slurm 2150076).
-    Each state is paired with the absorption row that names it -- the
-    row's ``N-MA`` label is the state's manifold root and multiplicity --
-    so the i-th strength belongs to the i-th energy, as it does in every
-    other program's reader.
+    Each root is paired with the row whose ``N-MA`` label is ORCA's own
+    label for it (the ``STATE`` number within its block and the printed
+    multiplicity), never by position: ORCA prints the ``STATE`` blocks
+    singlets first and the absorption table in energy order, and pairing
+    by position served acrolein's bright S2 (6.536 eV) beside f = 0 and
+    its T2 (3.196 eV) beside f = 0.381 (CUHK Slurm 2150076).
     """
 
-    records = list(output.excited_state_records or ())
     rows = list(output.electronic_absorption_transition_records or ())
-    if not records:
-        # A spectrum-only fragment: the table is the only record, in the
-        # order the energies fall back to as well.
-        return [float(row[key]) for row in rows]
-    by_state = {
+    by_label = {
         (row["manifold_root"], row["multiplicity"]): row for row in rows
     }
     values = []
     for record in records:
-        row = by_state.get((record["manifold_root"], record["multiplicity"]))
+        label = (record["orca_state"], record["orca_multiplicity"])
+        row = by_label.get(label)
         if row is None:
             raise MissingQuantityError(
-                "ORCA printed no electric-dipole absorption row for root "
-                f"{record['manifold_root']} of multiplicity "
-                f"{record['multiplicity']}"
+                "ORCA printed no electric-dipole absorption row for its "
+                f"state {label[0]}-{label[1]}A"
             )
         values.append(float(row[key]))
     return values
+
+
+def _orca_absorption_per_state(output: Any, key: str) -> list[float]:
+    """One absorption-table value per state, in ``excitation_energies`` order."""
+
+    records = _orca_served_records(output)
+    if not records:
+        # A spectrum-only fragment: the table is the only record, in the
+        # order the energies fall back to as well.
+        rows = list(output.electronic_absorption_transition_records or ())
+        return [float(row[key]) for row in rows]
+    return _orca_absorption_rows(output, records, key)
+
+
+def _orca_manifold_values(output: Any, multiplicity: int, key: str):
+    """One spin block's values in manifold-root order (S_k or T_k)."""
+
+    records = [
+        item
+        for item in (output.excited_state_records or ())
+        if item["multiplicity"] == multiplicity
+    ]
+    if key == "energy_eV":
+        return [float(item["energy_eV"]) for item in records]
+    return _orca_absorption_rows(output, records, key)
 
 
 def _last_spin_square(output: Any, key: str | None = None) -> float:
@@ -1952,6 +2057,20 @@ def _orca_level(output: Any) -> dict[str, Any]:
                 electrons = int(match.group(1) or match.group(2))
         if electrons is not None:
             level["frozen_core"] = electrons // 2
+    # The response an excited stage ran on, in the words Gaussian's and
+    # PySCF's levels use: ORCA's own header says which approximation it
+    # applied and how many roots of each block it determined, and the
+    # manifold is the word the request named (ORCA spells ``triplet`` and
+    # ``singlet_triplet`` alike).  TDA and full TD-DFT are two calculations
+    # of the same roots, and ORCA's level had said neither.
+    applied = getattr(output, "excited_state_applied", None)
+    if isinstance(applied, Mapping) and applied.get("response_method"):
+        level["response_method"] = applied["response_method"]
+        manifold = getattr(output, "state_manifold", None)
+        if manifold:
+            level["state_manifold"] = manifold
+        if applied.get("nstates") is not None:
+            level["nstates"] = int(applied["nstates"])
     return level
 
 
@@ -2521,6 +2640,13 @@ _CONSTRAINED_COORDINATE_DECLARATIONS = (
     ("constrained_dihedral_angles", "degree", "ANGLE"),
     ("constrained_dihedral_atoms", "1", "DIMENSIONLESS"),
 )
+#: What each excited root is made of, served by all three td readers: the
+#: root's largest single excitation in frontier-orbital words (``HOMO-1 ->
+#: LUMO``, ``beta HOMO -> LUMO``) and the program's own weight of it.
+_EXCITED_CHARACTER_DECLARATIONS = (
+    ("excited_state_dominant_excitations", "", "DIMENSIONLESS"),
+    ("excited_state_dominant_weights", "1", "DIMENSIONLESS"),
+)
 _CONSTRAINED_COORDINATE_ATOM_DECLARATIONS = (
     (
         "constrained_bond_atoms",
@@ -2729,44 +2855,51 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             ),
             "excited_state_indices": lambda output: [
                 int(item["state_index"])
-                for item in output.excited_state_records
+                for item in _orca_served_records(output)
             ],
             "excited_state_manifold_roots": lambda output: [
                 int(item["manifold_root"])
-                for item in output.excited_state_records
+                for item in _orca_served_records(output)
             ],
             "excited_state_multiplicities": lambda output: [
                 int(item)
                 for item in _required_record_values(
-                    output.excited_state_records,
+                    _orca_served_records(output),
                     "multiplicity",
-                    "a spin multiplicity",
+                    "a spin multiplicity (an unrestricted manifold has none)",
                 )
             ],
-            "excited_state_spin_square": lambda output: [
-                float(item["spin_square"])
-                for item in output.excited_state_records
-            ],
-            "singlet_excitation_energies": lambda output: [
-                float(item["energy_eV"])
-                for item in output.excited_state_records
-                if item["multiplicity"] == 1
-            ],
-            "triplet_excitation_energies": lambda output: [
-                float(item["energy_eV"])
-                for item in output.excited_state_records
-                if item["multiplicity"] == 3
-            ],
-            "singlet_oscillator_strengths": lambda output: [
-                float(item["oscillator_strength"])
-                for item in output.electronic_absorption_transition_records
-                if item["multiplicity"] == 1
-            ],
-            "triplet_oscillator_strengths": lambda output: [
-                float(item["oscillator_strength"])
-                for item in output.electronic_absorption_transition_records
-                if item["multiplicity"] == 3
-            ],
+            "excited_state_spin_square": lambda output: (
+                _excited_spin_squares(
+                    _orca_served_records(output),
+                    (output.excited_state_applied or {}).get(
+                        "response_method"
+                    ),
+                    output.state_manifold,
+                )
+            ),
+            "excited_state_dominant_excitations": lambda output: (
+                _dominant_excitation_values(
+                    _orca_served_records(output), "labels"
+                )
+            ),
+            "excited_state_dominant_weights": lambda output: (
+                _dominant_excitation_values(
+                    _orca_served_records(output), "weights"
+                )
+            ),
+            "singlet_excitation_energies": lambda output: (
+                _orca_manifold_values(output, 1, "energy_eV")
+            ),
+            "triplet_excitation_energies": lambda output: (
+                _orca_manifold_values(output, 3, "energy_eV")
+            ),
+            "singlet_oscillator_strengths": lambda output: (
+                _orca_manifold_values(output, 1, "oscillator_strength")
+            ),
+            "triplet_oscillator_strengths": lambda output: (
+                _orca_manifold_values(output, 3, "oscillator_strength")
+            ),
             "energy": _orca_total_energy,
             "energies": lambda output: [
                 float(item) - _orca_fixed_geometry_root_shift(output)
@@ -3229,6 +3362,8 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("energies", "computed_surface"),
     ("energy", "computed_surface"),
     ("excitation_energies", "excited_root"),
+    ("excited_state_dominant_excitations", "excited_root"),
+    ("excited_state_dominant_weights", "excited_root"),
     ("excited_state_indices", "excited_root"),
     ("excited_state_labels", "excited_root"),
     ("excited_state_manifold_roots", "excited_root"),
@@ -3355,14 +3490,25 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                 str(item["state_label"])
                 for item in output.excited_state_records
             ],
-            "excited_state_spin_square": lambda output: [
-                float(item)
-                for item in _required_record_values(
+            "excited_state_spin_square": lambda output: (
+                _excited_spin_squares(
                     output.excited_state_records,
-                    "spin_square",
-                    "a printed excited-state <S^2>",
+                    (output.excited_state_request or {}).get(
+                        "response_method"
+                    ),
+                    (output.excited_state_request or {}).get("state_manifold"),
                 )
-            ],
+            ),
+            "excited_state_dominant_excitations": lambda output: (
+                _dominant_excitation_values(
+                    output.excited_state_records, "labels"
+                )
+            ),
+            "excited_state_dominant_weights": lambda output: (
+                _dominant_excitation_values(
+                    output.excited_state_records, "weights"
+                )
+            ),
             "singlet_excitation_energies": lambda output: [
                 float(item["energy_eV"])
                 for item in output.excited_state_records
@@ -5018,6 +5164,16 @@ def _pyscf_accessors() -> dict[str, Callable[[Any], Any]]:
             )
         ],
         "transition_dipole_moments": _pyscf_transition_dipoles,
+        "excited_state_dominant_excitations": lambda output: (
+            _dominant_excitation_values(
+                _pyscf_excited_records(output), "labels"
+            )
+        ),
+        "excited_state_dominant_weights": lambda output: (
+            _dominant_excitation_values(
+                _pyscf_excited_records(output), "weights"
+            )
+        ),
         "excited_state_converged": _pyscf_excited_converged,
         "excited_state_followed_root": _pyscf_followed_root,
         # The correlated stage: the program's own components at the final
@@ -5188,6 +5344,8 @@ _PYSCF_SCF_SELECTORS = (
 _PYSCF_TD_SELECTORS = (
     "excitation_energies",
     "excited_state_converged",
+    "excited_state_dominant_excitations",
+    "excited_state_dominant_weights",
     "excited_state_indices",
     "excited_state_manifold_roots",
     "excited_state_multiplicities",
@@ -5305,6 +5463,8 @@ _PYSCF_STRUCTURAL_STATES = tuple(
             ("energy", "as_reached"),
             ("excitation_energies", "as_reached"),
             ("excited_state_converged", "as_reached"),
+            ("excited_state_dominant_excitations", "as_reached"),
+            ("excited_state_dominant_weights", "as_reached"),
             ("excited_state_indices", "as_reached"),
             ("excited_state_manifold_roots", "as_reached"),
             ("excited_state_multiplicities", "as_reached"),
@@ -5381,6 +5541,8 @@ _PYSCF_ELECTRONIC_PROVENANCE = tuple(
             ("energy", "computed_surface"),
             ("excitation_energies", "excited_root"),
             ("excited_state_converged", "excited_root"),
+            ("excited_state_dominant_excitations", "excited_root"),
+            ("excited_state_dominant_weights", "excited_root"),
             ("excited_state_followed_root", "excited_root"),
             ("excited_state_indices", "excited_root"),
             ("excited_state_manifold_roots", "excited_root"),
@@ -5438,6 +5600,8 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("energy", "computed_surface"),
     ("entropy_times_temperature", "computed_surface"),
     ("excitation_energies", "excited_root"),
+    ("excited_state_dominant_excitations", "excited_root"),
+    ("excited_state_dominant_weights", "excited_root"),
     ("excited_state_indices", "excited_root"),
     ("excited_state_labels", "excited_root"),
     ("excited_state_manifold_roots", "excited_root"),
@@ -5492,7 +5656,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         #: spells that ``1`` rather than leaving the unit empty: an
         #: introduced selector says what it is measured in, and "" reads
         #: as nobody having said.
-        selector_declarations=_CONSTRAINED_COORDINATE_DECLARATIONS,
+        selector_declarations=(
+            _CONSTRAINED_COORDINATE_DECLARATIONS
+            + _EXCITED_CHARACTER_DECLARATIONS
+        ),
         #: An atom index this plane delivers indexes the vectors this
         #: plane delivers -- symbols, positions, every population -- so it
         #: is zero-based like all of them, and it says so where the model
@@ -5923,6 +6090,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "excitation_energies",
+                    # What each root is made of: its largest single
+                    # excitation and that excitation's weight.
+                    "excited_state_dominant_excitations",
+                    "excited_state_dominant_weights",
                     "excited_state_indices",
                     "excited_state_manifold_roots",
                     "excited_state_multiplicities",
@@ -5941,6 +6112,11 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
+                    # ORCA solves the spin-adapted triplets beside the
+                    # singlets; they were read and never declared, so a
+                    # triplet request could not be answered by name.
+                    "triplet_excitation_energies",
+                    "triplet_oscillator_strengths",
                 ),
             ),
             (
@@ -6014,7 +6190,10 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         accessors=_gaussian_accessors(),
         # A held coordinate keeps its unit and its atoms as ORCA's do: one
         # declaration for both programs' constrained optimisations.
-        selector_declarations=_CONSTRAINED_COORDINATE_DECLARATIONS,
+        selector_declarations=(
+            _CONSTRAINED_COORDINATE_DECLARATIONS
+            + _EXCITED_CHARACTER_DECLARATIONS
+        ),
         atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
         # Coverage is ``parser_supported_when_emitted``, as for ORCA: it
         # states what a job of this type can be asked for, while route and
@@ -6247,8 +6426,20 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "energies",
                     "energy",
                     "excitation_energies",
+                    # What each root is made of: its largest single
+                    # excitation and that excitation's weight.
+                    "excited_state_dominant_excitations",
+                    "excited_state_dominant_weights",
                     "excited_state_indices",
                     "excited_state_labels",
+                    # Which manifold each state belongs to and its rank
+                    # there, and each spin block by name: the words ORCA's
+                    # and PySCF's td already answered.  The accessors read
+                    # Gaussian's own spin labels; undeclared, a 50-50 run
+                    # could be read only by list position, where Gaussian
+                    # interleaves singlets and triplets by energy.
+                    "excited_state_manifold_roots",
+                    "excited_state_multiplicities",
                     "excited_state_spin_square",
                     "functional",
                     "hirshfeld_atomic_charges",
@@ -6258,11 +6449,15 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "oscillator_strengths",
                     "positions",
                     "scf_energy",
+                    "singlet_excitation_energies",
+                    "singlet_oscillator_strengths",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
+                    "triplet_excitation_energies",
+                    "triplet_oscillator_strengths",
                     "wavefunction_stability_history",
                     "wavefunction_stability_verdict",
                 ),
@@ -6554,6 +6749,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("scf_stability_internal", "", "DIMENSIONLESS"),
             ("scf_stability_external", "", "DIMENSIONLESS"),
             ("scf_stability_external_rotation_space", "", "DIMENSIONLESS"),
+            *_EXCITED_CHARACTER_DECLARATIONS,
         ),
         jobtype_selectors=(
             (
@@ -6770,7 +6966,11 @@ _TEXT_SELECTORS = frozenset(
     }
 )
 _TEXT_VECTOR_SELECTORS = frozenset(
-    {"excited_state_labels", "wavefunction_stability_history"}
+    {
+        "excited_state_dominant_excitations",
+        "excited_state_labels",
+        "wavefunction_stability_history",
+    }
 )
 _INTEGER_SELECTORS = frozenset(
     {

@@ -204,6 +204,46 @@ def functional_resolution_record(
     }
 
 
+#: Which excited-state manifolds a reference has, whichever program runs
+#: the response.  A closed-shell (singlet) reference has spin-adapted
+#: singlet and triplet excitations, asked for alone or together; an
+#: open-shell reference has one spin-conserving manifold, ``unrestricted``,
+#: whose roots are not spin eigenfunctions.  This is a fact about the
+#: reference and not about a program, so every program's settings ask this
+#: one rule rather than restating it.
+TD_CLOSED_SHELL_MANIFOLDS = ("singlet", "singlet_triplet", "triplet")
+TD_OPEN_SHELL_MANIFOLD = "unrestricted"
+
+
+def td_manifold_reference_refusal(manifold, multiplicity):
+    """Why *manifold* cannot belong to a reference of *multiplicity*.
+
+    Returns None when the pair is admissible or either is unknown, and
+    otherwise the sentence a settings class refuses with, naming the
+    manifold the reference does have.
+    """
+
+    if manifold is None or multiplicity is None:
+        return None
+    word = str(manifold).strip().lower()
+    closed_shell = int(multiplicity) == 1
+    if word in TD_CLOSED_SHELL_MANIFOLDS and not closed_shell:
+        return (
+            f"state_manifold={word!r} is spin-adapted and needs a "
+            f"closed-shell (singlet) reference; multiplicity {multiplicity} "
+            "has one manifold, state_manifold: "
+            f"{TD_OPEN_SHELL_MANIFOLD}."
+        )
+    if word == TD_OPEN_SHELL_MANIFOLD and closed_shell:
+        return (
+            "A closed-shell (singlet) reference asks for singlet, triplet "
+            "or singlet_triplet excitations; state_manifold: "
+            f"{TD_OPEN_SHELL_MANIFOLD} is the one manifold of an open-shell "
+            "reference."
+        )
+    return None
+
+
 # Public top-level vocabulary owned by the loader below.  These are section
 # names, not the Click job inventory: the two sets intentionally differ.
 MOLECULAR_GAS_PHASE_JOB_SECTIONS = (

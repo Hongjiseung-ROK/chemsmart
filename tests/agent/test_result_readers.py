@@ -974,36 +974,36 @@ def test_gaussian_does_not_infer_multiplicity_from_open_shell_td_labels():
         reader_for("gaussian").read(output, "excited_state_multiplicities")
 
 
-def test_orca_tda_roots_are_filtered_only_by_printed_multiplicity(tmp_path):
-    output_path = tmp_path / "singlets-and-triplets.out"
-    output_path.write_text(
-        "STATE  1:  E= 0.123456 au  3.3594 eV  27096.0 cm**-1 "
-        "<S**2> = 0.000000 Mult 1\n"
-        "STATE  2:  E= 0.100000 au  2.7211 eV  21947.0 cm**-1 "
-        "<S**2> = 2.000000 Sym: A' Mult 3\n"
-        "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS\n"
-        "  0-1A -> 1-1A 3.3594 27096.0 369.1 0.010000000 0.0 0.0\n"
-        "  0-1A -> 1-3A 2.7211 21947.0 455.6 0.000000000 0.0 0.0\n"
-        "------------------------------------------------------------\n",
-        encoding="utf-8",
-    )
-    output = reader_for("orca").open_output(output_path)
-    reader = reader_for("orca")
+def test_orca_tda_roots_are_filtered_only_by_printed_multiplicity():
+    """A real ORCA 6.1.1 singlet_triplet output (CUHK Slurm 2150076).
 
-    assert reader.read(output, "singlet_excitation_energies") == (
-        [3.3594],
-        "eV",
+    It stood on a hand-written stand-in whose triplet was ``STATE 2`` of
+    one block, a numbering ORCA never prints (each spin block restarts at
+    1), and it pinned the ``STATE``-table order, which is not the order a
+    two-block spectrum is served in (ascending energy, as Gaussian's).
+    """
+
+    reader = reader_for("orca")
+    output = reader.open_output(
+        Path(
+            "tests/data/ORCATests/singlet_triplet/"
+            "acrolein_pbe0_def2svp_td_singlet_triplet3.out"
+        )
     )
-    assert reader.read(output, "triplet_excitation_energies") == (
-        [2.7211],
-        "eV",
-    )
-    assert reader.read(output, "excited_state_multiplicities") == (
-        [1, 3],
-        "",
-    )
+    printed = {
+        (record["orca_multiplicity"], round(record["energy_eV"], 3))
+        for record in output.excited_state_records
+    }
+    singlets, unit = reader.read(output, "singlet_excitation_energies")
+    triplets, _ = reader.read(output, "triplet_excitation_energies")
+    assert unit == "eV" and len(singlets) == len(triplets) == 3
+    assert {(1, round(value, 3)) for value in singlets} | {
+        (3, round(value, 3)) for value in triplets
+    } == printed
+    multiplicities, _ = reader.read(output, "excited_state_multiplicities")
+    assert sorted(multiplicities) == [1, 1, 1, 3, 3, 3]
     assert reader.read(output, "triplet_oscillator_strengths") == (
-        [0.0],
+        [0.0, 0.0, 0.0],
         "",
     )
 

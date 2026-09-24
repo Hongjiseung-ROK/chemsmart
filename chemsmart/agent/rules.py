@@ -1444,6 +1444,46 @@ POLICY_RULES: tuple[PolicyRuleV1, ...] = (
     # R10 Q1 claims: append rules below this line
     # R10 Q1 claims: end
     # R10 Q2 one name, one physics: append rules below this line
+    _r(
+        "reference.excitations.a_state_is_named_by_its_manifold",
+        "reference:about_rotational_constants_and_excitations",
+        "T1",
+        "Every program's td serves one list in one order: states in "
+        "ascending energy with a unique rank (excited_state_indices), each "
+        "state's spin (excited_state_multiplicities: 1 or 3, none on an "
+        "open-shell reference, whose roots are not spin eigenfunctions) and "
+        "its rank in its own manifold (excited_state_manifold_roots: S_k, "
+        "T_k), what it is made of (excited_state_dominant_excitations: "
+        "HOMO-1 -> LUMO, beta HOMO -> LUMO; with its weight), and each "
+        "spin block by name (singlet_*, triplet_*). state_manifold takes "
+        "singlet, triplet or singlet_triplet on a closed shell and "
+        "unrestricted on an open shell in every program. Name a state by "
+        "its manifold, rank and character, never by its position in one "
+        "program's list.",
+        "R10 q8 (a86d9658 -> 28b8b48c): one acrolein singlet_triplet request "
+        "read T1 at index 0 in Gaussian and S1 in ORCA, ORCA's indices "
+        "repeated (1,2,3,1,2,3) and Gaussian declared no manifold selector; "
+        "oracle O1 (CUHK 2150194) now reads one list in three programs",
+    ),
+    _r(
+        "reference.excitations.a_window_is_not_a_spectrum",
+        "reference:about_rotational_constants_and_excitations",
+        "T1",
+        "A td result is the lowest roots the program's iterative solver "
+        "found, not proof that no state lies below the top of the window: "
+        "six-root windows have missed a state below their top in each of "
+        "Gaussian, ORCA and PySCF -- once the brightest band of the "
+        "spectrum -- and a ten-root window held it. Ask for more roots "
+        "than you will use, and before calling two results' k-th roots one "
+        "state, compare their strengths, <S^2> and multiplicities. "
+        "An open-shell root's <S^2> is served under TDA, where the programs "
+        "agree; full TD-DFT has none.",
+        "R10 q7 O4 (CUHK 2150078): formaldehyde, Gaussian and ORCA missed "
+        "the f=0.47 root at nstates 6; R10 q8 O1 (CUHK 2150194): allyl "
+        "radical, PySCF missed root 6 at TD-DFT and ORCA the f=0.56 root "
+        "at TDA, and full-TD-DFT <S^2> of D1 read 0.713 (Gaussian) vs "
+        "0.801 (ORCA)",
+    ),
     # R10 Q2 one name, one physics: end
     # R10 Q3 knowledge: append rules below this line
     # R10 Q3 knowledge: end

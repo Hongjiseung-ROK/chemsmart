@@ -130,12 +130,22 @@ PYSCF_STABILITY_SPACES = {
 PYSCF_STABILITY_UNRETURNED_SPACE = "real -> complex"
 
 #: Excitation manifolds.  A closed-shell reference asks for singlet or
-#: triplet excitations; an open-shell (UKS) reference has one
-#: spin-conserving manifold that PySCF labels neither, so it is named for
-#: what it is.  The reference decides which names are admissible.
-PYSCF_STATE_MANIFOLDS = ("singlet", "triplet", "unrestricted")
-PYSCF_RESTRICTED_MANIFOLDS = ("singlet", "triplet")
+#: triplet excitations, or both (``singlet_triplet``: the driver solves the
+#: singlet and the triplet response on the one converged reference, as
+#: ORCA's ``Triplets true`` and Gaussian's ``50-50`` do, ``nstates`` roots
+#: of each); an open-shell (UKS) reference has one spin-conserving manifold
+#: that PySCF labels neither, so it is named for what it is.  The reference
+#: decides which names are admissible, by the one rule every program asks
+#: (``td_manifold_reference_refusal``).
+PYSCF_STATE_MANIFOLDS = (
+    "singlet",
+    "singlet_triplet",
+    "triplet",
+    "unrestricted",
+)
 PYSCF_UNRESTRICTED_MANIFOLD = "unrestricted"
+#: The manifold that is two spin blocks, each solved on its own.
+PYSCF_TWO_BLOCK_MANIFOLD = "singlet_triplet"
 #: ``ab_initio`` values.  ``hf`` is the mean-field reference; the others
 #: are correlated single-reference methods computed on an HF reference
 #: (PySCF converts an ROHF reference to UHF for them).
@@ -859,30 +869,24 @@ class PySCFJobSettings(MolecularJobSettings):
                 f"{PYSCF_STATE_MANIFOLDS}, got {self.state_manifold!r}."
             )
         # Which manifolds the reference admits is a fact about the resolved
-        # electronic state.  A project section carries no multiplicity, so
-        # the check waits until the molecule's state is bound (the CLI
-        # re-validates per molecule and preflight resolves it); a settings
-        # object that already knows its multiplicity is held to it here.
-        if self.multiplicity is not None:
-            if int(self.multiplicity) == 1:
-                if manifold not in PYSCF_RESTRICTED_MANIFOLDS:
-                    raise ValueError(
-                        "A closed-shell reference asks for singlet or "
-                        "triplet excitations; got state_manifold="
-                        f"{self.state_manifold!r}. An open-shell reference "
-                        "(multiplicity > 1) names "
-                        f"{PYSCF_UNRESTRICTED_MANIFOLD!r}."
-                    )
-            elif manifold != PYSCF_UNRESTRICTED_MANIFOLD:
-                raise ValueError(
-                    "An open-shell (unrestricted) reference has one "
-                    "spin-conserving excitation manifold; set "
-                    f"state_manifold: {PYSCF_UNRESTRICTED_MANIFOLD!r} (got "
-                    f"{self.state_manifold!r} with multiplicity="
-                    f"{self.multiplicity!r})."
-                )
+        # electronic state, and one rule for every program.  A project
+        # section carries no multiplicity, so the check waits until the
+        # molecule's state is bound (the CLI re-validates per molecule and
+        # preflight resolves it); a settings object that already knows its
+        # multiplicity is held to it here.
+        from chemsmart.jobs.settings import td_manifold_reference_refusal
+
+        refusal = td_manifold_reference_refusal(manifold, self.multiplicity)
+        if refusal:
+            raise ValueError(refusal)
         if self.excited_state_root is not None:
             root = self.excited_state_root
+            if manifold == PYSCF_TWO_BLOCK_MANIFOLD:
+                raise ValueError(
+                    "excited_state_root follows one root of one manifold; "
+                    "state_manifold: singlet_triplet holds two. Name the "
+                    "manifold the root belongs to (singlet or triplet)."
+                )
             if (
                 isinstance(root, bool)
                 or not isinstance(root, Integral)

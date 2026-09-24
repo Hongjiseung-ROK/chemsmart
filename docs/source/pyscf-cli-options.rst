@@ -5,9 +5,10 @@
 ChemSmart exposes PySCF 2.14.0 through the same ``run`` and ``sub`` command families as its executable-backed programs.
 The executable CPU surface is ``sp``, ``opt``, ``hess``, ``irc`` and ``td``: ground-state single points, optimisations
 and Hessians on a Hartree--Fock or DFT reference; one branch of the intrinsic reaction coordinate from a supplied
-saddle point on such a surface; TDA/TDDFT vertical excitations on a closed-shell reference (singlet or triplet manifold)
-or on an open-shell reference (the one ``unrestricted`` manifold), gas phase or with an implicit solvent; optimisation on
-an excited root of that manifold; and MP2, CCSD and CCSD(T) as ``ab_initio`` methods on a Hartree--Fock reference. GPU4PySCF 1.8.0 is an execution engine of the PySCF program; it is not a separate program.
+saddle point on such a surface; TDA/TDDFT vertical excitations on a closed-shell reference (singlet or triplet
+manifold, or both) or on an open-shell reference (the one ``unrestricted`` manifold), gas phase or with an implicit
+solvent; optimisation on an excited root of that manifold; and MP2, CCSD and CCSD(T) as ``ab_initio`` methods on a
+Hartree--Fock reference. GPU4PySCF 1.8.0 is an execution engine of the PySCF program; it is not a separate program.
 GPU4PySCF configuration and safe preview are available, but this release does not claim a qualified Agent GPU run.
 
 *************************
@@ -180,8 +181,9 @@ Program-Level Options
       -  Tamm--Dancoff approximation or the full response.
 
    -  -  ``--state-manifold``
-      -  singlet/triplet/unrestricted
-      -  Singlet or triplet excitations of a closed-shell reference; ``unrestricted`` is the one manifold of an
+      -  singlet/triplet/singlet_triplet/unrestricted
+      -  Singlet or triplet excitations of a closed-shell reference, or both (``singlet_triplet``: the two spin
+         blocks solved on one reference, ``nstates`` roots of each); ``unrestricted`` is the one manifold of an
          open-shell reference.
 
    -  -  ``--excited-root``
