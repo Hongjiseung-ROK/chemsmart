@@ -132,9 +132,9 @@ PYSCF_STABILITY_UNRETURNED_SPACE = "real -> complex"
 #: Excitation manifolds.  A closed-shell reference asks for singlet or
 #: triplet excitations; an open-shell (UKS) reference has one
 #: spin-conserving manifold that PySCF labels neither, so it is named for
-#: what it is.  The reference decides which names are admissible.
+#: what it is.  The reference decides which names are admissible, by the
+#: one rule every program asks (``td_manifold_reference_refusal``).
 PYSCF_STATE_MANIFOLDS = ("singlet", "triplet", "unrestricted")
-PYSCF_RESTRICTED_MANIFOLDS = ("singlet", "triplet")
 PYSCF_UNRESTRICTED_MANIFOLD = "unrestricted"
 #: ``ab_initio`` values.  ``hf`` is the mean-field reference; the others
 #: are correlated single-reference methods computed on an HF reference
@@ -859,28 +859,16 @@ class PySCFJobSettings(MolecularJobSettings):
                 f"{PYSCF_STATE_MANIFOLDS}, got {self.state_manifold!r}."
             )
         # Which manifolds the reference admits is a fact about the resolved
-        # electronic state.  A project section carries no multiplicity, so
-        # the check waits until the molecule's state is bound (the CLI
-        # re-validates per molecule and preflight resolves it); a settings
-        # object that already knows its multiplicity is held to it here.
-        if self.multiplicity is not None:
-            if int(self.multiplicity) == 1:
-                if manifold not in PYSCF_RESTRICTED_MANIFOLDS:
-                    raise ValueError(
-                        "A closed-shell reference asks for singlet or "
-                        "triplet excitations; got state_manifold="
-                        f"{self.state_manifold!r}. An open-shell reference "
-                        "(multiplicity > 1) names "
-                        f"{PYSCF_UNRESTRICTED_MANIFOLD!r}."
-                    )
-            elif manifold != PYSCF_UNRESTRICTED_MANIFOLD:
-                raise ValueError(
-                    "An open-shell (unrestricted) reference has one "
-                    "spin-conserving excitation manifold; set "
-                    f"state_manifold: {PYSCF_UNRESTRICTED_MANIFOLD!r} (got "
-                    f"{self.state_manifold!r} with multiplicity="
-                    f"{self.multiplicity!r})."
-                )
+        # electronic state, and one rule for every program.  A project
+        # section carries no multiplicity, so the check waits until the
+        # molecule's state is bound (the CLI re-validates per molecule and
+        # preflight resolves it); a settings object that already knows its
+        # multiplicity is held to it here.
+        from chemsmart.jobs.settings import td_manifold_reference_refusal
+
+        refusal = td_manifold_reference_refusal(manifold, self.multiplicity)
+        if refusal:
+            raise ValueError(refusal)
         if self.excited_state_root is not None:
             root = self.excited_state_root
             if (

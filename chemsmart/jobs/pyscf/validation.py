@@ -54,7 +54,6 @@ from chemsmart.jobs.pyscf.settings import (
     PYSCF_MOVING_STAGES,
     PYSCF_OPT_SOLVERS,
     PYSCF_RESPONSE_METHODS,
-    PYSCF_RESTRICTED_MANIFOLDS,
     PYSCF_SOLVENT_MODELS,
     PYSCF_STATE_MANIFOLDS,
     PYSCF_UNRESTRICTED_MANIFOLD,
@@ -4940,37 +4939,31 @@ def _check_response_settings(
     if resolved_multiplicity is not _MISSING and manifold in (
         PYSCF_STATE_MANIFOLDS
     ):
-        restricted = int(resolved_multiplicity) == 1
-        if restricted and manifold not in PYSCF_RESTRICTED_MANIFOLDS:
+        # One rule for every program: which manifolds a reference has.
+        from chemsmart.jobs.settings import td_manifold_reference_refusal
+
+        refusal = td_manifold_reference_refusal(
+            manifold, int(resolved_multiplicity)
+        )
+        if refusal:
+            restricted = int(resolved_multiplicity) == 1
             violations.append(
                 PySCFViolation(
                     rule_id=RULE_TD_REFERENCE,
                     field="state_manifold",
-                    expected=PYSCF_RESTRICTED_MANIFOLDS,
+                    expected=(
+                        tuple(
+                            word
+                            for word in PYSCF_STATE_MANIFOLDS
+                            if word != PYSCF_UNRESTRICTED_MANIFOLD
+                        )
+                        if restricted
+                        else PYSCF_UNRESTRICTED_MANIFOLD
+                    ),
                     observed={
                         "state_manifold": manifold,
                         "multiplicity": int(resolved_multiplicity),
-                        "reason": (
-                            "a closed-shell reference asks for singlet or "
-                            "triplet excitations"
-                        ),
-                    },
-                    evidence_ref="resolved:multiplicity",
-                )
-            )
-        elif not restricted and manifold != PYSCF_UNRESTRICTED_MANIFOLD:
-            violations.append(
-                PySCFViolation(
-                    rule_id=RULE_TD_REFERENCE,
-                    field="state_manifold",
-                    expected=PYSCF_UNRESTRICTED_MANIFOLD,
-                    observed={
-                        "state_manifold": manifold,
-                        "multiplicity": int(resolved_multiplicity),
-                        "reason": (
-                            "an open-shell reference has one "
-                            "spin-conserving excitation manifold"
-                        ),
+                        "reason": refusal,
                     },
                     evidence_ref="resolved:multiplicity",
                 )

@@ -2640,9 +2640,6 @@ GAUSSIAN_TD_MANIFOLD_OPTIONS = {
     "unrestricted": None,
 }
 
-#: The spin-adapted manifolds: each needs a closed-shell reference.
-_GAUSSIAN_TD_CLOSED_SHELL_MANIFOLDS = ("singlet", "singlet_triplet", "triplet")
-
 
 def _normalized_td_word(value, name, domain):
     """One vocabulary word, lower case, or a refusal naming the domain."""
@@ -2763,25 +2760,11 @@ class GaussianTDDFTJobSettings(GaussianJobSettings):
                 "state_manifold is the word ORCA and PySCF share, so name "
                 "the manifold there and drop states."
             )
-        multiplicity = self.multiplicity
-        if multiplicity is not None:
-            if (
-                manifold in _GAUSSIAN_TD_CLOSED_SHELL_MANIFOLDS
-                and int(multiplicity) != 1
-            ):
-                raise ValueError(
-                    f"state_manifold={manifold!r} is spin-adapted and needs a "
-                    f"closed-shell (singlet) reference; multiplicity "
-                    f"{multiplicity} has one manifold, state_manifold: "
-                    "unrestricted."
-                )
-            if manifold == "unrestricted" and int(multiplicity) == 1:
-                raise ValueError(
-                    "A closed-shell (singlet) reference asks for singlet, "
-                    "triplet or singlet_triplet excitations; "
-                    "state_manifold: unrestricted is the one manifold of an "
-                    "open-shell reference."
-                )
+        from chemsmart.jobs.settings import td_manifold_reference_refusal
+
+        refusal = td_manifold_reference_refusal(manifold, self.multiplicity)
+        if refusal:
+            raise ValueError(refusal)
         return keyword, option
 
     def _get_route_string_from_jobtype(self):
