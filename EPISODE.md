@@ -550,3 +550,69 @@ scratchpad/q6/sealed-archived/<id>/; live on CUHK at
 r10/q6/goals/<id>/ (slurm-<job>.out, workspace/, records.tar without
 engine *.tmp* scratch) and fetched to scratchpad/q6/sealed-live-fetched/<id>/.
 Labels are not read.
+
+## Measures under the frozen protocol (from the verifiers' judgements)
+
+Source: the independent verification (pass 1 blind, sha256 89d533aa...;
+pass 2 keyed, with corrections C1-C7, sha256 c8f99b35...), held
+uncommitted because they carry sealed-set content. Grades are the
+verifiers', taken as given; nothing below re-judges a finding. Items are
+named by folder id only. Phenomenon items: pair1-a, pair2-b, pair3-b,
+pair4-a (live); ar02, ar04, ar05, ar06, ar08, ar09, ar11 (archived).
+Controls: pair1-b, pair2-a, pair3-a, pair4-b (live); ar01, ar03, ar07,
+ar10 (archived). The finding counts per session in both passes equal the
+host-facts table above, computed independently from the same streams.
+
+| measure | set | without-arm | with-arm |
+|---|---|---|---|
+| sensitivity (planted D) | live | 0/4 | 1/4 (pair4-a) |
+| | archived | 0/7 | 1/7 (ar08) |
+| | together | 0/11 [0, 28.5 %] | 2/11 [2.3, 52 %] |
+| false-claim rate on controls | live / archived / together | 0/4, 0/4, 0/8 [0, 37 %] | 0/4, 0/4, 0/8 [0, 37 %] |
+| false findings, phenomenon items (strict / incl. physics-only) | together | 2 / 3 | 3 / 4 |
+| false findings, control items | together | 0 | 0 |
+| echoes | together | 1 | 2 (+1 true echo on a control) |
+| incidental discoveries (non-trivial) | together | 0 (0) | 3 (1) |
+| typing rate (Q1) | together | 3/3 | 6/8 |
+
+Paired view: 2 items gained a planted discovery with the reading, none
+lost one; exact McNemar p = 0.5 two-sided, so the effect is directional
+and not statistically established with one replicate of eleven items.
+The reading fired on 9 of the 11 phenomenon items (not on ar04 or
+pair3-b, by construction: neither reached a certified word); over those
+nine, 2/9 with the reading, 0/9 without. The two gains differ in kind:
+pair4-a's pre-reading session ended before its run, so no session had
+ever seen the results (opportunity); ar08's planning session had
+extracted the decisive values and said nothing (attention). The one
+false finding the reading added (ar05) repeats, as a clause, an
+interpretation the planning session had already typed.
+
+Falsifiers, as fixed before the material was opened: (a) does not hold
+(pair4-a and ar08 gained); (b) does not hold (0/8 on controls against
+2/11). Mechanism: the reading never moved the word, and nothing was
+launched, admitted or recovered after any of the 15 holds.
+
+Where I would differ from a verifier: nowhere in a grade. One host
+defect the evaluation exposed moves no measure: a finding's standing is
+computed from the last relation's left operand only
+(chemsmart/agent/tool_runtime.py:7220, from 2ff0d160), so pair1-a's
+cycle-2 finding over an undeclared spread claim was recorded
+on_the_request; read over every operand it is unrequested, which adds
+one validity check to the without-arm and both arms' unrequested counts
+(18 instead of 17 before the reading) and changes no sensitivity, false
+claim, echo or incidental count.
+
+Cost (host records; pass 2 section 6 per goal): 15 readings, 115
+requests, 5.14 M summed input tokens, 0.34 M output, 3,230 s, against
+19.48 M input and 7,020 s for the same goals' other sessions -- 0.26x
+input, 0.46x provider wall; about 2.6 M input tokens and 1,600 s per
+planted discovery gained. By path: executed-run deliveries (live, 7
+readings) 0.21x input and 0.36x wall, with 1 gain and no false finding;
+analysis-only deliveries (archived, 8 readings) 0.43x input and 0.68x
+wall, with 1 gain and 1 false finding.
+
+Proposed default (the owner's decision): on for certified deliveries
+from an executed chain -- the settle path where, without it, no session
+reads the final results -- and off for analysis-only deliveries, whose
+results a session already read, until more evidence. Today one switch
+covers both paths; the split is a small driver change, not built here.
