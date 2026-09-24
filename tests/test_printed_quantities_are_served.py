@@ -365,3 +365,108 @@ def test_a_solvents_molar_volume_parameter_is_not_the_molecules():
     with pytest.raises(MissingQuantityError) as absent:
         reader.read(reader.open_output(path), "molecular_volume")
     assert "did not ask for volume" in str(absent.value)
+
+
+def _printed_mayer_pairs(path):
+    """``{(i, j): order}`` from the last printed Mayer bond-order block."""
+
+    import re
+
+    lines = path.read_text(errors="replace").splitlines()
+    start = max(
+        index
+        for index, line in enumerate(lines)
+        if "Mayer bond orders larger than" in line
+    )
+    pairs = {}
+    for line in lines[start + 1 :]:
+        if not line.strip():
+            break
+        for match in re.finditer(
+            r"B\(\s*(\d+)-\s*\w+\s*,\s*(\d+)-\s*\w+\s*\)\s*:\s*(\S+)", line
+        ):
+            i, j = sorted((int(match.group(1)), int(match.group(2))))
+            pairs[(i, j)] = float(match.group(3))
+    return pairs
+
+
+@pytest.mark.capability("selector:orca:sp:mayer_bond_orders")
+@pytest.mark.capability("selector:orca:opt:mayer_bond_orders")
+@pytest.mark.parametrize(
+    "out,metal_bonds",
+    [
+        # phenoxide at its sp: a C-O order of 1.785, between single and double
+        ("phenol_pka_B_sp.out", 0),
+        # an Fe(II)(H2O)4 quintet: the four Fe-O bonds a one-capital-letter
+        # pattern drops ("B(  0-Fe,  1-O )")
+        ("fe2_quintet.out", 4),
+    ],
+)
+def test_every_printed_mayer_bond_order_is_served(out, metal_bonds):
+    path = ORCA / out
+    reader = reader_for("orca")
+    output = reader.open_output(path)
+    rows, unit = reader.read(output, "mayer_bond_orders")
+    assert unit == "1"
+    served = {(row[0], row[1]): row[2] for row in rows}
+    assert served == _printed_mayer_pairs(path)
+    symbols, _ = reader.read(output, "symbols")
+    assert (
+        sum(
+            1
+            for i, j in served
+            if len(symbols[i]) == 2 or len(symbols[j]) == 2
+        )
+        == metal_bonds
+    )
+    assert "mayer_bond_orders" in reader.selectors_for_jobtype(output.jobtype)
+
+
+@pytest.mark.capability("selector:orca:sp:mayer_bond_orders")
+def test_mayer_bond_orders_reach_a_receipt_as_bond_rows():
+    """Through the extraction the Agent calls: the rows arrive as the
+    sparse [atom_i, atom_j, order] matrix Wiberg orders already do."""
+
+    from chemsmart.analysis.result_quantities import (
+        QuantitySelectorV1,
+        ResultQuantityExtractionRequestV1,
+        result_file_sha256,
+    )
+    from chemsmart.analysis.result_readers import extract_logged_quantities
+
+    path = ORCA / "phenol_pka_B_sp.out"
+    receipt = extract_logged_quantities(
+        request=ResultQuantityExtractionRequestV1(
+            schema_version="chemsmart.quantity-extraction-request.v1",
+            artifact_id="result.phenoxide",
+            artifact_sha256=result_file_sha256(path),
+            program="orca",
+            selectors=(
+                QuantitySelectorV1(
+                    quantity_id="mayer", selector="mayer_bond_orders"
+                ),
+            ),
+        ),
+        artifact_path=path,
+    )
+    (quantity,) = receipt.quantities
+    assert quantity.data_kind == "matrix"
+    assert (0, 6, 1.7852) in quantity.value
+
+
+@pytest.mark.capability("selector:orca:opt:mayer_free_valence")
+def test_mayer_free_valence_marks_the_open_shell():
+    """Zero on every closed-shell atom; on the high-spin Fe(II) quintet
+    the iron carries 3.66 of free valence, the unpaired population the
+    bonded valence does not use."""
+
+    reader = reader_for("orca")
+    closed, _ = reader.read(
+        reader.open_output(ORCA / "phenol_pka_B_sp.out"), "mayer_free_valence"
+    )
+    assert max(abs(value) for value in closed) < 1e-3
+    quintet = reader.open_output(ORCA / "fe2_quintet.out")
+    free, _ = reader.read(quintet, "mayer_free_valence")
+    symbols, _ = reader.read(quintet, "symbols")
+    assert symbols[0] == "Fe" and free[0] == pytest.approx(3.6559)
+    assert len(free) == len(symbols)

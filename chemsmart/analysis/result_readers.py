@@ -1947,6 +1947,73 @@ def _orca_correlation_energy(output: Any) -> float:
     return records[-1][1]
 
 
+def _orca_mayer_atoms_checked(output: Any) -> list[tuple[Any, ...]]:
+    """The last Mayer table, in molecular order, checked against symbols."""
+
+    from chemsmart.analysis import result_quantities as rq
+
+    rows = list(getattr(output, "mayer_atom_rows", None) or ())
+    if not rows:
+        raise MissingQuantityError(
+            "this ORCA result printed no Mayer population analysis"
+        )
+    symbols = _orca_symbols(output)
+    if [row[0] for row in rows] != list(range(len(symbols))) or [
+        str(row[1]).capitalize() for row in rows
+    ] != [str(symbol).capitalize() for symbol in symbols]:
+        raise rq.QuantityExtractionError(
+            "the Mayer table's atoms are not this molecule's atoms in "
+            "order; a per-atom vector is not reordered after the fact"
+        )
+    return rows
+
+
+def _orca_mayer_bond_orders(output: Any) -> list[list[Any]]:
+    """Mayer bond orders ORCA printed, as ``[atom_i, atom_j, order]`` rows.
+
+    Printed by default beneath every ORCA population analysis (238
+    archived outputs) and served by no reader: the bond order of a partial
+    bond at a saddle, of a delocalised radical, of a metal-ligand bond.
+    Zero-based molecular atom order, i < j.  Sparse as printed: ORCA lists
+    only orders above 0.1, so an omitted pair has no value here, not zero.
+    The last block belongs to the final density.
+    """
+
+    from chemsmart.analysis import result_quantities as rq
+
+    n_atoms = len(_orca_mayer_atoms_checked(output))
+    pairs = list(getattr(output, "mayer_bond_order_rows", None) or ())
+    if not pairs:
+        raise MissingQuantityError(
+            "this ORCA result printed no Mayer bond order above 0.1"
+        )
+    rows: list[list[Any]] = []
+    seen: set[tuple[int, int]] = set()
+    for atom_i, atom_j, order in pairs:
+        i0, j0 = sorted((int(atom_i), int(atom_j)))
+        if i0 == j0 or i0 < 0 or j0 >= n_atoms or (i0, j0) in seen:
+            raise rq.QuantityExtractionError(
+                f"ORCA's Mayer bond-order list names an impossible pair "
+                f"({atom_i}, {atom_j}) for {n_atoms} atoms"
+            )
+        seen.add((i0, j0))
+        rows.append([i0, j0, float(order)])
+    rows.sort(key=lambda row: (row[0], row[1]))
+    return rows
+
+
+def _orca_mayer_free_valence(output: Any) -> list[float]:
+    """Mayer's free valence per atom (FA), in molecular order.
+
+    Zero for a closed-shell atom whose valence is all bonding; on an open
+    shell it measures the unpaired population an atom carries (the Fe(II)
+    quintet archived here: 3.66 on iron).  Served beside the bond orders
+    it completes: total valence = bonded valence + free valence.
+    """
+
+    return [float(row[-1]) for row in _orca_mayer_atoms_checked(output)]
+
+
 def _orca_t1_diagnostic(output: Any) -> float:
     """The T1 diagnostic of the last coupled-cluster calculation printed.
 
@@ -2981,6 +3048,8 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "reference_energy": _orca_scf_energy,
             "correlation_energy": _orca_correlation_energy,
             "t1_diagnostic": _orca_t1_diagnostic,
+            "mayer_bond_orders": _orca_mayer_bond_orders,
+            "mayer_free_valence": _orca_mayer_free_valence,
             "dispersion_energy": _orca_dispersion_energy,
             "auxiliary_basis": _orca_auxiliary_basis,
             "auxiliary_basis_role": _orca_auxiliary_basis_role,
@@ -6016,6 +6085,8 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("loewdin_atomic_charges", "reference"),
     ("loewdin_atomic_spin_populations", "reference"),
     ("lumo", "reference"),
+    ("mayer_bond_orders", "reference"),
+    ("mayer_free_valence", "reference"),
     ("mulliken_atomic_charges", "reference"),
     ("mulliken_atomic_spin_populations", "reference"),
     ("oscillator_strengths", "excited_root"),
@@ -6063,7 +6134,11 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         selector_declarations=(
             _CONSTRAINED_COORDINATE_DECLARATIONS
             + _EXCITED_CHARACTER_DECLARATIONS
-            + (("t1_diagnostic", "1", "DIMENSIONLESS"),)
+            + (
+                ("t1_diagnostic", "1", "DIMENSIONLESS"),
+                ("mayer_bond_orders", "1", "DIMENSIONLESS"),
+                ("mayer_free_valence", "1", "DIMENSIONLESS"),
+            )
         ),
         #: An atom index this plane delivers indexes the vectors this
         #: plane delivers -- symbols, positions, every population -- so it
@@ -6073,7 +6148,33 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         #: the two are converted at the accessor. What the Agent *writes*
         #: -- the constrained coordinate on a modred node -- is one-based,
         #: which is the round trip this record exists to keep honest.
-        atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
+        atom_resolved_declarations=(
+            _CONSTRAINED_COORDINATE_ATOM_DECLARATIONS
+            + (
+                (
+                    "mayer_bond_orders",
+                    (
+                        ("semantic_quantity", "bond_order"),
+                        ("population_scheme", "Mayer"),
+                        ("atom_order", "zero-based molecular atom order"),
+                        ("data_shape", "rows of [atom_i, atom_j, order]"),
+                        (
+                            "sparsity",
+                            "ORCA prints only orders above 0.1; an omitted "
+                            "pair has no printed value and is not zero",
+                        ),
+                    ),
+                ),
+                (
+                    "mayer_free_valence",
+                    (
+                        ("semantic_quantity", "free_valence"),
+                        ("population_scheme", "Mayer"),
+                        ("atom_order", "zero-based molecular atom order"),
+                    ),
+                ),
+            )
+        ),
         # Coverage is ``parser_supported_when_emitted``: it states what a job
         # of this type can be asked for, while method and settings still
         # decide whether the engine prints it.  The spin family and the
@@ -6189,6 +6290,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6309,6 +6412,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6363,6 +6468,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6464,6 +6571,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6560,6 +6669,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
                     "lumo",
+                    "mayer_bond_orders",
+                    "mayer_free_valence",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -7721,7 +7832,9 @@ def extract_logged_quantities(
             value = int(source_value)
             unit = "1"
             data_kind = "integer"
-        elif selector.selector == "wiberg_bond_orders":
+        elif selector.selector in {"wiberg_bond_orders", "mayer_bond_orders"}:
+            # Sparse bond-order rows, [atom_i, atom_j, order], either
+            # scheme: the pair is an index, the order a pure number.
             value = tuple(
                 (int(r[0]), int(r[1]), float(r[2])) for r in source_value
             )

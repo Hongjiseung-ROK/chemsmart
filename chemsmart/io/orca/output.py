@@ -2683,6 +2683,75 @@ class ORCAOutput(ORCAFileMixin):
                 all_mayer_free_valence.append(mayer_free_valence)
         return all_mayer_free_valence[-1]
 
+    def _last_mayer_block(self):
+        """The lines of the last MAYER POPULATION ANALYSIS block, or ()."""
+        starts = [
+            index
+            for index, line in enumerate(self.contents)
+            if "MAYER POPULATION ANALYSIS" in line
+        ]
+        if not starts:
+            return ()
+        block = []
+        for line in self.contents[starts[-1] + 1 :]:
+            if "TIMINGS" in line:
+                break
+            block.append(line)
+        return tuple(block)
+
+    @property
+    def mayer_atom_rows(self):
+        """The last Mayer table, positionally: ``(index, symbol, NA, ZA,
+        QA, VA, BVA, FA)`` per atom in ORCA's own zero-based order."""
+        rows = []
+        for line in self._last_mayer_block():
+            fields = line.split()
+            if len(fields) != 8 or not fields[0].isdigit():
+                continue
+            try:
+                values = [float(value) for value in fields[2:]]
+            except ValueError:
+                continue
+            rows.append((int(fields[0]), fields[1], *values))
+        return rows
+
+    @property
+    def mayer_bond_order_rows(self):
+        """The last block's printed Mayer bond orders as
+        ``(atom_i, atom_j, order)`` with ORCA's zero-based indices.
+
+        ORCA prints only orders larger than 0.1 ("Mayer bond orders larger
+        than 0.100000"), so a pair it omits has no printed value, not zero.
+        Element labels of one or two letters are both read: ``B(  0-Fe,
+        1-O )`` is a bond, which ``mayer_bond_order_segment_pattern``
+        (one capital letter) drops.
+        """
+        pattern = re.compile(
+            r"B\(\s*(\d+)-([A-Z][a-z]?)\s*,\s*(\d+)-([A-Z][a-z]?)\s*\)"
+            r"\s*:\s*(-?\d+\.\d+)"
+        )
+        rows = []
+        reading = False
+        for line in self._last_mayer_block():
+            if "Mayer bond orders larger than" in line:
+                reading = True
+                continue
+            if not reading:
+                continue
+            if not line.strip():
+                if rows:
+                    break
+                continue
+            for match in pattern.finditer(line):
+                rows.append(
+                    (
+                        int(match.group(1)),
+                        int(match.group(3)),
+                        float(match.group(5)),
+                    )
+                )
+        return rows
+
     @property
     def mayer_bond_orders_larger_than_zero_point_one(self):
         """Find the bonds with bond orders.
