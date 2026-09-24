@@ -850,8 +850,9 @@ REFERENCE_TOPICS: tuple[ReferenceTopicV1, ...] = (
             "gradient at the Hessian geometry. functional on a result is the "
             "literal whose form PySCF applied, in the vocabulary every "
             "program's result uses. td (TDA or TDDFT on a Kohn-Sham "
-            "reference) gives roots ascending within one manifold at this "
-            "geometry: singlet or triplet on a closed shell, the one "
+            "reference) gives roots ascending in energy at this geometry: "
+            "singlet, triplet or both (singlet_triplet, two response "
+            "solves on one reference) on a closed shell, the one "
             "unrestricted manifold on an open shell, which prints no per- "
             "root <S^2>. A root is an index, never a state identity; select "
             "it with ref and indices. An opt carrying excited_state_root "
@@ -907,8 +908,7 @@ REFERENCE_TOPICS: tuple[ReferenceTopicV1, ...] = (
             "manifold at the artifact's own geometry, never a state label: "
             "fewer roots may come back than were requested and the ordinals "
             "shift with them, an open-shell reference has one unrestricted "
-            "manifold with no per-root <S^2>, and TDA and full response "
-            "order roots differently. "
+            "manifold, and TDA and full response order roots differently. "
         ),
     ),
     ReferenceTopicV1(
