@@ -331,6 +331,29 @@ process was still inside 3 s later in either tree. **Corrected premise
 safe inside an allocation because it now waits on its whole group on the
 allocation's cores** (424776df corrects the docstring).
 
+## G1, partial (host records read before the gate closed ~11:30 HKT)
+
+- cycle-1: opt-ch3oh, opt-ch3o, sp-h (wB97X-D3BJ/def2-TZVPPD on the H atom,
+  UHF); every ORCA input check `passed` inside the allocation (0.35, 0.13,
+  0.12 s).
+- cycle-2: sp-h-ccsd (canonical CCSD(T)/def2-QZVPPD AutoAux on the same H
+  geometry file -- the same job label as sp-h), check `passed` (0.43 s); the
+  engine died in MDCI: "Number of processes (8) in parallel calculation
+  exceeds number of pairs (0)", reference energy -0.499983298 Eh (UHF near
+  its limit, -0.5 exact). Its branch holds only its own run's files and no
+  `.tmp`; its failed scratch is its own `geometry-h-atom_sp_sp_gas_phase-dcaea49d`.
+  The same-label predecessor (sp-h) had completed, so this is not yet a
+  failed-then-same-label pair; expectation 3 is tested only if a later node
+  reruns the atom on that file.
+- the empty probe directory of the sp-h-ccsd check (expected on 55e4424a,
+  per O2; repaired by 9774ed01, not in G1's tree).
+
+Settlement not read: the SSH gate closed (hpc --check: GATE CLOSED at 12:31
+KST = 11:31 HKT) while the job was running (elapsed 42 min at 11:21 HKT; its
+limit is 2:20). The waiter's "no longer in the queue" line is an artefact of
+the closed gate (an empty squeue answer), not a job state.
+
 ## Status
 
-O1, O2 read. G1 (2150438) running.
+O1, O2 read. **Waiting on job 2150438 (G1) and on the gate** to read its
+settlement and branches; G2 is decided from that reading.
