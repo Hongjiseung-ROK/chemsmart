@@ -3060,8 +3060,15 @@ def main():
         results["positions"] = np.asarray(
             mol.atom_coords(unit="Angstrom"), dtype=float
         )
+        # The nuclear charge, not the effective one: under a core potential
+        # ``atom_charges()`` is Z less the replaced core (25 for iodine),
+        # which is no element's identity.
         results["atomic_numbers"] = np.asarray(
-            mol.atom_charges(), dtype=int
+            [
+                int(mol.atom_charge(index)) + int(mol.atom_nelec_core(index))
+                for index in range(mol.natm)
+            ],
+            dtype=int,
         )
         results["mo_energy"] = _to_host_array(mf.mo_energy).astype(float)
         results["mo_occ"] = _to_host_array(mf.mo_occ).astype(float)
