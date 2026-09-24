@@ -615,3 +615,67 @@ def test_a_run_that_ended_unlaunched_quotes_why_the_launch_was_refused(
     (reason,) = [r for r in result.reasons if "no revision can answer" in r]
     assert "ts-search=not_launched" in reason
     assert _REFUSAL in reason
+
+
+def _recorded_analysis(completion=None):
+    rows = [
+        {"kind": "session_started", "payload": {}},
+        {
+            "kind": "result_quantities_extracted",
+            "payload": {"receipt_sha256": "e" * 64},
+        },
+        {
+            "kind": "analysis_claims_recorded",
+            "payload": {"receipt_sha256": "a1" + "a" * 62},
+        },
+        {"kind": "scientific_decision_recorded", "payload": {}},
+    ]
+    if completion is not None:
+        rows.append(
+            {"kind": "analysis_completion_evaluated", "payload": completion}
+        )
+    return rows
+
+
+@pytest.mark.parametrize(
+    "completion, said, unsaid",
+    [
+        # 24 of 25 archived settle steps that still end on this branch
+        # read a stream with no completion receipt at all, and the word
+        # said a gate had not passed.
+        (None, "holds no completion receipt", "completion gate did not pass"),
+        # L1 (R10 Q16, CUHK 2152989): the receipt was partial and named
+        # the claims standing on a failed criterion; the word named none.
+        (
+            {
+                "receipt_sha256": "c1" + "c" * 62,
+                "status": "partial",
+                "record": {
+                    "findings": [
+                        "analysis.claim_on_failed_criterion.rks_e_ref_hartree"
+                    ]
+                },
+            },
+            "analysis.claim_on_failed_criterion.rks_e_ref_hartree",
+            "no completion receipt",
+        ),
+    ],
+)
+def test_a_returned_delivery_says_what_its_completion_receipt_holds(
+    tmp_path, completion, said, unsaid
+):
+    result = _loop(
+        tmp_path,
+        sessions=[
+            _planning_session(
+                "live-1",
+                terminal="planned",
+                wake_rows=_recorded_analysis(completion),
+            )
+        ],
+        executes=[],
+    )
+    assert result.settlement == "returned_to_human"
+    (reason,) = result.reasons
+    assert said in reason
+    assert unsaid not in reason

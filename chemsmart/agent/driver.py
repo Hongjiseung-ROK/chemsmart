@@ -900,11 +900,34 @@ def _delivery_settlement(
     elif delivery.claims or delivery.decisions:
         # Something was recorded, but the host never certified
         # completion -- a human reads it, whatever the session's
-        # terminal word was.
+        # terminal word was. The word says what it read: "the host
+        # completion gate did not pass" was written over 25 archived
+        # streams still settled this way, and 24 of them held no
+        # completion receipt at all -- no gate had run; the 25th (L1,
+        # R10 Q16) held a partial one whose findings the word dropped.
         settled = "returned_to_human"
         reasons = (
             f"the session ended {terminal!r} ({delivery.ending}); it "
-            "recorded analysis but the host completion gate did not pass",
+            "recorded analysis and "
+            + (
+                "this stream holds no completion receipt, so nothing "
+                "certifies it"
+                if not delivery.completion_receipt_sha256
+                else f"its completion receipt "
+                f"{delivery.completion_receipt_sha256[:8]} is "
+                f"{delivery.completion_status or 'unstated'}"
+                + (
+                    ", naming " + ", ".join(delivery.completion_findings)
+                    if delivery.completion_findings
+                    else ""
+                )
+                + (
+                    "; limitations: "
+                    + ", ".join(delivery.limitation_output_ids)
+                    if delivery.limitation_output_ids
+                    else ""
+                )
+            ),
         )
     else:
         settled = "returned_to_human"
@@ -2482,6 +2505,11 @@ class _AnalysisDelivery:
     claims: int
     decisions: int
     receipt_sha256s: tuple[str, ...]
+    #: The latest completion receipt of the stream and the findings it
+    #: named, so a word about the gate says which receipt it read and
+    #: what that receipt held -- or that the stream holds none.
+    completion_receipt_sha256: str = ""
+    completion_findings: tuple[str, ...] = ()
     #: Claim quantities whose supporting receipt a recorded decision
     #: doubts (``doubt:{receipt}`` evidence references intersected with
     #: the rendered claims' source receipts) -- computed here from the
@@ -3102,6 +3130,8 @@ def _analysis_delivery(
     """
 
     completion_status = ""
+    completion_receipt = ""
+    completion_findings: tuple[str, ...] = ()
     prediction_rows: tuple[dict[str, Any], ...] = ()
     route_dispositions: tuple[dict[str, Any], ...] = ()
 
@@ -3416,6 +3446,13 @@ def _analysis_delivery(
                 )
         elif kind == "analysis_completion_evaluated":
             completion_status = str(payload.get("status") or "")
+            completion_receipt = digest
+            completion_findings = tuple(
+                str(item)
+                for item in (
+                    (payload.get("record") or {}).get("findings") or ()
+                )
+            )
             prediction_rows = tuple(
                 dict(row)
                 for row in (
@@ -3722,6 +3759,8 @@ def _analysis_delivery(
         answered_criteria=tuple(answered_criteria),
         inherited_unanswered=tuple(inherited_unanswered),
         completion_status=completion_status,
+        completion_receipt_sha256=completion_receipt,
+        completion_findings=completion_findings,
         limitation_output_ids=limitations,
         claims=claims,
         decisions=decisions,
