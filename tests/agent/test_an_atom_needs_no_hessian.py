@@ -71,6 +71,36 @@ def test_an_atom_single_point_derives_translational_thermochemistry():
     assert any("monoatomic" in item for item in receipt.assumptions)
 
 
+def test_a_pyscf_atom_single_point_derives_the_same_terms():
+    """PySCF's admission asked for a Hessian's units before the engine
+    could say an atom needs none; the archived H-atom single point (UHF
+    stability run) is a real receipt-bound result."""
+
+    path = Path(
+        "tests/data/PySCFTests/outputs/hydrogen_atom_sp_stability/"
+        "hydrogen_atom_sp_stability_gas_phase.h5"
+    )
+    request = ThermochemistryRequestV1(
+        schema_version="chemsmart.thermochemistry-request.v1",
+        artifact_id="hydrogen_atom_sp",
+        artifact_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+        program="pyscf",
+        temperature_k=298.15,
+        pressure_atm=1.0,
+    )
+    receipt = derive_result_thermochemistry(
+        request=request, artifact_path=path
+    )
+    values = {item.quantity_id: item for item in receipt.quantities}
+    energy = values["electronic_energy"].value
+    assert values["zero_point_energy"].value == pytest.approx(0.0, abs=1e-12)
+    assert values["enthalpy"].value - energy == pytest.approx(
+        2.5 * R * 298.15 * HARTREE_PER_J_MOL, abs=1e-9
+    )
+    assert values["entropy"].source_value == pytest.approx(114.606, abs=0.01)
+    assert not any("harmonic analysis" in item for item in receipt.assumptions)
+
+
 def test_a_molecule_single_point_still_has_no_thermochemistry():
     with pytest.raises(QuantityExtractionError, match="no thermochemistry"):
         derive_result_thermochemistry(
