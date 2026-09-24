@@ -127,3 +127,23 @@ downstream was skipped, while the spectrum stayed readable -- its
 strongest carbonyl band sat *nearer* the experimental value than the
 true minimum's, which is the number the refusal exists to keep from
 being reported as a property of a minimum.
+
+A free energy is defined at a stationary point, and one function now
+says whether a structure is one (R10 Q21, `structure_stationarity`).
+It serves the free-energy derivation, the stationary-point
+characterisation and the verification of a refusal. Before, three host
+organs answered that question three ways. Its evidence, in order:
+- a single atom;
+- a measured gradient at or below 4.5e-4 Eh/Bohr;
+- a held coordinate, then a driven coordinate (either one means not
+  stationary);
+- the program's own convergence marker;
+- otherwise "unmeasured".
+A free energy at a structure shown not to be stationary is refused
+(gate `thermochemistry.free_energy_needs_a_stationary_point`) with a
+route, and every free-energy receipt states what it stands on. The gate
+would have refused an archived delivery: ax41 po3-r19 claimed dG++ =
+23.194 kcal/mol from an ORCA saddle search that never converged. The
+physics the refusal points to, a free energy along a held coordinate
+(projected Hessian or hindered rotor), is not yet served, and both
+live sessions that met the refusal said so.
