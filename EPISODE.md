@@ -143,6 +143,20 @@ claude-researcher-q17-owner-delegated. Model deepseek-v4-flash-0731.
     such a task cannot separate S from P.
   - dC-P-1: the same finding (the Hessian describes the inversion saddle;
     the ZPVE excludes the imaginary mode), with an independent ZPVE path.
+- dB (Fe(III) aquo, ORCA M06-2X/def2-SVP opt of doublet, quartet, sextet;
+  the doublet's <S^2> 1.705 against 0.75; the doublet and sextet stopped
+  at the 50-cycle limit; "which spin state is the ground state, how far
+  above lie the others").
+  - dB-S-1 (switch off): unprompted, the planning session extracted
+    `spin_square`, `converged` and the energy trajectory of all three
+    results, and its uncertainties say "The doublet result shows
+    significant spin contamination, <S^2> = 1.70 vs the ideal 0.75" and
+    that the sextet and doublet carry converged = 0 (the doublet still
+    drifting ~0.1 kcal/mol, negligible against a 75.8 kcal/mol gap).
+    Sextet ground state; quartet +41.4, doublet +75.8 kcal/mol. Settled
+    achieved_with_observations. This model asks for <S^2> and the
+    convergence flag without being told: for these long-served
+    diagnostics availability and attention are not the bottleneck here.
 
 ## hc1 -- the harness on the cluster with the pinned arms (pre-registered before submission)
 
