@@ -2104,6 +2104,28 @@ class ORCAOutput(ORCAFileMixin):
             return kinetic_energy_eV
 
     @property
+    def t1_diagnostics(self):
+        """Every coupled-cluster T1 diagnostic ORCA printed, in print order.
+
+        ORCA's MDCI module prints ``T1 diagnostic ... X`` once per
+        coupled-cluster calculation (canonical or DLPNO): the norm of the
+        singles amplitudes over the square root of twice the number of
+        correlated electrons, the standard single-reference check of a
+        CCSD(T) number.  A basis-set extrapolation runs one calculation per
+        basis and prints one each.
+        """
+        values = []
+        for line in self.contents:
+            text = line.strip()
+            if not text.startswith("T1 diagnostic"):
+                continue
+            try:
+                values.append(float(text.split()[-1]))
+            except ValueError:
+                continue
+        return values
+
+    @property
     def virial_ratio(self):
         """
         Get the virial ratio from the ORCA output file.

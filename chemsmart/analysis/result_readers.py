@@ -1933,6 +1933,27 @@ def _orca_correlation_energy(output: Any) -> float:
     return records[-1][1]
 
 
+def _orca_t1_diagnostic(output: Any) -> float:
+    """The T1 diagnostic of the last coupled-cluster calculation printed.
+
+    The standard single-reference check of a CCSD(T) number (Lee and
+    Taylor's T1: the singles-amplitude norm over the square root of twice
+    the number of correlated electrons).  ORCA prints it for every
+    canonical and DLPNO coupled-cluster calculation; 16 archived outputs
+    carry it and no reader served it, so a delivered CCSD(T) energy could
+    not be questioned from its own result.  A basis-set extrapolation
+    prints one per basis, and the last is the largest basis's.
+    """
+
+    values = list(getattr(output, "t1_diagnostics", None) or ())
+    if not values:
+        raise MissingQuantityError(
+            "this ORCA result printed no T1 diagnostic: no coupled-cluster "
+            "calculation ran"
+        )
+    return float(values[-1])
+
+
 def _orca_dispersion_energy(output: Any) -> float:
     """Return the final explicit empirical dispersion correction."""
 
@@ -2945,6 +2966,7 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             "scf_energy": _orca_scf_energy,
             "reference_energy": _orca_scf_energy,
             "correlation_energy": _orca_correlation_energy,
+            "t1_diagnostic": _orca_t1_diagnostic,
             "dispersion_energy": _orca_dispersion_energy,
             "auxiliary_basis": _orca_auxiliary_basis,
             "auxiliary_basis_role": _orca_auxiliary_basis_role,
@@ -5849,6 +5871,8 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("spin_square_after_annihilation", "reference"),
     ("spin_square_deviation", "reference"),
     ("spin_square_target", "reference"),
+    # The singles amplitudes of the coupled-cluster calculation itself.
+    ("t1_diagnostic", "correlated"),
     # Every point of an ORCA IRC path is a total on the surface the job
     # computed on, exactly as ``energy`` is, and is resolved the same way.
     ("trajectory_energies", "computed_surface"),
@@ -5883,6 +5907,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         selector_declarations=(
             _CONSTRAINED_COORDINATE_DECLARATIONS
             + _EXCITED_CHARACTER_DECLARATIONS
+            + (("t1_diagnostic", "1", "DIMENSIONLESS"),)
         ),
         #: An atom index this plane delivers indexes the vectors this
         #: plane delivers -- symbols, positions, every population -- so it
@@ -5940,6 +5965,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             ("solvation_cavity_surface_area", "as_reached"),
             ("solvation_electrostatic_energy", "as_reached"),
             ("solvation_nonelectrostatic_energy", "as_reached"),
+            ("t1_diagnostic", "as_reached"),
             # A comparison across the two ends of one branch belongs to
             # neither of them alone.
             ("trajectory_connectivity_changed", "trajectory_endpoint"),
@@ -6297,6 +6323,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_deviation",
                     "spin_square_target",
                     "symbols",
+                    # The single-reference check of a coupled-cluster
+                    # number, printed beside it.
+                    "t1_diagnostic",
                 ),
             ),
             (
