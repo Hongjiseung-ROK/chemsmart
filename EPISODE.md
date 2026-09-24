@@ -94,6 +94,52 @@ specificity).
 
 Gates on 1aef6143: tests/agent on a pristine export, 3144 passed, 0 failed.
 
+## Replays: every changed message, on the commit that produced it (provider-free)
+
+Harnesses in scratch q22/tools; exports of chemsmart/ at each commit.
+- W1 wake (replay_wake.py: ledger cut at the wake_composed row, record at
+  earlier cycles, _wake_context, compared key by key with the goal block
+  the transcript restates): o2r c2 on 09450c74, L1 c2 on 71de94b9, L-S2 c2
+  on fd093662 -- every key byte-identical except previous_run_outcome,
+  whose artifact reads need the cluster paths (deliverables, authority and
+  trajectory identical). On 1aef6143 the same records name each verdict
+  with its statement and the run's receipt: o2r df709b8b, L1 3cac78d8 (and
+  its second), L-S2 fdcf92e6 ("read -0.058483161239773276 against
+  minimum_greater_equal 0 hartree", minted_by goals/ls2/runs/cycle-1).
+- W1 recovery row (replay_recovery.py): L-S2 c1 on fd093662 and o2r c1 on
+  09450c74 reproduce "verdicts": [] byte for byte; 1aef6143 names the
+  verdict (o2r also its three undelivered observables).
+- W2 (derive_outcome.py / all_outcomes.py): Q15 g2 ene-opt on 8869a23e
+  derives failed_nonconverged_geometry (archived), failed_native on
+  1aef6143. Whole archive (1278 nodes, 8 streams with no run): base vs
+  1aef6143 differ on 28 nodes, all failed_nonconverged_geometry ->
+  failed_native, all energy-less sub-second deaths (Q15 g2 1, r7m-h3 3,
+  po3-triazole-regio and its copies 24); the other 66 non-convergence
+  words are unchanged.
+- W3 (replay_review.py: the recorded plans and materializations through
+  the runtime's own record converters, the host's plan pointer followed,
+  _latest_bounded_materialization): Q15 g1 c1 on 943882de reproduces the
+  bare refusal; 1aef6143 names bergman-scan (not materialized for the
+  current plan). The session's 14:08 amendment restored plan a64ebd2a;
+  the scan's last compile belonged to 5bb82f95, so the latest
+  materialization of the current plan held only ene-optfreq. (A first
+  replay that took the last recorded plan named ene-optfreq -- wrong: an
+  amendment restoring a plan records no new plan event.)
+- W4: Q15 g1's archived re-wake route and cost equal 943882de's
+  constants character for character; 1aef6143 names the plan ending.
+- W5 (replay_final.py run path, outcome derived): Q15 g1 c2 on 943882de
+  reproduces "... pbnz-opt=not_launched, ts-search=not_launched"; on
+  1aef6143 the reason quotes both refusals (ORCA's input-check lines on
+  two Gaussian nodes -- the false refusal becomes visible to a reader).
+- W6 (replay_final.py): the 31 settle steps on 111dc55e give the bare
+  gate sentence 25/25 replayable; on 1aef6143 24 say "this stream holds
+  no completion receipt, so nothing certifies it" and L1 names receipt
+  bad4811a, partial, with its three claim_on_failed_criterion findings.
+- W7 (replay_park.py: session rebuilt from the pending row and the
+  stream): Q15 g2 c2 on 8869a23e parks with the archived reason; on
+  1aef6143 it settles unreachable_from_evidence on the session's verified
+  refusal, naming the unrun probe workflow.
+
 ## Reference job R1 -- PRE-REGISTRATION (written before submission)
 
 CLI oracle, no Agent, code = this branch. PySCF RKS B3LYP/def2-SVP
