@@ -147,3 +147,48 @@ def test_every_free_energy_says_what_it_stands_on(
     assert any(
         line.startswith(stated) for line in receipt.assumptions
     ), receipt.assumptions
+
+
+@pytest.mark.capability("tool:characterise_stationary_point")
+@pytest.mark.parametrize(
+    "artifact_id",
+    [
+        "gaussian-modred-hooh90",
+        "orca-unconverged-optts",
+        "pyscf-stretched-hess",
+    ],
+)
+def test_an_order_is_refused_where_a_free_energy_is(artifact_id):
+    """One question, one function: the characterisation asked only the
+    gradient, so it certified the unconverged po3-r19 saddle search as a
+    first-order saddle and would certify a held structure's order."""
+
+    from chemsmart.agent.execution import (
+        build_stationary_point_characterisation,
+    )
+    from chemsmart.agent.terminal_states import (
+        consequential_imaginary_mode_count,
+    )
+
+    program, path = RESULTS[artifact_id]
+    resolved = path.resolve()
+    output = reader_for(program).open_output(str(resolved))
+    observed = consequential_imaginary_mode_count(
+        tuple(float(value) for value in output.vibrational_frequencies)
+    )
+    with pytest.raises(ContractError) as refused:
+        build_stationary_point_characterisation(
+            result_artifact=TrustedArtifactRefV1(
+                artifact_id=artifact_id,
+                kind=reader_for(program).artifact_kind,
+                sha256=hashlib.sha256(resolved.read_bytes()).hexdigest(),
+                size_bytes=resolved.stat().st_size,
+                path=str(resolved),
+                cli_value=str(resolved),
+            ),
+            program=program,
+            order_claimed=observed,
+        )
+    report = getattr(refused.value, "failure_report", {})
+    assert report.get("gate") == "result.order_needs_a_stationary_point"
+    assert "not a stationary point" in report["diagnosis"]
