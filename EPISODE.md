@@ -281,4 +281,12 @@ replayed planning path writes no ledger row, so the repaired tree's "0 of
 - step 1 (census of achieved words, empty-chain class, producing-commit
   and base replays): done.
 - step 2 (repairs R1, R2, R4, expression bindings): committed.
-- step 3: live goal g2r pre-registered (above); next: pack, submit.
+- step 3: live goal g2r pre-registered, packed (ed187305) and issued as
+  CUHK Slurm 2153691.
+- step 4: gates on fdf62230 done (tests/agent green; full suite = the
+  round baseline); r10-integration has not moved since ec41a57c.
+- PAUSED: waiting on job 2153691 with the cluster gate closed. On resume:
+  `hpc --check`; `read_goal.py` on goals/g2r; scratch
+  q24/tools/live_replay.sh g2r <each cycle with a run> (the settle steps
+  on ec41a57c and on ed187305, walk mode); read S1-S3, F and the physics
+  bands against the pre-registration; then the report.
