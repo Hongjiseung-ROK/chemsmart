@@ -9522,12 +9522,52 @@ class CommandCompiledToolHostV1:
         nodes = {node.node_id: node for node in plan.analysis_nodes}
         matched: dict[str, tuple[str, ...]] = {}
         calculation_ids = set(plan.calculation_node_ids)
+        #: Per extraction node, every typed extraction of its registered
+        #: result and the selectors that receipt carries -- whether or not
+        #: it carries all the node planned.
+        extraction_receipt_selectors: dict[str, dict[str, frozenset]] = {}
 
         def _calculation_dependency_satisfied(dependency: str) -> bool:
             receipt = self.execution_receipts.get(dependency)
             return receipt is not None and bool(
                 getattr(receipt, "validated", False)
             )
+
+        def _named_extraction_selectors(
+            consumer: AnalysisNodeIntentV1, dependency: str
+        ) -> frozenset | None:
+            """The selectors ``consumer`` reads from extraction ``dependency``.
+
+            ``None`` when the dependency is not an extraction, or the
+            consumer names none of its outputs, or an output maps to no
+            single selector (the executor's own mapping, _extraction_
+            quantity_id): the node-level match then stands.
+            """
+
+            producer = nodes.get(dependency)
+            if (
+                producer is None
+                or producer.analysis_kind != "result_extraction"
+            ):
+                return None
+            quantity_ids = {
+                selector.quantity_id: selector.selector
+                for selector in producer.selectors
+            }
+            named: set[str] = set()
+            for item in consumer.inputs:
+                if (
+                    not isinstance(item, AnalysisInputIntentV1)
+                    or item.producer_node_id != dependency
+                ):
+                    continue
+                if item.producer_output_id in quantity_ids:
+                    named.add(quantity_ids[item.producer_output_id])
+                elif len(quantity_ids) == 1:
+                    named.update(quantity_ids.values())
+                else:
+                    return None
+            return frozenset(named) or None
 
         def _dependency_receipts(
             node: AnalysisNodeIntentV1,
@@ -9546,8 +9586,28 @@ class CommandCompiledToolHostV1:
                         receipts[dependency] = {"calculation-validated"}
                     else:
                         receipts[dependency] = set()
-                else:
+                    continue
+                named = _named_extraction_selectors(node, dependency)
+                if named is None:
                     receipts[dependency] = set(matched.get(dependency, ()))
+                    continue
+                # An extraction that delivered some of what it was asked
+                # for feeds the consumers that named only what it
+                # delivered, as the executor's walk has since 121a127a.
+                # This relation stayed node-level: one refused selector
+                # left every consumer of a sibling quantity unmatched, so
+                # a validation over delivered values was refused as "not
+                # typed evidence from its planned producer" (R10 q8 G3,
+                # CUHK 2150299: a 7 eV window-coverage check over two
+                # programs' excitation energies, refused because ORCA's
+                # full-TD-DFT <S^2> beside them has no single value).
+                receipts[dependency] = {
+                    digest
+                    for digest, observed in extraction_receipt_selectors.get(
+                        dependency, {}
+                    ).items()
+                    if named <= observed
+                }
             return receipts
 
         def _producer_result_artifact_ids(
@@ -9638,6 +9698,19 @@ class CommandCompiledToolHostV1:
                 selectors = frozenset(
                     selector.selector for selector in node.selectors
                 )
+                # What each extraction of this node's result delivered: the
+                # selectors it was asked for less the ones the reader
+                # refused (a ``partial`` receipt states them in ``absent``).
+                extraction_receipt_selectors[node_id] = {
+                    receipt.receipt_sha256: frozenset(
+                        self.quantity_extraction_selectors.get(
+                            receipt.receipt_sha256, ()
+                        )
+                    ).difference(str(item[1]) for item in receipt.absent)
+                    for receipt in self.quantity_extractions.values()
+                    if receipt.status in {"extracted", "partial"}
+                    and receipt.artifact_id in extraction_artifact_ids
+                }
                 exact_candidates = tuple(
                     receipt.receipt_sha256
                     for receipt in self.quantity_extractions.values()
