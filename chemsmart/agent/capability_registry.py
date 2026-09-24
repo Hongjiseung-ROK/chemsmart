@@ -433,7 +433,12 @@ def build_capability_registry(
     # Code gates. `wired_by` is the source that raises the gate id, so
     # a gate declared in the charter's list and raised by nothing
     # reports itself declared-and-unwired instead of passing silently.
-    raisers = _gate_raisers(Path(__file__).parent, CODE_GATES)
+    # The whole package is read, not only the agent layer: a gate the
+    # analysis plane or a program's validator raises is wired where it is
+    # raised (R10 Q21: thermochemistry's stationary-point gate lives in
+    # chemsmart/analysis, and xtb.result.requested_settings in
+    # chemsmart/jobs/xtb had read as unwired for the same reason).
+    raisers = _gate_raisers(Path(__file__).parent.parent, CODE_GATES)
     for gate_id, invariant in CODE_GATES:
         records.append(
             CapabilityV1(

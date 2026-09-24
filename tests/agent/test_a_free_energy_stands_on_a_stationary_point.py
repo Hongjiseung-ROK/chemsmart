@@ -265,3 +265,19 @@ def test_a_zero_point_energy_rebuilt_by_hand_says_what_its_modes_are(
     else:
         assert len(observations) == 1
         assert "0.0185 Eh/Bohr" in observations[0]["meaning"]
+
+
+def test_the_gate_is_wired_where_it_is_raised():
+    """The ladder read raisers from the agent layer only, so a gate the
+    analysis plane raises read as declared and unwired."""
+
+    from chemsmart.agent.capability_registry import build_capability_registry
+
+    wired = {
+        record.id: record.wired_by
+        for record in build_capability_registry()
+        if record.kind == "gate"
+    }
+    assert "result_quantities.py" in (
+        wired["thermochemistry.free_energy_needs_a_stationary_point"]
+    )
