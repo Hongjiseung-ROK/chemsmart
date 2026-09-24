@@ -2508,6 +2508,43 @@ def _orca_hirshfeld_charges(output: Any) -> list[float] | None:
     )
 
 
+def _orca_hirshfeld_spins(output: Any) -> list[float] | None:
+    """The Hirshfeld spin populations, positionally, or ``None``.
+
+    The second column of the block the ``Hirshfeld`` directive prints; on
+    a doublet it closes on one unpaired electron (the methyl radical,
+    CUHK 2152359: C 0.839, each H 0.054, total 1.000000).
+    """
+
+    spins = output.hirshfeld_spin_densities
+    if spins is None:
+        return None
+    return _per_atom_vector(
+        spins,
+        _orca_symbols(output),
+        quantity="hirshfeld_atomic_spin_populations",
+    )
+
+
+#: Hirshfeld's spin partition, declared by each program that prints it: the
+#: same record the Mulliken and Loewdin spin populations carry.
+_HIRSHFELD_SPIN_DECLARATION = (
+    ("hirshfeld_atomic_spin_populations", "1", "DIMENSIONLESS"),
+)
+_HIRSHFELD_SPIN_ATOM_DECLARATION = (
+    (
+        "hirshfeld_atomic_spin_populations",
+        tuple(
+            {
+                "semantic_quantity": "atomic_spin_population",
+                "population_scheme": "Hirshfeld",
+                "atom_order": "zero-based molecular atom order",
+            }.items()
+        ),
+    ),
+)
+
+
 def _orca_channel_eigenvalues(
     output: Any, channel: str
 ) -> tuple[list[float], list[float]]:
@@ -3273,6 +3310,7 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
             # so, and a run that did not ask has no Hirshfeld analysis at
             # all rather than a failed one.
             "hirshfeld_atomic_charges": _orca_hirshfeld_charges,
+            "hirshfeld_atomic_spin_populations": _orca_hirshfeld_spins,
             "functional": _orca_functional,
             "ab_initio": _route_ab_initio,
             "basis": _route_basis,
@@ -3848,6 +3886,7 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("excited_state_spin_square", "excited_root"),
     ("gap", "reference"),
     ("hirshfeld_atomic_charges", "reference"),
+    ("hirshfeld_atomic_spin_populations", "reference"),
     ("homo", "reference"),
     ("lumo", "reference"),
     ("mulliken_atomic_charges", "reference"),
@@ -3935,6 +3974,11 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
             "hirshfeld_atomic_charges": _gaussian_population(
                 "hirshfeld_charges",
                 quantity="hirshfeld_atomic_charges",
+            ),
+            # The S-H column of the same block, parsed and never served.
+            "hirshfeld_atomic_spin_populations": _gaussian_population(
+                "hirshfeld_spin_densities",
+                quantity="hirshfeld_atomic_spin_populations",
             ),
             "absorption_wavelengths": lambda output: [
                 float(item) for item in output.absorptions_in_nm
@@ -6281,6 +6325,7 @@ _ORCA_ELECTRONIC_PROVENANCE_DECLARED = (
     ("gap", "reference"),
     ("gibbs_free_energy", "computed_surface"),
     ("hirshfeld_atomic_charges", "reference"),
+    ("hirshfeld_atomic_spin_populations", "reference"),
     ("homo", "reference"),
     ("loewdin_atomic_charges", "reference"),
     ("loewdin_atomic_spin_populations", "reference"),
@@ -6339,6 +6384,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 ("mayer_bond_orders", "1", "DIMENSIONLESS"),
                 ("mayer_free_valence", "1", "DIMENSIONLESS"),
             )
+            + _HIRSHFELD_SPIN_DECLARATION
         ),
         #: An atom index this plane delivers indexes the vectors this
         #: plane delivers -- symbols, positions, every population -- so it
@@ -6350,6 +6396,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         #: which is the round trip this record exists to keep honest.
         atom_resolved_declarations=(
             _CONSTRAINED_COORDINATE_ATOM_DECLARATIONS
+            + _HIRSHFELD_SPIN_ATOM_DECLARATION
             + (
                 (
                     "mayer_bond_orders",
@@ -6488,6 +6535,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
@@ -6610,6 +6658,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
@@ -6666,6 +6715,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
@@ -6769,6 +6819,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
@@ -6867,6 +6918,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "loewdin_atomic_charges",
                     "loewdin_atomic_spin_populations",
@@ -6927,8 +6979,12 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                 ("wavefunction_stability_lowest_eigenvalue", "Eh", "ENERGY"),
                 ("wavefunction_stability_rotation_space", "", "DIMENSIONLESS"),
             )
+            + _HIRSHFELD_SPIN_DECLARATION
         ),
-        atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
+        atom_resolved_declarations=(
+            _CONSTRAINED_COORDINATE_ATOM_DECLARATIONS
+            + _HIRSHFELD_SPIN_ATOM_DECLARATION
+        ),
         # Coverage is ``parser_supported_when_emitted``, as for ORCA: it
         # states what a job of this type can be asked for, while route and
         # settings still decide what Gaussian prints.  The spin family, the
@@ -7007,6 +7063,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "lumo",
                     "mulliken_atomic_charges",
@@ -7044,6 +7101,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "gap",
                     "gibbs_free_energy",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "ir_intensities",
                     "lumo",
@@ -7136,6 +7194,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gap",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "homo",
                     "lumo",
                     "molecular_volume",
@@ -7196,6 +7255,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "excited_state_spin_square",
                     "functional",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -7234,6 +7294,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "functional",
                     "gibbs_free_energy",
                     "hirshfeld_atomic_charges",
+                    "hirshfeld_atomic_spin_populations",
                     "ir_intensities",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",

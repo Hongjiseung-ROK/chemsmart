@@ -470,3 +470,56 @@ def test_mayer_free_valence_marks_the_open_shell():
     symbols, _ = reader.read(quintet, "symbols")
     assert symbols[0] == "Fe" and free[0] == pytest.approx(3.6559)
     assert len(free) == len(symbols)
+
+
+#: Two doublets through the route channel's print directive (CUHK 2152359,
+#: B3LYP/def2-SVP): ORCA 6.1.1 `Hirshfeld`, Gaussian 16 `pop=hirshfeld`.
+_HIRSHFELD_SPIN_CASES = {
+    "methyl": (
+        ORCA / "orca_methyl_hirshfeld_gas_phase.out",
+        GAUSSIAN_STABILITY / "g_methyl_hirshfeld_gas_phase.log",
+    ),
+    "hydroxyl": (
+        ORCA / "orca_hydroxyl_hirshfeld_gas_phase.out",
+        GAUSSIAN_STABILITY / "g_hydroxyl_hirshfeld_gas_phase.log",
+    ),
+}
+
+
+@pytest.mark.capability("selector:orca:sp:hirshfeld_atomic_spin_populations")
+@pytest.mark.capability(
+    "selector:gaussian:sp:hirshfeld_atomic_spin_populations"
+)
+@pytest.mark.parametrize("radical", sorted(_HIRSHFELD_SPIN_CASES))
+def test_hirshfeld_spin_populations_close_on_one_unpaired_electron(radical):
+    """The spin column of the block each program prints on request, in
+    molecular order: it sums to 2S = 1 on a doublet, the radical centre
+    carries most of it, and the two programs' Hirshfeld partitions of the
+    same density agree atom by atom."""
+
+    orca_path, gaussian_path = _HIRSHFELD_SPIN_CASES[radical]
+    values = {}
+    for program, path in (("orca", orca_path), ("gaussian", gaussian_path)):
+        reader = reader_for(program)
+        output = reader.open_output(path)
+        spins, unit = reader.read(output, "hirshfeld_atomic_spin_populations")
+        assert unit == "1"
+        assert sum(spins) == pytest.approx(1.0, abs=1e-4)
+        assert max(spins) == spins[0] and 0.8 < spins[0] < 1.1
+        assert reader.electronic_provenance(
+            "hirshfeld_atomic_spin_populations"
+        ) == ("reference")
+        values[program] = spins
+    assert values["orca"] == pytest.approx(values["gaussian"], abs=0.005)
+
+
+def test_a_closed_shell_hirshfeld_block_serves_zero_spin():
+    """A closed shell prints the spin column as zeros, and zeros are what
+    it says -- a reading, not an absence."""
+
+    reader = reader_for("orca")
+    spins, _ = reader.read(
+        reader.open_output(ORCA / "udc3_ts1_c15_sp_hirshfeld.out"),
+        "hirshfeld_atomic_spin_populations",
+    )
+    assert spins and all(value == 0.0 for value in spins)
