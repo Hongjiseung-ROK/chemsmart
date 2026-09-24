@@ -424,20 +424,24 @@ def _achieved_word(
             "delivered from the flagged result: "
             + ", ".join(delivery.flagged_quantity_ids),
         )
+    # "Certified" names a completion receipt that passed. A workflow that
+    # declared nothing and carried no analysis chain has none, and the
+    # sentence was written over it all the same.
+    certified = (
+        "the host completion gate certified the delivery"
+        if delivery.completion_status == "passed"
+        else "no completion gate certified this delivery"
+    )
     if observed:
         return (
             "achieved_with_observations",
             (
-                "the host completion gate certified the delivery; the "
-                "host also recorded observations nobody asked for: "
-                + ", ".join(observed),
+                certified + "; the host also recorded observations nobody "
+                "asked for: " + ", ".join(observed),
             )
             + provenance,
         )
-    return (
-        "achieved",
-        ("the host completion gate certified the delivery",) + provenance,
-    )
+    return ("achieved", (certified,) + provenance)
 
 
 def _open_requirement_reasons(delivery: Any) -> tuple[str, ...]:
@@ -585,15 +589,13 @@ def _delivery_settlement(
     # cycle, read from the ledger's first declarations and the record --
     # a refusal made from the in-session route has no completion and so
     # no limitation ids to key on (NOVEL-3 po3, 2026-09-05).
-    declared_ids = _required_declared_ids(ledger)
-    delivered_ids = set(_goal_delivered_ids(workspace, goal_id))
-    delivered_ids.update(delivery.delivered_quantity_ids)
     open_ids = tuple(
         dict.fromkeys(
-            tuple(
-                observable_id
-                for observable_id in declared_ids
-                if observable_id and observable_id not in delivered_ids
+            _goal_open_declared_ids(
+                ledger,
+                workspace,
+                goal_id,
+                delivered_here=delivery.delivered_quantity_ids,
             )
             + tuple(delivery.undelivered_declared_ids)
         )
@@ -1528,6 +1530,50 @@ def _required_declared_ids(ledger: GoalLedger) -> tuple[str, ...]:
         if str(record.get("role") or "requested") != "diagnostic"
         and str(record.get("observable_id") or "") not in retired
     )
+
+
+def _goal_open_declared_ids(
+    ledger: GoalLedger,
+    workspace: Path | None,
+    goal_id: str,
+    delivered_here: Sequence[str] = (),
+) -> tuple[str, ...]:
+    """Declared ids the goal must deliver that no cycle delivered by id.
+
+    The goal-grain join: the first declarations against every claim and
+    answered category the record holds for this goal, plus what the
+    stream being settled delivered. Both settlements ask this question;
+    only the analysis-only one used to, so a run whose own stream listed
+    nothing settled achieved over headlines no cycle had claimed.
+    """
+
+    delivered = set(_goal_delivered_ids(workspace, goal_id))
+    delivered.update(str(item) for item in delivered_here)
+    return tuple(
+        observable_id
+        for observable_id in _required_declared_ids(ledger)
+        if observable_id and observable_id not in delivered
+    )
+
+
+def _stream_completion_status(events_path: Path) -> str:
+    """The last completion status a stream recorded, or ``""``."""
+
+    try:
+        lines = events_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return ""
+    status = ""
+    for line in lines:
+        if "analysis_completion_evaluated" not in line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("kind") == "analysis_completion_evaluated":
+            status = str((event.get("payload") or {}).get("status") or "")
+    return status
 
 
 def _session_dispositions(events_path: Path | None) -> tuple[dict, ...]:
@@ -5573,6 +5619,52 @@ class GoalDriver:
             )
         }
 
+    def _latest_completion_stream(self) -> tuple[Path, str] | None:
+        """The newest stream of this goal that holds a completion receipt.
+
+        Streams are ordered by cycle, a cycle's planning session before
+        its run; the run being settled is skipped, because it is the one
+        that holds none. Returns the stream and how a reader names it.
+        """
+
+        agent_dir = self.workspace / ".chemsmart-agent"
+        candidates: list[tuple[int, int, Path, str]] = []
+        for entry in self.ledger.entries():
+            if entry.get("kind") != "session_stream_recorded":
+                continue
+            payload = entry.get("payload") or {}
+            run_id = str(payload.get("run_id") or "")
+            if not run_id:
+                continue
+            cycle = int(payload.get("cycle") or 0)
+            candidates.append(
+                (
+                    cycle,
+                    0,
+                    agent_dir / "runs" / run_id / "events.jsonl",
+                    f"cycle {cycle}'s planning session",
+                )
+            )
+        for stream in self.goal_dir.glob("runs/cycle-*/events.jsonl"):
+            try:
+                cycle = int(stream.parent.name.split("-", 1)[1])
+            except (IndexError, ValueError):
+                continue
+            candidates.append((cycle, 1, stream, f"cycle {cycle}'s run"))
+        settling = (
+            (self.run_directory / "events.jsonl").resolve()
+            if self.run_directory is not None
+            else None
+        )
+        for _cycle, _order, stream, label in sorted(
+            candidates, key=lambda item: (item[0], item[1]), reverse=True
+        ):
+            if settling is not None and stream.resolve() == settling:
+                continue
+            if _stream_completion_status(stream):
+                return stream, label
+        return None
+
     def _record_qualification(self) -> None:
         _record_goal_qualification(
             self.ledger,
@@ -5598,8 +5690,7 @@ class GoalDriver:
             if self.events_path is not None
             else None
         )
-        run_delivery = _analysis_delivery(
-            self.run_directory / "events.jsonl",
+        delivery_kwargs: dict[str, Any] = dict(
             # The verified refusals only: the bases mapping explains
             # every refusal the session wrote, verified or not, and
             # passing it handed authority to refusals the host had
@@ -5641,6 +5732,51 @@ class GoalDriver:
             # reasons only through the record.
             goal_findings=_goal_findings(self.workspace, self.goal_id),
         )
+        run_delivery = _analysis_delivery(
+            self.run_directory / "events.jsonl", **delivery_kwargs
+        )
+        # A run whose stream holds no completion receipt carried no
+        # analysis chain: nothing it computed was read, so it delivered
+        # nothing and certified nothing. The settlement read that empty
+        # stream, found no limitation list, took "nothing listed" for
+        # "nothing undelivered", and wrote "workflow completed with its
+        # analysis chain; the host completion gate certified the
+        # delivery" over declared observables no cycle had claimed: four
+        # of six in r9/gaussian g1 and g3, two of three in the R9 merged
+        # smoke goal; r10/q2 g1-hono's only completion was partial and
+        # its two falsified expectations never reached the word. The
+        # goal's delivery is the one its latest completion receipt holds.
+        run_completion = run_delivery.completion_status
+        # Two witnesses agree before the run is read as chainless: the
+        # executor's own word for a bundle with no toolchain is the empty
+        # analysis status, and the stream holds no completion receipt.
+        chainless = (
+            not str(getattr(self.execute_result, "analysis_status", "") or "")
+            and not run_delivery.completion_status
+        )
+        stands_on = ""
+        if chainless:
+            latest = self._latest_completion_stream()
+            if latest is not None:
+                latest_stream, stands_on = latest
+                run_delivery = _analysis_delivery(
+                    latest_stream, **delivery_kwargs
+                )
+        goal_undelivered = (
+            _goal_open_declared_ids(self.ledger, self.workspace, self.goal_id)
+            if chainless
+            else ()
+        )
+        # Something was owed and no completion the goal holds passed: a
+        # partial chain, or none at all over declared observables.
+        uncertified = (
+            chainless
+            and run_delivery.completion_status != "passed"
+            and bool(
+                run_delivery.completion_status
+                or _required_declared_ids(self.ledger)
+            )
+        )
         self.rejected_artifacts.update(run_delivery.rejected_artifact_sha256s)
         if run_delivery.claims_rendered:
             self.standing_stale = run_delivery.stale_quantity_ids
@@ -5666,7 +5802,9 @@ class GoalDriver:
         )
         open_declared = tuple(
             observable_id
-            for observable_id in run_delivery.undelivered_declared_ids
+            for observable_id in dict.fromkeys(
+                run_delivery.undelivered_declared_ids + goal_undelivered
+            )
             if observable_id not in refused
         )
         # A requirement is open when the number that answers it does not
@@ -5697,8 +5835,25 @@ class GoalDriver:
             or run_delivery.unclaimed_output_ids
             or open_declared
             or open_requirements
+            or uncertified
         )
         achieved = _achieved(self.execute_result)
+        # What a run without a chain leaves the settlement to say, in
+        # front of whatever it says: nothing here was read, and which
+        # completion the goal's delivery stands on.
+        chainless_prefix = (
+            f"cycle {self.cycles}: the workflow ran without an analysis "
+            "chain, so nothing it computed was read; "
+            + (
+                f"the goal's delivery stands on {stands_on}, whose "
+                f"completion is {run_delivery.completion_status}"
+                if stands_on
+                else "no completion receipt in any cycle of this goal "
+                "certified a delivery"
+            )
+            if chainless
+            else ""
+        )
         # An observable the session refused, and an observable it
         # delivered whose precision it refused, settle by one rule: the
         # host verified both as unreachable, and the charter calls that
@@ -5760,12 +5915,39 @@ class GoalDriver:
                     "undelivered_declared_observable_ids": list(open_declared),
                     "unresolved_requirement_ids": list(open_requirements),
                     "engine_calls_remaining": budgets.engine_calls_remaining,
+                    **(
+                        {"uncertified": chainless_prefix}
+                        if uncertified
+                        else {}
+                    ),
                 },
             )
             self.phase = "plan"
             return
         if achieved and open_delivery:
             # Same failure, nothing left to answer it with.
+            if uncertified and not (
+                run_delivery.unanswered_verdicts
+                or unrefreshed
+                or run_delivery.unclaimed_output_ids
+                or open_requirements
+            ):
+                reason = (
+                    chainless_prefix
+                    + ", and no revision remains to certify it"
+                    + (
+                        "; these declared observables have no claim "
+                        "carrying their id in any cycle: "
+                        + ", ".join(open_declared)
+                        if open_declared
+                        else ""
+                    )
+                )
+                self.ledger.settle("returned_to_human", reasons=(reason,))
+                self._settled(
+                    "returned_to_human", open_declared or (chainless_prefix,)
+                )
+                return
             if run_delivery.unanswered_verdicts:
                 reason = (
                     f"cycle {self.cycles}: a validation verdict failed and "
@@ -5811,7 +5993,10 @@ class GoalDriver:
                     )
                 )
                 open_items = run_delivery.undelivered_declared_ids
-            self.ledger.settle("returned_to_human", reasons=(reason,))
+            self.ledger.settle(
+                "returned_to_human",
+                reasons=(chainless_prefix, reason) if chainless else (reason,),
+            )
             self._settled("returned_to_human", open_items)
             return
         if achieved:
@@ -5821,8 +6006,14 @@ class GoalDriver:
             if word == "achieved_with_observations":
                 evidence = _anomaly_evidence(evidence, goal_anomalies)
             reasons = (
-                f"cycle {self.cycles}: workflow completed with its "
-                "analysis chain; " + why[0],
+                (
+                    chainless_prefix + "; " + why[0]
+                    if chainless
+                    else f"cycle {self.cycles}: workflow completed"
+                    + (" with its analysis chain" if run_completion else "")
+                    + "; "
+                    + why[0]
+                ),
                 # Every reason the word carries, not only the first:
                 # the second one names which delivered number stands
                 # on a flagged result.
