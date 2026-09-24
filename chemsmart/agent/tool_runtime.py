@@ -1198,6 +1198,29 @@ def _basin_sensor_inputs(
 SENSOR_HEAVY_ATOM_FLOOR = 3
 
 
+def _surface_energy(program: str, output: Any) -> float | None:
+    """The energy a result's reader serves, in hartree, or None.
+
+    ``final_energy`` is each program's own last printed total, and on a
+    spectrum they are two quantities: ORCA prints E(SCF) + DE(CIS) of its
+    IRoot as ``FINAL SINGLE POINT ENERGY`` while PySCF's td total is the
+    reference, so the acrolein spectra of one request at one level read
+    83.4 kcal/mol apart (R10 q8 G1, CUHK 2150295) where their references
+    agree to 0.02.  The ``energy`` selector is the surface the job computed
+    on in every reader, so two results are compared through it.
+    """
+
+    try:
+        from chemsmart.analysis.result_readers import reader_for
+
+        value, unit = reader_for(str(program)).read(output, "energy")
+    except Exception:  # noqa: BLE001 - a reader that cannot say
+        return None
+    if str(unit) not in {"Eh", "hartree"}:
+        return None
+    return float(value)
+
+
 def _same_structure_observations(
     receipts: Mapping[str, Any],
     node_id: str,
@@ -1205,6 +1228,7 @@ def _same_structure_observations(
     input_sha256: str = "",
     output_sha256s: Sequence[str] = (),
     handoffs: Mapping[str, Any] | None = None,
+    program: str = "",
 ) -> tuple[dict[str, Any], ...]:
     """Whether this result is the same structure as one already validated.
 
@@ -1335,8 +1359,14 @@ def _same_structure_observations(
                 "other_node_id": other_id,
                 "heavy_atom_rmsd_angstrom": float(f"{float(rmsd):.4f}"),
             }
+            mine = _surface_energy(program, output) if program else energy
+            theirs = (
+                _surface_energy(str(getattr(receipt, "program", "")), other)
+                if program
+                else other.final_energy
+            )
             try:
-                gap = (float(energy) - float(other.final_energy)) * 627.5095
+                gap = (float(mine) - float(theirs)) * 627.5095
                 record["energy_difference_kcal_mol"] = float(f"{gap:.4f}")
             except (TypeError, ValueError):
                 pass
@@ -13834,6 +13864,9 @@ class CommandCompiledToolHostV1:
                 self.result_validation_receipts,
                 node_id,
                 self._opened_result_output(result_validation_receipt),
+                program=str(
+                    getattr(result_validation_receipt, "program", "") or ""
+                ),
                 handoffs=self.handoffs,
                 input_sha256=str(
                     getattr(

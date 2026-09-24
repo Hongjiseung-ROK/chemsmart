@@ -168,3 +168,50 @@ def test_the_reference_beneath_two_responses_is_one_level(tmp_path):
         tmp_path, ("orca", "tda"), ("orca", "tddft"), "scf_energy"
     )
     assert "operands_at_different_levels" not in text
+
+
+@pytest.mark.capability("signal:geometry.results_indistinguishable")
+def test_two_spectra_of_one_structure_compare_their_references():
+    """The sibling sensor's energy is the one the readers serve.
+
+    One acrolein request (singlet_triplet, full TD-DFT, PBE0/def2-SVP) at one
+    geometry in ORCA (CUHK 2150076) and PySCF (CUHK 2150194). ORCA's
+    ``FINAL SINGLE POINT ENERGY`` of a spectrum is E(SCF) + DE(CIS) of its
+    IRoot and PySCF's total is the reference, so the sensor that compared
+    raw totals recorded the two spectra 83 kcal/mol apart in a live goal
+    (R10 q8 G1, CUHK 2150295) where their references agree to 0.02.
+    """
+
+    from types import SimpleNamespace
+
+    from chemsmart.agent.tool_runtime import _same_structure_observations
+
+    orca_path = (
+        _DATA
+        / "ORCATests/singlet_triplet"
+        / "acrolein_pbe0_def2svp_td_singlet_triplet3.out"
+    )
+    pyscf_path = (
+        _DATA
+        / "PySCFTests/outputs/acrolein_td_singlet_triplet"
+        / "acro_p_st3_gas_phase.h5"
+    )
+    orca = SimpleNamespace(
+        node_id="orca-td",
+        state="valid",
+        program="orca",
+        input_artifact_sha256="start.orca",
+        output_artifacts=(
+            SimpleNamespace(path=str(orca_path), sha256="sha.orca"),
+        ),
+    )
+    (found,) = _same_structure_observations(
+        {"orca": orca},
+        "pyscf-td",
+        reader_for("pyscf").open_output(pyscf_path),
+        input_sha256="start.pyscf",
+        output_sha256s=("sha.pyscf",),
+        program="pyscf",
+    )
+    assert found["signal_id"] == "geometry.results_indistinguishable"
+    assert abs(found["energy_difference_kcal_mol"]) < 0.1
