@@ -6008,6 +6008,36 @@ def handoff_optimized_native_geometry(
     )
 
 
+def write_host_geometry(
+    *,
+    approved_workspace: str | Path,
+    file_name: str,
+    artifact_id: str,
+    symbols: Sequence[str],
+    positions: Any,
+    comment: str,
+) -> TrustedArtifactRefV1:
+    """Write one host-owned geometry under the workspace's artifacts, once.
+
+    For a structure a program kept only inside its log -- a Gaussian scan
+    point -- the host writes the bytes, in the shape every host-derived
+    geometry takes, and binds them as an ordinary trusted input.
+    """
+
+    target = _target_below(
+        _absolute_workspace(approved_workspace), "artifacts", file_name
+    )
+    _write_exact_once(target, _xyz_payload(symbols, positions, comment))
+    return TrustedArtifactRefV1(
+        artifact_id=require_identifier(artifact_id, "artifact_id"),
+        kind="geometry_xyz",
+        sha256=file_sha256(target),
+        size_bytes=target.stat().st_size,
+        path=str(target),
+        cli_value=str(target),
+    )
+
+
 def handoff_scan_minimum_geometry(
     *,
     producer_receipt: ProgramExecutionReceiptV1,

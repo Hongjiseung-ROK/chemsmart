@@ -157,6 +157,7 @@ from chemsmart.agent.execution import (
     structure_edge_by_target,
     structure_producer_stage,
     transform_trusted_molecular_geometry,
+    write_host_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
 from chemsmart.agent.identity import (
@@ -4808,22 +4809,39 @@ class CommandCompiledToolHostV1:
                 f"this scan has points 1 to {len(records)}; there is no "
                 f"point {requested}"
             )
-        if not chosen["geometry_file"]:
+        # A program that writes a file per point (ORCA) names it; one that
+        # keeps every point in its log (Gaussian) hands the structure it
+        # converged there, and the host writes that structure's bytes.
+        structure = chosen.get("structure")
+        point_artifact_id = values["artifact_id"] + f".point.{requested:03d}"
+        if chosen.get("geometry_file"):
+            path = Path(chosen["geometry_file"]).resolve()
+            if not path.is_file():
+                raise ContractError(
+                    "the chosen scan point geometry is missing"
+                )
+            artifact = TrustedArtifactRefV1(
+                artifact_id=point_artifact_id,
+                kind="geometry_xyz",
+                sha256=file_sha256(path),
+                size_bytes=path.stat().st_size,
+                path=str(path),
+                cli_value=str(path),
+            )
+        elif structure is not None and self.approved_workspace is not None:
+            artifact = write_host_geometry(
+                approved_workspace=self.approved_workspace,
+                file_name=f"{point_artifact_id}.xyz",
+                artifact_id=point_artifact_id,
+                symbols=tuple(structure.chemical_symbols),
+                positions=structure.positions,
+                comment=f"scan point {requested} of {source.artifact_id}",
+            )
+        else:
             raise ContractError(
                 f"point {requested} converged but ChemSmart kept no geometry "
-                "file for it, so it cannot be carried forward"
+                "for it, so it cannot be carried forward"
             )
-        path = Path(chosen["geometry_file"]).resolve()
-        if not path.is_file():
-            raise ContractError("the chosen scan point geometry is missing")
-        artifact = TrustedArtifactRefV1(
-            artifact_id=values["artifact_id"] + f".point.{requested:03d}",
-            kind="geometry_xyz",
-            sha256=file_sha256(path),
-            size_bytes=path.stat().st_size,
-            path=str(path),
-            cli_value=str(path),
-        )
         self.artifacts[artifact.artifact_id] = artifact
         return {
             "schema_version": "chemsmart.scan-point-geometry.v1",
@@ -4832,8 +4850,8 @@ class CommandCompiledToolHostV1:
             "source_result_sha256": source.sha256,
             "point_index": requested,
             "point_count": len(records),
-            "coordinate": chosen["coordinate"],
-            "energy_hartree": chosen["energy"],
+            "coordinate": chosen.get("coordinate"),
+            "energy_hartree": chosen.get("energy"),
             "selection_owner": "model",
             "next_action": (
                 "bind this geometry's charge and multiplicity, then plan the "

@@ -1156,13 +1156,50 @@ class Gaussian16Output(GaussianFileMixin):
         return max(step[-1] for step in steps)
 
     @cached_property
-    def scan_point_records(self):
-        """One record per converged scan point, in the order run."""
+    def _scan_point_indices(self):
+        """The 1-based index of every converged scan point, in run order."""
 
         steps = self.optimized_steps
         if not steps:
             return None
-        return [{"index": step[-1]} for step in steps]
+        return [step[-1] for step in steps]
+
+    @cached_property
+    def scan_point_records(self):
+        """One record per converged scan point, in the order run.
+
+        A record has the fields ORCA's records have -- ``index``,
+        ``coordinate``, ``energy`` and ``geometry_file`` -- because every
+        consumer reads a scan record as one table: the scan-point binding
+        read ``geometry_file`` from a Gaussian record that held only
+        ``index`` and raised ``KeyError`` (R10 Q7 G2, CUHK 2150187), so a
+        point of a completed Gaussian surface could never be carried
+        forward. Gaussian writes no file per point: ``geometry_file`` is
+        ``None`` and ``structure`` is the structure the log itself marks
+        as converged at that point. ``coordinate`` and ``energy`` come from
+        ``scan_profile`` and are absent when the driven coordinate cannot
+        be read.
+        """
+
+        indices = self._scan_point_indices
+        if not indices:
+            return None
+        records = [
+            {"index": index, "geometry_file": None} for index in indices
+        ]
+        structures = self.all_structures
+        if structures and len(structures) == len(records):
+            for record, molecule in zip(records, structures, strict=True):
+                record["structure"] = molecule
+        try:
+            profile = self.scan_profile
+        except ValueError:
+            profile = None
+        if profile and len(profile) == len(records):
+            for record, row in zip(records, profile, strict=True):
+                record["coordinate"] = row["coordinate"]
+                record["energy"] = row["energy"]
+        return records
 
     @cached_property
     def scan_profile(self):
@@ -1179,9 +1216,10 @@ class Gaussian16Output(GaussianFileMixin):
         """
 
         coordinate = self.scan_coordinate
-        records = self.scan_point_records
-        if coordinate is None or records is None:
+        indices = self._scan_point_indices
+        if coordinate is None or indices is None:
             return None
+        records = [{"index": index} for index in indices]
         structures = self.all_structures
         if len(records) != len(structures):
             raise ValueError(
