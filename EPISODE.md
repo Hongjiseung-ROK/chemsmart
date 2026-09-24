@@ -231,11 +231,51 @@ Predictions (never tuned after a result):
    chemistry run.
 3. Provider-free rehearsal; CLI oracle; live goal(s).
 
+## The repair (in radius) and its evidence so far
+
+- 3241d5df settings: Gaussian and ORCA each hold census D's table and refuse
+  an unparameterised pair at validation (the diagnostic the session reads)
+  and in the writer, with the program's own outcome and a route; ORCA
+  refuses the word d3; Gaussian refuses a shorthand whose base is no
+  keyword. Census D replayed through the repaired writers: every refused
+  route refused, every route the program ran on its parameters (348
+  Gaussian, 271 ORCA) written byte for byte, zero false refusals. Q15 g2's
+  own preview command reproduces its archived input on the base and is
+  refused here. Witness: 7 refusals red on the base, green here.
+- 7424dbe5 shared: the ORCA route round-trip probe uses PBE for dispersion.
+- 7f810aaa pyscf: the probe loads the method's parameters as get_dispersion
+  does. Evidence is D-run3 below (the probe replayed on the target).
+- 1a80c8f3 merge of r10-integration (Q19), clean; packed as r1 (tree
+  81e437c5, uploaded to r10/q20/r1/code; O1 keeps running on code/).
+
+## D-run3 -- PRE-REGISTRATION (the PySCF probe on the target)
+
+The repaired `_PROBE_SCRIPT` (r1 code) is run by census D's own
+`pyscf_pairs.py` over the same 649 (xc, dispersion) pairs. Prediction: every
+pair whose D-run2 run died on the dispersion pair itself (197) is now not
+GREEN, with PySCF's own message; every pair D-run2 ran (272) stays GREEN.
+FALSIFIED by any pair that ran and is now refused (a false refusal) or any
+dispersion death still GREEN.
+
+## O1 -- a mechanical error of mine, corrected without changing a prediction
+
+The CLI's ORCA ts command rewrites a label's "ts" to "optts"
+(`chemsmart/cli/orca/ts.py:247`, `label.replace("ts", "optts")`), so my
+saddle's output is `hx_optts.out`, and O1's five commands that read
+`hx_ts.out`/`hx_ts.hess` (TS stability, both IRC branches, both TS CCSD(T))
+fail on a missing file. They are re-issued unchanged as O1b reading
+`hx_optts.*` once the saddle exists. Every O1 prediction stands as written.
+
 ## Jobs issued
 
 - 2026-09-25: census D, CUHK Slurm 2153534 (r10-q20-a), 16 cores,
   pre-registration f8ee9f8184ba, code a8dd1777 (tree b572f5bd, = Q15 g2's).
-- 2026-09-25: D-run2 (PySCF run step only), next submission.
+- 2026-09-25: D-run2 (PySCF run step only), CUHK Slurm 2153546,
+  pre-registration 44967a4b7b9e.
+- 2026-09-25: O1, CUHK Slurm 2153554, 32 cores, pre-registration
+  b40a5f4a3218, code a8dd1777 (tree b572f5bd).
+- 2026-09-25: D-run3 (the repaired PySCF probe on the target), next
+  submission, code r1 (tree 81e437c5).
 
 ## Status
 
