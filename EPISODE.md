@@ -266,6 +266,38 @@ new selectors in typed receipts and recorded decision o2-rks-stability-verdict.
   criterion (7 critical findings). Neither is about the served quantities;
   both are reported, neither is repaired here (outside the radius).
 
+## gstab1 read (CUHK 2152098, COMPLETED; Gaussian 16 C.02 via the CLI)
+
+Every pre-registered outcome held:
+- O2 singlet `stable`: "The wavefunction has an RHF -> UHF instability.",
+  lowest eigenvalue -0.0926178 Eh (band -0.10 .. -0.08) -- equal to PySCF's
+  RHF/RKS -> UHF/UKS root at the same level (-0.0926172, stab1) to 1e-6 Eh.
+  The base reader read that sentence as NO verdict: history [], verdict
+  absent, reference diagnostics None, no scf.reference_unstable. Defect
+  confirmed and repaired (a54aaadf).
+- `stable=opt`: the same instability, then UB3LYP -150.188149645 Eh
+  (<S**2> 1.0033 before annihilation) and "stable under the perturbations
+  considered". Found and left: a single-job `stable=opt` route parses as
+  ChemSmart's `link` job type and the log's jobtype reads None (the
+  supported path is the link job type).
+- O2 triplet and water: stable; water lowest +0.2376504 (PySCF external
+  +0.2376507); water's lowest singlet root 0.2877508 = PySCF internal / 4.
+- water `volume`: 178.644 bohr^3 per molecule (15.942 cm^3/mol), band held;
+  <R**2> 19.0148 au (band 17 .. 21).
+
+## Served this episode (all on archived real bytes, each with a witness red before)
+
+PySCF: scf_stability_real_to_complex, scf_stability_{internal,external,
+real_to_complex}_lowest_eigenvalue (0a77574f writer, 2d927932 reader,
+c799cc9d pointer for records that never heard). Gaussian:
+electronic_spatial_extent (54831cfb), wavefunction_stability_lowest_eigenvalue
+and _rotation_space with the RHF -> UHF verdict (a54aaadf),
+solvation_nonelectrostatic_energy + solvation_model + solvent for SMD
+(e6385774), molecular_volume (c1c4b13f, after the shared VOLUME name
+2435d55a). ORCA: t1_diagnostic (ff79f778), mayer_bond_orders and
+mayer_free_valence (55f82b86; red on a lexical guard until b50b025f -- a
+masked pytest exit, reported).
+
 ## Status
 
 - Census: done (above).
