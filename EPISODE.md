@@ -222,6 +222,130 @@ Not counted either way: no failed criterion at cycle 1 (recovery point not
 met: "not exercised"); zero provider turns or turn_deadline_exceeded
 (infrastructure). A weak run is reported, never re-rolled.
 
+### Live goals G-tw, G-h2 -- READ (CUHK 2153626, 2153627; code 8048c9de, digest 0ca781a4; prereg 8e24c763cd4e)
+
+Both ran three cycles and settled returned_to_human (gtw 20 min, gh2 28
+min wall). Physics, from the host's own extractions: G-tw E(RKS)
+-78.3783953 Eh, external "unstable", internal "stable", real->complex
+"unstable" (words the program printed), BS below RKS by 32.49 kcal/mol,
+<S^2>(BS) 1.010 -- inside every band. G-h2 E(RKS) -0.9797177 Eh, external
+-0.1206682, internal +1.8733, real->complex +0.0718830 Eh, BS below RKS by
+0.0320598 Eh (20.12 kcal/mol), <S^2>(BS) 0.837 -- inside every band.
+
+G-tw: recovery point not exercised (its run failed no criterion; the RKS
+instability reached the record as an anomaly, scf.reference_unstable).
+Its recovery row names what opened it (undelivered ids, unclaimed
+conv-kcal, analysis_status partial -- the P3 repair, exercised). It then
+settled on a precision requirement: cycle 3 re-claimed the energy with
+basis "inferred" citing the energy's own extraction, the host judged it
+not evidence-backed, and the word says "stands attested" (true; see
+defects left).
+
+G-h2: recovery point met (val-real-stab/real-stable failed on -0.1207 Eh,
+receipt 80b40882, no decision cited it).
+- R1 met: the recovery row carries "verdicts": ["val-real-stab/real-stable"].
+- R2 met: the cycle-2 goal block names the verdict with its statement
+  ("read -0.12066815968485223 against minimum_greater_equal 0 hartree"),
+  receipt 80b40882, minted_by goals/gh2/runs/cycle-1.
+- R3 met: no "structure the host judged". The same records recomposed on
+  111dc55e (replay_wake.py) give "unanswered_failed_verdicts":
+  ["val-real-stab/real-stable"] and "a structure the host judged not to be
+  what the task required" -- the old message.
+- B1 met (N=1): the cycle-2 decision cites 80b40882 (control: 0 of 3).
+- B2 not met: cycle 2 evaluated val-real-stab once more (6135c9ad),
+  beside two new criteria (bs-lower, complex-stable) whose verdicts it
+  claimed as the answers to its three category questions -- a receipt to
+  claim from, not one to cite (control: 3 of 3 re-evaluated, 2-6 times).
+
+Cycle 3 (the goal's one re-wake) is where the host's words went false,
+and the session acted on them:
+- the wake named val-real-stab/real-stable unanswered with 6135c9ad
+  (minted_by the cycle-2 session) and eleven numbers stale, the requested
+  energy among them, while the settlement's goal-grain join calls it
+  answered by 80b40882 (verdict_join.py: read alone unanswered, at goal
+  grain answered). The session tried to cite 6135c9ad (refused: "no digest
+  this host minted"), judged the rule twice more (43fb4807, 06498093),
+  cited the second, and wrote "reproduced under the same node and rule ids
+  on a fresh re-evaluation" -- the wake's own rule text, followed to the
+  letter over a false premise.
+- the diagnosis said the three category ids were "still undelivered by
+  their id in any cycle" and that the cycle "rendered claims under other
+  names instead: ..., verdict-bs, verdict-complex, verdict-real". Cycle 2
+  had claimed all three under their ids (as 1/0 numbers); the three
+  "other names" were those claims' quantity ids; the completion receipts
+  the host held said what answers a category (a finding with
+  answers_observable_id on a word the host read) and the report did not
+  carry it. Cycle 3 claimed under the same ids as the same numbers and
+  wrote five findings, none answering a declared id. The settlement said
+  the three "have no claim carrying their id in any cycle" (false).
+
+## Repairs found by the live goals (witness red on e8e8098e/962d7ad1, green after)
+
+- 962d7ad1 driver: the wake and the re-wake read a verdict at the goal's
+  grain, as the settlement does (W8; two witnesses).
+- 7bba78f3 driver: an undelivered declared observable is named as carried
+  or not, with what its completion receipt says it lacks. Census
+  (id_carried.py over every rewake_opened row and every settlement reason
+  saying an id has no claim): CUHK 3 statements, 0 false; ax41 11, 6
+  checkable, 2 false (ino3-cont, ino3-r13a: 16 ids carried as quantity ids
+  in another unit); live 2, 2 false (G-h2). 4 of 11 checkable.
+
+Replays (both on an export of e8e8098e, whose chemsmart/ equals 8048c9de,
+and on the repaired tree):
+- gh2 cycle-3 wake (replay_wake.py): e8e8098e reproduces the archived
+  deliverables byte for byte; repaired: unanswered_failed_verdicts [],
+  stale_quantity_ids [].
+- gh2 re-wake decision (replay_rewake.py, new: ledger cut at
+  rewake_opened, a GoalDriver at the cycle-2 session's end, _rewake):
+  e8e8098e reproduces diagnosis, route and cost byte for byte; repaired:
+  "a claim carries each of these declared observables without answering
+  its declaration: real-stability-stable, complex-stability-stable,
+  bs-solution-lower; its completion receipt says: declared question ...
+  (category) ... record a finding with answers_observable_id ...", other
+  names only claims carrying no declared id; the route names how a
+  category is answered.
+- gh2 settlement (replay_final.py): e8e8098e reproduces it; repaired: same
+  word, "a claim carries each of these declared observables without
+  answering its declaration: ...".
+
+Gates on 7bba78f3's tree: tests/agent 3148 passed, 0 failed.
+
+## Live goals G-h2b, G-h2c -- PRE-REGISTRATION (written before submission)
+
+Question: with the wake and the re-wake saying what the records hold (W1,
+W8, W9), what does the Agent do at the points where G-h2's words were
+false? Two replicate goals, submitted together; neither is re-rolled.
+
+Code = 7bba78f3. Task, workspace and envelope byte-identical to G-h2's
+(TASK.md 1cb3f5b4..., h2.xyz b77375da...; pyscf cpu, 8 cores, 16 GB,
+node 1800 s, episode 5400 s, 4 engine calls, max-revisions 2, local),
+granted by claude-researcher-q22-owner-delegated (a delegated approval,
+never a human decision). Agent deepseek-v4-flash-0731 (alibaba-token-plan).
+Physics bands: G-h2's, above.
+
+Points, each read from host records with its own N (0, 1 or 2):
+- P-verdict, met when cycle 1's run holds a failed criterion no decision
+  cited: host R1-R3 as for G-h2; behaviour B1 the woken decision cites a
+  receipt the wake named (G-h2: met), B2 no evaluate_scientific_validation
+  on the named verdict's node (G-h2: not met).
+- P-rewake, met when the goal is re-woken: host R4 every verdict the
+  re-wake's deliverables call unanswered is unanswered at the goal grain
+  (verdict_join.py), R5 the diagnosis calls each undelivered id carried or
+  not in agreement with the goal's claims (id_carried.py) and quotes the
+  stream's completion miss text where that receipt holds one. Behaviour B3
+  the re-woken session evaluates no rule the goal has answered (G-h2: 2
+  evaluations); B4 where a declared category id is carried but not
+  answered, the re-woken session records a finding with
+  answers_observable_id for at least one such id (G-h2: 0 of 3).
+- the word: read, and each reason checked against the records.
+Not counted: a point not met ("not exercised"); zero provider turns or
+turn_deadline_exceeded (infrastructure). What the Agent chooses to declare
+(categories or numbers) is its own; a goal that declares no category id
+does not exercise B4.
+Replays: each wake and re-wake these goals receive, recomposed on
+111dc55e (and G-h2's code, e8e8098e) from their own records, shows what
+the old words would have said.
+
 ## Defects found and left
 
 - tool_runtime.py ~6956-6975 (record_scientific_decision's
@@ -252,4 +376,6 @@ met: "not exercised"); zero provider turns or turn_deadline_exceeded
   located.
 - step 1 (census): done (above).
 - step 2 (repairs): seven commits, witnesses red on base and green here.
-- step 3: reference job R1 next; then the live goals.
+- step 3: reference job R1 read; live goals G-tw, G-h2 read.
+- step 4: two repairs the live goals found (962d7ad1, 7bba78f3), replayed.
+- step 5: G-h2b, G-h2c pre-registered above; submission next.
