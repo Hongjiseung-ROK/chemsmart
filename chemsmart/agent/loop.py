@@ -771,6 +771,27 @@ class ToolLoopRunner:
                                 terminal_state = "complete"
                                 terminal_reason = "host readiness gates passed"
                             else:
+                                # `planned` is bound to the plan the
+                                # session made: terminate admits it only
+                                # over the stream's latest workflow draft,
+                                # as the two other planned endings below
+                                # already bind it. This one carried the
+                                # partial completion receipt instead, so
+                                # the repair above traded "a required
+                                # completion gate is red" for "planned
+                                # termination requires the latest workflow
+                                # draft" and kept the loss: o2r (R10 Q13,
+                                # CUHK 2152079) read and claimed its whole
+                                # answer, its planned criterion failed
+                                # because the reference is unstable, and
+                                # the goal returned on the error. A partial
+                                # completion arises only from an analysis
+                                # toolchain plan, so a draft exists; the
+                                # completion receipt stays in the stream,
+                                # where the settlement reads it.
+                                completion_required = (
+                                    self.host.latest_workflow_draft_receipt(),
+                                )
                                 terminal_state = "planned"
                                 terminal_reason = (
                                     "the analysis completion is partial; "
