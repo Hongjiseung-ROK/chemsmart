@@ -164,12 +164,33 @@ claude-researcher-q17-owner-delegated. Model deepseek-v4-flash-0731.
     against 0.67 M): the lever roughly doubled the planning session's
     input in both pairs, through more turns rather than larger replies.
 
-Development so far, read together (n = 1 per cell; not evidence for the
-sealed question): where the base arm already asks for the deciding
-quantity (dB's <S^2> and convergence flag; dC's frequencies, which are the
-headline), P changes little; where it asks for the wrong one of several
-related questions (dA: `scf_stability_internal`, "stable", of the three
-the result answered), P put the right one in front of it.
+- dD (converged water B3LYP/def2-SVP Hessian, PySCF; a control): S and P
+  both extracted the frequencies and mode participation, no alarm; settled
+  achieved both.
+- dF (dA's question on Gaussian 16 logs: RHF -> UHF instability printed as
+  a verdict word, served long before Q13): S extracted
+  `wavefunction_stability_verdict` for both results and wrote that the gap
+  "can carry only qualitative weight: the singlet restricted solution is
+  externally unstable"; P extracted the verdict and the eigenvalue.
+- dE (water CCSD(T)/cc-pVDZ, ORCA, T1 0.0059; a control): S extracted T1
+  and called it benign; no alarm.
+
+Development, read together (n = 1 per cell, 11 local goals and the 9 of
+hc1; not evidence for the sealed question): where the base arm already
+asks for the deciding quantity (dB's <S^2> and convergence flag; dC's
+frequencies, which are the headline; dF's and hc1-dA's stability verdict
+word), P changes little; where it asked for the wrong one of several
+related questions (dA-S-1: `scf_stability_internal`, "stable", of the
+three the result answered), P put the right one in front of it. The base
+rate of S reading a long-served diagnostic unprompted is high on these
+textbook systems, which is why the recently- versus long-served split is
+reported. Cost over the 21 goals: 1.02 M input tokens and 489 s of
+provider time per goal (mean; max 1.81 M, 776 s); 16 of 21 had a reading.
+
+A second host-error instance: dF-P-1 settled returned_to_human on
+"planned termination requires the latest workflow draft" after its
+decision was recorded -- 3 of 20 finished goals so far (P 2 of 8, U 1 of
+3, S 0 of 9).
 
 ## hc1 -- the harness on the cluster with the pinned arms (pre-registered before submission)
 
@@ -314,7 +335,18 @@ Leakage is measured before grading (`leak.py`) and never used to change a
 packet: P-revealing phrases (values said to come from an inspection),
 U-revealing phrases (a hidden selector said to be unavailable), a hidden
 selector's name. The primary is repeated on the tasks whose P and S
-conclusion packets carry no P-revealing phrase (sensitivity).
+conclusion packets carry no P-revealing phrase (sensitivity). A residual
+leak no phrase list measures, stated now: a P session can cite a value it
+saw on inspection and never extracted, so its words may carry numbers its
+"read" section lacks; GRADER.md tells graders that a value missing from
+the reads is not false for that reason, and graders are not told what the
+arms are.
+
+What U does not undo, stated now: U hides the selectors 3a225067 *added*.
+Q13's parser repair that made Gaussian's long-served
+`wavefunction_stability_verdict` read "RHF -> UHF instability" (a54aaadf)
+is parsing and stays, so a Gaussian RHF -> UHF verdict word is served in
+U; so are PySCF's three stability words other than real -> complex.
 
 ### Grading
 
@@ -413,6 +445,35 @@ than half the time at 8 tasks (0.30-0.43) and about half at 12
 (0.43-0.63): a null here says the lever is not large, not that it is
 absent.
 
+## Frozen for the sealed tasks
+
+Nothing below changes after this section is committed and before every
+sealed goal has settled.
+
+- Arms: S and P = 29adc265 (switch 0 / 1), U = e77a0b47 (side branch
+  `q17-arm-unserved`); packs verified on CUHK at r10/q17/code-29adc265
+  (b471fba5...) and code-e77a0b47 (5d526590...).
+- Harness and analysis (sha256 prefixes; durable copies in
+  /project/xlzhang/jiseung/r10/q17/tools, identical): run_sessions.py
+  9c71634a..., sessions_job.sh 4ca18cde..., render_job.py 1952b26a...,
+  make_plan.py 2b512954..., stage_sealed.sh 8abbca83..., envelope
+  b72e5e03..., build_packets.py acd91e4d..., leak.py 39663ad6...,
+  mechanism.py 39284fcf..., analysis.py f055ef9f..., GRADER.md
+  709704be..., fetch_runset.sh acfbf889..., pack_commit.py 96ba81cd....
+- Run: one run set `sealed1`, staged by stage_sealed.sh from the released
+  task folders (TASK.md and program outputs only), plan by make_plan.py
+  (seed 20260925), two slot jobs (a, b), 4 cores / 16 GB / 12 h each.
+- Expected cost (from the 20 development and hc1 goals): about 1.0 M input
+  tokens and 8-9 min of provider time per goal, readings on about three
+  goals in four. For T tasks: 7T goals and about 12.6T sessions -- 84
+  goals, ~150 sessions, ~86 M input tokens, ~6.5 h per slot at T = 12; 112
+  goals, ~200 sessions, ~115 M input tokens, ~8.5 h per slot at T = 16.
+- Known host error that will recur (Q16's radius, found and left): about
+  one goal in seven settles returned_to_human on "planned termination
+  requires the latest workflow draft" after its decision is recorded; its
+  conclusion is graded, it has no reading, and the settlement words per
+  arm are reported.
+
 ## Jobs issued
 
 | job | slot | what | pre-registration | outcome |
@@ -442,3 +503,12 @@ absent.
   (test_structures x19, pyscf dispersion conformance x2, aggregation x1,
   PyscfSettings x1); export deleted after the gate. ruff, black, isort
   clean on the two touched files.
+- 2026-09-24, 23:41-23:55 KST: resumed after a provider session limit (not
+  mine). Every development goal's run.log names the tree it imported: dA-S-1
+  the worktree at 32e317ee (chemsmart/ = base), dA-P-1 the worktree at
+  29adc265, dC-S/P-1 the worktree at d475fb4a (chemsmart/ = 29adc265), and
+  every later goal the `git archive` export of 29adc265 run from its own
+  directory (cwd = PYTHONPATH, so `python -m` cannot shadow it); switch
+  values as labelled. hc1 read (all mechanics pass); packet builder
+  repaired; the last local development goal (dE-P-1) finishing.
+- ARMS FROZEN (this commit): the sealed tasks may be released.
