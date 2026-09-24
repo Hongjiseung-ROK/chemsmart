@@ -495,6 +495,16 @@ def review(
     "the headroom and holds the request to the profile alone, which is "
     "the escape for a profile too small to leave anything above it.",
 )
+@click.option(
+    "--reading-turn/--no-reading-turn",
+    default=False,
+    show_default=True,
+    help="Whether a certified delivery is read by one further session "
+    "before the goal settles. The reading launches no engine, admits no "
+    "revision and cannot change the settlement word; what it finds in "
+    "the results is recorded beside that word. It costs provider tokens "
+    "and wall time.",
+)
 def goal(
     task,
     task_file,
@@ -511,6 +521,7 @@ def goal(
     dispatch,
     server,
     sealed,
+    reading_turn,
 ):
     """Drive one goal to settlement under one human decision.
 
@@ -550,6 +561,7 @@ def goal(
             dispatch=dispatch,
             server=server,
             sealed=sealed,
+            reading_turn=reading_turn,
         )
     except ContractError as exc:
         raise click.ClickException(str(exc)) from exc
