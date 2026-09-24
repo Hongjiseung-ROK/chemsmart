@@ -82,6 +82,62 @@ What the census decides: which pairs each program parameterises, measured on
 the installed programs (Gaussian 16 C.02, ORCA 6.1.1, PySCF 2.14.0 with
 pyscf-dispersion 1.5.0), the provenance the hub's table will carry.
 
+## Census D -- READ (CUHK Slurm 2153534, chpc-cn072, 4 min; code b572f5bd
+verified on the node; the four script digests printed)
+
+Gaussian 16 C.02 (426 unique hub routes on the water dimer):
+- 179 routes the hub writes green die in l301 before any SCF: "R6DS8: Unable
+  to choose the S8 parameter" (GD3, GD3BJ) or "R6DS6: Unable to choose the S6
+  parameter" (GD2), with Gaussian's own IExCor/IXCFnc for the functional.
+- Parameterised, measured: GD3BJ only for B3LYP, B3PW91, BLYP, BP86, BPBE,
+  PBEPBE, PBE1PBE, TPSSTPSS, BMK, CAM-B3LYP, B2PLYP, B97D, B97D3, B2PLYPD3,
+  PW6B95D3; GD3 for those and M05, M052X, M06, M062X, M06HF, M06L; GD2 for
+  B3LYP, BLYP, BP86, PBEPBE, TPSSTPSS, B2PLYP, B97D, B97D3, B2PLYPD3, WB97XD.
+  wB97X, wB97, HSE, the Minnesota functionals with GD3BJ, B3P86, O3LYP,
+  X3LYP, PW6B95 (bare) and 50 others die.
+- PFD runs with every functional and prints the same `R6APFD ... FactS=
+  1.050` for all 79: one model (APFD's), applied unchanged. APF + PFD equals
+  APFD to every printed digit (-152.611906738 Eh).
+- Gaussian's named keywords equal their base + GD3BJ to every printed digit:
+  B97D3 = B97D + GD3BJ, B2PLYPD3 = B2PLYP + GD3BJ, PW6B95D3 = PW6B95 + GD3BJ
+  (so a `-D3` shorthand split to GD3, zero damping, is not those keywords).
+- 36 routes die at link 1 on a route word Gaussian has no keyword for, from
+  the hub's shorthand split (`b97-d3` -> `b97`, `tpss-d3bj` -> `tpss`,
+  `m06-2x-d3zero` -> `m06-2x`, `wb97m-d3bj` -> `wb97m`, ...) or from literals
+  passed through (`wb97x-d`, `b97-d`, `*-d4`). No Gaussian probe exists.
+
+ORCA 6.1.1 (768 unique routes):
+- 96 routes die AFTER the INPUT FILE banner (after the SCF): "(D3BJ)/(D4):
+  Non-parameterized functional used for dispersion correction" -- invisible
+  to the input-check probe, which stops at the banner.
+- ORCA's bare `D3` is D3(BJ) (every row identical to `D3BJ`); the hub writes
+  `d3` for ORCA and `empiricaldispersion=gd3` (zero damping) for Gaussian: one
+  word, two corrections.
+- D3ZERO for an unparameterised functional is refused BEFORE the banner
+  ("--> Change to D4 or D2", 68 routes), as are VV10 functionals + any D
+  word, 3c composites + D words, unknown keywords (`b3lyp-d3bj` passed
+  verbatim, 100) and double hybrids without AuxC (167, not dispersion):
+  probe-catchable on the cluster, green on any host without ORCA.
+- D2 never refuses: an unrecognised functional silently gets ORCA's default
+  C6 scaling 1.200. That includes `B3LYP/G`, the spelling the hub writes for
+  `b3lyp`: ORCA prints "The default B3LYP functional is recognized ... 1.050"
+  for bare B3LYP and no recognition and 1.200 for B3LYP/G (-0.001571310 vs
+  -0.001374896 Eh on the dimer). For D3BJ, D3ZERO and D4 it prints "Gaussian's
+  B3LYP functional is recognized, using regular B3LYP params".
+- D7 HOLDS for the pairs compared: B3LYP-D3(BJ) dispersion Gaussian
+  -0.0021660520 (nuclear repulsion after/before the empirical term) vs ORCA
+  -0.002166052 Eh; PBE0-D3(BJ) -0.0011237927 vs -0.001123793 Eh.
+
+PySCF 2.14 preflight (the hub's own probe + `_check_dispersion`, 649 pairs):
+513 GREEN -- every functional with every version word PySCF knows; the 136
+refusals are only the words `d2` and `d3`. The run step crashed in my
+script's JSON writer (a numpy scalar), not in PySCF: re-run as D-run2 with
+the one-line fix (pyscf_run.py now sha256 9dd5b6a1...), no other change,
+reading census D's own pyscf_probe.jsonl.
+
+Predictions: D1, D2 PASS. D3 PASS (179 Gaussian, 96 ORCA). D4 PASS. D5 PASS
+(before the banner). D6 OPEN until D-run2. D7 PASS for the two pairs read.
+
 ## Plan
 
 1. Census D (above). Then the repair in radius: each settings class refuses at
@@ -96,7 +152,9 @@ pyscf-dispersion 1.5.0), the provenance the hub's table will carry.
 
 ## Jobs issued
 
-(none yet)
+- 2026-09-25: census D, CUHK Slurm 2153534 (r10-q20-a), 16 cores,
+  pre-registration f8ee9f8184ba, code a8dd1777 (tree b572f5bd, = Q15 g2's).
+- 2026-09-25: D-run2 (PySCF run step only), next submission.
 
 ## Status
 
