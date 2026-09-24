@@ -318,6 +318,25 @@ from a DFT constrained optimisation holding C1...C6 at the guess's 2.263 A
 (`KeyError: 'coords'` in the scants modred path; found and left). All O1
 predictions stand as written.
 
+Third, the same kind of error: O1b's constrained start (C1...C6 held at
+2.263 A from my MMFF guess) relaxed to a structure 31 kcal/mol above cZc,
+about 9 above where the disrotatory saddle should lie, and OptTS from it
+descended 25 kcal/mol in six cycles (the followed eigenvalue went -0.0118
+-> +0.0019 au). I cancelled O1b (2153573). O1c seeks the saddle the
+standard way, ORCA ScanTS from the optimised cZc along C1...C6 (3.1 -> 1.9
+A, 13 points), with the scan given in the project's `ts:` section in the
+shape the writer reads (the CLI's own ScanTS builder is the found-and-left
+defect below); `--fake` writes `! ScanTS Freq B3LYP/G def2-tzvp d3bj` with
+`B 0 5 = 3.1, 1.9, 13`. Every O1 prediction stands.
+
+O-D read from O1's finished part (B3LYP-D3(BJ)/def2-TZVP, ORCA, unscaled
+RRHO of my own, which reproduces ORCA's 298.15 K enthalpy to 0.01
+kcal/mol): tZt E -233.509133588 Eh, lowest mode 106 cm-1; cZc E
+-233.494227090 Eh, lowest 78 cm-1, a true minimum. cZc - tZt: dE 9.35,
+dH(412 K) 9.19 kcal/mol. O-D (cZc 2-7 above tZt) FAILS: the reactive
+conformer lies 9.4 kcal/mol above the ground state, so the question's
+conformer trap is about 9 kcal/mol.
+
 ## Jobs issued
 
 - 2026-09-25: census D, CUHK Slurm 2153534 (r10-q20-a), 16 cores,
