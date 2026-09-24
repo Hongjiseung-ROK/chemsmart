@@ -281,10 +281,24 @@ the writer's rubrics after grading.
 
 ### Primary outcome and test
 
-On phenomenon tasks, per task the mean Y of P's three conclusion packets
-minus the mean Y of S's three: exact two-sided Wilcoxon signed-rank over
-tasks (zero differences dropped, average ranks), alpha 0.05, reported with
-mean, median and sign counts (`analysis.py`, sha256 80218f27...).
+On phenomenon tasks, the session-level Y of P's and S's conclusion packets
+(three each per task). Test: two-sided task-stratified permutation test --
+statistic the sum over tasks of mean Y(P) minus mean Y(S); under the sharp
+null that the arm changes no conclusion on these tasks, arm labels are
+permuted within each task; 100,000 draws with `random.Random(20260925)`;
+p = (hits + 1) / (draws + 1); alpha 0.05. Reported with the mean per-task
+difference and the per-task sign counts (`analysis.py`, sha256 f055ef9f...). The inference is
+about these sealed tasks; the task-level exact Wilcoxon signed-rank on the
+per-task mean differences (zeros dropped, average ranks) is reported beside
+it as the across-task generalisation, never as the primary.
+
+Changed before any sealed task was seen (the first draft named the
+task-level Wilcoxon primary): with 8 phenomenon tasks (a 12-task release)
+and three replicates, simulated power for a lever moving a task's success
+rate from 0.2-0.3 to 0.7-0.8 is 0.38-0.65 for the Wilcoxon and 0.71-0.84
+for the stratified permutation test (power_sim2.py, 150 simulations per
+cell); the Wilcoxon discards the within-task replicates the design pays
+for.
 
 ### Milestone C -- all three
 
@@ -335,12 +349,16 @@ untied tasks.
 
 ### Power, computed before the material (power_sim.py)
 
-With 12 phenomenon tasks and a binary proxy of Y, the exact test reaches
-p < 0.05 with probability 0.77-0.93 at three replicates per arm when the
-lever moves a task's success rate from 0.2-0.3 to 0.7-0.8, 0.53-0.81 at two
-replicates and 0.19-0.38 at one (Q6's C failed at one replicate: McNemar
-p = 0.5). A moderate lever (0.3 -> 0.6) is not detectable at any of these
-N; a null here says the lever is not large, not that it is absent.
+With 12 phenomenon tasks and a binary proxy of Y, the task-level Wilcoxon
+reaches p < 0.05 with probability 0.77-0.93 at three replicates per arm
+when the lever moves a task's success rate from 0.2-0.3 to 0.7-0.8,
+0.53-0.81 at two replicates and 0.19-0.38 at one (Q6's C failed at one
+replicate: McNemar p = 0.5); with 8 phenomenon tasks it falls to 0.34-0.62
+at three replicates, which is why the primary is the stratified
+permutation test (0.71-0.84 at 8 tasks). A moderate lever (0.2 -> 0.5) is
+detectable only with the permutation test and even then less than half the
+time (0.30-0.43 at 8 tasks): a null here says the lever is not large, not
+that it is absent.
 
 ## Jobs issued
 
