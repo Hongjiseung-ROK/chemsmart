@@ -1576,6 +1576,48 @@ def _stream_completion_status(events_path: Path) -> str:
     return status
 
 
+def _session_wave_selections(
+    events_path: Path | None,
+) -> tuple[dict[str, Any], ...]:
+    """Every wave a session selected, in stream order, as the host replied.
+
+    The reply is the host's own record of the selection: its status, the
+    workflow it names and the members it will submit.
+    """
+
+    if events_path is None:
+        return ()
+    try:
+        lines = events_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return ()
+    selections: list[dict[str, Any]] = []
+    for line in lines:
+        if "select_execution_wave" not in line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        payload = event.get("payload") or {}
+        if (
+            event.get("kind") != "tool_succeeded"
+            or payload.get("tool") != "select_execution_wave"
+        ):
+            continue
+        result = (payload.get("canonical_result") or {}).get("result") or {}
+        selections.append(
+            {
+                "status": str(result.get("status") or ""),
+                "workflow_id": str(result.get("workflow_id") or ""),
+                "node_ids": tuple(
+                    str(item) for item in result.get("node_ids") or ()
+                ),
+            }
+        )
+    return tuple(selections)
+
+
 def _session_dispositions(events_path: Path | None) -> tuple[dict, ...]:
     """Every repair-menu disposition a session's decisions recorded."""
 
@@ -4966,7 +5008,7 @@ class GoalDriver:
                 reason=(
                     "the Agent explicitly continued scientific reasoning"
                     if decision.state == "continue_reasoning"
-                    else "the Agent made no execution-boundary decision"
+                    else self._undecided_boundary_reason(decision)
                 ),
             )
             return
@@ -5503,6 +5545,7 @@ class GoalDriver:
                 f"execution-wave-decision-pending:{self.goal_id}:{self.cycles}"
             ),
         )
+        ready = tuple(getattr(decision, "ready_node_ids", ()) or ())
         self.result = GoalLoopResultV1(
             goal_id=self.goal_id,
             settlement="execution_wave_decision_pending",
@@ -5511,10 +5554,53 @@ class GoalDriver:
             reasons=(
                 reason,
                 self._nothing_launched_this_cycle()
-                + "; the Agent may make an explicit execution decision",
+                + (
+                    "; the Agent may make an explicit execution decision"
+                    if ready or decision.state != "undecided"
+                    else "; no calculation of workflow "
+                    f"{decision.workflow_id or '(unnamed)'} is ready to run, "
+                    "so no wave can be selected on it"
+                ),
             ),
         )
         self.phase = "parked"
+
+    def _undecided_boundary_reason(self, decision: Any) -> str:
+        """Say what the Agent decided, when its last plan left none.
+
+        A plan resets the execution boundary to undecided for the
+        workflow it plans, which is right -- a wave names one workflow --
+        and the park then said "the Agent made no execution-boundary
+        decision". losartan-micropka-r2 cycle 4 (CUHK, 2026-09-18)
+        selected c-neutral-opt on losartan-micropka-rev4a, was told
+        "this wave is what will be submitted", then planned
+        losartan-micropka-r4-settlement, which has no calculation ready
+        to run; the park denied the selection it had made. The session's
+        own stream holds every selection; the reason names the last one
+        a later plan replaced.
+        """
+
+        replaced = [
+            item
+            for item in _session_wave_selections(self.events_path)
+            if item["status"] == "ready"
+            and item["workflow_id"] != str(decision.workflow_id or "")
+        ]
+        planned = str(decision.workflow_id or "") or "(unnamed)"
+        if not replaced:
+            return (
+                "the Agent made no execution-boundary decision on workflow "
+                + planned
+            )
+        last = replaced[-1]
+        return (
+            f"the Agent selected {', '.join(last['node_ids'])} on workflow "
+            f"{last['workflow_id']}; its later plan of workflow {planned} "
+            "replaced that workflow, and it selected no wave on "
+            f"{planned}; the host holds the boundary of the last planned "
+            f"workflow only, so the selection on {last['workflow_id']} is "
+            "not submitted"
+        )
 
     def _nothing_launched_this_cycle(self) -> str:
         """Say what did not launch without denying what already ran.

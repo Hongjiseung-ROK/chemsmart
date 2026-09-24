@@ -172,6 +172,77 @@ def _run_with_partial_chain(tmp_path):
     return step
 
 
+def _replanning_session(name):
+    """A session that selected a wave, then planned a workflow that
+    replaced the one holding it -- the host's own replies, as the stream
+    records them."""
+
+    selection = {
+        "kind": "tool_succeeded",
+        "payload": {
+            "tool": "select_execution_wave",
+            "canonical_result": {
+                "result": {
+                    "status": "ready",
+                    "workflow_id": "neutral-opt",
+                    "node_ids": ["c-neutral-opt"],
+                    "next_action": "this wave is what will be submitted",
+                }
+            },
+        },
+    }
+
+    def step(workspace, kwargs):
+        from chemsmart.agent.cohort import build_execution_wave_decision
+
+        _planning_session(
+            name, review=_review_payload(), wake_rows=[selection]
+        )(workspace, kwargs)
+        # The later plan resets the boundary for the workflow it plans;
+        # this one is analysis-only, so it has nothing ready to run.
+        return SimpleNamespace(
+            terminal_state="waiting_for_approval",
+            task_spec_sha256=_TASK,
+            selected_execution_wave=(),
+            execution_wave_decision=build_execution_wave_decision(
+                state="undecided", workflow_id="settlement-analysis"
+            ),
+        )
+
+    return step
+
+
+def test_a_park_does_not_deny_a_selection_a_later_plan_replaced(tmp_path):
+    """losartan-micropka-r2 cycle 4 (CUHK, 2026-09-18): the session
+    selected c-neutral-opt and was told "this wave is what will be
+    submitted", then planned an analysis-only workflow that replaced it.
+    The goal parked execution_wave_decision_pending saying "the Agent
+    made no execution-boundary decision", and that the Agent "may make an
+    explicit execution decision" on a workflow with nothing ready to run.
+    The park names the selection and why it is not submitted."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[_replanning_session("live-1")],
+        executes=[],
+    )
+
+    assert result.settlement == "execution_wave_decision_pending"
+    reasons = " ".join(result.reasons)
+    assert "made no execution-boundary decision" not in reasons
+    assert "c-neutral-opt" in reasons and "neutral-opt" in reasons
+    assert "may make an explicit execution decision" not in reasons
+    ledger = (
+        tmp_path / "ws" / ".chemsmart-agent" / "goals" / "goal-t1"
+    ) / "ledger.jsonl"
+    (pending,) = [
+        entry
+        for entry in _stream_rows(ledger)
+        if entry["kind"] == "execution_wave_decision_pending"
+    ]
+    assert "c-neutral-opt" in pending["payload"]["reason"]
+
+
 @pytest.mark.parametrize("revisions", [1, 2])
 def test_a_run_without_an_analysis_chain_certifies_nothing(
     tmp_path, revisions
