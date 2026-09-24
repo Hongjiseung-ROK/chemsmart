@@ -149,17 +149,56 @@ def _normalize_orca_scf_convergence(value):
     return normalized
 
 
+#: ORCA's words for cores and memory. CHEMSMART writes ``%pal nprocs``
+#: and ``%maxcore`` into every input itself, from the resources the run is
+#: granted (``ORCAInputWriter._write_processors`` / ``_write_memory``), so
+#: none of them is a project's to state. A live revision wrote
+#: ``MaxCore 1800`` onto the keyword line after ORCA asked for more memory
+#: per core; the preview passed it and ORCA refused the input on an
+#: approved engine call (R10 Q6 pair3-b, CUHK Slurm 2150179, cycle 3).
+_ORCA_RESOURCE_TOKEN = re.compile(
+    r"^%?(?:maxcore|nprocs|pal\d*)(?:[=\d].*)?$", re.IGNORECASE
+)
+
+
+def _refuse_orca_resource_tokens(route):
+    """Refuse a statement of cores or memory in a project's route."""
+
+    stated = [
+        token
+        for token in str(route).split()
+        if _ORCA_RESOURCE_TOKEN.match(token)
+    ]
+    if stated:
+        # Under the loader's 500-character diagnostic bound, so the route
+        # out reaches the session whole.
+        raise ValueError(
+            f"additional_route_parameters states ORCA's cores or memory "
+            f"({' '.join(stated)}). CHEMSMART writes %pal nprocs and "
+            "%maxcore (0.75 x memory / cores, MB) into every ORCA input "
+            "from the resources the run is granted; a resource belongs to "
+            "the grant, not the method. Remove the token. More memory per "
+            "core is a different grant (more memory or fewer cores: the "
+            "approver's decision) or settings that need less."
+        )
+    return route
+
+
 def _normalize_additional_route_parameters(value):
     """Normalize the legacy ORCA route escape hatch without Python repr text."""
 
-    if value is None or isinstance(value, str):
+    if value is None:
         return value
+    if isinstance(value, str):
+        return _refuse_orca_resource_tokens(value)
     if isinstance(value, (list, tuple)):
         if not all(isinstance(item, str) and item.strip() for item in value):
             raise ValueError(
                 "additional_route_parameters must contain non-empty strings"
             )
-        return " ".join(item.strip() for item in value)
+        return _refuse_orca_resource_tokens(
+            " ".join(item.strip() for item in value)
+        )
     raise ValueError(
         "additional_route_parameters must be a string or a sequence of strings"
     )
