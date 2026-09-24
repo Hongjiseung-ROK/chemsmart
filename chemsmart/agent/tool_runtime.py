@@ -11671,11 +11671,30 @@ class CommandCompiledToolHostV1:
         Two REACH-1 cycles died at ORCA's input check under green
         previews (2026-09-06). A green preview is ChemSmart's compile;
         the probe is ORCA's check, bounded and never charged (owner
-        ruling R2). It runs only where the host-owned server profile
-        names an ORCA executable, never inside a scheduler allocation
-        -- the wake at a job's tail plans from one -- and only on a
-        previewed input the preview retained by digest. Its word is an
-        observation on the review beside the node, never a refusal.
+        ruling R2). It runs where the host-owned server profile names
+        an ORCA executable, on a previewed input the preview retained
+        by digest, and wherever the controller runs. Its word rides the
+        review beside the node, and an abort is what the executor's
+        launch refusal reads.
+
+        It used to be skipped inside a scheduler allocation, on the
+        premise that the controller plans outside one. Production goals
+        on a shared cluster run their controller inside the allocation,
+        so every ORCA check of every such goal was ``not_run`` (all 24
+        in R10 Q6's eight live goals), the launch refusal had nothing to
+        read, and an input ORCA refuses in a tenth of a second was
+        launched and charged as an engine call (pair3-b, CUHK Slurm
+        2150179: ``MaxCore 1800`` on the keyword line, rejected before
+        ORCA's own INPUT FILE banner -- exactly the window the probe
+        watches). It is not true that the probe stops before any rank
+        starts: past the banner ORCA 6.1.1 launches ``mpirun -np <n>
+        orca_startup_mpi`` within a tenth of a second, and before the
+        probe waited on its whole process group that mpirun outlived 10
+        of 30 probes and left 10 directories in NFS scratch (R10 Q9 O2,
+        CUHK Slurm 2150471). So the probe stops and waits for its group,
+        on the allocation's own cores, in the scratch the envelope grants
+        -- the same process and the same cores the node's engine uses a
+        moment later.
         """
 
         from chemsmart.agent.input_check import (
@@ -11696,16 +11715,13 @@ class CommandCompiledToolHostV1:
         )
         input_sha256 = inputs[0].sha256 if len(inputs) == 1 else ""
         cap = self.input_check_cap_seconds
-        if any(key in os.environ for key in ("SLURM_JOB_ID", "PBS_JOBID")):
-            receipt = not_run_receipt(
-                node_id=node_id,
-                program=program,
-                input_sha256=input_sha256,
-                reason="inside a scheduler allocation; the probe runs on "
-                "the controller only",
-                cap_seconds=cap,
-            )
-        elif len(inputs) != 1:
+        envelope = getattr(self, "bounded_execution_envelope", None)
+        work_root = (
+            Path(str(envelope.scratch_root))
+            if envelope is not None and getattr(envelope, "scratch_root", "")
+            else None
+        )
+        if len(inputs) != 1:
             receipt = not_run_receipt(
                 node_id=node_id,
                 program=program,
@@ -11734,13 +11750,29 @@ class CommandCompiledToolHostV1:
                     cap_seconds=cap,
                 )
             else:
-                receipt = probe_orca_input_check(
-                    node_id=node_id,
-                    input_path=retained,
-                    executable=executable,
-                    env=self.input_check_env,
-                    cap_seconds=cap,
-                )
+                try:
+                    receipt = probe_orca_input_check(
+                        node_id=node_id,
+                        input_path=retained,
+                        executable=executable,
+                        env=self.input_check_env,
+                        cap_seconds=cap,
+                        work_root=work_root,
+                    )
+                except (OSError, subprocess.SubprocessError) as exc:
+                    # A probe that cannot start is a probe that did not
+                    # run, said so with its reason -- never a preflight
+                    # that fails in the model's hands.
+                    receipt = not_run_receipt(
+                        node_id=node_id,
+                        program=program,
+                        input_sha256=input_sha256,
+                        reason=(
+                            "the probe could not be launched: "
+                            f"{type(exc).__name__}: {exc}"
+                        ),
+                        cap_seconds=cap,
+                    )
         self._input_check_by_node[node_id] = receipt
         self._emit(
             turn_id,

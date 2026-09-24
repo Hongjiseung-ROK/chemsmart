@@ -159,6 +159,7 @@ def probe_orca_input_check(
     env: Mapping[str, str] | None = None,
     cap_seconds: float = 20.0,
     poll_seconds: float = 0.1,
+    work_root: Path | None = None,
 ) -> InputCheckProbeReceiptV1:
     """Run ORCA on one materialised input until its check concludes.
 
@@ -167,6 +168,11 @@ def probe_orca_input_check(
     appears or the cap is reached, and leaves nothing behind but the
     receipt. The words are ORCA's: an abort is summarised by the same
     native-failure reader a real run's death would be.
+
+    ``work_root`` is where that throwaway directory is made: the engine
+    scratch the host was granted, when there is one, because the probe
+    is an engine launch and a compute node's own temporary directory is
+    not scratch anyone approved. Without one, the system's.
     """
 
     input_path = Path(input_path)
@@ -175,7 +181,14 @@ def probe_orca_input_check(
         raise ContractError("an input-check probe needs a positive cap")
     input_sha256 = file_sha256(input_path)
     executable_sha256 = file_sha256(executable)
-    work = Path(tempfile.mkdtemp(prefix="chemsmart-input-check-"))
+    if work_root is not None:
+        Path(work_root).mkdir(parents=True, exist_ok=True)
+    work = Path(
+        tempfile.mkdtemp(
+            prefix="chemsmart-input-check-",
+            dir=None if work_root is None else str(work_root),
+        )
+    )
     started = time.monotonic()
     status = "not_run"
     reason = ""
@@ -235,7 +248,7 @@ def probe_orca_input_check(
                     line.rstrip() for line in lines[-8:] if line.strip()
                 )
     finally:
-        shutil.rmtree(work, ignore_errors=True)
+        _remove(work)
     return build_input_check_probe_receipt(
         node_id=node_id,
         program="orca",
@@ -250,19 +263,54 @@ def probe_orca_input_check(
     )
 
 
+def _group_alive(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:  # pragma: no cover - a reused id, not ours
+        return False
+    return True
+
+
 def _stop(process: subprocess.Popen) -> None:
-    if process.poll() is not None:
-        return
+    """Stop the probe's whole process group and wait until it is gone.
+
+    Past its INPUT FILE banner ORCA starts its first module in children
+    of its own. Waiting for the leader alone returned while a child
+    still held the probe's files open; on cluster scratch (NFS) a file
+    unlinked while open survives as a placeholder and the directory
+    cannot be removed (R10 Q9 G1, CUHK Slurm 2150438). The group -- the
+    probe runs in its own session -- is signalled, then waited on as a
+    group, SIGKILL after a grace.
+    """
+
+    pgid = process.pid
     for signum, grace in ((signal.SIGTERM, 1.0), (signal.SIGKILL, 5.0)):
+        process.poll()
+        if not _group_alive(pgid):
+            return
         try:
-            os.killpg(process.pid, signum)
+            os.killpg(pgid, signum)
         except ProcessLookupError:
             return
-        try:
-            process.wait(timeout=grace)
+        deadline = time.monotonic() + grace
+        while time.monotonic() < deadline:
+            process.poll()
+            if not _group_alive(pgid):
+                return
+            time.sleep(0.05)
+
+
+def _remove(work: Path) -> None:
+    """Remove the probe's directory, allowing a network filesystem the
+    moment it takes to drop what a stopped process held open."""
+
+    for _ in range(40):
+        shutil.rmtree(work, ignore_errors=True)
+        if not work.exists():
             return
-        except subprocess.TimeoutExpired:
-            continue
+        time.sleep(0.05)
 
 
 def probe_observation_lines(
