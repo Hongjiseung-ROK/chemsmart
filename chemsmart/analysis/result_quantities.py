@@ -486,15 +486,22 @@ class EnergyKindV1:
       matrix -- the curvature of the energy along a rotation of the
       orbitals, not an energy difference between states -- under the
       ``normalisation`` of the matrix it belongs to.
+
+    ``indexes_structures`` marks a vector whose elements are the energies
+    of different structures -- the points of a scan, an IRC branch or an
+    optimisation -- so an element picked by index is its own structure,
+    not the one the result reached.
     """
 
     kind: str
     layers: tuple[int, ...] = ()
     sign: int = 1
     normalisation: str = ""
+    indexes_structures: bool = False
 
 
 _E = EnergyKindV1("state_energy", (0,))
+_E_ALONG_A_PATH = EnergyKindV1("state_energy", (0,), indexes_structures=True)
 _COMPONENT = EnergyKindV1("electronic_component")
 _ORBITAL = EnergyKindV1("orbital_energy")
 _EXCITATION = EnergyKindV1("excitation_energy")
@@ -507,12 +514,12 @@ _EXCITATION = EnergyKindV1("excitation_energy")
 ENERGY_KINDS: Mapping[str, EnergyKindV1] = {
     # One structure's electronic energy, however the program reached it.
     "energy": _E,
-    "energies": _E,
+    "energies": _E_ALONG_A_PATH,
     "scf_energy": _E,
     "reference_energy": _E,
     "electronic_energy": _E,
-    "scan_energies": _E,
-    "trajectory_energies": _E,
+    "scan_energies": _E_ALONG_A_PATH,
+    "trajectory_energies": _E_ALONG_A_PATH,
     # Thermochemical state functions of one structure.
     "internal_energy": EnergyKindV1("state_energy", (0, 1, 2)),
     "enthalpy": EnergyKindV1("state_energy", (0, 1, 2, 3)),
@@ -2052,8 +2059,8 @@ class StructureStationarityV1:
                 else "not a stationary point"
             )
             return (
-                f"{prefix}: the largest gradient component at the "
-                "geometry these modes belong to is "
+                f"{prefix}: the largest gradient component at this "
+                "result's structure is "
                 f"{self.max_abs_gradient_eh_per_bohr:.3g} Eh/Bohr, "
                 f"{relation} the optimiser's criterion of "
                 f"{self.criterion_eh_per_bohr:g} (geomeTRIC convergence_gmax)"
@@ -2226,6 +2233,70 @@ def result_species(program: str, output: Any) -> tuple[str, Any, Any] | None:
         _integer(_reader_answer(reader, output, "charge")),
         _integer(_reader_answer(reader, output, "multiplicity")),
     )
+
+
+#: The selectors that serve one structure's positions. Each reader declares
+#: which of its molecular states (``result_readers.STRUCTURAL_STATES``) each
+#: belongs to, so the geometry a number describes is read by the state its
+#: own selector declares -- never assumed to be "the" structure of a result
+#: (an unconverged ORCA ``OptTS Freq`` reports its energy where the search
+#: stopped and its modes where its Hessian was computed, 1.23 A apart on a
+#: live po3 search).
+POSITION_SELECTORS = (
+    "positions",
+    "reached_positions",
+    "supplied_positions",
+    "trajectory_end_positions",
+    "trajectory_start_positions",
+)
+
+
+def result_geometries(program: str, output: Any) -> dict[str, tuple]:
+    """Each structure one result carries, by the state its reader declares.
+
+    ``{structural state: sorted interatomic distances in Angstrom}`` for
+    every position selector the reader serves on this output; a sampled
+    point (``scan_point``) and a value no structure changes (``stateless``)
+    name no one geometry and are left out.
+    """
+
+    from chemsmart.analysis.quantity_expressions import interatomic_distances
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(str(program).strip().lower())
+    if reader is None:
+        return {}
+    geometries: dict[str, tuple] = {}
+    for selector in POSITION_SELECTORS:
+        if selector not in reader.selectors:
+            continue
+        state = reader.structural_state(selector)
+        if state in geometries or state in {"scan_point", "stateless"}:
+            continue
+        distances = interatomic_distances(
+            _reader_answer(reader, output, selector)
+        )
+        if distances is not None:
+            geometries[state] = distances
+    return geometries
+
+
+def geometry_of_selector(
+    program: str, geometries: Mapping[str, tuple], selector: str
+) -> tuple | None:
+    """The geometry a selector's value describes, from ``result_geometries``.
+
+    None when the reader declares no state for the selector, or serves no
+    positions in that state: the host then does not know which structure
+    the number belongs to and says so rather than guessing.
+    """
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    reader = reader_for(str(program).strip().lower())
+    if reader is None:
+        return None
+    return geometries.get(reader.structural_state(str(selector)))
 
 
 def _stationarity_refusal(

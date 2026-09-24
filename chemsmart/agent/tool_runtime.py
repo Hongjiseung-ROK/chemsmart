@@ -19219,16 +19219,19 @@ class CommandCompiledToolHostV1:
                 ).get(quantity_id)
                 or quantity_id
             )
+        from chemsmart.analysis.result_quantities import (
+            geometry_of_selector,
+            result_geometries,
+            result_species,
+            structure_stationarity,
+        )
+
         cache = self.__dict__.setdefault("_result_species_cache", {})
         key = (str(receipt.program), str(receipt.artifact_sha256))
         if key not in cache:
-            species, not_stationary = None, ""
+            species, not_stationary, geometries = None, "", {}
             artifact = self.artifacts.get(str(receipt.artifact_id))
             if artifact is not None:
-                from chemsmart.analysis.result_quantities import (
-                    result_species,
-                    structure_stationarity,
-                )
                 from chemsmart.analysis.result_readers import reader_for
 
                 try:
@@ -19241,15 +19244,26 @@ class CommandCompiledToolHostV1:
                     )
                     if reading.stationarity == "not_stationary":
                         not_stationary = reading.sentence()
+                    geometries = result_geometries(
+                        str(receipt.program), output
+                    )
                 except Exception:  # noqa: BLE001 - unreadable says nothing
                     pass
-            cache[key] = (species, not_stationary)
-        species, not_stationary = cache[key]
+            cache[key] = (species, not_stationary, geometries)
+        species, not_stationary, geometries = cache[key]
+        # The geometry a number belongs to is the structural state its own
+        # selector declares; a derived thermochemistry quantity belongs to
+        # the structure its modes were computed at.
         return ExpressionOperandV1(
             name=name,
             species=species,
             structure=str(receipt.artifact_sha256),
             not_stationary=not_stationary,
+            distances=geometry_of_selector(
+                str(receipt.program),
+                geometries,
+                name if extraction is not None else "vibrational_frequencies",
+            ),
         )
 
     def _geometry_operation_observations(

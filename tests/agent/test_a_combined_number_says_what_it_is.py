@@ -18,6 +18,14 @@ The expression handler now reads each operand's kind from the vocabulary
 (``ENERGY_KINDS``) and its species from the result, and says what each
 output is. Observations, never refusals. Driven through the host's own
 extraction and expression handlers on archived ORCA and PySCF output.
+
+Within one formula the reaction cancels, so each number is also placed on
+the geometry it belongs to (the structural state its selector declares):
+a composite at one geometry says nothing more, while a thermal part beside
+another geometry's energy -- R10 Q21 g1-hooh's approved plan built "G at
+90 deg" as G(cis saddle) + E(held 90) - E(cis saddle) -- is named, with the
+distance between the geometries and whether the energy's structure is
+stationary at all.
 """
 
 from __future__ import annotations
@@ -46,6 +54,32 @@ RESULTS = {
         _DATA
         / "PySCFTests/outputs/o2_singlet_sp_stability_heard"
         / "o2_singlet_sp_stability_heard_gas_phase.h5",
+    ),
+    # Water at three geometries: the B3LYP minimum (its Hessian, and a
+    # CCSD(T) single point handed that geometry), the MP2 minimum, and the
+    # B3LYP minimum with one O-H stretched 0.02 A (not stationary).
+    "dft-hess": (
+        "pyscf",
+        _DATA / "PySCFTests/outputs/water_hess/water_hess_gas_phase.h5",
+    ),
+    "ccsdt-on-dft": (
+        "pyscf",
+        _DATA
+        / "PySCFTests/outputs/water_ccsdt_sp/water_ccsdt_sp_gas_phase.h5",
+    ),
+    "mp2-opt": (
+        "pyscf",
+        _DATA / "PySCFTests/outputs/water_mp2_opt/water_mp2_opt_gas_phase.h5",
+    ),
+    "stretched": (
+        "pyscf",
+        _DATA
+        / "PySCFTests/outputs/water_stretched_hess"
+        / "water_stretched_hess_gas_phase.h5",
+    ),
+    "hooh-scan": (
+        "orca",
+        _DATA / "ORCATests/outputs/hooh_relaxed_scan_excerpt.out",
     ),
 }
 
@@ -125,6 +159,7 @@ def _evaluate(host, event_path, inputs, nodes, outputs):
             "orbital_energy_combined_with_a_state_energy",
             "one_species_at_two_coefficients",
             "reaction_the_output_measures",
+            "structures_of_one_composition",
         }
     ]
 
@@ -317,3 +352,153 @@ def test_every_energy_names_its_kind():
     assert not unkinded, unkinded
     stale = sorted(set(ENERGY_KINDS) - energy_selectors - thermochemistry)
     assert not stale, stale
+
+
+def _one_composition(tmp_path, energy_of, thermal_of):
+    """``E(energy_of) + [G(thermal_of) - E(thermal_of)]``, or, with no
+    ``thermal_of``, ``E(energy_of) - E(dft-hess)``, and what the host said
+    about the geometries entering it."""
+
+    host, event_path = _host(tmp_path)
+    energy = _extract(host, energy_of, [("e", "energy")])
+    reference = _extract(host, thermal_of or "dft-hess", [("e", "energy")])
+    inputs = {"e-high": (energy, "e"), "e-low": (reference, "e")}
+    nodes = [
+        {
+            "node_id": "out",
+            "operation": "subtract",
+            "input_ids": ["e-high", "e-low"],
+        }
+    ]
+    if thermal_of:
+        thermochemistry = host._derive_thermochemistry(
+            "turn-1",
+            {
+                "program": "pyscf",
+                "artifact_id": thermal_of,
+                "temperature_k": 298.15,
+                "pressure_atm": 1.0,
+            },
+        )
+        inputs["g-low"] = (thermochemistry, "gibbs_free_energy")
+        nodes = [
+            {
+                "node_id": "correction",
+                "operation": "subtract",
+                "input_ids": ["g-low", "e-low"],
+            },
+            {
+                "node_id": "out",
+                "operation": "add",
+                "input_ids": ["e-high", "correction"],
+            },
+        ]
+    return [
+        item
+        for item in _evaluate(host, event_path, inputs, nodes, ["out"])
+        if item["kind"] == "structures_of_one_composition"
+    ]
+
+
+def test_a_composite_at_one_geometry_is_one_structure(tmp_path):
+    """CCSD(T) on the B3LYP minimum plus that minimum's own thermal
+    correction: three numbers, two results, one geometry -- a composite,
+    with nothing to say about structures."""
+
+    assert _one_composition(tmp_path, "ccsdt-on-dft", "dft-hess") == []
+
+
+@pytest.mark.parametrize(
+    "energy_of,thermal_of,difference,not_stationary",
+    [
+        # One minimum located by two methods: the thermal part is the
+        # other method's, at its own geometry.
+        ("mp2-opt", "dft-hess", 0.014, False),
+        # The g1-hooh shape: another structure's thermal correction beside
+        # the energy of a structure that is not stationary.
+        ("stretched", "dft-hess", 0.020, True),
+    ],
+)
+def test_a_thermal_part_beside_another_geometry_is_named(
+    tmp_path, energy_of, thermal_of, difference, not_stationary
+):
+    """R10 Q21 g1-hooh's first plan built "G at 90 deg" as G(cis saddle) +
+    E(held 90) - E(cis saddle): a free energy of no state, which cancels at
+    the formula and which only the geometries tell apart from a composite."""
+
+    (observation,) = _one_composition(tmp_path, energy_of, thermal_of)
+    stated = {
+        item["operands"]: (item["coefficient"], item["layers"])
+        for item in observation["structures"]
+    }
+    assert stated["e-high"] == (1.0, ["electronic"])
+    assert stated["e-low, g-low"] == (
+        1.0,
+        ["zero_point", "thermal", "pV", "minus_TS"],
+    )
+    assert observation["borrowed_thermal_part"] is True
+    assert observation["largest_geometry_difference_angstrom"] == (
+        pytest.approx(difference, abs=1e-3)
+    )
+    meaning = observation["meaning"]
+    assert "another geometry" in meaning
+    assert ("free energy of no state" in meaning) is not_stationary
+    assert ("0.0185 Eh/Bohr" in meaning) is not_stationary
+
+
+def test_a_difference_between_two_geometries_says_so(tmp_path):
+    (observation,) = _one_composition(tmp_path, "stretched", None)
+    stated = {
+        item["operands"]: (item["coefficient"], item["layers"])
+        for item in observation["structures"]
+    }
+    assert stated == {
+        "e-high": (1.0, ["electronic"]),
+        "e-low": (-1.0, ["electronic"]),
+    }
+    assert observation["borrowed_thermal_part"] is False
+    assert "no single layer" not in observation["meaning"]
+
+
+def test_two_points_of_one_scan_are_two_structures(tmp_path):
+    """An element of a scan's energies is one point of the scan: two of
+    them are two structures, whose geometries the result's own positions
+    (the last point) do not describe. Counted as one result, the
+    difference cancelled and nothing was said."""
+
+    host, event_path = _host(tmp_path)
+    scan = _extract(host, "hooh-scan", [("e", "scan_energies")])
+    (observation,) = [
+        item
+        for item in _evaluate(
+            host,
+            event_path,
+            {"e": (scan, "e")},
+            [
+                {
+                    "node_id": "first",
+                    "operation": "ref",
+                    "reference": "e",
+                    "indices": [0],
+                },
+                {
+                    "node_id": "last",
+                    "operation": "ref",
+                    "reference": "e",
+                    "indices": [2],
+                },
+                {
+                    "node_id": "out",
+                    "operation": "subtract",
+                    "input_ids": ["last", "first"],
+                },
+            ],
+            ["out"],
+        )
+        if item["kind"] == "structures_of_one_composition"
+    ]
+    assert [
+        (item["coefficient"], item["geometry_read"])
+        for item in observation["structures"]
+    ] == [(-1.0, False), (1.0, False)]
+    assert "could not read which geometry" in observation["meaning"]

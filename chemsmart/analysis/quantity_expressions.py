@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Iterable, Mapping
 
 import numpy as np
@@ -3442,13 +3442,69 @@ class ExpressionOperandV1:
     describes, read by its reader; ``structure`` the digest of that result;
     ``not_stationary`` the sentence ``structure_stationarity`` says when
     the result's structure is shown not to be a stationary point, and
-    empty otherwise.
+    empty otherwise. ``distances`` is the geometry the number belongs to --
+    the sorted interatomic distances of the structural state its selector
+    declares (``result_quantities.geometry_of_selector``) -- and None where
+    the host cannot say which structure that is.
     """
 
     name: str
     species: tuple[str, Any, Any] | None = None
     structure: str = ""
     not_stationary: str = ""
+    distances: tuple[float, ...] | None = None
+
+
+#: Two numbers describe one geometry when their structures' sorted
+#: interatomic distances agree to this (Angstrom). Measured on archived
+#: results: a converged ORCA saddle and the single points run on the
+#: geometry saved from it agree to 1.8e-4 A (ax41 po3, esterc4 and esterc5);
+#: one stationary point located by two methods differs by the methods'
+#: difference (H2O2 held at 90 deg by Gaussian and ORCA B3LYP: 1.01e-3 A;
+#: water at MP2 and at B3LYP: 0.014 A), and that is two geometries.
+ONE_GEOMETRY_ANGSTROM = 1e-3
+
+
+def interatomic_distances(
+    positions: Any, limit: int = 300
+) -> tuple[float, ...] | None:
+    """The sorted interatomic distances of one structure, in Angstrom.
+
+    They do not move with orientation or atom order, so two results
+    describe one geometry exactly when these agree. An atom has none (and
+    every atom is one geometry); None when the positions are unread or the
+    structure has more than ``limit`` atoms.
+    """
+
+    if positions is None:
+        return None
+    try:
+        array = np.asarray(positions, dtype=float)
+    except (TypeError, ValueError):
+        return None
+    if array.ndim != 2 or array.shape[1] != 3 or not 0 < len(array) <= limit:
+        return None
+    upper = np.triu_indices(len(array), 1)
+    separations = np.linalg.norm(
+        array[:, None, :] - array[None, :, :], axis=-1
+    )
+    return tuple(float(value) for value in np.sort(separations[upper]))
+
+
+def geometry_difference(
+    first: tuple[float, ...] | None, second: tuple[float, ...] | None
+) -> float | None:
+    """The largest difference between two structures' sorted distances.
+
+    None when either geometry is unknown or the two have different numbers
+    of atoms.
+    """
+
+    if first is None or second is None or len(first) != len(second):
+        return None
+    if not first:
+        return 0.0
+    return float(max(abs(a - b) for a, b in zip(first, second)))
 
 
 def hill_formula(symbols: Iterable[str]) -> str:
@@ -3512,6 +3568,8 @@ def _expression_linear_terms(
     ``operand_for`` returns as ``("expression", request, receipt)``.
     """
 
+    from chemsmart.analysis.result_quantities import energy_kind
+
     node_values = {
         item.quantity_id: _scalar_value(item.value)
         for item in receipt.node_values
@@ -3560,6 +3618,20 @@ def _expression_linear_terms(
             lin[name] = lin.get(source) if not node.indices else None
             if node.indices and source in single:
                 facts = single[source]
+                kind = (
+                    energy_kind(facts.name)
+                    if isinstance(facts, ExpressionOperandV1)
+                    else None
+                )
+                if kind is not None and kind.indexes_structures:
+                    # One point of a scan, a path or an optimisation is its
+                    # own structure, whose geometry the result's reached
+                    # positions are not.
+                    facts = replace(
+                        facts,
+                        structure=f"{facts.structure}{list(node.indices)}",
+                        distances=None,
+                    )
                 lin[name] = [(1.0, f"{source}{list(node.indices)}", facts)]
         elif operation == "convert":
             single[name] = single.get(inputs[0]) if inputs else None
@@ -3619,12 +3691,7 @@ def _expression_linear_terms(
                     (
                         1.0,
                         name,
-                        ExpressionOperandV1(
-                            name="zero_point_energy",
-                            species=facts.species,
-                            structure=facts.structure,
-                            not_stationary=facts.not_stationary,
-                        ),
+                        replace(facts, name="zero_point_energy"),
                     )
                 ]
                 if isinstance(facts, ExpressionOperandV1)
@@ -3686,6 +3753,217 @@ def _species_text(species: tuple[str, Any, Any]) -> str:
     )
 
 
+def _structures_of_one_composition(
+    output_id: str,
+    by_structure: Mapping[tuple, list[float]],
+    structure_labels: Mapping[tuple, set[str]],
+    structure_facts: Mapping[tuple, tuple[Any, str]],
+    energy_layers: tuple[str, ...],
+    layer_blocks: Mapping[tuple[int, ...], str],
+) -> list[dict[str, Any]]:
+    """Name what each structure of one composition contributes to an output.
+
+    A conformer difference, a barrier within one formula, or a free energy
+    assembled from one structure's electronic energy and another's thermal
+    correction all cancel at the level of the formula, so the reaction
+    statement says nothing about them. Per structure they do not. Numbers
+    are grouped by the geometry they belong to (``distances``, read by the
+    structural state their selectors declare), so a single point run on a
+    frequency job's structure is one structure -- a composite, and nothing
+    to say -- while a thermal part that enters beside another geometry's
+    electronic energy is named, with how far apart the geometries are and
+    whether the one whose energy it joins is a stationary point at all
+    (R10 Q21 g1-hooh's first plan built "G at 90 deg" as G(cis saddle) +
+    E(held 90) - E(cis saddle)). A number whose geometry the host cannot
+    read is its own structure, and the sentence says so.
+    """
+
+    by_species: dict[tuple, list[tuple]] = {}
+    for key in by_structure:
+        by_species.setdefault(key[0], []).append(key)
+    observations = []
+    for species, keys in sorted(by_species.items(), key=str):
+        clusters: list[dict[str, Any]] = []
+        for key in sorted(
+            keys, key=lambda item: sorted(structure_labels[item])
+        ):
+            distances, not_stationary = structure_facts.get(key, (None, ""))
+            home = None
+            for cluster in clusters if distances is not None else ():
+                difference = geometry_difference(
+                    cluster["distances"], distances
+                )
+                if difference is not None and (
+                    difference <= ONE_GEOMETRY_ANGSTROM
+                ):
+                    home = cluster
+                    break
+            if home is None:
+                home = {
+                    "distances": distances,
+                    "vector": [0.0] * len(energy_layers),
+                    "labels": set(),
+                    "not_stationary": "",
+                }
+                clusters.append(home)
+            home["vector"] = [
+                total + value
+                for total, value in zip(home["vector"], by_structure[key])
+            ]
+            home["labels"] |= set(structure_labels[key])
+            home["not_stationary"] = home["not_stationary"] or not_stationary
+        entering = []
+        for cluster in clusters:
+            nonzero = [
+                (index, value)
+                for index, value in enumerate(cluster["vector"])
+                if abs(value) > 1e-9
+            ]
+            if not nonzero:
+                continue
+            entering.append(
+                {
+                    "name": "[" + ", ".join(sorted(cluster["labels"])) + "]",
+                    "coefficient": nonzero[0][1],
+                    "block": tuple(index for index, _value in nonzero),
+                    "values": [
+                        (energy_layers[index], value)
+                        for index, value in nonzero
+                    ],
+                    "uniform": len({round(value, 9) for _i, value in nonzero})
+                    == 1,
+                    "distances": cluster["distances"],
+                    "not_stationary": cluster["not_stationary"],
+                }
+            )
+        if len(entering) < 2:
+            continue
+
+        def _block_text(item: Mapping[str, Any]) -> str:
+            if not item["uniform"]:
+                return ", ".join(
+                    f"{value:+g} x {layer}" for layer, value in item["values"]
+                )
+            named = layer_blocks.get(item["block"])
+            if named:
+                return f"{item['coefficient']:+g} x {named}"
+            layers_text = "+".join(
+                energy_layers[index] for index in item["block"]
+            )
+            if 0 in item["block"]:
+                return f"{item['coefficient']:+g} x {layers_text}"
+            return (
+                f"{item['coefficient']:+g} x thermal part only ({layers_text})"
+            )
+
+        known = [item for item in entering if item["distances"] is not None]
+        unread = [item for item in entering if item["distances"] is None]
+        differences = [
+            geometry_difference(first["distances"], second["distances"])
+            for index, first in enumerate(known)
+            for second in known[index + 1 :]
+        ]
+        largest = max(
+            (value for value in differences if value is not None),
+            default=None,
+        )
+        meaning = (
+            f"this output combines {len(entering)} structures of one "
+            f"composition ({_species_text(species)}): "
+            + "; ".join(
+                f"{item['name']} {_block_text(item)}" for item in entering
+            )
+        )
+        if largest is not None:
+            meaning += (
+                f"; their geometries differ by up to {largest:.3g} A in "
+                "interatomic distance"
+            )
+        if unread:
+            meaning += (
+                "; the host could not read which geometry "
+                + ", ".join(item["name"] for item in unread)
+                + (" describes" if len(unread) == 1 else " describe")
+                + ", so each is counted as its own structure"
+            )
+        thermal_only = [item for item in entering if 0 not in item["block"]]
+        # An energy entering bare: a structure that brings no thermal part
+        # of its own, so the one beside it is borrowed.
+        bare = [item for item in entering if item["block"] == (0,)]
+        borrowed = bool(thermal_only and bare)
+        judgments = []
+        if borrowed:
+            judgment = (
+                "the thermal part of "
+                + ", ".join(item["name"] for item in thermal_only)
+                + " stands beside the electronic energy of "
+                + ", ".join(item["name"] for item in bare)
+            )
+            apart = [
+                geometry_difference(first["distances"], second["distances"])
+                for first in thermal_only
+                for second in bare
+            ]
+            if apart and all(value is not None for value in apart):
+                judgment += (
+                    f", another geometry ({max(apart):.3g} A apart): a "
+                    "composite across levels when both are one stationary "
+                    "point located by two methods, a correction borrowed "
+                    "from another structure when they are not"
+                )
+            else:
+                judgment += (
+                    ": a composite when both describe one structure, a "
+                    "correction borrowed from another structure when they "
+                    "do not"
+                )
+            judgments.append(judgment)
+            for item in bare:
+                if item["not_stationary"]:
+                    judgments.append(
+                        f"{item['name']} is {item['not_stationary']}; a "
+                        "thermal part beside its energy is therefore the "
+                        "free energy of no state -- at most the "
+                        "approximation that another structure's thermal "
+                        "correction holds at this one"
+                    )
+        elif len({item["block"] for item in entering}) > 1:
+            judgments.append(
+                "the structures enter at different layers, so the output "
+                "is a change at no single layer"
+            )
+        for item in entering:
+            if not item["uniform"]:
+                judgments.append(
+                    f"{item['name']}'s own layers enter with different "
+                    "coefficients, so it contributes no state function of "
+                    "that structure"
+                )
+        if judgments:
+            meaning += " -- " + "; ".join(judgments)
+        observations.append(
+            {
+                "kind": "structures_of_one_composition",
+                "output_id": output_id,
+                "species": _species_text(species),
+                "structures": [
+                    {
+                        "operands": item["name"][1:-1],
+                        "coefficient": item["coefficient"],
+                        "layers": [layer for layer, _value in item["values"]],
+                        "geometry_read": item["distances"] is not None,
+                        "not_stationary": item["not_stationary"],
+                    }
+                    for item in entering
+                ],
+                "largest_geometry_difference_angstrom": largest,
+                "borrowed_thermal_part": borrowed,
+                "meaning": meaning,
+            }
+        )
+    return observations
+
+
 def expression_kind_observations(
     request: QuantityExpressionRequestV1,
     receipt: QuantityExpressionReceiptV1,
@@ -3713,7 +3991,15 @@ def expression_kind_observations(
     - ``reaction_the_output_measures``: otherwise, the reaction the
       coefficients describe, reactants to products, each species' layer
       block, and whether the atoms balance -- the sign convention of the
-      number, stated by the host rather than left to be inferred.
+      number, stated by the host rather than left to be inferred;
+    - ``structures_of_one_composition``: where two or more geometries of
+      one formula enter (conformers, saddles, a held structure, one
+      minimum located by two methods), each one's coefficient and layer
+      block, how far apart they are, a thermal part that enters beside
+      another geometry's electronic energy, and an energy joined by a
+      thermal part at a structure shown not to be stationary. A single
+      point on a frequency run's own structure is one geometry: a
+      composite, stated by the reaction it enters, not here.
 
     Observations, never refusals: a curvature compared with zero is a
     legitimate question, and a number stands as computed. What the host
@@ -3854,6 +4140,13 @@ def expression_kind_observations(
             )
         layers: dict[tuple, list[float]] = {}
         placed: dict[tuple, list[tuple[float, str, str]]] = {}
+        # The same accounting per structure, within each species: structures
+        # of one composition (conformers, saddles, a held structure) all
+        # share a formula, and a species-level sum cannot say whose
+        # thermal part stands beside whose electronic energy.
+        by_structure: dict[tuple, list[float]] = {}
+        structure_labels: dict[tuple, set[str]] = {}
+        structure_facts: dict[tuple, tuple[Any, str]] = {}
         authored = []
         for coefficient, label, operand in linear:
             if not isinstance(operand, ExpressionOperandV1):
@@ -3865,13 +4158,30 @@ def expression_kind_observations(
             vector = layers.setdefault(
                 operand.species, [0.0] * len(ENERGY_LAYERS)
             )
+            key = (operand.species, operand.structure, operand.distances)
+            per_structure = by_structure.setdefault(
+                key, [0.0] * len(ENERGY_LAYERS)
+            )
             for layer in kind.layers:
                 vector[layer] += coefficient * kind.sign
+                per_structure[layer] += coefficient * kind.sign
+            structure_labels.setdefault(key, set()).add(label)
+            structure_facts[key] = (operand.distances, operand.not_stationary)
             placed.setdefault(operand.species, []).append(
                 (coefficient, label, operand.name)
             )
         if not layers:
             continue
+        observations.extend(
+            _structures_of_one_composition(
+                output_id,
+                by_structure,
+                structure_labels,
+                structure_facts,
+                ENERGY_LAYERS,
+                ENERGY_LAYER_BLOCKS,
+            )
+        )
         inconsistent = {
             species: vector
             for species, vector in layers.items()
@@ -4065,7 +4375,10 @@ __all__ = [
     "expression_level_observations",
     "expression_output_sources",
     "expression_thermochemical_convention_observations",
+    "geometry_difference",
     "hill_formula",
+    "interatomic_distances",
+    "ONE_GEOMETRY_ANGSTROM",
     "EXCITED_ROOT_LEVEL_FIELDS",
     "LEVEL_IDENTITY_FIELDS",
     "THERMOCHEMICAL_CONVENTION_FIELDS",
