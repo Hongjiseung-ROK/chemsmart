@@ -291,3 +291,7 @@ cross-program approval.
   when the Agent names it, with every admitted input -- the saddle's
   Hessian -- reaching the program (O1, G2, G1 cycle 2;
   setting:orca:inithess recorded). B not earned (see G1).
+- Hand-back checks on 3e5fb9ab (r10-integration 4db49c22 already
+  merged, nothing newer): pristine export, full suite 23 failed /
+  4480 passed, the failing set identical to the round baseline and none
+  in tests/agent; ruff, black and isort clean on all 16 touched files.
