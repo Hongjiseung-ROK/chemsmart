@@ -303,7 +303,7 @@ def broken_symmetry_request(value):
 #: answer to the request is read.  One text, so the three programs'
 #: reviews point at one set of evidence.
 BROKEN_SYMMETRY_EVIDENCE_SENTENCE = (
-    "whether the spin symmetry broke is read from the result, not assumed: "
+    "Whether the spin symmetry broke is read from the result, not assumed: "
     "its level states the reference that ran (rks, uks, ...) and "
     "broken_symmetry, spin_square gives <S**2> against 0 for the singlet, "
     "and a request whose solution stayed spin-symmetric raises the anomaly "
