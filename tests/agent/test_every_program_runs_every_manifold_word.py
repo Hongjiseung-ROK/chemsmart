@@ -244,3 +244,46 @@ def test_a_followed_root_names_one_manifold(tmp_path):
     _project, receipt = validate(tmp_path, "pyscf", {"opt": section}, "opt")
     assert receipt.status == "invalid"
     assert "one manifold" in receipt.diagnostic
+
+
+@pytest.mark.capability("program_jobtype:orca:cpu:td")
+@pytest.mark.capability("program_jobtype:gaussian:cpu:td")
+@pytest.mark.capability("program_jobtype:pyscf:cpu:td")
+def test_a_radical_workspace_binds_every_programs_td(tmp_path):
+    """The bootstrap probe previews td on the manifold the molecule has.
+
+    Live, on the allyl radical (R10 q8 G2, CUHK 2150296): ORCA's probe
+    fixture asked td for ``state_manifold: singlet`` whatever the molecule,
+    the doublet refused it, ORCA's td bound no engine, and the session
+    recorded "the ORCA td jobtype itself has no executable engine" and ran
+    PySCF alone -- the one program whose fixture followed the reference.
+    """
+
+    from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
+    from chemsmart.agent.capabilities import load_program_capabilities
+    from chemsmart.agent.cli_schema import build_live_click_schema
+    from chemsmart.agent.live_session import _bootstrap_conformance
+
+    xyz = tmp_path / "hydroxyl.xyz"
+    xyz.write_text(_HYDROXYL_XYZ, encoding="utf-8")
+    artifact = TrustedArtifactRefV1(
+        artifact_id="hydroxyl",
+        kind="geometry_xyz",
+        sha256=file_sha256(xyz),
+        size_bytes=xyz.stat().st_size,
+        path=str(xyz),
+        cli_value=str(xyz),
+    )
+    registry = load_program_capabilities()
+    receipts, _records = _bootstrap_conformance(
+        run_directory=tmp_path,
+        input_artifact=artifact,
+        registry_sha256=registry.registry_sha256,
+        live_schema=build_live_click_schema(),
+    )
+    covered = {
+        receipt.program: set(receipt.effective_engine_job_pairs)
+        for receipt in receipts
+    }
+    for program in _PROGRAMS:
+        assert ("cpu", "td") in covered.get(program, set()), program
