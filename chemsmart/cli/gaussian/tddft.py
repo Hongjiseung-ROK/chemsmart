@@ -4,6 +4,10 @@ import click
 
 from chemsmart.cli.gaussian.gaussian import click_gaussian_td_options, gaussian
 from chemsmart.cli.job import click_job_options
+from chemsmart.jobs.gaussian.settings import (
+    GAUSSIAN_TD_MANIFOLD_OPTIONS,
+    GAUSSIAN_TD_RESPONSE_KEYWORDS,
+)
 from chemsmart.utils.cli import MyCommand
 from chemsmart.utils.utils import check_charge_and_multiplicity
 
@@ -13,8 +17,37 @@ logger = logging.getLogger(__name__)
 @gaussian.command("td", cls=MyCommand)
 @click_job_options
 @click_gaussian_td_options
+@click.option(
+    "--response-method",
+    type=click.Choice(
+        tuple(GAUSSIAN_TD_RESPONSE_KEYWORDS), case_sensitive=False
+    ),
+    default=None,
+    help="Full linear response (tddft, Gaussian's TD) or the Tamm-Dancoff "
+    "approximation (tda, Gaussian's TDA), in the words ORCA's and PySCF's "
+    "td take. Defaults to the project value.",
+)
+@click.option(
+    "--state-manifold",
+    type=click.Choice(
+        tuple(GAUSSIAN_TD_MANIFOLD_OPTIONS), case_sensitive=False
+    ),
+    default=None,
+    help="singlet, triplet or singlet_triplet on a closed-shell reference "
+    "(nstates of each for singlet_triplet); unrestricted, the one manifold "
+    "of an open-shell reference. Defaults to the project value.",
+)
 @click.pass_context
-def td(ctx, states, root, nstates, eqsolv, **kwargs):
+def td(
+    ctx,
+    states,
+    root,
+    nstates,
+    eqsolv,
+    response_method,
+    state_manifold,
+    **kwargs,
+):
     """CLI subcommand for running Gaussian TDDFT jobs."""
 
     # get jobrunner for running Gaussian TDDFT jobs
@@ -60,6 +93,13 @@ def td(ctx, states, root, nstates, eqsolv, **kwargs):
         td_settings.nstates = nstates
     if eqsolv is not None:
         td_settings.eqsolv = eqsolv
+    if response_method is not None:
+        td_settings.response_method = response_method.lower()
+    if state_manifold is not None:
+        td_settings.state_manifold = state_manifold.lower()
+    # The words are held to Gaussian's grammar and to the reference here,
+    # not first inside the writer.
+    td_settings.td_route_parts()
 
     logger.info(f"TDDFT job settings from project: {td_settings.__dict__}")
 

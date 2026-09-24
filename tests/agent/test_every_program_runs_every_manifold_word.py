@@ -227,6 +227,70 @@ def test_a_manifold_the_reference_does_not_have_is_refused_alike(
     assert sentence in (str(result.exception) + result.output)
 
 
+@pytest.mark.capability("setting:gaussian:state_manifold")
+@pytest.mark.capability("setting:orca:state_manifold")
+@pytest.mark.capability("setting:pyscf:state_manifold")
+@pytest.mark.parametrize("program", _PROGRAMS)
+def test_every_programs_command_line_takes_the_manifold_word(
+    tmp_path, program
+):
+    """``--state-manifold triplet`` overrides a singlet project everywhere.
+
+    ORCA's and PySCF's commands took the shared words; Gaussian's took only
+    its own ``--states``, so the same flag was an error on one of three.
+    """
+
+    import yaml
+
+    from chemsmart.cli.main import entry_point
+
+    xyz = tmp_path / "water.xyz"
+    xyz.write_text(_WATER_XYZ)
+    project = tmp_path / "project.yaml"
+    project.write_text(yaml.safe_dump({"td": _section(program, "singlet")}))
+    flag = ["--state-manifold", "triplet"]
+    head = ["run", "--fake", "--no-scratch", program]
+    tail = [
+        "--project",
+        str(project),
+        "--filename",
+        str(xyz),
+        "--charge",
+        "0",
+        "--multiplicity",
+        "1",
+    ]
+    # PySCF's response options belong to its group, the others' to td.
+    argv = (
+        head + flag + tail + ["td"]
+        if program == "pyscf"
+        else head + tail + ["td"] + flag
+    )
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=workspace) as cwd:
+        result = runner.invoke(entry_point, argv)
+        from pathlib import Path
+
+        written = {}
+        for path in sorted(Path(cwd).rglob("*")):
+            if path.suffix in {".com", ".inp", ".json"}:
+                written[path.suffix] = (
+                    written.get(path.suffix, "") + path.read_text()
+                )
+    assert result.exit_code == 0, (result.output[-400:], result.exception)
+    if program == "gaussian":
+        assert "TD(triplets," in written[".com"]
+    elif program == "orca":
+        assert "state_manifold: triplet" in written[".inp"]
+        assert "Triplets true" in written[".inp"]
+    else:
+        assert '"state_manifold": "triplet"' in "".join(
+            text for suffix, text in written.items() if suffix == ".json"
+        )
+
+
 @pytest.mark.capability("setting:pyscf:excited_state_root")
 def test_a_followed_root_names_one_manifold(tmp_path):
     """A root is the k-th of one manifold; two blocks have two k-th roots.
