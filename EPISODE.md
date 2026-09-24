@@ -123,8 +123,11 @@ LG1 -- a value the output holds but no reader serves (repair 4, live).
 
 ## Jobs issued
 
-none yet. CUHK gate closed at 2026-09-24 ~13:00 KST (after the census
-copy); live part not run while closed.
+- CUHK Slurm 2151662 (slot r10-q10-a), goal lg1, submitted 2026-09-24
+  ~18:50 KST by slot_submit; pre-registration digest d38b1552b4be; code
+  commit 45917197, tree digest 208d7d0110e1 (426 files, 0 AppleDouble);
+  workspace holds water.xyz only (ls -la checked on the cluster).
+  (The gate was closed ~13:00-18:40 KST; reopened per the coordinator.)
 
 ## Status
 
