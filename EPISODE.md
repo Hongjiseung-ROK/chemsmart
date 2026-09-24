@@ -258,4 +258,5 @@ observation of deepseek-v4-flash-0731; a different route is itself evidence.
 - Full suite on a pristine export of ca590e5a: 23 failed, all environmental
   (InChI/CDX imports, PySCF dispersion probes, aggregation and PyscfSettings
   YAML tests), none in tests/agent.
-- Next: submit g2-hooh on the repaired tree and read it.
+- g2-hooh submitted as CUHK Slurm 2153668 (slot r10-q21-a, pre-registration b2435e930329) on code aeddf64c (digest ffd396cb...), code dir code-g2.
+- Next: read g2-hooh from host records.
