@@ -365,4 +365,29 @@ behavioural statement needs a transcript and a control.
 - step 4: live goals pre-registered above (digest f41b694bf2bf at
   submission) and submitted in the stated order: slot a (base) bs1
   2153692, bt1 2153694, bs2 2153696, bt2 2153698; slot b (repaired) rs1
-  2153693, rt1 2153695, rs2 2153697, rt2 2153699.
+  2153693, rt1 2153695, rs2 2153697, rt2 2153699. Code identity verified
+  on the nodes for bs1 (e5821303..., 42f2fd90) and rs1 (ed67866f...,
+  f20bec0c).
+- step 5: r10-integration merged (b34ee9b6: Q21's structure_stationarity
+  arrived, textually clean); the stationary-point word now asks that one
+  function (e644365e; the parity witness gains ORCA's unconverged OptTS).
+  Hand-back gates on e644365e: tests/agent 3192 passed on the merged
+  working tree; full suite on a pristine export 23 failed (all outside
+  tests/agent: test_structures CDX/InChI/identifiers, PySCF settings,
+  dispersion conformance, aggregation) + 3 errors, 4743 passed; ruff,
+  black --check, isort --check clean on the 9 touched files.
+- Partial reading before the gate closed (2026-09-25 06:4x KST; host
+  records, cycle 1 only, no settlement read yet): bs1's cycle-1 chain claim
+  node failed on the false word gate (a stability word under the
+  declared category 'rks_stability'); rs1's cycle-1 chain claimed a
+  validation verdict ('stable-verdict' = 0) under its category id and the
+  new gate refused that node (claim.a_category_is_answered_by_a_word_the_
+  host_read); both goals woke a cycle-2 session. Nothing is concluded
+  from this.
+- WAITING on jobs 2153692-2153699 (all eight goals); the CUHK gate closed
+  at 06:45 KST and nothing can be read until it reopens. Remaining work
+  needs those records: read M1-M4 and physics per goal, replay the
+  repaired sessions' category acts on 42f2fd90 (scratch
+  q23/scripts/replay_claims.py, export-base-pkg), judge A/C against the
+  pre-registration, a release.json record for pyscf:hess:
+  stationary_point_kind if a repaired goal delivered it.
