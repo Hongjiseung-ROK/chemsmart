@@ -56,6 +56,7 @@ from chemsmart.jobs.pyscf.settings import (
     PYSCF_RESPONSE_METHODS,
     PYSCF_SOLVENT_MODELS,
     PYSCF_STATE_MANIFOLDS,
+    PYSCF_TWO_BLOCK_MANIFOLD,
     PYSCF_UNRESTRICTED_MANIFOLD,
     is_double_hybrid_functional,
     pyscf_correlated_method,
@@ -4969,6 +4970,23 @@ def _check_response_settings(
                 )
             )
     if excited_root is not None:
+        if manifold == PYSCF_TWO_BLOCK_MANIFOLD:
+            violations.append(
+                PySCFViolation(
+                    rule_id=RULE_INVALID_SETTING,
+                    field="state_manifold",
+                    expected="one manifold (singlet or triplet) for a root",
+                    observed={
+                        "state_manifold": manifold,
+                        "excited_state_root": excited_root,
+                        "reason": (
+                            "excited_state_root follows one root of one "
+                            "manifold; singlet_triplet holds two"
+                        ),
+                    },
+                    evidence_ref="settings:state_manifold",
+                )
+            )
         if (
             isinstance(excited_root, bool)
             or not isinstance(excited_root, Integral)

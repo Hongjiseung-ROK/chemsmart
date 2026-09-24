@@ -36,7 +36,7 @@ _WATER_XYZ = (
 )
 _HYDROXYL_XYZ = "2\nhydroxyl radical\nO 0.0 0.0 0.0\nH 0.0 0.0 0.97\n"
 _EVERY_WORD = frozenset(TD_CLOSED_SHELL_MANIFOLDS) | {TD_OPEN_SHELL_MANIFOLD}
-_NATIVE_PREVIEW_PROGRAMS = ("gaussian", "orca")
+_PROGRAMS = ("gaussian", "orca", "pyscf")
 
 
 def _declared(program: str, name: str) -> tuple[str, ...]:
@@ -60,7 +60,8 @@ def _section(program: str, manifold: str) -> dict:
 
 @pytest.mark.capability("setting:gaussian:state_manifold")
 @pytest.mark.capability("setting:orca:state_manifold")
-@pytest.mark.parametrize("program", _NATIVE_PREVIEW_PROGRAMS)
+@pytest.mark.capability("setting:pyscf:state_manifold")
+@pytest.mark.parametrize("program", _PROGRAMS)
 def test_every_program_declares_every_manifold_word(program):
     """The words a model may write are the same set in every program."""
 
@@ -70,13 +71,69 @@ def test_every_program_declares_every_manifold_word(program):
 def _cases():
     return [
         (program, word)
-        for program in _NATIVE_PREVIEW_PROGRAMS
+        for program in _PROGRAMS
         for word in _declared(program, "state_manifold")
     ]
 
 
+def _pyscf_fake_preview(tmp_path, section, xyz_text, state):
+    """The same chain for the program whose preview is a run receipt."""
+
+    from chemsmart.agent.live_session import _preview_server_profile
+    from chemsmart.agent.program_verifiers import (
+        build_preview_expectation,
+        validate_preview_workspace,
+    )
+    from chemsmart.cli.main import entry_point
+    from tests.agent.gaussian_fake_preview import artifact, validate
+
+    charge, multiplicity = state
+    xyz = tmp_path / "input.xyz"
+    xyz.write_text(xyz_text, encoding="utf-8")
+    project, validation = validate(tmp_path, "pyscf", {"td": section}, "td")
+    assert validation.status == "valid", validation.diagnostic
+    server = tmp_path / "preview-server.yaml"
+    server.write_text(_preview_server_profile(), encoding="utf-8")
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=workspace) as cwd:
+        result = runner.invoke(
+            entry_point,
+            [
+                "run",
+                "--server",
+                str(server),
+                "--fake",
+                "--no-scratch",
+                "pyscf",
+                "--project",
+                str(project),
+                "--filename",
+                str(xyz),
+                "--charge",
+                str(charge),
+                "--multiplicity",
+                str(multiplicity),
+                "td",
+            ],
+        )
+        preview_dir = cwd
+    assert result.exit_code == 0, (result.output[-600:], result.exception)
+    expectation = build_preview_expectation(
+        program="pyscf",
+        jobtype="td",
+        input_artifact=artifact(xyz, "geometry_xyz"),
+        project=validation,
+        charge=charge,
+        multiplicity=multiplicity,
+    )
+    return validate_preview_workspace(expectation, preview_dir)
+
+
 @pytest.mark.capability("setting:gaussian:state_manifold")
 @pytest.mark.capability("setting:orca:state_manifold")
+@pytest.mark.capability("setting:pyscf:state_manifold")
 @pytest.mark.parametrize(("program", "manifold"), _cases())
 def test_a_declared_manifold_word_previews_as_itself(
     tmp_path, program, manifold
@@ -89,14 +146,16 @@ def test_a_declared_manifold_word_previews_as_itself(
     """
 
     open_shell = manifold == TD_OPEN_SHELL_MANIFOLD
-    receipt, written = fake_preview(
-        tmp_path,
-        program,
-        {"td": _section(program, manifold)},
-        _HYDROXYL_XYZ if open_shell else _WATER_XYZ,
-        (0, 2) if open_shell else (0, 1),
-        "td",
-    )
+    xyz_text = _HYDROXYL_XYZ if open_shell else _WATER_XYZ
+    state = (0, 2) if open_shell else (0, 1)
+    section = _section(program, manifold)
+    if program == "pyscf":
+        receipt = _pyscf_fake_preview(tmp_path, section, xyz_text, state)
+        written = ""
+    else:
+        receipt, written = fake_preview(
+            tmp_path, program, {"td": section}, xyz_text, state, "td"
+        )
     assert receipt.status == "valid", [
         (item.field, item.expected, item.observed) for item in receipt.findings
     ]
@@ -166,3 +225,22 @@ def test_a_manifold_the_reference_does_not_have_is_refused_alike(
     sentence = td_manifold_reference_refusal(manifold, multiplicity)
     assert sentence
     assert sentence in (str(result.exception) + result.output)
+
+
+@pytest.mark.capability("setting:pyscf:excited_state_root")
+def test_a_followed_root_names_one_manifold(tmp_path):
+    """A root is the k-th of one manifold; two blocks have two k-th roots.
+
+    ``singlet_triplet`` is two spin blocks solved side by side, so an
+    optimisation asked to follow "root 1" of it would follow S1 or T1 by
+    an accident of implementation.  The project is refused when it is
+    validated, naming the edit.
+    """
+
+    from tests.agent.gaussian_fake_preview import validate
+
+    section = _section("pyscf", "singlet_triplet")
+    section["excited_state_root"] = 1
+    _project, receipt = validate(tmp_path, "pyscf", {"opt": section}, "opt")
+    assert receipt.status == "invalid"
+    assert "one manifold" in receipt.diagnostic

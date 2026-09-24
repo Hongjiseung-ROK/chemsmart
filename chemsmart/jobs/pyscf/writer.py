@@ -35,6 +35,7 @@ from chemsmart.jobs.pyscf.settings import (
     PYSCF_SOLVENT_MODELS,
     PYSCF_STABILITY_SPACES,
     PYSCF_STABILITY_UNRETURNED_SPACE,
+    PYSCF_TWO_BLOCK_MANIFOLD,
     PYSCF_UNRESTRICTED_MANIFOLD,
 )
 
@@ -334,7 +335,16 @@ def pyscf_td_response_materialization(settings, *, reference_family=None):
         "tddft": f"pyscf.tdscf.{module}.TDDFT",
     }[response_method]
     operations = ["ground_state_scf", "response_construct"]
-    if manifold != PYSCF_UNRESTRICTED_MANIFOLD:
+    if manifold == PYSCF_TWO_BLOCK_MANIFOLD:
+        # Two response objects on the one reference, one per spin block.
+        operations.extend(
+            (
+                "set_singlet_channel",
+                "response_construct",
+                "set_triplet_channel",
+            )
+        )
+    elif manifold != PYSCF_UNRESTRICTED_MANIFOLD:
         operations.append(f"set_{manifold}_channel")
     operations.append("set_nstates")
     if getattr(settings, "td_max_cycle", None) is not None:
@@ -1735,19 +1745,33 @@ def _class_name(value):
     return type(value).__module__ + "." + type(value).__qualname__
 
 
-def _build_response(config, mf):
+#: The manifolds one response object solves, and the spin multiplicity of
+#: their roots (None: the unrestricted manifold's roots are not spin
+#: eigenfunctions).  A request for two spin blocks names them here.
+_RESPONSE_BLOCK_MULTIPLICITY = {"singlet": 1, "triplet": 3, "unrestricted": None}
+_TWO_BLOCK_MANIFOLDS = {"singlet_triplet": ("singlet", "triplet")}
+
+
+def _build_response(config, mf, manifold=None):
     """Construct the TDA/TDDFT response object on a converged mean field.
 
     ``pyscf.tdscf.TDA/TDDFT`` dispatch on the mean-field class (RKS or
     UKS; a PCM-wrapped reference attaches the non-equilibrium response).
     The manifold flag is set for a restricted reference only: an
     unrestricted reference has one spin-conserving manifold and PySCF
-    leaves ``singlet`` as None there.
+    leaves ``singlet`` as None there.  One object solves one manifold;
+    ``manifold`` names the block of a two-block request, and a two-block
+    word reaching here is refused rather than solved as its default
+    (``singlet``) block.
     """
     from pyscf import tdscf
 
     method = str(config["response_method"]).strip().lower()
-    manifold = str(config["state_manifold"]).strip().lower()
+    manifold = str(manifold or config["state_manifold"]).strip().lower()
+    if manifold not in _RESPONSE_BLOCK_MULTIPLICITY:
+        raise ValueError(
+            "one response object solves one manifold, not %r" % manifold
+        )
     factory = {"tda": tdscf.TDA, "tddft": tdscf.TDDFT}[method]
     td = factory(mf)
     if manifold in ("singlet", "triplet"):
@@ -1794,29 +1818,79 @@ def _response_solvent_record(mf, td):
 def _run_td(config, mf, results, status, runtime):
     """Vertical excitations at the mean field's current geometry.
 
-    Roots are ascending within the requested manifold at this geometry.
-    PySCF drops eigenvalues below ``positive_eig_threshold`` before
-    reporting, so ``nstates_obtained`` may be smaller than the request;
-    the count of filtered roots is a stage fact, never a silent shift.
+    Roots are ascending in excitation energy at this geometry.  PySCF drops
+    eigenvalues below ``positive_eig_threshold`` before reporting, so
+    ``nstates_obtained`` may be smaller than the request; the count of
+    filtered roots is a stage fact, never a silent shift.
+
+    A two-block request (``singlet_triplet``) is the singlet and the
+    triplet response solved on the one converged reference, ``nstates``
+    roots of each: the two spin blocks of a closed-shell reference do not
+    couple, so each block is what a one-manifold request returns.  The
+    blocks' roots are merged in ascending energy with their multiplicities
+    beside them -- the order Gaussian's ``50-50`` prints -- and the stage
+    records each block's own request, count and convergence.
     """
     from pyscf.data import nist
 
-    td = _build_response(config, mf)
-    td.kernel()
-    runtime["response_class"] = _class_name(td)
-    excitations = np.asarray(td.e, dtype=float).reshape(-1)
-    obtained = int(excitations.size)
-    requested = int(config["nstates"])
-    converged = _root_convergence(td)
     manifold = str(config["state_manifold"]).strip().lower()
+    requested = int(config["nstates"])
+    block_words = _TWO_BLOCK_MANIFOLDS.get(manifold, (manifold,))
+    blocks = []
+    for word in block_words:
+        td_block = _build_response(config, mf, word)
+        td_block.kernel()
+        blocks.append((word, td_block))
+    td = blocks[0][1]
+    runtime["response_class"] = _class_name(td)
+    energies, multiplicities, flags = [], [], []
+    strengths, dipoles = [], []
+    strength_failure = dipole_failure = None
+    block_records = {}
+    for word, td_block in blocks:
+        excitations = np.asarray(td_block.e, dtype=float).reshape(-1)
+        count = int(excitations.size)
+        converged = _root_convergence(td_block)
+        energies.extend(float(value) for value in excitations)
+        multiplicities.extend([_RESPONSE_BLOCK_MULTIPLICITY[word]] * count)
+        flags.extend(bool(flag) for flag in converged)
+        try:
+            strengths.extend(
+                float(value)
+                for value in np.asarray(
+                    td_block.oscillator_strength(), dtype=float
+                ).reshape(-1)[:count]
+            )
+        except Exception as exc:
+            strength_failure = exc
+        try:
+            block_dipoles = np.asarray(td_block.transition_dipole(), dtype=float)
+            dipoles.extend(
+                block_dipoles.reshape(count, -1)[:, :3] * float(nist.AU2DEBYE)
+            )
+        except Exception as exc:
+            dipole_failure = exc
+        block_records[word] = {
+            "nstates_requested": requested,
+            "nstates_obtained": count,
+            "roots_filtered": int(max(requested - count, 0)),
+            "all_converged": bool(count > 0 and converged.all()),
+            "singlet_flag_applied": (
+                None if td_block.singlet is None else bool(td_block.singlet)
+            ),
+        }
+    order = np.argsort(np.asarray(energies, dtype=float), kind="stable")
+    excitations = np.asarray(energies, dtype=float)[order]
+    converged = np.asarray(flags, dtype=bool)[order]
+    obtained = int(excitations.size)
     results["excitation_energies"] = excitations
     # Physical arrays are integer or floating in this contract; the
     # per-root flags travel as 0/1 and the reader restores the booleans.
     results["excited_state_converged"] = converged.astype(int)
-    if manifold in ("singlet", "triplet"):
-        results["excited_state_multiplicities"] = np.full(
-            obtained, 1 if manifold == "singlet" else 3, dtype=int
-        )
+    if all(value is not None for value in multiplicities):
+        results["excited_state_multiplicities"] = np.asarray(
+            multiplicities, dtype=int
+        )[order]
     stage = {
         "converged": bool(obtained > 0 and converged.all()),
         "all_converged": bool(obtained > 0 and converged.all()),
@@ -1825,7 +1899,9 @@ def _run_td(config, mf, results, status, runtime):
         ],
         "nstates_requested": requested,
         "nstates_obtained": obtained,
-        "roots_filtered": int(max(requested - obtained, 0)),
+        "roots_filtered": int(
+            max(requested * len(blocks) - obtained, 0)
+        ),
         "positive_eig_threshold_applied": float(
             getattr(td, "positive_eig_threshold", float("nan"))
         ),
@@ -1833,31 +1909,40 @@ def _run_td(config, mf, results, status, runtime):
         "response_method_applied": str(config["response_method"]),
         "state_manifold_applied": manifold,
         "singlet_flag_applied": (
-            None if td.singlet is None else bool(td.singlet)
+            None
+            if len(blocks) > 1 or td.singlet is None
+            else bool(td.singlet)
         ),
         "transition_dipole_au_to_debye": float(nist.AU2DEBYE),
         "solvent": _response_solvent_record(mf, td),
     }
-    try:
+    if len(blocks) > 1:
+        stage["blocks"] = block_records
+    if strength_failure is None:
         results["oscillator_strengths"] = np.asarray(
-            td.oscillator_strength(), dtype=float
-        ).reshape(-1)[:obtained]
+            strengths, dtype=float
+        )[order]
         status["properties"]["oscillator_strengths"] = {"status": "ok"}
-    except Exception as exc:
+    else:
         status["properties"]["oscillator_strengths"] = {
             "status": "unavailable",
-            "failure": {"type": type(exc).__name__, "message": str(exc)},
+            "failure": {
+                "type": type(strength_failure).__name__,
+                "message": str(strength_failure),
+            },
         }
-    try:
-        dipoles = np.asarray(td.transition_dipole(), dtype=float)
-        results["transition_dipole_moments"] = (
-            dipoles.reshape(obtained, -1)[:, :3] * float(nist.AU2DEBYE)
-        )
+    if dipole_failure is None:
+        results["transition_dipole_moments"] = np.asarray(
+            dipoles, dtype=float
+        ).reshape(obtained, 3)[order]
         status["properties"]["transition_dipole_moments"] = {"status": "ok"}
-    except Exception as exc:
+    else:
         status["properties"]["transition_dipole_moments"] = {
             "status": "unavailable",
-            "failure": {"type": type(exc).__name__, "message": str(exc)},
+            "failure": {
+                "type": type(dipole_failure).__name__,
+                "message": str(dipole_failure),
+            },
         }
     status["stages"]["td"] = stage
     return td, stage

@@ -130,12 +130,22 @@ PYSCF_STABILITY_SPACES = {
 PYSCF_STABILITY_UNRETURNED_SPACE = "real -> complex"
 
 #: Excitation manifolds.  A closed-shell reference asks for singlet or
-#: triplet excitations; an open-shell (UKS) reference has one
-#: spin-conserving manifold that PySCF labels neither, so it is named for
-#: what it is.  The reference decides which names are admissible, by the
-#: one rule every program asks (``td_manifold_reference_refusal``).
-PYSCF_STATE_MANIFOLDS = ("singlet", "triplet", "unrestricted")
+#: triplet excitations, or both (``singlet_triplet``: the driver solves the
+#: singlet and the triplet response on the one converged reference, as
+#: ORCA's ``Triplets true`` and Gaussian's ``50-50`` do, ``nstates`` roots
+#: of each); an open-shell (UKS) reference has one spin-conserving manifold
+#: that PySCF labels neither, so it is named for what it is.  The reference
+#: decides which names are admissible, by the one rule every program asks
+#: (``td_manifold_reference_refusal``).
+PYSCF_STATE_MANIFOLDS = (
+    "singlet",
+    "singlet_triplet",
+    "triplet",
+    "unrestricted",
+)
 PYSCF_UNRESTRICTED_MANIFOLD = "unrestricted"
+#: The manifold that is two spin blocks, each solved on its own.
+PYSCF_TWO_BLOCK_MANIFOLD = "singlet_triplet"
 #: ``ab_initio`` values.  ``hf`` is the mean-field reference; the others
 #: are correlated single-reference methods computed on an HF reference
 #: (PySCF converts an ROHF reference to UHF for them).
@@ -871,6 +881,12 @@ class PySCFJobSettings(MolecularJobSettings):
             raise ValueError(refusal)
         if self.excited_state_root is not None:
             root = self.excited_state_root
+            if manifold == PYSCF_TWO_BLOCK_MANIFOLD:
+                raise ValueError(
+                    "excited_state_root follows one root of one manifold; "
+                    "state_manifold: singlet_triplet holds two. Name the "
+                    "manifold the root belongs to (singlet or triplet)."
+                )
             if (
                 isinstance(root, bool)
                 or not isinstance(root, Integral)
