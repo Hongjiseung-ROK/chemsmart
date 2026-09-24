@@ -300,3 +300,19 @@ printed array to the printed precision, in all eight.
 | `hydrogen_atom_sp_stability_heard` | 1.362 / -- / -- | ROHF: internal only, and nothing recorded as undetermined, since no external analysis ran |
 | `o2_singlet_sp_unconverged_stability_heard` | **-4.0e-4** / -0.03832 / -0.09268 | receipt `failed`, `scf_converged: false`: the internal root crosses PySCF's line only on orbitals that never became stationary |
 | `o2_singlet_hess_stability_heard` | -2.6e-6 / -0.03830 / -0.09262 | the Hessian case; the internal zero root's sign is numerical noise inside PySCF's threshold |
+
+## A basis that defines a core potential (2026-09-24, R10 q12)
+
+Produced through the ordinary CLI on CUHK (**Slurm 2152029**, oracle O2',
+code `d31f1170`) at PySCF 2.14.0, on HI at r = 1.609 A
+(`inputs/hi_1609.xyz`), def2-SVP, `scf_tol 1e-10`, no density fitting.
+The driver attached the core potential def2-SVP defines for iodine
+(28 core electrons, taken from PySCF's own library entry for the basis),
+as ORCA and Gaussian do for the same name; before, the environment probe
+refused the run at execution time. Every receipt `validated`.
+
+| directory | what it is | why it is here |
+|---|---|---|
+| `hi_hf_def2svp_ecp` | HF | 26 explicit electrons, `spec/ecp_core_electrons` {H: 0, I: 28}, atomic numbers [1, 53]; total -297.2315316634 Eh, 9.5e-11 from ORCA's and 1.2e-8 from Gaussian's def2-SVP (CUHK 2151773) |
+| `hi_mp2_def2svp_ecp_auto` | MP2 with `frozen_core: auto` | 4 frozen orbitals (4s4p: the chemical core less the potential's 14), ORCA's and Gaussian's default count; total within 2e-9 Eh of ORCA's |
+| `hi_mp2_def2svp_ecp_all_electron` | MP2 with `frozen_core` unset | every explicit electron correlated: 14.87 mEh below the frozen one, the HI bond energy 0.27 kcal/mol higher -- one project literal, a different core treatment from ORCA's default |

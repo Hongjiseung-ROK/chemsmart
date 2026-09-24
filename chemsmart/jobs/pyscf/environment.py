@@ -240,18 +240,22 @@ def environment_blockers(receipt, *, engine):
                 "evidence_ref": f"environment:basis_available/{basis}",
             }
         )
+    # The driver attaches the core potential the basis defines for these
+    # elements, as ORCA and Gaussian do for the same name (CUHK Slurm
+    # 2151773: def2-SVP on iodine, one basis in ORCA and Gaussian to
+    # 1.2e-8 Eh, refused here). Only the CPU engine has run it.
     ecp_elements = receipt.get("basis_ecp_required_elements") or []
-    if ecp_elements:
+    if ecp_elements and str(engine).lower() == "gpu":
         blockers.append(
             {
-                "rule_id": "pyscf.environment.ecp_unmaterialized",
-                "field": "settings.basis",
+                "rule_id": "pyscf.gpu.ecp_unqualified",
+                "field": "settings.engine",
                 "expected": (
-                    "all-electron basis or a future explicit PySCF ECP field"
+                    "engine cpu for a basis that defines a core potential"
                 ),
                 "observed": {
                     "basis": basis,
-                    "elements_requiring_ecp": ecp_elements,
+                    "elements_with_core_potential": ecp_elements,
                 },
                 "evidence_ref": "environment:basis_ecp_required_elements",
             }

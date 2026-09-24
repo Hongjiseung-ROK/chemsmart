@@ -815,6 +815,32 @@ class ORCAOutput(ORCAFileMixin):
         return None
 
     @property
+    def ecp_core_electrons(self):
+        """Core electrons ORCA's core potentials replaced, per element.
+
+        ORCA names each one where it assigns it (``Type I ECP Def2-ECP
+        (replacing 28 core electrons, lmax=3)``); every other element
+        present is all-electron and is named with zero, so "no potential"
+        is a statement and not an absence.  None when the output carries
+        no structure to name the elements of.
+        """
+        pattern = re.compile(
+            r"Type\s+([A-Za-z]{1,2})\s+ECP\s+\S+\s+\(replacing\s+(\d+)\s+"
+            r"core electrons"
+        )
+        cores = {}
+        for line in self.contents:
+            match = pattern.search(line)
+            if match is not None:
+                symbol = match.group(1).capitalize()
+                cores[symbol] = int(match.group(2))
+        try:
+            symbols = self.molecule.chemical_symbols
+        except Exception:  # noqa: BLE001 - no structure, nothing to name
+            return None
+        return {str(symbol): cores.get(str(symbol), 0) for symbol in symbols}
+
+    @property
     def num_shells(self):
         """
         Get the number of shells from the ORCA output file.

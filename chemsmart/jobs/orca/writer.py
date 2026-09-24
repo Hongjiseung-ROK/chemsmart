@@ -27,6 +27,52 @@ from chemsmart.utils.utils import (
 logger = logging.getLogger(__name__)
 
 
+def _initial_hessian_to_read(settings):
+    """The Hessian file a TS search or an IRC starts from, or None.
+
+    A file named as a job's starting Hessian is the Hessian that job
+    reads. ORCA reads one only when told to -- ``InitHess read`` in
+    ``%irc``, ``InHess Read`` in ``%geom`` -- and ChemSmart used to write
+    the file only when the project said so as well, so a Hessian named on
+    the command line alone never reached ORCA: every executed ORCA TS ->
+    IRC binding the R10 composition replay found (six) displaced its IRC
+    along a Hessian ORCA computed afresh ("Initial displacement Hessian
+    type .... Compute numerically"). Naming a file and asking for a
+    different start is a contradiction, and it is refused rather than
+    resolved.
+    """
+
+    if isinstance(settings, ORCAIRCJobSettings):
+        filename = settings.hess_filename
+        inithess = str(settings.inithess or "").strip().casefold()
+        if inithess == "read":
+            if not filename:
+                raise ValueError(
+                    "ORCA IRC inithess read needs the Hessian file to read "
+                    "(hess_filename)."
+                )
+            return str(filename)
+        if filename:
+            if inithess:
+                raise ValueError(
+                    f"ORCA IRC names the Hessian file {filename!r} to start "
+                    f"from, but inithess is {settings.inithess!r}, which "
+                    "computes a new one; drop one of the two."
+                )
+            return str(filename)
+        return None
+    if isinstance(settings, ORCATSJobSettings):
+        filename = settings.inhess_filename
+        if settings.inhess or filename:
+            if not filename:
+                raise ValueError(
+                    "ORCA TS inhess needs the Hessian file to read "
+                    "(inhess_filename)."
+                )
+            return str(filename)
+    return None
+
+
 def _names_one_file(source, destination):
     """Whether two paths name the same file on disk.
 
@@ -152,21 +198,17 @@ class ORCAInputWriter(InputWriter):
                         destination,
                     )
 
-        # An IRC started from a validated TS Hessian is a two-file job.  Keep
-        # the native input portable: stage the Hessian beside both the job's
-        # durable output directory and the generated input (which may live in
-        # scratch), then write only its basename in %irc.  The absolute path
+        # A TS search or an IRC started from a Hessian is a two-file job.
+        # Keep the native input portable: stage the Hessian beside both the
+        # job's durable output directory and the generated input (which may
+        # live in scratch), then write only its basename.  The absolute path
         # remains a CLI/runtime concern and never leaks into native input.
-        if (
-            isinstance(self.job.settings, ORCAIRCJobSettings)
-            and str(self.job.settings.inithess or "").casefold() == "read"
-        ):
-            source = os.path.abspath(
-                str(self.job.settings.hess_filename or "")
-            )
+        hessian = _initial_hessian_to_read(self.job.settings)
+        if hessian is not None:
+            source = os.path.abspath(hessian)
             if not os.path.isfile(source):
                 raise FileNotFoundError(
-                    f"ORCA IRC Hessian does not exist: {source}"
+                    f"ORCA starting Hessian does not exist: {source}"
                 )
             for destination_folder in {folder, self.job.folder}:
                 destination = os.path.join(
@@ -175,7 +217,7 @@ class ORCAInputWriter(InputWriter):
                 if not _names_one_file(source, destination):
                     shutil.copy2(source, destination)
                     logger.info(
-                        "Staged ORCA IRC Hessian %s at %s.",
+                        "Staged ORCA starting Hessian %s at %s.",
                         source,
                         destination,
                     )
@@ -869,17 +911,17 @@ class ORCAInputWriter(InputWriter):
         f.write("%geom\n")
         self._write_geom_maxiter_line(f)
 
-        # Read initial Hessian from file if desired
-        if self.settings.inhess:
+        # Read the starting Hessian from file when one is named: the file
+        # is staged beside the input (see ``_write``), so its basename is
+        # what ORCA opens wherever it runs.
+        hessian = _initial_hessian_to_read(self.settings)
+        if hessian is not None:
             f.write("  InHess Read  # Read Hessian from file\n")
-            assert (
-                self.settings.inhess_filename is not None
-            ), "No Hessian file is given!"
             assert os.path.exists(
-                self.settings.inhess_filename
-            ), f"Hessian file {self.settings.inhess_filename} is not found!"
+                hessian
+            ), f"Hessian file {hessian} is not found!"
             f.write(
-                f'  InHessName "{self.settings.inhess_filename}"  # Hessian file\n'
+                f'  InHessName "{os.path.basename(hessian)}"  # Hessian file\n'
             )
 
         """Hybrid Hessian for speed up of TS search:
@@ -899,10 +941,12 @@ class ORCAInputWriter(InputWriter):
                 f"  Hybrid_Hess {{{hybrid_hess_atoms_string}}} end  # Use hybrid Hessian\n"
             )
 
-        # Hessian options
-        f.write(
-            "  Calc_Hess True  # calc initial Hessian\n"
-        )  # for ts job, initial hessian is required
+        # Hessian options. A TS search needs a real starting Hessian: the one
+        # it was given, or else one computed in its first step -- never
+        # both, because Calc_Hess asks ORCA to compute exactly what the
+        # read Hessian was supplied to replace.
+        if hessian is None:
+            f.write("  Calc_Hess True  # calc initial Hessian\n")
         f.write(
             f"  NumHess {self.settings.numhess}  # Request numerical Hessian (if analytical not available)\n"
         )
@@ -1029,6 +1073,21 @@ class ORCAInputWriter(InputWriter):
 
         # write irc block if any option value is not None:
         f.write("%irc\n")
+        # The starting Hessian first: a named file is read (staged beside
+        # the input by ``_write``), otherwise the declared strategy stands.
+        hessian = _initial_hessian_to_read(self.settings)
+        if hessian is not None:
+            assert os.path.exists(
+                hessian
+            ), f"Hessian file {hessian} is not found!"
+            f.write("  inithess read\n")
+            f.write(
+                "  Hess_Filename "
+                f'"{os.path.basename(hessian)}"'
+                "  # Hessian file\n"
+            )
+        elif self.settings.inithess is not None:
+            f.write(f"  inithess {self.settings.inithess}\n")
         for key in irc_specific_keys:
             value = getattr(self.settings, key)
             if value is None:
@@ -1036,24 +1095,8 @@ class ORCAInputWriter(InputWriter):
             # only write into IRC input if the value is not None
             if key == "internal_modred":
                 pass  # internal_modred is not an option in ORCA IRC file
-            elif key == "inithess":
-                f.write(f"  {key} {value}\n")
-                if value.lower() == "read":  # if initial hessian is to be read
-                    assert (
-                        self.settings.hess_filename is not None
-                    ), "No Hessian file is given!"
-                    assert os.path.exists(
-                        self.settings.hess_filename
-                    ), f"Hessian file {self.settings.hess_filename} is not found!"
-                    f.write(
-                        "  Hess_Filename "
-                        f'"{os.path.basename(self.settings.hess_filename)}"'
-                        "  # Hessian file\n"
-                    )
-            elif (
-                key == "hess_filename"
-            ):  # already used/written, if initial hessian is to be read
-                pass
+            elif key in {"inithess", "hess_filename"}:
+                pass  # written above, before the loop
             elif key == "monitor_internals":
                 if value is True:
                     f.write("  True\n")

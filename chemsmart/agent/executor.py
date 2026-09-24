@@ -1633,12 +1633,14 @@ class ApprovedWorkflowExecutor:
           array.
         - the whole manifest -- one process is running the wave, which is
           what a local dispatch of a cohort does.
-        - one node -- this process is one array element, and an array
-          element is one approved scientific calculation. Its authorised
-          node is the manifest's own answer for its index; the launch
-          fence would have caught the duplicates, but only after N
-          processes had raced for one reservation and N-1 had done the
-          work of finding out.
+        - one line -- this process is one array element, and an array
+          element is one approved scientific calculation, or the line a
+          consumer the Agent named beside its producer runs in: the
+          producer's host hands the consumer its output, so the two run
+          in one process. The line is the manifest's own answer for its
+          index; the launch fence would have caught the duplicates, but
+          only after N processes had raced for one reservation and N-1
+          had done the work of finding out.
         """
 
         manifest = read_cohort_manifest(self.run_directory)
@@ -1647,7 +1649,7 @@ class ApprovedWorkflowExecutor:
         element = getattr(self, "cohort_element", None)
         if element is None:
             return manifest.node_ids
-        return (manifest.node_for_element(element),)
+        return manifest.nodes_for_element(element)
 
     def _record_component_index(self) -> dict[str, int]:
         """Map every plan node to its record via the shared derivation.
