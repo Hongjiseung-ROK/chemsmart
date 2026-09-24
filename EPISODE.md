@@ -157,6 +157,19 @@ claude-researcher-q17-owner-delegated. Model deepseek-v4-flash-0731.
     achieved_with_observations. This model asks for <S^2> and the
     convergence flag without being told: for these long-served
     diagnostics availability and attention are not the bottleneck here.
+  - dB-P-1 (switch on): the same conclusion, a little sharper ("heavily
+    spin-contaminated (S^2 = 1.70 vs 0.75, effective multiplicity 2.80)
+    ... only qualitatively meaningful"); settled achieved. Planning cost
+    1.09 M input tokens and 16 turns against S's 0.55 M and 11 (dA: 1.16 M
+    against 0.67 M): the lever roughly doubled the planning session's
+    input in both pairs, through more turns rather than larger replies.
+
+Development so far, read together (n = 1 per cell; not evidence for the
+sealed question): where the base arm already asks for the deciding
+quantity (dB's <S^2> and convergence flag; dC's frequencies, which are the
+headline), P changes little; where it asks for the wrong one of several
+related questions (dA: `scf_stability_internal`, "stable", of the three
+the result answered), P put the right one in front of it.
 
 ## hc1 -- the harness on the cluster with the pinned arms (pre-registered before submission)
 
