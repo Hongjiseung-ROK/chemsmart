@@ -101,7 +101,7 @@ BrokenSym 1,1 from the triplet; the triplets.
   energy within 1e-6 Eh.
 - E6: ORCA BrokenSym 1,1 and GuessMix reach the same energy within 1e-5 Eh.
 
-## O0 read so far (Gaussian and ORCA complete; PySCF running)
+## O0 read (CUHK 2153330, complete)
 
 - E1 FALSIFIED as written (and the brief's "inert" prior narrowed):
   restricted + guess=mix stays restricted everywhere (labels RHF/RB3LYP, no
@@ -124,10 +124,32 @@ BrokenSym 1,1 from the triplet; the triplets.
   kcal/mol above): the particular solution is not portable (F2), and
   <S**2> (1.001) alone does not reveal it.
 - E6 held: ORCA BrokenSym 1,1 = GuessMix = STABPerform to 1e-10 Eh.
-- E5 FALSIFIED (PySCF partial): PySCF's default init_guess_breaksym=1 does
-  not break H2 at 2.00 (HF) nor planar HF ethylene; the explicit alpha
-  HOMO/LUMO 45-degree mix does, to Gaussian's and ORCA's energies (1e-10
-  Eh). PySCF's own default is therefore not the translation.
+- E5 FALSIFIED, and the PySCF translation changed by it (O0 complete):
+  PySCF's default init_guess_breaksym=1 leaves H2 at 2.00 (HF and B3LYP) and
+  p-benzyne on the restricted solution; the explicit alpha HOMO/LUMO
+  45-degree mix of PySCF's own guess orbitals breaks H2 (to 1.2e-8 Eh of
+  Gaussian) and the twist, but COLLAPSES on p-benzyne (<S**2> 1.6e-10): which
+  orbitals are "HOMO" and "LUMO" of a guess is a program fact. Following the
+  restricted solution's own RHF/RKS -> UHF/UKS instability (PySCF's stability
+  analysis, then internal instabilities until stable) reached the solution
+  Gaussian and ORCA reach on every system: H2 2.00 -1.01848665 Eh, twist90
+  -78.42113868, p-benzyne -230.70472508 (1.0e-6 Eh of ORCA, <S**2> 0.97027),
+  and leaves a stable restricted solution restricted.
+
+## O0b read (CUHK 2153375)
+
+- H1 half-held: `nosymm` repairs Gaussian's HF mix at the 90-degree twist
+  (-77.9014399735 = ORCA) but not B3LYP (-78.3796007 again): the exactly
+  degenerate guess orbitals, not Gaussian's symmetry, are the cause.
+- H2 held: at 85 degrees the three programs reach one solution (B3LYP
+  -78.42233080/-78.42233085/-78.42233086, HF to 4e-9 Eh; <S**2> 0.978).
+- H3 held: Gaussian `guess=mix stable=opt` reaches ORCA's solution at 90
+  degrees (B3LYP 6.5e-8 Eh). H4 held.
+- Consequence for the translation: ORCA GuessMix alone reached the lowest
+  solution everywhere; Gaussian guess=mix everywhere but an exactly
+  degenerate geometry; PySCF only by stability following. Each program is
+  translated by the mechanism measured to work there, the review says which,
+  and the result says whether it broke.
 
 ## Oracle O0b (pre-registered before submission)
 
@@ -143,9 +165,13 @@ Gaussian with `nosymm`, with `guess=mix stable=opt`, and an 85-degree twist
 
 ## Jobs issued
 
-- O0: CUHK Slurm 2153330 (r10-q18-a), 4 cores, native inputs, prereg
+- O0: CUHK Slurm 2153330 (r10-q18-a), 4 cores, native inputs, 16 min, prereg
   digest 835945193c43.
+- O0b: CUHK Slurm 2153375 (r10-q18-b), 4 cores, native inputs, 3 min, prereg
+  digest 6ca6f084cb46.
 
 ## Status
 
 - 2026-09-24: episode opened; gate open; census done (F1 falsified as stated).
+- 2026-09-25: O0 and O0b read; implementing the typed request (Gaussian and
+  ORCA writers and parse-back written; PySCF follows its instability).
