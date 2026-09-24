@@ -76,10 +76,12 @@ def _served_vocabulary(exposure) -> set[str]:
     )
 
 
+@pytest.mark.parametrize("knowledge", ("1", "0"))
 @pytest.mark.parametrize("mode", EXPOSURE_MODES)
 def test_every_name_the_rendered_surface_names_is_one_a_session_can_load(
-    mode,
+    monkeypatch, mode, knowledge
 ):
+    monkeypatch.setenv("CHEMSMART_AGENT_SKILLS", knowledge)
     exposure = build_exposure(mode)
     served = _served_vocabulary(exposure)
     prompt = _coordinator_base_messages(
@@ -101,7 +103,9 @@ def test_every_name_the_rendered_surface_names_is_one_a_session_can_load(
     )
 
 
-def test_the_knowledge_the_prompt_names_is_in_the_catalogue_it_names():
+def test_the_knowledge_the_prompt_names_is_in_the_catalogue_it_names(
+    monkeypatch,
+):
     """The index and the entries are one answer, computed once.
 
     A session offered advisory knowledge is told about it exactly once,
@@ -113,6 +117,7 @@ def test_the_knowledge_the_prompt_names_is_in_the_catalogue_it_names():
     from chemsmart.agent.rules import rules_by_id
     from chemsmart.agent.skills import advertised_skill_documents
 
+    monkeypatch.setenv("CHEMSMART_AGENT_SKILLS", "1")
     exposure = build_exposure("host_search")
     prompt = _coordinator_base_messages(
         context={}, approved_workflow=None, exposure=exposure

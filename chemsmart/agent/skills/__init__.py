@@ -125,14 +125,23 @@ def _load_document(path: Path, origin: str) -> SkillDocumentV1:
 def skills_enabled() -> bool:
     """Return whether domain-knowledge skills are surfaced to the agent.
 
-    Defaults to enabled. ``CHEMSMART_AGENT_SKILLS=0`` removes the knowledge
-    entries from the catalogue and, with them, the prompt's index of them.
+    Off unless ``CHEMSMART_AGENT_SKILLS`` is ``1``, ``true``, ``yes`` or
+    ``on``; then the knowledge entries join the catalogue and the prompt
+    names them. Off by evidence, not by taste: in the R10 Q3 sealed test
+    (16 open questions, three arms, blind grading, deepseek-v4-flash-0731)
+    sessions that could reach this knowledge read it before choosing a
+    level in 15 of 16 and still planned and qualified no better than
+    sessions that had none -- C - B on the graded score 3 up, 7 down, p =
+    0.145, the adequacy statement 1 up, 7 down -- and met the harm
+    threshold registered before the test. The false index it replaced cost
+    nothing measurable either. Turning it on is a research setting.
     """
 
-    return os.environ.get("CHEMSMART_AGENT_SKILLS", "1").strip() not in (
-        "0",
-        "false",
-        "no",
+    return os.environ.get("CHEMSMART_AGENT_SKILLS", "0").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
     )
 
 
