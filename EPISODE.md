@@ -213,8 +213,11 @@ one-electron-exact wavefunction method with def2-TZVP within
 
 ## Jobs issued
 
-(none yet)
+| job | slot | what | code | pre-registration digest |
+|---|---|---|---|---|
+| 2150437 | r10-q9-a | O1 oracle (base d2c192af + repaired 55e4424a) | trees verified in-job | ace1a6ecdd8d |
+| 2150438 | r10-q9-b | G1 methanol O-H BDE goal | 55e4424a, digest ad888d1d | ace1a6ecdd8d |
 
 ## Status
 
-Repairs committed; O1 and G1 pre-registered; next: pack, upload, submit.
+O1 and G1 running (submitted 2026-09-24 ~10:40 CST).
