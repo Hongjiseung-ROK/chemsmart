@@ -518,6 +518,24 @@ by the release, none changing an arm, a measure or a test:
   sealed/ folder, never the session scratchpad.
 - Job scripts: SHA_S = 55729bc4, SHA_U = 84223707, 12 h per slot.
 
+## Sealed material (released 2026-09-25 after 9b039467; never committed)
+
+- 11 task folders under the worktree's git-ignored `sealed/`, each
+  TASK.md plus `workspace/` (the real CUHK outputs as ChemSmart left them);
+  named here only by ordinal (t01..t11, sorted folder order). 335 files.
+  My manifest of what runs (`find . -type f | LC_ALL=C sort | xargs
+  shasum -a 256` inside the staged tasks folder), sha256 12079111a7be37f8...;
+  the same digest recomputed on CUHK over the uploaded copy. The master's
+  release record (7737012586236ae0) uses its own listing, so the two are
+  not expected to agree.
+- Nothing under chemsmart/ changed after the re-pin (cfe1fd66); the arms
+  that run are the ones pinned before the material was copied in.
+- Run set `sealed1` on CUHK (/project/xlzhang/jiseung/r10/q17/sealed1):
+  N = 7 x 11 = 77 goals; plan by make_plan.py, seed 20260925, sha256
+  f60980d1714a0346...; slot a 39 goals (S 17, P 16, U 6), slot b 38 (S 16,
+  P 17, U 5); every task 7 goals; job scripts a a92e06b0..., b fc11b182...;
+  envelope b72e5e03...; runner 9ebfce01....
+
 ## Jobs issued
 
 | job | slot | what | pre-registration | outcome |
