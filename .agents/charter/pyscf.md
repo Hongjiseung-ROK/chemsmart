@@ -316,9 +316,14 @@ names the question rather than only the answer, because ``external`` is
 not one question: PySCF searches RHF/RKS -> UHF/UKS for a restricted
 reference and UHF/UKS -> GHF/GKS for an unrestricted one, and it solves
 the real -> complex question inside both, logs it, and returns only the
-other flag -- on triplet O2 at UKS those two answers differ, so the
-returned flag is recorded with its space and real -> complex is named as
-undetermined. An ROHF reference has no external answer at all, and because
+other flag -- on triplet O2 at UKS those two answers differ. Since R10
+Q13 (0a77574f, 2d927932) the record keeps what PySCF's own log said: the
+real -> complex verdict as a question of its own, and every question's
+lowest eigenvalues in Eh. Each is normalised as its own matrix is -- the
+internal root is four times Gaussian's lowest singlet root on water -- so
+they compare within one question, never across questions. The sentence
+this replaces named real -> complex as undetermined while the log had
+printed it (singlet O2 at RKS: -0.0383 Eh, CUHK 2152079). An ROHF reference has no external answer at all, and because
 one combined call runs the internal Davidson and then raises, the two
 questions are asked in two calls so the answer already computed survives.
 Absence is never stability: a run nobody asked records ``not_requested``,
@@ -356,8 +361,11 @@ reference, which is the whole case for a sensor; and the same molecule at
 Gaussian's own verdict is a history, and only its last entry is the state
 of the reference the run delivered: the archived ``dna_link_sp`` log finds
 an internal instability and then reports stability, so reading any earlier
-entry would flag a reference Gaussian had already repaired. Gaussian names
-no rotation space and the record invents none. No sealed goal has run this
+entry would flag a reference Gaussian had already repaired. A stable
+Gaussian verdict names no rotation space and the record invents none; an
+unstable one names its own ("RHF -> UHF", with the eigenvalue it is drawn
+from, R10 Q13 a54aaadf -- the reader had read that sentence as no verdict
+at all, CUHK 2152098). No sealed goal has run this
 surface, so the sensor is described as a host observation over real
 archived results and not as something a goal has yet acted on.
 
@@ -908,7 +916,8 @@ ran one single point with the analysis, and the answer is that the RKS
 reference of trans-4-(dimethylamino)-4'-nitrostilbene at CAM-B3LYP/def2-SVP
 is stable both internally and to ``RHF/RKS -> UHF/UKS`` -- so the
 absorption energies of the previous goal do rest on a sound reference --
-with ``real -> complex`` undetermined by construction. The energy there,
+with ``real -> complex`` undetermined by that tree's record, though the
+log printed every question's eigenvalues. The energy there,
 -878.0848750592156 Eh, reproduces the optimisation's own total to 5e-12 Eh,
 which is the handoff arriving intact across two goals.
 
@@ -928,3 +937,10 @@ vocabulary -- ``solvation_model``, ``solvent``, ``irc_direction``,
 are therefore exercised and not qualified: no extraction receipt bound
 them and the host wrote no qualification row, and a capability is not
 qualified because a settlement quoted it.
+
+R10 Q13 (2d927932) served the numbers that goal had declared: each
+stability question's lowest eigenvalue is a PySCF ``sp`` selector. The
+same task, rerun byte-identical on the same geometry (CUHK Slurm 2152080),
+settled ``achieved`` with the RHF/RKS -> UHF/UKS root +0.042085 Eh
+delivered, real -> complex stable at +0.1135 Eh, and the energy again
+-878.08487505922 Eh; four selector records name those runs.
