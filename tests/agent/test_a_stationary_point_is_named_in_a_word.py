@@ -36,19 +36,21 @@ _DATA = Path(__file__).resolve().parents[1] / "data"
 _TASK = "a" * 64
 
 #: (program, artifact kind, archived output, the order its own modes carry
-#: below -20 cm^-1, or None where the point is not stationary).
+#: below -20 cm^-1, whether the structure is stationary).
 _ARCHIVED = (
     (
         "pyscf",
         "pyscf_hdf5",
         "PySCFTests/outputs/water_hess/water_hess_gas_phase.h5",
         0,
+        True,
     ),
     (
         "pyscf",
         "pyscf_hdf5",
         "PySCFTests/outputs/nh3_planar_hess/nh3_planar_hess_gas_phase.h5",
         1,
+        True,
     ),
     (
         "pyscf",
@@ -57,39 +59,53 @@ _ARCHIVED = (
         # real modes and no stationary point.
         "PySCFTests/outputs/water_stretched_hess/"
         "water_stretched_hess_gas_phase.h5",
-        None,
+        0,
+        False,
     ),
     (
         "gaussian",
         "gaussian_output",
         "GaussianTests/outputs/collidine_opt.log",
         0,
+        True,
     ),
     (
         "gaussian",
         "gaussian_output",
         "GaussianTests/outputs/pd_genecp_ts.log",
         1,
+        True,
     ),
-    ("orca", "orca_output", "ORCATests/outputs/sn2_ts.out", 1),
+    ("orca", "orca_output", "ORCATests/outputs/sn2_ts.out", 1, True),
+    (
+        "orca",
+        "orca_output",
+        # An OptTS that printed its own non-convergence, with modes at a
+        # geometry it never found stationary (po3-r19 ts-esterc4).
+        "ORCATests/unconverged_saddle_search/"
+        "presaddle-esterc4_optts_optts.out",
+        1,
+        False,
+    ),
     (
         "xtb",
         "xtb_output",
         "XTBTests/outputs/acetaldehyde_hess/acetaldehyde_hess.out",
         0,
+        True,
     ),
     (
         "xtb",
         "xtb_output",
         "XTBTests/outputs/methane_planar_hess/methane_planar_hess.out",
         2,
+        True,
     ),
 )
 _WORDS = {
     0: "minimum",
     1: "first-order saddle",
     2: "second-order saddle",
-    None: "not a stationary point",
 }
 
 
@@ -120,17 +136,19 @@ def _register(host, path, kind):
 @pytest.mark.capability("tool:characterise_stationary_point")
 @pytest.mark.capability("tool:extract_result_quantities")
 @pytest.mark.parametrize(
-    ("program", "kind", "relative", "order"),
+    ("program", "kind", "relative", "order", "stationary"),
     _ARCHIVED,
     ids=[Path(item[2]).stem for item in _ARCHIVED],
 )
 def test_the_word_is_the_characterisations_own_judgement(
-    tmp_path, program, kind, relative, order
+    tmp_path, program, kind, relative, order, stationary
 ):
     """Two organs answer one question: the word the extraction serves is
     exactly the order the characterisation certifies, and "not a
     stationary point" exactly where the characterisation refuses any
-    order for the gradient."""
+    order -- for a measured gradient and for a search that printed its own
+    non-convergence alike, since both ask the one function that says
+    whether a structure is stationary."""
 
     host = _host(tmp_path)
     artifact_id = _register(host, _DATA / relative, kind)
@@ -147,7 +165,9 @@ def test_the_word_is_the_characterisations_own_judgement(
     )
     assert reply["status"] == "ok", reply
     (quantity,) = reply["result"]["quantities"]
-    assert quantity["value"] == _WORDS[order]
+    assert quantity["value"] == (
+        _WORDS[order] if stationary else "not a stationary point"
+    )
     assert quantity["data_kind"] == "text"
 
     try:
@@ -157,18 +177,18 @@ def test_the_word_is_the_characterisations_own_judgement(
             arguments={
                 "result_artifact_id": artifact_id,
                 "program": program,
-                "order_claimed": 0 if order is None else order,
+                "order_claimed": order,
             },
         )
     except Exception as exc:  # noqa: BLE001 - the refusal is the answer
         characterised = {"status": "refused", "message": str(exc)}
-    if order is None:
+    if stationary:
+        assert characterised["status"] == "ok", characterised
+    else:
         assert characterised["status"] != "ok"
         assert "result.order_needs_a_stationary_point" in json.dumps(
             characterised
         )
-    else:
-        assert characterised["status"] == "ok", characterised
 
 
 _QUESTION = "nh3-planar-is-a-minimum"

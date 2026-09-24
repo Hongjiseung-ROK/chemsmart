@@ -7860,10 +7860,11 @@ def _with_stationary_point_kind(reader: ResultReaderV1) -> ResultReaderV1:
     0/1 verdict, each choosing a convention (R10 Q23). The word is the
     judgement the host already makes (``terminal_states
     .stationary_point_kind``: the stationary-point rule's -20 cm^-1
-    convention and the characterisation's gradient criterion), read from
-    the same printed modes and the same gradient the characterisation
-    reads, beside ``vibrational_frequencies`` on every job type that
-    declares it and for the structure those modes belong to.
+    convention, and ``structure_stationarity`` -- the one function the
+    characterisation and a free energy ask whether a structure is
+    stationary), read from the same printed modes, beside
+    ``vibrational_frequencies`` on every job type that declares it and for
+    the structure those modes belong to.
     """
 
     frequencies = "vibrational_frequencies"
@@ -7872,10 +7873,13 @@ def _with_stationary_point_kind(reader: ResultReaderV1) -> ResultReaderV1:
 
     def kind(output: Any) -> str | None:
         from chemsmart.agent.terminal_states import stationary_point_kind
+        from chemsmart.analysis.result_quantities import (
+            structure_stationarity,
+        )
 
         return stationary_point_kind(
             tuple(getattr(output, "vibrational_frequencies", None) or ()),
-            reader.stationarity_gradient_for_output(output),
+            structure_stationarity(reader.program, output).stationarity,
         )
 
     selector = STATIONARY_POINT_KIND_SELECTOR

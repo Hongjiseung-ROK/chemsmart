@@ -245,7 +245,7 @@ NOT_A_STATIONARY_POINT = "not a stationary point"
 
 def stationary_point_kind(
     frequencies: tuple[float, ...] | list[float] | None,
-    max_abs_gradient_eh_per_bohr: float | None = None,
+    stationarity: str = "unmeasured",
 ) -> str | None:
     """The host's word for what a structure is, or None when nothing says.
 
@@ -258,20 +258,19 @@ def stationary_point_kind(
     rule the session wrote 25 times, each session choosing its own
     convention (R10 Q23 census). This is the same judgement as a word: the
     modes below -20 cm^-1 counted by ``consequential_imaginary_mode_count``,
-    and a measured gradient above geomeTRIC's criterion making the point
-    ``not a stationary point`` -- an order is a property of a stationary
-    point (the characterisation refuses one there for the same reason).
-    An unmeasured gradient says nothing, as it does there.
+    and ``not a stationary point`` wherever the one function that says
+    whether a structure is stationary (``result_quantities
+    .structure_stationarity``: a measured gradient, a held or driven
+    coordinate, a search's own non-convergence) says it is not -- an order
+    is a property of a stationary point, and the characterisation refuses
+    one there for the same reason. ``unmeasured`` says nothing, as it does
+    there.
     """
 
     order = consequential_imaginary_mode_count(frequencies)
     if order is None:
         return None
-    if (
-        max_abs_gradient_eh_per_bohr is not None
-        and float(max_abs_gradient_eh_per_bohr)
-        > HESS_STATIONARITY_GRADIENT_EH_PER_BOHR
-    ):
+    if stationarity == "not_stationary":
         return NOT_A_STATIONARY_POINT
     return STATIONARY_POINT_ORDER_WORDS.get(order, f"saddle of order {order}")
 
