@@ -181,22 +181,25 @@ def gaussian_native_basis_token(basis):
     return _GAUSSIAN_NATIVE_DEF2_BASIS_TOKENS.get(normalized, basis)
 
 
-#: Basis keywords whose d functions Gaussian makes Cartesian unless told.
+#: Basis keywords Gaussian builds with Cartesian functions unless told.
 #: Gaussian 16's manual (Basis Sets, read 2026-09-24): "All of the
 #: built-in basis sets use pure f functions. Most also use pure d
 #: functions; the exceptions are 3-21G, 6-21G, 4-31G, 6-31G, 6-31G†,
 #: 6-31G‡, CEP-31G, D95 and D95V."  A project basis name is one basis set
 #: in every program only with one angular form, and spherical harmonics
 #: are the form every program here can build (ORCA has no other), so the
-#: writer tells Gaussian ``5D`` for these names.  Before this, the same
+#: writer tells Gaussian ``5D 7F`` for these names.  Before this, the same
 #: ``6-31G(d)`` was 34 functions for CH2O in Gaussian and 32 in ORCA and
 #: PySCF, 0.25-4.1 mEh lower in total energy across eight species and up
-#: to 0.18 kcal/mol apart in a relative energy (CUHK Slurm 2151772).  A
-#: route that names its own angular form keeps it, and the result's level
-#: then says which form Gaussian printed.  ``6-311G`` is not a member:
-#: the pattern requires the ``G`` (or a ``+``) straight after ``6-31``.
+#: to 0.18 kcal/mol apart in a relative energy (CUHK Slurm 2151772).  The
+#: manual's f sentence is not the whole story: told ``5D`` alone, CEP-31G
+#: printed ``(5D, 10F)`` (CUHK Slurm 2151890), so the f form is stated
+#: too, and for every CEP name.  A route that names its own angular form
+#: keeps it, and the result's level then says which form Gaussian
+#: printed.  ``6-311G`` is not a member: the pattern requires the ``G``
+#: (or a ``+``) straight after ``6-31``.
 _GAUSSIAN_CARTESIAN_D_DEFAULT_BASIS = re.compile(
-    r"^(?:(?:3-21|6-21|4-31|6-31)\+{0,2}g|cep-31g|d95v?(?![0-9]))",
+    r"^(?:(?:3-21|6-21|4-31|6-31)\+{0,2}g|cep-|d95v?(?![0-9]))",
     re.IGNORECASE,
 )
 #: Route words that state an angular form (Gaussian: 5D/6D for d, 7F/10F
@@ -226,13 +229,13 @@ def gaussian_route_states_angular_form(route):
 
 
 def gaussian_spherical_d_token(basis, *route_parts):
-    """The route word that makes *basis* spherical, or '' when none is due."""
+    """The route words that make *basis* spherical, or '' when none are due."""
 
     if not gaussian_basis_defaults_to_cartesian_d(basis):
         return ""
     if any(gaussian_route_states_angular_form(part) for part in route_parts):
         return ""
-    return "5d"
+    return "5d 7f"
 
 
 def _gaussian_route_contains_token(route, token):

@@ -1,7 +1,8 @@
 """Gaussian is told the angular form ORCA and PySCF build a basis in.
 
 Gaussian builds 3-21G, 6-21G, 4-31G, the 6-31G family, CEP-31G, D95 and
-D95V from Cartesian d functions unless told otherwise; ORCA has spherical
+D95V from Cartesian d functions unless told otherwise (and CEP-31G from
+Cartesian f: told ``5D`` alone it printed ``(5D, 10F)``); ORCA has spherical
 harmonics only and PySCF builds spherical ones.  Before R10 Q12 the writer
 said nothing, so ``6-31G(d)`` was 34 functions for CH2O in Gaussian and 32
 in the others, 0.25-4.1 mEh lower across eight species (CUHK Slurm
@@ -66,6 +67,7 @@ def _written_route(tmp_path, section):
     (
         ({"functional": "b3lyp", "basis": "6-31G(d)"}, True),
         ({"ab_initio": "mp2", "basis": "6-31+G(d,p)"}, True),
+        ({"functional": "b3lyp", "basis": "CEP-31G"}, True),
         ({"functional": "b3lyp", "basis": "6-311+G(d,p)"}, False),
         ({"functional": "b3lyp", "basis": "def2-SVP"}, False),
         (
@@ -84,5 +86,6 @@ def test_gaussian_is_told_the_form_every_program_builds(
     route = _written_route(tmp_path, section).lower().split()
 
     assert ("5d" in route) is spherical
+    assert ("7f" in route) is spherical
     if "additional_route_parameters" in section:
         assert "6d" in route
