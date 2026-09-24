@@ -18380,14 +18380,54 @@ class CommandCompiledToolHostV1:
             for dependency in receipt.output_dependencies
             for digest in dependency.source_receipt_sha256s
         }
+
+        consumed_outputs: dict[str, set[str]] = {}
+        for item in values.get("inputs") or ():
+            consumed_outputs.setdefault(
+                str(item.get("receipt_sha256")), set()
+            ).add(str(item.get("quantity_id")))
+
+        def _extractions_behind(
+            digest: str, outputs=None, seen: frozenset = frozenset()
+        ):
+            """The extraction receipts an operand's number descends from."""
+
+            expression = self.quantity_expression_receipts.get(digest)
+            if expression is None or digest in seen:
+                return {digest}
+            leaves: set[str] = set()
+            for dependency in expression.output_dependencies:
+                if outputs and dependency.output_id not in outputs:
+                    continue
+                for source in dependency.source_receipt_sha256s:
+                    leaves |= _extractions_behind(source, seen=seen | {digest})
+            return leaves or {digest}
+
+        # An operand that is an earlier expression's output is compared as
+        # the results it descends from (R10 q12: both live goals built the
+        # cross-program difference over per-program expressions, and the
+        # levels were never compared).
+        source_extractions = {
+            digest: tuple(
+                sorted(
+                    _extractions_behind(
+                        digest, outputs=consumed_outputs.get(digest)
+                    )
+                )
+            )
+            for digest in consumed
+            if digest in self.quantity_expression_receipts
+        }
+        leaves = consumed.union(*(set(v) for v in source_extractions.values()))
         level_observations = expression_level_observations(
             receipt,
             {
                 digest: getattr(
                     self.quantity_extractions.get(digest), "level", None
                 )
-                for digest in consumed
+                for digest in leaves
             },
+            source_extractions=source_extractions,
             # Which quantity of which receipt each output consumed, and
             # whose density each is: a response approximation is compared
             # between excited-root operands only.

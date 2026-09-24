@@ -14,7 +14,7 @@ import math
 import re
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 import numpy as np
 from ase import units as ase_units
@@ -3121,6 +3121,7 @@ def expression_level_observations(
     *,
     request: QuantityExpressionRequestV1 | None = None,
     provenance_by_receipt: Mapping[str, Mapping[str, str]] | None = None,
+    source_extractions: Mapping[str, Iterable[str]] | None = None,
 ) -> tuple[dict[str, Any], ...]:
     """Say when an output combines numbers computed at different levels.
 
@@ -3133,6 +3134,13 @@ def expression_level_observations(
     single point on a low-level geometry is an ordinary protocol -- the
     number stands and the reader is told what it is made of.
 
+    An operand that is an earlier expression's output stands for the
+    extraction receipts that output descends from, which
+    ``source_extractions`` names per expression receipt: a difference of
+    two per-program bond energies combines every result both energies
+    came from, not two unlevelled numbers (R10 q12: both live goals built
+    their cross-program comparison that way, and nothing was compared).
+
     ``EXCITED_ROOT_LEVEL_FIELDS`` are compared only between the receipts
     whose consumed quantities are excited-root values, which needs the
     ``request`` (which quantity of which receipt feeds each output) and
@@ -3144,9 +3152,18 @@ def expression_level_observations(
         expression_output_sources(request) if request is not None else {}
     )
     provenance_by_receipt = provenance_by_receipt or {}
+    source_extractions = source_extractions or {}
     observations: list[dict[str, Any]] = []
     for dependency in receipt.output_dependencies:
-        sources = tuple(dependency.source_receipt_sha256s)
+        sources = tuple(
+            sorted(
+                {
+                    leaf
+                    for digest in dependency.source_receipt_sha256s
+                    for leaf in (source_extractions.get(digest) or (digest,))
+                }
+            )
+        )
         if len(sources) < 2:
             continue
         stated = {

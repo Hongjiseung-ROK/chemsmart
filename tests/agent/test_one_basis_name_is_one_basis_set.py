@@ -326,3 +326,127 @@ def test_pyscf_under_def2s_potential_meets_orca_on_everything_but_the_core(
     assert level["ecp_core_electrons"] == {"H": 0, "I": 28}
     assert level["basis_functions"] == "spherical"
     assert _differing(observations) == differing
+
+
+def _expression(host, expression_id, inputs, nodes):
+    host._evaluate_quantity_expression(
+        "turn-x",
+        {
+            "expression_id": expression_id,
+            "inputs": inputs,
+            "nodes": nodes,
+            "output_node_ids": [nodes[-1]["node_id"]],
+        },
+    )
+    return next(
+        receipt
+        for receipt in host.quantity_expression_receipts.values()
+        if receipt.expression_id == expression_id
+    )
+
+
+@pytest.mark.parametrize(
+    "case, label, differing",
+    (
+        ("hi_mp2_def2svp_ecp_auto", "R_hi_pyscf_mp2auto", set()),
+        (
+            "hi_mp2_def2svp_ecp_all_electron",
+            "R_hi_pyscf_mp2default",
+            {"frozen_core"},
+        ),
+    ),
+)
+def test_a_comparison_of_two_expressions_compares_their_results(
+    tmp_path, case, label, differing
+):
+    """Operands that are earlier expressions stand for their results.
+
+    Both live goals of R10 q12 built the cross-program comparison as a
+    difference of two per-program expressions, and the level of each
+    result was never compared: the observation read only one hop.
+    """
+
+    from chemsmart.agent.runtime.event_store import RuntimeEventStore
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    operands = {
+        "orca": ("orca", ORCA / "hi_mp2_def2svp.out"),
+        "pyscf": ("pyscf", PYSCF / case / f"{label}_gas_phase.h5"),
+    }
+    event_path = tmp_path / "events.jsonl"
+    host = CommandCompiledToolHostV1(
+        event_store=RuntimeEventStore(event_path, session_id="q12"),
+        artifacts={
+            name: _artifact(path, program, name)
+            for name, (program, path) in operands.items()
+        },
+        task_spec_sha256s=("a" * 64,),
+        approved_workspace=tmp_path / "workspace",
+    )
+    per_program = {}
+    for name, (program, _path) in operands.items():
+        extraction = host._extract_result_quantities(
+            "turn-1",
+            {
+                "program": program,
+                "artifact_id": name,
+                "selectors": [{"quantity_id": "e", "selector": "energy"}],
+            },
+        )
+        per_program[name] = _expression(
+            host,
+            f"per-{name}",
+            [
+                {
+                    "input_id": "x",
+                    "receipt_sha256": extraction.receipt_sha256,
+                    "quantity_id": "e",
+                }
+            ],
+            # Arithmetic, as a per-program bond energy is: a `ref` would
+            # hand on its operand's own evidence and hide the case.
+            [
+                {
+                    "node_id": "zero",
+                    "operation": "literal",
+                    "literal_value": 0.0,
+                    "literal_unit": "kcal/mol",
+                },
+                {
+                    "node_id": "y",
+                    "operation": "subtract",
+                    "input_ids": ["x", "zero"],
+                },
+            ],
+        )
+    before = len(event_path.read_text().splitlines())
+    _expression(
+        host,
+        "across",
+        [
+            {
+                "input_id": name,
+                "receipt_sha256": receipt.receipt_sha256,
+                "quantity_id": "y",
+            }
+            for name, receipt in per_program.items()
+        ],
+        _difference("orca", "pyscf"),
+    )
+    observations = []
+
+    def walk(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key == "level_observations":
+                    observations.extend(item)
+                else:
+                    walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    for line in event_path.read_text().splitlines()[before:]:
+        if line.strip():
+            walk(json.loads(line))
+    assert _differing(observations) == differing
