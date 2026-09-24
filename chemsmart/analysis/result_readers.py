@@ -3447,6 +3447,26 @@ def _gaussian_stability_rotation_space(output: Any) -> str:
     return str(space)
 
 
+def _gaussian_molecular_volume(output: Any) -> float:
+    """The molecule's volume as Gaussian's ``volume`` keyword measured it.
+
+    The volume inside the 0.001 e/bohr^3 density contour, a Monte Carlo
+    estimate per molecule, in bohr^3 (Gaussian prints it beside the molar
+    figure in cm^3/mol, which is N_A times it).  Asked for in R10 Q6
+    (ar04/ar10) and verified unreachable because no reader served it.
+    Printed only when the route asks for ``volume``; the SMD solvent
+    parameter printed under the same words is not read.
+    """
+
+    values = list(getattr(output, "molecular_volumes_bohr3", None) or ())
+    if not values:
+        raise MissingQuantityError(
+            "this Gaussian result printed no molecular volume: the route did "
+            "not ask for volume"
+        )
+    return float(values[-1])
+
+
 def _gaussian_solvation_model(output: Any) -> str:
     """The continuum the route applied, in the route's own word, or
     ``gas_phase`` when the route asks for none.
@@ -3566,6 +3586,7 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("dipole_moment_magnitude", "reference"),
     ("effective_multiplicity", "reference"),
     ("electronic_spatial_extent", "reference"),
+    ("molecular_volume", "reference"),
     ("energies", "computed_surface"),
     ("energy", "computed_surface"),
     ("excitation_energies", "excited_root"),
@@ -3748,6 +3769,7 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                 output.all_dipole_moment_magnitudes[-1]
             ),
             "electronic_spatial_extent": _gaussian_electronic_spatial_extent,
+            "molecular_volume": _gaussian_molecular_volume,
             "solvation_model": _gaussian_solvation_model,
             "solvent": _gaussian_solvent,
             "solvation_nonelectrostatic_energy": _gaussian_smd_cds_energy,
@@ -6585,6 +6607,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             # <R**2> of the SCF density about the centre of nuclear
             # charge, as Gaussian prints it (atomic units, bohr^2).
             + (("electronic_spatial_extent", "bohr^2", "AREA"),)
+            # The volume keyword's per-molecule figure, bohr^3.
+            + (("molecular_volume", "bohr^3", "VOLUME"),)
             # The number and the space beside Gaussian's stability word.
             + (
                 ("wavefunction_stability_lowest_eigenvalue", "Eh", "ENERGY"),
@@ -6801,6 +6825,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "hirshfeld_atomic_charges",
                     "homo",
                     "lumo",
+                    "molecular_volume",
                     "mulliken_atomic_charges",
                     "mulliken_atomic_spin_populations",
                     "multiplicity",
@@ -6969,6 +6994,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("ir_intensities", "as_reached"),
                     ("lumo", "as_reached"),
                     ("mulliken_atomic_charges", "as_reached"),
+                    ("molecular_volume", "as_reached"),
                     ("mulliken_atomic_spin_populations", "as_reached"),
                     ("multiplicity", "as_reached"),
                     ("positions", "as_reached"),

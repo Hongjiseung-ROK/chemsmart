@@ -2217,6 +2217,29 @@ class Gaussian16Output(GaussianFileMixin):
         return len(self.forces)
 
     @cached_property
+    def molecular_volumes_bohr3(self):
+        """Every molecular volume the ``volume`` keyword printed, bohr^3.
+
+        ``Molar volume = X bohr**3/mol ( Y cm**3/mol)``: the volume inside
+        the 0.001 e/bohr^3 contour of the density, by Monte Carlo
+        integration.  Gaussian labels the first number "bohr**3/mol" but it
+        is per molecule (178.644 bohr^3 x N_A = 15.94 cm^3/mol, as printed
+        beside it).  A PCM/SMD run prints its *solvent's* parameter under
+        the same words -- "Molar volume = 0.000000 cm**3/mol" for a generic
+        solvent -- with no bohr**3 figure, and that line is not this.
+        """
+        values = []
+        for line in self.contents:
+            text = line.strip()
+            if not text.startswith("Molar volume") or "bohr**3" not in text:
+                continue
+            try:
+                values.append(float(text.split("=", 1)[1].split()[0]))
+            except (IndexError, ValueError):
+                continue
+        return values
+
+    @cached_property
     def smd_cds_energies_kcal_per_mol(self):
         """Every SMD cavity-dispersion-solvent-structure term Gaussian printed.
 

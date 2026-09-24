@@ -316,3 +316,52 @@ def test_a_gas_phase_gaussian_run_has_no_smd_cds_term():
     with pytest.raises(MissingQuantityError) as absent:
         reader.read(output, "solvation_nonelectrostatic_energy")
     assert "gas phase" in str(absent.value)
+
+
+@pytest.mark.capability("selector:gaussian:sp:molecular_volume")
+@pytest.mark.parametrize(
+    "log",
+    [
+        # water B3LYP/def2-SVP (CUHK 2152098): 178.644 bohr^3, 15.942 cm^3/mol
+        "stability/g_water_volume_gas_phase.log",
+        # iodine(III) reagents, M06-2X/genecp with the volume keyword
+        "volume/pida_n.log",
+        "volume/pida_ra.log",
+    ],
+)
+def test_the_volume_keywords_molecular_volume_is_served(log):
+    """The per-molecule figure Gaussian prints beside the molar one: the
+    molar figure is N_A times it, which the test checks from the line."""
+
+    path = DATA / "GaussianTests" / log
+    reader = reader_for("gaussian")
+    output = reader.open_output(path)
+    value, unit = reader.read(output, "molecular_volume")
+    assert unit == "bohr^3"
+    line = next(
+        text
+        for text in path.read_text(errors="replace").splitlines()
+        if text.strip().startswith("Molar volume") and "bohr**3" in text
+    )
+    assert value == float(line.split("=")[1].split()[0])
+    molar = float(line.split("(")[1].split()[0])
+    # bohr^3 per molecule -> cm^3 per mole
+    assert value * 0.529177210903e-8**3 * 6.02214076e23 == pytest.approx(
+        molar, rel=1e-3
+    )
+    angstrom3, canonical, _dimension = normalize_numeric_value(value, unit)
+    assert canonical == "angstrom^3"
+    assert "molecular_volume" in reader.selectors_for_jobtype("sp")
+
+
+def test_a_solvents_molar_volume_parameter_is_not_the_molecules():
+    """An SMD(generic) run prints the solvent's parameter under the same
+    words, "Molar volume = 0.000000 cm**3/mol": not a volume of anything
+    the run computed, and not served."""
+
+    path = GAUSSIAN / "5PQ_Me_ts1_b_no_pd_opt_sp_smd_generic.log"
+    assert "Molar volume" in path.read_text(errors="replace")
+    reader = reader_for("gaussian")
+    with pytest.raises(MissingQuantityError) as absent:
+        reader.read(reader.open_output(path), "molecular_volume")
+    assert "did not ask for volume" in str(absent.value)
