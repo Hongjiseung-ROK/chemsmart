@@ -218,6 +218,57 @@ one-electron-exact wavefunction method with def2-TZVP within
 | 2150437 | r10-q9-a | O1 oracle (base d2c192af + repaired 55e4424a) | trees verified in-job | ace1a6ecdd8d |
 | 2150438 | r10-q9-b | G1 methanol O-H BDE goal | 55e4424a, digest ad888d1d | ace1a6ecdd8d |
 
+## O1 read (Slurm 2150437, chpc-cn071, 10:39-10:41 CST; both code digests verified in-job)
+
+Reports: `/project/xlzhang/jiseung/r10/q9/oracle1/{base,repaired}/report.json`.
+
+| part | base d2c192af | repaired 55e4424a | pre-registered |
+|---|---|---|---|
+| A probe fn, MaxCore input | aborted, 1.43 s, ORCA's lines incl. `UNRECOGNIZED OR DUPLICATED KEYWORD(S) IN SIMPLE INPUT LINE`, `MAXCORE 1800` | aborted, 0.11 s, same lines | met |
+| A probe fn, valid DLPNO input | passed, 0.45 s | passed, 0.12 s | met |
+| A work root afterwards | empty (TMPDIR) | empty (granted scratch) | met |
+| B host path under SLURM_JOB_ID, rad-sp-cc-r3 | `not_run` "inside a scheduler allocation" | `aborted` 0.11 s; review line `input-check probe: aborted ...` + ORCA's lines | met |
+| B host path, radical-sp-cc | `not_run` | `passed` 0.24 s | met |
+| C node-a (h-sp's DLPNO on H) | exit 1 (MDCI) | exit 1 (MDCI) | met |
+| C node-b AutoStart from node-a | yes (`GBW file was renamed to GES file`) | no | met |
+| C node-b names not in control | `.ges .loc .qro .uno .unso` (4 byte-identical to node-a's) | none | met |
+| C node-a `.tmp` files | `cpscfdata.tmp.0`, `propint.tmp.0` | none | met |
+| C shared scratch afterwards | `<label>` (node-a's, reused by node-b) | one `<label>-ea87dbbf` (node-a's) | met |
+| C E(node-b) vs E(control) | **-0.505034793652 vs -0.505029107556** | -0.505029107556 = -0.505029107556 | **base FALSIFIED my physics expectation** |
+| D cycle-3 project | loads, `MaxCore 1800` | refused, the grant message | met |
+
+Corrected premise (mine, pre-registered wrong): "an H-atom UHF-DFT solution is
+unique, so AutoStart is not expected to move the number". It moved it. The
+contaminated node-b converged in 7 cycles to -0.50503479 Eh with its virtual
+p shell split (1.463959, 1.463959, 1.464080 Eh); every clean run (base
+control, repaired node-b, repaired control) converged in 8 cycles to
+-0.50502911 Eh with the p shell threefold degenerate (1.463386 x 3) and the
+same occupied 1s (-0.432978). The stale guess -- the failed DLPNO run's
+orbitals -- led the SCF to a slightly symmetry-broken one-electron solution
+5.7 microEh lower (self-interaction rewards a polarised density). The archived
+Q6 pair3-b h-sp-dft value, -0.505034793652, equals the contaminated run to
+every printed digit: that recorded number is not reproducible from its own
+recorded command in a clean scratch. The defect is value as well as
+provenance (negligible in kcal/mol here, 0.0036; an atom's broken degeneracy
+is the fingerprint).
+
+Not measured: "no ORCA process left" -- `pgrep -u $USER` counted 66 ORCA
+processes before and after on a node shared with another R10 job of the same
+account (q4's 64-core goal 2149497 on chpc-cn071); the instrument cannot
+attribute them. The probe's own directories were empty afterwards.
+
+## After the issue (not in the packed tree G1 runs; off the Agent path)
+
+- f65dab8b jobs: ORCA reads the geometry files an input names from the input it
+  was given -- a regression e68c1bc3 introduced in `orca inp` with scratch
+  (first run FileNotFoundError), found by reading the tree after the O1 issue;
+  red at 364bf2fd's runner, green here, green on d2c192af too.
+- ba1dd2e7 shared: the ORCA inp job no longer pre-stages its input at
+  `<scratch>/<label>` (chemsmart/jobs/orca/job.py, outside the radius).
+Neither touches an Agent node (every Agent branch is empty before launch, so
+the runner never takes the supplied-input path); G1's tree 55e4424a stands for
+the Agent path.
+
 ## Status
 
-O1 and G1 running (submitted 2026-09-24 ~10:40 CST).
+O1 read. G1 (2150438) running.
