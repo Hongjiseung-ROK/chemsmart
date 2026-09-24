@@ -90,8 +90,66 @@ replay_goal.py (Q16's, transcript).
 - The doubt branch of the session completion rebound `findings`, erasing the
   failed-criterion findings beside it.
 
+## Repairs (one commit each; every witness shown red on its parent, green on it)
+
+- e59a0f77 one function, every completion organ (session, executor walk,
+  delivered-claims certificate) and the settlement's answered-ness.
+- 06c414d9 the doubt branch no longer erases failed-criterion findings.
+- f0658c67 (for the owner) an answered criterion is carried by the word:
+  achieved -> achieved_with_observations for lad-a1-r1, lad-a0-r2.
+- 7ce7df21 (shared) a decision may cite a recorded run's receipt.
+- bb74c455 goal grain: a number standing on another cycle's unanswered
+  criterion is not certified (h1b achieved -> returned_to_human).
+- c642982a thermochemistry receipts enter the verdict join.
+
+Census replays at c642982a against a7bc02e0: 3 settle-step words change
+(lad-a1-r1, lad-a0-r2, h1b); L1 and o2r transcripts settle
+achieved_with_observations at cycle 2 naming their failed criteria.
+
+## Live goal -- pre-registration (written before any live run of this episode)
+
+Reference job first (CLI, slot a, code c642982a): PySCF RKS B3LYP/def2-SVP
+single points with stability analysis for O2 at 1.2075 A (calibration: must
+reproduce L1's archived E = -150.141807 Eh, external -0.092617 Eh,
+real->complex -0.038300 Eh, internal stable, each within 1e-5 Eh) and for
+S2 at 1.889 A. The S2 numbers set the live goal's physics bands (E +/-0.0005
+Eh; each lowest eigenvalue +/-0.003 Eh), written here in a commit before the
+goal is submitted.
+
+Live goal L-S2 (slot b, code c642982a or its successor on this branch,
+recorded by the doorway): TASK = L1's task with the molecule changed --
+closed-shell singlet S2 at B3LYP/def2-SVP, gas phase, 1.889 A, PySCF; "is
+that restricted reference a stable solution ... yes-or-no answer I can
+defend, stated for both kinds of orbital rotation, and the electronic
+energy of the reference in hartree". Nothing in the task names a criterion,
+a validation or an expectation. Envelope: pyscf cpu, 8 cores, 16 GB, node
+1800 s, episode 5400 s, 4 engine calls, max-revisions 2, local dispatch,
+granted by claude-researcher-q19-owner-delegated (a delegated approval, not
+a human decision). Agent: deepseek-v4-flash-0731 via alibaba-token-plan.
+
+- PASS (the repair's claim), read from host records: if the session's plan
+  carries an acceptance criterion the physics fails, then (a) no completion
+  certifies `passed` over a claim standing on it while it is unanswered;
+  (b) if a recorded decision cites a receipt stating the verdict, the goal
+  settles achieved_with_observations and a reason names the criterion, the
+  number that failed it and the citing receipt; (c) if none cites it, the
+  goal returns naming the verdict. No settlement or wake quotes a host
+  ContractError.
+- The word the science supports (if the reference job confirms an
+  instability): the restricted reference is not stable to spin-symmetry
+  breaking; a delivery that says so with the energy is achieved or
+  achieved_with_observations, with the failed expectation standing in it.
+- FAIL: a host-error word; a certified word over an unanswered criterion; a
+  returned word that names no finding; a failed criterion missing from an
+  achieved_with_observations word.
+- Not counted either way: the session plans no acceptance criterion (the
+  repair is then not exercised live, reported so); zero provider turns or
+  turn_deadline_exceeded (infrastructure). A weak run is reported, never
+  re-rolled.
+
 ## Status
 
 - step 0: brief read, base verified, charter/lessons/CONDUCT read.
 - step 1 (census, provider-free): done (above).
-- step 2 (repairs, one commit each, witness red on base): in progress.
+- step 2 (repairs): done, six commits.
+- step 3: reference job s2ref (slot a) -- being submitted.
