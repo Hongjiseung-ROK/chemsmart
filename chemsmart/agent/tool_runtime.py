@@ -1342,6 +1342,13 @@ def _output_artifact_kind(program: str, path: Path) -> str:
             return "program_output"
         return "xtb_output"
     if program == "orca" and suffix == ".out":
+        # ORCA computes the atomic guess of an element carrying a core
+        # potential as a run of its own and leaves its log beside the
+        # job's, <base>_atom<Z>.out (iodine under def2: _atom53.out); as a
+        # second orca_output it failed the one-log rule on every such
+        # node (R10 q12 goal g1-hi, CUHK 2152052). A sidecar, like g98.out.
+        if re.fullmatch(r".+_atom\d+", path.stem):
+            return "program_output"
         return "orca_output"
     if program == "gaussian" and suffix in {".log", ".out"}:
         return "gaussian_output"

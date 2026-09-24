@@ -15,3 +15,11 @@ ORCA 6.1.1 on CUHK Charles, R10 q12 oracle O1 (CUHK Slurm 2151772,
 Gaussian's MP2 on the same HI, H and I agrees to 1.4e-8 Eh with the same
 frozen orbitals (4, 0, 4); the HI -> H + I bond energy is 71.43922
 kcal/mol in both programs.
+
+`hi_ccsdt_def2tzvp/` is one node of the live goal g1-hi (R10 q12, CUHK
+Slurm 2152052, code `d31f1170`) as ORCA left it: the Agent's
+`ab_initio: ccsd(t)`, `basis: def2-tzvp` on HI at 1.609 A
+(E(CCSD(T)) -297.732443762 Eh, `ORCA TERMINATED NORMALLY`) and, beside
+it, `hi_sp_sp_gas_phase_atom53.out`, the log of the atomic guess ORCA
+computes for iodine because def2 gives it a core potential. The host
+bound both as ORCA logs and refused the node for having two.
