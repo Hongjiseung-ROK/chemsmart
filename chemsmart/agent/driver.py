@@ -2011,12 +2011,24 @@ def _wake_context(
                     "workflow_state",
                     "run",
                     "reasons",
+                    # Why a recovery opened when the previous run's own
+                    # stream cannot say: a run with no analysis chain lists
+                    # nothing undelivered, and a refusal re-read at
+                    # settlement lives only on this row.
+                    "uncertified",
+                    "refusals_reread",
+                    "undelivered_declared_observable_ids",
                 }
             },
         }
         for entry in ledger.entries()
         if entry["kind"]
-        in {"run_recorded", "revision_admitted", "revision_returned"}
+        in {
+            "run_recorded",
+            "revision_admitted",
+            "revision_returned",
+            "recovery_opened",
+        }
     )
     # The evidence a revision answers, whether an engine produced it or
     # an analysis-only cycle did. Gating this on `outcome is not None`

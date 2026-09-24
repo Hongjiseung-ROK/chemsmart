@@ -261,6 +261,15 @@ def test_a_run_without_an_analysis_chain_certifies_nothing(
     carries no chain delivered nothing and certified nothing; the goal's
     delivery is still the one its latest completion receipt holds."""
 
+    contexts: list = []
+
+    def seen(inner):
+        def step(workspace, kwargs):
+            contexts.append(kwargs.get("goal_context") or {})
+            return inner(workspace, kwargs)
+
+        return step
+
     result = _loop(
         tmp_path,
         sessions=[
@@ -270,9 +279,9 @@ def test_a_run_without_an_analysis_chain_certifies_nothing(
                 review=_review_payload(),
                 wake_rows=_READ_OUTCOME_ROWS,
             ),
-            # What the woken cycles do next is not under test.
+            # What the woken cycles do beyond reading why is not under test.
             *(
-                _planning_session(f"live-{index}", terminal="blocked")
+                seen(_planning_session(f"live-{index}", terminal="blocked"))
                 for index in range(3, 7)
             ),
         ],
@@ -298,10 +307,22 @@ def test_a_run_without_an_analysis_chain_certifies_nothing(
         assert result.settlement == "returned_to_human"
         assert "irc-forward-points" in reasons
     else:
-        # A cycle remains: it is woken to deliver what is open.
+        # A cycle remains: it is woken to deliver what is open, and the
+        # wake says why -- the run it follows lists nothing undelivered.
         opened = [e for e in entries if e["kind"] == "recovery_opened"]
         assert opened[-1]["payload"]["cycle"] == 2
         assert "irc-forward-points" in json.dumps(opened[-1]["payload"])
+        woken = contexts[0]
+        recoveries = [
+            row
+            for row in woken.get("trajectory") or ()
+            if row["kind"] == "recovery_opened"
+            and row["payload"].get("cycle") == 2
+        ]
+        assert recoveries, woken.get("trajectory")
+        told = json.dumps(recoveries[-1]["payload"])
+        assert "without an analysis chain" in told
+        assert "irc-forward-points" in told
 
 
 # -- a refusal is verified against the goal's results, not a table ---------
