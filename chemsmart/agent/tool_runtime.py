@@ -19119,14 +19119,17 @@ class CommandCompiledToolHostV1:
         )
         # What each output is, where its operands' kinds decide it: a
         # curvature, an orbital energy beside a state energy, or the
-        # reaction its coefficients describe (R10 Q21). An observation that
-        # cannot be computed says nothing; it never fails the evaluation.
+        # reaction its coefficients describe (R10 Q21). Its own field, as
+        # the geometry observations have theirs: a level observation says
+        # two operands differ in Hamiltonian, and one-level arithmetic
+        # stays silent there. An observation that cannot be computed says
+        # nothing; it never fails the evaluation.
         try:
-            level_observations += expression_kind_observations(
+            kind_observations = expression_kind_observations(
                 request, receipt, self._expression_operand
             )
         except Exception:  # noqa: BLE001 - an observation never fails a call
-            pass
+            kind_observations = ()
         self._emit(
             turn_id,
             EventKind.QUANTITY_EXPRESSION_EVALUATED,
@@ -19145,10 +19148,17 @@ class CommandCompiledToolHostV1:
                 if level_observations
                 else {}
             ),
+            **(
+                {"kind_observations": kind_observations}
+                if kind_observations
+                else {}
+            ),
         )
-        if geometry_observations or level_observations:
+        if geometry_observations or level_observations or kind_observations:
             self._reply_observations = (
-                tuple(geometry_observations) + level_observations
+                tuple(geometry_observations)
+                + level_observations
+                + tuple(kind_observations)
             )
         return receipt
 

@@ -256,7 +256,7 @@ def test_a_zero_point_energy_rebuilt_by_hand_says_what_its_modes_are(
         item
         for event in events
         if event.get("kind") == "quantity_expression_evaluated"
-        for item in event["payload"].get("level_observations") or ()
+        for item in event["payload"].get("kind_observations") or ()
         if item.get("kind")
         == "vibrational_energy_of_a_structure_not_stationary"
     ]

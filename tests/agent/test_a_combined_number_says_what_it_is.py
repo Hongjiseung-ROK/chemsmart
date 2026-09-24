@@ -118,7 +118,7 @@ def _evaluate(host, event_path, inputs, nodes, outputs):
     ][-1]
     return [
         item
-        for item in event["payload"].get("level_observations") or ()
+        for item in event["payload"].get("kind_observations") or ()
         if item.get("kind")
         in {
             "output_is_an_orbital_rotation_curvature",
