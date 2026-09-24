@@ -1,6 +1,7 @@
 import copy
 import logging
 import os
+import secrets
 import signal
 import subprocess
 from abc import abstractmethod
@@ -349,6 +350,57 @@ class JobRunner(RegistryMixin):
                 )
             _require_writable_scratch(scratch_dir)
         return scratch_dir
+
+    def _fresh_scratch_directory(self, job):
+        """A scratch directory in which only this run has written.
+
+        Every runner that stages an engine in scratch asks this, and the
+        answer is a new, empty directory named for the job's label so a
+        human can find it -- never one an earlier run left.
+
+        It used to be ``<scratch_dir>/<label>``, reused, and deleted only
+        after a *complete* run. A label is the input's stem, the job type
+        and the solvent: not the node, the method, the charge or the
+        multiplicity. So every failed run left its files for the next
+        run of the same label, and two things followed. The engine read
+        them: ORCA's AutoStart took the failed run's ``.gbw`` as the next
+        run's guess, an input no record named (R10 Q6 pair3-b, CUHK Slurm
+        2150179: ``h-sp-dft``, wB97X-D3BJ on the H atom, started from
+        ``h-sp``'s DLPNO/UHF orbitals). And the copy-back delivered them:
+        the next run's job folder received the failed run's ``.gbw``,
+        ``.property.txt``, orbital files and integrals as if it had
+        written them, and the Agent's host bound them as that node's
+        outputs (``rad-sp-cc-r3`` died at ORCA's input check holding
+        cycle 2's files). Concurrent runs of one label shared one
+        directory outright.
+
+        A failed run's directory is still kept, as before, for diagnosis;
+        it is simply never anyone else's working directory. The directory
+        is created exclusively, with the permissions the directory it
+        replaces had.
+
+        Args:
+            job: The job about to run; its label names the directory.
+
+        Returns:
+            str: The new directory's path.
+        """
+        parent = os.path.expanduser(str(self.scratch_dir))
+        os.makedirs(parent, exist_ok=True)
+        for _ in range(64):
+            candidate = os.path.join(
+                parent, f"{job.label}-{secrets.token_hex(4)}"
+            )
+            try:
+                os.mkdir(candidate)
+            except FileExistsError:
+                continue
+            logger.debug(f"Fresh scratch directory for this run: {candidate}")
+            return candidate
+        raise FileExistsError(
+            f"Could not create a scratch directory for {job.label} in "
+            f"{parent}: every candidate name was taken."
+        )
 
     def __repr__(self):
         return f"{self.__class__.__qualname__}<server={self.server}>"

@@ -86,8 +86,9 @@ from chemsmart.agent.delivery import (
     judge_sufficiency,
 )
 from chemsmart.agent.execution import (
-    DEFERRABLE_GEOMETRY_PRODUCER_STAGES,
     HESSIAN_CONSUMER_ROLES,
+    STRUCTURE_HANDOFF_PROGRAMS,
+    STRUCTURE_SELECTION_RULES,
     AnomalyObservationV1,
     ApprovedNodeBindingV1,
     AtomAppendReceiptV1,
@@ -111,13 +112,13 @@ from chemsmart.agent.execution import (
     WorkflowExecutionReviewV1,
     WorkflowNodeRunStateV1,
     WorkflowRunStateV1,
+    admitted_producer_edge_rules,
     anomaly_standing,
     append_trusted_molecular_atom,
     bind_project_promotion_validation,
     break_trusted_molecular_symmetry,
     build_anomaly_observation,
     build_frozen_workflow_approval,
-    build_producer_edge_rule,
     build_program_execution_invocation,
     build_program_execution_receipt,
     build_program_result_validation_receipt,
@@ -148,14 +149,13 @@ from chemsmart.agent.execution import (
     handoff_validated_orca_producer_hessian,
     hessian_role_for_rule,
     invocation_identity_sha256,
-    is_validated_optimized_geometry_edge,
-    is_validated_orca_ts_hessian_edge,
-    is_validated_producer_orca_hessian_edge,
-    is_validated_scan_minimum_geometry_edge,
     node_branch_directory,
+    producer_edge_selection_rule,
     project_real_execution_argv,
     promote_project_candidate,
     result_file_structure_edges,
+    structure_edge_by_target,
+    structure_producer_stage,
     transform_trusted_molecular_geometry,
 )
 from chemsmart.agent.execution_envelope import BoundedExecutionEnvelopeV1
@@ -348,11 +348,14 @@ def _undeferrable_producer_finding(
 ) -> dict[str, str]:
     """Explain a wait that no amount of model effort can end.
 
-    A consumer waiting on an ``opt`` or ``ts`` geometry is deferrable: that
-    producer ends at one stationary structure, so the stage can sit inside the
-    same approval and take it when it exists. A consumer waiting on a relaxed
-    scan cannot, because a scan ends at a surface and which point to carry
-    forward is a scientific judgement the surface has to inform.
+    Whether a consumer may wait inside the same approval is the one
+    owner's answer (``producer_edge_selection_rule``): an optimisation or
+    a saddle search hands on the structure it ends at, and an ORCA relaxed
+    scan hands on its minimum-energy sampled point under the rule that
+    names that settlement. A producer no registered rule covers -- a
+    surface with no named point to carry, a path whose endpoint the
+    reader cannot bind to one result -- leaves a choice the computed
+    result has to inform.
 
     Told only to "materialize the declared workflow inputs", a session tries to
     do the impossible and its node blocks approval for ever with no reason
@@ -1573,29 +1576,19 @@ def _same_structure_observations(
         return ()
     heavy = [index for index, symbol in enumerate(symbols) if symbol != "H"]
     if len(heavy) < SENSOR_HEAVY_ATOM_FLOOR:
-        # Not silence: the block says the comparison was not made and
-        # why, so a reader can tell "no sibling matched" from "no
-        # comparison was possible".
-        return (
-            # ``signal_id`` and not some other word for the same thing:
-            # every observation this function returns is read by one
-            # consumer, which builds an anomaly observation from it and
-            # asks for that key by name. Naming the floor block
-            # differently from its own sibling below left the two halves
-            # disagreeing while the suite stayed green, because the test
-            # asserted the producer's spelling instead of driving the
-            # consumer -- and the first goal to validate a node with
-            # fewer than three heavy atoms died of a KeyError after its
-            # engine had already run, so a finished calculation was
-            # typed interrupted_mid_engine and the next node never
-            # launched. Water has one heavy atom.
-            {
-                "signal_id": "geometry.same_structure_comparison_not_made",
-                "heavy_atom_rmsd_floor_applied": True,
-                "heavy_atom_count": len(heavy),
-                "node_id": str(node_id),
-            },
-        )
+        # Below the floor no comparison is made, and that is a fact about
+        # the sensor, not an observation about the molecule. Every record
+        # this function returns is minted into an anomaly receipt, and an
+        # anomaly receipt changes the goal's settlement word: the floor
+        # record used to be returned here, under a signal no registry
+        # declared, and 8 archived goals settled
+        # ``achieved_with_observations`` on it alone (49 receipts,
+        # water, formaldehyde, HCN, HOOH). That the comparison was not
+        # made is written on the validation receipt instead
+        # (``same_structure_comparison`` in its observations), where a
+        # reader can still tell "no sibling matched" from "no comparison
+        # was possible".
+        return ()
     # The nodes this one is one structure with by construction: the
     # producer whose geometry it consumed, every sibling that consumed
     # the same producer's geometry, and every consumer of its own.
@@ -10441,15 +10434,32 @@ class CommandCompiledToolHostV1:
                         ),
                         "",
                     )
+                    # The review's own answer for this edge: a list of
+                    # stage words once called an ORCA IRC deferrable here
+                    # while the review refused its edge.
+                    edge = next(
+                        (
+                            candidate
+                            for candidate in scientific_v2.edges
+                            if candidate.edge_kind == "data"
+                            and candidate.source_node_id
+                            == item.producer_node_id
+                            and candidate.target_node_id == node_id
+                            and candidate.artifact_class == item.artifact_class
+                        ),
+                        None,
+                    )
                     waiting_producers.append(
                         {
                             "binding_id": item.binding_id,
                             "producer_node_id": item.producer_node_id,
                             "producer_output_id": item.producer_output_id,
                             "producer_stage": producer_stage,
-                            "deferrable_within_one_approval": (
-                                producer_stage
-                                in DEFERRABLE_GEOMETRY_PRODUCER_STAGES
+                            "deferrable_within_one_approval": bool(
+                                edge is not None
+                                and producer_edge_selection_rule(
+                                    scientific_v2, edge
+                                )
                             ),
                         }
                     )
@@ -11288,36 +11298,27 @@ class CommandCompiledToolHostV1:
         if envelope is None:
             return set()
         nodes = {node.node_id: node for node in getattr(plan, "nodes", ())}
-        data_edges = tuple(
-            edge
-            for edge in getattr(plan, "edges", ())
-            if edge.edge_kind == "data"
-        )
-        # Only the geometry edges are counted: admission keys each
-        # producer edge by its consumer role, so an ORCA IRC or TS node
-        # carrying a Hessian edge beside its geometry edge is one
-        # candidate, not two. This predicate counted every data edge and
-        # called po3's two IRC nodes blocking while the review resolved
-        # and ran them (REACH-1, 2026-09-06) -- the frontier disagreeing
-        # with the review in the other direction from ino3's. Whether
-        # the auxiliary edge has a legal shape is the resolver's word,
-        # which the frontier now asks before it calls a node deferred.
-        geometry_counts: dict[str, int] = {}
-        for edge in data_edges:
-            if edge.artifact_class == "geometry_xyz":
-                geometry_counts[edge.target_node_id] = (
-                    geometry_counts.get(edge.target_node_id, 0) + 1
-                )
+        # The structure edge each consumer waits on is the one owner's
+        # answer, the same one the review freezes. Only geometry edges
+        # count: admission keys each producer edge by its consumer role,
+        # so an ORCA IRC or TS node carrying a Hessian edge beside its
+        # geometry edge is one candidate, not two (REACH-1 po3,
+        # 2026-09-06). This predicate once asked a narrower question of
+        # its own -- is the producer an optimisation -- and so called the
+        # consumer of every ORCA relaxed scan blocking while the review
+        # admitted and ran it under ``validated_scan_minimum_geometry``:
+        # 24 archived sessions ended "not approvable" on an edge that then
+        # executed. Whether the auxiliary edge has a legal shape is the
+        # resolver's word, which the frontier asks before it calls a node
+        # deferred.
         deferred = set()
-        for edge in data_edges:
+        for target_id, edge in structure_edge_by_target(plan).items():
             producer = nodes.get(edge.source_node_id)
-            target = nodes.get(edge.target_node_id)
+            target = nodes.get(target_id)
             if (
                 producer is None
                 or target is None
-                or geometry_counts.get(edge.target_node_id) != 1
-                or not is_validated_optimized_geometry_edge(plan, edge)
-                or producer.program not in {"gaussian", "orca", "pyscf", "xtb"}
+                or producer.program not in STRUCTURE_HANDOFF_PROGRAMS
                 or target.support_state
                 not in {"resolvable", "unresolved_future"}
                 or not envelope.allows(target.program, target.engine)
@@ -12022,11 +12023,30 @@ class CommandCompiledToolHostV1:
         Two REACH-1 cycles died at ORCA's input check under green
         previews (2026-09-06). A green preview is ChemSmart's compile;
         the probe is ORCA's check, bounded and never charged (owner
-        ruling R2). It runs only where the host-owned server profile
-        names an ORCA executable, never inside a scheduler allocation
-        -- the wake at a job's tail plans from one -- and only on a
-        previewed input the preview retained by digest. Its word is an
-        observation on the review beside the node, never a refusal.
+        ruling R2). It runs where the host-owned server profile names
+        an ORCA executable, on a previewed input the preview retained
+        by digest, and wherever the controller runs. Its word rides the
+        review beside the node, and an abort is what the executor's
+        launch refusal reads.
+
+        It used to be skipped inside a scheduler allocation, on the
+        premise that the controller plans outside one. Production goals
+        on a shared cluster run their controller inside the allocation,
+        so every ORCA check of every such goal was ``not_run`` (all 24
+        in R10 Q6's eight live goals), the launch refusal had nothing to
+        read, and an input ORCA refuses in a tenth of a second was
+        launched and charged as an engine call (pair3-b, CUHK Slurm
+        2150179: ``MaxCore 1800`` on the keyword line, rejected before
+        ORCA's own INPUT FILE banner -- exactly the window the probe
+        watches). It is not true that the probe stops before any rank
+        starts: past the banner ORCA 6.1.1 launches ``mpirun -np <n>
+        orca_startup_mpi`` within a tenth of a second, and before the
+        probe waited on its whole process group that mpirun outlived 10
+        of 30 probes and left 10 directories in NFS scratch (R10 Q9 O2,
+        CUHK Slurm 2150471). So the probe stops and waits for its group,
+        on the allocation's own cores, in the scratch the envelope grants
+        -- the same process and the same cores the node's engine uses a
+        moment later.
         """
 
         from chemsmart.agent.input_check import (
@@ -12047,16 +12067,13 @@ class CommandCompiledToolHostV1:
         )
         input_sha256 = inputs[0].sha256 if len(inputs) == 1 else ""
         cap = self.input_check_cap_seconds
-        if any(key in os.environ for key in ("SLURM_JOB_ID", "PBS_JOBID")):
-            receipt = not_run_receipt(
-                node_id=node_id,
-                program=program,
-                input_sha256=input_sha256,
-                reason="inside a scheduler allocation; the probe runs on "
-                "the controller only",
-                cap_seconds=cap,
-            )
-        elif len(inputs) != 1:
+        envelope = getattr(self, "bounded_execution_envelope", None)
+        work_root = (
+            Path(str(envelope.scratch_root))
+            if envelope is not None and getattr(envelope, "scratch_root", "")
+            else None
+        )
+        if len(inputs) != 1:
             receipt = not_run_receipt(
                 node_id=node_id,
                 program=program,
@@ -12085,13 +12102,29 @@ class CommandCompiledToolHostV1:
                     cap_seconds=cap,
                 )
             else:
-                receipt = probe_orca_input_check(
-                    node_id=node_id,
-                    input_path=retained,
-                    executable=executable,
-                    env=self.input_check_env,
-                    cap_seconds=cap,
-                )
+                try:
+                    receipt = probe_orca_input_check(
+                        node_id=node_id,
+                        input_path=retained,
+                        executable=executable,
+                        env=self.input_check_env,
+                        cap_seconds=cap,
+                        work_root=work_root,
+                    )
+                except (OSError, subprocess.SubprocessError) as exc:
+                    # A probe that cannot start is a probe that did not
+                    # run, said so with its reason -- never a preflight
+                    # that fails in the model's hands.
+                    receipt = not_run_receipt(
+                        node_id=node_id,
+                        program=program,
+                        input_sha256=input_sha256,
+                        reason=(
+                            "the probe could not be launched: "
+                            f"{type(exc).__name__}: {exc}"
+                        ),
+                        cap_seconds=cap,
+                    )
         self._input_check_by_node[node_id] = receipt
         self._emit(
             turn_id,
@@ -14231,6 +14264,9 @@ class CommandCompiledToolHostV1:
             capability_environment_receipt=capability_environment,
             pyscf_engine_observation=pyscf_engine,
             process_observation=process_observation,
+            expected_input_producer_stage=structure_producer_stage(
+                scientific_plan, node_id
+            ),
         )
         staged_auxiliary_findings = _staged_auxiliary_input_findings(
             node_workspace=node_workspace,
@@ -14429,12 +14465,10 @@ class CommandCompiledToolHostV1:
         self.execution_receipts[node_id] = receipt
         produced_handoffs = []
         pending_data_edges = []
-        if receipt.validated and context.proposal.program in {
-            "gaussian",
-            "orca",
-            "pyscf",
-            "xtb",
-        }:
+        if (
+            receipt.validated
+            and context.proposal.program in STRUCTURE_HANDOFF_PROGRAMS
+        ):
             outgoing_edges = tuple(
                 sorted(
                     (
@@ -15261,66 +15295,14 @@ class CommandCompiledToolHostV1:
                 "nodes: " + ", ".join(unsupported)
             )
         materialized = self._latest_bounded_materialization(plan)
-        producer_edges = []
-        for edge in data_edges:
-            producer = next(
-                item
-                for item in plan.nodes
-                if item.node_id == edge.source_node_id
-            )
-            if is_validated_optimized_geometry_edge(plan, edge):
-                selection_rule = "validated_optimized_geometry"
-            elif is_validated_scan_minimum_geometry_edge(plan, edge):
-                selection_rule = "validated_scan_minimum_geometry"
-            elif is_validated_orca_ts_hessian_edge(plan, edge):
-                selection_rule = "validated_final_orca_ts_hessian"
-            elif is_validated_producer_orca_hessian_edge(plan, edge):
-                selection_rule = "validated_producer_orca_hessian"
-            else:
-                raise ContractError(
-                    "execution review has no exact selection rule for data "
-                    f"edge {edge.edge_id!r}; expected optimized geometry, "
-                    "an ORCA scan minimum-energy point geometry, an ORCA "
-                    "final-TS Hessian for IRC, or an ORCA producer "
-                    "Hessian for a TS inhess_filename role"
-                )
-            if (
-                selection_rule == "validated_optimized_geometry"
-                and producer.program
-                not in {"gaussian", "orca", "pyscf", "xtb"}
-            ):
-                raise ContractError(
-                    "execution review has no optimized-geometry handoff for "
-                    f"producer program {producer.program!r}"
-                )
-            producer_edges.append(
-                build_producer_edge_rule(
-                    producer_node_id=edge.source_node_id,
-                    consumer_node_id=edge.target_node_id,
-                    artifact_kind=edge.artifact_class,
-                    selection_rule=selection_rule,
-                )
-            )
-        geometry_edges = tuple(
-            edge
-            for edge in producer_edges
-            if edge.selection_rule
-            in {
-                "validated_optimized_geometry",
-                "validated_scan_minimum_geometry",
-            }
+        producer_edges = admitted_producer_edge_rules(
+            plan, data_edges, organ="execution review"
         )
         edge_by_target = {
-            edge.consumer_node_id: edge for edge in geometry_edges
+            edge.consumer_node_id: edge
+            for edge in producer_edges
+            if edge.selection_rule in STRUCTURE_SELECTION_RULES
         }
-        if (
-            len(edge_by_target) != len(geometry_edges)
-            or set(edge_by_target) != data_target_ids
-        ):
-            raise ContractError(
-                "every producer-dependent calculation requires exactly one "
-                "validated geometry input"
-            )
         node_bindings = []
         environment_bindings = []
         node_reviews: list[WorkflowExecutionNodeReviewV1] = []
@@ -15966,66 +15948,16 @@ class CommandCompiledToolHostV1:
             )
         materialized = self._latest_bounded_materialization(plan)
         node_bindings = []
-        producer_edges = []
-        for edge in data_edges:
-            producer = next(
-                item
-                for item in plan.nodes
-                if item.node_id == edge.source_node_id
+        producer_edges = list(
+            admitted_producer_edge_rules(
+                plan, data_edges, organ="bounded execution"
             )
-            if is_validated_optimized_geometry_edge(plan, edge):
-                selection_rule = "validated_optimized_geometry"
-            elif is_validated_scan_minimum_geometry_edge(plan, edge):
-                selection_rule = "validated_scan_minimum_geometry"
-            elif is_validated_orca_ts_hessian_edge(plan, edge):
-                selection_rule = "validated_final_orca_ts_hessian"
-            elif is_validated_producer_orca_hessian_edge(plan, edge):
-                selection_rule = "validated_producer_orca_hessian"
-            else:
-                raise ContractError(
-                    "bounded execution has no exact selection rule for data "
-                    f"edge {edge.edge_id!r}; expected optimized geometry, "
-                    "an ORCA scan minimum-energy point geometry, an ORCA "
-                    "final-TS Hessian for IRC, or an ORCA producer "
-                    "Hessian for a TS inhess_filename role"
-                )
-            if (
-                selection_rule == "validated_optimized_geometry"
-                and producer.program
-                not in {"gaussian", "orca", "pyscf", "xtb"}
-            ):
-                raise ContractError(
-                    "bounded execution has no optimized-geometry handoff for "
-                    f"producer program {producer.program!r}"
-                )
-            producer_edges.append(
-                build_producer_edge_rule(
-                    producer_node_id=edge.source_node_id,
-                    consumer_node_id=edge.target_node_id,
-                    artifact_kind=edge.artifact_class,
-                    selection_rule=selection_rule,
-                )
-            )
-        geometry_edges = tuple(
-            edge
-            for edge in producer_edges
-            if edge.selection_rule
-            in {
-                "validated_optimized_geometry",
-                "validated_scan_minimum_geometry",
-            }
         )
         edge_by_target = {
-            edge.consumer_node_id: edge for edge in geometry_edges
+            edge.consumer_node_id: edge
+            for edge in producer_edges
+            if edge.selection_rule in STRUCTURE_SELECTION_RULES
         }
-        if (
-            len(edge_by_target) != len(geometry_edges)
-            or set(edge_by_target) != data_target_ids
-        ):
-            raise ContractError(
-                "every producer-dependent calculation requires exactly one "
-                "validated geometry input"
-            )
         environment_identities = set()
         future_environments = {}
         for planned_node in plan.nodes:
@@ -16769,6 +16701,7 @@ class CommandCompiledToolHostV1:
         ) = None,
         pyscf_engine_observation: _PySCFEngineObservation | None = None,
         process_observation: ProcessObservationV1 | None = None,
+        expected_input_producer_stage: str = "",
     ) -> _ExecutionValidationEvaluation:
         findings: list[str] = []
         sensor_inputs: dict[str, Any] = {}
@@ -17594,6 +17527,23 @@ class CommandCompiledToolHostV1:
                     program_block.setdefault(key, value)
         for key, value in neutral_inputs.items():
             sensor_inputs.setdefault(key, value)
+        # The same-structure sensor compares this result with its siblings
+        # by a Kabsch heavy-atom RMSD, which means nothing below the
+        # declared floor. That it will not compare is recorded here, on the
+        # receipt, rather than minted as an anomaly the settlement word
+        # would carry. A calculation keeps its atoms, so the structure it
+        # was handed says how many there are.
+        handed_symbols, _positions = _pyscf_input_geometry(
+            expected_input_artifact
+        )
+        heavy_atom_count = sum(1 for item in handed_symbols if item != "H")
+        if handed_symbols and heavy_atom_count < SENSOR_HEAVY_ATOM_FLOOR:
+            observation["same_structure_comparison"] = {
+                "made": False,
+                "heavy_atom_count": heavy_atom_count,
+                "heavy_atom_floor": SENSOR_HEAVY_ATOM_FLOOR,
+                "policy_id": "sensor_heavy_atom_floor",
+            }
         # One program-neutral verdict on the order of the stationary point,
         # from the frequencies the program itself printed and the jobtype
         # the human approved. ORCA's transition-state check above stays;
@@ -17602,9 +17552,14 @@ class CommandCompiledToolHostV1:
         observed_order = _observed_imaginary_mode_count(observation, program)
         # A node that only measures curvature inherits the promise of the
         # search that produced the structure it was handed: the promise was
-        # never about the Hessian. Read from the bound input artifact, so
-        # it is the result the host admitted rather than a plan's word.
-        input_jobtype = _input_result_jobtype(expected_input_artifact)
+        # never about the Hessian. Read from the bound input artifact when
+        # that artifact is a result, and from the approved producer when
+        # the structure crossed an approval's own edge: the handoff writes
+        # a fresh XYZ, which promises nothing, so the file alone judged a
+        # Hessian handed a converged saddle as a minimum's.
+        input_jobtype = str(
+            expected_input_producer_stage or ""
+        ) or _input_result_jobtype(expected_input_artifact)
         order_finding = stationary_point_order_finding(
             jobtype, observed_order, input_jobtype
         )
