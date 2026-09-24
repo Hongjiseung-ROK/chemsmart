@@ -375,3 +375,13 @@ observation of that model. 2 cycles, 1 revision, 5 engine calls of 12.
   unreachable_from_evidence with the superseded claim named; the 287
   archived settle steps are identical to the pre-merge repaired replay;
   0 reader violations; 0 achieved words with an uncertified reason.
+- step 7 (hand-back gates, pristine git-archive export of 50ba4638):
+  tests/agent 3203 passed, 0 failed; full suite 23 failed, 4757 passed,
+  the failing set equal to the round baseline's, none under tests/agent;
+  ruff, black --check, isort --check clean on the 8 touched files.
+- Host qualification store on the Mac: 733 rows when first read, 740 at
+  the end; the 7 new rows are the suite's test goal `g` (orca:cpu:sp,
+  06:06-07:47 KST) from unfenced runs elsewhere on this Mac -- every run
+  of mine was HOME-fenced (1102 rows landed in scratch q24/fakehome). No
+  row was deleted (owner's data).
+- Milestone A claimed; handing back.
