@@ -248,6 +248,24 @@ route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
   UKS +0.0585 Eh); saddle stable but barely (RKS -> UKS +0.0047 Eh);
   p-benzyne RKS -> UKS UNSTABLE (-0.0643 Eh), internal and real ->
   complex stable. O-C PASS.
+- CCSD(T)/cc-pVTZ, frozen core ("chemical core (12 el)", 28 correlated
+  electrons; PySCF `frozen_core: auto` froze 6 orbitals), canonical, both
+  programs: enediyne -230.448986832 (ORCA) / -230.448987546 (PySCF);
+  saddle -230.401047509 / -230.401047855; p-benzyne -230.428143224 /
+  -230.428143139 Eh. Totals agree within 7.1e-7 Eh, references within
+  1.2e-8 Eh: O-G PASS. dE++ 30.08, dE_R 13.08 kcal/mol in both: O-F PASS.
+  ORCA T1: 0.0128 (enediyne), 0.0164 (saddle), 0.0170 (p-benzyne): O-H
+  PASS. Unasked finding: PySCF's RHF reference is RHF -> UHF unstable at
+  ALL THREE structures (-0.035, -0.118, -0.243 Eh), the closed-shell
+  enediyne included, while the RKS reference is unstable only at
+  p-benzyne. An HF-level instability does not discriminate diradical
+  character here; the Kohn-Sham one does.
+- Oracle numbers (CCSD(T)/cc-pVTZ // B3LYP-D3(BJ)/def2-TZVP, my own
+  unscaled harmonic terms): dH++(470 K) 28.19 kcal/mol (experiment 28.2 +-
+  0.5); dH++(298 K) 28.69; dH_R(298 K) 12.60 kcal/mol (experiment 8.5 +-
+  1.0), i.e. single-reference CCSD(T) on the RKS geometry of an
+  RKS-unstable diradical lies 4.1 kcal/mol above experiment, the size
+  Luxon et al. report (13.76 at CCSD(T)/cc-pVTZ // CCSD/cc-pVDZ).
 
 ## G1 -- observations while it runs (host records, first session)
 
