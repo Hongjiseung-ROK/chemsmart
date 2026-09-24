@@ -470,8 +470,17 @@ def compile_command(
     repair_parent_sha256: str = "",
     counterexample_sha256: str = "",
     repair_attempt: int = 0,
+    future_job_artifact_options: Mapping[str, str] | None = None,
 ) -> CanonicalCommandInvocationV1:
-    """Compile safe-preview argv; never invoke Click or a chemistry engine."""
+    """Compile safe-preview argv; never invoke Click or a chemistry engine.
+
+    ``future_job_artifact_options`` names a job option whose file a
+    producer inside the same approval has not written yet (a saddle's
+    Hessian for the IRC that walks from it), mapped to the digest-bound
+    placeholder of the edge that will produce it. It is rendered where the
+    file will be, in the same order, so the displayed command is the one
+    that runs once the host has bound the file.
+    """
 
     live_schema = live_schema or build_live_click_schema()
     if repair_attempt not in {0, 1, 2}:
@@ -581,13 +590,32 @@ def compile_command(
     # ``ending_xyzfile``).  The model supplies only semantic artifact IDs in
     # its workflow; the host resolves paths here.
     auxiliary_input_bindings = []
-    for parameter_name, artifact in sorted(
-        (job_artifact_options or {}).items()
-    ):
+    future_options = dict(future_job_artifact_options or {})
+    current_options = dict(job_artifact_options or {})
+    both = sorted(set(future_options) & set(current_options))
+    if both:
+        raise ContractError(
+            "a job artifact option is either bound now or produced later, "
+            "not both: " + ", ".join(both)
+        )
+    for parameter_name in sorted({*current_options, *future_options}):
         if parameter_name == "filename":
             raise ContractError(
                 "filename is the primary program input, not a job artifact option"
             )
+        if parameter_name in future_options:
+            placeholder = str(future_options[parameter_name])
+            if Path(placeholder).is_absolute():
+                raise ContractError(
+                    f"{parameter_name} is produced later and has no path yet"
+                )
+            options.append(
+                _scoped_option(
+                    live_schema, job_scope, parameter_name, placeholder
+                )
+            )
+            continue
+        artifact = current_options[parameter_name]
         _require_current_artifact(artifact, parameter_name)
         options.append(
             _scoped_option(
