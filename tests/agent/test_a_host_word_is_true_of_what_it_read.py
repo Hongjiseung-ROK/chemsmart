@@ -503,12 +503,17 @@ _SPATIAL = [
 ]
 
 
-def _refusing_before_the_run(tmp_path):
+def _refusing_before_the_run(tmp_path, producer):
     """A planning session that refuses the spatial extent before any
-    result exists: no reader serves it and nothing could be read."""
+    result exists: no reader serves it and nothing could be read -- named
+    by its selector, or carried by a blocked node of the session's plan."""
 
     build = tmp_path / "session-refuses"
-    host = _host(build, approved_requested_observable_declarations=[])
+    host = _host(
+        build,
+        approved_requested_observable_declarations=[],
+        approved_scientific_toolchain_plan=_plan_blocking("spatial-extent"),
+    )
     reply = host.dispatch(
         turn_id="t1",
         tool_name="declare_requested_observable",
@@ -549,8 +554,7 @@ def _refusing_before_the_run(tmp_path):
                     "observable_id": "spatial-extent",
                     "statement": "no selector serves <R^2>",
                     "receipt_sha256s": [literal["result"]["receipt_sha256"]],
-                    "selector": "electronic_spatial_extent",
-                    "jobtype": "sp",
+                    **producer,
                 }
             ],
         },
@@ -648,8 +652,16 @@ def _gaussian_run_delivering_the_energy(tmp_path):
     return step
 
 
+@pytest.mark.parametrize(
+    "producer",
+    [
+        {"selector": "electronic_spatial_extent", "jobtype": "sp"},
+        {"blocked_node_id": "mp2-freq"},
+    ],
+    ids=["named-selector", "blocked-node"],
+)
 def test_a_refusal_made_before_the_run_is_read_again_when_the_goal_settles(
-    tmp_path,
+    tmp_path, producer
 ):
     """A planning session refuses what no reader serves before the run it
     plans exists -- "no registered result exists it could be read from"
@@ -659,7 +671,7 @@ def test_a_refusal_made_before_the_run_is_read_again_when_the_goal_settles(
 
     result = _loop(
         tmp_path,
-        sessions=[_refusing_before_the_run(tmp_path)],
+        sessions=[_refusing_before_the_run(tmp_path, producer)],
         executes=[_gaussian_run_delivering_the_energy(tmp_path)],
         max_revisions=0,
     )
@@ -677,3 +689,56 @@ def test_a_refusal_made_before_the_run_is_read_again_when_the_goal_settles(
     assert "read again against them" in text
     assert "spatial-extent" in text
     assert "Electronic spatial extent" in text
+
+
+def test_a_blocked_node_does_not_verify_over_a_result_that_prints_the_name(
+    tmp_path,
+):
+    """A refusal carried by the session's own blocked node was verified by
+    the node alone. Over a registered result whose output prints a line
+    naming the refused observable, the host cannot say the evidence lacks
+    it."""
+
+    host = _host(
+        tmp_path,
+        approved_requested_observable_declarations=[
+            {**_SPATIAL[1], "dimension": (0, 0, 0, 0, 0, 0)}
+        ],
+        approved_scientific_toolchain_plan=_plan_blocking("spatial-extent"),
+    )
+    _registered(host, _WATER_SP, "gaussian-result-water", "gaussian_output")
+    probe = host.dispatch(
+        turn_id="probe",
+        tool_name="extract_result_quantities",
+        arguments={
+            "artifact_id": "gaussian-result-water",
+            "program": "gaussian",
+            "selectors": [{"quantity_id": "e", "selector": "energy"}],
+        },
+    )
+    reply = host.dispatch(
+        turn_id="refuse",
+        tool_name="record_scientific_decision",
+        arguments={
+            "decision_id": "refuse-by-node",
+            "assumptions": ["a"],
+            "method_rationale": "r",
+            "alternatives": ["b"],
+            "uncertainties": ["u"],
+            "diagnostics": ["g"],
+            "stage_order": ["s"],
+            "evidence_refs": [],
+            "unreachable_observable_ids": [
+                {
+                    "observable_id": "spatial-extent",
+                    "statement": "no stage of this release computes <R^2>",
+                    "receipt_sha256s": [probe["result"]["receipt_sha256"]],
+                    "blocked_node_id": "mp2-freq",
+                }
+            ],
+        },
+    )
+    (entry,) = reply["result"]["unreachable_observables"]
+    assert entry["verified"] is False
+    assert "print lines naming 'spatial-extent'" in entry["basis"]
+    assert "Electronic spatial extent" in entry["basis"]

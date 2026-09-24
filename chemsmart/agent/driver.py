@@ -2391,8 +2391,9 @@ class _AnalysisDelivery:
     #: offered, host-verified against that menu.
     route_dispositions: tuple[dict[str, Any], ...] = ()
     unreachable_bases: Mapping[str, str] = field(default_factory=dict)
-    #: The (selector, jobtype) each refusal named as the producer it needs.
-    unreachable_producers: Mapping[str, tuple[str, str]] = field(
+    #: The (selector, jobtype, blocked node) each refusal named as the
+    #: producer it needs.
+    unreachable_producers: Mapping[str, tuple[str, str, str]] = field(
         default_factory=dict
     )
     #: What each claim of this stream carries, under both the names it
@@ -2797,7 +2798,7 @@ def _analysis_delivery(
     verified_unreachable |= set(unreachable_bases)
     # The producer each refusal named, so a settlement can read the
     # results again for it once a run has written them.
-    unreachable_producers: dict[str, tuple[str, str]] = {}
+    unreachable_producers: dict[str, tuple[str, str, str]] = {}
     receipts: list[str] = []
     doubt_refs: set[str] = set()
     claim_pairs: list[tuple[str, str]] = []
@@ -2904,6 +2905,7 @@ def _analysis_delivery(
                 unreachable_producers[observable_id] = (
                     str(item.get("selector") or ""),
                     str(item.get("jobtype") or ""),
+                    str(item.get("blocked_node_id") or ""),
                 )
                 if bool(item.get("verified")):
                     verified_unreachable.add(observable_id)
@@ -5744,11 +5746,15 @@ class GoalDriver:
             return {}
         named = {
             observable_id: session_delivery.unreachable_producers.get(
-                observable_id, ("", "")
+                observable_id, ("", "", "")
             )
             for observable_id in session_delivery.verified_unreachable_ids
         }
-        named = {key: value for key, value in named.items() if value[0]}
+        # A refusal of presence -- a named selector or a blocked node; a
+        # refused precision stands on the delivered number instead.
+        named = {
+            key: value for key, value in named.items() if value[0] or value[2]
+        }
         if not named:
             return {}
         from chemsmart.agent.live_session import (
@@ -5783,9 +5789,10 @@ class GoalDriver:
         except Exception:  # noqa: BLE001 - nothing registered reads as none
             artifacts = {}
         reread: dict[str, str] = {}
-        for observable_id, (selector, jobtype) in sorted(named.items()):
+        for observable_id, (selector, jobtype, _node) in sorted(named.items()):
             still, basis = refusal_read_against_results(
                 artifacts=artifacts,
+                observable_id=observable_id,
                 selector=selector,
                 jobtype=jobtype,
                 programs=tuple(registered_reader_programs()),

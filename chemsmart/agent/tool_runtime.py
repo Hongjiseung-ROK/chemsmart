@@ -888,6 +888,7 @@ def results_for_selector(
 def refusal_read_against_results(
     *,
     artifacts: Mapping[str, Any],
+    observable_id: str,
     selector: str,
     jobtype: str,
     programs: Sequence[str],
@@ -917,9 +918,13 @@ def refusal_read_against_results(
     settles, because a run in between can write the evidence.
     """
 
-    served, absent, unread = results_for_selector(
-        artifacts, selector, jobtype, programs
-    )
+    served: tuple[str, ...] = ()
+    absent: tuple[str, ...] = ()
+    unread: tuple[tuple[str, str], ...] = ()
+    if selector:
+        served, absent, unread = results_for_selector(
+            artifacts, selector, jobtype, programs
+        )
     if served:
         return False, (
             basis
@@ -930,11 +935,12 @@ def refusal_read_against_results(
             "another level or of another structure is the session's to "
             "name)"
         )
-    if not selector_declared and unread:
+    if selector and not selector_declared and unread:
         printed = tuple(
             line
             for _artifact_id, path in unread
-            for line in _printed_lines_naming(selector, Path(path))
+            for name in (selector, observable_id)
+            for line in _printed_lines_naming(name, Path(path))
         )[:3]
         return False, (
             basis
@@ -950,13 +956,34 @@ def refusal_read_against_results(
             + "; the refusal is not verified, and a reader is the missing "
             "producer if they hold it"
         )
-    if is_verified and absent:
+    if is_verified:
+        # A refusal verified by the session's own blocked node -- or by a
+        # selector the results do not serve -- still stands on results
+        # the host can print-search: a line of their native output that
+        # names the refused observable is a place the evidence may hold
+        # it, and the host cannot say it does not.
+        printed = tuple(
+            line
+            for _artifact_id, path in registered_result_paths(
+                artifacts, jobtype, programs
+            )
+            for line in _printed_lines_naming(observable_id, Path(path))
+        )[:3]
+        if printed:
+            return False, (
+                basis + "; the registered results print lines naming "
+                f"{observable_id!r}: "
+                + " | ".join(printed)
+                + ", so the host cannot say they lack it and the refusal "
+                "is not verified"
+            )
+    if selector and is_verified and absent:
         return True, (
             basis
             + f"; the host read {selector!r} on the registered results and "
             "found it absent -- " + "; ".join(absent)
         )
-    if is_verified and not selector_declared:
+    if selector and is_verified and not selector_declared:
         return True, (
             basis
             + "; no registered result"
@@ -964,6 +991,34 @@ def refusal_read_against_results(
             + " exists it could be read from"
         )
     return is_verified, basis
+
+
+def registered_result_paths(
+    artifacts: Mapping[str, Any], jobtype: str, programs: Sequence[str]
+) -> tuple[tuple[str, str], ...]:
+    """Registered results a reader opens, of the named job type if any."""
+
+    from chemsmart.analysis.result_readers import reader_for
+
+    readers: dict[str, Any] = {}
+    for program in programs:
+        reader = reader_for(program)
+        if reader is not None:
+            readers[str(reader.artifact_kind)] = reader
+    found: list[tuple[str, str]] = []
+    for artifact_id, artifact in sorted(artifacts.items()):
+        reader = readers.get(str(getattr(artifact, "kind", "")))
+        if reader is None:
+            continue
+        if jobtype:
+            try:
+                output = reader.open_output(Path(artifact.path))
+            except Exception:  # noqa: BLE001 - an unopenable file is skipped
+                continue
+            if str(getattr(output, "jobtype", "") or "").casefold() != jobtype:
+                continue
+        found.append((str(artifact_id), str(artifact.path)))
+    return tuple(found)
 
 
 def _digest_valid_json_receipt(path: str | Path) -> Mapping[str, Any] | None:
@@ -7159,10 +7214,14 @@ class CommandCompiledToolHostV1:
                         "selector and jobtype, or blocked_node_id); the "
                         "refusal is stated, not verified"
                     )
-            if selector:
+            # A refusal of a precision stands on the delivered number and
+            # an open requirement; what an output prints does not bear on
+            # it, so only a refusal of presence is read against results.
+            if selector or (is_verified and blocked_node_id):
                 # Every registered result is read, whichever program wrote
                 # it: the envelope says what may run, not what may be read.
                 is_verified, basis = self._refusal_read_against_evidence(
+                    observable_id=observable_id,
                     selector=selector,
                     jobtype=jobtype,
                     programs=registered_reader_programs(),
@@ -7187,6 +7246,7 @@ class CommandCompiledToolHostV1:
     def _refusal_read_against_evidence(
         self,
         *,
+        observable_id: str,
         selector: str,
         jobtype: str,
         programs: Sequence[str],
@@ -7198,6 +7258,7 @@ class CommandCompiledToolHostV1:
 
         return refusal_read_against_results(
             artifacts=self.artifacts,
+            observable_id=observable_id,
             selector=selector,
             jobtype=jobtype,
             programs=programs,
