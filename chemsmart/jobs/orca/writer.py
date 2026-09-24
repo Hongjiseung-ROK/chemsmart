@@ -294,17 +294,25 @@ class ORCAInputWriter(InputWriter):
         f.write(route_string + "\n")
 
     def _correlated_pairs(self):
-        """The electron pairs ORCA's MDCI would share for this job, or None."""
+        """The electron pairs ORCA's MDCI would share for this job, or None.
 
-        molecule = self.job.molecule
-        charge = self.settings.charge
-        multiplicity = self.settings.multiplicity
+        None, and so the granted cores, for a writer that holds no job or
+        no settings to ask (a writer built only to render resources).
+        """
+
+        job = getattr(self, "job", None)
+        settings = getattr(self, "settings", None)
+        molecule = getattr(job, "molecule", None)
+        if molecule is None or settings is None:
+            return None
+        charge = settings.charge
+        multiplicity = settings.multiplicity
         if charge is None:
             charge = getattr(molecule, "charge", None)
         if multiplicity is None:
             multiplicity = getattr(molecule, "multiplicity", None)
         return orca_correlated_pairs(
-            self.settings,
+            settings,
             list(molecule.chemical_symbols),
             charge,
             multiplicity,
