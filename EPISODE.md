@@ -248,13 +248,72 @@ equal on a270eca6).
 | job | slot | what | pre-registration | outcome |
 |---|---|---|---|---|
 | 2149579 | r10-q3-a | batch-dev1: D1 in C, B, A; D3 in C (dev, provider-only) | e7f1723f7b06 | COMPLETED; 4 sessions, exit 0, waiting_for_approval each |
-| 2149677 | r10-q3-a | sealed1: the 48 sealed sessions (provider-only), plan 06ac7515 | 34a1e57ab05a | running; the job verified both code digests (d3652db7 = 292b9bf3, cdfd90c9 = 64fc0ca1), all 52 sealed files and the plan digest before the first session |
+| 2149677 | r10-q3-a | sealed1: the 48 sealed sessions (provider-only), plan 06ac7515 | 34a1e57ab05a | COMPLETED 0:0, 8:13:53 (04:02-12:15 HKT); the job verified both code digests (d3652db7 = 292b9bf3, cdfd90c9 = 64fc0ca1), all 52 sealed files and the plan digest before the first session; 48 of 48 sessions exit 0 |
+
+## Sealed run: host records (read before any grading)
+
+**Infrastructure accounting (pre-registered rule).** 48 of 48 sessions ran
+and ended `waiting_for_approval` with a review prepared; provider turns
+11-28 per session; observed model `deepseek-v4-flash-0731` throughout.
+822 provider attempts succeeded and two failed transiently inside
+sessions that continued: one connect timeout in q05-B (13 provider turns
+in all) and one rate-limited attempt in q12-C (14), each retried by the
+transport. Neither session had zero provider turns or ended on the error,
+so neither is infrastructure: nothing was re-issued and no cell is
+missing. Input tokens: A 25.9 M, B 39.3 M, C 36.3 M, 101.5 M in all, 18 %
+above the 86 M estimate; wall time 8 h 14 min against the 6-7 h estimate.
+
+**Mechanism (from typed events and transcripts; never shown to a grader).**
+- C: 16 of 16 sessions loaded advisory knowledge, every load by the
+  model's own search (none by exact name, none pushed).
+  `about_method_adequacy` arrived in 15 of 16, every time before the
+  first accepted `project_yaml` establish or render (arrival at
+  transcript messages 6-22, level act at 20-38); the exception, q12,
+  loaded conventions and never adequacy. `about_scientific_conventions`
+  16 of 16, `about_typed_analysis_contract` 11 of 16. The pre-registered
+  delivery falsifier (fewer than 12 of 16) is not met, so the premise is
+  tested by the grading.
+- A: 0 calls of an advisory-document name the host cannot serve, 0
+  searches for the documents: the false sentence cost no tool call; any
+  cost it has is in the science, which A - B measures.
+- B: 0 knowledge loads, as designed.
+- Refused calls summed per arm: A 10, B 15, C 29.
+
+## Packets (built before any grading)
+
+- 52 packets = 48 sessions + 4 duplicates drawn with
+  `random.Random(20260924).sample` over the run order; random ids
+  (SystemRandom). Location: `sealed/q3-packets/packets/*.md` in this
+  worktree, with `sealed/q3-packets/GRADER.md`; `sealed/` is in the shared
+  git exclude and nothing there is committed.
+- **Packet-to-arm mapping sha256:
+  `1da36c5b82f182df87ca1c5ab71389a71e426db1a352c91778030586e04cc8fb`.**
+  The mapping is kept by me only (scratchpad, and a mode-600 copy in
+  /project/xlzhang/jiseung/r10/q3/private/); it never leaves me before
+  grading is returned.
+- Built with the redaction as fixed. One presentational line was added,
+  identical in every arm: each packet names its question id, so the grader
+  can match the rubric (GRADER.md asks for it).
+- **Residual leakage, measured.** The fixed redaction replaces reference
+  names and document ids in their catalogue spellings; a session's own
+  paraphrase survives it. Five phrases only a knowledge-arm session writes
+  -- regexes `method[\s_-]adequacy`, `analysis[\s_-]contract`,
+  `scientific[\s_-]conventions`, `conventions? (reference|document|entry|text)`
+  and the word `advisory`, case-insensitive -- occur in 7 of the 16 C
+  packets and in no A or B packet. The redaction token `[reference]`
+  itself occurs in 12 of 16 C, 5 of 18 A and 1 of 18 B packets. The packet
+  set is not changed after this measurement; instead:
+- **Sensitivity analysis, added now, before any grade exists.** The
+  primary test (C - B on Q, exact signed-rank) is repeated on the
+  questions whose C packet contains none of the five phrases (9
+  questions). A primary result that the sensitivity test contradicts is
+  reported as leak-dependent. Recommendation to the master: graders are
+  not told what the arms are.
 
 ## Status
 
-Phase 2: waiting on job 2149677 (the sealed run, plans/sealed1, 48
-sessions, strictly sequential; about 6-7 h). Then: infrastructure check of
-every session (zero provider turns or a provider error before any
-scientific call is re-issued once in a continuation job), packets, the
-mapping digest committed here, hand-back "packets ready". Grading is the
-master's.
+Phase 2: packets ready, mapping digest committed above. Paused for
+grading, which is the master's (grader 1 for the primary test; grader 2
+for inter-rater agreement). On return: unblind with the mapping, run the
+pre-registered tests and the sensitivity analysis, then the live goals
+under the pre-registered selection rule.
