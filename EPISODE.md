@@ -219,6 +219,64 @@ P2-D. CEP-31G water: Gaussian's level states {O: 2, H: 0} core electrons.
 H2. PySCF max|g| at the CH2O minimum Gaussian reaches as written now
 <= 3e-5 Eh/Bohr (O1: 9.45e-5 as written then, 8.6e-7 with `5d 7f`).
 
+## O2 jobs and results (read from raw outputs and receipts)
+
+- 2151888 (slot a, prereg 10922bcd81be) cli/o2a, code a930b54b, digest
+  9a95ee79 verified on the node: 24 commands, 10 exit 0, 14 exit 1.
+- 2151890 (slot b, same prereg) cli/o2b: 13 commands, all exit 0.
+
+E2-A FAILED as pre-registered, on the record and not the physics: every
+PySCF run on an iodine species ran to normal termination and was refused
+by its own validator, `pyscf.result.atom_identity_mismatch` -- the driver
+wrote `mol.atom_charges()`, which under a core potential is Z less the
+core (25 for iodine). My local check had read the electron counts and not
+run the whole validator. Repaired in 1b5ae687 (records Z). The physics
+held: PySCF HF/def2-SVP minus O1's ORCA 9.5e-11 (HI), 8.5e-11 (I), 1.7e-10
+(CH3I), 3.5e-13 (H), 1.6e-11 (CH3) Eh; electrons 26/1/25/34/9; recorded
+cores {I: 28}; H and CH3 validated.
+E2-B holds: B3LYP PySCF minus ORCA <= 1.42e-6 Eh.
+E2-C holds: MP2 auto froze 4/0/4/5/1; totals within 1.75e-8 of ORCA; HI
+MP2 bond energy 71.43923 (ORCA 71.43922), CH3I 60.20161 in both.
+E2-D holds: all-electron HI and I lie 14.87 and 14.44 mEh below auto; the
+HI bond energy rises by 0.271 kcal/mol (71.711).
+E2-E holds: CCSD(T) auto HI minus ORCA -6.1e-10 Eh.
+E2-F holds: HF/def2-TZVP HI minus ORCA -1.5e-10 Eh (56 functions each).
+E2-G holds: HI wavenumber PySCF analytic 2421.80, ORCA analytic 2421.81,
+ORCA NumFreq 2421.80 cm-1; PySCF max|g| 3.043316e-3 vs ORCA 3.043338e-3.
+P2-A holds except one name: `(5D, 7F)` for 6-31G(d) (four species),
+MP2/6-31G(d), 6-31+G(d,p), 6-311+G(d,p) (no `5d` written), D95V, 3-21G*;
+CEP-31G printed `(5D, 10F)` -- the manual's "all built-in sets use pure
+f" does not hold for CEP; the writer now states `5d 7f` (8c4a7169).
+P2-B holds: Gaussian B3LYP/6-31G(d) as written now equals O1's G5 to every
+printed digit on all four species, within 8.5e-7 Eh of ORCA; MP2 CH2O
+equals O1's G5.
+P2-C MISSED its band: Gaussian minus ORCA at B3LYP/6-31+G(d,p) is 1.38e-6
+Eh, over the 1e-6 I wrote (28 functions in both; the diffuse set's grid
+error; 0.0009 kcal/mol).
+P2-D holds: the CEP-31G level states cores {O: 2, H: 0} (Gaussian printed
+no table; read from its electron count and nuclear repulsion energy). The
+same level had no `basis` -- the Gaussian route reader's prefix list
+lacked D95/CEP/SDD/STO names (4107e350).
+H2 holds: PySCF max|g| 8.6e-7 Eh/Bohr at the CH2O minimum Gaussian reached
+as written now (O1 as written then: 9.45e-5).
+
+## Oracle O2' (pre-registered before submission; tree 4107e350)
+
+The iodine PySCF runs O2 refused, re-run on the repaired record, and the
+references a live goal at CCSD(T)/def2-TZVP will be read against.
+O2'-A. PySCF HF/def2-SVP HI, I, CH3I and MP2 auto HI, I, CH3I, MP2 unset
+HI, CCSD(T) auto HI, and the HF/def2-SVP Hessian of HI: every receipt
+`validated`, atomic numbers [1, 53], [53], [6, 53, 1, 1, 1]; totals equal
+to O2's within 1e-9 Eh; HI wavenumber 2421.8 +- 0.1 cm-1.
+O2'-B (goal references). CCSD(T)/def2-TZVP at r(HI) = 1.609 A, ORCA
+defaults and PySCF `frozen_core: auto`, HI, H, I: De(HI) from the two
+programs within 0.01 kcal/mol, in 70-82 kcal/mol (scalar-relativistic, no
+spin-orbit; experiment De 73.7 with I's spin-orbit lowering about 7).
+PySCF with frozen core unset: De within 1 kcal/mol of the frozen one.
+B3LYP/def2-TZVP HI optimised and its Hessian in PySCF: r_e 1.60-1.63 A,
+one real mode 2250-2400 cm-1, both receipts validated.
+O2'-C. Gaussian CEP-31G water as written now prints `(5D, 7F)`.
+
 ## Status
 
 - step 1: tree read; O1 pre-registered above; code unchanged.
