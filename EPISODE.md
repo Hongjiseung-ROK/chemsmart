@@ -217,6 +217,7 @@ one-electron-exact wavefunction method with def2-TZVP within
 |---|---|---|---|---|
 | 2150437 | r10-q9-a | O1 oracle (base d2c192af + repaired 55e4424a) | trees verified in-job | ace1a6ecdd8d |
 | 2150438 | r10-q9-b | G1 methanol O-H BDE goal | 55e4424a, digest ad888d1d | ace1a6ecdd8d |
+| 2150471 | r10-q9-a | O2 probe leftovers, before 55e4424a / after 279b11cb (digest 7b2fb624) | verified in-job | 780f83311007 |
 
 ## O1 read (Slurm 2150437, chpc-cn071, 10:39-10:41 CST; both code digests verified in-job)
 
