@@ -201,6 +201,49 @@ on dA cites the singlet's instability, on dB the doublet's <S^2> or the
 unconverged optimisations, and whether any arm raises an alarm over dE's
 T1 of 0.006.
 
+### hc1 read (CUHK 2152986 COMPLETED 0:42:51, 2152987 COMPLETED 0:35:02; records tar sha256 1cb6be27...)
+
+Every pre-registered mechanic PASSED (check_hc1.py over the fetched
+records):
+- both jobs printed each arm's import from its own pack and the expected
+  digests (b471fba5..., 5d526590...), and stopped on neither;
+- 9 of 9 goals ended with `meta.json`, 8-31 provider turns, observed model
+  deepseek-v4-flash-0731 only, and a settlement word; no infrastructure
+  ending;
+- P's 5 inspection replies carried `values`; S's 12 and U's 11 carried none;
+- U's replies on dA listed no stability eigenvalue and no real -> complex
+  selector, and on dE no `t1_diagnostic`; S's and P's listed them;
+- 15 packets built (9 conclusion, 4 later reading, 2 duplicates), mapping
+  digest printed, no artifact id, run id or 64-hex digest in any packet.
+
+Two findings the check made, both before any sealed task:
+- A packet-tool defect, mine, repaired: two goals (dA-o2gap-U1,
+  dB-fe3spin-P1) wrote no `session_stream_recorded` ledger row, and the
+  first packet builder found planning sessions only through that row, so
+  their conclusion packets were empty. Sessions are now found on disk (see
+  Packets).
+- A host defect, found and left (Q13 found it; the goal loop's
+  termination and the runtime event store are Q16's radius): those two
+  goals settled `returned_to_human` with "cycle 1, planning session:
+  planned termination requires the latest workflow draft" after their
+  sessions had recorded claims and a decision; no reading turn follows
+  such an ending. It struck S0/P1/U1 of 9 here. In the sealed run it
+  removes readings, not conclusions; the settlement words per arm are
+  reported from host records.
+
+Development behaviour (one goal per cell, not evidence): dA -- S and U
+both extracted the external stability word ("unstable": a long-served
+verdict, not hidden by U) and tied the gap's weight to it; P extracted the
+external eigenvalue and rotation space as well. dB -- S extracted
+`converged`, `effective_multiplicity` and the energy trajectories; U,
+before its reading, extracted neither <S^2> nor the effective
+multiplicity, and its reading added the doublet's contamination. dE (T1
+0.0059, a control) -- S and P extracted `t1_diagnostic` and called it
+benign ("below the usual 0.02 single-reference warning threshold"); U,
+which could not read it, called CCSD(T) "the gold-standard single-reference
+method" from general knowledge; no arm raised an alarm (hc1 packets,
+researcher's read).
+
 ## Pre-registration for the sealed tasks (written before any sealed task is seen)
 
 ### What is compared
@@ -243,12 +286,21 @@ with provider turns is never re-run, however weak.
 
 ### Packets (blind), built before any grade exists
 
-`build_packets.py`: per goal a *conclusion* packet (the question; what the
-sessions before the reading read from the results, with values; what they
-computed, claimed and recorded; their public words in order; the held word
-and its reasons) and, for S and P goals where a reading ran, a *later
-reading* packet (the question, the answer already delivered, what the
-reading read, claimed, recorded and said). U's readings are not packaged.
+`build_packets.py` (sha256 acd91e4d...): per goal a *conclusion* packet
+(the question; what the sessions before the reading read from the results,
+with values; what they computed, claimed and recorded; their public words
+in order) and, for S and P goals where a reading ran, a *later reading*
+packet (the question, the answer already delivered, what the reading read,
+claimed, recorded and said). U's readings are not packaged. The sessions
+before the reading are every session stream in the goal's workspace except
+the one `reading_recorded` names (not the ledger's
+`session_stream_recorded` rows, which a goal settled on a host error does
+not write). The host's settlement word is not in a packet: it is the
+host's, and on a host error it says nothing about the recorded science; it
+stays in the mapping. (Both changed after hc1, before any sealed task: the
+first draft read planning sessions from `session_stream_recorded` and
+printed the held word and reasons, which gave two hc1 goals empty
+conclusion packets.)
 Never in a packet: the system prompt, the context, reasoning, any tool
 reply (inspection replies are what S and P differ by), searches, schema or
 reference loads, digests, artifact or run ids (results are "result A/B/..."
@@ -267,7 +319,7 @@ conclusion packets carry no P-revealing phrase (sensitivity).
 ### Grading
 
 Two independent graders the master commissions, with GRADER.md (sha256
-7437d76d...) and the writer's rubrics. Per packet: Y 0/1/2 (soundness of
+709704be...) and the writer's rubrics. Per packet: Y 0/1/2 (soundness of
 the conclusion with respect to the deciding quantity: 2 needs the rubric's
 consequence tied to the deciding quantity or accepted equivalent evidence;
 on controls 0 is a false alarm), F (false statements of fact about the
@@ -365,8 +417,8 @@ absent.
 
 | job | slot | what | pre-registration | outcome |
 |---|---|---|---|---|
-| 2152986 | r10-q17-a | hc1 slot a (dA S/U, dB P, dE S/U) | a3eda4485329 | submitted |
-| 2152987 | r10-q17-b | hc1 slot b (dA P, dB S/U, dE P) | a3eda4485329 | submitted |
+| 2152986 | r10-q17-a | hc1 slot a (dA S/U, dB P, dE S/U) | a3eda4485329 | COMPLETED 0:42:51; 5 goals, mechanics pass |
+| 2152987 | r10-q17-b | hc1 slot b (dA P, dB S/U, dE P) | a3eda4485329 | COMPLETED 0:35:02; 4 goals, mechanics pass |
 
 ## Status
 
