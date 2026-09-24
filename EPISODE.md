@@ -284,6 +284,36 @@ route with a scientific reason, R2 holds on every handoff, and B1-B3 pass
   or UKS singlet in PySCF, whose reference follows multiplicity), so a
   scientifically correct request has no expression except native
   keywords -- the Fundamental-1 failure the charter names.
+- Cycle 1 ended `planned`: the host refused the execution review
+  ("every initial workflow node requires a green preview") because the
+  session amended its scan node after the last compile and never
+  recompiled it (the model's; the refusal is correct but names no node).
+  The re-wake was charged a revision and called "the last for this goal";
+  its route text offers only claiming from receipts in hand, an
+  analysis-only plan, or declaring the observables undeliverable, though
+  the cycle had spent no engine call (goal-loop wording; Q16's area).
+- Cycle 2 (the Agent's recorded decision `bergman-method-protocol-bs-ccsdt`,
+  host records): "the ORCA overlay cannot emit ORCA's %scf FlipSpin
+  atom-list block -- input_string is a full-file replacement ... and
+  additional_route_parameters appends to the simple input line where ORCA
+  6.1.1 rejects 'FlipSpin 1,6'"; it moved the diradical species to
+  Gaussian (`guess=mix`), kept the enediyne on ORCA, and planned (U)CCSD(T)
+  at def2-TZVPP/def2-QZVPP in Gaussian; CASSCF/NEVPT2 named as the
+  unavailable gold standard that bounds its numbers. A cross-program
+  route with a recorded scientific reason (R1).
+- Plan `bergman-bs-ccsdt`, 11 nodes under one approval: ORCA opt+freq
+  (enediyne); Gaussian ts, opt (p-benzyne), irc forward/reverse; six
+  Gaussian CCSD(T) single points, with an in-approval ORCA -> Gaussian
+  geometry edge (ene-opt -> cc-*-ene). First wave: the three producers.
+- The previewed Gaussian inputs are `# opt=(ts,calcfc,noeigentest) freq
+  b3lyp def2tzvp guess=mix` and `# opt freq b3lyp def2tzvp guess=mix`: a
+  restricted method for a singlet, where Gaussian's Guess=Mix has nothing
+  to break. The CCSD(T) nodes are `ccsd(t) ... guess=mix`, likewise
+  restricted. The host cannot see this: the intent lives in an untyped
+  native passthrough, and the Gaussian reader (result_readers.py
+  `_gaussian_functional`) reads `SCF Done: E(RB3LYP)` and strips the R/U
+  prefix, so `functional` answers `b3lyp` either way and the surface's
+  `reference` is `unknown`. To be settled by Gaussian's own output.
 
 ## Status
 
