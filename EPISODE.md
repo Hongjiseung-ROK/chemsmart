@@ -297,6 +297,9 @@ no findings; read through the readers of 28b8b48c/c2873226):
 | Slurm | slot | what | code | pre-registration |
 |---|---|---|---|---|
 | 2150194 | r10-q8-a | cli/oracle1: O1 (25 CLI runs) | 4a01097a | e562a1d51451 |
+| 2150295 | r10-q8-a | goals/g1-ladder: acrolein S/T ladder, ORCA + PySCF | fcb115eb | f1f16826f111 |
+| 2150296 | r10-q8-b | goals/g2-allyl: allyl doublets to 7 eV, ORCA + PySCF | fcb115eb | f1f16826f111 |
+| 2150298 | r10-q8-a | cli/oracle2: O2 (4 PySCF runs, code-5d2dfc54 beside the goals' code) | 5d2dfc54 | 80f84d0ef09b |
 
 ## Status
 
@@ -305,3 +308,11 @@ no findings; read through the readers of 28b8b48c/c2873226):
   6322d48e (shared: ORCA triplet + unrestricted; ORCA's %tddft reader),
   61a46f4e (PySCF singlet_triplet). Every program now takes the four words
   (fake previews green); none has run on an engine. O1 pre-registered.
+- step 2: O1 read (above). Read side and level committed: 28b8b48c (one
+  order, one set of names, ORCA precision, Gaussian open-shell roots),
+  c2873226 (response in the level identity, ORCA's level states it),
+  b082d045 (<S^2> only where it is one quantity; O1 fixtures), 6d982a50
+  (guide sentences: manifold names, windows), 43862950 (what a root is
+  made of, in all three programs).
+- step 3: G1 and G2 issued on fcb115eb (before 43862950: the goals have no
+  character selector); O2 queued on 5d2dfc54.
