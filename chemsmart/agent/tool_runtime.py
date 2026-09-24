@@ -6832,9 +6832,13 @@ class CommandCompiledToolHostV1:
         """
 
         root = getattr(self, "run_evidence_root", None)
-        if not root:
+        if not root or not receipt_sha256:
             return False
-        needle = f'"receipt_sha256": "{receipt_sha256}"'
+        # The digest is searched as itself and the record is read as the
+        # store wrote it. The needle used to spell the JSON with a space
+        # after the colon, which the event store never writes, so every
+        # citation of a recorded run's receipt was refused -- including
+        # the failed validation receipt the wake tells a session to cite.
         for stream in sorted(
             Path(root).glob(".chemsmart-agent/goals/*/runs/*/events.jsonl")
         ):
@@ -6842,16 +6846,21 @@ class CommandCompiledToolHostV1:
                 text = stream.read_text(encoding="utf-8")
             except OSError:
                 continue
-            if needle not in text:
+            if receipt_sha256 not in text:
                 continue
             for line in text.splitlines():
-                if needle not in line:
+                if receipt_sha256 not in line:
                     continue
                 try:
                     event = json.loads(line)
                 except json.JSONDecodeError:
                     continue
-                if event.get("kind") in self._RUN_RECEIPT_KINDS:
+                payload = event.get("payload") or {}
+                if (
+                    event.get("kind") in self._RUN_RECEIPT_KINDS
+                    and str(payload.get("receipt_sha256") or "")
+                    == receipt_sha256
+                ):
                     return True
         return False
 

@@ -59,6 +59,8 @@ from .test_a_partial_delivery_ends_its_session import (
 from .test_the_goal_loop_recovers_or_returns import (
     _bundle_file,
     _envelope_file,
+    _planning_session,
+    _review_payload,
 )
 
 _RULE = "val-rks-stability/external_no_spin_instability"
@@ -265,6 +267,41 @@ def test_a_criterion_nobody_answered_holds_the_delivery_and_is_named(
     )
 
 
+def _engine_prefix(tmp_path, target):
+    """One validated engine node, recorded the way a run records it, in
+    the session the chain below it then writes into."""
+
+    from chemsmart.agent.execution import build_program_execution_receipt
+
+    from .test_runtime_v2_launch_fence import _reserve
+
+    build = tmp_path / "engine-build"
+    store = RuntimeEventStore(
+        build / "events.jsonl", session_id="protocol-session"
+    )
+    _, plan, _m, _a, invocation = _reserve(store, build)
+    store.record_program_execution_receipt(
+        turn_id="turn-1",
+        workflow_id=plan.workflow_id,
+        run_id="run.water-approval",
+        receipt=build_program_execution_receipt(
+            invocation,
+            execution_state="engine_complete",
+            exit_status=0,
+            child_exit_status=0,
+            engine_complete=True,
+            validated=False,
+            findings=(),
+            started_at="2026-09-25T00:00:00+00:00",
+            finished_at="2026-09-25T00:00:05+00:00",
+        ),
+    )
+    target.mkdir(parents=True, exist_ok=True)
+    (target / "events.jsonl").write_bytes(
+        (build / "events.jsonl").read_bytes()
+    )
+
+
 def _doubted_and_unanswered(artifact_id):
     """o2r's acts, with a decision that doubts the extraction its claims
     stand on and does not cite the failed verdict."""
@@ -391,3 +428,164 @@ def test_a_delivery_certified_from_its_claims_reads_the_criterion_too(
         for item in certified["record"]["findings"]
     )
     assert result.terminal_state != "complete"
+
+
+def _run_with_the_failed_criterion(tmp_path):
+    """Cycle 1's run: an engine node, then the approved chain over the
+    registered O2 result -- the criterion fails, the energy is claimed,
+    and a run's stream holds no decision."""
+
+    def step(run_directory):
+        _engine_prefix(tmp_path, run_directory)
+        turns = lambda artifact_id: [  # noqa: E731
+            turn
+            for index, turn in enumerate(
+                _o2r_turns(artifact_id, cite_verdict=False)
+            )
+            if index != 3
+        ]
+        _run_turns(
+            run_directory / "events.jsonl",
+            turns,
+            session_id="protocol-session",
+            scratch=tmp_path,
+        )
+        return SimpleNamespace(status="completed", analysis_status="completed")
+
+    return step
+
+
+def _claim_again(artifact_id, *, cite_run=None):
+    """The woken cycle: read the energy again from the same result and
+    claim it -- without evaluating the criterion again. ``cite_run`` names
+    the run stream whose failed receipt the decision cites, the route the
+    wake prescribes."""
+
+    def replies(payload):
+        return [
+            json.loads(message["content"])["result"]["receipt_sha256"]
+            for message in payload["messages"]
+            if message.get("role") == "tool"
+        ]
+
+    def extracted(payload):
+        return _call(
+            1,
+            "extract_result_quantities",
+            {
+                "program": "pyscf",
+                "artifact_id": artifact_id,
+                "selectors": [
+                    {"quantity_id": "ref-energy", "selector": "energy"}
+                ],
+            },
+        )
+
+    def claimed(payload):
+        return _call(
+            2,
+            "record_analysis_claims",
+            {
+                "claims": [
+                    {
+                        "claim_id": "ref-energy-hartree",
+                        "receipt_sha256": replies(payload)[-1],
+                        "quantity_id": "ref-energy",
+                        "display_unit": "hartree",
+                    }
+                ]
+            },
+        )
+
+    def decided(payload):
+        cited = list(replies(payload)[-2:])
+        if cite_run is not None:
+            cited += [
+                row["payload"]["receipt_sha256"]
+                for row in _stream_rows(cite_run())
+                if row["kind"] == "scientific_validation_evaluated"
+                and not row["payload"]["all_rules_passed"]
+            ][-1:]
+        return _call(
+            3,
+            "record_scientific_decision",
+            {
+                "decision_id": "o2-rks-energy",
+                "assumptions": ["the restricted reference at the geometry"],
+                "method_rationale": "the task fixed B3LYP/def2-SVP",
+                "alternatives": ["a broken-symmetry solution, not asked"],
+                "uncertainties": ["SCF convergence precision"],
+                "diagnostics": ["the energy is the unstable reference's"],
+                "stage_order": ["extract", "claim"],
+                "evidence_refs": [],
+                "postprocessing_receipt_sha256s": cited,
+            },
+        )
+
+    return [
+        lambda payload: _turn(1, "Reading the energy.", (extracted(payload),)),
+        lambda payload: _turn(2, "Claiming it.", (claimed(payload),)),
+        lambda payload: _turn(3, "Deciding.", (decided(payload),)),
+        lambda payload: _turn(4, "The energy is claimed by its id."),
+    ]
+
+
+def _run_then_claim(tmp_path, *, cite):
+    goal_id = "goal-o2r-run"
+    run_stream = (
+        tmp_path
+        / "ws"
+        / ".chemsmart-agent"
+        / "goals"
+        / goal_id
+        / "runs"
+        / "cycle-1"
+        / "events.jsonl"
+    )
+    return _goal(
+        tmp_path,
+        goal_id=goal_id,
+        sessions=[
+            _planning_session(
+                "live-20260925T000000000000Z-q19-plan",
+                review=_review_payload(),
+            ),
+            _real_session(
+                tmp_path,
+                "live-20260925T010000000000Z-q19-woken",
+                lambda artifact_id: _claim_again(
+                    artifact_id,
+                    cite_run=(lambda: run_stream) if cite else None,
+                ),
+            ),
+        ],
+        executes=[_run_with_the_failed_criterion(tmp_path)],
+    )
+
+
+@pytest.mark.capability("rule:wake.failed_validation_receipt_answers_verdict")
+def test_a_woken_decision_may_cite_the_failed_receipt_its_run_minted(
+    tmp_path,
+):
+    """The wake tells a session to cite the failed validation receipt, and
+    after a run that receipt is the run's. The host accepted a recorded
+    run's receipts only when the stream spelled its JSON with a space the
+    event store never writes, so the prescribed citation was refused."""
+
+    _run_then_claim(tmp_path, cite=True)
+    woken = (
+        tmp_path
+        / "ws"
+        / ".chemsmart-agent"
+        / "runs"
+        / "live-20260925T010000000000Z-q19-woken"
+        / "events.jsonl"
+    )
+    kinds = [row["kind"] for row in _stream_rows(woken)]
+    assert "scientific_decision_recorded" in kinds
+    assert not [
+        row
+        for row in _stream_rows(woken)
+        if row["kind"] == "tool_failed"
+        and "receipt_is_one_the_host_minted" in json.dumps(row)
+    ]
