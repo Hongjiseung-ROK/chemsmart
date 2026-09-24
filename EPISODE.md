@@ -495,3 +495,13 @@ G2 is a second, independent session (N runs are N observations).
   set), 4649 passed; tests/agent all green; ruff, black and isort clean on
   the two touched files. G2 (Slurm 2153334) running: WAITING ON JOB
   2153334. On resume: the same reading order as g1, plus H-G2a.
+- 2026-09-25: EPISODE ENDS. Milestone B not earned. g1 was stopped by a
+  hub break, repaired (9cda6569) and verified live in g2 (H-G2a). g2
+  ended on the model's refusal: a false premise that the saddle is a
+  diradical, over a real hub gap (no typed broken-symmetry axis, Q18) and
+  a program refusal the hub could predict (Gaussian wB97X-D3(BJ)). A
+  third issue of the same task would be a re-roll of a run weak for the
+  model's reasons, so none is issued. Final commit ab1b4fbb: r10-integration
+  (a7bc02e0) merged; tests/agent 3095 passed on its pristine export; full
+  suite 23 failed (baseline) / 4649 passed on 1d18208c, whose code is
+  identical.
