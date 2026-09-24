@@ -252,11 +252,76 @@ observation of deepseek-v4-flash-0731; a different route is itself evidence.
 - Neutral: the session takes a route that never refuses the 90-deg
   observable (then S-settle is not exercised; reported as the route).
 
+## g2-hooh result (CUHK 2153668, 29 min, code aeddf64c digest verified)
+
+Read from host records (ledger, two session streams, two cycle run streams,
+the public transcript, engine outputs). deepseek-v4-flash-0731, 20 provider
+turns in the cycle-2 session; one run, one observation of that model.
+- Cycle 1 (approved plan): eq (opt+freq), modred + Freq at 0, 90, 180 deg,
+  and a chain deriving G on all four. The host REFUSED the three modred
+  derivations under thermochemistry.free_energy_needs_a_stationary_point
+  (node settlements; "held 1 internal coordinate(s) fixed"), derived G(eq)
+  with its stationarity line; the relative-G expression was skipped.
+- Cycle 2 session: its recorded decision rejects reading ORCA's printed G
+  "(the host validator refuses it for non-stationary structures and the
+  partition-function logic at a driven coordinate is not a free energy)";
+  it extracted E at eq/0/90/180, evaluated hooh-relative-e and claimed the
+  five declared Gibbs observables with the electronic differences, every
+  claim carrying `approximates` ("electronic (0 K) height ... approximating
+  the declared free-energy barrier; the Gibbs barrier needs the
+  transition-state free energy from the approved TS workflow") and a
+  finding in its words (f-electronic-approximation). It planned OptTS at 0
+  and 180 deg "to supply exact G-double-dagger barriers" (revision 1).
+- Cycle 2 run: both OptTS converged (-610.78, -245.85 cm-1; E within 4e-6
+  and 7e-7 Eh of the held structures) and the goal settled `achieved` in
+  the same step: "cycle 2: workflow completed; no completion gate certified
+  this delivery" plus the session's findings. No session read the saddles;
+  no G(TS) was derived.
+- Bands (all met): eq H-O-O-H 120.66 deg; dE(trans) 0.561; dE(cis) 8.292;
+  dE(90 held) 0.760 kcal/mol. No dG delivered.
+- Outcomes against the pre-registration: S-host met (three refusals, read
+  and quoted by the next session). S-agent met: the 90-deg number is the
+  constrained electronic energy named as such (claim `approximates` and a
+  finding), not presented as a free energy. F-host, F-agent not triggered.
+  S-settle not exercised -- the session never declared the 90-deg
+  observable unreachable -- so Neutral, as pre-registered.
+- Found beyond the pre-registration (outside my radius, left): the
+  settlement signed `achieved` over its own reason "no completion gate
+  certified this delivery" (the charter's achieved requires a certified
+  delivery) and over five agreed_as_approximation rows whose relationship
+  names a pending workflow that should supersede them; that workflow
+  completed and no session read it (chemsmart/agent/driver.py
+  _achieved_word returns "achieved" with certified = "no completion gate
+  certified this delivery").
+
+## Repair 4 -- geometries of one formula (committed e2fd2295)
+
+Within one formula the reaction statement cancels, so a graft said nothing:
+g1-hooh's approved cycle-1 plan built "G at 90 deg" = G(cis saddle) +
+E(held 90) - E(cis saddle) as a relative Gibbs free energy (skipped only
+because th-opt180 failed). Each number is now placed on the geometry its
+selector's declared structural state names; the statement speaks only where
+two or more geometries of one formula enter, names a thermal part beside
+another geometry's bare energy, and says "the free energy of no state" when
+that energy's structure is shown not to be stationary.
+- Replay (scratchpad/q21/census/replay_kinds_geo.py, outputs fetched
+  read-only): CUHK 265 rebuilt -> 104 statements (86 all geometries read),
+  0 borrowed; ax41 1,065 -> 419 statements, 0 borrowed. A byte-level draft
+  had said "borrowed" on 15 CUHK composites that are one geometry.
+- One-geometry tolerance 1e-3 A, measured: a saddle and the single points
+  on its saved geometry agree to 1.8e-4 A (ax41 po3); one stationary point
+  by two methods differs by 1.0e-3 (Gaussian/ORCA B3LYP) to 0.014 A
+  (water MP2/B3LYP).
+- g1-hooh's plan through the host's handlers on its outputs: g90 and
+  barrier-trans named "the free energy of no state"; g2-hooh's delivered
+  expression: each output an E difference between two geometries
+  0.15-0.49 A apart.
+
 ## Status
 
-- Step 1 (census) done; repairs 1-3 committed; o2fix and g1-hooh read.
+- Census done; repairs 1-4 committed; o2fix, g1-hooh and g2-hooh read.
 - Full suite on a pristine export of ca590e5a: 23 failed, all environmental
   (InChI/CDX imports, PySCF dispersion probes, aggregation and PyscfSettings
   YAML tests), none in tests/agent.
-- g2-hooh submitted as CUHK Slurm 2153668 (slot r10-q21-a, pre-registration b2435e930329) on code aeddf64c (digest ffd396cb...), code dir code-g2.
-- Next: read g2-hooh from host records.
+- Next: hand-back gates on the final commit (merge r10-integration,
+  tests/agent and the full suite from a pristine export, lint).
