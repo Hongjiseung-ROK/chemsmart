@@ -2840,6 +2840,9 @@ def _analysis_delivery(
     receipts: list[str] = []
     doubt_refs: set[str] = set()
     claim_pairs: list[tuple[str, str]] = []
+    # "<receipt>:<quantity_id>" of every quantity a claim carries as its
+    # uncertainty: rendered on that claim, where every reader of it sees it.
+    uncertainty_references: set[str] = set()
     claim_rows: dict[str, dict[str, Any]] = {}
     rejected_bindings: list[tuple[str, str]] = []
     expression_outputs: list[tuple[str, str, tuple[str, ...]]] = []
@@ -2992,6 +2995,9 @@ def _analysis_delivery(
                 claim_pairs.append(
                     (receipt_digest, str(claim.get("quantity_id") or ""))
                 )
+                reference = str(claim.get("uncertainty_reference") or "")
+                if reference:
+                    uncertainty_references.add(reference)
                 # What a stream claim carries, under both the names it
                 # answers to: a claim of this cycle used to be counted
                 # delivered on its id alone while the settlement checked
@@ -3289,10 +3295,16 @@ def _analysis_delivery(
     claimed_ids = {
         quantity_id for _receipt, quantity_id in claim_pairs if quantity_id
     }
+    # An output a delivered claim carries as its uncertainty was rendered:
+    # it is on the claim. Counting it "computed and never rendered" held
+    # two goals whose completions had passed -- r10/q3 g2 (the D0 spread,
+    # 0.50 kJ/mol and 41.8 cm-1, on both headline claims) and r10/q9 g1
+    # (the BDE's 6.0 kJ/mol) -- and opened a recovery, a revision spent on
+    # nothing, in eight more.
     exported_output_ids = {
         output_id
-        for _digest, output_id, _sources in expression_outputs
-        if output_id
+        for digest, output_id, _sources in expression_outputs
+        if output_id and f"{digest}:{output_id}" not in uncertainty_references
     }
     if stopped_by:
         ending = "; ".join(stopped_by)
@@ -4513,8 +4525,15 @@ class GoalDriver:
         # And the run's own stream, when one exists: an executor error
         # raised after nodes completed returns before _outcome, which
         # owns the only other projection, so a cycle could lose real
-        # engine wall time's evidence the same way.
-        if self.run_directory is not None:
+        # engine wall time's evidence the same way. Only this cycle's
+        # run: an error raised while planning finds the previous cycle's
+        # run directory here, and projecting it re-recorded that run
+        # under the label of a run this cycle never made (o2r).
+        if (
+            self.run_directory is not None
+            and self.run_directory
+            == self.goal_dir / "runs" / f"cycle-{self.cycles}"
+        ):
             run_events = self.run_directory / "events.jsonl"
             if run_events.is_file():
                 self._record_workspace(
@@ -4597,6 +4616,14 @@ class GoalDriver:
                 "wake_composed",
                 {"cycle": self.cycles, "run": self.wake["previous_run"]},
             )
+        # The stream this cycle plans in is not known until its session
+        # returns. Until then the previous cycle's stream is the previous
+        # cycle's, and a session that raises is projected from whatever
+        # this names: o2r's cycle 2 (R10 Q13, CUHK 2152079) raised after
+        # claiming its whole answer, and the typed-error projection read
+        # cycle 1's stream, so none of cycle 2's claims or findings
+        # reached the workspace record.
+        self.events_path = None
         try:
             self.session = self.plan_session(
                 task=self.task,
