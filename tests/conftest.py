@@ -90,6 +90,9 @@ def fenced_home(_homes, monkeypatch):
     home = _new_home(_homes)
     _fence_home(monkeypatch, home)
     yield home
+    # Removed, not kept: a path the host caches from one test's home then
+    # fails loudly in the next test instead of quietly reading a home that
+    # is not its own (Server.from_scheduler_type was found this way).
     shutil.rmtree(home, ignore_errors=True)
 
 
