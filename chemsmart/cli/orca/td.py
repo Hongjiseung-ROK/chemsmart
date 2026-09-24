@@ -6,6 +6,11 @@ import click
 
 from chemsmart.cli.job import click_job_options
 from chemsmart.cli.orca.orca import click_orca_solvent_options, orca
+from chemsmart.jobs.orca.settings import (
+    ORCA_TD_RESPONSE_METHODS,
+    ORCA_TD_STATE_MANIFOLDS,
+)
+from chemsmart.jobs.settings import td_manifold_reference_refusal
 from chemsmart.utils.cli import MyCommand
 from chemsmart.utils.utils import check_charge_and_multiplicity
 
@@ -17,7 +22,7 @@ logger = logging.getLogger(__name__)
 @click_orca_solvent_options
 @click.option(
     "--response-method",
-    type=click.Choice(("tda", "tddft"), case_sensitive=False),
+    type=click.Choice(ORCA_TD_RESPONSE_METHODS, case_sensitive=False),
     default=None,
     help="Excited-state response approximation; defaults to project YAML.",
 )
@@ -25,15 +30,19 @@ logger = logging.getLogger(__name__)
     "--nstates",
     type=click.IntRange(min=1),
     default=None,
-    help="Number of excited-state roots; defaults to project YAML.",
+    help=(
+        "Number of excited-state roots (of each manifold); defaults to "
+        "project YAML."
+    ),
 )
 @click.option(
     "--state-manifold",
-    type=click.Choice(("singlet", "singlet_triplet"), case_sensitive=False),
+    type=click.Choice(ORCA_TD_STATE_MANIFOLDS, case_sensitive=False),
     default=None,
     help=(
-        "Closed-shell singlets, or singlets together with spin-adapted "
-        "triplets; defaults to project YAML."
+        "Closed-shell singlets, triplets, or both; or the one "
+        "spin-conserving manifold of an open-shell reference "
+        "(unrestricted); defaults to project YAML."
     ),
 )
 @click.pass_context
@@ -84,12 +93,11 @@ def td(
         raise click.UsageError(
             "ORCA td requires project or CLI values for " + ", ".join(missing)
         )
-    if settings.state_manifold in {"singlet", "singlet_triplet"} and (
-        settings.multiplicity is not None and int(settings.multiplicity) != 1
-    ):
-        raise click.UsageError(
-            "ORCA closed-shell singlet TD roots require multiplicity 1"
-        )
+    refusal = td_manifold_reference_refusal(
+        settings.state_manifold, settings.multiplicity
+    )
+    if refusal:
+        raise click.UsageError(refusal)
     check_charge_and_multiplicity(settings)
 
     from chemsmart.jobs.orca.td import ORCATDDFTJob

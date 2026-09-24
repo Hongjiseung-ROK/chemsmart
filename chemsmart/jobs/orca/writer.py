@@ -312,27 +312,42 @@ class ORCAInputWriter(InputWriter):
 
         if getattr(self.settings, "jobtype", None) != "td":
             return
+        from chemsmart.jobs.orca.settings import (
+            ORCA_TD_MANIFOLD_MARKER,
+            ORCA_TD_RESPONSE_METHODS,
+            ORCA_TD_STATE_MANIFOLDS,
+            ORCA_TD_TRIPLET_SOLVES,
+        )
+        from chemsmart.jobs.settings import TD_OPEN_SHELL_MANIFOLD
+
         response_method = getattr(self.settings, "response_method", None)
         nstates = getattr(self.settings, "nstates", None)
         state_manifold = getattr(self.settings, "state_manifold", None)
-        if response_method not in {"tda", "tddft"}:
+        if response_method not in ORCA_TD_RESPONSE_METHODS:
             raise ValueError(
-                "ORCA td response_method must be 'tda' or 'tddft'"
+                "ORCA td response_method must be one of "
+                f"{list(ORCA_TD_RESPONSE_METHODS)}"
             )
         if nstates is None or int(nstates) <= 0:
             raise ValueError("ORCA td nstates must be a positive integer")
-        if state_manifold not in {"singlet", "singlet_triplet"}:
+        if state_manifold not in ORCA_TD_STATE_MANIFOLDS:
             raise ValueError(
-                "ORCA td supports singlet roots or singlet roots together "
-                "with spin-adapted triplets"
+                "ORCA td state_manifold must be one of "
+                f"{list(ORCA_TD_STATE_MANIFOLDS)}"
             )
+        # ``Triplets true`` spells two requests (the triplets beside the
+        # singlets, or the triplets alone), so the requested manifold rides
+        # a comment ORCA echoes into every output; an open-shell reference
+        # takes no spin option at all.
+        f.write(f"{ORCA_TD_MANIFOLD_MARKER} {state_manifold}\n")
         f.write("%tddft\n")
         f.write(f"  NRoots {int(nstates)}\n")
         f.write(f"  TDA {'true' if response_method == 'tda' else 'false'}\n")
-        f.write(
-            "  Triplets "
-            f"{'true' if state_manifold == 'singlet_triplet' else 'false'}\n"
-        )
+        if state_manifold != TD_OPEN_SHELL_MANIFOLD:
+            f.write(
+                "  Triplets "
+                f"{'true' if state_manifold in ORCA_TD_TRIPLET_SOLVES else 'false'}\n"
+            )
         f.write("end\n")
 
     def _write_basis_block(self, f):

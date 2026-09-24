@@ -484,6 +484,26 @@ def _orca_opt_convergence_words() -> tuple[str, ...]:
     return tuple(sorted(ORCA_OPT_CONVERGENCE_KEYWORDS))
 
 
+def orca_response_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """What an ORCA td stage may be asked for, from the writer's tables.
+
+    The response and manifold words are the ones every program's td stage
+    takes; the tuples read here are the ones the writer checks and spells,
+    so the declaration cannot name a word the writer does not translate
+    (it had re-typed the manifold pair and would have kept doing so).
+    """
+
+    from chemsmart.jobs.orca.settings import (
+        ORCA_TD_RESPONSE_METHODS,
+        ORCA_TD_STATE_MANIFOLDS,
+    )
+
+    return (
+        ("response_method", tuple(sorted(ORCA_TD_RESPONSE_METHODS))),
+        ("state_manifold", tuple(sorted(ORCA_TD_STATE_MANIFOLDS))),
+    )
+
+
 def orca_method_domains() -> tuple[tuple[str, tuple[str, ...]], ...]:
     """Method vocabulary projected from the single-source ORCA io tables.
 
@@ -904,15 +924,11 @@ PROGRAM_CAPABILITIES: Mapping[str, ProgramCapability] = MappingProxyType(
                         ("mdci_cutoff", ("loose", "normal", "tight")),
                         ("reference", ("rhf", "rohf", "uhf")),
                         ("relativistic", ("dkh", "dkh2", "zora")),
-                        ("response_method", ("tda", "tddft")),
                         (
                             "ri_approximation",
                             ("none", "ri", "rijcosx", "rijk"),
                         ),
-                        (
-                            "state_manifold",
-                            ("singlet", "singlet_triplet"),
-                        ),
+                        *orca_response_domains(),
                     )
                 )
             ),
