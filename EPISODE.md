@@ -410,7 +410,9 @@ conformer trap is about 9 kcal/mol.
   O1e, CUHK Slurm 2153621 (r10-q20-a), pre-registration 3831e8bd992c,
   running the rest of O1 (CHD, stabilities, IRCs, tZc, CCSD(T) in both
   programs).
-- 2026-09-25: G1, next submission (r10-q20-b), code r2.
+- 2026-09-25: G1, CUHK Slurm 2153658 (r10-q20-b), pre-registration
+  b081544206f8, started 03:15 HKT; code c0896a07 (tree 5c72afb5 verified on
+  the node), 32 cpus.
 - G1 files (sha256): TASK.md 8843eee2b482a0fe..., envelope.yaml
   aef67402..., goal.sh 38104bb0... (PYTHONPATH r2/code); g0 = the same
   task, envelope and code with provider alibaba-dryrun, decision deny.
@@ -423,3 +425,19 @@ conformer trap is about 9 kcal/mol.
 - 2026-09-25: base verified; governance, Q14/Q15 histories and the three
   settings classes read; gate open; census tooling written; census D
   pre-registered.
+- 2026-09-25 (G1 and O1e running): WAITING ON JOBS 2153658 (G1) AND
+  2153621 (O1e). Hand-back gates green on the code G1 runs: pristine export
+  of baf9065c (chemsmart/ = c0896a07): full suite 23 failed (the baseline
+  set: test_structures 19, test_pyscf_dispersion_conformance 2,
+  test_PyscfSettings 1, test_aggregation 1), 4701 passed, tests/agent none
+  failed; ruff, black, isort clean on the touched files. r10-integration
+  111dc55e merged (a975f9fc, governance only).
+  On resume read, in order: (1) G1's settlement and ledger (read_goal.py),
+  (2) every node's program, level as written, dispersion, and whether any
+  compile or validation refusal named dispersion (H-G1a), (3) the route and
+  its recorded reasons, which programs, why (R1), (4) each handoff's
+  producer, atom order and state (R2), (5) the saddle (imaginary modes,
+  C1...C6), the reactant conformer the barrier is referenced to, and the
+  delivered numbers against B1-B4 and O1e (R3), (6) the host's words (R4);
+  then O1e's IRC, CCSD(T) (ORCA and PySCF), T1 and stabilities against
+  O-B, O-C, O-F, O-G, O-H and the oracle's own dH++(412 K) and dH_rxn.
