@@ -192,4 +192,5 @@ Outcomes, read from host records:
 ## Status
 
 - Step 1 (census) done; repairs 1-3 committed; o2fix read.
-- Next: pack the committed tree, submit g1-hooh, read it from host records.
+- g1-hooh submitted as CUHK Slurm 2153623 (slot r10-q21-a, pre-registration 32c87e6d5eab) on code d32eeeef (digest a4073db6...).
+- Next: merge r10-integration, run the hand-back gates, read g1-hooh from host records.
