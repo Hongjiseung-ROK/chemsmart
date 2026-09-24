@@ -2515,6 +2515,16 @@ def compile_time_observations(
         sentence = pairs.translation(int(granted_cores)) if pairs else ""
         if sentence:
             observations.append(sentence)
+    if (
+        program == "orca"
+        and resolved.get("freq")
+        and not resolved.get("numfreq")
+    ):
+        from chemsmart.jobs.orca.settings import orca_numerical_hessian_reason
+
+        reason = orca_numerical_hessian_reason(resolved)
+        if reason:
+            observations.append(reason)
     # Every job type that promises a stationary point: the two that
     # search for one and the two that evaluate a Hessian on one. The
     # union this replaced added the geometry-cap set to a hand-written

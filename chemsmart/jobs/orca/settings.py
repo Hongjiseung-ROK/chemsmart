@@ -457,7 +457,9 @@ class ORCACorrelatedPairs:
 def _setting_value(settings, name):
     """One field of an ORCA settings object or of its validated mapping."""
 
-    if isinstance(settings, dict):
+    from collections.abc import Mapping
+
+    if isinstance(settings, Mapping):
         return settings.get(name)
     if isinstance(settings, (tuple, list)):
         return dict(settings).get(name)
@@ -536,6 +538,78 @@ def orca_correlated_pairs(settings, symbols, charge, multiplicity):
         max_processes=max_processes,
         refused_at_any_count=refused,
     )
+
+
+#: ORCA's double-hybrid functional keywords (the double-hybrid sections of
+#: ``chemsmart.io.orca.ORCARefs.ORCA_FUNCTIONALS``), lower-cased. Their MP2
+#: part has no analytic second derivative in ORCA.
+ORCA_DOUBLE_HYBRID_FUNCTIONALS = frozenset(
+    {
+        "b2plyp",
+        "mpw2plyp",
+        "b2gp-plyp",
+        "b2k-plyp",
+        "b2t-plyp",
+        "pwpb95",
+        "pbe-qidh",
+        "pbe0-dh",
+        "scs/sos-b2plyp21",
+        "scs-pbe-qidh",
+        "sos-pbe-qidh",
+        "scs-b2gp-plyp21",
+        "sos-b2gp-plyp21",
+        "wb2plyp",
+        "wb2gp-plyp",
+        "wb97x-2",
+        "rsx-qidh",
+        "rsx-0dh",
+        "wpbepp86",
+        "scs/sos-wb2plyp",
+        "scs-wb2gp-plyp",
+        "sos-wb2gp-plyp",
+        "scs-rsx-qidh",
+        "sos-rsx-qidh",
+        "scs-wb88pp86",
+        "sos-wb88pp86",
+        "scs-wpbepp86",
+        "sos-wpbepp86",
+        "dsd-blyp",
+        "dsd-pbep86",
+        "revdsd-pbep86/2021",
+    }
+)
+
+
+def orca_numerical_hessian_reason(settings):
+    """Why ORCA computes this method's Hessian numerically, or "".
+
+    ORCA 6.1.1's input check refuses an analytic Hessian ("MP2 analytic
+    Hessian calculations are not implemented - please use NumFreq") for
+    MP2, RI-MP2 and the double hybrids built on them (R10 Q14 oracle O1,
+    CUHK Slurm 2152636; R10 Q3 g1 lost a cycle to it). The frequencies a
+    project asks for are then ORCA's numerical ones -- central differences
+    of analytic gradients, which O1 shows agree with analytic frequencies
+    to 0.6 cm-1 where both exist (HF water) -- so ``freq`` is written as
+    ``NumFreq`` rather than as an input ORCA is certain to refuse.
+    """
+
+    method = str(_setting_value(settings, "ab_initio") or "").casefold()
+    method = method.replace("_", "-")
+    if method.startswith(("mp2", "ri-mp2", "scs-mp2", "sos-mp2")):
+        return (
+            f"ORCA has no analytic Hessian for {method.upper()}; the input "
+            "asks for NumFreq, the same harmonic frequencies from central "
+            "differences of analytic gradients (6N gradient evaluations)"
+        )
+    functional = str(_setting_value(settings, "functional") or "").casefold()
+    if functional in ORCA_DOUBLE_HYBRID_FUNCTIONALS:
+        return (
+            f"ORCA has no analytic Hessian for the double hybrid "
+            f"{functional} (its MP2 part); the input asks for NumFreq, the "
+            "same harmonic frequencies from central differences of analytic "
+            "gradients (6N gradient evaluations)"
+        )
+    return ""
 
 
 def _uses_orca_ri_mp2(ab_initio, ri_approximation):
@@ -1465,7 +1539,12 @@ class ORCAJobSettings(MolecularJobSettings):
             route_string += " NumFreq"  # requires numerical frequency,
             # e.g., in SMD model where analytic Hessian is not available
         elif self.freq:
-            route_string += " Freq"
+            # A project's freq asks for harmonic frequencies; for a method
+            # ORCA has no analytic Hessian for, NumFreq is how ORCA
+            # computes them, and its input check refuses Freq outright.
+            route_string += (
+                " NumFreq" if orca_numerical_hessian_reason(self) else " Freq"
+            )
 
         if self.vpt2:
             route_string += " VPT2"
