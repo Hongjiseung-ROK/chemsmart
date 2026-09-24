@@ -73,6 +73,73 @@ had earlier members (H1 x3).
   `external_no_spin_instability` failed, so its claims stand on a result the
   host reads as rejected).
 
+## Repairs (committed, each with a witness red on 2c1050c7 and green here)
+
+- ad15e81a H1 loop: a partial completion ends the session `planned` on its
+  workflow draft (test_a_partial_delivery_ends_its_session).
+- 65fe94e7 H6 driver: a cycle whose planning session raised is projected from
+  its own stream (test_a_failed_cycle_is_projected_from_its_own_stream).
+- 12b2bbbe H2 driver: an output a delivered claim carries as its uncertainty
+  is rendered (test_a_claimed_uncertainty_is_rendered). Settle-step replays:
+  base reproduces q3 g2, q9 g1, g5-methoxy byte-for-byte; repaired: q3 g2
+  achieved_with_observations, q9 g1 achieved, g5-methoxy still returned
+  naming its three genuinely unclaimed ids.
+- 7bf1a744 H3 live_session: a hidden file is never admitted as a molecule
+  (test_a_hidden_file_is_not_a_molecule).
+
+## Pre-registration (written before any live goal; nothing seen yet)
+
+Two goals on the repaired tree, each re-posing an archived lost goal's task
+byte-identical (TASK.md, starting geometry, envelope numbers, max-revisions
+2, local dispatch). Agent: deepseek-v4-flash-0731 via alibaba-token-plan.
+Granted by claude-researcher-q16-owner-delegated (a delegated approval, not
+a human decision).
+
+L1 o2r-rep: R10 Q13 o2r's task (singlet O2 as a closed shell, RKS
+B3LYP/def2-SVP, 1.2075 A, PySCF; stability for both kinds of rotation and
+the reference energy). pyscf cpu, 8 cores, 16 GB, node 1800 s, episode
+5400 s, 4 engine calls.
+- Physics bands (from the archived run and Q13's regenerated fixture):
+  E(RKS) = -150.1418 +/- 0.0005 Eh; internal: stable (|lowest| < 1e-4 Eh);
+  RKS->UKS: unstable, lowest -0.0926 +/- 0.003 Eh; real->complex: unstable,
+  lowest -0.0383 +/- 0.003 Eh. The scientific answer: the restricted
+  reference is not a stable solution (stable to real restricted rotations,
+  unstable to spin symmetry breaking and to complex rotations).
+- PASS (the repair's claim, H1/H6): the settlement reason is read from the
+  delivery -- no settlement or wake quotes a host ContractError ("cycle N,
+  <phase>: ..."), every planning stream that ended has its terminal event,
+  and each cycle's claims and findings reach the workspace record under
+  that cycle.
+- The word the science supports, under unchanged settlement semantics:
+  achieved or achieved_with_observations (scf.reference_unstable carried)
+  when the three answers and the energy are delivered by their declared
+  ids; returned_to_human read from the receipts if the session again
+  encodes "stable" as its own acceptance criterion (that criterion fails on
+  this physics, and a failed criterion rejects the result it read). Either
+  is reported with the transcript; only a host-error word is a FAIL.
+- FAIL: a host-error reason; a planning stream left without a terminal
+  event; a cycle's claims missing from the workspace record.
+
+L2 q9g1-rep: R10 Q9 g1's task (methanol O-H bond dissociation enthalpy,
+298.15 K, level open). orca cpu, 8 cores, 16 GB, node 1800 s, episode
+7200 s, 12 engine calls.
+- Physics band: DH298(CH3O-H) within 420-450 kJ/mol (100.4-107.6
+  kcal/mol) for any defensible DFT or composite level. (The experimental
+  value near 437 kJ/mol is recalled, not a registered constant; it sets no
+  band.)
+- PASS (H2): no recovery_opened and no settlement names as "never rendered"
+  an output a delivered claim carries as its uncertainty_reference. Whether
+  the session uses an uncertainty reference at all is the model's choice
+  and is reported, not scored; if it does not, H2 is not exercised live.
+- The word the science supports: achieved / achieved_with_observations when
+  the BDE is delivered by its declared id within the envelope; otherwise
+  the reason is read and classified.
+
+Not counted either way: a session with zero provider turns or one that dies
+on turn_deadline_exceeded (infrastructure). A weak run is reported, never
+re-rolled.
+
 ## Status
 
-- step 1 (census) done; step 2 (repairs H1, H6, H2, H3; H5 to decide) in progress.
+- step 1 (census) and step 2 (repairs H1, H6, H2, H3) done; H5 (SDF) and
+  H4 (Q15's) left and reported. Step 3: live goals L1, L2.
