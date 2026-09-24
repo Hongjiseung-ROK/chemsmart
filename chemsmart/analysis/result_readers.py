@@ -1192,11 +1192,12 @@ _GAUSSIAN_STABILITY_VERDICTS = {
 def _gaussian_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
     """Gaussian's stability verdict for the wavefunction it ended on.
 
-    Gaussian prints no rotation space, so none is recorded: "externally
-    unstable" is two different questions in PySCF's vocabulary and one
-    unnamed question in Gaussian's, and inventing a space here would
-    make two programs' answers look comparable when only one of them
-    said which question it answered.
+    The rotation space is the one Gaussian's own sentence names, and only
+    where it names one: an unstable answer says "internal" or the larger
+    space the reference fell into ("RHF -> UHF"), and a stable answer --
+    "stable under the perturbations considered" -- names none, so none is
+    recorded and none is invented.  The lowest eigenvalue of the stability
+    matrix printed with the verdict rides the answer, in hartree.
     """
 
     history = tuple(
@@ -1212,7 +1213,20 @@ def _gaussian_reference_diagnostics(output: Any) -> Mapping[str, Any] | None:
     )
     if standing is None:
         return None
-    answer = (_stability_answer(question),)
+    records = list(
+        getattr(output, "wavefunction_stability_records", None) or ()
+    )
+    last = records[-1] if records else {}
+    eigenvalues = last.get("eigenvalues") or ()
+    answer = (
+        _stability_answer(
+            question,
+            rotation_space=last.get("rotation_space"),
+            lowest_eigenvalue=(
+                eigenvalues[0]["eigenvalue"] if eigenvalues else None
+            ),
+        ),
+    )
     return {
         "analysis": "wavefunction_stability",
         "applies_to": "reference",
@@ -3157,6 +3171,8 @@ _GAUSSIAN_IRC_BRANCH_SELECTORS = (
     "trajectory_start_connectivity",
     "trajectory_start_positions",
     "wavefunction_stability_history",
+    "wavefunction_stability_lowest_eigenvalue",
+    "wavefunction_stability_rotation_space",
     "wavefunction_stability_verdict",
 )
 
@@ -3379,6 +3395,56 @@ def _gaussian_energies(output: Any) -> list[float]:
             "its energy and are not served as one"
         )
     raise MissingQuantityError("this Gaussian result printed no energy")
+
+
+def _gaussian_last_stability_record(output: Any) -> Mapping[str, Any]:
+    """The stability analysis the run ended on, or why there is none."""
+
+    records = list(
+        getattr(output, "wavefunction_stability_records", None) or ()
+    )
+    if not records:
+        raise MissingQuantityError(
+            "this Gaussian result printed no stability analysis (the route "
+            "asked for no Stable)"
+        )
+    return records[-1]
+
+
+def _gaussian_stability_lowest_eigenvalue(output: Any) -> float:
+    """The lowest stability-matrix eigenvalue of the last analysis, in Eh.
+
+    Printed as ``Eigenvector 1: <label> Eigenvalue= X`` beside every
+    verdict and served by no reader: the number the verdict is drawn from.
+    For a restricted reference it is the lowest root over the singlet
+    (internal) and triplet (RHF -> UHF) blocks Gaussian tests; on singlet
+    O2 at RB3LYP/def2-SVP it is -0.0926178 Eh, the triplet root, equal to
+    PySCF's RHF/RKS -> UHF/UKS eigenvalue at the same level to 1e-6 Eh
+    (CUHK 2152098, 2151881) -- while PySCF's internal eigenvalue is four
+    times Gaussian's singlet root, a normalisation of PySCF's own.
+    """
+
+    record = _gaussian_last_stability_record(output)
+    eigenvalues = record.get("eigenvalues") or ()
+    if not eigenvalues:
+        raise MissingQuantityError(
+            "the last stability verdict this log prints has no eigenvalue "
+            "printed before it"
+        )
+    return float(eigenvalues[0]["eigenvalue"])
+
+
+def _gaussian_stability_rotation_space(output: Any) -> str:
+    """The space Gaussian's last verdict names, where it names one."""
+
+    record = _gaussian_last_stability_record(output)
+    space = record.get("rotation_space")
+    if not space:
+        raise MissingQuantityError(
+            "Gaussian's last verdict names no rotation space: 'stable under "
+            "the perturbations considered' does not say which were"
+        )
+    return str(space)
 
 
 def _gaussian_electronic_spatial_extent(output: Any) -> float:
@@ -3643,6 +3709,12 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
             "wavefunction_stability_history": lambda output: [
                 str(item) for item in output.wavefunction_stability_history
             ],
+            "wavefunction_stability_lowest_eigenvalue": (
+                _gaussian_stability_lowest_eigenvalue
+            ),
+            "wavefunction_stability_rotation_space": (
+                _gaussian_stability_rotation_space
+            ),
             "trajectory_frame_count": lambda output: len(
                 _irc_structures(output)
             ),
@@ -6449,6 +6521,11 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
             # <R**2> of the SCF density about the centre of nuclear
             # charge, as Gaussian prints it (atomic units, bohr^2).
             + (("electronic_spatial_extent", "bohr^2", "AREA"),)
+            # The number and the space beside Gaussian's stability word.
+            + (
+                ("wavefunction_stability_lowest_eigenvalue", "Eh", "ENERGY"),
+                ("wavefunction_stability_rotation_space", "", "DIMENSIONLESS"),
+            )
         ),
         atom_resolved_declarations=_CONSTRAINED_COORDINATE_ATOM_DECLARATIONS,
         # Coverage is ``parser_supported_when_emitted``, as for ORCA: it
@@ -6543,6 +6620,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_target",
                     "symbols",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6587,6 +6666,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "symbols",
                     "vibrational_frequencies",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6630,6 +6711,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_target",
                     "symbols",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6662,6 +6745,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "spin_square_target",
                     "symbols",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6719,6 +6804,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "triplet_excitation_energies",
                     "triplet_oscillator_strengths",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),
@@ -6753,6 +6840,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "symbols",
                     "vibrational_frequencies",
                     "wavefunction_stability_history",
+                    "wavefunction_stability_lowest_eigenvalue",
+                    "wavefunction_stability_rotation_space",
                     "wavefunction_stability_verdict",
                 ),
             ),

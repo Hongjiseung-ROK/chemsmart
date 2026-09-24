@@ -132,3 +132,139 @@ def test_a_result_without_coupled_cluster_has_no_t1_diagnostic():
     with pytest.raises(MissingQuantityError) as absent:
         reader.read(output, "t1_diagnostic")
     assert "no coupled-cluster calculation ran" in str(absent.value)
+
+
+GAUSSIAN_STABILITY = DATA / "GaussianTests" / "stability"
+PYSCF = DATA / "PySCFTests" / "outputs"
+
+
+def _pyscf_record(case):
+    from chemsmart.io.pyscf.output import PySCFOutput
+
+    path = sorted((PYSCF / case).glob("*.h5"))[0]
+    return PySCFOutput(filename=str(path)).scf_stability
+
+
+@pytest.mark.capability("selector:gaussian:sp:wavefunction_stability_verdict")
+@pytest.mark.capability(
+    "selector:gaussian:sp:wavefunction_stability_lowest_eigenvalue"
+)
+@pytest.mark.capability(
+    "selector:gaussian:sp:wavefunction_stability_rotation_space"
+)
+def test_gaussians_rhf_to_uhf_sentence_is_a_verdict_with_its_space():
+    """Singlet O2 at RB3LYP/def2-SVP (CUHK 2152098, Gaussian 16 `stable`):
+    "The wavefunction has an RHF -> UHF instability." was read as no
+    verdict at all, so the result said nothing about a reference Gaussian
+    called unstable."""
+
+    path = GAUSSIAN_STABILITY / "g_o2_singlet_stable_gas_phase.log"
+    reader = reader_for("gaussian")
+    output = reader.open_output(path)
+    assert reader.read(output, "wavefunction_stability_verdict") == (
+        "external_instability",
+        "",
+    )
+    assert reader.read(output, "wavefunction_stability_rotation_space") == (
+        "RHF -> UHF",
+        "",
+    )
+    printed = _printed(path, "Eigenvector   1:", "Eigenvalue=")
+    assert reader.read(output, "wavefunction_stability_lowest_eigenvalue") == (
+        printed[-1],
+        "Eh",
+    )
+    assert printed[-1] < 0
+    diagnostics = reader.reference_diagnostics_for_output(output)
+    assert diagnostics["unstable"] == (
+        {
+            "question": "external",
+            "rotation_space": "RHF -> UHF",
+            "lowest_eigenvalue": printed[-1],
+        },
+    )
+
+
+@pytest.mark.capability(
+    "selector:gaussian:sp:wavefunction_stability_lowest_eigenvalue"
+)
+@pytest.mark.parametrize(
+    "log,pyscf_case",
+    [
+        ("g_o2_singlet_stable_gas_phase.log", "o2_singlet_sp_stability_heard"),
+        ("g_water_stable_gas_phase.log", "water_sp_stability_heard"),
+    ],
+)
+def test_two_programs_print_the_same_restricted_to_unrestricted_root(
+    log, pyscf_case
+):
+    """The differential oracle across programs, at one level and geometry
+    (B3LYP with Gaussian's VWN form, def2-SVP): Gaussian's lowest
+    stability eigenvalue -- the triplet root, the RHF -> UHF question --
+    and PySCF's RHF/RKS -> UHF/UKS eigenvalue agree to 1e-5 Eh."""
+
+    gaussian = reader_for("gaussian")
+    value, _unit = gaussian.read(
+        gaussian.open_output(GAUSSIAN_STABILITY / log),
+        "wavefunction_stability_lowest_eigenvalue",
+    )
+    pyscf_value = _pyscf_record(pyscf_case)["analyses"]["external"][
+        "lowest_eigenvalues"
+    ][0]
+    assert value == pytest.approx(pyscf_value, abs=1e-5)
+
+
+def test_pyscfs_internal_root_is_four_times_gaussians_singlet_root():
+    """Why PySCF's numbers keep PySCF's names: its internal eigenvalue is
+    four times the singlet root Gaussian prints for the same molecule."""
+
+    from chemsmart.io.gaussian.output import Gaussian16Output
+
+    records = Gaussian16Output(
+        str(GAUSSIAN_STABILITY / "g_water_stable_gas_phase.log")
+    ).wavefunction_stability_records
+    singlet = min(
+        row["eigenvalue"]
+        for row in records[-1]["eigenvalues"]
+        if row["spin_square"] == 0.0
+    )
+    internal = _pyscf_record("water_sp_stability_heard")["analyses"][
+        "internal"
+    ]["lowest_eigenvalues"][0]
+    assert internal == pytest.approx(4.0 * singlet, abs=5e-5)
+
+
+@pytest.mark.capability("signal:scf.reference_unstable")
+def test_the_sensor_raises_on_a_reference_gaussian_calls_unstable():
+    """Through the step the executor runs on every finished node: a
+    Gaussian RHF -> UHF instability now reaches the host's sensor with the
+    space Gaussian named and the eigenvalue that tripped it."""
+
+    from chemsmart.agent._contracts import TrustedArtifactRefV1, file_sha256
+    from chemsmart.agent.tool_runtime import CommandCompiledToolHostV1
+
+    path = (GAUSSIAN_STABILITY / "g_o2_singlet_stable_gas_phase.log").resolve()
+    evaluation = CommandCompiledToolHostV1._evaluate_execution_outputs(
+        program="gaussian",
+        jobtype="sp",
+        charge=0,
+        multiplicity=1,
+        output_artifacts=(
+            TrustedArtifactRefV1(
+                artifact_id="result.o2",
+                kind="gaussian_output",
+                sha256=file_sha256(path),
+                size_bytes=path.stat().st_size,
+                path=str(path),
+                cli_value=str(path),
+            ),
+        ),
+        exit_status=0,
+    )
+    signals = {item["signal_id"]: item for item in evaluation.anomalies}
+    anomaly = signals["scf.reference_unstable"]
+    assert anomaly["unstable_rotation_spaces"] == ["RHF -> UHF"]
+    carried = evaluation.observations["gaussian"]["reference_stability"]
+    assert carried["unstable"][0]["lowest_eigenvalue"] == pytest.approx(
+        -0.0926178
+    )
