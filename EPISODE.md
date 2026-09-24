@@ -288,11 +288,16 @@ turns in the cycle-2 session; one run, one observation of that model.
 - Found beyond the pre-registration (outside my radius, left): the
   settlement signed `achieved` over its own reason "no completion gate
   certified this delivery" (the charter's achieved requires a certified
-  delivery) and over five agreed_as_approximation rows whose relationship
-  names a pending workflow that should supersede them; that workflow
-  completed and no session read it (chemsmart/agent/driver.py
-  _achieved_word returns "achieved" with certified = "no completion gate
-  certified this delivery").
+  delivery): the cycle-1 run completion and the cycle-2 session completion
+  were both `partial`, and the cycle-2 bundle's toolchain had zero analysis
+  nodes, so the run stream holds no completion receipt. The executor
+  reports an empty chain as analysis_status "completed" (all() over no
+  nodes, chemsmart/agent/executor.py:1357), which defeats the driver's
+  chainless guard (chemsmart/agent/driver.py:6313 requires the empty
+  status), and the run path signs `achieved` (driver.py:6583) and records
+  qualification for orca:cpu:modred/opt/ts from this goal. The claims'
+  relationship names the TS workflow as the one that "should supersede
+  these values"; it completed and no session read it.
 
 ## Repair 4 -- geometries of one formula (committed e2fd2295)
 
@@ -320,8 +325,10 @@ that energy's structure is shown not to be stationary.
 ## Status
 
 - Census done; repairs 1-4 committed; o2fix, g1-hooh and g2-hooh read.
-- Full suite on a pristine export of ca590e5a: 23 failed, all environmental
-  (InChI/CDX imports, PySCF dispersion probes, aggregation and PyscfSettings
-  YAML tests), none in tests/agent.
-- Next: hand-back gates on the final commit (merge r10-integration,
-  tests/agent and the full suite from a pristine export, lint).
+- Hand-back gates on 58de3be2 (r10-integration 111dc55e already merged):
+  full suite from a pristine git-archive export: 23 failed, 4715 passed --
+  the same 23 environmental failures as the baseline run (InChI/CDX
+  imports, PySCF dispersion probes, aggregation and PyscfSettings YAML
+  tests), none in tests/agent; ruff, black --check, isort --check clean on
+  every Python file the episode touched.
+- Milestone A claimed; handing back.
