@@ -476,6 +476,35 @@ def _required_record_values(
     return [record[key] for record in records]
 
 
+def _excited_spin_squares(records, response_method, manifold):
+    """Each root's <S^2>, where the quantity has one meaning.
+
+    A spin-adapted root's <S^2> is exact (0 or 2) and a Tamm-Dancoff root
+    of an open-shell reference is a CIS-like wavefunction whose <S^2> every
+    program computes alike -- Gaussian and ORCA agree to the printed digit
+    on the allyl radical (0.756/0.756 for D1, CUHK Slurm 2150194).  A full
+    TD-DFT root of an open-shell reference is not a wavefunction, and the
+    two programs print two different approximations for it (0.713 in
+    Gaussian, 0.801 in ORCA for the same D1): under one name that would be
+    two quantities, so none is served there.
+    """
+
+    if response_method == "tddft" and manifold == "unrestricted":
+        raise MissingQuantityError(
+            "a full TD-DFT root of an open-shell reference has no unique "
+            "<S^2>: Gaussian and ORCA print two different approximations "
+            "for the same root (allyl D1: 0.713 vs 0.801); a Tamm-Dancoff "
+            "run (response_method: tda) gives the CIS-like <S^2> both "
+            "programs agree on"
+        )
+    return [
+        float(item)
+        for item in _required_record_values(
+            records, "spin_square", "a printed excited-state <S^2>"
+        )
+    ]
+
+
 def _orca_served_records(output: Any) -> list[dict[str, Any]]:
     """The roots of the manifold the request named, ranked by energy.
 
@@ -2794,10 +2823,15 @@ def _orca_accessors() -> dict[str, Callable[[Any], Any]]:
                     "a spin multiplicity (an unrestricted manifold has none)",
                 )
             ],
-            "excited_state_spin_square": lambda output: [
-                float(item["spin_square"])
-                for item in _orca_served_records(output)
-            ],
+            "excited_state_spin_square": lambda output: (
+                _excited_spin_squares(
+                    _orca_served_records(output),
+                    (output.excited_state_applied or {}).get(
+                        "response_method"
+                    ),
+                    output.state_manifold,
+                )
+            ),
             "singlet_excitation_energies": lambda output: (
                 _orca_manifold_values(output, 1, "energy_eV")
             ),
@@ -3398,14 +3432,15 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                 str(item["state_label"])
                 for item in output.excited_state_records
             ],
-            "excited_state_spin_square": lambda output: [
-                float(item)
-                for item in _required_record_values(
+            "excited_state_spin_square": lambda output: (
+                _excited_spin_squares(
                     output.excited_state_records,
-                    "spin_square",
-                    "a printed excited-state <S^2>",
+                    (output.excited_state_request or {}).get(
+                        "response_method"
+                    ),
+                    (output.excited_state_request or {}).get("state_manifold"),
                 )
-            ],
+            ),
             "singlet_excitation_energies": lambda output: [
                 float(item["energy_eV"])
                 for item in output.excited_state_records

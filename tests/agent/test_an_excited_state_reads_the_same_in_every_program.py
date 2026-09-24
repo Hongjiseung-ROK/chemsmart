@@ -167,3 +167,132 @@ def test_an_unrestricted_manifold_is_one_manifold_with_no_multiplicity():
     assert roots == list(range(1, 51))
     with pytest.raises(MissingQuantityError):
         reader.read(output, "excited_state_multiplicities")
+
+
+# Oracle O1 of R10 Q8 (CUHK Slurm 2150194): one td request per manifold word,
+# the same YAML in three programs, on Q7's acrolein minimum and on a UPBE0
+# allyl radical minimum; ORCA with `ri_approximation: none`.
+_O1 = {
+    ("pyscf", "singlet_triplet"): _DATA
+    / "PySCFTests/outputs/acrolein_td_singlet_triplet"
+    / "acro_p_st3_gas_phase.h5",
+    ("pyscf", "triplet"): _DATA
+    / "PySCFTests/outputs/acrolein_td_triplet/acro_p_trip3_gas_phase.h5",
+    ("orca", "triplet"): _DATA
+    / "ORCATests/excited_states/acrolein_pbe0_def2svp_td_triplet3.out",
+}
+_ALLYL = {
+    ("gaussian", "tddft"): _DATA
+    / "GaussianTests/tddft/allyl_upbe0_def2svp_td_unrestricted6.log",
+    ("gaussian", "tda"): _DATA
+    / "GaussianTests/tddft/allyl_upbe0_def2svp_tda_unrestricted6.log",
+    ("orca", "tddft"): _DATA
+    / "ORCATests/excited_states/allyl_upbe0_def2svp_td_unrestricted6.out",
+    ("orca", "tda"): _DATA
+    / "ORCATests/excited_states/allyl_upbe0_def2svp_tda_unrestricted6.out",
+}
+
+
+def _read(program, path, selector):
+    reader = reader_for(program)
+    value, unit = reader.read(reader.open_output(path), selector)
+    if unit == "Eh":
+        value = [item * 27.211386245988 for item in value]
+    return value
+
+
+@pytest.mark.capability("selector:pyscf:td:excited_state_manifold_roots")
+@pytest.mark.capability("selector:pyscf:td:triplet_excitation_energies")
+def test_a_two_block_pyscf_request_reads_as_the_other_programs_do():
+    """PySCF's singlet_triplet (two response solves on one reference)."""
+
+    path = _O1[("pyscf", "singlet_triplet")]
+    names = (
+        "excited_state_multiplicities",
+        "excited_state_manifold_roots",
+        "excited_state_indices",
+    )
+    for name in names:
+        assert _read("pyscf", path, name) == _states("gaussian")[2][name]
+    energies = _read("pyscf", path, "excitation_energies")
+    gaussian = _states("gaussian")[2]["excitation_energies"]
+    assert max(abs(p - g) for p, g in zip(energies, gaussian)) < 0.003
+    # Its triplet block is the one-manifold triplet run, root for root.
+    block = _read("pyscf", path, "triplet_excitation_energies")
+    alone = _read("pyscf", _O1[("pyscf", "triplet")], "excitation_energies")
+    assert max(abs(b - a) for b, a in zip(block, alone)) < 1e-5
+
+
+@pytest.mark.capability("selector:orca:td:triplet_excitation_energies")
+def test_an_orca_triplet_request_serves_the_triplets_it_asked_for():
+    """ORCA solves the singlets beside the triplets; the request was triplets."""
+
+    path = _O1[("orca", "triplet")]
+    assert _read("orca", path, "excited_state_multiplicities") == [3, 3, 3]
+    assert _read("orca", path, "excited_state_indices") == [1, 2, 3]
+    served = _read("orca", path, "excitation_energies")
+    both = _states("orca")[2]["triplet_excitation_energies"]
+    assert max(abs(s - b) for s, b in zip(served, both)) < 1e-6
+    # The singlets it also solved are readable by name, and only by name.
+    assert len(_read("orca", path, "singlet_excitation_energies")) == 3
+
+
+@pytest.mark.capability("selector:orca:td:excited_state_manifold_roots")
+@pytest.mark.capability("selector:gaussian:td:excited_state_manifold_roots")
+@pytest.mark.parametrize("program", ("gaussian", "orca"))
+@pytest.mark.parametrize("response", ("tddft", "tda"))
+def test_an_open_shell_manifold_reads_the_same_in_gaussian_and_orca(
+    program, response
+):
+    """Allyl's six roots: one manifold, no multiplicity, strengths paired.
+
+    ORCA labels its sixth full-TD-DFT root ``6-4A`` (its <S^2>-rounded
+    estimate) where the others are ``N-2A``; the strength is still the
+    one that row carries.
+    """
+
+    path = _ALLYL[(program, response)]
+    assert _read(program, path, "excited_state_manifold_roots") == list(
+        range(1, 7)
+    )
+    with pytest.raises(MissingQuantityError):
+        _read(program, path, "excited_state_multiplicities")
+    strengths = _read(program, path, "oscillator_strengths")
+    assert len(strengths) == 6
+    if program == "orca":
+        output = reader_for("orca").open_output(path)
+        rows = {
+            (row["manifold_root"], row["multiplicity"]): row
+            for row in output.electronic_absorption_transition_records
+        }
+        assert strengths == [
+            rows[(item["orca_state"], item["orca_multiplicity"])][
+                "oscillator_strength"
+            ]
+            for item in output.excited_state_records
+        ]
+
+
+@pytest.mark.capability("selector:gaussian:td:excited_state_spin_square")
+@pytest.mark.capability("selector:orca:td:excited_state_spin_square")
+def test_an_open_shell_root_has_one_spin_square_or_none():
+    """TDA: one <S^2> in both programs.  Full TD-DFT: two, so none.
+
+    The same allyl D1 prints <S^2> = 0.713 in Gaussian and 0.801 in ORCA
+    under full TD-DFT, and 0.756 in both under TDA.
+    """
+
+    tda = {
+        program: _read(
+            program, _ALLYL[(program, "tda")], "excited_state_spin_square"
+        )
+        for program in ("gaussian", "orca")
+    }
+    assert abs(tda["gaussian"][0] - tda["orca"][0]) < 0.001
+    for program in ("gaussian", "orca"):
+        with pytest.raises(MissingQuantityError, match="tda"):
+            _read(
+                program,
+                _ALLYL[(program, "tddft")],
+                "excited_state_spin_square",
+            )
