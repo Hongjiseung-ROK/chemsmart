@@ -268,3 +268,51 @@ def test_the_sensor_raises_on_a_reference_gaussian_calls_unstable():
     assert carried["unstable"][0]["lowest_eigenvalue"] == pytest.approx(
         -0.0926178
     )
+
+
+@pytest.mark.capability(
+    "selector:gaussian:sp:solvation_nonelectrostatic_energy"
+)
+@pytest.mark.capability(
+    "selector:gaussian:opt:solvation_nonelectrostatic_energy"
+)
+@pytest.mark.parametrize(
+    "log,prints",
+    [
+        ("5PQ_Me_ts1_b_no_pd_opt_sp_smd_generic.log", 1),
+        # an optimisation in the continuum: one print per step
+        ("benzene.log", 2),
+        ("ozone.log", 7),
+    ],
+)
+def test_gaussians_smd_cds_term_is_the_one_orca_and_pyscf_serve(log, prints):
+    """The non-electrostatic part of an SMD solvation free energy, printed
+    beneath every SMD SCF in kcal/mol and served under the name ORCA's and
+    PySCF's readers already use; the last print is the reached
+    structure's."""
+
+    path = GAUSSIAN / log
+    reader = reader_for("gaussian")
+    output = reader.open_output(path)
+    printed = _printed(path, "SMD-CDS (non-electrostatic) energy", "=")
+    assert len(printed) == prints
+    value, unit = reader.read(output, "solvation_nonelectrostatic_energy")
+    assert (value, unit) == (printed[-1], "kcal/mol")
+    hartree, canonical, _dimension = normalize_numeric_value(value, unit)
+    assert canonical == "hartree"
+    assert hartree == pytest.approx(printed[-1] / 627.5094740631, rel=1e-6)
+    assert "smd" in reader.level_for_output(output)["solvent_model"]
+    # read beside the model that gives the term its meaning
+    assert reader.read(output, "solvation_model") == ("smd", "")
+    assert reader.read(output, "solvent")[0]
+    assert "solvation_nonelectrostatic_energy" in reader.selectors_for_jobtype(
+        output.jobtype
+    )
+
+
+def test_a_gas_phase_gaussian_run_has_no_smd_cds_term():
+    reader = reader_for("gaussian")
+    output = reader.open_output(GAUSSIAN / "co2.log")
+    with pytest.raises(MissingQuantityError) as absent:
+        reader.read(output, "solvation_nonelectrostatic_energy")
+    assert "gas phase" in str(absent.value)

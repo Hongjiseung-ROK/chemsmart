@@ -2217,6 +2217,27 @@ class Gaussian16Output(GaussianFileMixin):
         return len(self.forces)
 
     @cached_property
+    def smd_cds_energies_kcal_per_mol(self):
+        """Every SMD cavity-dispersion-solvent-structure term Gaussian printed.
+
+        An SMD SCF prints ``SMD-CDS (non-electrostatic) energy (kcal/mol) =
+        X`` beneath its ``SCF Done`` line, "(included in total energy
+        above)": the non-electrostatic part of the solvation free energy
+        the model charged, in kcal/mol to two decimals.  One print per SCF
+        that ran in the continuum, in order -- an optimisation prints one
+        per step, and the last belongs to the structure it reached.
+        """
+        values = []
+        for line in self.contents:
+            if "SMD-CDS (non-electrostatic) energy" not in line:
+                continue
+            try:
+                values.append(float(line.split("=")[-1].split()[0]))
+            except (IndexError, ValueError):
+                continue
+        return values
+
+    @cached_property
     def electronic_spatial_extents(self):
         """Every ``<R**2>`` Gaussian printed, with the density it belongs to.
 

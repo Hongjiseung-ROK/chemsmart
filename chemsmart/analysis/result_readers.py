@@ -3447,6 +3447,62 @@ def _gaussian_stability_rotation_space(output: Any) -> str:
     return str(space)
 
 
+def _gaussian_solvation_model(output: Any) -> str:
+    """The continuum the route applied, in the route's own word, or
+    ``gas_phase`` when the route asks for none.
+
+    Read from the route Gaussian echoes, as the level record already does,
+    so a solvation term is read beside the model that gives it its
+    meaning.  A route that asks for a continuum this reader cannot name is
+    an absence, never gas phase.
+    """
+
+    model = getattr(output, "solvent_model", None)
+    if model:
+        return str(model).strip().lower()
+    route = str(getattr(output, "route_string", "") or "").lower()
+    if "scrf" in route:
+        raise MissingQuantityError(
+            "this Gaussian route asks for a continuum (scrf) this reader "
+            "does not name"
+        )
+    return "gas_phase"
+
+
+def _gaussian_solvent(output: Any) -> str:
+    if _gaussian_solvation_model(output) == "gas_phase":
+        raise MissingQuantityError("this Gaussian run is gas phase")
+    solvent = getattr(output, "solvent_id", None)
+    if not solvent:
+        raise MissingQuantityError(
+            "this Gaussian solvated route names no solvent"
+        )
+    return str(solvent).strip().lower()
+
+
+def _gaussian_smd_cds_energy(output: Any) -> float:
+    """SMD's non-electrostatic term, as Gaussian printed it, in kcal/mol.
+
+    The same quantity ORCA and PySCF already serve under this name: the
+    cavity-dispersion-solvent-structure part of the solvation free energy
+    the model put into the total.  The solvation charter topic recorded
+    "No archived Gaussian log carries the printed terms"; fourteen archived
+    Gaussian SMD logs print this one ("SMD-CDS (non-electrostatic) energy
+    (kcal/mol) = ...  (included in total energy above)").  Gaussian prints
+    no separate electrostatic term, so that one stays undeclared.  The last
+    print belongs to the final structure; a run with no SMD continuum
+    printed none, and the absence says so.
+    """
+
+    values = list(getattr(output, "smd_cds_energies_kcal_per_mol", None) or ())
+    if not values:
+        raise MissingQuantityError(
+            "this Gaussian result printed no SMD-CDS term: it ran in the gas "
+            "phase or in a continuum model without one"
+        )
+    return float(values[-1])
+
+
 def _gaussian_electronic_spatial_extent(output: Any) -> float:
     """<R**2> of the SCF density at the structure the run ended on, bohr^2.
 
@@ -3530,6 +3586,9 @@ _GAUSSIAN_ELECTRONIC_PROVENANCE_DECLARED = (
     ("scf_energy", "reference"),
     ("singlet_excitation_energies", "excited_root"),
     ("singlet_oscillator_strengths", "excited_root"),
+    # SMD's non-electrostatic term is part of the SCF total it printed
+    # beneath, the reference's own energy.
+    ("solvation_nonelectrostatic_energy", "reference"),
     ("spin_square", "reference"),
     ("spin_square_after_annihilation", "reference"),
     ("spin_square_deviation", "reference"),
@@ -3689,6 +3748,9 @@ def _gaussian_accessors() -> dict[str, Callable[[Any], Any]]:
                 output.all_dipole_moment_magnitudes[-1]
             ),
             "electronic_spatial_extent": _gaussian_electronic_spatial_extent,
+            "solvation_model": _gaussian_solvation_model,
+            "solvent": _gaussian_solvent,
+            "solvation_nonelectrostatic_energy": _gaussian_smd_cds_energy,
             "spin_square": lambda output: _last_spin_square(
                 output, "before_annihilation"
             ),
@@ -6513,6 +6575,8 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
         parser_id="chemsmart.io.gaussian.output.Gaussian16Output",
         open_output=_gaussian_output,
         accessors=_gaussian_accessors(),
+        # Gaussian prints the SMD-CDS term in kcal/mol to two decimals.
+        source_units={"solvation_nonelectrostatic_energy": "kcal/mol"},
         # A held coordinate keeps its unit and its atoms as ORCA's do: one
         # declaration for both programs' constrained optimisations.
         selector_declarations=(
@@ -6659,6 +6723,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     # one is admissible as a structure to carry forward.
                     "reached_positions",
                     "scf_energy",
+                    "solvation_model",
+                    "solvation_nonelectrostatic_energy",
+                    "solvent",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -6739,6 +6806,9 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     "multiplicity",
                     "positions",
                     "scf_energy",
+                    "solvation_model",
+                    "solvation_nonelectrostatic_energy",
+                    "solvent",
                     "spin_square",
                     "spin_square_after_annihilation",
                     "spin_square_deviation",
@@ -6907,6 +6977,7 @@ RESULT_READERS: dict[str, ResultReaderV1] = {
                     ("scan_energies", "scan_point"),
                     ("scan_point_indices", "scan_point"),
                     ("scf_energy", "as_reached"),
+                    ("solvation_nonelectrostatic_energy", "as_reached"),
                     ("symbols", "stateless"),
                     ("trajectory_end_connectivity", "trajectory_endpoint"),
                     ("trajectory_end_positions", "trajectory_endpoint"),
