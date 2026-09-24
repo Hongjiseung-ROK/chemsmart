@@ -73,6 +73,12 @@ Premise falsified: the five named instances are not the only false words.
    likeliest Agent route -- refuse at planning, run, settle -- defeated 4).
 8. f3fa7b92 served-selector basis says "a reading of the selector", not the
    observable; 6ec52fc9 `shared:` tool description names the settle-time read.
+9. 48f04a20 `shared:` a blocked-node refusal is not verified over a result
+   whose native output prints a line naming the refused observable (the
+   other likeliest LG1 route); the settle-time re-read covers it too.
+10. 0b91168e the wake carries recovery rows (`uncertified`,
+    `refusals_reread`), so a session woken after a chainless run is told why;
+    74365adb wording: nothing extracted or claimed, not "nothing read".
 
 Each has a witness red before and green after, driving `run_goal_loop` or
 the tool host's `dispatch`. Pristine export of f3fa7b92: tests/agent 2960
@@ -122,5 +128,9 @@ copy); live part not run while closed.
 
 ## Status
 
-- census, six repairs, replays done; tests/agent green (2959).
-- next: LG1 when the gate reopens; merge r10-integration; hand back.
+- census, repairs 1-10, replays done (final-tree replays in scratch
+  replay_final.txt: all five chainless goals open a recovery naming the
+  partial completion); tests/agent green (2962).
+- LG1 files ready (scratch/q10/goals/lg1: TASK.md, envelope.yaml, goal.sh,
+  workspace/water.xyz); not submitted: CUHK gate closed since ~13:00 KST.
+- r10-integration unchanged since the base (c79c39a1): nothing to merge.
