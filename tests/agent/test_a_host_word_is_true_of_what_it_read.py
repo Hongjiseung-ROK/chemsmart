@@ -486,3 +486,194 @@ def test_a_selector_no_reader_serves_and_no_result_could_hold_is_verified(
     )
     assert entry["verified"] is True
     assert "no registered result of jobtype 'hess'" in entry["basis"]
+
+
+_WATER_SP = _ROOT / "tests/data/GaussianTests/functional_forms/water_b3lyp.log"
+_SPATIAL = [
+    {
+        "observable_id": "water-energy",
+        "unit": "hartree",
+        "meaning": "the SCF energy of water",
+    },
+    {
+        "observable_id": "spatial-extent",
+        "unit": "1",
+        "meaning": "the electronic spatial extent <R^2>",
+    },
+]
+
+
+def _refusing_before_the_run(tmp_path):
+    """A planning session that refuses the spatial extent before any
+    result exists: no reader serves it and nothing could be read."""
+
+    build = tmp_path / "session-refuses"
+    host = _host(build, approved_requested_observable_declarations=[])
+    reply = host.dispatch(
+        turn_id="t1",
+        tool_name="declare_requested_observable",
+        arguments={"observables": _SPATIAL},
+    )
+    assert reply["status"] == "ok", reply
+    literal = host.dispatch(
+        turn_id="t1",
+        tool_name="evaluate_quantity_expression",
+        arguments={
+            "expression_id": "probe",
+            "inputs": [],
+            "nodes": [
+                {
+                    "node_id": "n1",
+                    "operation": "literal",
+                    "literal_value": 1.0,
+                    "literal_unit": "1",
+                }
+            ],
+            "output_node_ids": ["n1"],
+        },
+    )
+    decision = host.dispatch(
+        turn_id="t2",
+        tool_name="record_scientific_decision",
+        arguments={
+            "decision_id": "refuse-extent",
+            "assumptions": ["a"],
+            "method_rationale": "r",
+            "alternatives": ["b"],
+            "uncertainties": ["u"],
+            "diagnostics": ["g"],
+            "stage_order": ["s"],
+            "evidence_refs": [],
+            "unreachable_observable_ids": [
+                {
+                    "observable_id": "spatial-extent",
+                    "statement": "no selector serves <R^2>",
+                    "receipt_sha256s": [literal["result"]["receipt_sha256"]],
+                    "selector": "electronic_spatial_extent",
+                    "jobtype": "sp",
+                }
+            ],
+        },
+    )
+    (entry,) = decision["result"]["unreachable_observables"]
+    assert entry["verified"] is True, entry
+    return _planning_session(
+        "live-1",
+        review=_review_payload(),
+        wake_rows=_stream_rows(build / "events.jsonl"),
+    )
+
+
+def _gaussian_run_delivering_the_energy(tmp_path):
+    """The run: a Gaussian single point whose log prints <R**2>, and the
+    approved chain's claim of the energy."""
+
+    def step(run_directory):
+        # <workspace>/.chemsmart-agent/goals/<goal>/runs/cycle-1
+        workspace = run_directory.parents[4]
+        node = workspace / "cycle-1" / "sp-water"
+        node.mkdir(parents=True, exist_ok=True)
+        shutil.copy(_WATER_SP, node / "water_sp.log")
+        build = tmp_path / "run-build"
+        store = RuntimeEventStore(
+            build / "events.jsonl", session_id="water-session"
+        )
+        _, plan, _m, _a, invocation = _reserve(store, build)
+        store.record_program_execution_receipt(
+            turn_id="turn-1",
+            workflow_id=plan.workflow_id,
+            run_id="run.water-approval",
+            receipt=build_program_execution_receipt(
+                invocation,
+                execution_state="engine_complete",
+                exit_status=0,
+                child_exit_status=0,
+                engine_complete=True,
+                validated=False,
+                findings=(),
+                started_at="2026-08-04T00:00:00+00:00",
+                finished_at="2026-08-04T00:00:05+00:00",
+            ),
+        )
+        host = CommandCompiledToolHostV1(
+            event_store=store,
+            artifacts={},
+            task_spec_sha256s=(_TASK,),
+            approved_workspace=build / "ws",
+            approved_requested_observable_declarations=[
+                {**_SPATIAL[0], "dimension": (1, 0, 0, 0, 0, 0)},
+                {**_SPATIAL[1], "dimension": (0, 0, 0, 0, 0, 0)},
+            ],
+        )
+        literal = host.dispatch(
+            turn_id="t1",
+            tool_name="evaluate_quantity_expression",
+            arguments={
+                "expression_id": "energy",
+                "inputs": [],
+                "nodes": [
+                    {
+                        "node_id": "n1",
+                        "operation": "literal",
+                        "literal_value": -76.3581417839,
+                        "literal_unit": "hartree",
+                    }
+                ],
+                "output_node_ids": ["n1"],
+            },
+        )
+        receipt = literal["result"]["receipt_sha256"]
+        host.dispatch(
+            turn_id="t1",
+            tool_name="record_analysis_claims",
+            arguments={
+                "task_spec_sha256": _TASK,
+                "claims": [
+                    {
+                        "claim_id": "water-energy",
+                        "receipt_sha256": receipt,
+                        "quantity_id": "n1",
+                        "display_unit": "hartree",
+                    }
+                ],
+            },
+        )
+        host._record_toolchain_completion(
+            "b" * 64, task_spec_sha256=_TASK, source_receipt_sha256s=(receipt,)
+        )
+        run_directory.mkdir(parents=True, exist_ok=True)
+        shutil.copy(build / "events.jsonl", run_directory / "events.jsonl")
+        return SimpleNamespace(status="completed", analysis_status="completed")
+
+    return step
+
+
+def test_a_refusal_made_before_the_run_is_read_again_when_the_goal_settles(
+    tmp_path,
+):
+    """A planning session refuses what no reader serves before the run it
+    plans exists -- "no registered result exists it could be read from"
+    is true then -- and the run writes a log that prints the value. The
+    word the goal settles on is read against what the run wrote: not
+    unreachable_from_evidence over a printed <R**2>."""
+
+    result = _loop(
+        tmp_path,
+        sessions=[_refusing_before_the_run(tmp_path)],
+        executes=[_gaussian_run_delivering_the_energy(tmp_path)],
+        max_revisions=0,
+    )
+
+    assert result.settlement == "returned_to_human", result
+    settled = _stream_rows(
+        tmp_path
+        / "ws"
+        / ".chemsmart-agent"
+        / "goals"
+        / "goal-t1"
+        / "ledger.jsonl"
+    )[-1]["payload"]
+    text = " ".join(settled["reasons"])
+    assert "read again against them" in text
+    assert "spatial-extent" in text
+    assert "Electronic spatial extent" in text

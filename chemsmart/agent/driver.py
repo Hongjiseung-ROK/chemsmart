@@ -2391,6 +2391,10 @@ class _AnalysisDelivery:
     #: offered, host-verified against that menu.
     route_dispositions: tuple[dict[str, Any], ...] = ()
     unreachable_bases: Mapping[str, str] = field(default_factory=dict)
+    #: The (selector, jobtype) each refusal named as the producer it needs.
+    unreachable_producers: Mapping[str, tuple[str, str]] = field(
+        default_factory=dict
+    )
     #: What each claim of this stream carries, under both the names it
     #: answers to, so a current-cycle claim is judged in the dimension
     #: its declaration asked for exactly as a record row is.
@@ -2791,6 +2795,9 @@ def _analysis_delivery(
         for observable_id, basis in inherited_unreachable.items()
     }
     verified_unreachable |= set(unreachable_bases)
+    # The producer each refusal named, so a settlement can read the
+    # results again for it once a run has written them.
+    unreachable_producers: dict[str, tuple[str, str]] = {}
     receipts: list[str] = []
     doubt_refs: set[str] = set()
     claim_pairs: list[tuple[str, str]] = []
@@ -2893,6 +2900,10 @@ def _analysis_delivery(
                     continue
                 unreachable_bases[observable_id] = (
                     f"{item.get('statement') or ''} [{item.get('basis') or ''}]"
+                )
+                unreachable_producers[observable_id] = (
+                    str(item.get("selector") or ""),
+                    str(item.get("jobtype") or ""),
                 )
                 if bool(item.get("verified")):
                     verified_unreachable.add(observable_id)
@@ -3342,6 +3353,7 @@ def _analysis_delivery(
             sorted(unverified_unreachable - verified_unreachable)
         ),
         unreachable_bases=dict(unreachable_bases),
+        unreachable_producers=dict(unreachable_producers),
     )
 
 
@@ -5715,6 +5727,78 @@ class GoalDriver:
             )
         }
 
+    def _refusals_the_results_now_answer(
+        self, session_delivery: "_AnalysisDelivery | None"
+    ) -> dict[str, str]:
+        """Verified refusals the registered results, read now, contradict.
+
+        The session verifies a refusal against the results registered when
+        it writes it, and a planning session writes it before the run it
+        plans. A refusal of a quantity no reader serves, made before a
+        Gaussian run whose log then prints it, was true when written and
+        would settle unreachable_from_evidence over the printed value. The
+        same reading is made here, over what the workspace now holds.
+        """
+
+        if session_delivery is None:
+            return {}
+        named = {
+            observable_id: session_delivery.unreachable_producers.get(
+                observable_id, ("", "")
+            )
+            for observable_id in session_delivery.verified_unreachable_ids
+        }
+        named = {key: value for key, value in named.items() if value[0]}
+        if not named:
+            return {}
+        from chemsmart.agent.live_session import (
+            discover_registered_result_artifacts,
+        )
+        from chemsmart.agent.tool_runtime import (
+            refusal_read_against_results,
+            selector_declared_by,
+        )
+        from chemsmart.analysis.result_readers import (
+            registered_reader_programs,
+        )
+
+        # The envelope says which producers exist; every registered result
+        # is read, whichever program wrote it.
+        programs = tuple(
+            str(program)
+            for program, _engines in getattr(
+                getattr(self, "envelope", None),
+                "allowed_program_engines",
+                (),
+            )
+            or ()
+        ) or tuple(registered_reader_programs())
+        try:
+            artifacts = {
+                artifact.artifact_id: artifact
+                for artifact in discover_registered_result_artifacts(
+                    self.workspace
+                )
+            }
+        except Exception:  # noqa: BLE001 - nothing registered reads as none
+            artifacts = {}
+        reread: dict[str, str] = {}
+        for observable_id, (selector, jobtype) in sorted(named.items()):
+            still, basis = refusal_read_against_results(
+                artifacts=artifacts,
+                selector=selector,
+                jobtype=jobtype,
+                programs=tuple(registered_reader_programs()),
+                selector_declared=bool(
+                    selector_declared_by(programs, selector, jobtype)
+                ),
+                is_verified=True,
+                basis="",
+            )
+            if not still:
+                reread[observable_id] = basis.lstrip("; ")
+        return reread
+
     def _latest_completion_stream(self) -> tuple[Path, str] | None:
         """The newest stream of this goal that holds a completion receipt.
 
@@ -5786,6 +5870,11 @@ class GoalDriver:
             if self.events_path is not None
             else None
         )
+        # A refusal is verified against the evidence of the moment it is
+        # written, and a planning session writes it before the run it
+        # plans: "no registered result exists it could be read from" was
+        # true then and is read again now, against what the run wrote.
+        reread = self._refusals_the_results_now_answer(session_delivery)
         delivery_kwargs: dict[str, Any] = dict(
             # The verified refusals only: the bases mapping explains
             # every refusal the session wrote, verified or not, and
@@ -5799,6 +5888,7 @@ class GoalDriver:
                     for observable_id in (
                         session_delivery.verified_unreachable_ids
                     )
+                    if observable_id not in reread
                 }
                 if session_delivery is not None
                 else {}
@@ -5890,12 +5980,13 @@ class GoalDriver:
             and (budgets.engine_calls_remaining > 0 or not engine_needed)
         )
         # A typed refusal the host verified, recorded by the planning
-        # session of this cycle, closes the ids it names.
+        # session of this cycle, closes the ids it names -- unless the
+        # run's results, read now, hold what it refused.
         refused = set(
             session_delivery.verified_unreachable_ids
             if session_delivery is not None
             else ()
-        )
+        ) - set(reread)
         open_declared = tuple(
             observable_id
             for observable_id in dict.fromkeys(
@@ -6015,10 +6106,24 @@ class GoalDriver:
                         if uncertified
                         else {}
                     ),
+                    **({"refusals_reread": dict(reread)} if reread else {}),
                 },
             )
             self.phase = "plan"
             return
+        reread_reasons = (
+            (
+                f"cycle {self.cycles}: refusals verified before this run's "
+                "results existed were read again against them and no longer "
+                "hold: "
+                + "; ".join(
+                    f"{observable_id} -- {basis}"
+                    for observable_id, basis in reread.items()
+                ),
+            )
+            if reread
+            else ()
+        )
         if achieved and open_delivery:
             # Same failure, nothing left to answer it with.
             if uncertified and not (
@@ -6038,7 +6143,9 @@ class GoalDriver:
                         else ""
                     )
                 )
-                self.ledger.settle("returned_to_human", reasons=(reason,))
+                self.ledger.settle(
+                    "returned_to_human", reasons=(reason, *reread_reasons)
+                )
                 self._settled(
                     "returned_to_human", open_declared or (chainless_prefix,)
                 )
@@ -6090,7 +6197,11 @@ class GoalDriver:
                 open_items = run_delivery.undelivered_declared_ids
             self.ledger.settle(
                 "returned_to_human",
-                reasons=(chainless_prefix, reason) if chainless else (reason,),
+                reasons=(
+                    *((chainless_prefix,) if chainless else ()),
+                    *reread_reasons,
+                    reason,
+                ),
             )
             self._settled("returned_to_human", open_items)
             return
