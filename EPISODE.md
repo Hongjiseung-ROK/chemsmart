@@ -346,6 +346,46 @@ Replays: each wake and re-wake these goals receive, recomposed on
 111dc55e (and G-h2's code, e8e8098e) from their own records, shows what
 the old words would have said.
 
+### Live goals G-h2b, G-h2c -- READ (CUHK 2153672, 2153673; code 57b1759e = 7bba78f3's chemsmart/, digest 943cc270; prereg 2b8441ab02a9)
+
+Physics, both inside every band: E(RKS) -0.9797177 Eh, external
+-0.1206682 Eh ('unstable'), internal 'stable' (+1.873), real->complex
+'stable' (+0.0719), BS below RKS by 0.0320598 Eh (20.12 kcal/mol),
+<S^2>(BS) 0.837.
+
+Points: neither run failed a criterion at cycle 1 (both reached cycle 2
+through a recovery row naming undelivered ids and a partial chain) and
+neither goal was re-woken. P-verdict and P-rewake: not exercised (N=0);
+B1-B4 unobserved. What the Agent did instead:
+- G-h2b: cycle 2 claimed the energy and the stability words, answered
+  both declared category questions with findings bound to host-read words,
+  and settled achieved_with_observations (two anomalies named) -- 2
+  cycles, 0 revisions.
+- G-h2c: cycle 2 did the same (both questions answered by host-read words,
+  the energy claimed), and the goal returned to the human on "cycle 2,
+  planning session: a required completion gate is red". A new host defect
+  (W10, below): the completion passed over a partial extraction
+  (reference_energy absent, 63ca261e); the loop asked only the
+  completion's own word and asserted "complete"; terminate read the
+  receipts beneath it and refused after the last turn; the typed-error
+  path settled without reading the delivery. The same stream settled with
+  the word the gate admits (settle_stream.py, blocked) gives
+  achieved_with_observations -- G-h2b's word.
+- the recovery rows both goals were woken with (analysis_status partial,
+  undelivered ids) are the P3 repair's; their cycle-2 wakes recomposed on
+  111dc55e differ only in the rule text and those trajectory fields.
+Census of the word: 3 goals settled on "a required completion gate is red"
+(ax41 e4p-cyclohexane-b1 and ino3-r11: the completion itself was partial,
+the shape the loop's SUFFICIENCY-2 repair covers; G-h2c: a passed
+completion over a red source, the shape it does not).
+
+- 18180d00 loop: a session asks the terminate gate's own question before it
+  calls itself complete, and a red gate names its receipt. Witness red on
+  57b1759e (the stream left open, "cycle 1, planning session: a required
+  completion gate is red"), green here (the session ends blocked naming
+  "<receipt> (result_quantities_extracted, partial)", the goal settles
+  achieved on its delivery).
+
 ## Defects found and left
 
 - tool_runtime.py ~6956-6975 (record_scientific_decision's
@@ -369,6 +409,29 @@ the old words would have said.
   workspace record, so a replayed recovery row can read later cycles'
   deliveries -- L-S2 c1's undelivered ids replay as [] there; the wake
   harness cuts the record and names them.)
+- executor.py _field: an analysis node's failure reason "host result does
+  not carry any of ('receipt_sha256',); the executor and the tool contract
+  have drifted apart" (G-tw cycle 2, node extract-bs, completion df89e137).
+  The same session's direct extract_result_quantities of the same three
+  quantities from the same artifact succeeded (92fcfdc2), so the words
+  name a contract drift the records do not show, and whatever the handler
+  returned is not recorded. The analysis-chain executor is outside this
+  radius. Falsifier: replay the node over the archived h5 through the
+  executor and read what the handler returned.
+- G-tw's settlement "e-rks-hartree stands attested at 0.001 hartree"
+  is true (the re-claim's basis "inferred" cited the energy's own
+  extraction, which the host does not count as evidence for a magnitude),
+  but it does not say why that citation did not back it. Precision and
+  sufficiency are another radius.
+- _settle (run path) still reads a run's verdicts from the run's stream
+  alone. A run re-typing, over the same result, a verdict an earlier
+  decision answered would be named unanswered there while the goal grain
+  calls it answered. No instance in either archive; left, with that
+  falsifier.
+- G-h2c's session answered its "stab_complex_verdict" with the external
+  (RKS->UKS) word, reading "complex" as the spin-symmetry-breaking channel;
+  its finding says so explicitly. The Agent's naming, not a host defect;
+  reported, not graded.
 
 ## Status
 
@@ -378,4 +441,8 @@ the old words would have said.
 - step 2 (repairs): seven commits, witnesses red on base and green here.
 - step 3: reference job R1 read; live goals G-tw, G-h2 read.
 - step 4: two repairs the live goals found (962d7ad1, 7bba78f3), replayed.
-- step 5: G-h2b, G-h2c pre-registered above; submission next.
+- step 5: G-h2b, G-h2c run and read; P-verdict and P-rewake not exercised;
+  G-h2c found W10 (18180d00, loop.py and runtime/event_store.py -- outside
+  the listed radius, isolated in one commit for the master's call).
+- gates on 18180d00: tests/agent 3149 passed, 0 failed (working tree);
+  final gates on the hand-back commit below.
