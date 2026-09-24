@@ -113,7 +113,51 @@ C. Live Agent goals where the answer depends on state identity.
 
 (written before each job is issued; never edited after its result)
 
-(none issued yet)
+### O1 -- one td request per manifold word, three programs (CLI oracle, job cli/oracle1)
+
+Tree: the packed commit in the job's code-commit.txt (61a46f4e or later,
+the three request-side commits). Level PBE0/def2-SVP everywhere; ORCA with
+`ri_approximation: none` (matched numerics, as Q7's O1). Geometries: Q7's
+Gaussian PBE0/def2-SVP minima of formaldehyde and s-trans acrolein
+(r10/q7/cli/oracle1/{form,acro}_opt.log, copied), and a Gaussian
+UPBE0/def2-SVP opt+freq of the allyl radical (doublet) run first in the
+same job from a rough C2v geometry. 25 CLI runs (commands.txt):
+formaldehyde and acrolein `singlet_triplet` nstates 3 and `triplet`
+nstates 3 in G/O/P; acrolein `singlet_triplet` nstates 6 in G/O/P; allyl
+`unrestricted` TD-DFT nstates 6, TDA nstates 6, TD-DFT nstates 10 in G/O/P.
+Same YAML for the three programs (ORCA adds NoRI).
+
+Bands (success / failure), each state paired by (multiplicity, manifold
+root) -- never by list position:
+- B1 ORCA `triplet` (new translation, `Triplets true` with the triplet
+  block served): its triplet roots equal the same program's
+  `singlet_triplet` triplet roots within 0.001 eV; within 0.008 eV of
+  Gaussian's `triplets` and PySCF's `triplet` roots.
+- B2 PySCF `singlet_triplet` (new, two blocks on one reference): its
+  triplet block equals PySCF's own `triplet` run within 1e-5 eV; its
+  singlets within 0.003 eV of Gaussian's 50-50 singlets, and every state
+  within 0.008 eV of ORCA's.
+- B3 Gaussian vs PySCF, every paired closed-shell state: within 0.003 eV;
+  vs ORCA-NoRI: within 0.008 eV (Q7 saw up to 0.0059, ORCA's TD kernel
+  grid); f within 0.002 absolute or 5 % relative.
+- B4 allyl `unrestricted`: ORCA runs UKS TD-DFT and TDA (a refusal by the
+  engine is a finding: the hub would then have to refuse that pair with a
+  route); G vs P roots within 0.005 eV, O within 0.010 eV of G; f within
+  0.002 absolute or 5 %; <S^2> G vs O within 0.01; TDA >= TD-DFT - 0.001
+  eV root by root in each program.
+- B5 (fact-finding, no band): whether each program's smaller window
+  (acrolein st3 vs st6; allyl u6 vs u10) equals the lowest roots of its
+  larger window within 0.001 eV. This measures falsifier (b) at the
+  windows an Agent requests.
+- B6 physics (wide): acrolein and formaldehyde T1 < S1 with T1 f = 0
+  exactly; acrolein T2 < S1 (Q7: 3.196 < 3.624); allyl's lowest doublet
+  excitation between 2.5 and 4.0 eV and a bright root (f > 0.05) between
+  4.0 and 6.5 eV.
+- Falsifier of the translation: any paired state > 0.02 eV apart between
+  programs for the same words, or ORCA `triplet` / PySCF `singlet_triplet`
+  roots that are not the roots of the other manifold words = the hub
+  translating one request into two calculations; no Agent goal is judged
+  against O1 until it is explained.
 
 ## Jobs issued
 
@@ -123,3 +167,7 @@ C. Live Agent goals where the answer depends on state identity.
 ## Status
 
 - step 0: base verified; probes P1 and P2 run on the base tree.
+- step 1: request side committed -- 5bc66a8f (shared: one reference rule),
+  6322d48e (shared: ORCA triplet + unrestricted; ORCA's %tddft reader),
+  61a46f4e (PySCF singlet_triplet). Every program now takes the four words
+  (fake previews green); none has run on an engine. O1 pre-registered.
