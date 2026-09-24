@@ -549,6 +549,8 @@ by the release, none changing an arm, a measure or a test:
 | 2152987 | r10-q17-b | hc1 slot b (dA P, dB S/U, dE P) | a3eda4485329 | COMPLETED 0:35:02; 4 goals, mechanics pass |
 | 2153435 | r10-q17-a | sealed1 plan slot a (39 goals) | 19b5352e3f59 | COMPLETED 2:50:31, exit 0:0; both arms' imports and digests verified on the node; tasks manifest 12079111... and plan f60980d1... re-computed equal; stopped on STOP after its 15th goal |
 | 2153436 | r10-q17-b | sealed1 plan slot b (38 goals) | 19b5352e3f59 | COMPLETED 2:54:07, exit 0:0; wrote STOP at 18:55:25 UTC (below), started no goal after it |
+| 2153652 | r10-q17-a | sealed1 continuation, slot a (25 remaining), runner eb77fd11 | e9d20b0b2ca8 | RUNNING (started 19:02 UTC) |
+| 2153653 | r10-q17-b | sealed1 continuation, slot b (23 remaining), runner eb77fd11 | e9d20b0b2ca8 | RUNNING (started 19:02 UTC) |
 
 ### STOP on a recovered throttle (2026-09-24 18:55 UTC), and the continuation
 
@@ -574,6 +576,11 @@ by the release, none changing an arm, a measure or a test:
   version kept beside it as run_sessions_v2_9ebfce01.py); the same job
   scripts resubmitted, which skip the 29 goals with meta.json and run the
   remaining 48 in plan order (slot a 25, slot b 23).
+- Continuation submitted 19:02 UTC as 2153652 (slot a) and 2153653 (slot
+  b), pre-registration digest e9d20b0b2ca8; both re-verified both arms'
+  code digests (0144da20..., 6b48ed8a...), the tasks manifest (12079111...)
+  and the plan (f60980d1...), skipped the 29 finished goals (14 + 15) and
+  started the next goal in plan order on each slot.
 
 ### The master's ruling on the stop rule (2026-09-25, recorded 16:15 UTC, 2 goals done, no STOP yet)
 
