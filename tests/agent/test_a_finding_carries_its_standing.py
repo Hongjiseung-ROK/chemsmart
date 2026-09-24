@@ -768,6 +768,84 @@ def test_a_category_delivers_the_word_the_host_read_not_the_sentence(
     assert answer < sentence
 
 
+_OPT_LOG = _ROOT / "tests/data/GaussianTests/outputs/collidine_opt.log"
+
+
+@pytest.mark.capability("selector:gaussian:opt:converged")
+def test_a_category_is_answered_by_a_count_the_host_read(tmp_path):
+    """The master's smoke goal (R10, 2026-09-24): a yes/no question was
+    declared as a category and the session's finding rested on
+    minimum-verdict == 1, an integer the host had rendered; the relation
+    held and the question stayed unanswered, refused with "nothing the
+    host read answers the question". A count or verdict the host read is
+    read as surely as a word the program printed, and an == over it is
+    the answer; the sentence stays the session's interpretation."""
+
+    build = tmp_path / "count-build"
+    host = _host(build / "events.jsonl", tmp_path / "count-workspace")
+    _declare(
+        host,
+        [
+            {
+                "observable_id": "optimisation-converged",
+                "unit": "category",
+                "meaning": "whether the optimisation met its criteria",
+            }
+        ],
+    )
+    _register(host, _OPT_LOG, "collidine-opt", "gaussian_output")
+    receipt = _extract(
+        host, "gaussian", "collidine-opt", [("conv", "converged")]
+    )
+    claimed = _claim(
+        host,
+        [
+            {
+                "claim_id": "opt-converged",
+                "receipt_sha256": receipt,
+                "quantity_id": "conv",
+                "display_unit": "1",
+            }
+        ],
+    )
+    assert claimed["status"] == "ok", claimed
+    reply = _decide(
+        host,
+        [
+            {
+                "finding_id": "converged-yes",
+                "statement": "Yes: the optimisation converged.",
+                "answers_observable_id": "optimisation-converged",
+                "rests_on": [
+                    {
+                        "claim_id": "opt-converged",
+                        "relation": "==",
+                        "value": 1,
+                    }
+                ],
+            }
+        ],
+    )
+    assert reply["status"] == "ok", reply
+    (finding,) = reply["result"]["findings"]
+    assert finding["standing"] == "answers"
+    (word,) = finding["answer"]
+    assert word["word"] == "1"
+    assert word["selector"] == "converged"
+    host.completion_receipts_for_delivered_claims()
+    rows = tuple(
+        json.loads(line)
+        for line in (build / "events.jsonl").read_text().splitlines()
+        if line.strip()
+    )
+    completion = next(
+        row for row in rows if row["kind"] == "analysis_completion_evaluated"
+    )["payload"]
+    assert "declared_observable:optimisation-converged" not in (
+        completion.get("limitation_output_ids") or []
+    )
+
+
 def test_an_unanswered_question_is_a_limitation_naming_the_route(tmp_path):
     rows = _session_rows(tmp_path, answer=False, unrequested=False)
     completion = next(

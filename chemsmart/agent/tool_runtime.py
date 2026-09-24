@@ -4455,10 +4455,11 @@ class CommandCompiledToolHostV1:
                     continue
                 misses.append(
                     f"declared question {observable_id!r} (category) has "
-                    "no word the host read answering it; claim the word the "
-                    "program printed and record a finding with "
+                    "no word or integer the host read answering it; claim "
+                    "the word the program printed or a count the host "
+                    "rendered, and record a finding with "
                     f"answers_observable_id {observable_id!r} resting on "
-                    "'<that claim> == <the word>'"
+                    "'<that claim> == <the value>'"
                 )
                 limitations.append(f"declared_observable:{observable_id}")
                 continue
@@ -7492,12 +7493,22 @@ class CommandCompiledToolHostV1:
         question answered by a finding resting only on a bond distance,
         and a finding saying "UNSTABLE" over a relation that read
         'stable': the completion's word was false both times.
+
+        A count or a verdict the host rendered as an integer answers too:
+        the master's smoke goal (R10, 2026-09-24) rested a yes/no question
+        on minimum-verdict == 1, the relation held, and the refusal said
+        nothing the host read answered it. An integer is compared exactly,
+        as a word is; a real number is not, so a distance still answers
+        nothing.
         """
 
         answer: list[dict[str, Any]] = []
         for row in relations:
             left = row.get("left") or {}
-            if row.get("relation") != "==" or left.get("data_kind") != "text":
+            if row.get("relation") != "==" or left.get("data_kind") not in (
+                "text",
+                "integer",
+            ):
                 continue
             source = str(left.get("source_receipt_sha256") or "")
             quantity_id = str(left.get("quantity_id") or "")
@@ -7506,13 +7517,23 @@ class CommandCompiledToolHostV1:
             bindings = bindings or dict(
                 self.quantity_extraction_bindings.get(source) or {}
             )
+            value = left.get("value")
             answer.append(
                 {
                     "claim_id": str(left.get("claim_id") or ""),
-                    "word": left.get("value"),
+                    "word": (
+                        value
+                        if left.get("data_kind") == "text"
+                        else str(int(value))
+                    ),
                     "selector": str(bindings.get(quantity_id) or ""),
                     "source_receipt_sha256": source,
                     "quantity_id": quantity_id,
+                    **(
+                        {"data_kind": "integer"}
+                        if left.get("data_kind") == "integer"
+                        else {}
+                    ),
                 }
             )
         if not answer:
@@ -7525,26 +7546,28 @@ class CommandCompiledToolHostV1:
             raise RoutedContractError(
                 gate="finding.answers_through_a_word_the_host_read",
                 invariant=(
-                    "a declared category is answered by a word the host "
-                    "read, bound to it through an == relation that holds "
-                    "over the claim of that word; the finding's sentence is "
-                    "the session's interpretation, shown beside the word."
+                    "a declared category is answered by a word or an "
+                    "integer the host read, bound to it through an == "
+                    "relation that holds over its claim; the finding's "
+                    "sentence is the session's interpretation, shown beside "
+                    "it."
                 ),
                 diagnosis=(
                     f"finding {finding_id!r} answers {observable_id!r} and "
-                    f"rests on {read}: none is an == over a word the "
-                    "program printed, so nothing the host read answers the "
-                    "question."
+                    f"rests on {read}: none is an == over a word or an "
+                    "integer claim, and a real number equals a value only to "
+                    "a precision nobody stated."
                 ),
                 route=(
-                    "claim the word the program printed with "
-                    "record_analysis_claims (its extraction's selector, "
-                    "e.g. scf_stability_external or irc_direction) and "
-                    "rest the answer on '<that claim> == <the word>'; keep "
-                    "the other relations as support, or record the finding "
-                    "without answers_observable_id -- a relation between "
-                    "numbers stands as a finding, and the number it rests "
-                    "on is delivered by its own claim"
+                    "claim the word the program printed (its extraction's "
+                    "selector, e.g. scf_stability_external or irc_direction) "
+                    "or a count the host rendered, with "
+                    "record_analysis_claims, and rest the answer on '<that "
+                    "claim> == <the value>'; keep the other relations as "
+                    "support, or record the finding without "
+                    "answers_observable_id -- a relation between numbers "
+                    "stands as a finding, and the number it rests on is "
+                    "delivered by its own claim"
                 ),
             )
         return tuple(answer)
